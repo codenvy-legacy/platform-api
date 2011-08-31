@@ -23,23 +23,21 @@ import org.exoplatform.ide.vfs.shared.Item;
 import com.google.gwt.event.shared.GwtEvent;
 
 /**
- * Created by The eXo Platform SAS .
- * 
- * @author <a href="mailto:gavrikvetal@gmail.com">Vitaliy Gulyy</a>
- * @version $
+ * @author <a href="mailto:evidolob@exoplatform.com">Evgen Vidolob</a>
+ * @version $Id:  Aug 31, 2011 evgen $
+ *
  */
-
-public class ItemUnlockedEvent extends GwtEvent<ItemUnlockedHandler>
+public class ItemPropertiesSavedEvent extends GwtEvent<ItemPropertiesSavedHandler>
 {
 
-   public static final GwtEvent.Type<ItemUnlockedHandler> TYPE = new Type<ItemUnlockedHandler>();
+   public static final GwtEvent.Type<ItemPropertiesSavedHandler> TYPE = new Type<ItemPropertiesSavedHandler>();
 
    private Item item;
 
    /**
     * @param item
     */
-   public ItemUnlockedEvent(Item item)
+   public ItemPropertiesSavedEvent(Item item)
    {
       super();
       this.item = item;
@@ -49,7 +47,7 @@ public class ItemUnlockedEvent extends GwtEvent<ItemUnlockedHandler>
     * @see com.google.gwt.event.shared.GwtEvent#getAssociatedType()
     */
    @Override
-   public com.google.gwt.event.shared.GwtEvent.Type<ItemUnlockedHandler> getAssociatedType()
+   public com.google.gwt.event.shared.GwtEvent.Type<ItemPropertiesSavedHandler> getAssociatedType()
    {
       return TYPE;
    }
@@ -58,9 +56,9 @@ public class ItemUnlockedEvent extends GwtEvent<ItemUnlockedHandler>
     * @see com.google.gwt.event.shared.GwtEvent#dispatch(com.google.gwt.event.shared.EventHandler)
     */
    @Override
-   protected void dispatch(ItemUnlockedHandler handler)
+   protected void dispatch(ItemPropertiesSavedHandler handler)
    {
-      handler.onItemUnlocked(this);
+      handler.onItemPropertiesSaved(this);
    }
 
    /**

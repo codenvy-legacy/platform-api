@@ -19,77 +19,27 @@
 package org.exoplatform.ide.vfs.shared;
 
 /**
- * Representation of LockToken used to interaction with client via JSON. A lock token is a opaque token, which
- * identifies a
- * particular lock. Is used for replace existed lock or performing actions on locked object.
+ * Interface describe object lock token.
+ * 
+ * @author <a href="mailto:azatsarynnyy@exoplatform.org">Artem Zatsarynnyy</a>
+ * @version $Id: LockToken.java Mar 27, 2012 10:34:26 AM azatsarynnyy $
  *
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id$
  */
-public class LockToken
+public interface LockToken
 {
-   private String token;
-
-   public LockToken()
-   {
-   }
 
    /**
-    * @param token string representation of lock token
-    * @throws IllegalArgumentException if <code>token == null</code>
+    * Returns the lock token.
+    * 
+    * @return the lock token
     */
-   public LockToken(String token)
-   {
-      if (token == null)
-      {
-         throw new IllegalArgumentException("Lock token may not be null. ");
-      }
-      this.token = token;
-   }
+   public String getLockToken();
 
-   public String getLockToken()
-   {
-      return token;
-   }
+   /**
+    * Set the lock token.
+    * 
+    * @param token the lock token
+    */
+   public void setLockToken(String token);
 
-   public void setLockToken(String token)
-   {
-      if (token == null)
-      {
-         throw new IllegalArgumentException("Lock token may not be null. ");
-      }
-      this.token = token;
-   }
-
-   /** @see java.lang.Object#equals(java.lang.Object) */
-   @Override
-   public boolean equals(Object obj)
-   {
-      if (this == obj)
-      {
-         return true;
-      }
-      if ((obj == null) || (obj.getClass() != this.getClass()) || (token == null))
-      {
-         return false;
-      }
-      LockToken otherLockToken = (LockToken)obj;
-      return token.equals(otherLockToken.token);
-   }
-
-   /** @see java.lang.Object#hashCode() */
-   @Override
-   public int hashCode()
-   {
-      int hash = 8;
-      hash = hash * 31 + token.hashCode();
-      return hash;
-   }
-
-   /** @see java.lang.Object#toString() */
-   @Override
-   public String toString()
-   {
-      return "LockToken [token=" + token + ']';
-   }
 }

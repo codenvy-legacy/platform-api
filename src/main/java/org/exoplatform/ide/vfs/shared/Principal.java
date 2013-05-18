@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 eXo Platform SAS.
+ * Copyright (C) 2013 eXo Platform SAS.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -16,16 +16,22 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.ide.vfs.server.impl.memory.context;
 
-import com.codenvy.ide.commons.server.NameGenerator;
+package org.exoplatform.ide.vfs.shared;
 
-/**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @version $Id: $
- */
-public class ObjectIdGenerator {
-    public static String generateId() {
-        return NameGenerator.generate(null, 32);
+/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+public interface Principal {
+
+    public enum Type {
+        USER,
+        GROUP
     }
+
+    String getName();
+
+    void setName(String name);
+
+    Type getType();
+
+    void setType(Type type);
 }

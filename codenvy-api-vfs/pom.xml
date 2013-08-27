@@ -138,36 +138,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>**/GwtTest*.java</exclude>
-                        <exclude>**/*Gwt*Suite*.java</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>gwt-maven-plugin</artifactId>
-                <configuration>
-                    <module>org.exoplatform.ide.vfs.IDEVFS</module>
-                    <logLevel>ERROR</logLevel>
-                    <skipTests>${gwt.test.skip}</skipTests>
-                    <testTimeOut>500</testTimeOut>
-                    <mode>htmlunit</mode>
-                    <productionMode>false</productionMode>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 </project>

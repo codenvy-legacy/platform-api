@@ -8,7 +8,7 @@
     </parent>
     <artifactId>codenvy-api-vfs</artifactId>
     <packaging>jar</packaging>
-    <name>Codenvy IDE :: Virtual File System</name>
+    <name>Codenvy Virtual File System API</name>
     <dependencies>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
@@ -86,58 +86,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/java</directory>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-        </resources>
-        <testResources>
-            <testResource>
-                <directory>src/test/java</directory>
-            </testResource>
-            <testResource>
-                <directory>src/test/resources</directory>
-            </testResource>
-        </testResources>
-        <plugins>
-            <plugin>
-                <artifactId>maven-war-plugin</artifactId>
-                <configuration>
-                    <archiveClasses>true</archiveClasses>
-                    <archive>
-                        <manifest>
-                            <addClasspath>false</addClasspath>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-prod-resources</id>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/www-test/WEB-INF/</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${basedir}/src/test/resources/webapp/WEB-INF</directory>
-                                    <filtering>true</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>

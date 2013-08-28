@@ -45,7 +45,7 @@
         <google.gson.version>2.1</google.gson.version>
     </properties>
     <modules>
-        <module>codenvy-api-tools</module>
+        <module>codenvy-api-core</module>
         <module>codenvy-api-vfs</module>
         <module>codenvy-builder-api-tools</module>
         <!--module>codenvy-project-api</module>

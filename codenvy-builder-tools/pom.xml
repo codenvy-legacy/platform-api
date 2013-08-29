@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>codenvy-builder-api-tools</artifactId>
-    <name>Codenvy API Builder Tools</name>
+    <name>Codenvy Builder Tools</name>
     <packaging>jar</packaging>
 
     <dependencies>

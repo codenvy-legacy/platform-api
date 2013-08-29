@@ -26,8 +26,8 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>codenvy-api-core</artifactId>
-    <name>Codenvy Core API</name>
+    <artifactId>codenvy-project-api</artifactId>
+    <name>Codenvy Resource API</name>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -37,9 +37,19 @@
             <version>${codenvy-commons.version}</version>
         </dependency>
         <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>3.5.2</version>
+            <groupId>com.codenvy.commons</groupId>
+            <artifactId>codenvy-commons-json</artifactId>
+            <version>${codenvy-commons.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-api-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-api-vfs</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
@@ -54,31 +64,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <profiles>
-        <profile>
-            <id>linux</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <name>linux</name>
-                </os>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <includes>
-                                <include>com/codenvy/core/api/process/ProcessUtilTest.java</include>
-                                <include>com/codenvy/core/api/StandardLinuxShellTest.java</include>
-                                <include>com/codenvy/core/api/process/WatchdogTest.java</include>
-                                <include>com/codenvy/core/api/concurrent/ThreadLocalPropagateContextTest.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

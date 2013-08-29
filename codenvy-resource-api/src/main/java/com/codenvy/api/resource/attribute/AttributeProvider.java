@@ -15,15 +15,27 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.tools.builder.ant;
+package com.codenvy.api.resource.attribute;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class AntMessageTypes {
-    public static final int BUILD_ERROR      = -1;
-    public static final int BUILD_STARTED    = 1;
-    public static final int BUILD_SUCCESSFUL = 1 << 1;
-    public static final int BUILD_LOG        = 1 << 2;
+import org.exoplatform.ide.vfs.shared.Item;
 
-    private AntMessageTypes() {
+/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+public abstract class AttributeProvider<T> {
+    private final String name;
+    private final String vfsPropertyName;
+
+    protected AttributeProvider(String name, String vfsPropertyName) {
+        this.name = name;
+        this.vfsPropertyName = vfsPropertyName;
     }
+
+    public final String getName() {
+        return name;
+    }
+
+    public final String getVfsPropertyName() {
+        return vfsPropertyName;
+    }
+
+    public abstract Attribute<T> getAttribute(Item item);
 }

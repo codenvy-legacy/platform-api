@@ -30,7 +30,7 @@
         <commons-codec.version>1.6</commons-codec.version>
         <commons-io.version>2.1</commons-io.version>
         <commons-fileupload.version>1.2.1</commons-fileupload.version>
-        <codenvy-commons.version>0.6-SNAPSHOT</codenvy-commons.version>
+        <codenvy-commons.version>0.8.0-SNAPSHOT</codenvy-commons.version>
 
         <!-- TODO: remove -->
         <org.exoplatform.core.version>2.4.9-GA</org.exoplatform.core.version>
@@ -47,8 +47,8 @@
     <modules>
         <module>codenvy-api-core</module>
         <module>codenvy-api-vfs</module>
-        <module>codenvy-builder-api-tools</module>
-        <!--module>codenvy-project-api</module>
-        <module>codenvy-api</module-->
+        <module>codenvy-resource-api</module>
+        <module>codenvy-builder-tools</module>
+        <!--module>codenvy-api</module-->
     </modules>
 </project>

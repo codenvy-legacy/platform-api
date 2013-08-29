@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.tools.builder.maven;
+package com.codenvy.builder.tools.maven;
 
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;

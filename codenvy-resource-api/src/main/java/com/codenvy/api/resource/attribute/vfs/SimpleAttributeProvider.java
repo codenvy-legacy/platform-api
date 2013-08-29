@@ -20,7 +20,7 @@ package com.codenvy.api.resource.attribute.vfs;
 import com.codenvy.api.resource.attribute.Attribute;
 import com.codenvy.api.resource.attribute.AttributeProvider;
 
-import org.exoplatform.ide.vfs.shared.Item;
+import com.codenvy.api.vfs.shared.Item;
 
 /**
  * Maps property of virtual file system item to attribute.

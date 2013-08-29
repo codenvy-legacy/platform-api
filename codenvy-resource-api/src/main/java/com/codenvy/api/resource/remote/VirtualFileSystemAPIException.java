@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.resource.remote;
 
-import org.exoplatform.ide.vfs.server.exceptions.VirtualFileSystemException;
-import org.exoplatform.ide.vfs.server.exceptions.VirtualFileSystemRuntimeException;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 
 /**
  * Represents error from remote server.

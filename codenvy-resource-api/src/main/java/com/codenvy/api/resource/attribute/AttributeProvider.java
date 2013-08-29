@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.resource.attribute;
 
-import org.exoplatform.ide.vfs.shared.Item;
+import com.codenvy.api.vfs.shared.Item;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public abstract class AttributeProvider<T> {

@@ -20,7 +20,7 @@ package com.codenvy.api.resource;
 import com.codenvy.api.resource.attribute.Attribute;
 import com.codenvy.api.resource.attribute.Attributes;
 
-import org.exoplatform.ide.vfs.shared.Lock;
+import com.codenvy.api.vfs.shared.Lock;
 
 import java.io.IOException;
 import java.io.InputStream;

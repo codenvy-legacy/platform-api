@@ -24,9 +24,9 @@ import com.codenvy.api.resource.Resource;
 import com.codenvy.api.resource.VirtualFileSystemConnector;
 import com.codenvy.api.resource.attribute.Attributes;
 
-import org.exoplatform.ide.vfs.server.VirtualFileSystem;
-import org.exoplatform.ide.vfs.shared.Item;
-import org.exoplatform.ide.vfs.shared.Lock;
+import com.codenvy.api.vfs.server.VirtualFileSystem;
+import com.codenvy.api.vfs.shared.Item;
+import com.codenvy.api.vfs.shared.Lock;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -21,7 +21,7 @@ import com.codenvy.api.resource.attribute.Attribute;
 import com.codenvy.api.resource.attribute.AttributeProvider;
 import com.codenvy.api.resource.attribute.Attributes;
 
-import org.exoplatform.ide.vfs.shared.Item;
+import com.codenvy.api.vfs.shared.Item;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class LastUpdateTimeProvider extends AttributeProvider<Long> {

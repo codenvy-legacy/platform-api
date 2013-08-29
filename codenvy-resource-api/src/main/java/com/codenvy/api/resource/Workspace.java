@@ -20,7 +20,7 @@ package com.codenvy.api.resource;
 import com.codenvy.api.resource.local.LocalVirtualFileSystemConnector;
 import com.codenvy.api.resource.remote.RemoteVirtualFileSystemConnector;
 
-import org.exoplatform.ide.vfs.server.VirtualFileSystem;
+import com.codenvy.api.vfs.server.VirtualFileSystem;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Workspace {

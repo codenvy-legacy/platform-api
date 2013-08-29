@@ -24,8 +24,8 @@ import com.codenvy.api.resource.attribute.vfs.LastUpdateTimeProvider;
 import com.codenvy.api.resource.attribute.vfs.ProjectTypeProvider;
 import com.codenvy.api.resource.attribute.vfs.SimpleAttributeProvider;
 
-import org.exoplatform.ide.vfs.shared.Item;
-import org.exoplatform.ide.vfs.shared.Lock;
+import com.codenvy.api.vfs.shared.Item;
+import com.codenvy.api.vfs.shared.Lock;
 
 import java.io.IOException;
 import java.io.InputStream;

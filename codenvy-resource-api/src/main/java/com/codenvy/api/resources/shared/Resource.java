@@ -15,9 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource;
-
-import com.codenvy.api.resource.attribute.Attributes;
+package com.codenvy.api.resources.shared;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public abstract class Resource {
@@ -26,6 +24,8 @@ public abstract class Resource {
     private final   String                     id;
     private final   String                     name;
     private final   Folder                     parent;
+    private         Attributes                 attributes;
+    private         AccessControlList          acl;
     boolean valid = true;
 
     protected Resource(VirtualFileSystemConnector connector, Folder parent, String type, String id, String name) {
@@ -70,14 +70,15 @@ public abstract class Resource {
     }
 
     public Attributes getAttributes() {
-        checkValid();
-        return connector.getAttributes(this);
+        return getAttributes(false);
     }
 
-    protected final void checkValid() {
-        if (!valid) {
-            throw new IllegalStateException("Resource is not valid any more. Probably it was moved, renamed or deleted");
+    public Attributes getAttributes(boolean renew) {
+        checkValid();
+        if (attributes == null || renew) {
+            attributes = connector.getAttributes(this);
         }
+        return attributes;
     }
 
     public Resource move(Folder newparent) {
@@ -98,5 +99,23 @@ public abstract class Resource {
         checkValid();
         connector.delete(this);
         valid = false;
+    }
+
+    public AccessControlList getACL() {
+        return getACL(false);
+    }
+
+    public AccessControlList getACL(boolean renew) {
+        checkValid();
+        if (acl == null || renew) {
+            acl = connector.loadACL(this);
+        }
+        return acl;
+    }
+
+    protected final void checkValid() {
+        if (!valid) {
+            throw new IllegalStateException("Resource is not valid any more. Probably it was moved, renamed or deleted");
+        }
     }
 }

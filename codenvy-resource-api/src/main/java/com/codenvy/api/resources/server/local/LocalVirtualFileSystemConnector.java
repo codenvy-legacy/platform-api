@@ -15,14 +15,15 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource.local;
+package com.codenvy.api.resources.server.local;
 
-import com.codenvy.api.resource.File;
-import com.codenvy.api.resource.Folder;
-import com.codenvy.api.resource.Project;
-import com.codenvy.api.resource.Resource;
-import com.codenvy.api.resource.VirtualFileSystemConnector;
-import com.codenvy.api.resource.attribute.Attributes;
+import com.codenvy.api.resources.shared.AccessControlList;
+import com.codenvy.api.resources.shared.File;
+import com.codenvy.api.resources.shared.Folder;
+import com.codenvy.api.resources.shared.Project;
+import com.codenvy.api.resources.shared.Resource;
+import com.codenvy.api.resources.shared.Attributes;
+import com.codenvy.api.resources.shared.VirtualFileSystemConnector;
 
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.shared.Item;
@@ -96,7 +97,7 @@ public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnector 
     }
 
     @Override
-    public void updateAttributes(Resource resource, Attributes attributes) {
+    public void updateAttributes(Attributes attributes) {
         throw new UnsupportedOperationException();
     }
 
@@ -111,12 +112,22 @@ public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnector 
     }
 
     @Override
-    public Lock lock(File file) {
+    public Lock lock(File file, long timeout) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void unlock(File file, String lockToken) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public AccessControlList loadACL(Resource resource) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateACL(AccessControlList acl) {
         throw new UnsupportedOperationException();
     }
 

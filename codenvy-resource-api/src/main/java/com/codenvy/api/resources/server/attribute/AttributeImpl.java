@@ -15,10 +15,12 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource.attribute;
+package com.codenvy.api.resources.server.attribute;
+
+import com.codenvy.api.resources.shared.Attribute;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class Attribute<T> {
+public class AttributeImpl<T> implements Attribute<T> {
     private final String  name;
     private final String  displayName;
     private final boolean readOnly;
@@ -26,7 +28,7 @@ public class Attribute<T> {
     private       T       value;
     private       boolean updated;
 
-    public Attribute(String name, String displayName, boolean readOnly, boolean persistent, T value) {
+    public AttributeImpl(String name, String displayName, boolean readOnly, boolean persistent, T value) {
         this.name = name;
         this.displayName = displayName;
         this.readOnly = readOnly;
@@ -34,30 +36,37 @@ public class Attribute<T> {
         this.value = value;
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    @Override
     public boolean isReadOnly() {
         return readOnly;
     }
 
+    @Override
     public boolean isPersistent() {
         return persistent;
     }
 
+    @Override
     public boolean isUpdated() {
         return updated;
     }
 
+    @Override
     public T getValue() {
         return value;
     }
 
+    @Override
     public void setValue(T value) {
         this.value = value;
         updated = true;

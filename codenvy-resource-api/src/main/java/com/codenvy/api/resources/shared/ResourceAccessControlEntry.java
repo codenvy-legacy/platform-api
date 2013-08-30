@@ -15,23 +15,21 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource.attribute.vfs;
+package com.codenvy.api.resources.shared;
 
-import com.codenvy.api.resource.attribute.Attribute;
-import com.codenvy.api.resource.attribute.AttributeProvider;
-import com.codenvy.api.resource.attribute.Attributes;
+import com.codenvy.api.vfs.shared.Principal;
 
-import com.codenvy.api.vfs.shared.Item;
+import java.util.Collection;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class ContentTypeProvider extends AttributeProvider<String> {
+public interface ResourceAccessControlEntry {
+    Principal getPrincipal();
 
-    public ContentTypeProvider() {
-        super(Attributes.CONTENT_TYPE, "vfs:mimeType");
-    }
+    Collection<String> getPermissions();
 
-    @Override
-    public Attribute<String> getAttribute(Item item) {
-        return new Attribute<>(getName(), "Content type", false, true, item.getPropertyValue(getVfsPropertyName()));
-    }
+    void setPermissions(Collection<String> permissions);
+
+    boolean hasPermission(String permission);
+
+    boolean isUpdated();
 }

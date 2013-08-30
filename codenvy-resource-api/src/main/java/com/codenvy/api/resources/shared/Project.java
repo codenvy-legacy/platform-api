@@ -15,9 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource;
-
-import com.codenvy.api.resource.attribute.Attributes;
+package com.codenvy.api.resources.shared;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Project extends Folder {
@@ -38,12 +36,12 @@ public class Project extends Folder {
 
     public String getDescription() {
         checkValid();
-        return (String)getAttributes().getAttribute(Attributes.DESCRIPTION).getValue();
+        return ""; // TODO
     }
 
     public String getType() {
         checkValid();
-        return (String)getAttributes().getAttribute(Attributes.PROJECT_TYPE).getValue();
+        return (String)getAttributes().getAttribute("vfs:projectType").getValue();
     }
 
     public Project createProject(String name) {

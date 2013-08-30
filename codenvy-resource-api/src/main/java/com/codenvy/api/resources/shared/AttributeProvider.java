@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource.attribute;
+package com.codenvy.api.resources.shared;
 
 import com.codenvy.api.vfs.shared.Item;
 

@@ -15,51 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource;
-
-import com.codenvy.api.resource.attribute.AttributeProvider;
-import com.codenvy.api.resource.attribute.Attributes;
-import com.codenvy.api.resource.attribute.vfs.ContentTypeProvider;
-import com.codenvy.api.resource.attribute.vfs.LastUpdateTimeProvider;
-import com.codenvy.api.resource.attribute.vfs.ProjectTypeProvider;
-import com.codenvy.api.resource.attribute.vfs.SimpleAttributeProvider;
+package com.codenvy.api.resources.shared;
 
 import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.Lock;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public abstract class VirtualFileSystemConnector {
-    private static Map<String, AttributeProvider<?>> attributeProviders = new HashMap<>();
-
-    public static void addAttributeProvider(AttributeProvider<?> attributeProvider) {
-        attributeProviders.put(attributeProvider.getName(), attributeProvider);
-    }
-
-    public static Set<String> getAttributeProviderNames() {
-        return new HashSet<>(attributeProviders.keySet());
-    }
-
-    public static AttributeProvider<?> getAttributeProvider(String name) {
-        AttributeProvider<?> attrProv = attributeProviders.get(name);
-        if (attrProv == null) {
-            attrProv = new SimpleAttributeProvider(name);
-        }
-        return attrProv;
-    }
-
-    static {
-        addAttributeProvider(new ContentTypeProvider());
-        addAttributeProvider(new ProjectTypeProvider());
-        addAttributeProvider(new LastUpdateTimeProvider());
-    }
-
     private final String name;
 
     public VirtualFileSystemConnector(String name) {
@@ -92,15 +57,19 @@ public abstract class VirtualFileSystemConnector {
 
     public abstract Attributes getAttributes(Resource resource);
 
-    public abstract void updateAttributes(Resource resource, Attributes attributes);
+    public abstract void updateAttributes(Attributes attributes);
 
     public abstract Resource rename(Resource resource, String newname, String contentType);
 
     public abstract Resource move(Resource resource, Folder newparent);
 
-    public abstract Lock lock(File file);
+    public abstract Lock lock(File file, long timeout);
 
     public abstract void unlock(File file, String lockToken);
+
+    public abstract AccessControlList loadACL(Resource resource);
+
+    public abstract void updateACL(AccessControlList acl);
 
     public abstract Item getVfsItem(Resource resource);
 }

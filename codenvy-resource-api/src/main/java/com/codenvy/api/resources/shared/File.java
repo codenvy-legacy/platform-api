@@ -15,10 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource;
-
-import com.codenvy.api.resource.attribute.Attribute;
-import com.codenvy.api.resource.attribute.Attributes;
+package com.codenvy.api.resources.shared;
 
 import com.codenvy.api.vfs.shared.Lock;
 
@@ -51,18 +48,14 @@ public class File extends Resource {
         return true;
     }
 
+    public String getContentType() {
+        checkValid();
+        return (String)getAttributes().getAttribute("vfs:mimeType").getValue();
+    }
+
     public InputStream getContentStream() throws IOException {
         checkValid();
         return connector.getContentStream(this);
-    }
-
-    public String getContentType() {
-        checkValid();
-        final Attribute contentType = getAttributes().getAttribute(Attributes.CONTENT_TYPE);
-        if (contentType != null) {
-            return (String)contentType.getValue();
-        }
-        return null;
     }
 
     public void setContentStream(InputStream data, String contentType) throws IOException {
@@ -75,9 +68,9 @@ public class File extends Resource {
         return locked;
     }
 
-    public Lock lock() {
+    public Lock lock(long timeout) {
         checkValid();
-        Lock lock = connector.lock(this);
+        Lock lock = connector.lock(this, timeout);
         locked = true;
         return lock;
     }

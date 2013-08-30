@@ -77,7 +77,8 @@ public class LinksHelper {
                                    Link.REL_UNLOCK, null));
         } else {
             links.put(Link.REL_LOCK, //
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "lock", itemId), Link.REL_LOCK, MediaType.APPLICATION_JSON));
+                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "lock", itemId, "timeout", "[timeout]"),
+                                   Link.REL_LOCK, MediaType.APPLICATION_JSON));
         }
 
         links.put(Link.REL_DELETE, //
@@ -241,7 +242,8 @@ public class LinksHelper {
                                              "[lockToken]"), Link.REL_MOVE, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_LOCK,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "lock", "[id]"), Link.REL_LOCK, MediaType.APPLICATION_JSON));
+                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "lock", "[id]", "timeout", "[timeout]"),
+                                   Link.REL_LOCK, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_UNLOCK,
                       new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "unlock", "[id]", "lockToken", "[lockToken]"),

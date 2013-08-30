@@ -65,8 +65,8 @@ public class PrincipalImpl implements Principal {
         if (!(o instanceof Principal)) {
             return false;
         }
-        final PrincipalImpl other = (PrincipalImpl)o;
-        return name.equals(other.name) && type == other.type;
+        final Principal other = (Principal)o;
+        return name.equals(other.getName()) && type == other.getType();
     }
 
     @Override

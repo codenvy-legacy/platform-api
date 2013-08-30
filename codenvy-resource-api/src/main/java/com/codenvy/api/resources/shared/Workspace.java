@@ -15,26 +15,13 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource;
-
-import com.codenvy.api.resource.local.LocalVirtualFileSystemConnector;
-import com.codenvy.api.resource.remote.RemoteVirtualFileSystemConnector;
-
-import com.codenvy.api.vfs.server.VirtualFileSystem;
+package com.codenvy.api.resources.shared;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Workspace {
     private final VirtualFileSystemConnector virtualFileSystemConnector;
 
-    public Workspace(String name, VirtualFileSystem vfs) {
-        this(new LocalVirtualFileSystemConnector(name, vfs));
-    }
-
-    public Workspace(String name, String remoteUrl) {
-        this(new RemoteVirtualFileSystemConnector(name, remoteUrl));
-    }
-
-    protected Workspace(VirtualFileSystemConnector virtualFileSystemConnector) {
+    public Workspace(VirtualFileSystemConnector virtualFileSystemConnector) {
         this.virtualFileSystemConnector = virtualFileSystemConnector;
     }
 

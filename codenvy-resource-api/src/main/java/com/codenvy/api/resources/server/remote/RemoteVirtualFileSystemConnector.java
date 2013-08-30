@@ -15,23 +15,21 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource.remote;
+package com.codenvy.api.resources.server.remote;
 
-import com.codenvy.api.resource.File;
-import com.codenvy.api.resource.Folder;
-import com.codenvy.api.resource.Project;
-import com.codenvy.api.resource.Resource;
-import com.codenvy.api.resource.VirtualFileSystemConnector;
-import com.codenvy.api.resource.attribute.Attribute;
-import com.codenvy.api.resource.attribute.AttributeProvider;
-import com.codenvy.api.resource.attribute.Attributes;
-import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.commons.json.JsonParseException;
-import com.codenvy.commons.lang.IoUtil;
-import com.codenvy.commons.lang.cache.Cache;
-import com.codenvy.commons.lang.cache.SLRUCache;
-import com.codenvy.core.api.util.Pair;
-
+import com.codenvy.api.resources.server.AccessControlListImpl;
+import com.codenvy.api.resources.server.ResourceAccessControlEntryImpl;
+import com.codenvy.api.resources.server.attribute.AttributesImpl;
+import com.codenvy.api.resources.shared.AccessControlList;
+import com.codenvy.api.resources.shared.Attribute;
+import com.codenvy.api.resources.shared.AttributeProvider;
+import com.codenvy.api.resources.shared.Attributes;
+import com.codenvy.api.resources.shared.File;
+import com.codenvy.api.resources.shared.Folder;
+import com.codenvy.api.resources.shared.Project;
+import com.codenvy.api.resources.shared.Resource;
+import com.codenvy.api.resources.shared.ResourceAccessControlEntry;
+import com.codenvy.api.resources.shared.VirtualFileSystemConnector;
 import com.codenvy.api.vfs.dto.ItemDto;
 import com.codenvy.api.vfs.server.exceptions.ConstraintException;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
@@ -42,6 +40,8 @@ import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
 import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.util.DeleteOnCloseFileInputStream;
+import com.codenvy.api.vfs.shared.AccessControlEntry;
+import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
 import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.ItemList;
@@ -53,6 +53,13 @@ import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyImpl;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.commons.json.JsonParseException;
+import com.codenvy.commons.lang.IoUtil;
+import com.codenvy.commons.lang.cache.Cache;
+import com.codenvy.commons.lang.cache.SLRUCache;
+import com.codenvy.core.api.util.Pair;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,15 +70,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
+import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -83,6 +93,13 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         if (CookieHandler.getDefault() == null) {
             CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
         }
+
+        Authenticator.setDefault(new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("ide", "codenvy123".toCharArray());
+            }
+        });
     }
 
     private final Cache<String, Item>   cache;
@@ -94,6 +111,9 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         cache = new SLRUCache<>(64, 32);
         vfsInfo = get(url, VirtualFileSystemInfoImpl.class, 200);
         root = new Folder(this, null, vfsInfo.getRoot().getId(), vfsInfo.getRoot().getName());
+        vfsInfo.getUrlTemplates().get(Link.REL_LOCK)
+               .setHref(vfsInfo.getUrlTemplates().get(Link.REL_LOCK).getHref() + "?timeout=%5Btimeout%5D");
+        get("http://localhost:8080/ide/login", null, 302);
     }
 
     @Override
@@ -226,34 +246,34 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
 
     @Override
     public Attributes getAttributes(Resource resource) {
-        return new Attributes(this, resource);
+        return new AttributesImpl(this, resource);
     }
 
     @Override
-    public void updateAttributes(Resource resource, Attributes attributes) {
-        Item item = getVfsItem(resource);
-        final List<Attribute<?>> updates = attributes.getUpdates();
-        if (updates.isEmpty()) {
+    public void updateAttributes(Attributes attributes) {
+        final List<Attribute<?>> all = attributes.getAll();
+        if (all.isEmpty()) {
             return;
         }
-        for (Iterator<Attribute<?>> i = updates.iterator(); i.hasNext(); ) {
-            Attribute<?> update = i.next();
-            if (!update.isPersistent()) {
+        for (Iterator<Attribute<?>> i = all.iterator(); i.hasNext(); ) {
+            Attribute<?> attribute = i.next();
+            if (!(attribute.isUpdated() && attribute.isPersistent())) {
                 i.remove();
             }
         }
-        if (updates.isEmpty()) {
+        if (all.isEmpty()) {
             return;
         }
 
         final List<Property> props = new ArrayList<>();
-        for (Attribute<?> update : updates) {
+        for (Attribute<?> update : all) {
             final String name = update.getName();
             final Object value = update.getValue();
-            final AttributeProvider<?> attrProv = getAttributeProvider(name);
+            final AttributeProvider<?> attrProv = AttributesImpl.getAttributeProvider(name);
             props.add(new PropertyImpl(attrProv.getVfsPropertyName(), value == null ? null : String.valueOf(value)));
         }
 
+        Item item = getVfsItem(attributes.getResource());
         cache.remove(item.getId());
         final String url = item.getLinks().get(Link.REL_SELF).getHref();
         item = post(url, ItemDto.class, props, 200);
@@ -301,9 +321,10 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     }
 
     @Override
-    public Lock lock(File file) {
+    public Lock lock(File file, long timeout) {
         cache.remove(file.getId());
-        final String url = createUrl(vfsInfo.getUrlTemplates().get(Link.REL_LOCK), Pair.of("id", file.getId()));
+        final String url =
+                createUrl(vfsInfo.getUrlTemplates().get(Link.REL_LOCK), Pair.of("id", file.getId()), Pair.of("timeout", timeout));
         return post(url, LockImpl.class, null, 200);
     }
 
@@ -313,6 +334,43 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         final String url =
                 createUrl(vfsInfo.getUrlTemplates().get(Link.REL_UNLOCK), Pair.of("id", file.getId()), Pair.of("lockToken", lockToken));
         post(url, null, null, 204);
+    }
+
+    @Override
+    public AccessControlList loadACL(Resource resource) {
+        final String url = getVfsItem(resource).getLinks().get(Link.REL_ACL).getHref();
+        final AccessControlEntryImpl[] vfsACL = get(url, AccessControlEntryImpl[].class, 200);
+        final List<ResourceAccessControlEntry> acl = new ArrayList<>(vfsACL.length);
+        for (AccessControlEntry e : vfsACL) {
+            acl.add(new ResourceAccessControlEntryImpl(e));
+        }
+        return new AccessControlListImpl(this, acl, resource);
+    }
+
+    @Override
+    public void updateACL(AccessControlList acl) {
+        final List<ResourceAccessControlEntry> all = acl.getAll();
+        if (all.isEmpty()) {
+            return;
+        }
+        for (Iterator<ResourceAccessControlEntry> i = all.iterator(); i.hasNext(); ) {
+            ResourceAccessControlEntry e = i.next();
+            if (!e.isUpdated()) {
+                i.remove();
+            }
+        }
+        if (all.isEmpty()) {
+            return;
+        }
+
+        final List<AccessControlEntry> vfsACL = new ArrayList<>(all.size());
+        for (ResourceAccessControlEntry e : all) {
+            vfsACL.add(new AccessControlEntryImpl(e.getPrincipal(), new HashSet<>(e.getPermissions())));
+        }
+
+        final Item item = getVfsItem(acl.getResource());
+        final String url = item.getLinks().get(Link.REL_ACL).getHref();
+        post(url, null, vfsACL, 204);
     }
 
     private String createUrl(Link link, Pair<String, ?>... parameters) {

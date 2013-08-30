@@ -15,25 +15,23 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource.remote;
+package com.codenvy.api.resources.server.remote;
+
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 
 /**
- * Throwing when cannot access remote Virtual File System API or when get a response from remote Virtual File System which is not
- * understandable.
+ * Represents error from remote server.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
 @SuppressWarnings("serial")
-public final class VirtualFileSystemUnknownException extends RuntimeException {
-    public VirtualFileSystemUnknownException(String message) {
-        super(message);
+public final class VirtualFileSystemAPIException extends RuntimeException {
+    public VirtualFileSystemAPIException(VirtualFileSystemException vfsError) {
+        super(vfsError);
     }
 
-    public VirtualFileSystemUnknownException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public VirtualFileSystemUnknownException(Throwable cause) {
-        super(cause);
+    public VirtualFileSystemAPIException(VirtualFileSystemRuntimeException vfsError) {
+        super(vfsError);
     }
 }

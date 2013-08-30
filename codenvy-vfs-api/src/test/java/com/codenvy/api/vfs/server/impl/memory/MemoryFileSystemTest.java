@@ -19,6 +19,21 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import junit.framework.TestCase;
 
+import com.codenvy.api.vfs.server.ContentStream;
+import com.codenvy.api.vfs.server.URLHandlerFactorySetup;
+import com.codenvy.api.vfs.server.VirtualFileSystemApplication;
+import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
+import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
+import com.codenvy.api.vfs.server.impl.memory.context.MemoryFileSystemContext;
+import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.observation.EventListenerList;
+import com.codenvy.api.vfs.shared.File;
+import com.codenvy.api.vfs.shared.Item;
+import com.codenvy.api.vfs.shared.ItemList;
+import com.codenvy.api.vfs.shared.ItemType;
+import com.codenvy.api.vfs.shared.Link;
+import com.codenvy.api.vfs.shared.ProjectImpl;
+import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
 import com.codenvy.commons.env.EnvironmentContext;
 
 import org.everrest.core.RequestHandler;
@@ -35,15 +50,6 @@ import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
-import com.codenvy.api.vfs.server.ContentStream;
-import com.codenvy.api.vfs.server.URLHandlerFactorySetup;
-import com.codenvy.api.vfs.server.VirtualFileSystemApplication;
-import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFileSystemContext;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
-import com.codenvy.api.vfs.shared.*;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
 import org.slf4j.Logger;
@@ -307,8 +313,8 @@ public abstract class MemoryFileSystemTest extends TestCase {
                 assertNotNull("'" + Link.REL_LOCK + "' link not found. ", link);
                 assertEquals(MediaType.APPLICATION_JSON, link.getType());
                 assertEquals(Link.REL_LOCK, link.getRel());
-                assertEquals(UriBuilder.fromPath(SERVICE_URI).path("lock").path(file.getId()).build().toString(),
-                             link.getHref());
+                assertEquals(UriBuilder.fromPath(SERVICE_URI).path("lock").path(file.getId())
+                                       .queryParam("timeout", "[timeout]").build().toString(), link.getHref());
                 link = links.get(Link.REL_UNLOCK);
                 assertNull("'" + Link.REL_UNLOCK + "' link not allowed for unlocked files. ", link);
             }
@@ -439,7 +445,8 @@ public abstract class MemoryFileSystemTest extends TestCase {
         assertNotNull("'" + Link.REL_LOCK + "' template not found. ", template);
         assertEquals(MediaType.APPLICATION_JSON, template.getType());
         assertEquals(Link.REL_LOCK, template.getRel());
-        assertEquals(UriBuilder.fromPath(SERVICE_URI).path("lock").path("[id]").build().toString(), template.getHref());
+        assertEquals(UriBuilder.fromPath(SERVICE_URI).path("lock").path("[id]")
+                               .queryParam("timeout", "[timeout]").build().toString(), template.getHref());
 
         template = templates.get(Link.REL_UNLOCK);
         assertNotNull("'" + Link.REL_UNLOCK + "' template not found. ", template);

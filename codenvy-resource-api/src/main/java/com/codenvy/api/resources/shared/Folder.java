@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resource;
+package com.codenvy.api.resources.shared;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Folder extends Resource {

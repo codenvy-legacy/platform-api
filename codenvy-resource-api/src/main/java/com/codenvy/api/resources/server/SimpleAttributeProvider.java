@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,23 +15,24 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resources.server.remote;
+package com.codenvy.api.resources.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
+import com.codenvy.api.resources.shared.Attribute;
+import com.codenvy.api.resources.shared.AttributeProvider;
+import com.codenvy.api.vfs.shared.Item;
 
 /**
- * Represents error from remote server.
+ * Maps property of virtual file system item to attribute.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-@SuppressWarnings("serial")
-public final class VirtualFileSystemAPIException extends RuntimeException {
-    public VirtualFileSystemAPIException(VirtualFileSystemException vfsError) {
-        super(vfsError);
+public final class SimpleAttributeProvider extends AttributeProvider<String> {
+    public SimpleAttributeProvider(String name) {
+        super(name, name);
     }
 
-    public VirtualFileSystemAPIException(VirtualFileSystemRuntimeException vfsError) {
-        super(vfsError);
+    @Override
+    public Attribute<String> getAttribute(Item item) {
+        return new AttributeImpl<>(getName(), "", false, true, item.getPropertyValue(getVfsPropertyName()));
     }
 }

@@ -15,11 +15,8 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resources.server.remote;
+package com.codenvy.api.resources.server;
 
-import com.codenvy.api.resources.server.AccessControlListImpl;
-import com.codenvy.api.resources.server.ResourceAccessControlEntryImpl;
-import com.codenvy.api.resources.server.attribute.AttributesImpl;
 import com.codenvy.api.resources.shared.AccessControlList;
 import com.codenvy.api.resources.shared.Attribute;
 import com.codenvy.api.resources.shared.AttributeProvider;
@@ -29,7 +26,6 @@ import com.codenvy.api.resources.shared.Folder;
 import com.codenvy.api.resources.shared.Project;
 import com.codenvy.api.resources.shared.Resource;
 import com.codenvy.api.resources.shared.ResourceAccessControlEntry;
-import com.codenvy.api.resources.shared.VirtualFileSystemConnector;
 import com.codenvy.api.vfs.dto.ItemDto;
 import com.codenvy.api.vfs.server.exceptions.ConstraintException;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
@@ -86,7 +82,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector {
+public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnectorImpl {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteVirtualFileSystemConnector.class);
 
     static {
@@ -152,7 +148,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
                                      Pair.of("parentId", parent.getId()));
         final Item item = post(url, ItemDto.class, null, 200);
         cache.put(item.getId(), item);
-        return new File(this, parent, item.getId(), item.getName());
+        return new FileImpl(this, parent, item.getId(), item.getName());
     }
 
     @Override
@@ -194,19 +190,35 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     }
 
     @Override
-    public InputStream getContentStream(File file) throws IOException {
+    public String getContent(File file) {
+        try {
+            return IoUtil.readAndCloseQuietly(getContentStream(file));
+        } catch (IOException e) {
+            throw new VirtualFileSystemUnknownException(e);
+        }
+    }
+
+    @Override
+    public void updateContent(File file, String data, String contentType) {
+        updateContentStream(file, new ByteArrayInputStream(data.getBytes()), contentType);
+    }
+
+    public InputStream getContentStream(File file) {
         final String url = getVfsItem(file).getLinks().get(Link.REL_CONTENT).getHref();
         HttpURLConnection conn = null;
+        final int responseCode;
         try {
             conn = (HttpURLConnection)new URL(url).openConnection();
             authenticate(conn);
-            final int responseCode = conn.getResponseCode();
+            responseCode = conn.getResponseCode();
             if (responseCode != 200) {
                 throw restoreRemoteException(responseCode, conn);
             }
             try (InputStream in = conn.getInputStream()) {
                 return bufferStream(in, 65536);
             }
+        } catch (IOException e) {
+            throw new VirtualFileSystemUnknownException(e);
         } finally {
             if (conn != null) {
                 conn.disconnect();
@@ -214,8 +226,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         }
     }
 
-    @Override
-    public void updateContentStream(File file, InputStream data, String contentType) throws IOException {
+    public void updateContentStream(File file, InputStream data, String contentType) {
         final String url = getVfsItem(file).getLinks().get(Link.REL_CONTENT).getHref();
         cache.remove(file.getId());
         HttpURLConnection conn = null;
@@ -237,6 +248,8 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
             if (responseCode != 204) {
                 throw restoreRemoteException(responseCode, conn);
             }
+        } catch (IOException e) {
+            throw new VirtualFileSystemUnknownException(e);
         } finally {
             if (conn != null) {
                 conn.disconnect();
@@ -434,7 +447,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     private Resource createResource(Folder parent, Item item) {
         switch (item.getItemType()) {
             case FILE:
-                return new File(this, parent, item.getId(), item.getName());
+                return new FileImpl(this, parent, item.getId(), item.getName());
             case FOLDER:
                 return new Folder(this, parent, item.getId(), item.getName());
             case PROJECT:

@@ -15,25 +15,22 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resources.server.local;
+package com.codenvy.api.resources.server;
 
 import com.codenvy.api.resources.shared.AccessControlList;
+import com.codenvy.api.resources.shared.Attributes;
 import com.codenvy.api.resources.shared.File;
 import com.codenvy.api.resources.shared.Folder;
 import com.codenvy.api.resources.shared.Project;
 import com.codenvy.api.resources.shared.Resource;
-import com.codenvy.api.resources.shared.Attributes;
-import com.codenvy.api.resources.shared.VirtualFileSystemConnector;
-
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.Lock;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnector {
+public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnectorImpl {
     private final VirtualFileSystem vfs;
 
     public LocalVirtualFileSystemConnector(String name, VirtualFileSystem vfs) {
@@ -82,12 +79,20 @@ public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnector 
     }
 
     @Override
-    public InputStream getContentStream(File file) throws IOException {
+    public String getContent(File file) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void updateContentStream(File file, InputStream data, String contentType) throws IOException {
+    public void updateContent(File file, String data, String contentType) {
+        throw new UnsupportedOperationException();
+    }
+
+    public InputStream getContentStream(File file) {
+        throw new UnsupportedOperationException();
+    }
+
+    public void updateContentStream(File file, InputStream data, String contentType) {
         throw new UnsupportedOperationException();
     }
 

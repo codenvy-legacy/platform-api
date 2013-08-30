@@ -20,9 +20,6 @@ package com.codenvy.api.resources.shared;
 import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.Lock;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public abstract class VirtualFileSystemConnector {
     private final String name;
@@ -51,9 +48,9 @@ public abstract class VirtualFileSystemConnector {
 
     public abstract void delete(Resource resource);
 
-    public abstract InputStream getContentStream(File file) throws IOException;
+    public abstract String getContent(File file);
 
-    public abstract void updateContentStream(File file, InputStream data, String contentType) throws IOException;
+    public abstract void updateContent(File file, String data, String contentType);
 
     public abstract Attributes getAttributes(Resource resource);
 

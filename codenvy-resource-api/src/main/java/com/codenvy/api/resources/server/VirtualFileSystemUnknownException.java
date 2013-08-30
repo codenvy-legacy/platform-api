@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,24 +15,25 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resources.server.attribute;
-
-import com.codenvy.api.resources.shared.Attribute;
-import com.codenvy.api.resources.shared.AttributeProvider;
-import com.codenvy.api.vfs.shared.Item;
+package com.codenvy.api.resources.server;
 
 /**
- * Maps property of virtual file system item to attribute.
+ * Throwing when cannot access remote Virtual File System API or when get a response from remote Virtual File System which is not
+ * understandable.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public final class SimpleAttributeProvider extends AttributeProvider<String> {
-    public SimpleAttributeProvider(String name) {
-        super(name, name);
+@SuppressWarnings("serial")
+public final class VirtualFileSystemUnknownException extends RuntimeException {
+    public VirtualFileSystemUnknownException(String message) {
+        super(message);
     }
 
-    @Override
-    public Attribute<String> getAttribute(Item item) {
-        return new AttributeImpl<>(getName(), "", false, true, item.getPropertyValue(getVfsPropertyName()));
+    public VirtualFileSystemUnknownException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public VirtualFileSystemUnknownException(Throwable cause) {
+        super(cause);
     }
 }

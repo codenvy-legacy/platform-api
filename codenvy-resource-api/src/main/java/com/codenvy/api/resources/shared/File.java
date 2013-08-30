@@ -19,9 +19,6 @@ package com.codenvy.api.resources.shared;
 
 import com.codenvy.api.vfs.shared.Lock;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class File extends Resource {
     private boolean locked;
@@ -53,14 +50,14 @@ public class File extends Resource {
         return (String)getAttributes().getAttribute("vfs:mimeType").getValue();
     }
 
-    public InputStream getContentStream() throws IOException {
+    public String getContent() {
         checkValid();
-        return connector.getContentStream(this);
+        return connector.getContent(this);
     }
 
-    public void setContentStream(InputStream data, String contentType) throws IOException {
+    public void setContent(String data, String contentType) {
         checkValid();
-        connector.updateContentStream(this, data, contentType);
+        connector.updateContent(this, data, contentType);
     }
 
     public boolean isLocked() {

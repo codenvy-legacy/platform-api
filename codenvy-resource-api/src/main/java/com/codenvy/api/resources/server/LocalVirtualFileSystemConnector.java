@@ -28,6 +28,7 @@ import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.Lock;
 
 import java.io.InputStream;
+import java.util.List;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnectorImpl {
@@ -49,7 +50,7 @@ public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnectorI
     }
 
     @Override
-    public Resource[] getChildResources(Folder parent) {
+    public List<Resource> getChildResources(Folder parent) {
         throw new UnsupportedOperationException();
     }
 

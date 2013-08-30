@@ -66,12 +66,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
-import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -89,13 +87,6 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         if (CookieHandler.getDefault() == null) {
             CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
         }
-
-        Authenticator.setDefault(new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("ide", "codenvy123".toCharArray());
-            }
-        });
     }
 
     private final Cache<String, Item>   cache;
@@ -107,9 +98,6 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         cache = new SLRUCache<>(64, 32);
         vfsInfo = get(url, VirtualFileSystemInfoImpl.class, 200);
         root = new Folder(this, null, vfsInfo.getRoot().getId(), vfsInfo.getRoot().getName());
-        vfsInfo.getUrlTemplates().get(Link.REL_LOCK)
-               .setHref(vfsInfo.getUrlTemplates().get(Link.REL_LOCK).getHref() + "?timeout=%5Btimeout%5D");
-        get("http://localhost:8080/ide/login", null, 302);
     }
 
     @Override
@@ -127,17 +115,17 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     }
 
     @Override
-    public Resource[] getChildResources(Folder parent) {
+    public List<Resource> getChildResources(Folder parent) {
         final String url = getVfsItem(parent).getLinks().get(Link.REL_CHILDREN).getHref();
         final ItemList itemList = get(url, ItemListImpl.class, 200);
         final List<Item> items = itemList.getItems();
         if (items == null || items.isEmpty()) {
-            return new Resource[0];
+            return new ArrayList<>(0);
         }
 
-        final Resource[] children = new Resource[items.size()];
-        for (int i = 0, size = items.size(); i < size; i++) {
-            children[i] = createResource(parent, items.get(i));
+        final List<Resource> children = new ArrayList<>(items.size());
+        for (Item item : items) {
+            children.add(createResource(parent, item));
         }
         return children;
     }

@@ -20,6 +20,8 @@ package com.codenvy.api.resources.shared;
 import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.Lock;
 
+import java.util.List;
+
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public abstract class VirtualFileSystemConnector {
     private final String name;
@@ -36,7 +38,7 @@ public abstract class VirtualFileSystemConnector {
 
     public abstract Resource getResource(Folder parent, String name);
 
-    public abstract Resource[] getChildResources(Folder parent);
+    public abstract List<Resource> getChildResources(Folder parent);
 
     public abstract File createFile(Folder parent, String name);
 

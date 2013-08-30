@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.resources.shared;
 
+import java.util.List;
+
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Folder extends Resource {
     public Folder(VirtualFileSystemConnector workspace, Folder parent, String id, String name) {
@@ -50,7 +52,7 @@ public class Folder extends Resource {
         return connector.getResource(this, name);
     }
 
-    public Resource[] getChildren() {
+    public List<Resource> getChildren() {
         checkValid();
         return connector.getChildResources(this);
     }

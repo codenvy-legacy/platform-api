@@ -78,6 +78,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnectorImpl {
@@ -168,13 +169,13 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
 
     @Override
     public void delete(Resource resource) {
+        final String url = getVfsItem(resource).getLinks().get(Link.REL_DELETE).getHref();
         if (resource.isFolder()) {
-            // To simplify working with cache just clear it when remove folder.
-            cache.clear();
+            purgeCachedChildren(resource);
         } else {
             cache.remove(resource.getId());
         }
-        post(getVfsItem(resource).getLinks().get(Link.REL_DELETE).getHref(), null, null, 204);
+        post(url, null, null, 204);
     }
 
     @Override
@@ -270,7 +271,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         for (Attribute<?> update : all) {
             final String name = update.getName();
             final Object value = update.getValue();
-            final AttributeProvider<?> attrProv = AttributesImpl.getAttributeProvider(name);
+            final AttributeProvider<?> attrProv = AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(name);
             props.add(new PropertyImpl(attrProv.getVfsPropertyName(), value == null ? null : String.valueOf(value)));
         }
 
@@ -295,8 +296,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         }
         Item item = getVfsItem(resource);
         if (resource.isFolder()) {
-            // To simplify working with cache just clear it when rename folder.
-            cache.clear();
+            purgeCachedChildren(resource);
         } else {
             cache.remove(item.getId());
         }
@@ -310,8 +310,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     public Resource move(Resource resource, Folder newparent) {
         Item item = getVfsItem(resource);
         if (resource.isFolder()) {
-            // To simplify working with cache just clear it when move folder.
-            cache.clear();
+            purgeCachedChildren(resource);
         } else {
             cache.remove(item.getId());
         }
@@ -372,6 +371,15 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         final Item item = getVfsItem(acl.getResource());
         final String url = item.getLinks().get(Link.REL_ACL).getHref();
         post(url, null, vfsACL, 204);
+    }
+
+    private void purgeCachedChildren(Resource resource) {
+        final String fPath = resource.getPath();
+        for (Iterator<Map.Entry<String, Item>> i = cache.iterator(); i.hasNext(); ) {
+            if (i.next().getValue().getPath().startsWith(fPath)) {
+                i.remove();
+            }
+        }
     }
 
     private String createUrl(Link link, Pair<String, ?>... parameters) {

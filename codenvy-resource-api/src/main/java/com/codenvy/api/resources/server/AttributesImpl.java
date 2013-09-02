@@ -18,37 +18,15 @@
 package com.codenvy.api.resources.server;
 
 import com.codenvy.api.resources.shared.Attribute;
-import com.codenvy.api.resources.shared.AttributeProvider;
 import com.codenvy.api.resources.shared.Attributes;
 import com.codenvy.api.resources.shared.Resource;
 import com.codenvy.api.resources.shared.VirtualFileSystemConnector;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class AttributesImpl implements Attributes {
-    private static Map<String, AttributeProvider<?>> attributeProviders = new HashMap<>();
-
-    public static void addAttributeProvider(AttributeProvider<?> attributeProvider) {
-        attributeProviders.put(attributeProvider.getName(), attributeProvider);
-    }
-
-    public static Set<String> getAttributeProviderNames() {
-        return new HashSet<>(attributeProviders.keySet());
-    }
-
-    public static AttributeProvider<?> getAttributeProvider(String name) {
-        AttributeProvider<?> attrProv = attributeProviders.get(name);
-        if (attrProv == null) {
-            attrProv = new SimpleAttributeProvider(name);
-        }
-        return attrProv;
-    }
 
     private final VirtualFileSystemConnector connector;
     private final List<Attribute<?>>         attributes;
@@ -80,7 +58,8 @@ public class AttributesImpl implements Attributes {
                 return attr;
             }
         }
-        final Attribute<?> attr = getAttributeProvider(name).getAttribute(connector.getVfsItem(resource));
+        final Attribute<?> attr =
+                AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(name).getAttribute(connector.getVfsItem(resource));
         attributes.add(attr);
         return attr;
     }

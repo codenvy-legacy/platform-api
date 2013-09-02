@@ -33,6 +33,6 @@ public final class SimpleAttributeProvider extends AttributeProvider<String> {
 
     @Override
     public Attribute<String> getAttribute(Item item) {
-        return new AttributeImpl<>(getName(), "", false, true, item.getPropertyValue(getVfsPropertyName()));
+        return new AttributeImpl<>(getName(), getName(), false, true, item.getPropertyValue(getVfsPropertyName()));
     }
 }

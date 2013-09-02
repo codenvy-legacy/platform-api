@@ -65,4 +65,22 @@ public class AccessControlListImpl implements AccessControlList {
     public void save() {
         connector.updateACL(this);
     }
+
+    public String dump() {
+        final StringBuilder sb = new StringBuilder();
+        for (ResourceAccessControlEntry entry : acl) {
+            final Principal principal = entry.getPrincipal();
+            sb.append(principal.getType());
+            sb.append(':');
+            sb.append(principal.getName());
+            sb.append('\n');
+            for (String p : entry.getPermissions()) {
+                sb.append(' ');
+                sb.append(p);
+                sb.append('\n');
+            }
+
+        }
+        return sb.toString();
+    }
 }

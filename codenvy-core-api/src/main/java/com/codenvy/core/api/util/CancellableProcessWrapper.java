@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,24 +15,22 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resources.server;
-
-import com.codenvy.api.resources.shared.Attribute;
-import com.codenvy.api.resources.shared.AttributeProvider;
-import com.codenvy.api.vfs.shared.Item;
+package com.codenvy.core.api.util;
 
 /**
- * Maps property of virtual file system item to attribute.
+ * Cancellable wrapper of {@code Process}.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public final class SimpleAttributeProvider extends AttributeProvider<String> {
-    public SimpleAttributeProvider(String name) {
-        super(name, name);
+public final class CancellableProcessWrapper implements Cancellable {
+    private final Process process;
+
+    public CancellableProcessWrapper(Process process) {
+        this.process = process;
     }
 
     @Override
-    public Attribute<String> getAttribute(Item item) {
-        return new AttributeImpl<>(getName(), getName(), false, true, item.getPropertyValue(getVfsPropertyName()));
+    public void cancel() {
+        ProcessUtil.kill(process);
     }
 }

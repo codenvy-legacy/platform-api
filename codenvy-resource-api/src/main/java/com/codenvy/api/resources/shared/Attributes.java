@@ -19,7 +19,11 @@ package com.codenvy.api.resources.shared;
 
 import java.util.List;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Container for set of Attribute.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public interface Attributes {
     Resource getResource();
 

@@ -72,5 +72,5 @@ public abstract class VirtualFileSystemConnector {
 
     public abstract void updateACL(AccessControlList acl);
 
-    public abstract Item getVfsItem(Resource resource);
+    protected abstract Item getVfsItem(Resource resource);
 }

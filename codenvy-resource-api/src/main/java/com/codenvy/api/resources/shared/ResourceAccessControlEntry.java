@@ -21,15 +21,38 @@ import com.codenvy.api.vfs.shared.Principal;
 
 import java.util.Collection;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Item of {@link AccessControlList} which describes permission of single principal.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public interface ResourceAccessControlEntry {
+    /** Get Principal. */
     Principal getPrincipal();
 
+    /**
+     * Get set of permissions. Returned {@code Collection} is mutable and all changes SHOULD affect the internal state of this instance.
+     * Implementation SHOULD track changes of returned collection of permissions and report about updates of it with method {@code
+     * #isUpdated}. Implementation should never return {@code null} but empty {@code Collection} instead.
+     */
     Collection<String> getPermissions();
 
+    /**
+     * Replace existed set of permissions with specified one. After call of this method {@link #isUpdated()} SHOULD return {@code true}
+     *
+     * @param permissions
+     *         new set of permissions
+     */
     void setPermissions(Collection<String> permissions);
 
+    /** Check existing of specified permission. */
     boolean hasPermission(String permission);
 
+    /**
+     * Reports about updates of set of permissions. This method SHOULD return {@code true} if set of permission is updated or replaced.
+     *
+     * @see #getPermissions()
+     * @see #setPermissions(java.util.Collection)
+     */
     boolean isUpdated();
 }

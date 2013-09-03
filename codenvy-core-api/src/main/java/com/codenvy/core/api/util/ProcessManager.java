@@ -15,9 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.core.api.process;
-
-import com.codenvy.core.api.util.SystemInfo;
+package com.codenvy.core.api.util;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 abstract class ProcessManager {

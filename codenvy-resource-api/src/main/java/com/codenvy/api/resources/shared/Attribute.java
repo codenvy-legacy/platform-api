@@ -17,19 +17,52 @@
  */
 package com.codenvy.api.resources.shared;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Attribute of Resource.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @see AttributeProvider
+ * @see AttributeProviderRegistry
+ */
 public interface Attribute<T> {
+    /** Name of attribute. */
     String getName();
 
+    /** Optional display name of attribute. May return {@code null}. */
     String getDisplayName();
 
+    /** Returns {@code true} if this attribute may not be updated and {@code false} otherwise. */
     boolean isReadOnly();
 
+    /**
+     * Returns {@code true} if this attribute stored as Property in Virtual File System and {@code false} if this attribute has a
+     * calculated
+     * nature.
+     *
+     * @see com.codenvy.api.vfs.shared.Property
+     */
     boolean isPersistent();
 
+    /**
+     * Report is this attribute updated through method {@link #setValue(Object)} or not. Implementation SHOULD track all updates of value
+     * of
+     * this attribute and report about updates with this method.
+     */
     boolean isUpdated();
 
+    /**
+     * Get value of attribute.
+     *
+     * @return current value of attribute
+     */
     T getValue();
 
+    /**
+     * Get value of attribute.
+     *
+     * @param value
+     *         new value of attribute
+     * @see #isUpdated()
+     */
     void setValue(T value);
 }

@@ -32,14 +32,34 @@ public interface AttributeProviderRegistry {
     void addAttributeProvider(String itemType, AttributeProvider<?> attributeProvider);
 
     /**
-     * Get names of AttributeProviders registered for specified {@code itemType}. Modifications to the returned {@code List} should not
-     * affect the internal state of this object.
+     * Remove AttributeProvider for specified {@code itemType} and {@code name}.
+     *
+     * @param itemType
+     *         item type: FILE, FOLDER or PROJECT
+     * @param attributeName
+     *         name of attribute
+     * @return AttributeProvider or {@code null} if there is no such AttributeProvider
+     */
+    AttributeProvider<?> removeAttributeProvider(String itemType, String attributeName);
+
+    /**
+     * Get all AttributeProviders registered for specified {@code itemType}. Modifications to the returned {@code List} should not affect
+     * the internal state of this instance.
      *
      * @param itemType
      *         item type: FILE, FOLDER or PROJECT
      * @return known Attribute Providers
      */
-    List<String> getAttributeProviderNames(String itemType);
+    List<AttributeProvider<?>> getAttributeProviders(String itemType);
 
-    AttributeProvider<?> getAttributeProvider(String itemType, String name);
+    /**
+     * Get AttributeProvider for specified {@code itemType} and {@code name}.
+     *
+     * @param itemType
+     *         item type: FILE, FOLDER or PROJECT
+     * @param attributeName
+     *         name of attribute
+     * @return AttributeProvider
+     */
+    AttributeProvider<?> getAttributeProvider(String itemType, String attributeName);
 }

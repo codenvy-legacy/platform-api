@@ -21,13 +21,40 @@ import com.codenvy.api.vfs.shared.Principal;
 
 import java.util.List;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Access Control List (ACL) of any Resource.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public interface AccessControlList {
+    /**
+     * Get {@code Resource} to which this ACL belong to.
+     *
+     * @return {@code Resource} to which this ACL belong to
+     */
     Resource getResource();
 
+    /**
+     * Get all Access Control Entries (ACE) of this ACL. Modifications to the returned {@code List} should not affect the internal state of
+     * this object.
+     *
+     * @return all Access Control Entries (ACE) of this ACL
+     */
     List<ResourceAccessControlEntry> getAll();
 
+    /**
+     * Get Access Control Entries (ACE) for specified {@code principal}.
+     *
+     * @param principal
+     *         principal
+     * @return Access Control Entries (ACE) for specified {@code principal}
+     */
     ResourceAccessControlEntry getAccessControlEntry(Principal principal);
 
+    /**
+     * Save all changes of current ACL.
+     *
+     * @see com.codenvy.api.resources.shared.ResourceAccessControlEntry#isUpdated()
+     */
     void save();
 }

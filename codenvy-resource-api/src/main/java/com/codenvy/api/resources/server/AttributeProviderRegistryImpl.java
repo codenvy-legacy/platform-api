@@ -21,29 +21,50 @@ import com.codenvy.api.resources.shared.AttributeProvider;
 import com.codenvy.api.resources.shared.AttributeProviderRegistry;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Simple singleton implementation of AttributeProviderRegistry.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public enum AttributeProviderRegistryImpl implements AttributeProviderRegistry {
     INSTANCE;
 
-    private final Map<String, AttributeProvider<?>> attributeProviders = new HashMap<>(3);
+    private final ConcurrentMap<String, Map<String, AttributeProvider<?>>> all = new ConcurrentHashMap<>(3);
 
+    @Override
     public void addAttributeProvider(String itemType, AttributeProvider<?> attributeProvider) {
-        attributeProviders.put(attributeProvider.getName(), attributeProvider);
+        getAttributeProvidersForType(itemType).put(attributeProvider.getName(), attributeProvider);
     }
 
-    public List<String> getAttributeProviderNames(String itemType) {
-        return new ArrayList<>(attributeProviders.keySet());
+    @Override
+    public AttributeProvider<?> removeAttributeProvider(String itemType, String attributeName) {
+        return getAttributeProvidersForType(itemType).get(attributeName);
     }
 
-    public AttributeProvider<?> getAttributeProvider(String itemType, String name) {
-        AttributeProvider<?> attrProv = attributeProviders.get(name);
-        if (attrProv == null) {
-            attrProv = new SimpleAttributeProvider(name);
+    @Override
+    public List<AttributeProvider<?>> getAttributeProviders(String itemType) {
+        return new ArrayList<>(getAttributeProvidersForType(itemType).values());
+    }
+
+    @Override
+    public AttributeProvider<?> getAttributeProvider(String itemType, String attributeName) {
+        return getAttributeProvidersForType(itemType).get(attributeName);
+    }
+
+    private Map<String, AttributeProvider<?>> getAttributeProvidersForType(String itemType) {
+        Map<String, AttributeProvider<?>> byType = all.get(itemType);
+        if (byType == null) {
+            Map<String, AttributeProvider<?>> newByType = new ConcurrentHashMap<>();
+            byType = all.putIfAbsent(itemType, newByType);
+            if (byType == null) {
+                byType = newByType;
+            }
         }
-        return attrProv;
+        return byType;
     }
 }

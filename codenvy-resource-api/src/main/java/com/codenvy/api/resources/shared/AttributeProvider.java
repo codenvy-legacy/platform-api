@@ -19,7 +19,13 @@ package com.codenvy.api.resources.shared;
 
 import com.codenvy.api.vfs.shared.Item;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Mapping between {@link com.codenvy.api.vfs.shared.Property Property} of Virtual File System and {@link Attribute}. Implementation may
+ * obtain {@link com.codenvy.api.vfs.shared.Property Property} from {@link Item} and represent it as {@link Attribute} or calculate value
+ * of {@link Attribute} in some way.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
 public abstract class AttributeProvider<T> {
     private final String name;
     private final String vfsPropertyName;

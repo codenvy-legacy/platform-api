@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.core.api.process;
+package com.codenvy.core.api.util;
 
 import com.codenvy.core.api.util.LineConsumer;
 

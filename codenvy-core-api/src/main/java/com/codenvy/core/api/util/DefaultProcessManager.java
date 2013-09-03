@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.core.api.process;
+package com.codenvy.core.api.util;
 
 /**
  * Typically may be in use for windows systems only. For *nix like system UnixProcessManager is in use.

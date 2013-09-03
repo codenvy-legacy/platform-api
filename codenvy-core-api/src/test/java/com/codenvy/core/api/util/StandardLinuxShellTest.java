@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.core.api;
+package com.codenvy.core.api.util;
 
 import com.codenvy.core.api.util.CommandLine;
 import com.codenvy.core.api.util.DefaultShellFactory;

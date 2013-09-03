@@ -20,6 +20,7 @@ package com.codenvy.api.resources.server;
 import com.codenvy.api.resources.shared.AccessControlList;
 import com.codenvy.api.resources.shared.Attribute;
 import com.codenvy.api.resources.shared.AttributeProvider;
+import com.codenvy.api.resources.shared.AttributeProviderRegistry;
 import com.codenvy.api.resources.shared.Attributes;
 import com.codenvy.api.resources.shared.File;
 import com.codenvy.api.resources.shared.Folder;
@@ -89,6 +90,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         }
     }
 
+    private final AttributeProviderRegistry attributeProviderRegistry = AttributeProviderRegistryImpl.INSTANCE;
     private final Cache<String, Item>   cache;
     private final VirtualFileSystemInfo vfsInfo;
     private final Folder                root;
@@ -204,10 +206,11 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
             props = new ArrayList<>();
             for (Attribute<?> attribute : attributes) {
                 if (attribute.isPersistent()) {
-                    final String aName = attribute.getName();
-                    final Object aValue = attribute.getValue();
-                    final AttributeProvider<?> attrProv = AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider("PROJECT", aName);
-                    props.add(new PropertyImpl(attrProv.getVfsPropertyName(), aValue == null ? null : String.valueOf(aValue)));
+                    final String attributeName = attribute.getName();
+                    final Object attributeValue = attribute.getValue();
+                    final AttributeProvider<?> attrProv = attributeProviderRegistry.getAttributeProvider("PROJECT", attributeName);
+                    props.add(new PropertyImpl(attrProv == null ? attributeName : attrProv.getVfsPropertyName(),
+                                               attributeValue == null ? null : String.valueOf(attributeValue)));
                 }
             }
         }
@@ -298,7 +301,27 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
 
     @Override
     public Attributes getAttributes(Resource resource) {
-        return new AttributesImpl(this, resource);
+        final Item item = getVfsItem(resource);
+        final List<AttributeProvider<?>> known = attributeProviderRegistry.getAttributeProviders(resource.getType());
+        final List<Attribute<?>> attributes = new ArrayList<>();
+        final List<String> mapped = new ArrayList<>();
+        for (AttributeProvider<?> ap : known) {
+            attributes.add(ap.getAttribute(item));
+            mapped.add(ap.getVfsPropertyName());
+        }
+        final List<Property> properties = item.getProperties();
+        if (mapped.size() == properties.size()) {
+            return new AttributesImpl(this, resource, attributes);
+        }
+        for (Property property : properties) {
+            final String propertyName = property.getName();
+            if (mapped.contains(propertyName)) {
+                continue;
+            }
+            attributes.add(new AttributeImpl<>(propertyName, propertyName, false, true, item.getPropertyValue(propertyName)));
+        }
+
+        return new AttributesImpl(this, resource, attributes);
     }
 
     @Override
@@ -313,17 +336,15 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
                 i.remove();
             }
         }
-        if (all.isEmpty()) {
-            return;
-        }
 
         final List<Property> props = new ArrayList<>();
         for (Attribute<?> update : all) {
-            final String name = update.getName();
-            final Object value = update.getValue();
+            final String attributeName = update.getName();
+            final Object attributeValue = update.getValue();
             final AttributeProvider<?> attrProv =
-                    AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(attributes.getResource().getType(), name);
-            props.add(new PropertyImpl(attrProv.getVfsPropertyName(), value == null ? null : String.valueOf(value)));
+                    attributeProviderRegistry.getAttributeProvider(attributes.getResource().getType(), attributeName);
+            props.add(new PropertyImpl(attrProv == null ? attributeName : attrProv.getVfsPropertyName(),
+                                       attributeValue == null ? null : String.valueOf(attributeValue)));
         }
 
         Item item = getVfsItem(attributes.getResource());

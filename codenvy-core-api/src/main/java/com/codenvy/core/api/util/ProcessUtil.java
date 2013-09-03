@@ -15,9 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.core.api.process;
-
-import com.codenvy.core.api.util.LineConsumer;
+package com.codenvy.core.api.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;

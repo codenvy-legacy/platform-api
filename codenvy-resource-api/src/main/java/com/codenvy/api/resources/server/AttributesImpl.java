@@ -28,14 +28,15 @@ import java.util.List;
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class AttributesImpl implements Attributes {
 
+    private final AttributeProviderRegistryImpl attributeProviderRegistry = AttributeProviderRegistryImpl.INSTANCE;
     private final VirtualFileSystemConnector connector;
     private final List<Attribute<?>>         attributes;
     private final Resource                   resource;
 
-    public AttributesImpl(VirtualFileSystemConnector connector, Resource resource) {
+    public AttributesImpl(VirtualFileSystemConnector connector, Resource resource, List<Attribute<?>> attributes) {
         this.connector = connector;
         this.resource = resource;
-        attributes = new ArrayList<>(4);
+        this.attributes = attributes;
     }
 
     @Override
@@ -49,7 +50,7 @@ public class AttributesImpl implements Attributes {
     }
 
     @Override
-    public Attribute getAttribute(String name) {
+    public Attribute<?> getAttribute(String name) {
         if (name == null) {
             throw new IllegalArgumentException("Attribute name may not be null");
         }
@@ -58,9 +59,7 @@ public class AttributesImpl implements Attributes {
                 return attr;
             }
         }
-        final Attribute<?> attr =
-                AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(resource.getType(), name)
-                                             .getAttribute(connector.getVfsItem(resource));
+        final Attribute<?> attr = new AttributeImpl<>(name, name, false, true, null);
         attributes.add(attr);
         return attr;
     }

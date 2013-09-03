@@ -24,14 +24,14 @@ import java.util.List;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public abstract class VirtualFileSystemConnector {
-    private final String name;
+    private final String workspaceName;
 
-    public VirtualFileSystemConnector(String name) {
-        this.name = name;
+    public VirtualFileSystemConnector(String workspaceName) {
+        this.workspaceName = workspaceName;
     }
 
-    public String getName() {
-        return name;
+    public String getWorkspaceName() {
+        return workspaceName;
     }
 
     public abstract Folder getRoot();
@@ -42,11 +42,13 @@ public abstract class VirtualFileSystemConnector {
 
     public abstract File createFile(Folder parent, String name);
 
+    public abstract File createFile(Folder parent, String name, String content, String contentType);
+
     public abstract Folder createFolder(Folder parent, String name);
 
-    public abstract Project createProject(String name);
+    public abstract Project createProject(String name, List<Attribute<?>> attributes);
 
-    public abstract Project createProject(Project parent, String name);
+    public abstract Project createProject(Project parent, String name, List<Attribute<?>> attributes);
 
     public abstract void delete(Resource resource);
 

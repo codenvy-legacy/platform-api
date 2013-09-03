@@ -18,6 +18,7 @@
 package com.codenvy.api.resources.server;
 
 import com.codenvy.api.resources.shared.AccessControlList;
+import com.codenvy.api.resources.shared.Attribute;
 import com.codenvy.api.resources.shared.Attributes;
 import com.codenvy.api.resources.shared.File;
 import com.codenvy.api.resources.shared.Folder;
@@ -34,8 +35,8 @@ import java.util.List;
 public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnectorImpl {
     private final VirtualFileSystem vfs;
 
-    public LocalVirtualFileSystemConnector(String name, VirtualFileSystem vfs) {
-        super(name);
+    public LocalVirtualFileSystemConnector(String workspaceName, VirtualFileSystem vfs) {
+        super(workspaceName);
         this.vfs = vfs;
     }
 
@@ -60,17 +61,22 @@ public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnectorI
     }
 
     @Override
+    public File createFile(Folder parent, String name, String content, String contentType) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Folder createFolder(Folder parent, String name) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Project createProject(String name) {
+    public Project createProject(String name, List<Attribute<?>> attributes) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Project createProject(Project parent, String name) {
+    public Project createProject(Project parent, String name, List<Attribute<?>> attributes) {
         throw new UnsupportedOperationException();
     }
 
@@ -93,7 +99,7 @@ public class LocalVirtualFileSystemConnector extends VirtualFileSystemConnectorI
         throw new UnsupportedOperationException();
     }
 
-    public void updateContentStream(File file, InputStream data, String contentType) {
+    public void updateContentStream(File file, InputStream content, String contentType) {
         throw new UnsupportedOperationException();
     }
 

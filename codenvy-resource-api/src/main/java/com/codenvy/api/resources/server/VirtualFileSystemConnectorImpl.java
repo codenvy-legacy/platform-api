@@ -30,5 +30,5 @@ public abstract class VirtualFileSystemConnectorImpl extends VirtualFileSystemCo
 
     public abstract InputStream getContentStream(File file);
 
-    public abstract void updateContentStream(File file, InputStream data, String contentType);
+    public abstract void updateContentStream(File file, InputStream content, String contentType);
 }

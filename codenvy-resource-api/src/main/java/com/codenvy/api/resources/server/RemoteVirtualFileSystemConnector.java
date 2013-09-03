@@ -72,7 +72,6 @@ import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -94,10 +93,10 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     private final VirtualFileSystemInfo vfsInfo;
     private final Folder                root;
 
-    public RemoteVirtualFileSystemConnector(String name, String url) {
-        super(name);
+    public RemoteVirtualFileSystemConnector(String workspaceName, String url) {
+        super(workspaceName);
         cache = new SLRUCache<>(64, 32);
-        vfsInfo = get(url, VirtualFileSystemInfoImpl.class, 200);
+        vfsInfo = get(VirtualFileSystemInfoImpl.class, url, 200);
         root = new Folder(this, null, vfsInfo.getRoot().getId(), vfsInfo.getRoot().getName());
     }
 
@@ -110,7 +109,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     public Resource getResource(Folder parent, String name) {
         final String path = parent.createPath(name).substring(1);
         final String url = createUrl(vfsInfo.getUrlTemplates().get(Link.REL_ITEM_BY_PATH), Pair.of("path", path));
-        final Item item = get(url, ItemDto.class, 200);
+        final Item item = get(ItemDto.class, url, 200);
         cache.put(item.getId(), item);
         return createResource(parent, item);
     }
@@ -118,7 +117,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
     @Override
     public List<Resource> getChildResources(Folder parent) {
         final String url = getVfsItem(parent).getLinks().get(Link.REL_CHILDREN).getHref();
-        final ItemList itemList = get(url, ItemListImpl.class, 200);
+        final ItemList itemList = get(ItemListImpl.class, url, 200);
         final List<Item> items = itemList.getItems();
         if (items == null || items.isEmpty()) {
             return new ArrayList<>(0);
@@ -133,36 +132,87 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
 
     @Override
     public File createFile(Folder parent, String name) {
+        return createFile(parent, name, (InputStream)null, null);
+    }
+
+    @Override
+    public File createFile(Folder parent, String name, String content, String contentType) {
+        return createFile(parent, name, content == null ? null : new ByteArrayInputStream(content.getBytes()), contentType);
+    }
+
+    public FileImpl createFile(Folder parent, String name, InputStream content, String contentType) {
         final String url = createUrl(vfsInfo.getUrlTemplates().get(Link.REL_CREATE_FILE), Pair.of("name", name),
                                      Pair.of("parentId", parent.getId()));
-        final Item item = post(url, ItemDto.class, null, 200);
-        cache.put(item.getId(), item);
-        return new FileImpl(this, parent, item.getId(), item.getName());
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection)new URL(url).openConnection();
+            authenticate(conn);
+            conn.setRequestMethod("POST");
+            if (content != null) {
+                conn.addRequestProperty("content-type", contentType);
+                conn.setDoOutput(true);
+                try (OutputStream output = conn.getOutputStream()) {
+                    byte[] buf = new byte[8192];
+                    int r;
+                    while ((r = content.read(buf)) > 0) {
+                        output.write(buf, 0, r);
+                    }
+                }
+            }
+
+            final int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                throw restoreRemoteException(responseCode, conn);
+            }
+            final Item item = JsonHelper.fromJson(IoUtil.readAndCloseQuietly(conn.getInputStream()), ItemDto.class, null);
+            cache.put(item.getId(), item);
+            return new FileImpl(this, parent, item.getId(), item.getName());
+        } catch (IOException | JsonParseException e) {
+            throw new VirtualFileSystemUnknownException(e);
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
     }
 
     @Override
     public Folder createFolder(Folder parent, String name) {
         final String url = createUrl(vfsInfo.getUrlTemplates().get(Link.REL_CREATE_FOLDER), Pair.of("name", name),
                                      Pair.of("parentId", parent.getId()));
-        final Item item = post(url, ItemDto.class, null, 200);
+        final Item item = post(ItemDto.class, url, null, 200);
         cache.put(item.getId(), item);
         return new Folder(this, parent, item.getId(), item.getName());
     }
 
     @Override
-    public Project createProject(String name) {
-        return createProject(null, name);
+    public Project createProject(String name, List<Attribute<?>> attributes) {
+        return createProject(null, name, attributes);
     }
 
     @Override
-    public Project createProject(Project parent, String name) {
+    public Project createProject(Project parent, String name, List<Attribute<?>> attributes) {
         Folder parentFolder = parent;
         if (parent == null) {
             parentFolder = root;
         }
         final String url = createUrl(vfsInfo.getUrlTemplates().get(Link.REL_CREATE_PROJECT), Pair.of("name", name),
                                      Pair.of("parentId", parentFolder.getId()));
-        final Item item = post(url, ItemDto.class, null, 200);
+
+        List<Property> props = new ArrayList<>();
+        if (!(attributes == null || attributes.isEmpty())) {
+            props = new ArrayList<>();
+            for (Attribute<?> attribute : attributes) {
+                if (attribute.isPersistent()) {
+                    final String aName = attribute.getName();
+                    final Object aValue = attribute.getValue();
+                    final AttributeProvider<?> attrProv = AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider("PROJECT", aName);
+                    props.add(new PropertyImpl(attrProv.getVfsPropertyName(), aValue == null ? null : String.valueOf(aValue)));
+                }
+            }
+        }
+
+        final Item item = post(ItemDto.class, url, props, 200);
         cache.put(item.getId(), item);
         return new Project(this, parentFolder, item.getId(), item.getName());
     }
@@ -175,7 +225,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         } else {
             cache.remove(resource.getId());
         }
-        post(url, null, null, 204);
+        post(null, url, null, 204);
     }
 
     @Override
@@ -271,14 +321,15 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         for (Attribute<?> update : all) {
             final String name = update.getName();
             final Object value = update.getValue();
-            final AttributeProvider<?> attrProv = AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(name);
+            final AttributeProvider<?> attrProv =
+                    AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(attributes.getResource().getType(), name);
             props.add(new PropertyImpl(attrProv.getVfsPropertyName(), value == null ? null : String.valueOf(value)));
         }
 
         Item item = getVfsItem(attributes.getResource());
         cache.remove(item.getId());
         final String url = item.getLinks().get(Link.REL_SELF).getHref();
-        item = post(url, ItemDto.class, props, 200);
+        item = post(ItemDto.class, url, props, 200);
         cache.put(item.getId(), item);
     }
 
@@ -301,7 +352,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
             cache.remove(item.getId());
         }
         final String url = createUrl(item.getLinks().get(Link.REL_RENAME), Pair.of("newname", newname), Pair.of("mediaType", contentType));
-        item = post(url, ItemDto.class, null, 200);
+        item = post(ItemDto.class, url, null, 200);
         cache.put(item.getId(), item);
         return createResource(resource.getParent(), item);
     }
@@ -315,7 +366,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
             cache.remove(item.getId());
         }
         final String url = createUrl(item.getLinks().get(Link.REL_MOVE), Pair.of("parentId", newparent.getId()));
-        item = post(url, ItemDto.class, null, 200);
+        item = post(ItemDto.class, url, null, 200);
         cache.put(item.getId(), item);
         return createResource(newparent, item);
     }
@@ -325,7 +376,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         cache.remove(file.getId());
         final String url =
                 createUrl(vfsInfo.getUrlTemplates().get(Link.REL_LOCK), Pair.of("id", file.getId()), Pair.of("timeout", timeout));
-        return post(url, LockImpl.class, null, 200);
+        return post(LockImpl.class, url, null, 200);
     }
 
     @Override
@@ -333,13 +384,13 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         cache.remove(file.getId());
         final String url =
                 createUrl(vfsInfo.getUrlTemplates().get(Link.REL_UNLOCK), Pair.of("id", file.getId()), Pair.of("lockToken", lockToken));
-        post(url, null, null, 204);
+        post(null, url, null, 204);
     }
 
     @Override
     public AccessControlList loadACL(Resource resource) {
         final String url = getVfsItem(resource).getLinks().get(Link.REL_ACL).getHref();
-        final AccessControlEntryImpl[] vfsACL = get(url, AccessControlEntryImpl[].class, 200);
+        final AccessControlEntryImpl[] vfsACL = get(AccessControlEntryImpl[].class, url, 200);
         final List<ResourceAccessControlEntry> acl = new ArrayList<>(vfsACL.length);
         for (AccessControlEntry e : vfsACL) {
             acl.add(new ResourceAccessControlEntryImpl(e));
@@ -370,7 +421,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
 
         final Item item = getVfsItem(acl.getResource());
         final String url = item.getLinks().get(Link.REL_ACL).getHref();
-        post(url, null, vfsACL, 204);
+        post(null, url, vfsACL, 204);
     }
 
     private void purgeCachedChildren(Resource resource) {
@@ -435,7 +486,7 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         Item item = cache.get(id);
         if (item == null) {
             final String url = createUrl(vfsInfo.getUrlTemplates().get(Link.REL_ITEM), Pair.of("id", id));
-            cache.put(id, item = get(url, ItemDto.class, 200));
+            cache.put(id, item = get(ItemDto.class, url, 200));
         }
         return item;
     }
@@ -453,9 +504,9 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         }
     }
 
-    private <R> R get(String url, Class<R> responseType, int success, Pair<String, ?>... parameters) {
+    private <R> R get(Class<R> responseType, String url, int success) {
         try {
-            final String str = doRequest(url, "GET", null, null, success, parameters);
+            final String str = doJsonRequest(url, "GET", null, success);
             if (!(str == null || str.isEmpty())) {
                 return JsonHelper.fromJson(str, responseType, null);
             }
@@ -465,9 +516,9 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         }
     }
 
-    private <R> R post(String url, Class<R> responseType, Object body, int success, Pair<String, ?>... parameters) {
+    private <R> R post(Class<R> responseType, String url, Object body, int success) {
         try {
-            final String str = doRequest(url, "POST", body, "application/json", success, parameters);
+            final String str = doJsonRequest(url, "POST", body == null ? null : JsonHelper.toJson(body), success);
             if (!(str == null || str.isEmpty())) {
                 return JsonHelper.fromJson(str, responseType, null);
             }
@@ -477,37 +528,18 @@ public class RemoteVirtualFileSystemConnector extends VirtualFileSystemConnector
         }
     }
 
-    private String doRequest(String url, String method, Object body, String contentType, int success, Pair<String, ?>... parameters)
-            throws IOException {
+    private String doJsonRequest(String url, String method, String json, int success) throws IOException {
         HttpURLConnection conn = null;
         try {
-            if (parameters != null && parameters.length > 0) {
-                final StringBuilder sb = new StringBuilder();
-                sb.append(url);
-                sb.append('?');
-                for (int i = 0, l = parameters.length; i < l; i++) {
-                    String name = URLEncoder.encode(parameters[i].first, "UTF-8");
-                    String value = parameters[i].second == null ? null : URLEncoder.encode(String.valueOf(parameters[i].second), "UTF-8");
-                    if (i > 0) {
-                        sb.append('&');
-                    }
-                    sb.append(name);
-                    if (value != null) {
-                        sb.append('=');
-                        sb.append(value);
-                    }
-                }
-                url = sb.toString();
-            }
             conn = (HttpURLConnection)new URL(url).openConnection();
             authenticate(conn);
             conn.setRequestMethod(method);
             conn.setInstanceFollowRedirects(true);
-            if (body != null) {
-                conn.addRequestProperty("content-type", contentType);
+            if (json != null) {
+                conn.addRequestProperty("content-type", "application/json");
                 conn.setDoOutput(true);
                 try (OutputStream output = conn.getOutputStream()) {
-                    output.write(JsonHelper.toJson(body).getBytes());
+                    output.write(json.getBytes());
                 }
             }
             final int responseCode = conn.getResponseCode();

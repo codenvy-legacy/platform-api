@@ -21,9 +21,25 @@ import java.util.List;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public interface AttributeProviderRegistry {
-    void addAttributeProvider(AttributeProvider<?> attributeProvider);
+    /**
+     * Register attribute provider for specified {@code itemType}. Expected item types: FILE, FOLDER, PROJECT.
+     *
+     * @param itemType
+     *         item type: FILE, FOLDER or PROJECT
+     * @param attributeProvider
+     *         AttributeProvider
+     */
+    void addAttributeProvider(String itemType, AttributeProvider<?> attributeProvider);
 
-    List<String> getAttributeProviderNames();
+    /**
+     * Get names of AttributeProviders registered for specified {@code itemType}. Modifications to the returned {@code List} should not
+     * affect the internal state of this object.
+     *
+     * @param itemType
+     *         item type: FILE, FOLDER or PROJECT
+     * @return known Attribute Providers
+     */
+    List<String> getAttributeProviderNames(String itemType);
 
-    AttributeProvider<?> getAttributeProvider(String name);
+    AttributeProvider<?> getAttributeProvider(String itemType, String name);
 }

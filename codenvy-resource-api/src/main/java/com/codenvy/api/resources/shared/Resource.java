@@ -52,6 +52,10 @@ public abstract class Resource {
         return name;
     }
 
+    public String getType() {
+        return type;
+    }
+
     public String getPath() {
         checkValid();
         final Folder parent = getParent();

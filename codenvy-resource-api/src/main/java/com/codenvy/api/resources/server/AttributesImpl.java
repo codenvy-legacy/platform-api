@@ -59,7 +59,8 @@ public class AttributesImpl implements Attributes {
             }
         }
         final Attribute<?> attr =
-                AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(name).getAttribute(connector.getVfsItem(resource));
+                AttributeProviderRegistryImpl.INSTANCE.getAttributeProvider(resource.getType(), name)
+                                             .getAttribute(connector.getVfsItem(resource));
         attributes.add(attr);
         return attr;
     }

@@ -29,17 +29,17 @@ import java.util.Map;
 public enum AttributeProviderRegistryImpl implements AttributeProviderRegistry {
     INSTANCE;
 
-    private Map<String, AttributeProvider<?>> attributeProviders = new HashMap<>();
+    private final Map<String, AttributeProvider<?>> attributeProviders = new HashMap<>(3);
 
-    public void addAttributeProvider(AttributeProvider<?> attributeProvider) {
+    public void addAttributeProvider(String itemType, AttributeProvider<?> attributeProvider) {
         attributeProviders.put(attributeProvider.getName(), attributeProvider);
     }
 
-    public List<String> getAttributeProviderNames() {
+    public List<String> getAttributeProviderNames(String itemType) {
         return new ArrayList<>(attributeProviders.keySet());
     }
 
-    public AttributeProvider<?> getAttributeProvider(String name) {
+    public AttributeProvider<?> getAttributeProvider(String itemType, String name) {
         AttributeProvider<?> attrProv = attributeProviders.get(name);
         if (attrProv == null) {
             attrProv = new SimpleAttributeProvider(name);

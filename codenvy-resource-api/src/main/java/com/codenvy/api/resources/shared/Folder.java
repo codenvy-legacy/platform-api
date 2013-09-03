@@ -21,8 +21,8 @@ import java.util.List;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Folder extends Resource {
-    public Folder(VirtualFileSystemConnector workspace, Folder parent, String id, String name) {
-        this(workspace, parent, "FOLDER", id, name);
+    public Folder(VirtualFileSystemConnector connector, Folder parent, String id, String name) {
+        this(connector, parent, "FOLDER", id, name);
     }
 
     protected Folder(VirtualFileSystemConnector workspace, Folder parent, String type, String id, String name) {
@@ -62,14 +62,19 @@ public class Folder extends Resource {
         return connector.createFile(this, name);
     }
 
+    public File createFile(String name, String content, String contentType) {
+        checkValid();
+        return connector.createFile(this, name, content, contentType);
+    }
+
     public Folder createFolder(String name) {
         checkValid();
         return connector.createFolder(this, name);
     }
 
-    public Project createProject(String name) {
+    public Project createProject(String name, List<Attribute<?>> attributes) {
         checkValid();
-        return connector.createProject(name);
+        return connector.createProject(name, attributes);
     }
 
     public boolean isRoot() {

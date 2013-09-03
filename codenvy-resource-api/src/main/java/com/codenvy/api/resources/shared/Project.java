@@ -17,10 +17,12 @@
  */
 package com.codenvy.api.resources.shared;
 
+import java.util.List;
+
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Project extends Folder {
-    public Project(VirtualFileSystemConnector workspace, Folder parent, String id, String name) {
-        super(workspace, parent, "PROJECT", id, name);
+    public Project(VirtualFileSystemConnector connector, Folder parent, String id, String name) {
+        super(connector, parent, "PROJECT", id, name);
     }
 
     @Override
@@ -31,7 +33,7 @@ public class Project extends Folder {
 
     public String getWorkspace() {
         checkValid();
-        return connector.getName();
+        return connector.getWorkspaceName();
     }
 
     public String getDescription() {
@@ -39,13 +41,13 @@ public class Project extends Folder {
         return ""; // TODO
     }
 
-    public String getType() {
+    public String getProjectType() {
         checkValid();
         return (String)getAttributes().getAttribute("vfs:projectType").getValue();
     }
 
-    public Project createProject(String name) {
+    public Project createProject(String name, List<Attribute<?>> attributes) {
         checkValid();
-        return connector.createProject(this, name);
+        return connector.createProject(this, name, attributes);
     }
 }

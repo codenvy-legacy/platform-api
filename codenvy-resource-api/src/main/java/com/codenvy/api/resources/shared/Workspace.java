@@ -17,23 +17,32 @@
  */
 package com.codenvy.api.resources.shared;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Workspace {
-    private final VirtualFileSystemConnector virtualFileSystemConnector;
+    private final VirtualFileSystemConnector connector;
 
-    public Workspace(VirtualFileSystemConnector virtualFileSystemConnector) {
-        this.virtualFileSystemConnector = virtualFileSystemConnector;
+    public Workspace(VirtualFileSystemConnector connector) {
+        this.connector = connector;
     }
 
     public String getName() {
-        return virtualFileSystemConnector.getName();
+        return connector.getWorkspaceName();
     }
 
-    public String getTariffScale() {
-        return null;  //TODO
+    public List<Project> getProjects() {
+        final List<Project> projects = new ArrayList<>(4);
+        for (Resource resource : connector.getRoot().getChildren()) {
+            if (resource.isProject()) {
+                projects.add((Project)resource);
+            }
+        }
+        return projects;
     }
 
-    public Folder getRoot() {
-        return virtualFileSystemConnector.getRoot();
+    public Project createProject(String name, List<Attribute<?>> attributes) {
+        return connector.getRoot().createProject(name, attributes);
     }
 }

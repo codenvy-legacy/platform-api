@@ -25,15 +25,17 @@ import java.io.InputStream;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class FileImpl extends File {
-    public FileImpl(VirtualFileSystemConnector workspace, Folder parent, String id, String name) {
+    public FileImpl(VirtualFileSystemConnectorImpl workspace, Folder parent, String id, String name) {
         super(workspace, parent, id, name);
     }
 
     public InputStream getInputStream() {
+        checkValid();
         return ((VirtualFileSystemConnectorImpl)connector).getContentStream(this);
     }
 
     public void setContentStream(InputStream data, String contentType) {
+        checkValid();
         ((VirtualFileSystemConnectorImpl)connector).updateContentStream(this, data, contentType);
     }
 }

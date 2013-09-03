@@ -23,8 +23,8 @@ import com.codenvy.api.vfs.shared.Lock;
 public class File extends Resource {
     private boolean locked;
 
-    public File(VirtualFileSystemConnector workspace, Folder parent, String id, String name) {
-        super(workspace, parent, "FILE", id, name);
+    public File(VirtualFileSystemConnector connector, Folder parent, String id, String name) {
+        super(connector, parent, "FILE", id, name);
     }
 
     @Override

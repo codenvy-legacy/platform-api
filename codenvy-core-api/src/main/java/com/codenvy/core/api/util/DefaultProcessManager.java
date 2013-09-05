@@ -63,4 +63,9 @@ class DefaultProcessManager extends ProcessManager {
     public int getPid(Process process) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    int system(String command) {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -64,7 +64,7 @@ class UnixProcessManager extends ProcessManager {
 
         String strerror(int errno);
 
-        /*int system(String cmd);*/
+        int system(String cmd);
     }
 
     private static final Pattern UNIX_PS_TABLE_PATTERN = Pattern.compile("\\s+");
@@ -180,5 +180,10 @@ class UnixProcessManager extends ProcessManager {
         } catch (Exception e) {
             throw new IllegalStateException("Cannot get process pid. Not unix system?", e);
         }
+    }
+
+    @Override
+    int system(String command) {
+        return C_LIBRARY.system(command);
     }
 }

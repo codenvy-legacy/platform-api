@@ -17,9 +17,6 @@
  */
 package com.codenvy.core.api.util;
 
-import com.codenvy.core.api.util.CommandLine;
-import com.codenvy.core.api.util.DefaultShellFactory;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

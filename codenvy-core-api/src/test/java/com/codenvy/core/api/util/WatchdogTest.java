@@ -17,9 +17,6 @@
  */
 package com.codenvy.core.api.util;
 
-import com.codenvy.core.api.util.Cancellable;
-import com.codenvy.core.api.util.Watchdog;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

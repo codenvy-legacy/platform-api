@@ -79,8 +79,12 @@ public final class ProcessUtil {
         PROCESS_MANAGER.kill(pid);
     }
 
-    public int getPid(Process process) {
+    public static int getPid(Process process) {
         return PROCESS_MANAGER.getPid(process);
+    }
+
+    public static int system(String command) {
+        return PROCESS_MANAGER.system(command);
     }
 
     private ProcessUtil() {

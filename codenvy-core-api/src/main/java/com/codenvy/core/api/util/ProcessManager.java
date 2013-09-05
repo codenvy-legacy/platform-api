@@ -35,4 +35,6 @@ abstract class ProcessManager {
     abstract boolean isAlive(int pid);
 
     abstract int getPid(Process process);
+
+    abstract int system(String command);
 }

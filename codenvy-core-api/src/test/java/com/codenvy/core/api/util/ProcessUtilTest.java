@@ -17,9 +17,6 @@
  */
 package com.codenvy.core.api.util;
 
-import com.codenvy.core.api.util.ProcessUtil;
-import com.codenvy.core.api.util.LineConsumer;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

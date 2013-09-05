@@ -25,8 +25,8 @@ package com.codenvy.api.project.shared;
  */
 public abstract class Project /*extends Project*/ {
 
-	String getPrimaryType();
+	public abstract String getPrimaryType();
 	
-	List <Attribute> getAttributes();
+	public abstract java.util.List <Attribute> getAttributes();
 	
 }

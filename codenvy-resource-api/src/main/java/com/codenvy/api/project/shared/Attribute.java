@@ -33,7 +33,7 @@ public class Attribute {
 	private AttributeValueProvider valueProvider;
 	private String name;
 	
-	public Attribute(String name, ValueProvider valueProvider) {
+	public Attribute(String name, AttributeValueProvider valueProvider) {
 		this.name = name;
 		this.valueProvider = valueProvider;
 	}
@@ -83,7 +83,7 @@ public class Attribute {
     	}
     	
     	public void setValue(String value) {
-    		return property.setValue(value);
+    		property.setValue(value);
     	}
     }
 

@@ -28,7 +28,7 @@
 
     <artifactId>codenvy-api-analytic</artifactId>
     <packaging>jar</packaging>
-    <name>Codenvy Analytics API</name>
+    <name>Codenvy API Analytics</name>
 
     <dependencies>
         <dependency>

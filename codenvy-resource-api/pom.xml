@@ -26,8 +26,8 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>codenvy-project-api</artifactId>
-    <name>Codenvy Resource API</name>
+    <artifactId>codenvy-api-project</artifactId>
+    <name>Codenvy API Project</name>
     <packaging>jar</packaging>
 
     <dependencies>

@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>codenvy-api-core</artifactId>
-    <name>Codenvy Core API</name>
+    <name>Codenvy API Core</name>
     <packaging>jar</packaging>
 
     <dependencies>

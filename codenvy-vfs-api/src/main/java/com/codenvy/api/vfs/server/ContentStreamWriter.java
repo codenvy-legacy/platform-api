@@ -35,7 +35,6 @@ import java.util.Date;
  * output stream.
  *
  * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: $
  */
 @Provider
 public final class ContentStreamWriter implements MessageBodyWriter<ContentStream> {

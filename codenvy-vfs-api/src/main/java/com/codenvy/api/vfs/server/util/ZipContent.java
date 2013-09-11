@@ -17,16 +17,20 @@
  */
 package com.codenvy.api.vfs.server.util;
 
-import org.apache.commons.io.input.CountingInputStream;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 
-import java.io.*;
+import org.apache.commons.io.input.CountingInputStream;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- */
+/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public final class ZipContent {
     /** Memory threshold. If zip stream over this size it spooled in file. */
     private static final int  BUFFER        = 100 * 1024; // 100k
@@ -57,14 +61,11 @@ public final class ZipContent {
         InputStream spool;
         if (count > BUFFER) {
             file = java.io.File.createTempFile("import", ".zip");
-            FileOutputStream fileSpool = new FileOutputStream(file);
-            try {
+            try (FileOutputStream fileSpool = new FileOutputStream(file)) {
                 inMemorySpool.writeTo(fileSpool);
                 while ((bytes = in.read(buff)) != -1) {
                     fileSpool.write(buff, 0, bytes);
                 }
-            } finally {
-                fileSpool.close();
             }
             spool = new FileInputStream(file);
         } else {

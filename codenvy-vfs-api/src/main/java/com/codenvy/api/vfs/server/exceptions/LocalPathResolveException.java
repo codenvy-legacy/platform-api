@@ -19,8 +19,6 @@ package com.codenvy.api.vfs.server.exceptions;
 
 /**
  * This exception occurs in case LocalPathResolver in some reason can't resolve the path.
- * <p/>
- * Created by The eXo Platform SAS.
  *
  * @author <a href="mailto:vparfonov@exoplatform.com">Vitaly Parfonov</a>
  */

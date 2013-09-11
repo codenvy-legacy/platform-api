@@ -15,13 +15,25 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.impl.memory.context;
+package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 /**
+ * This interface defines the visit method. When an implementation of this interface is passed to {@link
+ * VirtualFile#accept(VirtualFileVisitor)} the <code>visit</code> method is called.
+ *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public interface MemoryItemVisitor {
-    void visit(MemoryItem item) throws VirtualFileSystemException;
+public interface VirtualFileVisitor {
+    /**
+     * This method is called when the VirtualFileVisitor is passed to the {@link VirtualFile#accept(VirtualFileVisitor) accept} method of a
+     * {@link VirtualFile}.
+     *
+     * @param virtualFile
+     *         VirtualFile which is accepting this visitor
+     * @throws VirtualFileSystemException
+     *         if an error occurs
+     */
+    void visit(VirtualFile virtualFile) throws VirtualFileSystemException;
 }

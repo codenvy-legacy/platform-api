@@ -17,56 +17,68 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.shared.AccessControlEntry;
 import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
+import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.Principal;
 import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.Property;
+import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: DeleteTest.java 75032 2011-10-13 15:24:34Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class DeleteTest extends MemoryFileSystemTest {
-    private String     folderId;
-    private String     fileId;
-    private MemoryFile file;
+    private String      folderId;
+    private String      folderChildId;
+    private String      fileId;
+    private String      folderPath;
+    private String      folderChildPath;
+    private String      filePath;
+    private VirtualFile file;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder deleteTestFolder = new MemoryFolder(name);
-        testRoot.addChild(deleteTestFolder);
+        VirtualFile deleteTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
 
-        MemoryFolder folder = new MemoryFolder("DeleteTest_FOLDER");
-        deleteTestFolder.addChild(folder);
+        VirtualFile folder = deleteTestProject.createFolder("DeleteTest_FOLDER");
         // add child in folder
-        MemoryFile childFile = new MemoryFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        folder.addChild(childFile);
+        VirtualFile childFile = folder.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         folderId = folder.getId();
+        folderChildId = childFile.getId();
+        folderPath = folder.getPath();
+        folderChildPath = childFile.getPath();
 
-        file = new MemoryFile("DeleteTest_FILE", "text/plain",
-                              new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        deleteTestFolder.addChild(file);
+        file = deleteTestProject.createFile("DeleteTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
-
-        memoryContext.putItem(deleteTestFolder);
+        filePath = file.getPath();
     }
 
     public void testDeleteFile() throws Exception {
         String path = SERVICE_URI + "delete/" + fileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(204, response.getStatus());
-        assertNull("File must be removed. ", memoryContext.getItem(fileId));
+        try {
+            mountPoint.getVirtualFileById(fileId);
+            fail("File must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
+        try {
+            mountPoint.getVirtualFile(filePath);
+            fail("File must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
+        assertFalse(file.exists());
     }
 
     public void testDeleteFileLocked() throws Exception {
@@ -74,37 +86,54 @@ public class DeleteTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "delete/" + fileId + '?' + "lockToken=" + lockToken;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(204, response.getStatus());
-        assertNull("File must be removed. ", memoryContext.getItem(fileId));
+        try {
+            mountPoint.getVirtualFileById(fileId);
+            fail("File must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
+        try {
+            mountPoint.getVirtualFile(filePath);
+            fail("File must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
     }
 
-    public void testDeleteFileLocked_NoLockToken() throws Exception {
+    public void testDeleteFileLockedNoLockToken() throws Exception {
         file.lock(0);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "delete/" + fileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         assertEquals(423, response.getStatus());
         log.info(new String(writer.getBody()));
-        assertNotNull("File must not be removed since it is locked. ", memoryContext.getItem(fileId));
+        try {
+            mountPoint.getVirtualFileById(fileId);
+        } catch (ItemNotFoundException e) {
+            fail("File must not be removed since it is locked. ");
+        }
     }
 
-    public void testDeleteFileNoPermissionsFile() throws Exception {
+    public void testDeleteFileNoPermissions() throws Exception {
         AccessControlEntry adminACE = new AccessControlEntryImpl();
-        adminACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
+        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
+        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
         AccessControlEntry userACE = new AccessControlEntryImpl();
         userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.READ.value())));
-        file.updateACL(Arrays.asList(adminACE, userACE), true);
+        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
+        file.updateACL(Arrays.asList(adminACE, userACE), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "delete/" + fileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
-        assertNotNull("File must not be removed since permissions restriction. ", memoryContext.getItem(fileId));
+        try {
+            mountPoint.getVirtualFileById(fileId);
+        } catch (ItemNotFoundException e) {
+            fail("File must not be removed since permissions restriction. ");
+        }
     }
 
-    public void testDeleteFileWrongID() throws Exception {
+    public void testDeleteFileWrongId() throws Exception {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "delete/" + fileId + "_WRONG_ID";
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
@@ -112,10 +141,69 @@ public class DeleteTest extends MemoryFileSystemTest {
         log.info(new String(writer.getBody()));
     }
 
+    public void testDeleteRootFolder() throws Exception {
+        ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
+        String path = SERVICE_URI + "delete/" + mountPoint.getRoot().getId();
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
+        assertEquals(400, response.getStatus());
+        assertEquals(ExitCodes.INVALID_ARGUMENT, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        log.info(new String(writer.getBody()));
+    }
+
     public void testDeleteFolder() throws Exception {
         String path = SERVICE_URI + "delete/" + folderId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(204, response.getStatus());
-        assertNull("Folder must be removed. ", memoryContext.getItem(folderId));
+        try {
+            mountPoint.getVirtualFileById(folderId);
+            fail("Folder must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
+        try {
+            mountPoint.getVirtualFileById(folderChildId);
+            fail("Child file must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
+        try {
+            mountPoint.getVirtualFile(folderPath);
+            fail("Folder must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
+        try {
+            mountPoint.getVirtualFile(folderChildPath);
+            fail("Child file must be removed. ");
+        } catch (ItemNotFoundException e) {
+        }
+    }
+
+    public void testDeleteFolderNoPermissionForChild() throws Exception {
+        AccessControlEntry adminACE = new AccessControlEntryImpl();
+        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
+        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        AccessControlEntry userACE = new AccessControlEntryImpl();
+        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
+        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
+        mountPoint.getVirtualFileById(folderChildId).updateACL(Arrays.asList(adminACE, userACE), true, null);
+
+        String path = SERVICE_URI + "delete/" + folderId;
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
+        assertEquals(403, response.getStatus());
+        try {
+            mountPoint.getVirtualFileById(folderId);
+        } catch (ItemNotFoundException e) {
+            fail("Folder must not be removed since permissions restriction. ");
+        }
+    }
+
+    public void testDeleteFolderLockedChild() throws Exception {
+        mountPoint.getVirtualFileById(folderChildId).lock(0);
+        String path = SERVICE_URI + "delete/" + folderId;
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
+        assertEquals(423, response.getStatus());
+        try {
+            mountPoint.getVirtualFileById(folderId);
+        } catch (ItemNotFoundException e) {
+            fail("Folder must not be removed since child file is locked. ");
+        }
     }
 }

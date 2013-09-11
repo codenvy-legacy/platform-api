@@ -17,21 +17,20 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 
+import org.everrest.core.impl.ContainerResponse;
+
 import java.io.ByteArrayOutputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-/**
- * @author <a href="mailto:vparfonov@exoplatform.com">Vitaly Parfonov</a>
- * @version $Id: ImportTest.java Nov 21, 2012 vetal $
- */
+/** @author <a href="mailto:vparfonov@exoplatform.com">Vitaly Parfonov</a> */
 public class ImportTest extends MemoryFileSystemTest {
     private String importTestRootId;
     private byte[] zipFolder;
@@ -41,9 +40,7 @@ public class ImportTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder importTestRoot = new MemoryFolder(name);
-        testRoot.addChild(importTestRoot);
-        memoryContext.putItem(importTestRoot);
+        VirtualFile importTestRoot = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
         importTestRootId = importTestRoot.getId();
 
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -76,20 +73,20 @@ public class ImportTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "import/" + importTestRootId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, zipFolder, null);
         assertEquals(204, response.getStatus());
-        MemoryFolder parent = (MemoryFolder)memoryContext.getItem(importTestRootId);
-        MemoryFolder folder1 = (MemoryFolder)parent.getChild("folder1");
+        VirtualFile parent = mountPoint.getVirtualFileById(importTestRootId);
+        VirtualFile folder1 = parent.getChild("folder1");
         assertNotNull(folder1);
-        MemoryFolder folder2 = (MemoryFolder)parent.getChild("folder2");
+        VirtualFile folder2 = parent.getChild("folder2");
         assertNotNull(folder2);
-        MemoryFolder folder3 = (MemoryFolder)parent.getChild("folder3");
+        VirtualFile folder3 = parent.getChild("folder3");
         assertNotNull(folder3);
-        MemoryFile file1 = (MemoryFile)folder1.getChild("file1.txt");
+        VirtualFile file1 = folder1.getChild("file1.txt");
         assertNotNull(file1);
         checkFileContext(DEFAULT_CONTENT, "text/plain", file1);
-        MemoryFile file2 = (MemoryFile)folder2.getChild("file2.txt");
+        VirtualFile file2 = folder2.getChild("file2.txt");
         assertNotNull(file2);
         checkFileContext(DEFAULT_CONTENT, "text/plain", file2);
-        MemoryFile file3 = (MemoryFile)folder3.getChild("file3.txt");
+        VirtualFile file3 = folder3.getChild("file3.txt");
         assertNotNull(file3);
         checkFileContext(DEFAULT_CONTENT, "text/plain", file3);
     }
@@ -98,7 +95,7 @@ public class ImportTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "import/" + importTestRootId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, zipProject, null);
         assertEquals(204, response.getStatus());
-        MemoryFolder parent = (MemoryFolder)memoryContext.getItem(importTestRootId);
+        VirtualFile parent = mountPoint.getVirtualFileById(importTestRootId);
         List<Property> properties = parent.getProperties(PropertyFilter.ALL_FILTER);
         for (Property property : properties) {
             if ("vfs:projectType".equals(property.getName())) {
@@ -107,8 +104,8 @@ public class ImportTest extends MemoryFileSystemTest {
                 assertEquals("text/vnd.ideproject+directory", property.getValue().get(0));
             }
         }
-        assertEquals(1, parent.getChildren().size()); // file .project must be store as project properties not like a file
-        MemoryFile readme = (MemoryFile)parent.getChild("readme.txt");
+        assertEquals(1, parent.getChildren(VirtualFileFilter.ALL).size()); // file .project must be store as project properties not like a file
+        VirtualFile readme = parent.getChild("readme.txt");
         assertNotNull(readme);
         checkFileContext(DEFAULT_CONTENT, "text/plain", readme);
     }

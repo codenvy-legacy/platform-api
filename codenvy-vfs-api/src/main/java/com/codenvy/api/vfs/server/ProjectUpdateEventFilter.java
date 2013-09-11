@@ -15,40 +15,39 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.impl.memory;
+package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
-import com.codenvy.api.vfs.server.observation.*;
+import com.codenvy.api.vfs.server.observation.ChangeEvent;
+import com.codenvy.api.vfs.server.observation.ChangeEvent.ChangeType;
+import com.codenvy.api.vfs.server.observation.ChangeEventFilter;
+import com.codenvy.api.vfs.server.observation.PathFilter;
+import com.codenvy.api.vfs.server.observation.TypeFilter;
+import com.codenvy.api.vfs.server.observation.VfsIDFilter;
 
-/**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @version $Id: $
- */
-class ProjectUpdateEventFilter extends ChangeEventFilter {
+/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+public class ProjectUpdateEventFilter extends ChangeEventFilter {
     private final String            vfsId;
     private final String            projectId;
     private final ChangeEventFilter delegate;
 
-    static ProjectUpdateEventFilter newFilter(String vfsId, MemoryFolder project) {
-        ChangeEventFilter filter = ChangeEventFilter.createAndFilter(
+    public static ProjectUpdateEventFilter newFilter(VirtualFileSystemImpl vfs, VirtualFile project) throws VirtualFileSystemException {
+        final String vfsId = vfs.getInfo().getId();
+        final ChangeEventFilter filter = ChangeEventFilter.createAndFilter(
                 new VfsIDFilter(vfsId),
                 new PathFilter(project.getPath() + "/.*"), // events for all project items
-                ChangeEventFilter.createOrFilter( // created, updated, deleted, renamed or moved
-                                                  new TypeFilter(ChangeEvent.ChangeType.CREATED),
-                                                  new TypeFilter(ChangeEvent.ChangeType.CONTENT_UPDATED),
-                                                  new TypeFilter(ChangeEvent.ChangeType.DELETED),
-                                                  new TypeFilter(ChangeEvent.ChangeType.RENAMED),
-                                                  new TypeFilter(ChangeEvent.ChangeType.MOVED)
-                                                ));
+                new TypeFilter(ChangeType.CREATED,
+                               ChangeType.CONTENT_UPDATED,
+                               ChangeType.DELETED,
+                               ChangeType.RENAMED,
+                               ChangeType.MOVED));
         return new ProjectUpdateEventFilter(filter, vfsId, project.getId());
     }
 
     @Override
     public boolean matched(ChangeEvent event) throws VirtualFileSystemException {
-        VirtualFileSystem vfs = event.getVirtualFileSystem();
-        return vfs instanceof MemoryFileSystem && delegate.matched(event);
+        final VirtualFileSystem vfs = event.getVirtualFileSystem();
+        return (vfs instanceof VirtualFileSystemImpl) && delegate.matched(event);
     }
 
     @Override

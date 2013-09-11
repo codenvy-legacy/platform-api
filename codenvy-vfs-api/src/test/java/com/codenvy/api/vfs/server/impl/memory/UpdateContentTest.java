@@ -17,23 +17,27 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.AccessControlEntry;
 import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
 import com.codenvy.api.vfs.shared.Principal;
 import com.codenvy.api.vfs.shared.PrincipalImpl;
+import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
 
-import java.io.ByteArrayInputStream;
-import java.util.*;
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: UpdateContentTest.java 75032 2011-10-13 15:24:34Z andrew00x $
- */
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class UpdateContentTest extends MemoryFileSystemTest {
     private String fileId;
     private String folderId;
@@ -43,19 +47,12 @@ public class UpdateContentTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder updateContentTestFolder = new MemoryFolder(name);
-        testRoot.addChild(updateContentTestFolder);
-
-        MemoryFile file = new MemoryFile("UpdateContentTest_FILE", "text/plain",
-                                         new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        updateContentTestFolder.addChild(file);
+        VirtualFile updateContentTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile file = updateContentTestProject.createFile("UpdateContentTest_FILE", "text/plain",
+                                                               new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
-
-        MemoryFolder folder = new MemoryFolder("UpdateContentTest_FOLDER");
-        updateContentTestFolder.addChild(folder);
+        VirtualFile folder = updateContentTestProject.createFolder("UpdateContentTest_FOLDER");
         folderId = folder.getId();
-
-        memoryContext.putItem(updateContentTestFolder);
     }
 
     public void testUpdateContent() throws Exception {
@@ -69,7 +66,7 @@ public class UpdateContentTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
         assertEquals(204, response.getStatus());
 
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
         checkFileContext(content, "text/plain;charset=utf8", file);
     }
 
@@ -88,7 +85,8 @@ public class UpdateContentTest extends MemoryFileSystemTest {
         AccessControlEntry userACE = new AccessControlEntryImpl();
         userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
         userACE.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.READ.value())));
-        memoryContext.getItem(fileId).updateACL(Arrays.asList(adminACE, userACE), true);
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
+        file.updateACL(Arrays.asList(adminACE, userACE), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "content/" + fileId;
@@ -98,7 +96,7 @@ public class UpdateContentTest extends MemoryFileSystemTest {
     }
 
     public void testUpdateContentLocked() throws Exception {
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
         String lockToken = file.lock(0);
 
         String path = SERVICE_URI + "content/" + fileId + '?' + "lockToken=" + lockToken;
@@ -111,12 +109,12 @@ public class UpdateContentTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
         assertEquals(204, response.getStatus());
 
-        file = (MemoryFile)memoryContext.getItem(fileId);
+        file = mountPoint.getVirtualFileById(fileId);
         checkFileContext(content, "text/plain;charset=utf8", file);
     }
 
-    public void testUpdateContentLocked_NoLockTokens() throws Exception {
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
+    public void testUpdateContentLockedNoLockToken() throws Exception {
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
         file.lock(0);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "content/" + fileId;

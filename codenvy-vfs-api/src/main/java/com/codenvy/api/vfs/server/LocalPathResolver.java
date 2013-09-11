@@ -29,12 +29,10 @@ public interface LocalPathResolver {
     /**
      * Return absolute path to the item (file or folder) on file system
      *
-     * @param vfs
-     *         the VirtualFileSystem implementation
-     * @param itemId
-     *         the to id of Item
+     * @param virtualFile
+     *         VirtualFile
      * @return absolute path to the item (file or folder) on file system
      * @throws LocalPathResolveException
      */
-    String resolve(VirtualFileSystem vfs, String itemId) throws LocalPathResolveException;
+    String resolve(VirtualFile virtualFile) throws LocalPathResolveException;
 }

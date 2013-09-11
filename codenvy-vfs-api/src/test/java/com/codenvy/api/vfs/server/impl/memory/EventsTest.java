@@ -17,30 +17,28 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
 import com.codenvy.api.vfs.server.observation.ChangeEvent;
 import com.codenvy.api.vfs.server.observation.ChangeEventFilter;
 import com.codenvy.api.vfs.server.observation.EventListener;
-import com.codenvy.api.vfs.server.observation.ProjectUpdateListener;
 import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.PropertyImpl;
+
+import org.everrest.core.impl.ContainerResponse;
 
 import java.io.ByteArrayInputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-/**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @version $Id: $
- */
+/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class EventsTest extends MemoryFileSystemTest {
-    private MemoryFolder testEventsFolder;
-    private String       testFolderId;
-    private String       testFolderPath;
+    private VirtualFile testEventsProject;
+    private String      testFolderId;
+    private String      testFolderPath;
 
     private String destinationFolderID;
     private String destinationFolderPath;
@@ -52,18 +50,13 @@ public class EventsTest extends MemoryFileSystemTest {
     public void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        testEventsFolder = new MemoryFolder(name);
-        testRoot.addChild(testEventsFolder);
-        MemoryFolder destinationFolder = new MemoryFolder("EventsTest_DESTINATION_FOLDER");
-        testRoot.addChild(destinationFolder);
-
-        memoryContext.putItem(testEventsFolder);
-        memoryContext.putItem(destinationFolder);
-
-        testFolderId = testEventsFolder.getId();
-        testFolderPath = testEventsFolder.getPath();
-        destinationFolderID = destinationFolder.getId();
-        destinationFolderPath = destinationFolder.getPath();
+        testEventsProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile destinationProject =
+                mountPoint.getRoot().createProject("EventsTest_DESTINATION_FOLDER", Collections.<Property>emptyList());
+        testFolderId = testEventsProject.getId();
+        testFolderPath = testEventsProject.getPath();
+        destinationFolderID = destinationProject.getId();
+        destinationFolderPath = destinationProject.getPath();
 
         assertNotNull(eventListenerList);
         listener = new Listener();
@@ -115,7 +108,8 @@ public class EventsTest extends MemoryFileSystemTest {
     }
 
     public void testCopy() throws Exception {
-        String fileId = createFile(testEventsFolder, "CopyTest_FILE", "text/plain", DEFAULT_CONTENT);
+        String fileId =
+                testEventsProject.createFile("CopyTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes())).getId();
 
         String path = SERVICE_URI + "copy/" + fileId + '?' + "parentId=" + destinationFolderID;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
@@ -129,7 +123,8 @@ public class EventsTest extends MemoryFileSystemTest {
     }
 
     public void testMove() throws Exception {
-        String fileId = createFile(testEventsFolder, "MoveTest_FILE", "text/plain", DEFAULT_CONTENT);
+        String fileId =
+                testEventsProject.createFile("MoveTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes())).getId();
 
         String path = SERVICE_URI + "move/" + fileId + '?' + "parentId=" + destinationFolderID;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
@@ -142,7 +137,9 @@ public class EventsTest extends MemoryFileSystemTest {
     }
 
     public void testUpdateContent() throws Exception {
-        String fileId = createFile(testEventsFolder, "UpdateContent_FILE", "text/plain", DEFAULT_CONTENT);
+        String fileId =
+                testEventsProject.createFile("UpdateContentTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()))
+                                 .getId();
 
         String path = SERVICE_URI + "content/" + fileId;
         Map<String, List<String>> headers = new HashMap<>();
@@ -155,12 +152,15 @@ public class EventsTest extends MemoryFileSystemTest {
 
         assertEquals(1, listener.events.size());
         assertEquals(ChangeEvent.ChangeType.CONTENT_UPDATED, listener.events.get(0).getType());
-        assertEquals(testFolderPath + '/' + "UpdateContent_FILE", listener.events.get(0).getItemPath());
+        assertEquals(testFolderPath + '/' + "UpdateContentTest_FILE", listener.events.get(0).getItemPath());
         assertEquals("application/xml", listener.events.get(0).getMimeType());
     }
 
     public void testUpdateProperties() throws Exception {
-        String fileId = createFile(testEventsFolder, "UpdateProperties_FILE", "text/plain", DEFAULT_CONTENT);
+        String fileId =
+                testEventsProject
+                        .createFile("UpdatePropertiesTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()))
+                        .getId();
 
         String path = SERVICE_URI + "item/" + fileId;
         Map<String, List<String>> headers = new HashMap<>();
@@ -173,12 +173,13 @@ public class EventsTest extends MemoryFileSystemTest {
 
         assertEquals(1, listener.events.size());
         assertEquals(ChangeEvent.ChangeType.PROPERTIES_UPDATED, listener.events.get(0).getType());
-        assertEquals(testFolderPath + '/' + "UpdateProperties_FILE", listener.events.get(0).getItemPath());
+        assertEquals(testFolderPath + '/' + "UpdatePropertiesTest_FILE", listener.events.get(0).getItemPath());
         assertEquals("text/plain", listener.events.get(0).getMimeType());
     }
 
     public void testDelete() throws Exception {
-        String fileId = createFile(testEventsFolder, "Delete_FILE", "text/plain", DEFAULT_CONTENT);
+        String fileId =
+                testEventsProject.createFile("DeleteTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes())).getId();
 
         String path = SERVICE_URI + "delete/" + fileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
@@ -186,12 +187,13 @@ public class EventsTest extends MemoryFileSystemTest {
 
         assertEquals(1, listener.events.size());
         assertEquals(ChangeEvent.ChangeType.DELETED, listener.events.get(0).getType());
-        assertEquals(testFolderPath + '/' + "Delete_FILE", listener.events.get(0).getItemPath());
+        assertEquals(testFolderPath + '/' + "DeleteTest_FILE", listener.events.get(0).getItemPath());
         assertEquals("text/plain", listener.events.get(0).getMimeType());
     }
 
     public void testRename() throws Exception {
-        String fileId = createFile(testEventsFolder, "RenameTest_FILE", "text/plain", DEFAULT_CONTENT);
+        String fileId =
+                testEventsProject.createFile("RenameTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes())).getId();
 
         String path = SERVICE_URI + "rename/" + fileId + '?' + "newname=" + "_FILE_NEW_NAME_";
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
@@ -207,14 +209,8 @@ public class EventsTest extends MemoryFileSystemTest {
     }
 
     public void testStartProjectUpdateListener() throws Exception {
-        MemoryFolder project = new MemoryFolder("project");
-        project.updateProperties(Arrays.<Property>asList(new PropertyImpl("vfs:mimeType", "text/vnd.ideproject+directory")));
-        assertTrue(project.isProject());
-        testEventsFolder.addChild(project);
-        memoryContext.putItem(project);
-
         int configuredListeners = eventListenerList.size();
-        String path = SERVICE_URI + "watch/start/" + project.getId();
+        String path = SERVICE_URI + "watch/start/" + testEventsProject.getId();
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null);
 
         assertEquals(204, response.getStatus());
@@ -222,47 +218,28 @@ public class EventsTest extends MemoryFileSystemTest {
     }
 
     public void testStopProjectUpdateListener() throws Exception {
-        MemoryFolder project = new MemoryFolder("project");
-        project.updateProperties(Arrays.<Property>asList(new PropertyImpl("vfs:mimeType", "text/vnd.ideproject+directory")));
-        assertTrue(project.isProject());
-        testEventsFolder.addChild(project);
-        memoryContext.putItem(project);
-
-        eventListenerList.addEventListener(ProjectUpdateEventFilter.newFilter(MY_WORKSPACE_ID, project),
-                                           new ProjectUpdateListener(project.getId()));
+        String path = SERVICE_URI + "watch/start/" + testEventsProject.getId();
+        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null);
+        assertEquals(204, response.getStatus());
 
         int configuredListeners = eventListenerList.size();
-        String path = SERVICE_URI + "watch/stop/" + project.getId();
-        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null);
+        path = SERVICE_URI + "watch/stop/" + testEventsProject.getId();
+        response = launcher.service("GET", path, BASE_URI, null, null, null);
 
         assertEquals(204, response.getStatus());
         assertEquals("Project update listener must be removed. ", configuredListeners - 1, eventListenerList.size());
     }
 
     public void testProjectUpdateListener() throws Exception {
-        MemoryFolder project = new MemoryFolder("project");
-        project.updateProperties(Arrays.<Property>asList(new PropertyImpl("vfs:mimeType", "text/vnd.ideproject+directory")));
-        assertTrue(project.isProject());
-        testEventsFolder.addChild(project);
-        memoryContext.putItem(project);
-
-        eventListenerList.addEventListener(ProjectUpdateEventFilter.newFilter(MY_WORKSPACE_ID, project),
-                                           new ProjectUpdateListener(project.getId()));
+        String path = SERVICE_URI + "watch/start/" + testEventsProject.getId();
+        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null);
+        assertEquals(204, response.getStatus());
+        assertEquals("0", testEventsProject.getPropertyValue("vfs:lastUpdateTime"));
 
         String name = "testProjectUpdateListenerFolder";
-        String path = SERVICE_URI + "folder/" + project.getId() + '?' + "name=" + name;
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
+        path = SERVICE_URI + "folder/" + testEventsProject.getId() + '?' + "name=" + name;
+        response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        List<Property> properties = project.getProperties(PropertyFilter.valueOf("vfs:lastUpdateTime"));
-        assertEquals(1, properties.size());
-        assertFalse("Lst update time must be changed. ", "0".equals(properties.get(0).getValue().get(0)));
-    }
-
-    private String createFile(MemoryFolder parent, String name, String mediaType, String data) throws Exception {
-        MemoryFile file = new MemoryFile(name, mediaType,
-                                         new ByteArrayInputStream(data.getBytes()));
-        parent.addChild(file);
-        memoryContext.putItem(file);
-        return file.getId();
+        assertFalse("Lst update time must be changed. ", "0".equals(testEventsProject.getPropertyValue("vfs:lastUpdateTime")));
     }
 }

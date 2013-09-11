@@ -17,51 +17,47 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.AccessControlEntry;
 import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
 import com.codenvy.api.vfs.shared.Principal;
 import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.Property;
+import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
+import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.services.security.Identity;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: GetACLTest.java 75032 2011-10-13 15:24:34Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetACLTest extends MemoryFileSystemTest {
-    private MemoryFile file;
-    private String     fileId;
+    private VirtualFile file;
+    private String      fileId;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder getAclTestFolder = new MemoryFolder(name);
-        testRoot.addChild(getAclTestFolder);
+        VirtualFile getAclTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
 
-        file = new MemoryFile(name, "text/plain",
-                              new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        getAclTestFolder.addChild(file);
+        file = getAclTestProject.createFile(name, "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
 
         AccessControlEntry adminACE = new AccessControlEntryImpl();
         adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
+        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
         AccessControlEntry userACE = new AccessControlEntryImpl();
         userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        userACE.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.READ.value())));
-        file.updateACL(Arrays.asList(adminACE, userACE), true);
+        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
+        file.updateACL(Arrays.asList(adminACE, userACE), true, null);
 
         fileId = file.getId();
-
-        memoryContext.putItem(getAclTestFolder);
     }
 
     public void testGetACL() throws Exception {
@@ -83,9 +79,13 @@ public class GetACLTest extends MemoryFileSystemTest {
     public void testGetACLNoPermissions() throws Exception {
         AccessControlEntry ace = new AccessControlEntryImpl();
         ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        file.updateACL(Arrays.asList(ace), true);
+        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        ConversationState previous = ConversationState.getCurrent();
+        ConversationState user = new ConversationState(new Identity("admin"));
+        ConversationState.setCurrent(user);
+        file.updateACL(Arrays.asList(ace), true, null);
 
+        ConversationState.setCurrent(previous); // restore
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + fileId;
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, writer, null);

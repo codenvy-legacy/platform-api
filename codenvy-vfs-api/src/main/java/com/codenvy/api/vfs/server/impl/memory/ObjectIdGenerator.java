@@ -15,13 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.impl.memory.context;
+package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.commons.lang.NameGenerator;
 
-/**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- */
+/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class ObjectIdGenerator {
     public static String generateId() {
         return NameGenerator.generate(null, 32);

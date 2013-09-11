@@ -17,23 +17,20 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.PropertyImpl;
+
+import org.everrest.core.impl.ContainerResponse;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: UpdateTest.java 77229 2011-12-03 16:56:34Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class UpdateTest extends MemoryFileSystemTest {
     private String fileId;
     private String folderId;
@@ -42,46 +39,63 @@ public class UpdateTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-
-        MemoryFolder updateTestFolder = new MemoryFolder(name);
-        testRoot.addChild(updateTestFolder);
-
-        MemoryFile file = new MemoryFile("UpdateTest_FILE", "text/plain",
-                                         new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        updateTestFolder.addChild(file);
+        VirtualFile updateTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile file =
+                updateTestProject.createFile("UpdateTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
-
-        MemoryFolder folder = new MemoryFolder("UpdateTest_FOLDER");
-        updateTestFolder.addChild(folder);
+        VirtualFile folder = updateTestProject.createFolder("UpdateTest_FOLDER");
         folderId = folder.getId();
-
-        memoryContext.putItem(updateTestFolder);
     }
 
     public void testUpdatePropertiesFile() throws Exception {
         String properties = "[{\"name\":\"MyProperty\", \"value\":[\"MyValue\"]}]";
         doUpdate(fileId, properties);
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
-        List<String> values = file.getProperties(PropertyFilter.valueOf("MyProperty")).get(0).getValue();
-        assertEquals("MyValue", values.get(0));
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
+        assertEquals("MyValue", file.getPropertyValue("MyProperty"));
+    }
+
+    public void testUpdatePropertiesLockedFile() throws Exception {
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
+        String lockToken = file.lock(0);
+        String properties = "[{\"name\":\"MyProperty\", \"value\":[\"MyValue\"]}]";
+        String path = SERVICE_URI + "item/" + fileId + "?lockToken=" + lockToken;
+        Map<String, List<String>> h = new HashMap<>(1);
+        h.put("Content-Type", Arrays.asList("application/json"));
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, h, properties.getBytes(), null);
+        assertEquals(200, response.getStatus());
+        file = mountPoint.getVirtualFileById(fileId);
+        assertEquals("MyValue", file.getPropertyValue("MyProperty"));
+    }
+
+    public void testUpdatePropertiesLockedFileNoLockToken() throws Exception {
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
+        file.lock(0);
+        String properties = "[{\"name\":\"MyProperty\", \"value\":[\"MyValue\"]}]";
+        String path = SERVICE_URI + "item/" + fileId;
+        Map<String, List<String>> h = new HashMap<>(1);
+        h.put("Content-Type", Arrays.asList("application/json"));
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, h, properties.getBytes(), null);
+        assertEquals(423, response.getStatus());
+        file = mountPoint.getVirtualFileById(fileId);
+        assertEquals(null, file.getPropertyValue("MyProperty"));
     }
 
     public void testUpdatePropertiesAndChangeFolderType() throws Exception {
-        MemoryFolder folder = (MemoryFolder)memoryContext.getItem(folderId);
+        VirtualFile folder = mountPoint.getVirtualFileById(folderId);
         assertFalse(folder.isProject());
         String properties = "[{\"name\":\"vfs:mimeType\", \"value\":[\"text/vnd.ideproject+directory\"]}]";
         doUpdate(folderId, properties);
-        folder = (MemoryFolder)memoryContext.getItem(folderId);
+        folder = mountPoint.getVirtualFileById(folderId);
         assertTrue("Regular folder must be converted to project. ", folder.isProject());
     }
 
-    public void testUpdatePropertiesAndChangeFolderType2() throws Exception {
-        MemoryFolder folder = (MemoryFolder)memoryContext.getItem(folderId);
-        folder.updateProperties(Arrays.<Property>asList(new PropertyImpl("vfs:mimeType", "text/vnd.ideproject+directory")));
+    public void testUpdatePropertiesAndChangeFolderTypeBack() throws Exception {
+        VirtualFile folder = mountPoint.getVirtualFileById(folderId);
+        folder.updateProperties(Arrays.<Property>asList(new PropertyImpl("vfs:mimeType", "text/vnd.ideproject+directory")), null);
         assertTrue(folder.isProject());
         String properties = "[{\"name\":\"vfs:mimeType\", \"value\":[\"text/directory\"]}]";
         doUpdate(folderId, properties);
-        folder = (MemoryFolder)memoryContext.getItem(folderId);
+        folder = mountPoint.getVirtualFileById(folderId);
         assertFalse("Project must be converted to regular folder . ", folder.isProject());
     }
 

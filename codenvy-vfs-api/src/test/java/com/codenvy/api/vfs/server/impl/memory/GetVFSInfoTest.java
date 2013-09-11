@@ -17,21 +17,19 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.QueryCapability;
 
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: GetVFSInfoTest.java 75032 2011-10-13 15:24:34Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetVFSInfoTest extends MemoryFileSystemTest {
     public void testVFSInfo() throws Exception {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -44,7 +42,7 @@ public class GetVFSInfoTest extends MemoryFileSystemTest {
         assertEquals(false, vfsInfo.isVersioningSupported());
         assertEquals(true, vfsInfo.isLockSupported());
         assertEquals(ACLCapability.MANAGE, vfsInfo.getAclCapability());
-        assertEquals(QueryCapability.NONE, vfsInfo.getQueryCapability());
+        assertEquals(QueryCapability.FULLTEXT, vfsInfo.getQueryCapability());
         assertEquals("anonymous", vfsInfo.getAnonymousPrincipal());
         assertEquals("any", vfsInfo.getAnyPrincipal());
         assertEquals(MY_WORKSPACE_ID, vfsInfo.getId());

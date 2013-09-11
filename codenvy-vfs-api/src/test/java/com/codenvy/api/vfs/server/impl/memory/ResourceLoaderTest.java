@@ -17,18 +17,16 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.shared.Property;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.util.Collections;
 
-/**
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: $
- */
+/** @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a> */
 public class ResourceLoaderTest extends MemoryFileSystemTest {
     private String folderId;
     private String folderPath;
@@ -41,24 +39,17 @@ public class ResourceLoaderTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder resourceLoaderTestFolder = new MemoryFolder(name);
-        testRoot.addChild(resourceLoaderTestFolder);
+        VirtualFile resourceLoaderTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
 
-        MemoryFolder folder = new MemoryFolder("GetResourceTest_FOLDER");
-        resourceLoaderTestFolder.addChild(folder);
-        MemoryFile childFile = new MemoryFile("file1", "text/plain",
-                                              new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        folder.addChild(childFile);
+        VirtualFile folder = resourceLoaderTestProject.createFolder("GetResourceTest_FOLDER");
+        folder.createFile("file1", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         folderId = folder.getId();
         folderPath = folder.getPath();
 
-        MemoryFile file = new MemoryFile("GetResourceTest_FILE", "text/plain",
-                                         new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        resourceLoaderTestFolder.addChild(file);
+        VirtualFile file = resourceLoaderTestProject.createFile("GetResourceTest_FILE", "text/plain",
+                                                                new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
         filePath = file.getPath();
-
-        memoryContext.putItem(resourceLoaderTestFolder);
     }
 
     public void testLoadFileByID() throws Exception {
@@ -91,6 +82,7 @@ public class ResourceLoaderTest extends MemoryFileSystemTest {
         InputStream in = folder.openStream();
         int num = in.read(b);
         in.close();
+        assertTrue(num > 0);
         assertEquals("file1\n", new String(b, 0, num));
     }
 
@@ -102,6 +94,7 @@ public class ResourceLoaderTest extends MemoryFileSystemTest {
         InputStream in = folder.openStream();
         int num = in.read(b);
         in.close();
+        assertTrue(num > 0);
         assertEquals("file1\n", new String(b, 0, num));
     }
 }

@@ -17,29 +17,28 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.AccessControlEntry;
 import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
 import com.codenvy.api.vfs.shared.Principal;
 import com.codenvy.api.vfs.shared.PrincipalImpl;
+import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import javax.ws.rs.core.HttpHeaders;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: GetContentTest.java 77587 2011-12-13 10:42:02Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetContentTest extends MemoryFileSystemTest {
-    private String       fileId;
-    private String       fileName;
-    private String       folderId;
+    private String fileId;
+    private String fileName;
+    private String folderId;
     private String content = "__GetContentTest__";
     private String filePath;
 
@@ -47,21 +46,16 @@ public class GetContentTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder getContentTestFolder = new MemoryFolder(name);
-        testRoot.addChild(getContentTestFolder);
+        VirtualFile getContentTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
 
-        MemoryFile file = new MemoryFile("GetContentTest_FILE", "text/plain",
-                                         new ByteArrayInputStream(content.getBytes()));
-        getContentTestFolder.addChild(file);
+        VirtualFile file =
+                getContentTestProject.createFile("GetContentTest_FILE", "text/plain", new ByteArrayInputStream(content.getBytes()));
         fileId = file.getId();
         fileName = file.getName();
         filePath = file.getPath();
 
-        MemoryFolder folder = new MemoryFolder("GetContentTest_FOLDER");
-        getContentTestFolder.addChild(folder);
+        VirtualFile folder = getContentTestProject.createFolder("GetContentTest_FOLDER");
         folderId = folder.getId();
-
-        memoryContext.putItem(getContentTestFolder);
     }
 
     public void testGetContent() throws Exception {
@@ -98,7 +92,7 @@ public class GetContentTest extends MemoryFileSystemTest {
         AccessControlEntry ace = new AccessControlEntryImpl();
         ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
         ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        memoryContext.getItem(fileId).updateACL(Arrays.asList(ace), true);
+        mountPoint.getVirtualFileById(fileId).updateACL(Arrays.asList(ace), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "content/" + fileId;

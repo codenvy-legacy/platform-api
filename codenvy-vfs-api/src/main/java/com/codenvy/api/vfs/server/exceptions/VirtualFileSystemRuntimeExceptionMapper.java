@@ -30,7 +30,7 @@ public class VirtualFileSystemRuntimeExceptionMapper implements ExceptionMapper<
     /** @see javax.ws.rs.ext.ExceptionMapper#toResponse(Throwable) */
     @Override
     public Response toResponse(VirtualFileSystemRuntimeException exception) {
-        return Response.status(405).entity(exception.getMessage()).type(MediaType.TEXT_PLAIN)
+        return Response.status(500).entity(exception.getMessage()).type(MediaType.TEXT_PLAIN)
                        .header("X-Exit-Code", Integer.toString(ExitCodes.INTERNAL_ERROR)).build();
     }
 }

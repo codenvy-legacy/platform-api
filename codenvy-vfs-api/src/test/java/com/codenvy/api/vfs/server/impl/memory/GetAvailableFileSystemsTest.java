@@ -17,21 +17,19 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.QueryCapability;
 
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: $
- */
+/** @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetAvailableFileSystemsTest extends MemoryFileSystemTest {
     public void testAvailableFS() throws Exception {
         String path = BASE_URI + "/ide/vfs";
@@ -55,7 +53,7 @@ public class GetAvailableFileSystemsTest extends MemoryFileSystemTest {
         assertEquals(false, vfsInfo.isVersioningSupported());
         assertEquals(true, vfsInfo.isLockSupported());
         assertEquals(ACLCapability.MANAGE, vfsInfo.getAclCapability());
-        assertEquals(QueryCapability.NONE, vfsInfo.getQueryCapability());
+        assertEquals(QueryCapability.FULLTEXT, vfsInfo.getQueryCapability());
         assertEquals("anonymous", vfsInfo.getAnonymousPrincipal());
         assertEquals("any", vfsInfo.getAnyPrincipal());
         assertEquals(MY_WORKSPACE_ID, vfsInfo.getId());

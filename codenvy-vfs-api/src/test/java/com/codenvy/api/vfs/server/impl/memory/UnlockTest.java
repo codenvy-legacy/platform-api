@@ -17,17 +17,16 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.shared.Property;
+
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
 
 import java.io.ByteArrayInputStream;
+import java.util.Collections;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: UnlockTest.java 75032 2011-10-13 15:24:34Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class UnlockTest extends MemoryFileSystemTest {
     private String lockedFileId;
     private String notLockedFileId;
@@ -37,28 +36,23 @@ public class UnlockTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder unlockTestFolder = new MemoryFolder(name);
-        testRoot.addChild(unlockTestFolder);
+        VirtualFile unlockTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
 
-        MemoryFile lockedFile = new MemoryFile("UnlockTest_LOCKED", "text/plain",
-                                               new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        unlockTestFolder.addChild(lockedFile);
+        VirtualFile lockedFile = unlockTestProject.createFile("UnlockTest_LOCKED", "text/plain",
+                                                              new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileLockToken = lockedFile.lock(0);
         lockedFileId = lockedFile.getId();
 
-        MemoryFile notLockedFile = new MemoryFile("UnlockTest_NOTLOCKED", "text/plain",
+        VirtualFile notLockedFile = unlockTestProject.createFile("UnlockTest_NOTLOCKED", "text/plain",
                                                   new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        unlockTestFolder.addChild(notLockedFile);
         notLockedFileId = notLockedFile.getId();
-
-        memoryContext.putItem(unlockTestFolder);
     }
 
     public void testUnlockFile() throws Exception {
         String path = SERVICE_URI + "unlock/" + lockedFileId + '?' + "lockToken=" + fileLockToken;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(204, response.getStatus());
-        MemoryFile file = (MemoryFile)memoryContext.getItem(lockedFileId);
+        VirtualFile file = mountPoint.getVirtualFileById(lockedFileId);
         assertFalse("Lock must be removed. ", file.isLocked());
     }
 

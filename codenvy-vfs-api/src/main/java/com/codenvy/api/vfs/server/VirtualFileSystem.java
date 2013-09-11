@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.vfs.server;
 
-import org.apache.commons.fileupload.FileItem;
 import com.codenvy.api.vfs.server.exceptions.ConstraintException;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
@@ -37,6 +36,8 @@ import com.codenvy.api.vfs.shared.Project;
 import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
+
+import org.apache.commons.fileupload.FileItem;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -817,15 +818,14 @@ public interface VirtualFileSystem {
      * @param newcontent
      *         new content of File
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if
-     *         there is no lock token, e.g. item is not locked
+     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if there is no lock token, e.g.
+     *         item is not locked
      * @throws ItemNotFoundException
      *         if <code>id</code> does not exist
      * @throws InvalidArgumentException
      *         if <code>id</code> is not File
      * @throws LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does
-     *         not matched
+     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does not matched
      * @throws PermissionDeniedException
      *         if user which perform operation has no permissions to do it
      * @throws VirtualFileSystemException

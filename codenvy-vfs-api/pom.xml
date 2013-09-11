@@ -21,6 +21,17 @@
             <version>${codenvy-commons.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.codenvy.commons</groupId>
+            <artifactId>codenvy-commons-json</artifactId>
+            <version>${codenvy-commons.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.everrest</groupId>
+                    <artifactId>everrest-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>javax.annotation</groupId>
             <artifactId>jsr250-api</artifactId>
             <version>${javax.annotation.version}</version>
@@ -55,6 +66,11 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>${servlet-api.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>2.9.4</version>
         </dependency>
         <dependency>
             <!-- TODO: remove -->

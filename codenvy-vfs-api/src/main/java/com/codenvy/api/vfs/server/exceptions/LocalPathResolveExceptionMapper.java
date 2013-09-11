@@ -24,11 +24,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-/**
- * Created by The eXo Platform SAS.
- *
- * @author <a href="mailto:vparfonov@exoplatform.com">Vitaly Parfonov</a>
- */
+/** @author <a href="mailto:vparfonov@exoplatform.com">Vitaly Parfonov</a> */
 @Provider
 public class LocalPathResolveExceptionMapper implements ExceptionMapper<LocalPathResolveException> {
     /** {@inheritDoc} */

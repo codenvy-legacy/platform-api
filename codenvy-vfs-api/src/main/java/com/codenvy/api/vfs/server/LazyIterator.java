@@ -18,30 +18,78 @@
 package com.codenvy.api.vfs.server;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public abstract class LazyIterator<T> implements Iterator<T> {
     public static final LazyIterator<Object> EMPTY_ITEMS_ITERATOR = new EmptyIterator();
 
     private static class EmptyIterator extends LazyIterator<Object> {
-        /** @see com.codenvy.api.vfs.server.LazyIterator#fetchNext() */
         @Override
         protected void fetchNext() {
         }
 
-        /** @see com.codenvy.api.vfs.server.LazyIterator#size() */
         @Override
         public int size() {
             return 0;
         }
     }
 
+    /** Empty iterator. */
     @SuppressWarnings("unchecked")
-    public static <T> LazyIterator<T> emptyItemsIterator() {
+    public static <T> LazyIterator<T> emptyIterator() {
         return (LazyIterator<T>)EMPTY_ITEMS_ITERATOR;
+    }
+
+    private static class ListWrapper<T> extends LazyIterator<T> {
+        private final int         size;
+        private final Iterator<T> delegate;
+
+        ListWrapper(List<T> list) {
+            size = list.size();
+            delegate = list.iterator();
+            fetchNext();
+        }
+
+        @Override
+        protected void fetchNext() {
+            next = null;
+            while (next == null && delegate.hasNext()) {
+                next = delegate.next();
+            }
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
+    }
+
+    /** Wrapper for List which implements LazyIterator functionality. */
+    public static <T> LazyIterator<T> fromList(List<T> list) {
+        return new ListWrapper<>(list);
+    }
+
+    private static class SingletonIterator<T> extends LazyIterator<T> {
+        SingletonIterator(T value) {
+            next = value;
+        }
+
+        @Override
+        protected void fetchNext() {
+            next = null;
+        }
+
+        @Override
+        public int size() {
+            return 1;
+        }
+    }
+
+    /** Singleton iterator. */
+    public static <T> LazyIterator<T> singletonIterator(T value) {
+        return new SingletonIterator<>(value);
     }
 
     // -----------------------------------
@@ -57,7 +105,7 @@ public abstract class LazyIterator<T> implements Iterator<T> {
     }
 
     /** @see java.util.Iterator#next() */
-    public T next() {
+    public final T next() {
         if (next == null) {
             throw new NoSuchElementException();
         }
@@ -67,7 +115,7 @@ public abstract class LazyIterator<T> implements Iterator<T> {
     }
 
     /** @see java.util.Iterator#remove() */
-    public void remove() {
+    public final void remove() {
         throw new UnsupportedOperationException("remove");
     }
 

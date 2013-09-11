@@ -17,23 +17,27 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.AccessControlEntry;
 import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
 import com.codenvy.api.vfs.shared.Principal;
 import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.Property;
+import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: UpdateACLTest.java 75317 2011-10-19 15:02:05Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class UpdateACLTest extends MemoryFileSystemTest {
     private String objectId;
 
@@ -41,15 +45,11 @@ public class UpdateACLTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder updateAclTestFolder = new MemoryFolder(name);
-        testRoot.addChild(updateAclTestFolder);
+        VirtualFile updateAclTestFolder = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
 
-        MemoryFile file = new MemoryFile("UpdateACLTest_FILE", "text/plain",
-                                         new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        updateAclTestFolder.addChild(file);
+        VirtualFile file = updateAclTestFolder.createFile("UpdateACLTest_FILE", "text/plain",
+                                                          new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         objectId = file.getId();
-
-        memoryContext.putItem(updateAclTestFolder);
     }
 
     public void testUpdateAcl() throws Exception {
@@ -60,7 +60,7 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         h.put("Content-Type", Arrays.asList("application/json"));
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, body.getBytes(), null);
         assertEquals(204, response.getStatus());
-        List<AccessControlEntry> acl = memoryContext.getItem(objectId).getACL();
+        List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
         Map<String, Set<String>> m = toMap(acl);
         assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
         assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
@@ -69,8 +69,8 @@ public class UpdateACLTest extends MemoryFileSystemTest {
     public void testUpdateAclOverride() throws Exception {
         AccessControlEntry ace = new AccessControlEntryImpl();
         ace.setPrincipal(new PrincipalImpl("any", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        memoryContext.getItem(objectId).updateACL(Arrays.asList(ace), false);
+        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        mountPoint.getVirtualFileById(objectId).updateACL(Arrays.asList(ace), false, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + objectId + '?' + "override=" + true;
@@ -81,7 +81,7 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, body.getBytes(), writer, null);
         assertEquals(204, response.getStatus());
 
-        List<AccessControlEntry> acl = memoryContext.getItem(objectId).getACL();
+        List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
         Map<String, Set<String>> m = toMap(acl);
         assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
         assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
@@ -91,8 +91,8 @@ public class UpdateACLTest extends MemoryFileSystemTest {
     public void testUpdateAclMerge() throws Exception {
         AccessControlEntry ace = new AccessControlEntryImpl();
         ace.setPrincipal(new PrincipalImpl("any", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        memoryContext.getItem(objectId).updateACL(Arrays.asList(ace), false);
+        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        mountPoint.getVirtualFileById(objectId).updateACL(Arrays.asList(ace), false, null);
 
         String path = SERVICE_URI + "acl/" + objectId;
         String body = "[{\"principal\":{\"name\":\"admin\",\"type\":\"USER\"},\"permissions\":[\"all\"]}," + //
@@ -102,7 +102,7 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, body.getBytes(), null);
         assertEquals(204, response.getStatus());
 
-        List<AccessControlEntry> acl = memoryContext.getItem(objectId).getACL();
+        List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
         Map<String, Set<String>> m = toMap(acl);
         assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
         assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
@@ -110,7 +110,7 @@ public class UpdateACLTest extends MemoryFileSystemTest {
     }
 
     public void testUpdateAclLocked() throws Exception {
-        String lockToken = ((MemoryFile)memoryContext.getItem(objectId)).lock(0);
+        String lockToken = mountPoint.getVirtualFileById(objectId).lock(0);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + objectId + '?' + "lockToken=" + lockToken;
         String body = "[{\"principal\":{\"name\":\"admin\",\"type\":\"USER\"},\"permissions\":[\"all\"]}," + //
@@ -120,14 +120,14 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, body.getBytes(), writer, null);
         assertEquals(204, response.getStatus());
 
-        List<AccessControlEntry> acl = memoryContext.getItem(objectId).getACL();
+        List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
         Map<String, Set<String>> m = toMap(acl);
         assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
         assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
     }
 
-    public void testUpdateAclLocked_NoLockToken() throws Exception {
-        ((MemoryFile)memoryContext.getItem(objectId)).lock(0);
+    public void testUpdateAclLockedNoLockToken() throws Exception {
+        mountPoint.getVirtualFileById(objectId).lock(0);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + objectId;
         String body = "[{\"principal\":{\"name\":\"admin\",\"type\":\"USER\"},\"permissions\":[\"all\"]}," + //
@@ -140,11 +140,13 @@ public class UpdateACLTest extends MemoryFileSystemTest {
     }
 
     public void testUpdateAclNoPermissions() throws Exception {
-        // Remove permissions for any users except 'admin'.
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        memoryContext.getItem(objectId).updateACL(Arrays.asList(ace), true);
+        AccessControlEntry adminACE = new AccessControlEntryImpl();
+        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
+        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        AccessControlEntry userACE = new AccessControlEntryImpl();
+        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
+        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
+        mountPoint.getVirtualFileById(objectId).updateACL(Arrays.asList(adminACE, userACE), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + objectId;

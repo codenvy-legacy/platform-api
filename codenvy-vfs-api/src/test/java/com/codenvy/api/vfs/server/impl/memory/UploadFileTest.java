@@ -17,23 +17,22 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.shared.Property;
+
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.impl.EnvironmentContext;
 import org.everrest.test.mock.MockHttpServletRequest;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: $
- */
+/** @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a> */
 public class UploadFileTest extends MemoryFileSystemTest {
     private String uploadTestFolderId;
     private String uploadTestFolderPath;
@@ -42,12 +41,9 @@ public class UploadFileTest extends MemoryFileSystemTest {
     public void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-
-        MemoryFolder uploadTestFolder = new MemoryFolder(name);
-        testRoot.addChild(uploadTestFolder);
-        uploadTestFolderId = uploadTestFolder.getId();
-        uploadTestFolderPath = uploadTestFolder.getPath();
-        memoryContext.putItem(uploadTestFolder);
+        VirtualFile uploadTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        uploadTestFolderId = uploadTestProject.getId();
+        uploadTestFolderPath = uploadTestProject.getPath();
     }
 
     public void testUploadNewFile() throws Exception {
@@ -59,8 +55,8 @@ public class UploadFileTest extends MemoryFileSystemTest {
         String fileMediaType = "text/plain; charset=utf8";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", false);
         assertEquals(200, response.getStatus());
-        String expectedPath = uploadTestFolderPath + "/" + fileName;
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        String expectedPath = uploadTestFolderPath + '/' + fileName;
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
         checkFileContext(fileContent, "text/plain;charset=utf8", file);
     }
@@ -72,11 +68,11 @@ public class UploadFileTest extends MemoryFileSystemTest {
         String fileContent = "test upload file";
         // Passed by browser.
         String fileMediaType = "text/plain; charset=utf8";
-        uploadTestFolderId = memoryContext.getRoot().getId();
+        uploadTestFolderId = mountPoint.getRoot().getId();
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", false);
         assertEquals(200, response.getStatus());
         String expectedPath = "/" + fileName;
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
         checkFileContext(fileContent, "text/plain;charset=utf8", file);
     }
@@ -92,8 +88,8 @@ public class UploadFileTest extends MemoryFileSystemTest {
         String formFileName = fileName + ".txt";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", formFileName, false);
         assertEquals(200, response.getStatus());
-        String expectedPath = uploadTestFolderPath + "/" + formFileName;
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        String expectedPath = uploadTestFolderPath + '/' + formFileName;
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
         checkFileContext(fileContent, "text/plain;charset=utf8", file);
     }
@@ -112,8 +108,8 @@ public class UploadFileTest extends MemoryFileSystemTest {
         ContainerResponse response =
                 doUploadFile(fileName, fileMediaType, fileContent, formMediaType, formFileName, false);
         assertEquals(200, response.getStatus());
-        String expectedPath = uploadTestFolderPath + "/" + formFileName;
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        String expectedPath = uploadTestFolderPath + '/' + formFileName;
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
         checkFileContext(fileContent, "text/plain;charset=utf8", file);
     }
@@ -121,16 +117,12 @@ public class UploadFileTest extends MemoryFileSystemTest {
     public void testUploadFileAlreadyExists() throws Exception {
         String fileName = "existedFile";
         String fileMediaType = "application/octet-stream";
-        MemoryFolder folder = (MemoryFolder)memoryContext.getItem(uploadTestFolderId);
-        MemoryFile file = new MemoryFile(fileName, fileMediaType,
-                                         new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        folder.addChild(file);
-        memoryContext.putItem(file);
-
+        VirtualFile folder = mountPoint.getVirtualFileById(uploadTestFolderId);
+        folder.createFile(fileName, fileMediaType, new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         ContainerResponse response = doUploadFile(fileName, fileMediaType, DEFAULT_CONTENT, "", "", false);
         assertEquals(200, response.getStatus());
         String entity = (String)response.getEntity();
-        assertTrue(entity.contains("File with the same name exists"));
+        assertTrue(entity.contains("Item with the same name exists"));
         assertTrue(entity.contains("Code: 102"));
         log.info(entity);
     }
@@ -138,20 +130,17 @@ public class UploadFileTest extends MemoryFileSystemTest {
     public void testUploadFileAlreadyExistsOverwrite() throws Exception {
         String fileName = "existedFileOverwrite";
         String fileMediaType = "application/octet-stream";
-        MemoryFolder folder = (MemoryFolder)memoryContext.getItem(uploadTestFolderId);
-        MemoryFile file = new MemoryFile(fileName, fileMediaType,
-                                         new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        folder.addChild(file);
-        memoryContext.putItem(file);
+        VirtualFile folder = mountPoint.getVirtualFileById(uploadTestFolderId);
+        folder.createFile(fileName, fileMediaType, new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
 
         String fileContent = "test upload and overwrite existed file";
         fileMediaType = "text/plain; charset=utf8";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", true);
         assertEquals(200, response.getStatus());
-        String expectedPath = uploadTestFolderPath + "/" + fileName;
-        file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        String expectedPath = uploadTestFolderPath + '/' + fileName;
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
-        checkFileContext(fileContent, "text/plain;charset=utf8", file);
+        checkFileContext(fileContent, "text/plain; charset=utf8", file);
     }
 
     private ContainerResponse doUploadFile(String fileName, String fileMediaType, String fileContent,

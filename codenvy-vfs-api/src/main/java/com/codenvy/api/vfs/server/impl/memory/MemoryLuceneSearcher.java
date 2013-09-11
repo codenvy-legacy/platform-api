@@ -15,22 +15,27 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.exceptions;
+package com.codenvy.api.vfs.server.impl.memory;
+
+import com.codenvy.api.vfs.server.search.LuceneSearcher;
+
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.RAMDirectory;
+
+import java.util.Set;
 
 /**
- * This exception occurs in case LocalPathResolver in some reason can't resolve the path.
+ * In-memory implementation of LuceneSearcher.
  *
- * @author <a href="mailto:vparfonov@exoplatform.com">Vitaly Parfonov</a>
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-@SuppressWarnings("serial")
-public class GitUrlResolveException extends VirtualFileSystemException {
-
-    public GitUrlResolveException(String message, Throwable cause) {
-        super(message, cause);
+public class MemoryLuceneSearcher extends LuceneSearcher {
+    public MemoryLuceneSearcher(Set<String> indexedMediaTypes) {
+        super(indexedMediaTypes);
     }
 
-    public GitUrlResolveException(String message) {
-        super(message);
+    @Override
+    protected Directory makeDirectory() {
+        return new RAMDirectory();
     }
-
 }

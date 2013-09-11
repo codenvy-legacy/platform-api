@@ -15,26 +15,23 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.resources.shared;
+package com.codenvy.api.vfs.server;
 
-import java.util.List;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 /**
- * Container for set of Attribute.
+ * Filter for virtual files.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public interface Attributes {
-    /**
-     * Get {@code Resource} to which this Attributes belong to.
-     *
-     * @return {@code Resource} to which this Attributes belong to
-     */
-    Resource getResource();
+public interface VirtualFileFilter {
+    /** Tests whether specified file should be included in result. */
+    boolean accept(VirtualFile file) throws VirtualFileSystemException;
 
-    List<Attribute<?>> getAll();
-
-    Attribute getAttribute(String name);
-
-    void save();
+    VirtualFileFilter ALL = new VirtualFileFilter() {
+        @Override
+        public boolean accept(VirtualFile file) {
+            return true;
+        }
+    };
 }

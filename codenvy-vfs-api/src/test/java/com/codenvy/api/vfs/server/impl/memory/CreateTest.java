@@ -17,39 +17,42 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import com.codenvy.api.vfs.server.ContentStream;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.shared.AccessControlEntry;
 import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
+import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.Principal;
 import com.codenvy.api.vfs.shared.PrincipalImpl;
+import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import javax.ws.rs.core.MediaType;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: CreateTest.java 75317 2011-10-19 15:02:05Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class CreateTest extends MemoryFileSystemTest {
-    private String       createTestFolderId;
-    private String       createTestFolderPath;
-    private MemoryFolder createTestFolder;
+    private String      createTestFolderId;
+    private String      createTestFolderPath;
+    private VirtualFile createTestFolder;
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        createTestFolder = new MemoryFolder(name);
-        testRoot.addChild(createTestFolder);
+        createTestFolder = mountPoint.getRoot().createProject(name, java.util.Collections.<Property>emptyList());
         createTestFolderId = createTestFolder.getId();
         createTestFolderPath = createTestFolder.getPath();
-        memoryContext.putItem(createTestFolder);
     }
 
     public void testCreateFile() throws Exception {
@@ -64,15 +67,24 @@ public class CreateTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
         assertEquals(200, response.getStatus());
         String expectedPath = createTestFolderPath + "/" + name;
-        assertNotNull("File was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("File was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created file not accessible by id. ");
+        }
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         checkFileContext(content, "text/plain;charset=utf8", file);
     }
 
     public void testCreateFileInRoot() throws Exception {
         String name = "testCreateFileInRoot";
         String content = "test create file";
-        String path = SERVICE_URI + "file/" + memoryContext.getRoot().getId() + '?' + "name=" + name;
+        String path = SERVICE_URI + "file/" + mountPoint.getRoot().getId() + '?' + "name=" + name;
         Map<String, List<String>> headers = new HashMap<>();
         List<String> contentType = new ArrayList<>();
         contentType.add("text/plain;charset=utf8");
@@ -81,8 +93,17 @@ public class CreateTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
         assertEquals(200, response.getStatus());
         String expectedPath = "/" + name;
-        assertNotNull("File was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("File was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created file not accessible by id. ");
+        }
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         checkFileContext(content, "text/plain;charset=utf8", file);
     }
 
@@ -93,8 +114,17 @@ public class CreateTest extends MemoryFileSystemTest {
 
         assertEquals(200, response.getStatus());
         String expectedPath = createTestFolderPath + "/" + name;
-        assertNotNull("File was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("File was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created file not accessible by id. ");
+        }
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         ContentStream contentStream = file.getContent();
         assertEquals(0, contentStream.getLength());
     }
@@ -108,31 +138,41 @@ public class CreateTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, content.getBytes(), writer, null);
         assertEquals(200, response.getStatus());
         String expectedPath = createTestFolderPath + "/" + name;
-        assertNotNull("File was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
-        MemoryFile file = (MemoryFile)memoryContext.getItemByPath(expectedPath);
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("File was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created file not accessible by id. ");
+        }
+        VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         checkFileContext(content, MediaType.APPLICATION_OCTET_STREAM, file);
     }
 
     public void testCreateFileNoName() throws Exception {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "file/" + createTestFolderId;
-        ContainerResponse response =
-                launcher.service("POST", path, BASE_URI, null, DEFAULT_CONTENT.getBytes(), writer, null);
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, DEFAULT_CONTENT.getBytes(), writer, null);
         assertEquals(400, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 
     public void testCreateFileNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        createTestFolder.updateACL(Arrays.asList(ace), true);
+        AccessControlEntry ace1 = new AccessControlEntryImpl();
+        ace1.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
+        ace1.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        AccessControlEntry ace2 = new AccessControlEntryImpl();
+        ace2.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
+        ace2.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
+        createTestFolder.updateACL(Arrays.asList(ace1, ace2), true, null);
 
         String name = "testCreateFileNoPermissions";
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "file/" + createTestFolderId + '?' + "name=" + name;
-        ContainerResponse response =
-                launcher.service("POST", path, BASE_URI, null, DEFAULT_CONTENT.getBytes(), writer, null);
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, DEFAULT_CONTENT.getBytes(), writer, null);
         assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
     }
@@ -153,16 +193,34 @@ public class CreateTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
         String expectedPath = createTestFolderPath + "/" + name;
-        assertNotNull("Folder was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("Folder was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created folder not accessible by id. ");
+        }
     }
 
     public void testCreateFolderInRoot() throws Exception {
         String name = "testCreateFolderInRoot";
-        String path = SERVICE_URI + "folder/" + memoryContext.getRoot().getId() + '?' + "name=" + name;
+        String path = SERVICE_URI + "folder/" + mountPoint.getRoot().getId() + '?' + "name=" + name;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
         String expectedPath = "/" + name;
-        assertNotNull("Folder was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("Folder was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created folder not accessible by id. ");
+        }
     }
 
     public void testCreateFolderNoName() throws Exception {
@@ -176,8 +234,8 @@ public class CreateTest extends MemoryFileSystemTest {
     public void testCreateFolderNoPermissions() throws Exception {
         AccessControlEntry ace = new AccessControlEntryImpl();
         ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        createTestFolder.updateACL(Arrays.asList(ace), true);
+        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        createTestFolder.updateACL(Arrays.asList(ace), true, null);
 
         String name = "testCreateFolderNoPermissions";
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -202,7 +260,16 @@ public class CreateTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null, null);
         assertEquals(200, response.getStatus());
         String expectedPath = createTestFolderPath + "/" + name;
-        assertNotNull("Folder was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("Folder was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created folder not accessible by id. ");
+        }
     }
 
     public void testCreateFolderHierarchy2() throws Exception {
@@ -211,54 +278,79 @@ public class CreateTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "folder/" + createTestFolderId + '?' + "name=" + name;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null, null);
         assertEquals(200, response.getStatus());
+        String expectedPath = createTestFolderPath + "/" + name;
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("Folder was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created folder not accessible by id. ");
+        }
         // create the rest of path
         name += "/4/5";
         path = SERVICE_URI + "folder/" + createTestFolderId + '?' + "name=" + name;
         response = launcher.service("POST", path, BASE_URI, null, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = createTestFolderPath + "/" + name;
-        assertNotNull("Folder was not created in expected location. ", memoryContext.getItemByPath(expectedPath));
+        expectedPath = createTestFolderPath + "/" + name;
+        try {
+            mountPoint.getVirtualFile(expectedPath);
+        } catch (ItemNotFoundException e) {
+            fail("Folder was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created folder not accessible by id. ");
+        }
     }
 
     public void testCreateProject() throws Exception {
         String name = "testCreateProject";
         String properties = "[{\"name\":\"vfs:projectType\", \"value\":[\"java\"]}]";
-        //
         String path = SERVICE_URI + "project/" + createTestFolderId + '?' + "name=" + name + '&' + "type=" + "java";
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, properties.getBytes(), null);
         assertEquals("Error: " + response.getEntity(), 200, response.getStatus());
         String expectedPath = createTestFolderPath + "/" + name;
-        MemoryFolder project = (MemoryFolder)memoryContext.getItemByPath(expectedPath);
-        assertNotNull("File was not created in expected location. ", project);
-        List<String> values = project.getProperties(PropertyFilter.valueOf("vfs:projectType")).get(0).getValue();
-        assertEquals("java", values.get(0));
-        assertEquals("text/vnd.ideproject+directory", project.getMediaType());
+        try {
+            VirtualFile project = mountPoint.getVirtualFile(expectedPath);
+            List<String> values = project.getProperties(PropertyFilter.valueOf("vfs:projectType")).get(0).getValue();
+            assertEquals("java", values.get(0));
+            assertEquals("text/vnd.ideproject+directory", project.getMediaType());
+        } catch (ItemNotFoundException e) {
+            fail("Project was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created project not accessible by id. ");
+        }
     }
 
     public void testCreateProjectInsideProject() throws Exception {
-        String name = "testCreateProjectInsideProject";
-        MemoryFolder parentFolder = (MemoryFolder)memoryContext.getItem(createTestFolderId);
-        MemoryFolder parentProject = new MemoryFolder(name);
-        parentProject.setMediaType("text/vnd.ideproject+directory");
-        assertTrue(parentProject.isProject());
-        parentFolder.addChild(parentProject);
-        memoryContext.putItem(parentProject);
-
-        String path = SERVICE_URI + "project/" + parentProject.getId() + '?' + "name=" + "childProject" + '&' +
-                      "type=" + "java";
-
+        VirtualFile parentProject = mountPoint.getVirtualFileById(createTestFolderId);
+        String path = SERVICE_URI + "project/" + parentProject.getId() + '?' + "name=" + "childProject" + '&' + "type=" + "java";
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
-
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, null, null);
         assertEquals("Unexpected status " + response.getStatus(), 200, response.getStatus());
         String expectedPath = parentProject.getPath() + "/childProject";
-        MemoryFolder project = (MemoryFolder)memoryContext.getItemByPath(expectedPath);
-        assertNotNull("File was not created in expected location. ", project);
-        List<String> values = project.getProperties(PropertyFilter.valueOf("vfs:projectType")).get(0).getValue();
-        assertEquals("java", values.get(0));
-        assertEquals("text/vnd.ideproject+directory", project.getMediaType());
+        try {
+            VirtualFile project = mountPoint.getVirtualFile(expectedPath);
+            List<String> values = project.getProperties(PropertyFilter.valueOf("vfs:projectType")).get(0).getValue();
+            assertEquals("java", values.get(0));
+            assertEquals("text/vnd.ideproject+directory", project.getMediaType());
+        } catch (ItemNotFoundException e) {
+            fail("Project was not created in expected location. ");
+        }
+        try {
+            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
+        } catch (ItemNotFoundException e) {
+            fail("Created project not accessible by id. ");
+        }
     }
 }

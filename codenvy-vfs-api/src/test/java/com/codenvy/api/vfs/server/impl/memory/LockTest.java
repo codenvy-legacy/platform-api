@@ -17,24 +17,24 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFile;
-import com.codenvy.api.vfs.server.impl.memory.context.MemoryFolder;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.AccessControlEntry;
 import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
+import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.Principal;
 import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.Property;
+import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 
-/**
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- * @version $Id: LockTest.java 75032 2011-10-13 15:24:34Z andrew00x $
- */
+/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class LockTest extends MemoryFileSystemTest {
     private String folderId;
     private String fileId;
@@ -43,19 +43,13 @@ public class LockTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        MemoryFolder lockTestFolder = new MemoryFolder(name);
-        testRoot.addChild(lockTestFolder);
+        VirtualFile lockTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
 
-        MemoryFolder folder = new MemoryFolder("LockTest_FOLDER");
-        lockTestFolder.addChild(folder);
+        VirtualFile folder = lockTestProject.createFolder("LockTest_FOLDER");
         folderId = folder.getId();
 
-        MemoryFile file = new MemoryFile("LockTest_FILE", "text/plain",
-                                         new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        lockTestFolder.addChild(file);
+        VirtualFile file = lockTestProject.createFile("LockTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
-
-        memoryContext.putItem(lockTestFolder);
     }
 
     public void testLockFile() throws Exception {
@@ -64,13 +58,13 @@ public class LockTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         assertEquals(200, response.getStatus());
         log.info(new String(writer.getBody()));
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
         assertTrue("File must be locked. ", file.isLocked());
         validateLinks(getItem(fileId));
     }
 
     public void testLockFileAlreadyLocked() throws Exception {
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
         file.lock(0);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "lock/" + fileId;
@@ -80,17 +74,21 @@ public class LockTest extends MemoryFileSystemTest {
     }
 
     public void testLockFileNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        memoryContext.getItem(fileId).updateACL(Arrays.asList(ace), true);
+        AccessControlEntry adminACE = new AccessControlEntryImpl();
+        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
+        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        AccessControlEntry userACE = new AccessControlEntryImpl();
+        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
+        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
+        file.updateACL(Arrays.asList(adminACE, userACE), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "lock/" + fileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
+        file = mountPoint.getVirtualFileById(fileId);
         assertFalse("File must not be locked. ", file.isLocked());
     }
 
@@ -99,10 +97,11 @@ public class LockTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "lock/" + folderId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         assertEquals(400, response.getStatus());
+        assertEquals(ExitCodes.INVALID_ARGUMENT, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
     }
 
     public void testLockTimeout() throws Exception {
-        MemoryFile file = (MemoryFile)memoryContext.getItem(fileId);
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
         file.lock(100);
         assertTrue(file.isLocked());
         Thread.sleep(200);

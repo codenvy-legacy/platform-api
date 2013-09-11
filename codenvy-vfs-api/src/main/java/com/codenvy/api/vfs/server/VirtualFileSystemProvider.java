@@ -20,12 +20,26 @@ package com.codenvy.api.vfs.server;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.EventListenerList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Produce instance of VirtualFileSystem.
  *
  * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
  */
-public interface VirtualFileSystemProvider {
+public abstract class VirtualFileSystemProvider {
+    private static final Logger LOG = LoggerFactory.getLogger(VirtualFileSystemProvider.class);
+    private final String workspaceId;
+
+    public VirtualFileSystemProvider(String workspaceId) {
+        this.workspaceId = workspaceId;
+    }
+
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
     /**
      * Create instance of VirtualFileSystem.
      *
@@ -36,12 +50,37 @@ public interface VirtualFileSystemProvider {
      * @return instance of VirtualFileSystem
      * @throws VirtualFileSystemException
      */
-    VirtualFileSystem newInstance(RequestContext requestContext, EventListenerList listeners) throws VirtualFileSystemException;
+    public abstract VirtualFileSystem newInstance(RequestContext requestContext, EventListenerList listeners)
+            throws VirtualFileSystemException;
+
+    /**
+     * Get mount point of virtual filesystem.
+     *
+     * @param create
+     *         <code>true</code> to create MountPoint if necessary; <code>false</code> to return <code>null</code> if MountPoint is not
+     *         initialized yet
+     * @return <code>MountPoint</code> or <code>null</code> if <code>create</code> is <code>false</code> and the MountPoint is not
+     *         initialized yet
+     * @throws VirtualFileSystemException
+     *         if an error occurs
+     */
+    public abstract MountPoint getMountPoint(boolean create) throws VirtualFileSystemException;
 
     /**
      * Close this provider. Call this method after unregister provider from VirtualFileSystemRegistry. Typically this
      * method called from {@link VirtualFileSystemRegistry#unregisterProvider(String)}. Usually should not call it
      * directly.
+     * <p/>
+     * Sub-classes should invoke {@code super.close} at the end of this method.
      */
-    void close();
+    public void close() {
+        try {
+            final MountPoint mountPoint = getMountPoint(false);
+            if (mountPoint != null) {
+                mountPoint.reset();
+            }
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
 }

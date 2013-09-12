@@ -17,31 +17,15 @@
  */
 package com.codenvy.core.api.user;
 
-import java.util.HashSet;
 import java.util.Set;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class User {
-    private final String      name;
-    private final Set<String> roles;
+public interface User {
+    /** Get user name. */
+    String getName();
 
-    public User(String name, Set<String> roles) {
-        this.name = name;
-        if (roles != null) {
-            this.roles = new HashSet<>(roles);
-        } else {
-            this.roles = new HashSet<>(2);
-        }
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    /** Get roles of user. Modification of returned {@code Set} must not effect internal {@code Set}. */
-    public Set<String> getRoles() {
-        return new HashSet<>(roles);
-    }
+    /** Get roles of user. Returned {@code Set} is unmodifiable. */
+    Set<String> getRoles();
 
     /**
      * Check is user in specified {@code role}.
@@ -50,7 +34,5 @@ public class User {
      *         role name to check
      * @return {@code true} if user in role and {@code false} otherwise
      */
-    public boolean isMemberOf(String role) {
-        return roles.contains(role);
-    }
+    boolean isMemberOf(String role);
 }

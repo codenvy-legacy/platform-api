@@ -215,7 +215,10 @@ public abstract class ItemImpl implements Item {
     public String getPropertyValue(String name) {
         Property p = getProperty(name);
         if (p != null) {
-            return p.getValue().get(0);
+            final List<String> values = p.getValue();
+            if (!(values == null || values.isEmpty())) {
+                return values.get(0);
+            }
         }
         return null;
     }
@@ -224,11 +227,10 @@ public abstract class ItemImpl implements Item {
     public List<String> getPropertyValues(String name) {
         Property p = getProperty(name);
         if (p != null) {
-            List<String> values = new ArrayList<>(p.getValue().size());
-            for (String v : p.getValue()) {
-                values.add(v);
+            final List<String> values = p.getValue();
+            if (values != null) {
+                return new ArrayList<>(p.getValue());
             }
-            return values;
         }
         return null;
     }

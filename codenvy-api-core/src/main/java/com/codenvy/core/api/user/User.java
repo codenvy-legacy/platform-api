@@ -17,15 +17,10 @@
  */
 package com.codenvy.core.api.user;
 
-import java.util.Set;
-
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public interface User {
     /** Get user name. */
     String getName();
-
-    /** Get roles of user. Returned {@code Set} is unmodifiable. */
-    Set<String> getRoles();
 
     /**
      * Check is user in specified {@code role}.

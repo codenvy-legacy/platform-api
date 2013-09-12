@@ -17,17 +17,15 @@
  */
 package com.codenvy.api.project.shared;
 
-import com.codenvy.api.resources.shared.AttributeProvider;
-import com.codenvy.api.resources.shared.AttributeProviderRegistry;
-
 /**
+ * Provides access to the value of attribute of Project.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
 public interface AttributeValueProvider {
-	
-	String getValue();
-	
-	void setValue(String value);
+    /** Get value. */
+    String getValue();
 
+    /** Set value. */
+    void setValue(String value);
 }

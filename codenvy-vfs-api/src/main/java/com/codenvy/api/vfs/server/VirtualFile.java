@@ -112,8 +112,7 @@ public interface VirtualFile extends Comparable<VirtualFile> {
 
     /**
      * Get iterator over files in this folder. If this VirtualFile is not folder this method returns empty iterator. If current user has
-     * not
-     * read access to some child they should not be included in returned result.
+     * not read access to some child they should not be included in returned result.
      *
      * @param filter
      *         virtual files filter

@@ -33,7 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Restores any type of virtual filesystem items from JSON.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public final class ItemDto extends ItemImpl implements Item {
     private String            vfsId;
     private String            id;

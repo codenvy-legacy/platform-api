@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.project.shared;
 
-import com.codenvy.api.resources.shared.AttributeProvider;
 import com.codenvy.api.vfs.shared.Property;
 
 import java.util.ArrayList;
@@ -27,7 +26,7 @@ import java.util.List;
  * Attribute of Project. Attribute may be hierarchical; one Attribute may contain other set of child attributes.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see AttributeProvider
+ * @see AttributeValueProvider
  */
 public class Attribute {
     /** Implementation of AttributeValueProvider which uses Property. */

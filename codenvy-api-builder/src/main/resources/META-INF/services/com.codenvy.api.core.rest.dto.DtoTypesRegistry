@@ -1,0 +1,2 @@
+com.codenvy.api.builder.internal.dto.BuilderDtoTypesRegistry
+com.codenvy.api.builder.manager.dto.BuilderManagerDtoTypesRegistry

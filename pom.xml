@@ -68,6 +68,7 @@
         <module>codenvy-api-vfs</module>
         <module>codenvy-api-workspace</module>
         <module>codenvy-builder-tools</module>
+        <module>codenvy-api-builder</module>
         <module>codenvy-api-analytics</module>
     </modules>
 </project>

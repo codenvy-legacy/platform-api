@@ -19,4 +19,8 @@ package com.codenvy.api.builder.manager.dto;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class BuilderManagerDtoTypes {
+    public static final int BUILDER_SERVICE_REGISTRATION_TYPE    = 200;
+    public static final int BUILDER_SERVICE_LOCATION_TYPE        = 201;
+    public static final int BUILDER_SERVICE_ACCESS_CRITERIA_TYPE = 202;
+    public static final int BUILDER_STATE_TYPE                   = 203;
 }

@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,19 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.manager.dto;
-
-import com.codenvy.api.core.rest.dto.DtoTypesRegistry;
-
-import java.util.Set;
+package com.codenvy.api.builder.internal;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class BuilderManagerDtoTypesRegistry extends DtoTypesRegistry {
-    @Override
-    protected void addDtos(Set<Class<?>> dtos) {
-        dtos.add(BuilderServiceRegistration.class);
-        dtos.add(BuilderServiceLocation.class);
-        dtos.add(BuilderServiceAccessCriteria.class);
-        dtos.add(BuilderState.class);
+@SuppressWarnings("serial")
+public final class NoSuchBuildTaskException extends BuilderException {
+    public NoSuchBuildTaskException(Long taskId) {
+        this(String.format("Invalid build task id: %d", taskId));
+    }
+
+    public NoSuchBuildTaskException(String message) {
+        super(message);
     }
 }

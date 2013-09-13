@@ -1,0 +1,92 @@
+/*
+ * CODENVY CONFIDENTIAL
+ * __________________
+ *
+ *  [2012] - [2013] Codenvy, S.A.
+ *  All Rights Reserved.
+ *
+ * NOTICE:  All information contained herein is, and remains
+ * the property of Codenvy S.A. and its suppliers,
+ * if any.  The intellectual and technical concepts contained
+ * herein are proprietary to Codenvy S.A.
+ * and its suppliers and may be covered by U.S. and Foreign Patents,
+ * patents in process, and are protected by trade secret or copyright law.
+ * Dissemination of this information or reproduction of this material
+ * is strictly forbidden unless prior written permission is obtained
+ * from Codenvy S.A..
+ */
+package com.codenvy.api.builder.internal.dto;
+
+import com.codenvy.api.core.rest.dto.Link;
+import com.codenvy.api.core.rest.dto.DtoType;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Describes one build process. Typically instance of this class should provide set of links to make possible to get more info about build.
+ * Set of links is depends to status of build. E.g. if build successful then one of the links provides location for download build result,
+ * get build report, etc.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+@DtoType(BuilderDtoTypes.BUILD_TASK_DESCRIPTOR_TYPE)
+public class BuildTaskDescriptor {
+
+    private BuildStatus status;
+    private List<Link>  links;
+    private long        startTime;
+
+    public BuildTaskDescriptor(BuildStatus status, List<Link> links, long startTime) {
+        this.status = status;
+        this.startTime = startTime;
+        if (links != null) {
+            this.links = new ArrayList<>(links);
+        }
+    }
+
+    public BuildTaskDescriptor() {
+    }
+
+    public BuildStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(BuildStatus status) {
+        this.status = status;
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public List<Link> getLinks() {
+        if (links == null) {
+            links = new ArrayList<>();
+        }
+        return links;
+    }
+
+    public void setLinks(List<Link> links) {
+        if (links == null) {
+            this.links = null;
+        } else {
+            this.links = new ArrayList<>(links.size());
+            for (Link link : links) {
+                this.links.add(link);
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "BuildTaskDescriptor{" +
+               "status=" + status +
+               ", links=" + links +
+               '}';
+    }
+}

@@ -29,6 +29,6 @@ import javax.ws.rs.ext.Provider;
 public class ApiExceptionMapper implements ExceptionMapper<ApiException> {
     @Override
     public Response toResponse(ApiException exception) {
-        return Response.ok(JsonDto.wrap(exception.getServiceError()), MediaType.APPLICATION_JSON).build();
+        return Response.ok(JsonDto.toJson(exception.getServiceError()), MediaType.APPLICATION_JSON).build();
     }
 }

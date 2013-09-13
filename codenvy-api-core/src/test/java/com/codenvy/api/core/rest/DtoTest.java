@@ -80,35 +80,38 @@ public class DtoTest {
     }
 
     @Test
-    public void testCreateDto() throws Exception {
-        final String content = "{\"type\":1001, \"data\":\"{\\\"message\\\":\\\"DTO test\\\"}\"}";
-        final JsonDto dto = JsonDto.create(content);
+    public void testJsonToDto() throws Exception {
+        final String content = "{\"_type\":1001, \"message\":\"DTO test\"}";
+        final JsonDto dto = JsonDto.fromJson(content);
         Assert.assertEquals(dto.getType(), 1001);
         TestDto object = dto.cast();
         Assert.assertEquals(object.getMessage(), "DTO test");
     }
 
     @Test(expectedExceptions = {DtoException.class}, expectedExceptionsMessageRegExp = "Unknown DTO type '1002'")
-    public void testCreateInvalidDto() throws Exception {
+    public void testJsonToDtoInvalidDto() throws Exception {
         // Invalid DTO type: 1002
-        final String content = "{\"type\":1002, \"data\":\"{\\\"message\\\":\\\"DTO test\\\"}\"}";
-        JsonDto.create(content).cast();
+        final String content = "{\"_type\":1002, \"message\":\"DTO test\"}";
+        JsonDto.fromJson(content);
     }
 
     @Test
-    public void testWrap() throws Exception {
+    public void testConvertDtoToJson() throws Exception {
         final TestDto testDto = new TestDto();
         testDto.setMessage("my message");
-        final JsonDto dto = JsonDto.wrap(testDto);
-        Assert.assertEquals(dto.getType(), 1001);
-        TestDto object = dto.cast();
+        final String json = JsonDto.toJson(testDto);
+        System.out.println(json);
+        // restore and check, if restore successful - serialization works well.
+        JsonDto jsonDto = JsonDto.fromJson(json);
+        Assert.assertEquals(jsonDto.getType(), 1001);
+        TestDto object = jsonDto.cast();
         Assert.assertEquals(object.getMessage(), "my message");
     }
 
     @Test(expectedExceptions = {DtoException.class})
-    public void testWrapInvalid() throws Exception {
+    public void testConvertInvalidDtoToJson() throws Exception {
         final InvalidTestDto testDto = new InvalidTestDto();
         testDto.setMessage("my message");
-        JsonDto.wrap(testDto);
+        JsonDto.toJson(testDto);
     }
 }

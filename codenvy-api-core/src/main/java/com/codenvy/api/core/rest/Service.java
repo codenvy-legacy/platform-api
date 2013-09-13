@@ -40,7 +40,7 @@ public abstract class Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public final Response getServiceDescriptor() {
-        return Response.status(Response.Status.OK).entity(JsonDto.wrap(ReflectionUtil.generateServiceDescriptor(uriInfo, getClass())))
+        return Response.status(Response.Status.OK).entity(JsonDto.toJson(ReflectionUtil.generateServiceDescriptor(uriInfo, getClass())))
                        .build();
     }
 

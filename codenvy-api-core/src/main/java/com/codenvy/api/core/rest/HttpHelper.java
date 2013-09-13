@@ -22,7 +22,6 @@ import com.codenvy.api.core.rest.dto.JsonDto;
 import com.codenvy.api.core.rest.dto.Link;
 import com.codenvy.api.core.rest.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
-import com.codenvy.commons.json.JsonHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,12 +79,12 @@ public class HttpHelper {
                 conn.addRequestProperty("content-type", contentType);
                 conn.setDoOutput(true);
                 try (OutputStream output = conn.getOutputStream()) {
-                    output.write(JsonHelper.toJson(JsonDto.wrap(body)).getBytes());
+                    output.write(JsonDto.toJson(body).getBytes());
                 }
             }
 
             try (InputStream input = conn.getInputStream()) {
-                final JsonDto jsonDto = JsonDto.create(input);
+                final JsonDto jsonDto = JsonDto.fromJson(input);
                 if (jsonDto != null) {
                     if (jsonDto.getType() == DtoTypes.SERVICE_ERROR_TYPE) {
                         final ServiceError error = jsonDto.cast();
@@ -97,6 +96,15 @@ public class HttpHelper {
         } finally {
             conn.disconnect();
         }
+    }
+
+    public static JsonDto get(String url, Pair<String, ?>... parameters) throws IOException, RemoteException {
+        return request(url, "GET", null, null, parameters);
+    }
+
+    public static JsonDto port(String url, Object body, String contentType, Pair<String, ?>... parameters)
+            throws IOException, RemoteException {
+        return request(url, "POST", body, contentType, parameters);
     }
 
     private HttpHelper() {

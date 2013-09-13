@@ -17,16 +17,26 @@
  */
 package com.codenvy.api.core.rest.dto;
 
-import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.commons.json.JsonParseException;
 import com.codenvy.commons.lang.IoUtil;
+
+import org.everrest.core.impl.provider.json.JsonException;
+import org.everrest.core.impl.provider.json.JsonGenerator;
+import org.everrest.core.impl.provider.json.JsonParser;
+import org.everrest.core.impl.provider.json.JsonValue;
+import org.everrest.core.impl.provider.json.JsonWriter;
+import org.everrest.core.impl.provider.json.LongValue;
+import org.everrest.core.impl.provider.json.ObjectBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class JsonDto {
-    public static JsonDto wrap(Object o) {
+    @SuppressWarnings("unchecked")
+    public static String toJson(Object o) {
         if (o == null) {
             throw new DtoException("Null object is not allowed.");
         }
@@ -34,23 +44,45 @@ public class JsonDto {
         if (dtoType == null) {
             throw new DtoException(String.format("Type '%s' it is not annotated with '%s'", o.getClass(), DtoType.class));
         }
-        return new JsonDto(dtoType.value(), JsonHelper.toJson(o));
-    }
-
-    public static JsonDto create(String content) {
-        if (content == null || content.isEmpty()) {
-            return null;
-        }
         try {
-            return JsonHelper.fromJson(content, JsonDto.class, null);
-        } catch (JsonParseException e) {
+            final JsonValue json = JsonGenerator.createJsonObject(o);
+            json.addElement("_type", new LongValue(dtoType.value()));
+            final Writer w = new StringWriter();
+            json.writeTo(new JsonWriter(w));
+            return w.toString();
+        } catch (JsonException e) {
             throw new DtoException(e);
         }
     }
 
-    public static JsonDto create(InputStream content) {
+    public static JsonDto fromJson(String content) {
+        if (content == null || content.isEmpty()) {
+            return null;
+        }
         try {
-            return create(IoUtil.readAndCloseQuietly(content));
+            final JsonValue node;
+            JsonParser parser = new JsonParser();
+            parser.parse(new StringReader(content));
+            node = parser.getJsonObject();
+
+            final JsonValue typeNode = node.getElement("_type");
+            if (typeNode == null) {
+                return null;
+            }
+            final int type = typeNode.getIntValue();
+            final Class<?> dtoType = DtoTypesRegistry.getDto(type);
+            if (dtoType == null) {
+                throw new DtoException(String.format("Unknown DTO type '%d'", type));
+            }
+            return new JsonDto(type, ObjectBuilder.createObject(dtoType, node));
+        } catch (JsonException e) {
+            throw new DtoException(e);
+        }
+    }
+
+    public static JsonDto fromJson(InputStream content) {
+        try {
+            return fromJson(IoUtil.readAndCloseQuietly(content));
         } catch (IOException e) {
             throw new DtoException(e);
         }
@@ -58,46 +90,20 @@ public class JsonDto {
 
     //
 
-    private int    type;
-    private String data;
+    private final int    type;
+    private final Object value;
 
-    public JsonDto(int type, String data) {
+    private JsonDto(int type, Object value) {
         this.type = type;
-        this.data = data;
-    }
-
-    public JsonDto() {
+        this.value = value;
     }
 
     public int getType() {
         return type;
     }
 
-    public void setType(int type) {
-        this.type = type;
-    }
-
-    public String getData() {
-        return data;
-    }
-
-    public void setData(String data) {
-        this.data = data;
-    }
-
     @SuppressWarnings("unchecked")
     public <T> T cast() {
-        if (data == null) {
-            return null;
-        }
-        final Class<?> dtoType = DtoTypesRegistry.getDto(type);
-        if (dtoType == null) {
-            throw new DtoException(String.format("Unknown DTO type '%d'", type));
-        }
-        try {
-            return (T)JsonHelper.fromJson(data, dtoType, null);
-        } catch (JsonParseException e) {
-            throw new DtoException(e);
-        }
+        return (T)value;
     }
 }

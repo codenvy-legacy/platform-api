@@ -161,7 +161,7 @@ public class ServiceDescriptorTest {
         String path = SERVICE_URI;
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
-        JsonDto dto = (JsonDto)response.getEntity();
+        JsonDto dto = JsonDto.fromJson((String)response.getEntity());
         Assert.assertNotNull(dto);
         return dto.cast();
     }

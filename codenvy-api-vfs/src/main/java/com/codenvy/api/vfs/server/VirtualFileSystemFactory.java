@@ -40,7 +40,7 @@ import java.util.List;
  *
  * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
  */
-@Path("{ws-name}/vfs")
+@Path("/api/{ws-name}/vfs")
 public class VirtualFileSystemFactory {
     @Inject
     private VirtualFileSystemRegistry registry;

@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.factory;
+package com.codenvy.factory;
 
 import com.codenvy.factory.store.FactoryStore;
 import com.codenvy.factory.store.impl.InMemoryFactoryStore;

@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.factory.application;
+package com.codenvy.factory;
 
 import javax.ws.rs.core.Application;
 import java.util.HashSet;

@@ -15,11 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.factory.services;
-
-import com.codenvy.factory.commons.AdvancedFactoryUrl;
-import com.codenvy.factory.commons.Image;
-import com.codenvy.factory.commons.Link;
+package com.codenvy.api.factory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;

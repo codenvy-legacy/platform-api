@@ -15,13 +15,15 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.factory.services;
+package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.FactoryService;
+import com.codenvy.api.factory.FactoryServiceExceptionMapper;
 import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.factory.commons.AdvancedFactoryUrl;
-import com.codenvy.factory.commons.Image;
-import com.codenvy.factory.store.FactoryStore;
-import com.codenvy.factory.store.SavedFactoryData;
+import com.codenvy.api.factory.AdvancedFactoryUrl;
+import com.codenvy.api.factory.Image;
+import com.codenvy.api.factory.store.FactoryStore;
+import com.codenvy.api.factory.store.SavedFactoryData;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;

@@ -15,10 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.factory.store;
+package com.codenvy.api.factory.store;
 
-import com.codenvy.factory.commons.AdvancedFactoryUrl;
-import com.codenvy.factory.commons.Image;
+import com.codenvy.api.factory.AdvancedFactoryUrl;
+import com.codenvy.api.factory.Image;
 
 import java.util.Set;
 

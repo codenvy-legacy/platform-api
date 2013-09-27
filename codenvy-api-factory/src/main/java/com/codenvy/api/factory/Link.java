@@ -16,7 +16,7 @@
  * from Codenvy S.A..
  */
 
-package com.codenvy.factory.commons;
+package com.codenvy.api.factory;
 
 import java.io.Externalizable;
 import java.io.IOException;

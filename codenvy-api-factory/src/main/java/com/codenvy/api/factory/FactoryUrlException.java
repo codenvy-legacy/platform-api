@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.factory.commons;
+package com.codenvy.api.factory;
 
 /** Common factory url exception */
 public class FactoryUrlException extends Exception {

@@ -222,7 +222,7 @@ public class FactoryServiceTest {
                 expect().//
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
-                body(equalTo(getServerUrl(context) + "/factory-" + CORRECT_FACTORY_ID)).//
+                body(equalTo(getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID)).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=url");
     }
@@ -238,7 +238,7 @@ public class FactoryServiceTest {
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(equalTo("<script type=\"text/javascript\" language=\"javascript\" src=\"" + getServerUrl(context) +
-                             "/factory/factory.js\" target=\"" + getServerUrl(context) + "/factory-" + CORRECT_FACTORY_ID + "\"></script>"))
+                             "/factory/factory.js\" target=\"" + getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID + "\"></script>"))
                 .//
                         when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=html");
@@ -254,7 +254,7 @@ public class FactoryServiceTest {
                 expect().//
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
-                body(equalTo("[![alt](" + getServerUrl(context) + "/images/factory/factory.png)](" + getServerUrl(context) + "/factory-" +
+                body(equalTo("[![alt](" + getServerUrl(context) + "/images/factory/factory.png)](" + getServerUrl(context) + "/factory?id=" +
                              CORRECT_FACTORY_ID + ")")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");

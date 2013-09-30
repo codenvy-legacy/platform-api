@@ -201,6 +201,7 @@ public class FactoryService {
 
 
     private static String generateFactoryUrl(String id, UriInfo uriInfo) {
-        return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory-" + id).build().toString();
+        return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").replaceQuery(null).queryParam("id", id).build()
+                         .toString();
     }
 }

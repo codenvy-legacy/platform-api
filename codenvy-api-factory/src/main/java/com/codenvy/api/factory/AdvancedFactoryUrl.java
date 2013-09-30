@@ -34,7 +34,6 @@ public class AdvancedFactoryUrl extends FactoryUrl {
     private String  openFile;
     private String  orgId;
     private String  affiliateId;
-    private boolean privateRepo;
 
     public AdvancedFactoryUrl() {
         super();

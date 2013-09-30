@@ -124,22 +124,30 @@ public class FactoryService {
     /**
      * Get image information by its id.
      *
-     * @param id
+     * @param factoryId
+     *         - id of factory
+     * @param imageId
      *         - image id.
-     * @return - image information if id is correct.
+     * @return - image information if ids are correct.
      * @throws FactoryUrlException
      */
     @GET
-    @Path("image/{id}")
+    @Path("{factoryId}/{imageId}")
     @Produces("image/*")
-    public Response getImage(@PathParam("id") String id) throws FactoryUrlException {
-        Image image = factoryStore.getImage(id);
-        if (image == null) {
-            LOG.error("Image with id {} is not found.", id);
-            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), String.format("Image with id %s is not found.", id));
+    public Response getImage(@PathParam("factoryId") String factoryId, @PathParam("imageId") String imageId) throws FactoryUrlException {
+        SavedFactoryData savedFactoryData = factoryStore.getFactory(factoryId);
+        if (savedFactoryData == null) {
+            LOG.error("Factory URL with id {} is not found.", factoryId);
+            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
+                                          String.format("Factory URL with id %s is not found.", factoryId));
         }
-
-        return Response.ok(image.getImageData(), image.getMediaType()).build();
+        for (Image image : savedFactoryData.getImages()) {
+            if (image.getName().equals(imageId)) {
+                return Response.ok(image.getImageData(), image.getMediaType()).build();
+            }
+        }
+        LOG.error("Image with id {} is not found.", imageId);
+        throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), String.format("Image with id %s is not found.", imageId));
     }
 
     /**

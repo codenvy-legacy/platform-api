@@ -33,7 +33,7 @@ public class LinksHelper {
         links.add(generateFactoryUrlLink(factoryUrl.getId(), uriInfo));
         links.add(generateCreationlLink(factoryUrl.getId(), uriInfo));
         for (Image image : images) {
-            links.add(generateFactoryImageLink(image.getName(), uriInfo));
+            links.add(generateFactoryImageLink(factoryUrl.getId(), image, uriInfo));
         }
         links.addAll(generateSnippetLinks(factoryUrl.getId(), uriInfo));
 
@@ -42,9 +42,8 @@ public class LinksHelper {
         return links;
     }
 
-    private static Link generateFactoryImageLink(String imageId, UriInfo uriInfo) {
-        return new Link("image/" + imageId.substring(imageId.lastIndexOf('.') + 1),
-                        generatePath(uriInfo, imageId, "factory/image"), "image");
+    private static Link generateFactoryImageLink(String factoryId, Image image, UriInfo uriInfo) {
+        return new Link(image.getMediaType(), generatePath(uriInfo, image.getName(), "factory/" + factoryId), "image");
     }
 
     private static Link generateFactoryUrlLink(String id, UriInfo uriInfo) {

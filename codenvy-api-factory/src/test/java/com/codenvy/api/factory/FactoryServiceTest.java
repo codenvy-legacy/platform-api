@@ -17,13 +17,9 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.FactoryService;
-import com.codenvy.api.factory.FactoryServiceExceptionMapper;
-import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.api.factory.AdvancedFactoryUrl;
-import com.codenvy.api.factory.Image;
 import com.codenvy.api.factory.store.FactoryStore;
 import com.codenvy.api.factory.store.SavedFactoryData;
+import com.codenvy.commons.json.JsonHelper;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
@@ -31,7 +27,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
@@ -62,10 +57,6 @@ public class FactoryServiceTest {
     @InjectMocks
     private FactoryService factoryService;
 
-    @BeforeMethod
-    public void setUp() throws Exception {
-    }
-
     @Test(enabled = false)
     public void shouldBeAbleToSaveFactory() throws Exception {
         // given
@@ -82,7 +73,7 @@ public class FactoryServiceTest {
         // when, then
         given().//
                 multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
-                multiPart("image", "image.jpeg", new byte[500], "images/jpeg").//
+                multiPart("image", "image.jpeg", new byte[500], "image/jpeg").//
                 expect().//
                 statusCode(Status.OK.getStatusCode()).//
                 when().//
@@ -130,7 +121,7 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        Image image = new Image(null, "images/jpeg", "image123456789.jpg");
+        Image image = new Image(null, "image/jpeg", "image123456789.jpg");
         Set<Image> images = new HashSet<>();
         images.add(image);
         SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, images);
@@ -146,10 +137,13 @@ public class FactoryServiceTest {
                 body("links[1].rel", equalTo("create-project")).//
                 body("links[1].href", startsWith(getServerUrl(context) + "/factory")).//
                 body("links[2].rel", equalTo("image")).//
-                body("links[2].href", startsWith(getServerUrl(context) + "/rest/factory/image")).//
+                body("links[2].href", startsWith(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID)).//
                 body("links[2].href", endsWith("image123456789.jpg")).//
+                body("links[2].type", equalTo("image/jpeg")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
+
+        //assertEquals(response.getStatusCode(), Status.OK.getStatusCode());
     }
 
     @Test
@@ -169,21 +163,31 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToGetFactoryImage() throws Exception {
         // given
-        Image expectedImage = new Image(new byte[100], "images/png", "imageId.png");
-        when(factoryStore.getImage("imageId.png")).thenReturn(expectedImage);
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        Image image = new Image(new byte[100], "image/png", "imageId.png");
+        Set<Image> images = new HashSet<>();
+        images.add(image);
+        SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, images);
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
 
         // when
-        Response response = given().when().get(SERVICE_PATH + "/image/imageId.png");
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/imageId.png");
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        assertEquals(response.getContentType(), "images/png");
+        assertEquals(response.getContentType(), "image/png");
     }
 
     @Test
     public void shouldReturnStatus400OnGetFactoryImageWithIllegalId() throws Exception {
         // given
-        when(factoryStore.getImage("illegalImageId.png")).thenReturn(null);
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, new HashSet<Image>());
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
 
         // when, then
         given().//
@@ -191,7 +195,21 @@ public class FactoryServiceTest {
                 statusCode(400).//
                 body(equalTo(String.format("Image with id %s is not found.", "illegalImageId.png"))).//
                 when().//
-                get(SERVICE_PATH + "/image/illegalImageId.png");
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/illegalImageId.png");
+    }
+
+    @Test
+    public void shouldResponse400OnGetImageIfFactoryDoesNotExist() throws Exception {
+        // given
+        when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
+
+        // when, then
+        given().//
+                expect().//
+                statusCode(400).//
+                body(equalTo(String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID))).//
+                when().//
+                get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/ImageId.png");
     }
 
     @Test

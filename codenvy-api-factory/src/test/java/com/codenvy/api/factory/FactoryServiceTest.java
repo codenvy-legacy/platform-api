@@ -41,6 +41,8 @@ import static javax.ws.rs.core.Response.Status;
 import static org.everrest.assured.JettyHttpServer.*;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyCollection;
+import static org.mockito.Matchers.anySet;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
@@ -67,7 +69,7 @@ public class FactoryServiceTest {
         factoryUrl.setV("1.1");
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
 
-        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), (Image)any()))
+        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
                 .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
 
         // when, then
@@ -103,7 +105,7 @@ public class FactoryServiceTest {
         factoryUrl.setV("1.1");
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
 
-        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), (Image)any()))
+        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
                 .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
 
         // when, then

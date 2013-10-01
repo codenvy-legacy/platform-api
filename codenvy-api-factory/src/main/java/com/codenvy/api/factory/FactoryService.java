@@ -32,6 +32,8 @@ import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 
 import static javax.ws.rs.core.Response.Status;
@@ -85,7 +87,7 @@ public class FactoryService {
                                               "Parameter vcs has illegal value. Only \"git\" is supported for now.");
             }
 
-            SavedFactoryData savedFactoryData = factoryStore.saveFactory(factoryUrl, image);
+            SavedFactoryData savedFactoryData = factoryStore.saveFactory(factoryUrl, new HashSet<>(Arrays.asList(image)));
             factoryUrl = new AdvancedFactoryUrl(savedFactoryData.getFactoryUrl(),
                                                 LinksHelper.createLinks(factoryUrl, savedFactoryData.getImages(), uriInfo));
 

@@ -59,7 +59,7 @@ public class FactoryServiceTest {
     @InjectMocks
     private FactoryService factoryService;
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void shouldBeAbleToSaveFactory() throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
@@ -144,8 +144,6 @@ public class FactoryServiceTest {
                 body("links[2].type", equalTo("image/jpeg")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
-
-        //assertEquals(response.getStatusCode(), Status.OK.getStatusCode());
     }
 
     @Test

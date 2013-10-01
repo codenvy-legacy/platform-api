@@ -15,22 +15,17 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest.dto;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package com.codenvy.dto.server;
 
 /**
- * Helps associating value of {@link JsonDto#data} with Java type.
+ * Provides implementation of DTO interface.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see JsonDto#data
- * @see JsonDto#type
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface DtoType {
-    int value();
+public interface DtoProvider<DTO> {
+    Class<? extends DTO> getImplClass();
+
+    DTO fromJson(String json);
+
+    DTO newInstance();
 }

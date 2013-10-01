@@ -23,7 +23,7 @@
     <parent>
         <groupId>com.codenvy.platform-api</groupId>
         <artifactId>codenvy-platform-api-parent</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-vfs</artifactId>
     <packaging>jar</packaging>
@@ -32,17 +32,17 @@
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-env</artifactId>
-            <version>${codenvy-commons.version}</version>
+            <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-lang</artifactId>
-            <version>${codenvy-commons.version}</version>
+            <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-json</artifactId>
-            <version>${codenvy-commons.version}</version>
+            <version>${codenvy.commons.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.everrest</groupId>

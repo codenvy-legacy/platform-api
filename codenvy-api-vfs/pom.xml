@@ -32,17 +32,17 @@
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-env</artifactId>
-            <version>${codenvy-commons.version}</version>
+            <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-lang</artifactId>
-            <version>${codenvy-commons.version}</version>
+            <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-json</artifactId>
-            <version>${codenvy-commons.version}</version>
+            <version>${codenvy.commons.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.everrest</groupId>

@@ -71,6 +71,8 @@
         <google.gson.version>2.1</google.gson.version>
     </properties>
     <modules>
+        <module>codenvy-dto</module>
+        <module>codenvy-dto-maven-plugin</module>
         <module>codenvy-api-core</module>
         <module>codenvy-api-vfs</module>
         <module>codenvy-api-workspace</module>
@@ -78,5 +80,5 @@
         <module>codenvy-builder-tools</module>
         <module>codenvy-api-builder</module>
         <module>codenvy-api-analytics</module>
-    </modules>
+  </modules>
 </project>

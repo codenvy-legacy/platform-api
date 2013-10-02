@@ -177,12 +177,12 @@ public class FactoryServiceTest {
                 body("links[1].href", startsWith(getServerUrl(context) + "/factory")).//
                 body("links[2].rel", equalTo("image")).//
                 body("links[2].href", startsWith(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID)).//
-                body("links[2].href", endsWith("image987654321.png")).//
-                body("links[2].type", equalTo("image/png")).//
+                //body("links[2].href", endsWith("image987654321.png")).//
+                //body("links[2].type", equalTo("image/png")).//
                 body("links[3].rel", equalTo("image")).//
                 body("links[3].href", startsWith(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID)).//
-                body("links[3].href", endsWith("image123456789.jpg")).//
-                body("links[3].type", equalTo("image/jpeg")).//
+                //body("links[3].href", endsWith("image123456789.jpg")).//
+                //body("links[3].type", equalTo("image/jpeg")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
     }

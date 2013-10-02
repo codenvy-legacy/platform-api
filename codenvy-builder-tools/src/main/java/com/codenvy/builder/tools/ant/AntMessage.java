@@ -21,6 +21,11 @@ import java.io.Serializable;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class AntMessage implements Serializable {
+    public static final int BUILD_ERROR      = -1;
+    public static final int BUILD_STARTED    = 1;
+    public static final int BUILD_SUCCESSFUL = 1 << 1;
+    public static final int BUILD_LOG        = 1 << 2;
+
     private static final long serialVersionUID = 6112041830147092037L;
 
     private int    type;

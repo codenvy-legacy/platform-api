@@ -20,14 +20,11 @@ package com.codenvy.api.vfs.server.impl.memory;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
@@ -35,10 +32,11 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class CreateTest extends MemoryFileSystemTest {
@@ -161,13 +159,12 @@ public class CreateTest extends MemoryFileSystemTest {
     }
 
     public void testCreateFileNoPermissions() throws Exception {
-        AccessControlEntry ace1 = new AccessControlEntryImpl();
-        ace1.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace1.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        AccessControlEntry ace2 = new AccessControlEntryImpl();
-        ace2.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        ace2.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
-        createTestFolder.updateACL(Arrays.asList(ace1, ace2), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions. ALL));
+        permissions.put(userPrincipal, EnumSet.of(BasicPermissions. READ));
+        createTestFolder.updateACL(createAcl(permissions), true, null);
 
         String name = "testCreateFileNoPermissions";
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -232,10 +229,10 @@ public class CreateTest extends MemoryFileSystemTest {
     }
 
     public void testCreateFolderNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        createTestFolder.updateACL(Arrays.asList(ace), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        createTestFolder.updateACL(createAcl(permissions), true, null);
 
         String name = "testCreateFolderNoPermissions";
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();

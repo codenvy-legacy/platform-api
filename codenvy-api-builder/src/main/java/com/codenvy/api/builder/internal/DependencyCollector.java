@@ -25,7 +25,11 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Collects dependencies of project and writes it in JSON format.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public final class DependencyCollector {
     private final List<Dependency> dependencies;
 

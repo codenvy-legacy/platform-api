@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.core.rest.ApiException;
-import com.codenvy.api.core.rest.dto.ServiceError;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
  * Base type for all {@code Builder} error.

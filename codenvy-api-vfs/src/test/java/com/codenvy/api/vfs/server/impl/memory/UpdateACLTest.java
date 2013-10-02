@@ -18,12 +18,10 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
@@ -31,8 +29,8 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,16 +59,16 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, body.getBytes(), null);
         assertEquals(204, response.getStatus());
         List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
-        Map<String, Set<String>> m = toMap(acl);
-        assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
-        assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
+        Map<String, List<String>> m = toMap(acl);
+        assertEquals(m.get("admin"), Arrays.asList("all"));
+        assertEquals(m.get("john"), Arrays.asList("read"));
     }
 
     public void testUpdateAclOverride() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("any", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        mountPoint.getVirtualFileById(objectId).updateACL(Arrays.asList(ace), false, null);
+        Principal anyPrincipal = createPrincipal("any", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(anyPrincipal, EnumSet.of(BasicPermissions.ALL));
+        mountPoint.getVirtualFileById(objectId).updateACL(createAcl(permissions), false, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + objectId + '?' + "override=" + true;
@@ -82,17 +80,17 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         assertEquals(204, response.getStatus());
 
         List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
-        Map<String, Set<String>> m = toMap(acl);
-        assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
-        assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
+        Map<String, List<String>> m = toMap(acl);
+        assertEquals(m.get("admin"), Arrays.asList("all"));
+        assertEquals(m.get("john"), Arrays.asList("read"));
         assertNull("Anonymous permissions must be removed.", m.get("anonymous"));
     }
 
     public void testUpdateAclMerge() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("any", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        mountPoint.getVirtualFileById(objectId).updateACL(Arrays.asList(ace), false, null);
+        Principal anyPrincipal = createPrincipal("any", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(anyPrincipal, EnumSet.of(BasicPermissions.ALL));
+        mountPoint.getVirtualFileById(objectId).updateACL(createAcl(permissions), false, null);
 
         String path = SERVICE_URI + "acl/" + objectId;
         String body = "[{\"principal\":{\"name\":\"admin\",\"type\":\"USER\"},\"permissions\":[\"all\"]}," + //
@@ -103,10 +101,10 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         assertEquals(204, response.getStatus());
 
         List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
-        Map<String, Set<String>> m = toMap(acl);
-        assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
-        assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
-        assertEquals(m.get("any"), new HashSet<>(Arrays.asList("all")));
+        Map<String, List<String>> m = toMap(acl);
+        assertEquals(m.get("admin"), Arrays.asList("all"));
+        assertEquals(m.get("john"), Arrays.asList("read"));
+        assertEquals(m.get("any"), Arrays.asList("all"));
     }
 
     public void testUpdateAclLocked() throws Exception {
@@ -121,9 +119,9 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         assertEquals(204, response.getStatus());
 
         List<AccessControlEntry> acl = mountPoint.getVirtualFileById(objectId).getACL();
-        Map<String, Set<String>> m = toMap(acl);
-        assertEquals(m.get("admin"), new HashSet<>(Arrays.asList("all")));
-        assertEquals(m.get("john"), new HashSet<>(Arrays.asList("read")));
+        Map<String, List<String>> m = toMap(acl);
+        assertEquals(m.get("admin"), Arrays.asList("all"));
+        assertEquals(m.get("john"), Arrays.asList("read"));
     }
 
     public void testUpdateAclLockedNoLockToken() throws Exception {
@@ -140,13 +138,12 @@ public class UpdateACLTest extends MemoryFileSystemTest {
     }
 
     public void testUpdateAclNoPermissions() throws Exception {
-        AccessControlEntry adminACE = new AccessControlEntryImpl();
-        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        AccessControlEntry userACE = new AccessControlEntryImpl();
-        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
-        mountPoint.getVirtualFileById(objectId).updateACL(Arrays.asList(adminACE, userACE), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        mountPoint.getVirtualFileById(objectId).updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + objectId;
@@ -159,8 +156,8 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         log.info(new String(writer.getBody()));
     }
 
-    private Map<String, Set<String>> toMap(List<AccessControlEntry> acl) {
-        Map<String, Set<String>> m = new HashMap<>();
+    private Map<String, List<String>> toMap(List<AccessControlEntry> acl) {
+        Map<String, List<String>> m = new HashMap<>();
         for (AccessControlEntry e : acl) {
             m.put(e.getPrincipal().getName(), e.getPermissions());
         }

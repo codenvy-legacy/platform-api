@@ -18,24 +18,21 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class UpdateContentTest extends MemoryFileSystemTest {
@@ -79,14 +76,13 @@ public class UpdateContentTest extends MemoryFileSystemTest {
     }
 
     public void testUpdateContentNoPermissions() throws Exception {
-        AccessControlEntry adminACE = new AccessControlEntryImpl();
-        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        AccessControlEntry userACE = new AccessControlEntryImpl();
-        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        userACE.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.READ.value())));
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
+        Map<Principal, Set<VirtualFileSystemInfo.BasicPermissions>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.ALL));
+        permissions.put(userPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.READ));
         VirtualFile file = mountPoint.getVirtualFileById(fileId);
-        file.updateACL(Arrays.asList(adminACE, userACE), true, null);
+        file.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "content/" + fileId;

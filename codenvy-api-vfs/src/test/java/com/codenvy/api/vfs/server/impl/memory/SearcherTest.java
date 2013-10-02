@@ -19,9 +19,9 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.search.LuceneSearcher;
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.ItemList;
-import com.codenvy.api.vfs.shared.Property;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.ItemList;
+import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.apache.lucene.analysis.SimpleAnalyzer;
 import org.apache.lucene.index.Term;

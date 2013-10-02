@@ -19,11 +19,12 @@ package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.EventListenerList;
-import com.codenvy.api.vfs.shared.File;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.ItemList;
 import com.codenvy.api.vfs.shared.ItemType;
 import com.codenvy.api.vfs.shared.PropertyFilter;
+import com.codenvy.api.vfs.shared.dto.File;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.ItemList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

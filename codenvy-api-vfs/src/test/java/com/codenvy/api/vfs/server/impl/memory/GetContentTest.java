@@ -18,21 +18,20 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import javax.ws.rs.core.HttpHeaders;
 import java.io.ByteArrayInputStream;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetContentTest extends MemoryFileSystemTest {
@@ -89,10 +88,10 @@ public class GetContentTest extends MemoryFileSystemTest {
     }
 
     public void testGetContentNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(VirtualFileSystemInfoImpl.BasicPermissions.ALL.value())));
-        mountPoint.getVirtualFileById(fileId).updateACL(Arrays.asList(ace), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<VirtualFileSystemInfo.BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.ALL));
+        mountPoint.getVirtualFileById(fileId).updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "content/" + fileId;

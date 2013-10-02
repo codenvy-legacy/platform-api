@@ -18,17 +18,20 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.PropertyImpl;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.everrest.core.impl.ContainerResponse;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class UpdateTest extends MemoryFileSystemTest {
@@ -80,6 +83,24 @@ public class UpdateTest extends MemoryFileSystemTest {
         assertEquals(null, file.getPropertyValue("MyProperty"));
     }
 
+    public void testUpdatePropertiesNoPermissions() throws Exception {
+        VirtualFile file = mountPoint.getVirtualFileById(fileId);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
+        Map<Principal, Set<VirtualFileSystemInfo.BasicPermissions>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.ALL));
+        permissions.put(userPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.READ));
+        file.updateACL(createAcl(permissions), true, null);
+        String properties = "[{\"name\":\"MyProperty\", \"value\":[\"MyValue\"]}]";
+        String path = SERVICE_URI + "item/" + fileId;
+        Map<String, List<String>> h = new HashMap<>(1);
+        h.put("Content-Type", Arrays.asList("application/json"));
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, h, properties.getBytes(), null);
+        assertEquals(403, response.getStatus());
+        file = mountPoint.getVirtualFileById(fileId);
+        assertEquals(null, file.getPropertyValue("MyProperty"));
+    }
+
     public void testUpdatePropertiesAndChangeFolderType() throws Exception {
         VirtualFile folder = mountPoint.getVirtualFileById(folderId);
         assertFalse(folder.isProject());
@@ -91,7 +112,7 @@ public class UpdateTest extends MemoryFileSystemTest {
 
     public void testUpdatePropertiesAndChangeFolderTypeBack() throws Exception {
         VirtualFile folder = mountPoint.getVirtualFileById(folderId);
-        folder.updateProperties(Arrays.<Property>asList(new PropertyImpl("vfs:mimeType", "text/vnd.ideproject+directory")), null);
+        folder.updateProperties(Arrays.<Property>asList(createProperty("vfs:mimeType", "text/vnd.ideproject+directory")), null);
         assertTrue(folder.isProject());
         String properties = "[{\"name\":\"vfs:mimeType\", \"value\":[\"text/directory\"]}]";
         doUpdate(folderId, properties);

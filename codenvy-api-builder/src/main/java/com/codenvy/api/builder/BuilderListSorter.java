@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.internal.remote.RemoteBuilder;
-
 import java.util.List;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */

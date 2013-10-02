@@ -26,12 +26,12 @@ import com.codenvy.api.builder.internal.dto.InstanceState;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.rest.FileAdapter;
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.core.rest.dto.JsonDto;
 import com.codenvy.api.core.util.SystemInfo;
+import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
+import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -62,31 +62,37 @@ public final class SlaveBuilderService extends Service {
     @GET
     @Path("available")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response availableBuilders() {
+    public BuilderList availableBuilders() {
         final Set<Builder> all = builders.getAll();
-        final List<BuilderDescriptor> result = new ArrayList<>(all.size());
+        final List<BuilderDescriptor> list = new ArrayList<>(all.size());
         for (Builder builder : all) {
-            result.add(builder.getDescriptor());
+            list.add(builder.getDescriptor());
         }
-        return Response.status(Response.Status.OK).entity(JsonDto.toJson(new BuilderList(result))).build();
+        final BuilderList result = DtoFactory.getInstance().createDto(BuilderList.class);
+        result.setBuilders(list);
+        return result;
     }
 
     @GenerateLink(rel = Constants.LINK_REL_BUILDER_STATE)
     @GET
     @Path("state")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getBuilderState(@Required
-                                    @Description("Name of the builder")
-                                    @QueryParam("builder") String builder) throws Exception {
+    public SlaveBuilderState getBuilderState(@Required
+                                             @Description("Name of the builder")
+                                             @QueryParam("builder") String builder) throws Exception {
         final Builder myBuilder = getBuilder(builder);
-        final InstanceState instanceState = new InstanceState(SystemInfo.cpu(), SystemInfo.totalMemory(), SystemInfo.freeMemory());
-        final SlaveBuilderState builderState = new SlaveBuilderState(myBuilder.getName(),
-                                                                           myBuilder.getNumberOfWorkers(),
-                                                                           myBuilder.getNumberOfActiveWorkers(),
-                                                                           myBuilder.getInternalQueueSize(),
-                                                                           myBuilder.getMaxInternalQueueSize(),
-                                                                           instanceState);
-        return Response.status(Response.Status.OK).entity(JsonDto.toJson(builderState)).build();
+        final InstanceState instanceState = DtoFactory.getInstance().createDto(InstanceState.class);
+        instanceState.setCpuPercentUsage(SystemInfo.cpu());
+        instanceState.setTotalMemory(SystemInfo.totalMemory());
+        instanceState.setFreeMemory(SystemInfo.freeMemory());
+        final SlaveBuilderState builderState = DtoFactory.getInstance().createDto(SlaveBuilderState.class);
+        builderState.setName(myBuilder.getName());
+        builderState.setNumberOfWorkers(myBuilder.getNumberOfWorkers());
+        builderState.setNumberOfActiveWorkers(myBuilder.getNumberOfActiveWorkers());
+        builderState.setInternalQueueSize(myBuilder.getInternalQueueSize());
+        builderState.setMaxInternalQueueSize(myBuilder.getMaxInternalQueueSize());
+        builderState.setInstanceState(instanceState);
+        return builderState;
     }
 
     @GenerateLink(rel = Constants.LINK_REL_BUILD)
@@ -94,12 +100,8 @@ public final class SlaveBuilderService extends Service {
     @Path("build")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response build(@Description("Parameters for build task in JSON format") String str) throws Exception {
-        final BuildRequest request = JsonDto.fromJson(str).cast();
-        final Builder myBuilder = getBuilder(request.getBuilder());
-        final ServiceContext serviceContext = getServiceContext();
-        final BuildTaskDescriptor descriptor = myBuilder.perform(request, getServiceContext()).getDescriptor(serviceContext);
-        return Response.status(Response.Status.OK).entity(JsonDto.toJson(descriptor)).build();
+    public BuildTaskDescriptor build(@Description("Parameters for build task in JSON format") BuildRequest request) throws Exception {
+        return getBuilder(request.getBuilder()).perform(request).getDescriptor(getServiceContext());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
@@ -107,40 +109,32 @@ public final class SlaveBuilderService extends Service {
     @Path("dependencies")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response dependencies(@Description("Parameters for analyze dependencies in JSON format") String str) throws Exception {
-        final DependencyRequest request = JsonDto.fromJson(str).cast();
-        final Builder myBuilder = getBuilder(request.getBuilder());
-        final ServiceContext serviceContext = getServiceContext();
-        final BuildTaskDescriptor descriptor = myBuilder.perform(request, serviceContext).getDescriptor(serviceContext);
-        return Response.status(Response.Status.OK).entity(JsonDto.toJson(descriptor)).build();
+    public BuildTaskDescriptor dependencies(@Description("Parameters for analyze dependencies in JSON format") DependencyRequest request)
+            throws Exception {
+        return getBuilder(request.getBuilder()).perform(request).getDescriptor(getServiceContext());
     }
 
     @GET
     @Path("status/{builder}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getBuildDescriptor(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
-        final Builder myBuilder = getBuilder(builder);
-        final BuildTaskDescriptor descriptor = myBuilder.getBuildTask(id).getDescriptor(getServiceContext());
-        return Response.status(Response.Status.OK).entity(JsonDto.toJson(descriptor)).build();
+    public BuildTaskDescriptor getStatus(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
+        return getBuilder(builder).getBuildTask(id).getDescriptor(getServiceContext());
     }
 
     @GET
-    @Path("log/{builder}/{id}")
-    public Response getBuildLog(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
-        final Builder myBuilder = getBuilder(builder);
-        final BuildTask task = myBuilder.getBuildTask(id);
-        final BuildLogger logger = task.getBuildLogger();
+    @Path("logs/{builder}/{id}")
+    public Response getLogs(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
+        final BuildLogger logger = getBuilder(builder).getBuildTask(id).getBuildLogger();
         return Response.ok(logger.getReader(), logger.getContentType()).build();
     }
 
     @POST
     @Path("cancel/{builder}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response cancel(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
-        final Builder myBuilder = getBuilder(builder);
-        final BuildTask task = myBuilder.getBuildTask(id);
+    public BuildTaskDescriptor cancel(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
+        final BuildTask task = getBuilder(builder).getBuildTask(id);
         task.cancel();
-        return Response.status(Response.Status.OK).entity(JsonDto.toJson(task.getDescriptor(getServiceContext()))).build();
+        return task.getDescriptor(getServiceContext());
     }
 
     @GET
@@ -151,23 +145,12 @@ public final class SlaveBuilderService extends Service {
         final Builder myBuilder = getBuilder(builder);
         final BuildTask task = myBuilder.getBuildTask(id);
         final FileAdapter srcDir = task.getSources().getDirectory();
-        final FileAdapter target;
-        try {
-            target = srcDir.getChild(path);
-        } catch (IllegalArgumentException e) {
-            return Response.status(200).type(MediaType.TEXT_HTML)
-                           .entity(String.format("<div><span class='file-access-error'>%s</span></div>", e.getMessage())).build();
-        }
+        final FileAdapter target = srcDir.getChild(path);
         if (target.isDirectory()) {
-            final java.io.File[] files = target.getIoFile().listFiles();
-            if (files == null) {
-                return Response.status(200).entity(String.format("<div><span class='file-access-error'>Not found %s</span></div>", path))
-                               .type(MediaType.TEXT_HTML).build();
-            }
             final StringWriter buff = new StringWriter();
             buff.write("<div class='file-browser'>");
-            final UriBuilder serviceUriBuilder = getServiceContext().getServicePathBuilder();
-            for (java.io.File file : files) {
+            final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
+            for (java.io.File file : target.getIoFile().listFiles()) {
                 final String name = file.getName();
                 buff.write("<div class='file-browser-item'>");
                 buff.write("<span class='file-browser-name'>");
@@ -201,10 +184,8 @@ public final class SlaveBuilderService extends Service {
             }
             buff.write("</div>");
             return Response.status(200).entity(buff.toString()).type(MediaType.TEXT_HTML).build();
-        } else {
-            return Response.status(200).type(MediaType.TEXT_HTML)
-                           .entity(String.format("<div><span class='file-access-error'>Not a folder %s</span></div>", path)).build();
         }
+        throw new InvalidArgumentException(String.format("%s does not exist or is not a folder", path));
     }
 
     @GET
@@ -212,7 +193,16 @@ public final class SlaveBuilderService extends Service {
     public Response download(@PathParam("builder") String builder,
                              @PathParam("id") Long id,
                              @Required @QueryParam("path") String path) throws Exception {
-        return getFile(builder, id, path, true);
+        final FileAdapter srcDir = getBuilder(builder).getBuildTask(id).getSources().getDirectory();
+        final FileAdapter target = srcDir.getChild(path);
+        if (target.isFile()) {
+            return Response.status(200)
+                           .header("Content-Disposition", String.format("attachment; filename=\"%s\"", target.getName()))
+                           .type(target.getContentType())
+                           .entity(target.getIoFile())
+                           .build();
+        }
+        throw new InvalidArgumentException(String.format("%s does not exist or is not a file", path));
     }
 
     @GET
@@ -220,36 +210,12 @@ public final class SlaveBuilderService extends Service {
     public Response view(@PathParam("builder") String builder,
                          @PathParam("id") Long id,
                          @Required @QueryParam("path") String path) throws Exception {
-        return getFile(builder, id, path, false);
-    }
-
-    private Response getFile(String builder, Long id, String path, boolean download) throws Exception {
-        final Builder myBuilder = getBuilder(builder);
-        final BuildTask task = myBuilder.getBuildTask(id);
-        final FileAdapter srcDir = task.getSources().getDirectory();
-        final FileAdapter target;
-        try {
-            target = srcDir.getChild(path);
-        } catch (IllegalArgumentException e) {
-            return Response.status(200).type(MediaType.TEXT_HTML)
-                           .entity(String.format("<div><span class='file-access-error'>%s</span></div>", e.getMessage())).build();
+        final FileAdapter srcDir = getBuilder(builder).getBuildTask(id).getSources().getDirectory();
+        final FileAdapter target = srcDir.getChild(path);
+        if (target.isFile()) {
+            return Response.status(200).type(target.getContentType()).entity(target.getIoFile()).build();
         }
-        if (!target.exists()) {
-            return Response.status(200).type(MediaType.TEXT_HTML)
-                           .entity(String.format("<div><span class='file-access-error'>Not found %s</span></div>", path)).build();
-        }
-        if (!target.isFile()) {
-            return Response.status(200).type(MediaType.TEXT_HTML)
-                           .entity(String.format("<div><span class='file-access-error'>Not a file %s</span></div>", path)).build();
-        }
-        if (download) {
-            return Response.status(200)
-                           .header("Content-Disposition", String.format("attachment; filename=\"%s\"", target.getName()))
-                           .type(target.getContentType())
-                           .entity(target.getIoFile())
-                           .build();
-        }
-        return Response.status(200).type(target.getContentType()).entity(target.getIoFile()).build();
+        throw new InvalidArgumentException(String.format("%s does not exist or is not a file", path));
     }
 
     private Builder getBuilder(String name) throws NoSuchBuilderException {

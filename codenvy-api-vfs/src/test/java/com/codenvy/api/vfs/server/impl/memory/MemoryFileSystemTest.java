@@ -25,14 +25,19 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemApplication;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.EventListenerList;
-import com.codenvy.api.vfs.shared.File;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.ItemList;
 import com.codenvy.api.vfs.shared.ItemType;
-import com.codenvy.api.vfs.shared.Link;
-import com.codenvy.api.vfs.shared.ProjectImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.File;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.ItemList;
+import com.codenvy.api.vfs.shared.dto.Link;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.RequestHandler;
 import org.everrest.core.ResourceBinder;
@@ -63,6 +68,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public abstract class MemoryFileSystemTest extends TestCase {
@@ -75,7 +81,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
     }
 
     protected MemoryFileSystemProvider fileSystemProvider;
-    protected MemoryMountPoint mountPoint;
+    protected MemoryMountPoint         mountPoint;
 
     protected static final String MY_WORKSPACE_ID       = "my-ws";
     protected final        String BASE_URI              = "http://localhost/service";
@@ -127,6 +133,44 @@ public abstract class MemoryFileSystemTest extends TestCase {
     }
 
     // --------------------------------------------
+
+    protected Property createProperty(String name, String value) {
+        final Property property = DtoFactory.getInstance().createDto(Property.class);
+        property.setName(name);
+        if (value != null) {
+            List<String> values = new ArrayList<>(1);
+            values.add(value);
+            property.setValue(values);
+        }
+        return property;
+    }
+
+    protected Principal createPrincipal(String name, Principal.Type type) {
+        final Principal principal = DtoFactory.getInstance().createDto(Principal.class);
+        principal.setName(name);
+        principal.setType(type);
+        return principal;
+    }
+
+    protected List<AccessControlEntry> createAcl(Map<Principal, Set<BasicPermissions>> permissions) {
+        final List<AccessControlEntry> acl = new ArrayList<>(permissions.size());
+        for (Map.Entry<Principal, Set<BasicPermissions>> e : permissions.entrySet()) {
+            final Set<BasicPermissions> basicPermissions = e.getValue();
+            final Principal principal = e.getKey();
+            final List<String> plainPermissions = new ArrayList<>(basicPermissions.size());
+            for (BasicPermissions permission : e.getValue()) {
+                plainPermissions.add(permission.value());
+            }
+            final Principal copyPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+            copyPrincipal.setName(principal.getName());
+            copyPrincipal.setType(principal.getType());
+            final AccessControlEntry ace = DtoFactory.getInstance().createDto(AccessControlEntry.class);
+            ace.setPrincipal(copyPrincipal);
+            ace.setPermissions(plainPermissions);
+            acl.add(ace);
+        }
+        return acl;
+    }
 
     protected Item getItem(String id) throws Exception {
         String path = SERVICE_URI + "item/" + id;
@@ -340,7 +384,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
                          link.getHref());
 
             link = links.get(Link.REL_CREATE_PROJECT);
-            if (item instanceof ProjectImpl) {
+            if (item instanceof Project) {
                 assertNull("'" + Link.REL_CREATE_PROJECT + "' link not allowed for project. ", link);
             } else {
                 assertNotNull("'" + Link.REL_CREATE_PROJECT + "' link not found. ", link);

@@ -18,13 +18,16 @@
 package com.codenvy.api.vfs.server.observation;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.PropertyImpl;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
+ * Listens updates of any project items and save time of last update.
+ *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
 public class ProjectUpdateListener implements EventListener {
@@ -36,8 +39,11 @@ public class ProjectUpdateListener implements EventListener {
 
     @Override
     public void handleEvent(ChangeEvent event) throws VirtualFileSystemException {
-        List<Property> properties = new ArrayList<>(1);
-        properties.add(new PropertyImpl("vfs:lastUpdateTime", Long.toString(System.currentTimeMillis())));
+        final List<Property> properties = new ArrayList<>(1);
+        final Property updateTimeProperty = DtoFactory.getInstance().createDto(Property.class);
+        updateTimeProperty.setName("vfs:lastUpdateTime");
+        updateTimeProperty.setValue(Collections.singletonList(Long.toString(System.currentTimeMillis())));
+        properties.add(updateTimeProperty);
         event.getVirtualFileSystem().updateItem(projectId, properties, null);
     }
 

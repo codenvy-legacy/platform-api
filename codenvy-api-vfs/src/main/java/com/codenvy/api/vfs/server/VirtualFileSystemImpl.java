@@ -30,30 +30,23 @@ import com.codenvy.api.vfs.server.observation.ProjectUpdateListener;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.LinksHelper;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.File;
-import com.codenvy.api.vfs.shared.FileImpl;
-import com.codenvy.api.vfs.shared.Folder;
-import com.codenvy.api.vfs.shared.FolderImpl;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.ItemList;
-import com.codenvy.api.vfs.shared.ItemListImpl;
-import com.codenvy.api.vfs.shared.ItemNode;
-import com.codenvy.api.vfs.shared.ItemNodeImpl;
 import com.codenvy.api.vfs.shared.ItemType;
-import com.codenvy.api.vfs.shared.Lock;
-import com.codenvy.api.vfs.shared.LockImpl;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Project;
-import com.codenvy.api.vfs.shared.ProjectImpl;
-import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.PropertyImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.ACLCapability;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.File;
+import com.codenvy.api.vfs.shared.dto.Folder;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.ItemList;
+import com.codenvy.api.vfs.shared.dto.ItemNode;
+import com.codenvy.api.vfs.shared.dto.Lock;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
@@ -74,6 +67,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -175,9 +169,15 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             properties = new ArrayList<>(2);
         }
         if (type != null) {
-            properties.add(new PropertyImpl("vfs:projectType", type));
+            final Property projectTypeProperty = DtoFactory.getInstance().createDto(Property.class);
+            projectTypeProperty.setName("vfs:projectType");
+            projectTypeProperty.setValue(Collections.singletonList(type));
+            properties.add(projectTypeProperty);
         }
-        properties.add(new PropertyImpl("vfs:mimeType", Project.PROJECT_MIME_TYPE));
+        final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class);
+        mimeTypeProperty.setName("vfs:mimeType");
+        mimeTypeProperty.setValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
+        properties.add(mimeTypeProperty);
 
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
         if (!parent.isFolder()) {
@@ -288,15 +288,15 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException("'skipCount' parameter is greater then total number of items. ");
         }
 
-        final List<Item> list = new ArrayList<>();
+        final List<Item> items = new ArrayList<>();
         for (int count = 0; children.hasNext() && (maxItems < 0 || count < maxItems); count++) {
-            list.add(fromVirtualFile(children.next(), includePermissions, propertyFilter));
+            items.add(fromVirtualFile(children.next(), includePermissions, propertyFilter));
         }
-        final ItemList result = new ItemListImpl(list);
-        result.setNumItems(children.size());
-        result.setHasMoreItems(children.hasNext());
-
-        return result;
+        final ItemList itemList = DtoFactory.getInstance().createDto(ItemList.class);
+        itemList.setItems(items);
+        itemList.setNumItems(children.size());
+        itemList.setHasMoreItems(children.hasNext());
+        return itemList;
     }
 
     @Path("tree/{id}")
@@ -310,8 +310,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (!virtualFile.isFolder()) {
             throw new InvalidArgumentException(String.format("Unable get tree. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
-        return new ItemNodeImpl(fromVirtualFile(virtualFile, includePermissions, propertyFilter),
-                                getTreeLevel(virtualFile, depth, includePermissions, propertyFilter));
+        final ItemNode tree = DtoFactory.getInstance().createDto(ItemNode.class);
+        tree.setItem(fromVirtualFile(virtualFile, includePermissions, propertyFilter));
+        tree.setChildren(getTreeLevel(virtualFile, depth, includePermissions, propertyFilter));
+        return tree;
     }
 
     private List<ItemNode> getTreeLevel(VirtualFile virtualFile, int depth, boolean includePermissions, PropertyFilter propertyFilter)
@@ -322,9 +324,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         final LazyIterator<VirtualFile> children = virtualFile.getChildren(VirtualFileFilter.ALL);
         final List<ItemNode> level = new ArrayList<>(children.size());
         while (children.hasNext()) {
-            VirtualFile next = children.next();
-            level.add(new ItemNodeImpl(fromVirtualFile(next, includePermissions, propertyFilter),
-                                       getTreeLevel(next, depth - 1, includePermissions, propertyFilter)));
+            final VirtualFile next = children.next();
+            final ItemNode itemNode = DtoFactory.getInstance().createDto(ItemNode.class);
+            itemNode.setItem(fromVirtualFile(next, includePermissions, propertyFilter));
+            itemNode.setChildren(getTreeLevel(next, depth - 1, includePermissions, propertyFilter));
         }
         return level;
     }
@@ -412,15 +415,15 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException("'skipCount' parameter is greater then total number of items. ");
         }
 
-        final List<Item> list = new ArrayList<>();
+        final List<Item> items = new ArrayList<>();
         for (int count = 0; versions.hasNext() && (maxItems < 0 || count < maxItems); count++) {
-            list.add(fromVirtualFile(versions.next(), false, propertyFilter));
+            items.add(fromVirtualFile(versions.next(), false, propertyFilter));
         }
-
-        final ItemList result = new ItemListImpl(list);
-        result.setNumItems(versions.size());
-        result.setHasMoreItems(false);
-        return result;
+        final ItemList itemList = DtoFactory.getInstance().createDto(ItemList.class);
+        itemList.setItems(items);
+        itemList.setNumItems(versions.size());
+        itemList.setHasMoreItems(versions.hasNext());
+        return itemList;
     }
 
     @Path("lock/{id}")
@@ -436,7 +439,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException(
                     String.format("Unable lock '%s'. Locking allowed for files only. ", virtualFile.getPath()));
         }
-        return new LockImpl(user.getUserId(), mountPoint.getVirtualFileById(id).lock(timeout), timeout);
+        final String lockToken = mountPoint.getVirtualFileById(id).lock(timeout);
+        final Lock lock = DtoFactory.getInstance().createDto(Lock.class);
+        lock.setLockToken(lockToken);
+        lock.setOwner(user.getUserId());
+        lock.setTimeout(timeout);
+        return lock;
     }
 
     @Path("move/{id}")
@@ -523,7 +531,8 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 }
             }
 
-            ItemList itemList = new ItemListImpl(items);
+            final ItemList itemList = DtoFactory.getInstance().createDto(ItemList.class);
+            itemList.setItems(items);
             itemList.setNumItems(result.length);
             itemList.setHasMoreItems(length < result.length);
             return itemList;
@@ -614,7 +623,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             }
         }
 
-        boolean jRebelPropertyUpdated = false;
+        /*boolean jRebelPropertyUpdated = false;
         for (Property p : properties) {
             if (p.getName().equals("jrebel")) {
                 jRebelPropertyUpdated = true;
@@ -629,7 +638,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             LOG.info("EVENT#jrebel-usage# WS#"
                      + EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_NAME).toString() + "# USER#"
                      + user.getUserId() + "# PROJECT#" + updated.getName() + "# TYPE#" + projectType + "# JREBEL#" + jRebelUsage + "#");
-        }
+        }*/
         return updated;
     }
 
@@ -709,12 +718,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             }
 
             try {
-                createFile(
-                        parentId,
-                        name,
-                        mediaType == null ? MediaType.APPLICATION_OCTET_STREAM_TYPE : MediaType.valueOf(mediaType),
-                        contentItem.getInputStream()
-                          );
+                createFile(parentId,
+                           name,
+                           mediaType == null ? MediaType.APPLICATION_OCTET_STREAM_TYPE : MediaType.valueOf(mediaType),
+                           contentItem.getInputStream());
             } catch (ItemAlreadyExistException e) {
                 if (!overwrite) {
                     throw new ItemAlreadyExistException("Unable upload file. Item with the same name exists. ");
@@ -791,10 +798,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (!project.isProject()) {
             throw new InvalidArgumentException(String.format("Item '%s' is not a project. ", project.getPath()));
         }
-        if (listeners.addEventListener(
-                ProjectUpdateEventFilter.newFilter(this, project), new ProjectUpdateListener(projectId))) {
+        if (listeners.addEventListener(ProjectUpdateEventFilter.newFilter(this, project), new ProjectUpdateListener(projectId))) {
             List<Property> properties = new ArrayList<>(1);
-            properties.add(new PropertyImpl("vfs:lastUpdateTime", "0"));
+            Property myProperty = DtoFactory.getInstance().createDto(Property.class);
+            myProperty.setName("vfs:lastUpdateTime");
+            myProperty.setValue(Collections.singletonList("0"));
+            properties.add(myProperty);
             project.updateProperties(properties, null);
         }
     }
@@ -838,23 +847,57 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         Item item;
         if (virtualFile.isFile()) {
             final boolean locked = virtualFile.isLocked();
-            final long length = virtualFile.getLength();
-            final long modified = virtualFile.getLastModificationDate();
-            item = new FileImpl(vfsId, id, name, path, parentId, created, modified, virtualFile.getVersionId(), mediaType, length, locked,
-                                virtualFile.getProperties(propertyFilter),
-                                addLinks ? LinksHelper.createFileLinks(baseUri, EnvironmentContext.getCurrent().getVariable(
-                                        EnvironmentContext.WORKSPACE_NAME).toString(), id, id, path, mediaType, locked, parentId) : null);
+            final File dtoFile = DtoFactory.getInstance().createDto(File.class);
+            dtoFile.setItemType(ItemType.FILE);
+            dtoFile.setParentId(parentId);
+            dtoFile.setId(id);
+            dtoFile.setName(name);
+            dtoFile.setPath(path);
+            dtoFile.setLength(virtualFile.getLength());
+            dtoFile.setMimeType(mediaType);
+            dtoFile.setCreationDate(created);
+            dtoFile.setLastModificationDate(virtualFile.getLastModificationDate());
+            dtoFile.setLocked(virtualFile.isLocked());
+            dtoFile.setVersionId(virtualFile.getVersionId());
+            dtoFile.setProperties(virtualFile.getProperties(propertyFilter));
+            if (addLinks) {
+                dtoFile.setLinks(LinksHelper.createFileLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
+                        EnvironmentContext.WORKSPACE_NAME), id, id, path, mediaType, locked, parentId));
+            }
+            item = dtoFile;
         } else {
             if (virtualFile.isProject()) {
                 final String projectType = virtualFile.getPropertyValue("vfs:projectType");
-                item = new ProjectImpl(vfsId, id, name, mediaType, path, parentId, created, virtualFile.getProperties(propertyFilter),
-                                       addLinks ? LinksHelper.createProjectLinks(baseUri, EnvironmentContext.getCurrent().getVariable(
-                                               EnvironmentContext.WORKSPACE_NAME).toString(), id, parentId) : null,
-                                       projectType == null ? "default" : projectType);
+                Project dtoProject = DtoFactory.getInstance().createDto(Project.class);
+                dtoProject.setItemType(ItemType.PROJECT);
+                dtoProject.setParentId(parentId);
+                dtoProject.setId(id);
+                dtoProject.setName(name);
+                dtoProject.setPath(path);
+                dtoProject.setMimeType(mediaType);
+                dtoProject.setCreationDate(created);
+                dtoProject.setProperties(virtualFile.getProperties(propertyFilter));
+                dtoProject.setProjectType(projectType == null ? "default" : projectType);
+                if (addLinks) {
+                    dtoProject.setLinks(LinksHelper.createProjectLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
+                            EnvironmentContext.WORKSPACE_NAME), id, parentId));
+                }
+                item = dtoProject;
             } else {
-                item = new FolderImpl(vfsId, id, name, mediaType, path, parentId, created, virtualFile.getProperties(propertyFilter),
-                                      addLinks ? LinksHelper.createFolderLinks(baseUri, EnvironmentContext.getCurrent().getVariable(
-                                              EnvironmentContext.WORKSPACE_NAME).toString(), id, isRoot, parentId) : null);
+                Folder dtoFolder = DtoFactory.getInstance().createDto(Folder.class);
+                dtoFolder.setItemType(ItemType.FOLDER);
+                dtoFolder.setParentId(parentId);
+                dtoFolder.setId(id);
+                dtoFolder.setName(name);
+                dtoFolder.setPath(path);
+                dtoFolder.setMimeType(mediaType);
+                dtoFolder.setCreationDate(created);
+                dtoFolder.setProperties(virtualFile.getProperties(propertyFilter));
+                if (addLinks) {
+                    dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
+                            EnvironmentContext.WORKSPACE_NAME), id, isRoot, parentId));
+                }
+                item = dtoFolder;
             }
         }
 
@@ -865,34 +908,43 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 final Map<Principal, Set<BasicPermissions>> objectPermissions = current.getPermissions();
                 if (!objectPermissions.isEmpty()) {
                     Set<String> userPermissions = new HashSet<>(4);
-                    Set<BasicPermissions> permissionsSet = objectPermissions.get(new PrincipalImpl(user.getUserId(), Principal.Type.USER));
+                    final Principal userPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+                    userPrincipal.setName(user.getUserId());
+                    userPrincipal.setType(Principal.Type.USER);
+                    Set<BasicPermissions> permissionsSet = objectPermissions.get(userPrincipal);
                     if (permissionsSet != null) {
                         for (BasicPermissions basicPermission : permissionsSet) {
                             userPermissions.add(basicPermission.value());
                         }
                     }
-                    permissionsSet = objectPermissions.get(new PrincipalImpl(VirtualFileSystemInfo.ANY_PRINCIPAL, Principal.Type.USER));
+                    final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+                    anyPrincipal.setName(VirtualFileSystemInfo.ANY_PRINCIPAL);
+                    anyPrincipal.setType(Principal.Type.USER);
+                    permissionsSet = objectPermissions.get(anyPrincipal);
                     if (permissionsSet != null) {
                         for (BasicPermissions basicPermission : permissionsSet) {
                             userPermissions.add(basicPermission.value());
                         }
                     }
                     for (String group : user.getGroups()) {
-                        permissionsSet = objectPermissions.get(new PrincipalImpl(group, Principal.Type.GROUP));
+                        final Principal groupPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+                        groupPrincipal.setName(group);
+                        groupPrincipal.setType(Principal.Type.GROUP);
+                        permissionsSet = objectPermissions.get(groupPrincipal);
                         if (permissionsSet != null) {
                             for (BasicPermissions basicPermission : permissionsSet) {
                                 userPermissions.add(basicPermission.value());
                             }
                         }
                     }
-                    item.setPermissions(userPermissions);
+                    item.setPermissions(new ArrayList<>(userPermissions));
                     break;
                 } else {
                     current = current.getParent();
                 }
             }
             if (item.getPermissions() == null) {
-                item.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+                item.setPermissions(Arrays.asList(BasicPermissions.ALL.value()));
             }
         }
 

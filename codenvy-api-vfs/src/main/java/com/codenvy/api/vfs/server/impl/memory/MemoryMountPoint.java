@@ -19,7 +19,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -27,8 +26,9 @@ import com.codenvy.api.vfs.server.VirtualFileVisitor;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.PathUtil;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import java.util.HashMap;
 import java.util.Map;

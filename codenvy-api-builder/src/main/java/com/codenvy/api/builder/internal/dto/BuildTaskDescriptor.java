@@ -17,10 +17,10 @@
  */
 package com.codenvy.api.builder.internal.dto;
 
-import com.codenvy.api.core.rest.dto.Link;
-import com.codenvy.api.core.rest.dto.DtoType;
+import com.codenvy.api.builder.internal.BuildStatus;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.dto.shared.DTO;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,63 +30,21 @@ import java.util.List;
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-@DtoType(BuilderDtoTypes.BUILD_TASK_DESCRIPTOR_TYPE)
-public class BuildTaskDescriptor {
+@DTO
+public interface BuildTaskDescriptor {
+    BuildStatus getStatus();
 
-    private BuildStatus status;
-    private List<Link>  links;
-    private long        startTime;
+    void setStatus(BuildStatus status);
 
-    public BuildTaskDescriptor(BuildStatus status, List<Link> links, long startTime) {
-        this.status = status;
-        this.startTime = startTime;
-        if (links != null) {
-            this.links = new ArrayList<>(links);
-        }
-    }
+    long getStartTime();
 
-    public BuildTaskDescriptor() {
-    }
+    void setStartTime(long startTime);
 
-    public BuildStatus getStatus() {
-        return status;
-    }
+    List<Link> getLinks();
 
-    public void setStatus(BuildStatus status) {
-        this.status = status;
-    }
+    void setLinks(List<Link> links);
 
-    public long getStartTime() {
-        return startTime;
-    }
+    long getTaskId();
 
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-    public List<Link> getLinks() {
-        if (links == null) {
-            links = new ArrayList<>();
-        }
-        return links;
-    }
-
-    public void setLinks(List<Link> links) {
-        if (links == null) {
-            this.links = null;
-        } else {
-            this.links = new ArrayList<>(links.size());
-            for (Link link : links) {
-                this.links.add(link);
-            }
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "BuildTaskDescriptor{" +
-               "status=" + status +
-               ", links=" + links +
-               '}';
-    }
+    void setTaskId(long taskId);
 }

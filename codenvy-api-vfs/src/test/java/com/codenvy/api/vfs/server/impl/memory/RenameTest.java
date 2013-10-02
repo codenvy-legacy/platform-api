@@ -19,21 +19,20 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
 import com.codenvy.api.vfs.shared.ExitCodes;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class RenameTest extends MemoryFileSystemTest {
@@ -129,13 +128,12 @@ public class RenameTest extends MemoryFileSystemTest {
     }
 
     public void testRenameFileNoPermissions() throws Exception {
-        AccessControlEntry adminACE = new AccessControlEntryImpl();
-        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        AccessControlEntry userACE = new AccessControlEntryImpl();
-        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
-        file.updateACL(Arrays.asList(adminACE, userACE), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        file.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "rename/" + fileId + '?' + "newname=" + "_FILE_NEW_NAME_";
@@ -195,13 +193,12 @@ public class RenameTest extends MemoryFileSystemTest {
 
     public void testRenameFolderNoPermissionForChild() throws Exception {
         VirtualFile myFile = folder.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        AccessControlEntry adminACE = new AccessControlEntryImpl();
-        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        AccessControlEntry userACE = new AccessControlEntryImpl();
-        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
-        myFile.updateACL(Arrays.asList(adminACE, userACE), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        myFile.updateACL(createAcl(permissions), true, null);
 
         String path = SERVICE_URI + "rename/" + folderId + '?' + "newname=" + "_FOLDER_NEW_NAME_";
         String originPath = folder.getPath();

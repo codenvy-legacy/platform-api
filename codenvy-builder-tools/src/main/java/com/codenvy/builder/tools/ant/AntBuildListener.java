@@ -71,7 +71,7 @@ public class AntBuildListener implements BuildListener {
     @Override
     public void buildStarted(BuildEvent event) {
         connect();
-        send(new AntMessage(AntMessageTypes.BUILD_STARTED, null, null, event.getMessage()));
+        send(new AntMessage(AntMessage.BUILD_STARTED, null, null, event.getMessage()));
     }
 
     @Override
@@ -79,11 +79,11 @@ public class AntBuildListener implements BuildListener {
         final AntMessage message;
         final Throwable throwable = event.getException();
         if (throwable == null) {
-            message = new AntMessage(AntMessageTypes.BUILD_SUCCESSFUL, null, null, event.getMessage());
+            message = new AntMessage(AntMessage.BUILD_SUCCESSFUL, null, null, event.getMessage());
         } else {
             StringWriter writer = new StringWriter();
             throwable.printStackTrace(new PrintWriter(writer));
-            message = new AntMessage(AntMessageTypes.BUILD_ERROR, null, null, writer.toString());
+            message = new AntMessage(AntMessage.BUILD_ERROR, null, null, writer.toString());
         }
         send(message);
         send(null);
@@ -111,7 +111,7 @@ public class AntBuildListener implements BuildListener {
         final Target target = event.getTarget();
         final Task task = event.getTask();
         final String text = event.getMessage();
-        send(new AntMessage(AntMessageTypes.BUILD_LOG,
+        send(new AntMessage(AntMessage.BUILD_LOG,
                             target == null ? null : target.getName(),
                             task == null ? null : task.getTaskName(),
                             text)

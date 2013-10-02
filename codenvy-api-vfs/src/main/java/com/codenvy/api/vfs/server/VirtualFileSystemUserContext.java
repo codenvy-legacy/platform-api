@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;

@@ -23,12 +23,14 @@ import com.codenvy.api.builder.internal.BuildResult;
 import com.codenvy.api.builder.internal.BuildTask;
 import com.codenvy.api.builder.internal.BuildTaskConfiguration;
 import com.codenvy.api.builder.internal.Builder;
+import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.DelegateBuildLogger;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.rest.RemoteContent;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -65,12 +67,12 @@ public class BuilderTest {
         }
 
         @Override
-        protected BuildLogger createBuildLogger(BuildTaskConfiguration buildConfiguration, java.io.File logFile) throws IOException {
+        protected BuildLogger createBuildLogger(BuildTaskConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
             return logger = new MyDelegateBuildLogger(super.createBuildLogger(buildConfiguration, logFile));
         }
 
         @Override
-        protected void downloadSources(RemoteContent sources) throws IOException {
+        protected void downloadSources(RemoteContent sources) {
         }
     }
 
@@ -127,9 +129,10 @@ public class BuilderTest {
 
     @Test
     public void testRunTask() throws Exception {
-        final BuildTask task = builder.perform(new BuildRequest(
-                "http://localhost/a" /* ok for test, nothing download*/,
-                "my", null, null, null, null, null), null);
+        final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
+        buildRequest.setBuilder("my");
+        buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
+        final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
         Assert.assertEquals(builder.logger.getLogsAsString(), "test");
     }
@@ -150,9 +153,10 @@ public class BuilderTest {
             }
         };
         Assert.assertTrue(builder.addBuildListener(listener));
-        final BuildTask task = builder.perform(new BuildRequest(
-                "http://localhost/a" /* ok for test, nothing download*/,
-                "my", null, null, null, null, null), null);
+        final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
+        buildRequest.setBuilder("my");
+        buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
+        final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
         Assert.assertTrue(beginFlag[0]);
         Assert.assertTrue(endFlag[0]);

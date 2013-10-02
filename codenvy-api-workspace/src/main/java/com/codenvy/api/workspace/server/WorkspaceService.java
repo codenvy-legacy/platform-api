@@ -18,6 +18,7 @@
 package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.dto.Attributes;
 import com.codenvy.api.vfs.server.RequestContext;
 import com.codenvy.api.vfs.server.RequestValidator;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
@@ -25,11 +26,13 @@ import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.EventListenerList;
-import com.codenvy.api.vfs.shared.Folder;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.Project;
-import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
+import com.codenvy.api.vfs.shared.dto.Folder;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -43,9 +46,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Providers;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
@@ -65,8 +68,8 @@ public class WorkspaceService {
     @GET
     @Path("projects/{name}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Project getProject(@PathParam("ws-name") String workspace, @PathParam("name") String name) throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
+    public Project getProject(@PathParam("name") String name) throws VirtualFileSystemException {
+        final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
         final List<Item> projects = fileSystem.getChildren(root.getId(), -1, 0, "project", true, PropertyFilter.ALL_FILTER).getItems();
         if (!projects.isEmpty()) {
@@ -77,15 +80,15 @@ public class WorkspaceService {
                 }
             }
         }
-        throw new ItemNotFoundException(String.format("Project '%s' does not exists in workspace '%s'. ", name, workspace));
+        throw new ItemNotFoundException(String.format("Project '%s' does not exists in workspace. ", name));
     }
 
     @GET
     @Path("projects")
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("unchecked")
-    public List<Project> getProjects(@PathParam("ws-name") String workspace) throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
+    public List<Project> getProjects() throws VirtualFileSystemException {
+        final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
         final List projects = fileSystem.getChildren(root.getId(), -1, 0, "project", true, PropertyFilter.ALL_FILTER).getItems();
         return projects;
@@ -95,11 +98,10 @@ public class WorkspaceService {
     @Path("projects")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Project createProject(@PathParam("ws-name") String workspace,
-                                 @QueryParam("name") String name,
+    public Project createProject(@QueryParam("name") String name,
                                  @QueryParam("type") String type,
                                  List<Property> properties) throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
+        final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
         return fileSystem.createProject(root.getId(), name, type, properties);
     }
@@ -107,25 +109,26 @@ public class WorkspaceService {
     @GET
     @Path("projects/{project}/attributes")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Attribute> getAttributes(@PathParam("ws-name") String workspace,
-                                         @PathParam("project") String project,
-                                         @QueryParam("names") Set<String> attributeNames) throws VirtualFileSystemException {
-        final List<Property> properties = getProject(workspace, project).getProperties();
+    public Attributes getAttributes(@PathParam("project") String project,
+                                    @QueryParam("names") Set<String> attributeNames) throws VirtualFileSystemException {
+        final List<Property> properties = getProject(project).getProperties();
+        final Attributes attributes = DtoFactory.getInstance().createDto(Attributes.class);
         if (properties != null) {
-            final List<Attribute> attributes = new ArrayList<>();
+            Map<String, String> values = new HashMap<>(properties.size());
             for (Property property : properties) {
-                if (attributeNames.contains(property.getName())) {
-                    attributes.add(new Attribute(property));
+                final Attribute attribute = new Attribute(property);
+                if (attributeNames == null || attributeNames.contains(attribute.getName())) {
+                    values.put(attribute.getName(), attribute.getValue());
                 }
             }
-            return attributes;
+            attributes.setAttributes(values);
         }
-        return Collections.emptyList();
+        return attributes;
     }
 
     @Path("vfs")
     @Produces(MediaType.APPLICATION_JSON)
-    public VirtualFileSystem getVirtualFileSystem(@PathParam("ws-name") String workspace) throws VirtualFileSystemException {
+    public VirtualFileSystem getVirtualFileSystem() throws VirtualFileSystemException {
         if (requestValidator != null) {
             requestValidator.validate(request);
         }
@@ -134,6 +137,7 @@ public class WorkspaceService {
         if (contextResolver != null) {
             context = contextResolver.getContext(RequestContext.class);
         }
-        return registry.getProvider(workspace).newInstance(context, listeners);
+        final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
+        return registry.getProvider(vfsId).newInstance(context, listeners);
     }
 }

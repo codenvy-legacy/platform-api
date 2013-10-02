@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.internal.remote.RemoteBuilder;
-
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;

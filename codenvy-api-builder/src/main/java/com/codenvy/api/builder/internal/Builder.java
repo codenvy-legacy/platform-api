@@ -18,7 +18,6 @@
 package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.BuildStatus;
 import com.codenvy.api.builder.internal.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -30,7 +29,7 @@ import com.codenvy.api.core.rest.DownloadPlugin;
 import com.codenvy.api.core.rest.FileAdapter;
 import com.codenvy.api.core.rest.RemoteContent;
 import com.codenvy.api.core.rest.ServiceContext;
-import com.codenvy.api.core.rest.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.api.core.util.ComponentLoader;
@@ -40,6 +39,7 @@ import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.ZipUtils;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,7 +138,10 @@ public abstract class Builder implements Configurable, Lifecycle {
     public abstract String getDescription();
 
     public BuilderDescriptor getDescriptor() {
-        return new BuilderDescriptor(getName(), getDescription());
+        final BuilderDescriptor descriptor = DtoFactory.getInstance().createDto(BuilderDescriptor.class);
+        descriptor.setName(getName());
+        descriptor.setDescription(getDescription());
+        return descriptor;
     }
 
     /**
@@ -159,10 +162,14 @@ public abstract class Builder implements Configurable, Lifecycle {
      */
     protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws BuilderException;
 
-    protected abstract CommandLine createCommandLine(BuildTaskConfiguration config);
+    protected abstract CommandLine createCommandLine(BuildTaskConfiguration config) throws BuilderException;
 
-    protected BuildLogger createBuildLogger(BuildTaskConfiguration buildConfiguration, java.io.File logFile) throws IOException {
-        return new DefaultBuildLogger(logFile, "text/plain");
+    protected BuildLogger createBuildLogger(BuildTaskConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
+        try {
+            return new DefaultBuildLogger(logFile, "text/plain");
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        }
     }
 
     /**
@@ -309,23 +316,21 @@ public abstract class Builder implements Configurable, Lifecycle {
      *
      * @param request
      *         build request
-     * @param builderServiceContext
-     *         context of RESTful service through which this method is called
      * @return build task
-     * @throws java.io.IOException
-     *         if i/o errors occurs, e.g. cannot create build directory or log file
+     * @throws BuilderException
+     *         if an error occurs
      */
-    public BuildTask perform(BuildRequest request, ServiceContext builderServiceContext) throws IOException {
-        final BuildTaskConfiguration buildConfiguration = BuildTaskConfiguration.newBuildConfiguration(this, request);
+    public BuildTask perform(BuildRequest request) throws BuilderException {
+        final BuildTaskConfiguration buildConfiguration;
+        try {
+            buildConfiguration = BuildTaskConfiguration.newBuildConfiguration(this, request);
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        }
         final java.io.File srcDir = buildConfiguration.getSources().getDirectory().getIoFile();
         final java.io.File logFile = new java.io.File(srcDir.getParentFile(), srcDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(buildConfiguration, logFile);
-//        final String callbackUrl = request.getCallbackUrl();
-//        BuildTask.Callback callback = null;
-//        if (callbackUrl != null) {
-//            callback = new BuildWebhookNotifier(new URL(callbackUrl), builderServiceContext);
-//        }
-        return execute(buildConfiguration, /*callback*/null, logger);
+        return execute(buildConfiguration, null, logger);
     }
 
     /**
@@ -333,26 +338,24 @@ public abstract class Builder implements Configurable, Lifecycle {
      *
      * @param request
      *         build request
-     * @param builderServiceContext
-     *         context of RESTful service through which this method is called
      * @return build task
-     * @throws java.io.IOException
-     *         if i/o errors occurs, e.g. cannot create build directory or log file
+     * @throws BuilderException
+     *         if an error occurs
      */
-    public BuildTask perform(DependencyRequest request, ServiceContext builderServiceContext) throws IOException, BuilderException {
-        final BuildTaskConfiguration buildConfiguration = BuildTaskConfiguration.newDependencyAnalysisConfiguration(this, request);
+    public BuildTask perform(DependencyRequest request) throws BuilderException {
+        final BuildTaskConfiguration buildConfiguration;
+        try {
+            buildConfiguration = BuildTaskConfiguration.newDependencyAnalysisConfiguration(this, request);
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        }
         final java.io.File srcDir = buildConfiguration.getSources().getDirectory().getIoFile();
         final java.io.File logFile = new java.io.File(srcDir.getParentFile(), srcDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(buildConfiguration, logFile);
-//        final String callbackUrl = request.getCallbackUrl();
-//        BuildTask.Callback callback = null;
-//        if (callbackUrl != null) {
-//            callback = new BuildWebhookNotifier(new URL(callbackUrl), builderServiceContext);
-//        }
-        return execute(buildConfiguration, /*callback*/null, logger);
+        return execute(buildConfiguration, null, logger);
     }
 
-    protected BuildTask execute(BuildTaskConfiguration config, BuildTask.Callback callback, BuildLogger logger) {
+    protected BuildTask execute(BuildTaskConfiguration config, BuildTask.Callback callback, BuildLogger logger) throws BuilderException {
         final CommandLine commandLine = createCommandLine(config);
         final Callable<Boolean> callable = createTaskFor(commandLine, config.getSources(), logger);
         final FutureBuildTask task =
@@ -405,7 +408,15 @@ public abstract class Builder implements Configurable, Lifecycle {
         };
     }
 
-    protected void downloadSources(RemoteContent sources) throws IOException {
+    /**
+     * Downloads remote sources.
+     *
+     * @param sources
+     *         remote sources
+     * @throws BuilderException
+     *         if an error occurs when try to download source
+     */
+    protected void downloadSources(RemoteContent sources) throws BuilderException {
         final IOException[] errorHolder = new IOException[1];
         sources.download(new DownloadPlugin.Callback() {
             @Override
@@ -430,7 +441,7 @@ public abstract class Builder implements Configurable, Lifecycle {
             }
         });
         if (errorHolder[0] != null) {
-            throw errorHolder[0];
+            throw new BuilderException(errorHolder[0]);
         }
     }
 
@@ -642,86 +653,83 @@ public abstract class Builder implements Configurable, Lifecycle {
                                                         : (result.isSuccessful() ? BuildStatus.SUCCESSFUL : BuildStatus.FAILED))
                                        : (isStarted() ? BuildStatus.IN_PROGRESS : BuildStatus.IN_QUEUE);
             final List<Link> links = new ArrayList<>();
-            final UriBuilder servicePathBuilder = restfulRequestContext.getServicePathBuilder();
-            links.add(new Link(
-                    servicePathBuilder.clone().path(SlaveBuilderService.class, "getBuildDescriptor").build(builder, taskId).toString(),
-                    Constants.LINK_REL_GET_STATUS,
-                    "GET",
-                    MediaType.APPLICATION_JSON));
+            final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
+            final Link statusLink = DtoFactory.getInstance().createDto(Link.class);
+            statusLink.setRel(Constants.LINK_REL_GET_STATUS);
+            statusLink.setHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getStatus").build(builder, taskId).toString());
+            statusLink.setMethod("GET");
+            statusLink.setProduces(MediaType.APPLICATION_JSON);
+            links.add(statusLink);
 
             if (status == BuildStatus.IN_QUEUE || status == BuildStatus.IN_PROGRESS) {
-                links.add(new Link(
-                        servicePathBuilder.clone().path(SlaveBuilderService.class, "cancel").build(builder, taskId).toString(),
-                        Constants.LINK_REL_CANCEL,
-                        "POST",
-                        MediaType.APPLICATION_JSON));
+                final Link cancelLink = DtoFactory.getInstance().createDto(Link.class);
+                statusLink.setRel(Constants.LINK_REL_CANCEL);
+                statusLink.setHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "cancel").build(builder, taskId).toString());
+                statusLink.setMethod("POST");
+                statusLink.setProduces(MediaType.APPLICATION_JSON);
+                links.add(cancelLink);
             }
 
             if (status != BuildStatus.IN_QUEUE) {
-                links.add(new Link(
-                        servicePathBuilder.clone().path(SlaveBuilderService.class, "getBuildLog").build(builder, taskId).toString(),
-                        Constants.LINK_REL_VIEW_LOG,
-                        "GET",
-                        getBuildLogger().getContentType()));
-                links.add(new Link(
+                final Link logsLink = DtoFactory.getInstance().createDto(Link.class);
+                logsLink.setRel(Constants.LINK_REL_VIEW_LOG);
+                logsLink.setHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getLogs").build(builder, taskId).toString());
+                logsLink.setMethod("GET");
+                logsLink.setProduces(getBuildLogger().getContentType());
+                links.add(logsLink);
+
+                final Link browseLink = DtoFactory.getInstance().createDto(Link.class);
+                browseLink.setRel(Constants.LINK_REL_BROWSE);
+                browseLink.setHref(
                         servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/").build(builder, taskId)
-                                          .toString(),
-                        Constants.LINK_REL_BROWSE,
-                        "GET",
-                        MediaType.TEXT_HTML));
+                                          .toString());
+                browseLink.setMethod("GET");
+                browseLink.setProduces(MediaType.TEXT_HTML);
+                links.add(browseLink);
             }
 
             if (status == BuildStatus.SUCCESSFUL) {
                 for (FileAdapter ru : result.getResultUnits()) {
-                    links.add(new Link(
+                    final Link downloadLink = DtoFactory.getInstance().createDto(Link.class);
+                    downloadLink.setRel(Constants.LINK_REL_DOWNLOAD_RESULT);
+                    downloadLink.setHref(
                             servicePathBuilder.clone().path(SlaveBuilderService.class, "download").queryParam("path", ru.getHref())
-                                              .build(builder, taskId).toString(),
-                            Constants.LINK_REL_DOWNLOAD_RESULT,
-                            "GET",
-                            ru.getContentType()));
-                }
-                if (result.hasBuildReport()) {
-                    final FileAdapter br = result.getBuildReport();
-                    if (br.isDirectory()) {
-                        links.add(new Link(
-                                servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", br.getHref())
-                                                  .build(builder, taskId).toString(),
-                                Constants.LINK_REL_VIEW_REPORT,
-                                "GET",
-                                MediaType.TEXT_HTML));
-                    } else {
-                        links.add(new Link(
-                                servicePathBuilder.clone().path(SlaveBuilderService.class, "view").queryParam("path", br.getHref())
-                                                  .build(builder, taskId).toString(),
-                                Constants.LINK_REL_VIEW_REPORT,
-                                "GET",
-                                br.getContentType()));
-                    }
+                                              .build(builder, taskId).toString());
+                    downloadLink.setMethod("GET");
+                    downloadLink.setProduces(ru.getContentType());
+                    links.add(downloadLink);
                 }
             }
 
-            if (status == BuildStatus.FAILED && result.hasBuildReport()) {
+            if ((status == BuildStatus.SUCCESSFUL || status == BuildStatus.FAILED) && result.hasBuildReport()) {
                 final FileAdapter br = result.getBuildReport();
                 if (br.isDirectory()) {
-                    links.add(new Link(
+                    final Link reportLink = DtoFactory.getInstance().createDto(Link.class);
+                    reportLink.setRel(Constants.LINK_REL_VIEW_REPORT);
+                    reportLink.setHref(
                             servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", br.getHref())
-                                              .build(builder, taskId)
-                                              .toString(),
-                            Constants.LINK_REL_VIEW_REPORT,
-                            "GET",
-                            MediaType.TEXT_HTML));
+                                              .build(builder, taskId).toString());
+                    reportLink.setMethod("GET");
+                    reportLink.setProduces(MediaType.TEXT_HTML);
+                    links.add(reportLink);
                 } else {
-                    links.add(new Link(
+                    final Link reportLink = DtoFactory.getInstance().createDto(Link.class);
+                    reportLink.setRel(Constants.LINK_REL_VIEW_REPORT);
+                    reportLink.setHref(
                             servicePathBuilder.clone().path(SlaveBuilderService.class, "view").queryParam("path", br.getHref())
-                                              .build(builder, taskId)
-                                              .toString(),
-                            Constants.LINK_REL_VIEW_REPORT,
-                            "GET",
-                            br.getContentType()));
+                                              .build(builder, taskId).toString());
+                    reportLink.setMethod("GET");
+                    reportLink.setProduces(br.getContentType());
+                    links.add(reportLink);
                 }
             }
 
-            return new BuildTaskDescriptor(status, links, getStartTime());
+            final BuildTaskDescriptor descriptor = DtoFactory.getInstance().createDto(BuildTaskDescriptor.class);
+            descriptor.setTaskId(taskId);
+            descriptor.setStatus(status);
+            descriptor.setLinks(links);
+            descriptor.setStartTime(getStartTime());
+            return descriptor;
         }
 
         @Override

@@ -18,12 +18,10 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
@@ -31,10 +29,12 @@ import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Identity;
 
 import java.io.ByteArrayInputStream;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetACLTest extends MemoryFileSystemTest {
@@ -49,13 +49,12 @@ public class GetACLTest extends MemoryFileSystemTest {
 
         file = getAclTestProject.createFile(name, "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
 
-        AccessControlEntry adminACE = new AccessControlEntryImpl();
-        adminACE.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        adminACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        AccessControlEntry userACE = new AccessControlEntryImpl();
-        userACE.setPrincipal(new PrincipalImpl("john", Principal.Type.USER));
-        userACE.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.READ.value())));
-        file.updateACL(Arrays.asList(adminACE, userACE), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        file.updateACL(createAcl(permissions), true, null);
 
         fileId = file.getId();
     }
@@ -77,13 +76,13 @@ public class GetACLTest extends MemoryFileSystemTest {
     }
 
     public void testGetACLNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
         ConversationState previous = ConversationState.getCurrent();
         ConversationState user = new ConversationState(new Identity("admin"));
         ConversationState.setCurrent(user);
-        file.updateACL(Arrays.asList(ace), true, null);
+        file.updateACL(createAcl(permissions), true, null);
 
         ConversationState.setCurrent(previous); // restore
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();

@@ -125,7 +125,7 @@ public interface BuildTask {
      * @throws BuilderException
      *         if an error occurs when try to get status of build process
      * @see com.codenvy.api.builder.internal.dto.BuildTaskDescriptor#getLinks()
-     * @see com.codenvy.api.core.rest.dto.Link
+     * @see com.codenvy.api.core.rest.shared.dto.Link
      */
     BuildTaskDescriptor getDescriptor(ServiceContext restfulRequestContext) throws BuilderException;
 

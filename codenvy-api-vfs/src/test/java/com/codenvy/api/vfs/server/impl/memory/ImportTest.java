@@ -19,8 +19,8 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
-import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
+import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.everrest.core.impl.ContainerResponse;
 

@@ -17,132 +17,60 @@
  */
 package com.codenvy.api.builder.internal.dto;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import com.codenvy.dto.shared.DTO;
+
 import java.util.List;
 import java.util.Map;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public abstract class BaseBuilderRequest {
+/**
+ * Base request.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+@DTO
+public interface BaseBuilderRequest {
+
     /**
-     * Location of source code for build. May be location to zip archive, local directory or location to a version control system. It is
-     * required to have {@link com.codenvy.api.core.rest.DownloadPlugin} which supports such type of URL.
+     * Location of source code for build. It is required to have {@link com.codenvy.api.core.rest.DownloadPlugin} which supports such type
+     * of URL.
      *
      * @see com.codenvy.api.core.rest.DownloadPlugin#download(String, java.io.File, com.codenvy.api.core.rest.DownloadPlugin.Callback)
      */
-    protected String              sourcesUrl;
+    String getSourcesUrl();
+
+    void setSourcesUrl(String sourcesUrl);
+
     /**
-     * Name of {@link com.codenvy.api.builder.internal.Builder} which should be used for build. Client should use method {@link
-     * com.codenvy.api.builder.internal.SlaveBuilderService#availableBuilders()} to get list of available builders.
+     * Name of which should be used for build. Client should use method {@link com.codenvy.api.builder.internal.SlaveBuilderService#availableBuilders()}
+     * to get list of available builders.
      */
-    protected String              builder;
+    String getBuilder();
+
+    void setBuilder(String builder);
+
     /**
      * Build targets, e.g. "clean", "compile", ... . Supported targets depend on builder implementation. Builder uses default targets if
      * this parameter is not provided by client.
      */
-    protected List<String>        targets;
+    List<String> getTargets();
+
+    void setTargets(List<String> targets);
+
     /**
      * Optional parameters for builder. Supported options depend on builder implementation. Builder may provide own set of options. User
      * specified options have preference over builder's default options.
      */
-    protected Map<String, String> options;
+    Map<String, String> getOptions();
+
+    void setOptions(Map<String, String> options);
+
     /** Name of workspace which the sources are belong. */
-    protected String              workspace;
-    /** Name of project which represents sources on thr ide side. */
-    protected String              project;
-    /** Name of user who requests the build. */
-    protected String              username;
+    String getWorkspace();
 
-    public BaseBuilderRequest(String sourcesUrl,
-                              String builder,
-                              List<String> targets,
-                              Map<String, String> options,
-                              String workspace,
-                              String project,
-                              String username) {
-        this.sourcesUrl = sourcesUrl;
-        this.builder = builder;
-        this.workspace = workspace;
-        this.project = project;
-        this.username = username;
-        if (targets != null) {
-            this.targets = new ArrayList<>(targets);
-        }
-        if (options != null) {
-            this.options = new LinkedHashMap<>(options);
-        }
-    }
+    void setWorkspace(String workspace);
 
-    public BaseBuilderRequest() {
-    }
+    /** Name of project which represents sources on the ide side. */
+    String getProject();
 
-    public String getSourcesUrl() {
-        return sourcesUrl;
-    }
-
-    public void setSourcesUrl(String sourcesUrl) {
-        this.sourcesUrl = sourcesUrl;
-    }
-
-    public String getBuilder() {
-        return builder;
-    }
-
-    public void setBuilder(String builder) {
-        this.builder = builder;
-    }
-
-    public List<String> getTargets() {
-        if (targets == null) {
-            targets = new ArrayList<>();
-        }
-        return targets;
-    }
-
-    public void setTargets(List<String> targets) {
-        if (targets == null) {
-            this.targets = null;
-        } else {
-            this.targets = new ArrayList<>(targets);
-        }
-    }
-
-    public Map<String, String> getOptions() {
-        if (options == null) {
-            options = new LinkedHashMap<>();
-        }
-        return options;
-    }
-
-    public void setOptions(Map<String, String> options) {
-        if (options == null) {
-            this.options = null;
-        } else {
-            this.options = new LinkedHashMap<>(options);
-        }
-    }
-
-    public String getWorkspace() {
-        return workspace;
-    }
-
-    public void setWorkspace(String workspace) {
-        this.workspace = workspace;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
+    void setProject(String project);
 }

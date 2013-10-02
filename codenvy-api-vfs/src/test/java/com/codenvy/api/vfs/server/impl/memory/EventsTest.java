@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.ChangeEvent;
 import com.codenvy.api.vfs.server.observation.ChangeEventFilter;
 import com.codenvy.api.vfs.server.observation.EventListener;
-import com.codenvy.api.vfs.shared.Property;
+import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.everrest.core.impl.ContainerResponse;
 

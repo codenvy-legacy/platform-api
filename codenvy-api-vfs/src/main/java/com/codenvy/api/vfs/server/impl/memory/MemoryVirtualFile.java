@@ -20,7 +20,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -33,24 +32,22 @@ import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
 import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
+import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.MediaTypes;
 import com.codenvy.api.vfs.server.util.NotClosableInputStream;
 import com.codenvy.api.vfs.server.util.PathUtil;
 import com.codenvy.api.vfs.server.util.ZipContent;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Folder;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Project;
-import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.PropertyImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Folder;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.commons.json.JsonParseException;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +63,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -119,13 +115,13 @@ public class MemoryVirtualFile implements VirtualFile {
 
     //
 
-    private final boolean                                   type;
-    private final String                                    id;
-    private final Map<PrincipalImpl, Set<BasicPermissions>> permissionsMap;
-    private final Map<String, List<String>>                 properties;
-    private final long                                      creationDate;
-    private final Map<String, VirtualFile>                  children;
-    private final MemoryMountPoint                          mountPoint;
+    private final boolean                               type;
+    private final String                                id;
+    private final Map<Principal, Set<BasicPermissions>> permissionsMap;
+    private final Map<String, List<String>>             properties;
+    private final long                                  creationDate;
+    private final Map<String, VirtualFile>              children;
+    private final MemoryMountPoint                      mountPoint;
 
     private String            name;
     private MemoryVirtualFile parent;
@@ -175,9 +171,14 @@ public class MemoryVirtualFile implements VirtualFile {
         this.id = ObjectIdGenerator.generateId();
         this.name = "";
         this.permissionsMap = new HashMap<>();
-        this.permissionsMap.put(new PrincipalImpl("workspace/developer", Principal.Type.GROUP), EnumSet.of(BasicPermissions.ALL));
-        this.permissionsMap.put(new PrincipalImpl(VirtualFileSystemInfo.ANY_PRINCIPAL, Principal.Type.USER),
-                                EnumSet.of(BasicPermissions.READ));
+        final Principal groupPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+        groupPrincipal.setName("workspace/developer");
+        groupPrincipal.setType(Principal.Type.GROUP);
+        final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+        anyPrincipal.setName(VirtualFileSystemInfo.ANY_PRINCIPAL);
+        anyPrincipal.setType(Principal.Type.USER);
+        this.permissionsMap.put(groupPrincipal, EnumSet.of(BasicPermissions.ALL));
+        this.permissionsMap.put(anyPrincipal, EnumSet.of(BasicPermissions.READ));
         this.properties = new HashMap<>();
         this.creationDate = this.lastModificationDate = System.currentTimeMillis();
         children = new HashMap<>();
@@ -285,14 +286,17 @@ public class MemoryVirtualFile implements VirtualFile {
         if (isFile() && !validateLockTokenIfLocked(lockToken)) {
             throw new LockException(String.format("Unable update ACL of item '%s'. Item is locked. ", getPath()));
         }
-        Map<PrincipalImpl, Set<BasicPermissions>> update = new HashMap<>(acl.size());
+        final Map<Principal, Set<BasicPermissions>> update = new HashMap<>(acl.size());
         for (AccessControlEntry ace : acl) {
-            // Do not use 'transport' object directly.
-            PrincipalImpl principal = new PrincipalImpl(ace.getPrincipal());
-            Set<BasicPermissions> permissions = update.get(principal);
+            final Principal principal = ace.getPrincipal();
+            // Do not use 'transport' object directly, copy it instead.
+            final Principal copyPrincipal = DtoFactory.getInstance().clone(principal);
+            copyPrincipal.setName(principal.getName());
+            copyPrincipal.setType(principal.getType());
+            Set<BasicPermissions> permissions = update.get(copyPrincipal);
             if (permissions == null) {
                 permissions = EnumSet.noneOf(BasicPermissions.class);
-                update.put(principal, permissions);
+                update.put(copyPrincipal, permissions);
             }
             if (!(ace.getPermissions() == null || ace.getPermissions().isEmpty())) {
                 for (String strPermission : ace.getPermissions()) {
@@ -343,8 +347,10 @@ public class MemoryVirtualFile implements VirtualFile {
     public Map<Principal, Set<BasicPermissions>> getPermissions() throws VirtualFileSystemException {
         checkExist();
         final Map<Principal, Set<BasicPermissions>> copy = new HashMap<>(permissionsMap.size());
-        for (Map.Entry<PrincipalImpl, Set<BasicPermissions>> e : permissionsMap.entrySet()) {
-            copy.put(new PrincipalImpl(e.getKey()), EnumSet.copyOf(e.getValue()));
+        for (Map.Entry<Principal, Set<BasicPermissions>> e : permissionsMap.entrySet()) {
+            final Principal principal = e.getKey();
+            final Principal copyPrincipal = DtoFactory.getInstance().clone(principal);
+            copy.put(copyPrincipal, EnumSet.copyOf(e.getValue()));
         }
         return copy;
     }
@@ -352,32 +358,36 @@ public class MemoryVirtualFile implements VirtualFile {
     @Override
     public List<AccessControlEntry> getACL() throws VirtualFileSystemException {
         checkExist();
-        Map<Principal, Set<BasicPermissions>> permissions = getPermissions();
-        List<AccessControlEntry> acl = new ArrayList<>(permissions.size());
+        final Map<Principal, Set<BasicPermissions>> permissions = getPermissions();
+        final List<AccessControlEntry> acl = new ArrayList<>(permissions.size());
         for (Map.Entry<Principal, Set<BasicPermissions>> e : permissions.entrySet()) {
-            Set<BasicPermissions> basicPermissions = e.getValue();
-            Set<String> plainPermissions = new HashSet<>(basicPermissions.size());
+            final Set<BasicPermissions> basicPermissions = e.getValue();
+            final Principal principal = e.getKey();
+            final List<String> plainPermissions = new ArrayList<>(basicPermissions.size());
             for (BasicPermissions permission : e.getValue()) {
                 plainPermissions.add(permission.value());
             }
-            acl.add(new AccessControlEntryImpl(new PrincipalImpl(e.getKey()), plainPermissions));
+            final AccessControlEntry ace = DtoFactory.getInstance().createDto(AccessControlEntry.class);
+            ace.setPrincipal(principal); // principal is already copied in method getPermissions
+            ace.setPermissions(plainPermissions);
+            acl.add(ace);
         }
         return acl;
     }
 
     public List<Property> getProperties(PropertyFilter filter) throws VirtualFileSystemException {
         checkExist();
-        List<Property> result = new ArrayList<>();
+        final List<Property> result = new ArrayList<>();
         for (Map.Entry<String, List<String>> e : properties.entrySet()) {
-            String name = e.getKey();
+            final String name = e.getKey();
             if (filter.accept(name)) {
-                List<String> value = e.getValue();
+                final List<String> value = e.getValue();
+                final Property property = DtoFactory.getInstance().createDto(Property.class);
+                property.setName(name);
                 if (value != null) {
-                    List<String> copy = new ArrayList<>(value);
-                    result.add(new PropertyImpl(name, copy));
-                } else {
-                    result.add(new PropertyImpl(name, (String)null));
+                    property.setValue(new ArrayList<>(value));
                 }
+                result.add(property);
             }
         }
         return result;
@@ -881,27 +891,31 @@ public class MemoryVirtualFile implements VirtualFile {
                         mountPoint.putItem(folder);
                     }
                 } else if (".project".equals(name)) {
-                    final Property[] array = JsonHelper.fromJson(noCloseZip, PropertyImpl[].class, null);
-                    if (array.length > 0) {
-                        List<Property> list = new ArrayList<>(array.length);
-                        Collections.addAll(list, array);
+                    @SuppressWarnings("unchecked")
+                    List<Property> properties = DtoFactory.getInstance().createListDtoFromJson(noCloseZip, Property.class);
+                    if (!properties.isEmpty()) {
                         boolean hasMimeType = false;
-                        for (int i = 0, size = list.size(); i < size && !hasMimeType; i++) {
-                            Property property = list.get(i);
+                        for (int i = 0, size = properties.size(); i < size && !hasMimeType; i++) {
+                            Property property = properties.get(i);
                             if ("vfs:mimeType".equals(property.getName()) &&
                                 !(property.getValue() == null || property.getValue().isEmpty())) {
                                 hasMimeType = true;
                             }
                         }
-
                         if (!hasMimeType) {
-                            list.add(new PropertyImpl("vfs:mimeType", Project.PROJECT_MIME_TYPE));
+                            final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class);
+                            mimeTypeProperty.setName("vfs:mimeType");
+                            mimeTypeProperty.setValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
+                            properties.add(mimeTypeProperty);
                         }
 
-                        current.updateProperties(list, null);
+                        current.updateProperties(properties, null);
                     } else {
-                        current.updateProperties(
-                                Collections.<Property>singletonList(new PropertyImpl("vfs:mimeType", Project.PROJECT_MIME_TYPE)), null);
+                        final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class);
+                        mimeTypeProperty.setName("vfs:mimeType");
+                        mimeTypeProperty.setValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
+                        properties.add(mimeTypeProperty);
+                        current.updateProperties(Collections.<Property>singletonList(mimeTypeProperty), null);
                     }
                 } else {
                     current.getChild(name);
@@ -929,7 +943,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 }
                 zip.closeEntry();
             }
-        } catch (JsonParseException e) {
+        } catch (RuntimeException e) {
             throw new VirtualFileSystemException(e.getMessage(), e);
         } finally {
             if (zip != null) {
@@ -1131,20 +1145,29 @@ public class MemoryVirtualFile implements VirtualFile {
         while (current != null) {
             final Map<Principal, Set<BasicPermissions>> objectPermissions = current.getPermissions();
             if (!objectPermissions.isEmpty()) {
-                Set<BasicPermissions> userPermissions = objectPermissions.get(new PrincipalImpl(user.getUserId(), Principal.Type.USER));
+                final Principal userPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+                userPrincipal.setName(user.getUserId());
+                userPrincipal.setType(Principal.Type.USER);
+                Set<BasicPermissions> userPermissions = objectPermissions.get(userPrincipal);
                 if (userPermissions != null) {
                     return userPermissions.contains(permission) || userPermissions.contains(BasicPermissions.ALL);
                 }
                 Collection<String> groups = user.getGroups();
                 if (!groups.isEmpty()) {
                     for (String group : groups) {
-                        userPermissions = objectPermissions.get(new PrincipalImpl(group, Principal.Type.GROUP));
+                        final Principal groupPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+                        groupPrincipal.setName(group);
+                        groupPrincipal.setType(Principal.Type.GROUP);
+                        userPermissions = objectPermissions.get(groupPrincipal);
                         if (userPermissions != null) {
                             return userPermissions.contains(permission) || userPermissions.contains(BasicPermissions.ALL);
                         }
                     }
                 }
-                userPermissions = objectPermissions.get(new PrincipalImpl(VirtualFileSystemInfo.ANY_PRINCIPAL, Principal.Type.USER));
+                final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class);
+                anyPrincipal.setName(VirtualFileSystemInfo.ANY_PRINCIPAL);
+                anyPrincipal.setType(Principal.Type.USER);
+                userPermissions = objectPermissions.get(anyPrincipal);
                 return userPermissions != null && (userPermissions.contains(permission) || userPermissions.contains(BasicPermissions.ALL));
             }
             if (checkParent) {

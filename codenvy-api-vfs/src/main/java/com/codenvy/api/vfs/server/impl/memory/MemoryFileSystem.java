@@ -17,19 +17,19 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.EventListenerList;
+import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.LinksHelper;
-import com.codenvy.api.vfs.shared.Folder;
 import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.ACLCapability;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.QueryCapability;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl;
+import com.codenvy.api.vfs.shared.dto.Folder;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.QueryCapability;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -39,8 +39,6 @@ import java.util.List;
 public class MemoryFileSystem extends VirtualFileSystemImpl {
     private final String vfsId;
     private final URI    baseUri;
-
-    private VirtualFileSystemInfo vfsInfo;
 
     public MemoryFileSystem(URI baseUri,
                             EventListenerList listeners,
@@ -55,24 +53,23 @@ public class MemoryFileSystem extends VirtualFileSystemImpl {
 
     @Override
     public VirtualFileSystemInfo getInfo() throws VirtualFileSystemException {
-        if (vfsInfo == null) {
-            BasicPermissions[] basicPermissions = BasicPermissions.values();
-            List<String> permissions = new ArrayList<>(basicPermissions.length);
-            for (BasicPermissions bp : basicPermissions) {
-                permissions.add(bp.value());
-            }
-            Folder root = (Folder)fromVirtualFile(getMountPoint().getRoot(), true, PropertyFilter.ALL_FILTER);
-            vfsInfo = new VirtualFileSystemInfoImpl(vfsId,
-                                                    false,
-                                                    true,
-                                                    VirtualFileSystemInfo.ANONYMOUS_PRINCIPAL,
-                                                    VirtualFileSystemInfo.ANY_PRINCIPAL,
-                                                    permissions,
-                                                    ACLCapability.MANAGE,
-                                                    QueryCapability.FULLTEXT,
-                                                    LinksHelper.createUrlTemplates(baseUri, vfsId),
-                                                    root);
+        final BasicPermissions[] basicPermissions = BasicPermissions.values();
+        final List<String> permissions = new ArrayList<>(basicPermissions.length);
+        for (BasicPermissions bp : basicPermissions) {
+            permissions.add(bp.value());
         }
+        final Folder root = (Folder)fromVirtualFile(getMountPoint().getRoot(), true, PropertyFilter.ALL_FILTER);
+        final VirtualFileSystemInfo vfsInfo = DtoFactory.getInstance().createDto(VirtualFileSystemInfo.class);
+        vfsInfo.setId(vfsId);
+        vfsInfo.setVersioningSupported(false);
+        vfsInfo.setLockSupported(true);
+        vfsInfo.setAnonymousPrincipal(VirtualFileSystemInfo.ANONYMOUS_PRINCIPAL);
+        vfsInfo.setAnyPrincipal(VirtualFileSystemInfo.ANY_PRINCIPAL);
+        vfsInfo.setPermissions(permissions);
+        vfsInfo.setAclCapability(ACLCapability.MANAGE);
+        vfsInfo.setQueryCapability(QueryCapability.FULLTEXT);
+        vfsInfo.setUrlTemplates(LinksHelper.createUrlTemplates(baseUri, vfsId));
+        vfsInfo.setRoot(root);
         return vfsInfo;
     }
 }

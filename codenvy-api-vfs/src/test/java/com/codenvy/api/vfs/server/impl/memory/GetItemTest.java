@@ -18,29 +18,26 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Item;
 import com.codenvy.api.vfs.shared.ItemType;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Project;
-import com.codenvy.api.vfs.shared.ProjectImpl;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.PropertyImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.File;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetItemTest extends MemoryFileSystemTest {
@@ -62,18 +59,17 @@ public class GetItemTest extends MemoryFileSystemTest {
         VirtualFile file =
                 parentProject.createFile("GetObjectTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         file.updateProperties(Arrays.<Property>asList(
-                new PropertyImpl("MyProperty01", "hello world"),
-                new PropertyImpl("MyProperty02", "to be or not to be"),
-                new PropertyImpl("MyProperty03", "123"),
-                new PropertyImpl("MyProperty04", "true"),
-                new PropertyImpl("MyProperty05", Calendar.getInstance().toString()),
-                new PropertyImpl("MyProperty06", "123.456")), null);
+                createProperty("MyProperty01", "hello world"),
+                createProperty("MyProperty02", "to be or not to be"),
+                createProperty("MyProperty03", "123"),
+                createProperty("MyProperty04", "true"),
+                createProperty("MyProperty05", "123.456")), null);
         fileId = file.getId();
         filePath = file.getPath();
 
         VirtualFile childProject = parentProject
-                .createProject("GetObjectTest_CHILD_PROJECT", Arrays.<Property>asList(new PropertyImpl("vfs:projectType", "java"),
-                                                                                      new PropertyImpl("prop1", "val1")));
+                .createProject("GetObjectTest_CHILD_PROJECT", Arrays.<Property>asList(createProperty("vfs:projectType", "java"),
+                                                                                      createProperty("prop1", "val1")));
         assertTrue(childProject.isProject());
         projectId = childProject.getId();
     }
@@ -124,7 +120,6 @@ public class GetItemTest extends MemoryFileSystemTest {
         assertTrue(m.containsKey("MyProperty03"));
         assertTrue(m.containsKey("MyProperty04"));
         assertTrue(m.containsKey("MyProperty05"));
-        assertTrue(m.containsKey("MyProperty06"));
 
         // With filter
         path = SERVICE_URI + "item/" + fileId + '?' + "propertyFilter=" + "MyProperty02";
@@ -149,10 +144,10 @@ public class GetItemTest extends MemoryFileSystemTest {
     }
 
     public void testGetFileNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        mountPoint.getVirtualFileById(fileId).updateACL(Arrays.asList(ace), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions. ALL));
+        mountPoint.getVirtualFileById(fileId).updateACL(createAcl(permissions), true, null);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "item/" + fileId;
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, writer, null);
@@ -161,10 +156,10 @@ public class GetItemTest extends MemoryFileSystemTest {
     }
 
     public void testGetFileByPathNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        mountPoint.getVirtualFileById(fileId).updateACL(Arrays.asList(ace), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions. ALL));
+        mountPoint.getVirtualFileById(fileId).updateACL(createAcl(permissions), true, null);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "itembypath" + filePath;
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, writer, null);
@@ -214,12 +209,19 @@ public class GetItemTest extends MemoryFileSystemTest {
         assertEquals("Error: " + response.getEntity(), 200, response.getStatus());
         assertEquals("application/json", response.getContentType().toString());
 
-        ProjectImpl project = (ProjectImpl)response.getEntity();
+        Project project = (Project)response.getEntity();
         validateLinks(project);
         assertEquals("GetObjectTest_CHILD_PROJECT", project.getName());
         assertEquals(Project.PROJECT_MIME_TYPE, project.getMimeType());
         assertEquals("java", project.getProjectType());
-        assertEquals("val1", project.getPropertyValue("prop1"));
+        String val1 = null;
+        for (Property property : project.getProperties()) {
+            if (property.getName().equals("prop1")) {
+                val1 = property.getValue().get(0);
+                break;
+            }
+        }
+        assertEquals("val1", val1);
         assertEquals(Project.PROJECT_MIME_TYPE, project.getMimeType());
     }
 }

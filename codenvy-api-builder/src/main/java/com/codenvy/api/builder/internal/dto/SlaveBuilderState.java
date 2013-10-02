@@ -17,92 +17,36 @@
  */
 package com.codenvy.api.builder.internal.dto;
 
-import com.codenvy.api.core.rest.dto.DtoType;
+import com.codenvy.dto.shared.DTO;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@DtoType(BuilderDtoTypes.BUILDER_STATE_TYPE)
-public class SlaveBuilderState {
-    private String        name;
-    private int           numberOfWorkers;
-    private int           numberOfActiveWorkers;
-    private int           internalQueueSize;
-    private int           maxInternalQueueSize;
-    private InstanceState instanceState;
+/**
+ * Provides information about state of slave builder.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+@DTO
+public interface SlaveBuilderState {
+    String getName();
 
-    public SlaveBuilderState(String name,
-                             int numberOfWorkers,
-                             int numberOfActiveWorkers,
-                             int internalQueueSize,
-                             int maxInternalQueueSize,
-                             InstanceState instanceState) {
-        this.name = name;
-        this.numberOfWorkers = numberOfWorkers;
-        this.numberOfActiveWorkers = numberOfActiveWorkers;
-        this.internalQueueSize = internalQueueSize;
-        this.maxInternalQueueSize = maxInternalQueueSize;
-        this.instanceState = instanceState;
-    }
+    void setName(String name);
 
-    public SlaveBuilderState() {
-    }
+    int getNumberOfWorkers();
 
-    public String getName() {
-        return name;
-    }
+    void setNumberOfWorkers(int numberOfWorkers);
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    int getNumberOfActiveWorkers();
 
-    public int getNumberOfWorkers() {
-        return numberOfWorkers;
-    }
+    void setNumberOfActiveWorkers(int numberOfActiveWorkers);
 
-    public void setNumberOfWorkers(int numberOfWorkers) {
-        this.numberOfWorkers = numberOfWorkers;
-    }
+    int getInternalQueueSize();
 
-    public int getNumberOfActiveWorkers() {
-        return numberOfActiveWorkers;
-    }
+    void setInternalQueueSize(int internalQueueSize);
 
-    public void setNumberOfActiveWorkers(int numberOfActiveWorkers) {
-        this.numberOfActiveWorkers = numberOfActiveWorkers;
-    }
+    int getMaxInternalQueueSize();
 
-    public int getInternalQueueSize() {
-        return internalQueueSize;
-    }
+    void setMaxInternalQueueSize(int maxInternalQueueSize);
 
-    public void setInternalQueueSize(int internalQueueSize) {
-        this.internalQueueSize = internalQueueSize;
-    }
+    InstanceState getInstanceState();
 
-    public int getMaxInternalQueueSize() {
-        return maxInternalQueueSize;
-    }
-
-    public void setMaxInternalQueueSize(int maxInternalQueueSize) {
-        this.maxInternalQueueSize = maxInternalQueueSize;
-    }
-
-    public InstanceState getInstanceState() {
-        return instanceState;
-    }
-
-    public void setInstanceState(InstanceState instanceState) {
-        this.instanceState = instanceState;
-    }
-
-    @Override
-    public String toString() {
-        return "SlaveBuilderState{" +
-               "name='" + name + '\'' +
-               ", numberOfWorkers=" + numberOfWorkers +
-               ", numberOfActiveWorkers=" + numberOfActiveWorkers +
-               ", internalQueueSize=" + internalQueueSize +
-               ", maxInternalQueueSize=" + maxInternalQueueSize +
-               ", instanceState=" + instanceState +
-               '}';
-    }
+    void setInstanceState(InstanceState instanceState);
 }

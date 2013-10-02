@@ -18,8 +18,8 @@
 package com.codenvy.api.vfs.server.util;
 
 import com.codenvy.api.vfs.server.VirtualFileSystemFactory;
-import com.codenvy.api.vfs.shared.Link;
-import com.codenvy.api.vfs.shared.LinkImpl;
+import com.codenvy.api.vfs.shared.dto.Link;
+import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
@@ -48,61 +48,61 @@ public class LinksHelper {
                                                     .path(VirtualFileSystemFactory.class, "getFileSystem");
 
         links.put(Link.REL_SELF, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "item", itemId), Link.REL_SELF, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "item", itemId), Link.REL_SELF, MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_ACL, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "acl", itemId), Link.REL_ACL, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "acl", itemId), Link.REL_ACL, MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_CONTENT, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "content", itemId), Link.REL_CONTENT, mediaType));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "content", itemId), Link.REL_CONTENT, mediaType));
 
         links.put(Link.REL_DOWNLOAD_FILE, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "downloadfile", itemId), Link.REL_DOWNLOAD_FILE, mediaType));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "downloadfile", itemId), Link.REL_DOWNLOAD_FILE, mediaType));
 
         links.put(Link.REL_CONTENT_BY_PATH, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "contentbypath", itemPath.substring(1)),
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "contentbypath", itemPath.substring(1)),
                                Link.REL_CONTENT_BY_PATH, mediaType));
 
         links.put(Link.REL_VERSION_HISTORY, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "version-history", itemId), Link.REL_VERSION_HISTORY,
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "version-history", itemId), Link.REL_VERSION_HISTORY,
                                MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_CURRENT_VERSION, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "item", latestVersionId), Link.REL_CURRENT_VERSION,
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "item", latestVersionId), Link.REL_CURRENT_VERSION,
                                MediaType.APPLICATION_JSON));
 
         if (locked) {
             links.put(Link.REL_UNLOCK, //
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "unlock", itemId, "lockToken", "[lockToken]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "unlock", itemId, "lockToken", "[lockToken]"),
                                    Link.REL_UNLOCK, null));
         } else {
             links.put(Link.REL_LOCK, //
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "lock", itemId, "timeout", "[timeout]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "lock", itemId, "timeout", "[timeout]"),
                                    Link.REL_LOCK, MediaType.APPLICATION_JSON));
         }
 
         links.put(Link.REL_DELETE, //
-                  new LinkImpl(locked
+                  createLink(locked
                                ? createURI(baseUriBuilder.clone(), wsName, "delete", itemId, "lockToken", "[lockToken]")
                                : createURI(baseUriBuilder.clone(), wsName, "delete", itemId),
                                Link.REL_DELETE, null));
 
         links.put(Link.REL_COPY, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "copy", itemId, "parentId", "[parentId]"), Link.REL_COPY,
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "copy", itemId, "parentId", "[parentId]"), Link.REL_COPY,
                                MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_MOVE, //
-                  new LinkImpl(locked
+                  createLink(locked
                                ? createURI(baseUriBuilder.clone(), wsName, "move", itemId, "parentId", "[parentId]", "lockToken",
                                            "[lockToken]")
                                : createURI(baseUriBuilder.clone(), wsName, "move", itemId, "parentId", "[parentId]"),
                                Link.REL_MOVE, MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_PARENT, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "item", parentId), Link.REL_PARENT, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "item", parentId), Link.REL_PARENT, MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_RENAME, //
-                  new LinkImpl(locked
+                  createLink(locked
                                ? createURI(baseUriBuilder.clone(), wsName, "rename", itemId, "newname", "[newname]", "mediaType",
                                            "[mediaType]", "lockToken", "[lockToken]")
                                : createURI(baseUriBuilder.clone(), wsName, "rename", itemId, "newname", "[newname]", "mediaType",
@@ -124,8 +124,8 @@ public class LinksHelper {
         final Map<String, Link> links = new HashMap<>(32, 1.0f);
         addBaseFolderLinks(links, baseUriBuilder, wsName, itemId, isRoot, parentId);
         links.put(Link.REL_CREATE_PROJECT, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "project", itemId, "name", "[name]", "type", "[type]"),
-                               Link.REL_CREATE_PROJECT, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "project", itemId, "name", "[name]", "type", "[type]"),
+                             Link.REL_CREATE_PROJECT, MediaType.APPLICATION_JSON));
         return links;
     }
 
@@ -149,61 +149,61 @@ public class LinksHelper {
                                            boolean isRoot,
                                            String parentId) {
         links.put(Link.REL_SELF, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "item", id), Link.REL_SELF, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "item", id), Link.REL_SELF, MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_ACL, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "acl", id), Link.REL_ACL, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "acl", id), Link.REL_ACL, MediaType.APPLICATION_JSON));
 
         if (!isRoot) {
             links.put(Link.REL_PARENT, //
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "item", parentId), Link.REL_PARENT,
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "item", parentId), Link.REL_PARENT,
                                    MediaType.APPLICATION_JSON));
 
             links.put(Link.REL_DELETE, //
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "delete", id), Link.REL_DELETE, null));
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "delete", id), Link.REL_DELETE, null));
 
             links.put(Link.REL_COPY, //
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "copy", id, "parentId", "[parentId]"), Link.REL_COPY,
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "copy", id, "parentId", "[parentId]"), Link.REL_COPY,
                                    MediaType.APPLICATION_JSON));
 
             links.put(Link.REL_MOVE, //
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "move", id, "parentId", "[parentId]"), Link.REL_MOVE,
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "move", id, "parentId", "[parentId]"), Link.REL_MOVE,
                                    MediaType.APPLICATION_JSON));
 
             links.put(
                     Link.REL_RENAME, //
-                    new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "rename", id, "newname", "[newname]", "mediaType", "[mediaType]"),
+                    createLink(createURI(baseUriBuilder.clone(), wsName, "rename", id, "newname", "[newname]", "mediaType", "[mediaType]"),
                                  Link.REL_RENAME, MediaType.APPLICATION_JSON));
         }
 
         links.put(Link.REL_CHILDREN, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "children", id), Link.REL_CHILDREN, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "children", id), Link.REL_CHILDREN, MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_TREE, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "tree", id), Link.REL_TREE, MediaType.APPLICATION_JSON));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "tree", id), Link.REL_TREE, MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_CREATE_FOLDER, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "folder", id, "name", "[name]"), Link.REL_CREATE_FOLDER,
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "folder", id, "name", "[name]"), Link.REL_CREATE_FOLDER,
                                MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_CREATE_FILE, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "file", id, "name", "[name]"), Link.REL_CREATE_FILE,
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "file", id, "name", "[name]"), Link.REL_CREATE_FILE,
                                MediaType.APPLICATION_JSON));
 
         links.put(Link.REL_UPLOAD_FILE, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "uploadfile", id), Link.REL_UPLOAD_FILE, MediaType.TEXT_HTML));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "uploadfile", id), Link.REL_UPLOAD_FILE, MediaType.TEXT_HTML));
 
         links.put(Link.REL_EXPORT, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "export", id), Link.REL_EXPORT, "application/zip"));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "export", id), Link.REL_EXPORT, "application/zip"));
 
         links.put(Link.REL_IMPORT, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "import", id), Link.REL_IMPORT, "application/zip"));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "import", id), Link.REL_IMPORT, "application/zip"));
 
         links.put(Link.REL_DOWNLOAD_ZIP, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "downloadzip", id), Link.REL_DOWNLOAD_ZIP, "application/zip"));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "downloadzip", id), Link.REL_DOWNLOAD_ZIP, "application/zip"));
 
         links.put(Link.REL_UPLOAD_ZIP, //
-                  new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "uploadzip", id), Link.REL_UPLOAD_ZIP, MediaType.TEXT_HTML));
+                  createLink(createURI(baseUriBuilder.clone(), wsName, "uploadzip", id), Link.REL_UPLOAD_ZIP, MediaType.TEXT_HTML));
     }
 
     public static Map<String, Link> createUrlTemplates(URI baseUri, String wsName) {
@@ -212,55 +212,63 @@ public class LinksHelper {
                                                     .path(VirtualFileSystemFactory.class, "getFileSystem");
 
         templates.put(Link.REL_ITEM,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "item", "[id]"), Link.REL_ITEM, MediaType.APPLICATION_JSON));
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "item", "[id]"), Link.REL_ITEM, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_ITEM_BY_PATH,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "itembypath", "[path]"), Link.REL_ITEM_BY_PATH,
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "itembypath", "[path]"), Link.REL_ITEM_BY_PATH,
                                    MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_TREE,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "tree", "[id]"), Link.REL_TREE, MediaType.APPLICATION_JSON));
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "tree", "[id]"), Link.REL_TREE, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_CREATE_FILE,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "file", "[parentId]", "name", "[name]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "file", "[parentId]", "name", "[name]"),
                                    Link.REL_CREATE_FILE, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_CREATE_FOLDER,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "folder", "[parentId]", "name", "[name]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "folder", "[parentId]", "name", "[name]"),
                                    Link.REL_CREATE_FOLDER, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_CREATE_PROJECT,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "project", "[parentId]", "name", "[name]", "type", "[type]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "project", "[parentId]", "name", "[name]", "type", "[type]"),
                                    Link.REL_CREATE_PROJECT, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_COPY,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "copy", "[id]", "parentId", "[parentId]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "copy", "[id]", "parentId", "[parentId]"),
                                    Link.REL_COPY, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_MOVE,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "move", "[id]", "parentId", "[parentId]", "lockToken",
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "move", "[id]", "parentId", "[parentId]", "lockToken",
                                              "[lockToken]"), Link.REL_MOVE, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_LOCK,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "lock", "[id]", "timeout", "[timeout]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "lock", "[id]", "timeout", "[timeout]"),
                                    Link.REL_LOCK, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_UNLOCK,
-                      new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "unlock", "[id]", "lockToken", "[lockToken]"),
+                      createLink(createURI(baseUriBuilder.clone(), wsName, "unlock", "[id]", "lockToken", "[lockToken]"),
                                    Link.REL_UNLOCK, null));
 
         templates.put(
                 Link.REL_SEARCH_FORM,
-                new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "search", null, "maxItems", "[maxItems]", "skipCount",
+                createLink(createURI(baseUriBuilder.clone(), wsName, "search", null, "maxItems", "[maxItems]", "skipCount",
                                        "[skipCount]", "propertyFilter", "[propertyFilter]"), Link.REL_SEARCH_FORM,
                              MediaType.APPLICATION_JSON));
 
         templates.put(
                 Link.REL_SEARCH,
-                new LinkImpl(createURI(baseUriBuilder.clone(), wsName, "search", null, "statement", "[statement]", "maxItems",
+                createLink(createURI(baseUriBuilder.clone(), wsName, "search", null, "statement", "[statement]", "maxItems",
                                        "[maxItems]", "skipCount", "[skipCount]"), Link.REL_SEARCH, MediaType.APPLICATION_JSON));
 
         return templates;
+    }
+
+    private static Link createLink(String href, String rel, String type) {
+        Link link = DtoFactory.getInstance().createDto(Link.class);
+        link.setHref(href);
+        link.setRel(rel);
+        link.setType(type);
+        return link;
     }
 
     private static String createURI(UriBuilder baseUriBuilder, String wsName, String rel, String id, String... query) {

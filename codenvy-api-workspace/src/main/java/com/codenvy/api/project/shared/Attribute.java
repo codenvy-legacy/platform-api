@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.project.shared;
 
-import com.codenvy.api.vfs.shared.Property;
+import com.codenvy.api.vfs.shared.dto.Property;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -145,4 +145,5 @@ public class Attribute {
     public boolean hasChildren() {
         return !(children == null || children.isEmpty());
     }
+
 }

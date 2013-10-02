@@ -18,7 +18,6 @@
 package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.vfs.server.ContentStreamWriter;
-import com.codenvy.api.vfs.server.NoCacheJsonWriter;
 import com.codenvy.api.vfs.server.RequestContextResolver;
 import com.codenvy.api.vfs.server.exceptions.ConstraintExceptionMapper;
 import com.codenvy.api.vfs.server.exceptions.GitUrlResolveExceptionMapper;
@@ -41,11 +40,10 @@ public class WorkspaceApplication extends Application {
     private final Set<Class<?>> classes;
 
     public WorkspaceApplication() {
-        classes = new HashSet<>(3);
+        classes = new HashSet<>(2);
         classes.add(WorkspaceService.class);
         classes.add(RequestContextResolver.class);
-        classes.add(NoCacheJsonWriter.class);
-        // Re-use exception mapper from virtual filesystem API.
+        // Re-use exception mappers and writes from virtual filesystem API.
         // Need to do it since we provide access to VirtualFileSystem API over resource locator method:
         // com.codenvy.api.workspace.server.WorkspaceService.getVirtualFileSystem
         singletons = new HashSet<>(11);

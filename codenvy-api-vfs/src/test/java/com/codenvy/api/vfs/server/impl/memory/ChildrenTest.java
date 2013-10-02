@@ -18,17 +18,12 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.AccessControlEntryImpl;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.ItemImpl;
-import com.codenvy.api.vfs.shared.ItemList;
 import com.codenvy.api.vfs.shared.ItemType;
-import com.codenvy.api.vfs.shared.Principal;
-import com.codenvy.api.vfs.shared.PrincipalImpl;
-import com.codenvy.api.vfs.shared.Property;
-import com.codenvy.api.vfs.shared.PropertyImpl;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.ItemList;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
@@ -37,9 +32,12 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 public class ChildrenTest extends MemoryFileSystemTest {
@@ -54,13 +52,13 @@ public class ChildrenTest extends MemoryFileSystemTest {
         VirtualFile folder = parentProject.createFolder("ChildrenTest_FOLDER");
 
         VirtualFile file = folder.createFile("ChildrenTest_FILE01", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        file.updateProperties(Arrays.<Property>asList(new PropertyImpl("PropertyA", "A"), new PropertyImpl("PropertyB", "B")), null);
+        file.updateProperties(Arrays.<Property>asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
 
         VirtualFile folder1 = folder.createFolder("ChildrenTest_FOLDER01");
-        folder1.updateProperties(Arrays.<Property>asList(new PropertyImpl("PropertyA", "A"), new PropertyImpl("PropertyB", "B")), null);
+        folder1.updateProperties(Arrays.<Property>asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
 
         VirtualFile folder2 = folder.createFolder("ChildrenTest_FOLDER02");
-        folder2.updateProperties(Arrays.<Property>asList(new PropertyImpl("PropertyA", "A"), new PropertyImpl("PropertyB", "B")), null);
+        folder2.updateProperties(Arrays.<Property>asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
 
         folderId = folder.getId();
     }
@@ -85,10 +83,10 @@ public class ChildrenTest extends MemoryFileSystemTest {
     }
 
     public void testGetChildrenNoPermissions() throws Exception {
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        mountPoint.getVirtualFileById(folderId).updateACL(Arrays.asList(ace), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        mountPoint.getVirtualFileById(folderId).updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "children/" + folderId;
@@ -100,10 +98,10 @@ public class ChildrenTest extends MemoryFileSystemTest {
     public void testGetRootChildrenNoPermissions() throws Exception {
         // Special behaviour for root folder.
         // Never check permission when read root folder but hide content of it.
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
-        mountPoint.getRoot().updateACL(Arrays.asList(ace), true, null);
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        mountPoint.getRoot().updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "children/" + mountPoint.getRoot().getId();
@@ -116,11 +114,11 @@ public class ChildrenTest extends MemoryFileSystemTest {
     public void testGetChildrenNoPermissionsFiltering() throws Exception {
         VirtualFile folder = mountPoint.getVirtualFileById(folderId);
         VirtualFile protectedItem = folder.getChild("ChildrenTest_FILE01");
-        AccessControlEntry ace = new AccessControlEntryImpl();
-        ace.setPrincipal(new PrincipalImpl("admin", Principal.Type.USER));
-        ace.setPermissions(new HashSet<>(Arrays.asList(BasicPermissions.ALL.value())));
+        Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
+        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
         // after that item must not appear in response
-        protectedItem.updateACL(Arrays.asList(ace), true, null);
+        protectedItem.updateACL(createAcl(permissions), true, null);
 
         // Have permission for read folder but have not permission to read one of its child.
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -158,7 +156,7 @@ public class ChildrenTest extends MemoryFileSystemTest {
 
         // Skip first item in result.
         path = SERVICE_URI + "children/" + folderId + "?" + "skipCount=" + 1;
-        checkPage(path, "GET", ItemImpl.class.getMethod("getName"), all);
+        checkPage(path, "GET", Item.class.getMethod("getName"), all);
     }
 
     @SuppressWarnings("unchecked")
@@ -176,7 +174,7 @@ public class ChildrenTest extends MemoryFileSystemTest {
         // Exclude last item from result.
         path = SERVICE_URI + "children/" + folderId + "?" + "maxItems=" + 2;
         all.remove(2);
-        checkPage(path, "GET", ItemImpl.class.getMethod("getName"), all);
+        checkPage(path, "GET", Item.class.getMethod("getName"), all);
     }
 
     @SuppressWarnings("unchecked")

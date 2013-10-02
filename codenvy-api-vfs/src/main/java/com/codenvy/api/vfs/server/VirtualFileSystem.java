@@ -25,17 +25,17 @@ import com.codenvy.api.vfs.server.exceptions.LockException;
 import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
 import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.shared.AccessControlEntry;
-import com.codenvy.api.vfs.shared.File;
-import com.codenvy.api.vfs.shared.Folder;
-import com.codenvy.api.vfs.shared.Item;
-import com.codenvy.api.vfs.shared.ItemList;
-import com.codenvy.api.vfs.shared.ItemNode;
-import com.codenvy.api.vfs.shared.Lock;
-import com.codenvy.api.vfs.shared.Project;
-import com.codenvy.api.vfs.shared.Property;
 import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.File;
+import com.codenvy.api.vfs.shared.dto.Folder;
+import com.codenvy.api.vfs.shared.dto.Item;
+import com.codenvy.api.vfs.shared.dto.ItemList;
+import com.codenvy.api.vfs.shared.dto.ItemNode;
+import com.codenvy.api.vfs.shared.dto.Lock;
+import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.apache.commons.fileupload.FileItem;
 

@@ -24,7 +24,11 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * File based implementation of BuildLogger.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public final class DefaultBuildLogger implements BuildLogger {
     private final java.io.File file;
     private final String       contentType;

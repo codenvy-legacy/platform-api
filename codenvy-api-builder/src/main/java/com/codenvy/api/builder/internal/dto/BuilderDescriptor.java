@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.builder.internal.dto;
 
-import com.codenvy.api.core.rest.dto.DtoType;
+import com.codenvy.dto.shared.DTO;
 
 /**
  * Describes of {@link com.codenvy.api.builder.internal.Builder}.
@@ -28,76 +28,36 @@ import com.codenvy.api.core.rest.dto.DtoType;
  * @see com.codenvy.api.builder.internal.Builder#getDescription()
  * @see com.codenvy.api.builder.internal.SlaveBuilderService#availableBuilders()
  */
-@DtoType(BuilderDtoTypes.BUILDER_DESCRIPTOR_TYPE)
-public class BuilderDescriptor {
-    /**
-     * Builder name. Each Builder type must provide unique name.
-     *
-     * @see com.codenvy.api.builder.internal.Builder#getName()
-     */
-    private String name;
-    /**
-     * Optional description of Builder.
-     *
-     * @see com.codenvy.api.builder.internal.Builder#getDescription()
-     */
-    private String description;
-
-    public BuilderDescriptor(String name, String description) {
-        this.name = name;
-        this.description = description;
-    }
-
-    public BuilderDescriptor() {
-    }
+@DTO
+public interface BuilderDescriptor {
 
     /**
      * Get Builder name.
      *
      * @return builder name
-     * @see #name
      */
-    public String getName() {
-        return name;
-    }
+    String getName();
 
     /**
      * Set Builder name.
      *
      * @param name
      *         builder name
-     * @see #name
      */
-    public void setName(String name) {
-        this.name = name;
-    }
+    void setName(String name);
 
     /**
-     * Get Builder name.
+     * Get optional description of Builder.
      *
      * @return builder description
-     * @see #description
      */
-    public String getDescription() {
-        return description;
-    }
+    String getDescription();
 
     /**
-     * Set Builder name.
+     * Set optional description of Builder.
      *
      * @param description
      *         builder description
-     * @see #description
      */
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    @Override
-    public String toString() {
-        return "BuilderDescriptor{" +
-               "name='" + name + '\'' +
-               ", description='" + description + '\'' +
-               '}';
-    }
+    void setDescription(String description);
 }

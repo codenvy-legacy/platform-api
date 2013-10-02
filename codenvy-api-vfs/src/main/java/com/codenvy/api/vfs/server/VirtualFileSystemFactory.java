@@ -17,11 +17,10 @@
  */
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.commons.env.EnvironmentContext;
-
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.EventListenerList;
-import com.codenvy.api.vfs.shared.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.commons.env.EnvironmentContext;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;

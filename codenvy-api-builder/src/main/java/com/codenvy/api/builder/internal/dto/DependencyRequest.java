@@ -17,55 +17,17 @@
  */
 package com.codenvy.api.builder.internal.dto;
 
-import com.codenvy.api.core.rest.dto.DtoType;
-
-import java.util.List;
-import java.util.Map;
+import com.codenvy.dto.shared.DTO;
 
 /**
  * Request to analyze project dependencies.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-@DtoType(BuilderDtoTypes.DEPENDENCY_REQUEST_TYPE)
-public class DependencyRequest extends BaseBuilderRequest {
-    private String type = "list";
+@DTO
+public interface DependencyRequest extends BaseBuilderRequest {
 
-    public DependencyRequest(String sourcesUrl,
-                             String builder,
-                             String type,
-                             List<String> targets,
-                             Map<String, String> options,
-                             String workspace,
-                             String project,
-                             String username) {
-        super(sourcesUrl, builder, targets, options, workspace, project, username);
-        this.type = type;
-    }
+    String getType();
 
-    public DependencyRequest() {
-        super();
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    @Override
-    public String toString() {
-        return "DependencyRequest{" +
-               "sourcesUrl='" + sourcesUrl + '\'' +
-               ", builder='" + builder + '\'' +
-               ", type='" + type + '\'' +
-               ", targets=" + targets +
-               ", options=" + options +
-               ", workspace='" + workspace + '\'' +
-               ", project='" + project + '\'' +
-               ", username='" + username + '\'' +
-               '}';
-    }
+    void setType(String type);
 }

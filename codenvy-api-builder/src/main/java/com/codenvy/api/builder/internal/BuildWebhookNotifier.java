@@ -17,21 +17,18 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.core.rest.HttpHelper;
 import com.codenvy.api.core.rest.ServiceContext;
-import com.codenvy.api.core.rest.dto.JsonDto;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class BuildWebhookNotifier implements BuildTask.Callback {
-    private static final Logger LOG = LoggerFactory.getLogger(BuildWebhookNotifier.class);
+    private static final int    CONNECTION_TIMEOUT = 30 * 1000;
+    private static final int    READ_TIMEOUT       = 30 * 1000;
+    private static final Logger LOG                = LoggerFactory.getLogger(BuildWebhookNotifier.class);
 
     private final URL            callbackUrl;
     private final ServiceContext builderServiceContext;
@@ -43,27 +40,27 @@ public class BuildWebhookNotifier implements BuildTask.Callback {
 
     @Override
     public void done(BuildTask task) {
-        try {
-            LOG.debug("callback request to {}", callbackUrl);
-            final HttpURLConnection conn = (HttpURLConnection)callbackUrl.openConnection();
-            conn.setConnectTimeout(HttpHelper.CONNECTION_TIMEOUT);
-            conn.setConnectTimeout(HttpHelper.READ_TIMEOUT);
-            try {
-                conn.setRequestMethod("POST");
-                conn.addRequestProperty("content-type", "application/json");
-                conn.setDoOutput(true);
-                try (OutputStream output = conn.getOutputStream()) {
-                    output.write(JsonDto.toJson(task.getDescriptor(builderServiceContext)).getBytes());
-                }
-                final int responseCode = conn.getResponseCode();
-                if ((responseCode / 100) != 2) {
-                    throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
-                }
-            } finally {
-                conn.disconnect();
-            }
-        } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
-        }
+//        try {
+//            LOG.debug("callback request to {}", callbackUrl);
+//            final HttpURLConnection conn = (HttpURLConnection)callbackUrl.openConnection();
+//            conn.setConnectTimeout(CONNECTION_TIMEOUT);
+//            conn.setConnectTimeout(READ_TIMEOUT);
+//            try {
+//                conn.setRequestMethod("POST");
+//                conn.addRequestProperty("content-type", "application/json");
+//                conn.setDoOutput(true);
+//                try (OutputStream output = conn.getOutputStream()) {
+//                    output.write(JsonDto.toJson(task.getDescriptor(builderServiceContext)).getBytes());
+//                }
+//                final int responseCode = conn.getResponseCode();
+//                if ((responseCode / 100) != 2) {
+//                    throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
+//                }
+//            } finally {
+//                conn.disconnect();
+//            }
+//        } catch (Exception e) {
+//            LOG.error(e.getMessage(), e);
+//        }
     }
 }

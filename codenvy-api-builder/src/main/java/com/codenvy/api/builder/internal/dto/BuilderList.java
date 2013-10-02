@@ -17,44 +17,18 @@
  */
 package com.codenvy.api.builder.internal.dto;
 
-import com.codenvy.api.core.rest.dto.DtoType;
+import com.codenvy.dto.shared.DTO;
 
-import java.util.ArrayList;
 import java.util.List;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@DtoType(BuilderDtoTypes.BUILDER_LIST_TYPE)
-public class BuilderList {
-    private List<BuilderDescriptor> builders;
+/**
+ * List of descriptions of slave builders.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+@DTO
+public interface BuilderList {
+    List<BuilderDescriptor> getBuilders();
 
-    public BuilderList(List<BuilderDescriptor> builders) {
-        if (builders != null) {
-            this.builders = new ArrayList<>(builders);
-        }
-    }
-
-    public BuilderList() {
-    }
-
-    public List<BuilderDescriptor> getBuilders() {
-        if (builders == null) {
-            builders = new ArrayList<>();
-        }
-        return builders;
-    }
-
-    public void setBuilders(List<BuilderDescriptor> builders) {
-        if (builders == null) {
-            this.builders = null;
-        } else {
-            this.builders = new ArrayList<>(builders);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "BuilderList{" +
-               "builders=" + builders +
-               '}';
-    }
+    void setBuilders(List<BuilderDescriptor> builders);
 }

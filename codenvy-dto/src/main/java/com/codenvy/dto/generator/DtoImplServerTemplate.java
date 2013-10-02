@@ -13,7 +13,6 @@
 // limitations under the License.
 package com.codenvy.dto.generator;
 
-import com.codenvy.dto.server.DtoCopy;
 import com.codenvy.dto.server.JsonArrayImpl;
 import com.codenvy.dto.server.JsonSerializable;
 import com.codenvy.dto.server.JsonStringMapImpl;
@@ -61,14 +60,12 @@ public class DtoImplServerTemplate extends DtoImpl {
         // Enumerate the getters and emit field names and getters + setters.
         emitFields(methods, builder);
         emitMethods(methods, builder);
-        List<Method> getters = getDtoGetters();
+        List<Method> getters = getDtoGetters(getDtoInterface());
         emitEqualsAndHashCode(getters, builder);
         emitSerializer(getters, builder);
         emitDeserializer(getters, builder);
         emitDeserializerShortcut(getters, builder);
-        if (DtoCopy.class.isAssignableFrom(dtoInterface)) {
-            emitCopyMethod(getters, builder);
-        }
+        emitCopyConstructor(getters, builder);
         builder.append("  }\n\n");
         return builder.toString();
     }
@@ -513,7 +510,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append(getImplClassName());
 
         Class<?> superType = getSuperInterface();
-        if (superType != null && superType != JsonSerializable.class && superType != DtoCopy.class) {
+        if (superType != null && superType != JsonSerializable.class) {
             // We need to extend something.
             builder.append(" extends ");
             if (superType.equals(ServerToClientDto.class) || superType.equals(ClientToServerDto.class)) {
@@ -525,7 +522,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         }
         builder.append(" implements ");
         builder.append(dtoInterface.getCanonicalName());
-        builder.append(", JsonSerializable");
+        builder.append(", JsonSerializable ");
         builder.append(" {\n\n");
 
         // If this guy is Routable, we make two constructors. One is a private
@@ -543,6 +540,15 @@ public class DtoImplServerTemplate extends DtoImpl {
         if (DtoTemplate.implementsServerToClientDto(dtoInterface) || getRoutingType() == RoutableDto.NON_ROUTABLE_TYPE) {
             emitFactoryMethod(builder);
         }
+
+        emmitDefaultConstructor(builder);
+    }
+
+    private void emmitDefaultConstructor(StringBuilder builder) {
+        builder.append("    protected ");
+        builder.append(getImplClassName());
+        builder.append("() {\n");
+        builder.append("    }\n\n");
     }
 
     private void emitProtectedConstructor(StringBuilder builder) {
@@ -639,19 +645,19 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append("    }\n\n");
     }
 
-    private void emitCopyMethod(List<Method> getters, StringBuilder builder) {
-        builder.append("    public Object copy() {\n");
-        builder.append("      ").append(getImplClassName()).append(" copy = new ").append(getImplClassName()).append("();\n");
+    private void emitCopyConstructor(List<Method> getters, StringBuilder builder) {
+        String dtoInterface = getDtoInterface().getCanonicalName();
+        String implClassName = getImplClassName();
+        builder.append("    public ").append(implClassName).append("(").append(dtoInterface).append(" origin) {\n");
+        builder.append("      ").append(implClassName).append(" copy = new ").append(implClassName).append("();\n");
         for (Method method : getters) {
-            String fieldName = getFieldName(method.getName());
-            emitDeepCopyMethod(expandType(method.getGenericReturnType()), 0, builder, "copy", fieldName, "      ");
+//            String fieldName = getFieldName(method.getName());
+            emitDeepCopyForField(expandType(method.getGenericReturnType()), 0, builder, "origin", method, "      ");
         }
-        builder.append("      return copy;\n");
         builder.append("    }\n\n");
     }
 
-    private List<Method> getDtoGetters() {
-        Class<?> dtoInterface = getDtoInterface();
+    private List<Method> getDtoGetters(Class<?> dtoInterface) {
         List<Method> methodsToInclude = new ArrayList<Method>();
         for (Method m : dtoInterface.getDeclaredMethods()) {
             if (isDtoGetter(m)) {
@@ -673,11 +679,19 @@ public class DtoImplServerTemplate extends DtoImpl {
         return methodsToInclude;
     }
 
-    private void emitDeepCopyMethod(List<Type> expandedTypes, int depth, StringBuilder builder, String copyName, String varName, String i) {
+    private void emitDeepCopyForField(List<Type> expandedTypes,
+                                      int depth,
+                                      StringBuilder builder,
+                                      String originName,
+                                      Method getter,
+//                                      String varName,
+                                      String i) {
+        String getterName = getter.getName();
+        String fieldName = getFieldName(getterName);
         Type type = expandedTypes.get(depth);
-        String copyVarName = "copy_" + varName;
-        String childVarName = varName + "_";
-        String copyChildVarName = "copy_" + childVarName;
+//        String thisVarName = "this_" + varName;
+        String childName = fieldName + depth; // for collections children
+//        String thisCopyChildVarName = "this_" + childVarName;
         String entryVar = "entry" + depth;
         Class<?> rawClass = getRawClass(type);
         Class<?> childRawType = null;
@@ -685,100 +699,95 @@ public class DtoImplServerTemplate extends DtoImpl {
         if (isJsonArray(rawClass)) {
             childRawType = getRawClass(expandedTypes.get(depth + 1));
             String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
-            String listName;
+//            String thisListName;
+//            String originListName = originName + "_" + varName;
             if (depth == 0) {
-                listName = copyName + "." + varName;
-                builder.append(i).append(listName).append(" = null;\n");
+//                thisListName = "this." + varName;
+//                builder.append(i).append(thisListName).append(" = null;\n");
             } else {
-                listName = copyVarName;
-                builder.append(i).append(getImplName(type, false)).append(" ").append(listName).append(" = null;\n");
+//                thisListName = thisVarName;
+//                builder.append(i).append(getImplName(type, false)).append(" ").append(thisListName).append(" = null;\n");
             }
-            builder.append(i).append("if (").append(varName).append(" != null) {\n");
-            builder.append(i).append("  ").append(listName).append(" = new ").append(getImplName(type, true)).append("();\n");
-            builder.append(i).append("  for (").append(childTypeName).append(" ").append(childVarName).append(" : ").append(
-                    varName).append(") {\n");
+//            builder.append(i).append(originListName).append(" = ").append(originName).append(".").append(varName).append(";\n");
+            builder.append(i).append("if (").append(originName).append(".").append(getterName).append("() != null) {\n");
+            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true)).append("();\n");
+            builder.append(i).append("  for (").append(childTypeName).append(" ").append(childName)
+                   .append(" : ").append(originName).append(".").append(getterName).append("()) {\n");
         } else if (isJsonStringMap(rawClass)) {
             childRawType = getRawClass(expandedTypes.get(depth + 1));
             String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
-            String mapName;
-            if (depth == 0) {
-                mapName = copyName + "." + varName;
-                builder.append(i).append(mapName).append(" = null;\n");
-            } else {
-                mapName = copyVarName;
-                builder.append(i).append(getImplName(type, false)).append(" ").append(mapName).append(" = null;\n");
-            }
-            builder.append(i).append("if (").append(varName).append(" != null) {\n");
-            builder.append(i).append("  ").append(mapName).append(" = new ").append(getImplName(type, true)).append("();\n");
+//            String mapName;
+//            if (depth == 0) {
+//                mapName = "this." + varName;
+//                builder.append(i).append(mapName).append(" = null;\n");
+//            } else {
+//                mapName = thisVarName;
+//                builder.append(i).append(getImplName(type, false)).append(" ").append(mapName).append(" = null;\n");
+//            }
+            builder.append(i).append("if (").append(originName).append(".").append(getterName).append("() != null) {\n");
+            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true)).append("();\n");
             builder.append(i).append("  for (java.util.Map.Entry<String, ").append(childTypeName).append("> ").append(
-                    entryVar).append(" : ").append(varName).append(".entrySet()) {\n");
-            builder.append(i).append("    ").append(childTypeName).append(" ").append(childVarName).append(" = ").append(
+                    entryVar).append(" : ").append(originName).append(".").append(getterName).append("().entrySet()) {\n");
+            builder.append(i).append("    ").append(childTypeName).append(" ").append(childName).append(" = ").append(
                     entryVar).append(".getValue();\n");
         }
 
         if (depth + 1 < expandedTypes.size()) {
-            emitDeepCopyMethod(expandedTypes, depth + 1, builder, copyName, childVarName, i + "  ");
+            emitDeepCopyForField(expandedTypes, depth + 1, builder, originName, getter, i + "  ");
         }
 
         if (isJsonArray(rawClass)) {
             if (depth == 0) {
-                builder.append(i).append("    ").append(copyName).append(".").append(varName).append(".add(");
+                builder.append(i).append("    this.").append(fieldName).append(".add(");
             } else {
-                builder.append(i).append("    ").append(copyVarName).append(".add(");
+                builder.append(i).append("    ").append("this.").append(fieldName).append(".add(");
             }
             if (mayReassign(childRawType)) {
-                builder.append(childVarName);
+                builder.append(childName);
             } else if (getEnclosingTemplate().isDtoInterface(childRawType)) {
-                addCheckNullAndCopyDto(childRawType, childVarName, builder);
+                emitCheckNullAndCopyDto(childRawType, childName, builder);
             } else {
                 // List or Map
-                builder.append(copyChildVarName);
+                builder.append(childName);
             }
             builder.append(");\n");
             builder.append(i).append("  ").append("}\n");
             builder.append(i).append("}\n");
         } else if (isJsonStringMap(rawClass)) {
             if (depth == 0) {
-                builder.append(i).append("    ").append(copyName).append(".").append(varName)
-                       .append(".put(").append(entryVar).append(".getKey(), ");
+                builder.append(i).append("    this.").append(fieldName).append(".put(").append(entryVar).append(".getKey(), ");
             } else {
-                builder.append(i).append("    ").append(copyVarName).append(".put(").append(entryVar).append(".getKey(), ");
+                builder.append(i).append("    ").append("this.").append(fieldName).append(".put(").append(entryVar).append(".getKey(), ");
             }
             if (mayReassign(childRawType)) {
-                builder.append(childVarName);
+                builder.append(childName);
             } else if (getEnclosingTemplate().isDtoInterface(childRawType)) {
-                addCheckNullAndCopyDto(childRawType, childVarName, builder);
+                emitCheckNullAndCopyDto(childRawType, childName, builder);
             } else {
                 // List or Map
-                builder.append(copyChildVarName);
+                builder.append(childName);
             }
             builder.append(");\n");
             builder.append(i).append("  ").append("}\n");
             builder.append(i).append("}\n");
         } else if (getEnclosingTemplate().isDtoInterface(rawClass)) {
             if (depth == 0) {
-                builder.append(i).append(copyName).append(".").append(varName).append(" = ");
-                addCheckNullAndCopyDto(rawClass, varName, builder);
+                builder.append(i).append("this.").append(fieldName).append(" = ");
+                emitCheckNullAndCopyDto(rawClass, fieldName, builder);
                 builder.append(";\n");
             }
         } else if (mayReassign(rawClass)) {
             if (depth == 0) {
-                builder.append(i).append(copyName).append(".").append(varName).append(" = ").append(varName).append(";\n");
+                builder.append(i).append("this.").append(fieldName).append(" = ").append(originName).append(".").append(getterName)
+                       .append("();\n");
             }
         }
     }
 
-    private void addCheckNullAndCopyDto(Class<?> dto, String fieldName, StringBuilder builder) {
-        if (!(DtoCopy.class.isAssignableFrom(dto))) {
-            throw new DtoTemplate.MalformedDtoInterfaceException(
-                    "Interface '" + dto.getName() + "' doesn't extends interface " + DtoCopy.class.getName() +
-                    ". If some DTO interface extends '" + DtoCopy.class.getName() +
-                    "' interface then all DTOs which are used by such interface also" +
-                    " must extends '" + DtoCopy.class.getName() + "'.");
-        }
+    private void emitCheckNullAndCopyDto(Class<?> dto, String fieldName, StringBuilder builder) {
         String implName = dto.getSimpleName() + "Impl";
         builder.append(fieldName).append(" == null ? null : ")
-               .append("(").append(implName).append(")").append(fieldName).append(".copy()");
+               .append("new ").append(implName).append("(").append(fieldName).append(")");
     }
 
     private boolean mayReassign(Class<?> fieldType) {

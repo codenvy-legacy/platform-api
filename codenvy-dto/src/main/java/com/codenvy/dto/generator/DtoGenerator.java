@@ -14,6 +14,7 @@
 package com.codenvy.dto.generator;
 
 import com.codenvy.dto.server.DtoFactoryVisitor;
+import com.codenvy.dto.shared.DTO;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 
@@ -46,7 +47,7 @@ public class DtoGenerator {
     private static final String CLIENT = "client";
 
     /** Flag: location of the packages that contains dto interfaces. */
-    private String dtoPackages = null;
+    private String[] dtoPackages = null;
 
     /** Flag: Name of the generated java class file that contains the DTOs. */
     private String genFileName = "DataObjects.java";
@@ -57,12 +58,13 @@ public class DtoGenerator {
     /** Flag: A pattern we can use to search an absolute path and find the start of the package definition.") */
     private String packageBase = "java.";
 
-    public String getDtoPackages() {
+    public String[] getDtoPackages() {
         return dtoPackages;
     }
 
-    public void setDtoPackages(String dtoPackages) {
-        this.dtoPackages = dtoPackages;
+    public void setDtoPackages(String[] dtoPackages) {
+        this.dtoPackages = new String[dtoPackages.length];
+        System.arraycopy(dtoPackages, 0, this.dtoPackages, 0, this.dtoPackages.length);
     }
 
     public String getGenFileName() {
@@ -108,9 +110,13 @@ public class DtoGenerator {
         generator.generate();
     }
 
+    private void setDtoPackages(String packagesParam) {
+        setDtoPackages(packagesParam.split(","));
+    }
+
     public void generate() {
 
-        Set<URL> urls = parsePackagesParam(dtoPackages);
+        Set<URL> urls = getClasspathForPackages(dtoPackages);
         String outputFilePath = genFileName;
 
         // Extract the name of the output file that will contain all the DTOs and its package.
@@ -127,7 +133,15 @@ public class DtoGenerator {
         File outFile = new File(outputFilePath);
 
         try {
-            DtoTemplate dtoTemplate = new DtoTemplate(packageName, className, getApiHash(dtoPackages), impl.equals(SERVER));
+            StringBuilder sb = new StringBuilder();
+            for (String dtoPackage : dtoPackages) {
+                if (sb.length() > 0) {
+                    sb.append(dtoPackage);
+                }
+                sb.append(dtoPackage);
+            }
+
+            DtoTemplate dtoTemplate = new DtoTemplate(packageName, className, getApiHash(sb.toString()), impl.equals(SERVER));
             Reflections reflection =
                     new Reflections(new ConfigurationBuilder().setUrls(urls).setScanners(new TypeAnnotationsScanner()));
             List<Class<?>> classes = new ArrayList<>(reflection.getTypesAnnotatedWith(DTO.class));
@@ -167,9 +181,8 @@ public class DtoGenerator {
         return hashCode.toString();
     }
 
-    private static Set<URL> parsePackagesParam(String packagesParam) {
+    private static Set<URL> getClasspathForPackages(String[] packages) {
         Set<URL> urls = new HashSet<>();
-        String[] packages = packagesParam.split(",");
         for (String pack : packages) {
             urls.addAll(ClasspathHelper.forPackage(pack));
         }

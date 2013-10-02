@@ -240,12 +240,15 @@ public class DtoTemplate {
                        .append("new com.codenvy.dto.server.DtoProvider<").append(dtoInterface).append(">() {\n");
                 builder.append("        public Class<? extends ").append(dtoInterface).append("> getImplClass() {\n")
                        .append("            return ").append(dto.getImplClassName()).append(".class;\n");
-                builder.append("        }\n");
+                builder.append("        }\n\n");
                 builder.append("        public ").append(dtoInterface).append(" newInstance() {\n")
                        .append("            return ").append(dto.getImplClassName()).append(".make();\n");
-                builder.append("        }\n");
+                builder.append("        }\n\n");
                 builder.append("        public ").append(dtoInterface).append(" fromJson(String json) {\n")
                        .append("            return ").append(dto.getImplClassName()).append(".fromJsonString(json);\n");
+                builder.append("        }\n\n");
+                builder.append("        public ").append(dtoInterface).append(" clone(").append(dtoInterface).append(" origin) {\n")
+                       .append("            return new ").append(dto.getImplClassName()).append("(origin);\n");
                 builder.append("        }\n");
                 builder.append("    });\n");
             }
@@ -265,7 +268,7 @@ public class DtoTemplate {
     private void emitClientFrontendApiVersion(StringBuilder builder) {
         builder.append("\n  public static final String CLIENT_SERVER_PROTOCOL_HASH = \"");
         builder.append(getApiHash());
-        builder.append("\";\n");
+        builder.append("\";\n\n");
     }
 
     private String getApiHash() {

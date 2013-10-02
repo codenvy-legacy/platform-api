@@ -28,4 +28,6 @@ public interface DtoProvider<DTO> {
     DTO fromJson(String json);
 
     DTO newInstance();
+
+    DTO clone(DTO origin);
 }

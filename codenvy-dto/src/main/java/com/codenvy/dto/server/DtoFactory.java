@@ -20,6 +20,7 @@ package com.codenvy.dto.server;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.LoadingValueSLRUCache;
 import com.codenvy.commons.lang.cache.SynchronizedCache;
+import com.codenvy.dto.shared.DTO;
 import com.codenvy.dto.shared.JsonArray;
 import com.codenvy.dto.shared.JsonStringMap;
 import com.google.gson.Gson;
@@ -60,14 +61,59 @@ public final class DtoFactory {
                 }
             });
 
-
     private static final DtoFactory INSTANCE = new DtoFactory();
 
     public static DtoFactory getInstance() {
         return INSTANCE;
     }
 
-    private final Map<Class<?>, DtoProvider<?>> providers = new ConcurrentHashMap<>();
+    private final Map<Class<?>, DtoProvider<?>> dtoInterface2Providers = new ConcurrentHashMap<>();
+    // Additional mapping for implementation of DTO interfaces.
+    // It helps avoid reflection when need create copy of exited DTO instance.
+    private final Map<Class<?>, DtoProvider<?>> dtoImpl2Providers      = new ConcurrentHashMap<>();
+
+    /**
+     * Created deep copy of DTO object.
+     *
+     * @param origin
+     *         origin DTO object
+     * @return copy
+     * @throws IllegalArgumentException
+     *         if specified object doesn't implement DTO interface annotated with {@link com.codenvy.dto.shared.DTO &#064DTO} or if
+     *         specified instance implements more than one interface annotated with {@link com.codenvy.dto.shared.DTO &#064DTO}
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T clone(T origin) {
+        final Class<?> implClass = origin.getClass();
+        DtoProvider provider = dtoImpl2Providers.get(implClass);
+        if (provider == null) {
+            Class<?> dtoInterface = null;
+            Class<?>[] interfaces = implClass.getInterfaces();
+            if (interfaces.length == 0) {
+                return null;
+            }
+
+            for (Class<?> i : interfaces) {
+                if (i.isAnnotationPresent(DTO.class)) {
+                    if (dtoInterface != null) {
+                        throw new IllegalArgumentException("Unable determine DTO interface. Type " + implClass.getName() +
+                                                           " implements or extends more than one interface annotated with @DTO annotation.");
+                    }
+                    dtoInterface = i;
+                }
+            }
+
+            if (dtoInterface != null) {
+                provider = getDtoProvider(dtoInterface);
+            }
+        }
+
+        if (provider == null) {
+            throw new IllegalArgumentException("Unknown DTO type " + implClass);
+        }
+
+        return (T)provider.clone(origin);
+    }
 
     /**
      * Creates new instance of class which implements specified DTO interface.
@@ -255,7 +301,7 @@ public final class DtoFactory {
 
     @SuppressWarnings("unchecked")
     private <T> DtoProvider<T> getDtoProvider(Class<T> dtoInterface) {
-        DtoProvider<?> dtoProvider = providers.get(dtoInterface);
+        DtoProvider<?> dtoProvider = dtoInterface2Providers.get(dtoInterface);
         if (dtoProvider == null) {
             throw new IllegalArgumentException("Unknown DTO type " + dtoInterface);
         }
@@ -272,7 +318,8 @@ public final class DtoFactory {
      * @see DtoProvider
      */
     public void registerProvider(Class<?> dtoInterface, DtoProvider<?> provider) {
-        providers.put(dtoInterface, provider);
+        dtoInterface2Providers.put(dtoInterface, provider);
+        dtoImpl2Providers.put(provider.getImplClass(), provider);
     }
 
     /**
@@ -281,12 +328,16 @@ public final class DtoFactory {
      * @see #registerProvider(Class, DtoProvider)
      */
     public DtoProvider<?> unregisterProvider(Class<?> dtoInterface) {
-        return providers.remove(dtoInterface);
+        final DtoProvider<?> dtoProvider = dtoInterface2Providers.remove(dtoInterface);
+        if (dtoProvider != null) {
+            dtoImpl2Providers.remove(dtoProvider.getImplClass());
+        }
+        return dtoProvider;
     }
 
     /** Test weather or not this DtoFactory has any DtoProvider which can provide implementation of DTO interface. */
     public boolean hasProvider(Class<?> dtoInterface) {
-        return providers.get(dtoInterface) != null;
+        return dtoInterface2Providers.get(dtoInterface) != null;
     }
 
     static {

@@ -14,7 +14,6 @@
 package com.codenvy.dto.shared;
 
 /** Base interface for all DTOs that adds a type tag for routing messages. */
-@Deprecated
 public interface RoutableDto {
     public static final int    SERVER_ERROR      = -1;
     public static final int    NON_ROUTABLE_TYPE = -2;

@@ -25,7 +25,6 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-// TODO : check: need it ??
 public @interface SerializationIndex {
     int value();
 }

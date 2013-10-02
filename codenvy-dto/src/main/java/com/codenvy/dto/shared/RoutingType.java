@@ -21,7 +21,6 @@ import java.lang.annotation.Target;
 /** Annotation for associating a routing type with a dto interface. */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Deprecated
 public @interface RoutingType {
     int type();
 }

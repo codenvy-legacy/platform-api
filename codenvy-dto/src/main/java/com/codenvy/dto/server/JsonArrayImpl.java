@@ -104,22 +104,7 @@ public class JsonArrayImpl<T> implements JsonArray<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (o == this) {
-            return true;
-        }
-        if (o instanceof JsonArrayImpl) {
-            JsonArrayImpl other = (JsonArrayImpl)o;
-            return delegate == null ? other.delegate == null : delegate.equals(other.delegate);
-        }
-        if (o instanceof List) {
-            if (delegate != null) {
-                return delegate.equals(o);
-            }
-        }
-        return false;
+        return delegate.equals(o);
     }
 
     @Override

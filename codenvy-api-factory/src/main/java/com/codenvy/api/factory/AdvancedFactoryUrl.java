@@ -26,14 +26,14 @@ import java.util.Set;
 public class AdvancedFactoryUrl extends FactoryUrl {
     private String id;
     private Map<String, String> projectAttributes = Collections.emptyMap();
-    private String  action;
-    private String  style;
-    private String  description;
-    private String  contactMail;
-    private String  author;
-    private String  openFile;
-    private String  orgId;
-    private String  affiliateId;
+    private String action;
+    private String style;
+    private String description;
+    private String contactMail;
+    private String author;
+    private String openFile;
+    private String orgId;
+    private String affiliateId;
 
     public AdvancedFactoryUrl() {
         super();

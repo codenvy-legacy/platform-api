@@ -23,7 +23,9 @@ import com.codenvy.commons.json.JsonHelper;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
@@ -33,16 +35,19 @@ import org.testng.annotations.Test;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ExceptionMapper;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import static com.jayway.restassured.RestAssured.given;
 import static javax.ws.rs.core.Response.Status;
 import static org.everrest.assured.JettyHttpServer.*;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
@@ -59,7 +64,7 @@ public class FactoryServiceTest {
     @InjectMocks
     private FactoryService factoryService;
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void shouldBeAbleToSaveFactory() throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
@@ -90,7 +95,7 @@ public class FactoryServiceTest {
                 multiPart("someOtherData", "Some content", MediaType.TEXT_PLAIN).//
                 expect().//
                 statusCode(Status.BAD_REQUEST.getStatusCode()).//
-                body(equalTo("No factory URL information found in 'factoryUrl' section of multipart form-data")).//
+                body(equalTo("No factory URL information found in 'factoryUrl' section of multipart form-data.")).//
                 when().//
                 post(SERVICE_PATH);
     }
@@ -116,6 +121,36 @@ public class FactoryServiceTest {
                 statusCode(Status.OK.getStatusCode()).//
                 when().//
                 post(SECURE_PATH + SERVICE_PATH);
+
+        verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<Image>emptySet()));
+    }
+
+    @Test
+    public void shouldBeAbleToSetVcsAsGitIfVcsIsNotSet() throws Exception {
+        // given
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        factoryUrl.setCommitid("12345679");
+        factoryUrl.setV("1.1");
+        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+
+        ArgumentCaptor<AdvancedFactoryUrl> argumentCaptor = ArgumentCaptor.forClass(AdvancedFactoryUrl.class);
+
+        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
+                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
+
+        // when, then
+        given().//
+                auth().basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD).
+                multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
+                expect().//
+                statusCode(Status.OK.getStatusCode()).//
+                when().//
+                post(SECURE_PATH + SERVICE_PATH);
+
+        verify(factoryStore).saveFactory(argumentCaptor.capture(), anySet());
+
+        assertEquals(argumentCaptor.getValue().getVcs(), "git");
     }
 
     @Test
@@ -123,9 +158,11 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        Image image = new Image(null, "image/jpeg", "image123456789.jpg");
+        Image image1 = new Image(null, "image/jpeg", "image123456789.jpg");
+        Image image2 = new Image(null, "image/png", "image987654321.png");
         Set<Image> images = new HashSet<>();
-        images.add(image);
+        images.add(image1);
+        images.add(image2);
         SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, images);
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
@@ -140,21 +177,25 @@ public class FactoryServiceTest {
                 body("links[1].href", startsWith(getServerUrl(context) + "/factory")).//
                 body("links[2].rel", equalTo("image")).//
                 body("links[2].href", startsWith(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID)).//
-                body("links[2].href", endsWith("image123456789.jpg")).//
-                body("links[2].type", equalTo("image/jpeg")).//
+                body("links[2].href", endsWith("image987654321.png")).//
+                body("links[2].type", equalTo("image/png")).//
+                body("links[3].rel", equalTo("image")).//
+                body("links[3].href", startsWith(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID)).//
+                body("links[3].href", endsWith("image123456789.jpg")).//
+                body("links[3].type", equalTo("image/jpeg")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
     }
 
     @Test
-    public void shouldReturnStatus400OnGetFactoryWithIllegalId() throws Exception {
+    public void shouldReturnStatus404OnGetFactoryWithIllegalId() throws Exception {
         // given
         when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
 
         // when, then
         given().//
                 expect().//
-                statusCode(400).//
+                statusCode(404).//
                 body(equalTo(String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID))).//
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID);
@@ -165,7 +206,8 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        Image image = new Image(new byte[100], "image/png", "imageId.png");
+        byte[] imageContent = new byte[100];
+        Image image = new Image(imageContent, "image/png", "imageId.png");
         Set<Image> images = new HashSet<>();
         images.add(image);
         SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, images);
@@ -173,15 +215,17 @@ public class FactoryServiceTest {
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
 
         // when
-        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/imageId.png");
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image/imageId.png");
 
         // then
         assertEquals(response.getStatusCode(), 200);
         assertEquals(response.getContentType(), "image/png");
+        assertEquals(response.getHeader("content-length"), "100");
+        assertEquals(response.asByteArray(), imageContent);
     }
 
     @Test
-    public void shouldReturnStatus400OnGetFactoryImageWithIllegalId() throws Exception {
+    public void shouldReturnStatus404OnGetFactoryImageWithIllegalId() throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
@@ -192,24 +236,24 @@ public class FactoryServiceTest {
         // when, then
         given().//
                 expect().//
-                statusCode(400).//
+                statusCode(404).//
                 body(equalTo(String.format("Image with id %s is not found.", "illegalImageId.png"))).//
                 when().//
-                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/illegalImageId.png");
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image/illegalImageId.png");
     }
 
     @Test
-    public void shouldResponse400OnGetImageIfFactoryDoesNotExist() throws Exception {
+    public void shouldResponse404OnGetImageIfFactoryDoesNotExist() throws Exception {
         // given
         when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
 
         // when, then
         given().//
                 expect().//
-                statusCode(400).//
+                statusCode(404).//
                 body(equalTo(String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID))).//
                 when().//
-                get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/ImageId.png");
+                get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/image/ImageId.png");
     }
 
     @Test
@@ -228,6 +272,21 @@ public class FactoryServiceTest {
     }
 
     @Test
+    public void shouldBeAbleToReturnUrlSnippetIfTypeIsNotSet(ITestContext context) throws Exception {
+        // given
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<Image>()));
+
+        // when, then
+        given().//
+                expect().//
+                statusCode(200).//
+                contentType(MediaType.TEXT_PLAIN).//
+                body(equalTo(getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID)).//
+                when().//
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet");
+    }
+
+    @Test
     public void shouldBeAbleToReturnHtmlSnippet(ITestContext context) throws Exception {
         // given
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<Image>()));
@@ -238,7 +297,8 @@ public class FactoryServiceTest {
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(equalTo("<script type=\"text/javascript\" language=\"javascript\" src=\"" + getServerUrl(context) +
-                             "/factory/factory.js\" target=\"" + getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID + "\"></script>"))
+                             "/factory/factory.js\" target=\"" + getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID +
+                             "\"></script>"))
                 .//
                         when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=html");
@@ -254,21 +314,22 @@ public class FactoryServiceTest {
                 expect().//
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
-                body(equalTo("[![alt](" + getServerUrl(context) + "/images/factory/factory.png)](" + getServerUrl(context) + "/factory?id=" +
-                             CORRECT_FACTORY_ID + ")")).//
+                body(
+                equalTo("[![alt](" + getServerUrl(context) + "/images/factory/factory.png)](" + getServerUrl(context) + "/factory?id=" +
+                        CORRECT_FACTORY_ID + ")")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
     }
 
     @Test
-    public void shouldResponse400OnGetSnippetIfFactoryDoesNotExist() throws Exception {
+    public void shouldResponse404OnGetSnippetIfFactoryDoesNotExist() throws Exception {
         // given
         when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
 
         // when, then
         given().//
                 expect().//
-                statusCode(400).//
+                statusCode(404).//
                 body(equalTo("Factory URL with id " + ILLEGAL_FACTORY_ID + " is not found.")).//
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/snippet?type=url");
@@ -283,7 +344,7 @@ public class FactoryServiceTest {
         given().//
                 expect().//
                 statusCode(400).//
-                body(equalTo(String.format("Snippet type \"%s\" is unsupported", type))).//
+                body(equalTo(String.format("Snippet type \"%s\" is unsupported.", type))).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=" + type);
     }

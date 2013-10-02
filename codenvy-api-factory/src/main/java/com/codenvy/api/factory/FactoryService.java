@@ -20,7 +20,6 @@ package com.codenvy.api.factory;
 import com.codenvy.api.factory.store.FactoryStore;
 import com.codenvy.api.factory.store.SavedFactoryData;
 
-import org.apache.commons.fileupload.FileItem;
 import org.everrest.core.impl.provider.json.JsonException;
 import org.everrest.core.impl.provider.json.JsonParser;
 import org.everrest.core.impl.provider.json.JsonValue;
@@ -36,10 +35,12 @@ import javax.servlet.http.Part;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.IOException;
-import java.util.Arrays;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import static javax.ws.rs.core.Response.Status;
 
@@ -52,6 +53,7 @@ public class FactoryService {
 
     /**
      * Save factory to storage and return stored data.
+     * If vcs is not set in factory URL it will be set with "git" value.
      *
      * @param request
      *         - http request
@@ -64,7 +66,7 @@ public class FactoryService {
     @Produces({MediaType.APPLICATION_JSON})
     public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo) throws FactoryUrlException {
         try {
-            Image image = null;
+            Set<Image> images = new HashSet<>();
             AdvancedFactoryUrl factoryUrl = null;
 
             for (Part part : request.getParts()) {
@@ -75,12 +77,19 @@ public class FactoryService {
                     JsonValue jsonValue = jsonParser.getJsonObject();
                     factoryUrl = ObjectBuilder.createObject(AdvancedFactoryUrl.class, jsonValue);
                 } else if (fieldName.equals("image")) {
-                    BufferedImage bufferedImage = ImageIO.read(part.getInputStream());
-                    if (bufferedImage.getWidth() != 100 || bufferedImage.getHeight() != 100) {
-                        LOG.error("Wrong size of image.");
-                        throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Wrong size of image.");
+                    try (InputStream inputStream = part.getInputStream()) {
+                        BufferedImage bufferedImage = ImageIO.read(inputStream);
+                        if (bufferedImage == null) {
+                            LOG.error("Can't read image content.");
+                            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Can't read image content.");
+                        }
+                        if (bufferedImage.getWidth() != 100 || bufferedImage.getHeight() != 100) {
+                            LOG.error("Wrong size of image.");
+                            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Wrong size of image.");
+                        }
+                        images.add(new Image(((DataBufferByte)bufferedImage.getRaster().getDataBuffer()).getData(), part.getContentType(),
+                                             part.getHeader("content-disposition")));
                     }
-                    image = new Image(, part.getContentType(), part.getHeader("content-disposition"));
                 }
             }
 
@@ -98,7 +107,7 @@ public class FactoryService {
                                               "Parameter vcs has illegal value. Only \"git\" is supported for now.");
             }
 
-            SavedFactoryData savedFactoryData = factoryStore.saveFactory(factoryUrl, new HashSet<>(Arrays.asList(image)));
+            SavedFactoryData savedFactoryData = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = new AdvancedFactoryUrl(savedFactoryData.getFactoryUrl(),
                                                 LinksHelper.createLinks(factoryUrl, savedFactoryData.getImages(), uriInfo));
 
@@ -141,7 +150,8 @@ public class FactoryService {
      *         - id of factory
      * @param imageId
      *         - image id.
-     * @return - image information if ids are correct.
+     * @return - image information if ids are correct. If imageId is not set, random image of factory will be returned. But if factory has
+     *         no images, exception will be thrown.
      * @throws FactoryUrlException
      */
     @GET
@@ -161,7 +171,8 @@ public class FactoryService {
                 return Response.ok(image.getImageData(), image.getMediaType()).build();
             } else {
                 LOG.error("Default image for factory {} is not found.", factoryId);
-                throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Default image for factory %s is not found.", factoryId));
+                throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
+                                              String.format("Default image for factory %s is not found.", factoryId));
             }
         } else {
             for (Image image : savedFactoryData.getImages()) {
@@ -182,13 +193,14 @@ public class FactoryService {
      * @param type
      *         - type of snippet.
      * @param uriInfo
-     * @return - snippet content
+     * @return - snippet content. If snippet type is not set, "url" type will be used as default.
      * @throws FactoryUrlException
      */
     @GET
     @Path("{id}/snippet")
     @Produces({MediaType.TEXT_PLAIN})
-    public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type, @Context UriInfo uriInfo)
+    public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type,
+                                    @Context UriInfo uriInfo)
             throws FactoryUrlException {
         if (factoryStore.getFactory(id) == null) {
             LOG.error("Factory URL with id {} is not found.", id);

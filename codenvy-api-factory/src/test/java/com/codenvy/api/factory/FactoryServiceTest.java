@@ -41,15 +41,12 @@ import java.util.Set;
 
 import static com.jayway.restassured.RestAssured.given;
 import static javax.ws.rs.core.Response.Status;
-import static org.everrest.assured.JettyHttpServer.*;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.startsWith;
-import static org.mockito.Matchers.any;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 @Listeners(value = {EverrestJetty.class, MockitoTestNGListener.class})
 public class FactoryServiceTest {
@@ -101,7 +98,7 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToSaveFactoryWithOutImage() throws Exception {
+    public void shouldBeAbleToSaveFactoryWithOutImage(ITestContext context) throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
@@ -114,13 +111,28 @@ public class FactoryServiceTest {
                 .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
 
         // when, then
-        given().//
-                auth().basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD).
-                multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
-                expect().//
-                statusCode(Status.OK.getStatusCode()).//
-                when().//
-                post(SECURE_PATH + SERVICE_PATH);
+        Response response =
+                given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).when().post(SERVICE_PATH);
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("application/json", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID, "self")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/analytics/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
+                         "accepted")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
+                         "snippet/url")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=html",
+                         "snippet/html")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown",
+                         "snippet/markdown")));
 
         verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<Image>emptySet()));
     }
@@ -141,12 +153,11 @@ public class FactoryServiceTest {
 
         // when, then
         given().//
-                auth().basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD).
                 multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
                 expect().//
                 statusCode(Status.OK.getStatusCode()).//
                 when().//
-                post(SECURE_PATH + SERVICE_PATH);
+                post(SERVICE_PATH);
 
         verify(factoryStore).saveFactory(argumentCaptor.capture(), anySet());
 
@@ -158,7 +169,7 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        Image image1 = new Image(null, "image/jpeg", "image123456789.jpg");
+        Image image1 = new Image(null, "image/jpeg", "image123456789.jpeg");
         Image image2 = new Image(null, "image/png", "image987654321.png");
         Set<Image> images = new HashSet<>();
         images.add(image1);
@@ -167,24 +178,34 @@ public class FactoryServiceTest {
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
 
-        // when, then
-        given().//
-                expect().//
-                statusCode(Status.OK.getStatusCode()).//
-                body("links[0].rel", equalTo("self")).//
-                body("links[0].href", startsWith(getServerUrl(context) + "/rest/factory")).//
-                body("links[1].rel", equalTo("create-project")).//
-                body("links[1].href", startsWith(getServerUrl(context) + "/factory")).//
-                body("links[2].rel", equalTo("image")).//
-                body("links[2].href", startsWith(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID)).//
-                //body("links[2].href", endsWith("image987654321.png")).//
-                //body("links[2].type", equalTo("image/png")).//
-                body("links[3].rel", equalTo("image")).//
-                body("links[3].href", startsWith(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID)).//
-                //body("links[3].href", endsWith("image123456789.jpg")).//
-                //body("links[3].type", equalTo("image/jpeg")).//
-                when().//
-                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
+        // when
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("application/json", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID, "self")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image/image123456789.jpeg",
+                         "image")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("image/png", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image/image987654321.png",
+                         "image")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/analytics/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
+                         "accepted")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
+                         "snippet/url")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=html",
+                         "snippet/html")));
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown",
+                         "snippet/markdown")));
     }
 
     @Test

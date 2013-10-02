@@ -31,7 +31,7 @@ public class LinksHelper {
         Set<Link> links = new LinkedHashSet<>();
 
         links.add(generateFactoryUrlLink(factoryUrl.getId(), uriInfo));
-        links.add(generateCreationlLink(factoryUrl.getId(), uriInfo));
+        links.add(generateCreationLink(factoryUrl.getId(), uriInfo));
         for (Image image : images) {
             links.add(generateFactoryImageLink(factoryUrl.getId(), image, uriInfo));
         }
@@ -39,18 +39,26 @@ public class LinksHelper {
 
         links.addAll(generateSnippetLinks(factoryUrl.getId(), uriInfo));
 
+        links.addAll(generateStatisticsLinks(factoryUrl.getId(), uriInfo));
+
         return links;
     }
 
+    private static Set<Link> generateStatisticsLinks(String factoryId, UriInfo uriInfo) {
+        Set<Link> statisticsLinks = new HashSet<>();
+        statisticsLinks.add(new Link("text/plain", generatePath(uriInfo, factoryId, "analytics/FACTORY_URL_ACCEPTED_NUMBER"), "accepted"));
+        return statisticsLinks;
+    }
+
     private static Link generateFactoryImageLink(String factoryId, Image image, UriInfo uriInfo) {
-        return new Link(image.getMediaType(), generatePath(uriInfo, image.getName(), "factory/" + factoryId), "image");
+        return new Link(image.getMediaType(), generatePath(uriInfo, image.getName(), "factory/" + factoryId + "/image"), "image");
     }
 
     private static Link generateFactoryUrlLink(String id, UriInfo uriInfo) {
         return new Link(MediaType.APPLICATION_JSON, generatePath(uriInfo, id, "factory"), "self");
     }
 
-    private static Link generateCreationlLink(String id, UriInfo uriInfo) {
+    private static Link generateCreationLink(String id, UriInfo uriInfo) {
         UriBuilder ub;
         if (uriInfo != null) {
             ub = UriBuilder.fromUri(uriInfo.getBaseUri());

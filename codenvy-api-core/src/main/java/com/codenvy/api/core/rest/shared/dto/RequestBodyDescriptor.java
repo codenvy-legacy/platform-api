@@ -15,17 +15,29 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest.dto;
+package com.codenvy.api.core.rest.shared.dto;
 
-import com.codenvy.api.core.rest.dto.DtoType;
-import com.codenvy.api.core.rest.dto.DtoTypes;
+import com.codenvy.dto.shared.DTO;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@DtoType(DtoTypes.PARAMETER_TYPE_TYPE)
-public enum ParameterType {
-    String,
-    Number,
-    Boolean,
-    Array,
-    Object
+/**
+ * Describes body of the request.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+@DTO
+public interface RequestBodyDescriptor {
+    /**
+     * Get optional description of request body.
+     *
+     * @return optional description of request body
+     */
+    String getDescription();
+
+    /**
+     * Set optional description of request body.
+     *
+     * @param description
+     *         optional description of request body
+     */
+    void setDescription(String description);
 }

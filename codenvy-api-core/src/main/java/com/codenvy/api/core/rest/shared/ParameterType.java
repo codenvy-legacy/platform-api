@@ -15,24 +15,13 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest;
+package com.codenvy.api.core.rest.shared;
 
-/**
- * Thrown if cannot access remote API resource or when got a response from remote API that we don't understand.
- *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- */
-@SuppressWarnings("serial")
-public class UnknownRemoteException extends RuntimeException {
-    public UnknownRemoteException(String message) {
-        super(message);
-    }
-
-    public UnknownRemoteException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public UnknownRemoteException(Throwable cause) {
-        super(cause);
-    }
+/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+public enum ParameterType {
+    String,
+    Number,
+    Boolean,
+    Array,
+    Object
 }

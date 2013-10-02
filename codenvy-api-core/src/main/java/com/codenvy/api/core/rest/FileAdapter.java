@@ -36,7 +36,7 @@ public final class FileAdapter {
     }
 
     public FileAdapter(java.io.File file, String href) {
-        this(file, href, file.isFile() ? ContentTypeGuesser.guessContentType(file) : null);
+        this(file, href, file.isFile() ? ContentTypeGuesser.guessContentType(file) : "text/directory");
     }
 
     /** @see java.io.File#exists() */
@@ -83,19 +83,27 @@ public final class FileAdapter {
      * @param relativePath
      *         path relative to this {@code FileAdapter}
      * @return child {@code FileAdapter}
-     * @throws IllegalArgumentException
+     * @throws InvalidArgumentException
      *         if this {@code FileAdapter} is not directory or if {@code relativePath} points to the higher level in filesystem hierarchy,
      *         e.g. path {@code /a/../..} is invalid
      */
-    public FileAdapter getChild(String relativePath) {
+    public FileAdapter getChild(String relativePath) throws InvalidArgumentException {
         if (!file.isDirectory()) {
-            throw new IllegalArgumentException("Cannot create child of file.");
+            throw new InvalidArgumentException("Isn't a directory. Can't get child.");
         }
-        final java.io.File childFile = new java.io.File(file, relativePath);
-        if (!(childFile.toPath().normalize().startsWith(file.toPath().normalize()))) {
-            throw new IllegalArgumentException(String.format("Invalid relative path %s", relativePath));
+        int level = 0;
+        for (String token : relativePath.split(java.io.File.separator)) {
+            if ("..".equals(token)) {
+                if (level == 0) {
+                    throw new InvalidArgumentException(String.format("Invalid relative path %s.", relativePath));
+                }
+                --level;
+            } else if (!".".equals(token)) {
+                ++level;
+            }
         }
-        return new FileAdapter(childFile, href + '/' + relativePath);
+        return new FileAdapter(new java.io.File(file, relativePath),
+                               href + (href.endsWith("/") ? relativePath : '/' + relativePath));
     }
 
     /**

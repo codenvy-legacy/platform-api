@@ -17,7 +17,8 @@
  */
 package com.codenvy.api.core.rest;
 
-import com.codenvy.api.core.rest.dto.JsonDto;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.dto.server.JsonSerializable;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -29,6 +30,9 @@ import javax.ws.rs.ext.Provider;
 public class ApiExceptionMapper implements ExceptionMapper<ApiException> {
     @Override
     public Response toResponse(ApiException exception) {
-        return Response.ok(JsonDto.toJson(exception.getServiceError()), MediaType.APPLICATION_JSON).build();
+        return Response.serverError()
+                       .entity(((JsonSerializable)exception.getServiceError()).toJson())
+                       .type(MediaType.APPLICATION_JSON)
+                       .build();
     }
 }

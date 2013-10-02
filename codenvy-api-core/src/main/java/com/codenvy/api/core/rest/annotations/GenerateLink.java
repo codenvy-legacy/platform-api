@@ -25,12 +25,12 @@ import java.lang.annotation.Target;
 /**
  * This annotation may be applied to methods of sub-class of {@link com.codenvy.api.core.rest.Service}. When client accesses method {@link
  * com.codenvy.api.core.rest.Service#getServiceDescriptor()} all methods with this annotation are analyzed to provide descriptor of
- * particular service. In instance of {@link com.codenvy.api.core.rest.dto.ServiceDescriptor ServiceDescriptor} methods with this annotation
+ * particular service. In instance of {@link com.codenvy.api.core.rest.shared.dto.ServiceDescriptor ServiceDescriptor} methods with this annotation
  * are represented as set of links. It should help client to understand capabilities of particular RESTful service.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  * @see com.codenvy.api.core.rest.Service
- * @see com.codenvy.api.core.rest.dto.ServiceDescriptor
+ * @see com.codenvy.api.core.rest.shared.dto.ServiceDescriptor
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

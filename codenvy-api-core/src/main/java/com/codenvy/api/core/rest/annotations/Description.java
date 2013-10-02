@@ -28,12 +28,12 @@ import java.lang.annotation.Target;
  * It may be applied to:
  * <ul>
  * <li>sub-classes of {@link com.codenvy.api.core.rest.Service Service}. In this case value of this annotation is copied to the field
- * {@link com.codenvy.api.core.rest.dto.ServiceDescriptor#description}</li>
+ * {@link com.codenvy.api.core.rest.shared.dto.ServiceDescriptor#description}</li>
  * <li>parameter of RESTful method annotated with {@link javax.ws.rs.QueryParam &#64;QueryParam}. In this case value of this annotation is
- * copied to the field {@link com.codenvy.api.core.rest.dto.ParameterDescriptor#description}</li>
+ * copied to the field {@link com.codenvy.api.core.rest.shared.dto.LinkParameter#description}</li>
  * <li>entity parameter (not annotated with JAX-RS annotations) of RESTful method. Entity parameters are described in section 3.3.2.1 of
  * JAX-RS specification 1.0. In this case value of this annotation is copied to the filed of {@link
- * com.codenvy.api.core.rest.dto.RequestBodyDescriptor#description}</li>
+ * com.codenvy.api.core.rest.shared.dto.RequestBodyDescriptor#description}</li>
  * </ul>
  * <p/>
  * For example: There is EchoService. Let's see on the values of Description annotations. Here we have two: at class and at method's
@@ -81,9 +81,9 @@ import java.lang.annotation.Target;
  * See two descriptions in JSON output.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see com.codenvy.api.core.rest.dto.ServiceDescriptor
- * @see com.codenvy.api.core.rest.dto.ParameterDescriptor
- * @see com.codenvy.api.core.rest.dto.RequestBodyDescriptor
+ * @see com.codenvy.api.core.rest.shared.dto.ServiceDescriptor
+ * @see com.codenvy.api.core.rest.shared.dto.LinkParameter
+ * @see com.codenvy.api.core.rest.shared.dto.RequestBodyDescriptor
  */
 @Target({ElementType.TYPE, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)

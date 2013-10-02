@@ -26,11 +26,11 @@ import java.lang.annotation.Target;
  * Helps to inform client about mandatory parameters of request.
  * <p/>
  * This annotation may be applied to parameter of RESTful method annotated with {@link javax.ws.rs.QueryParam &#64;QueryParam}. In this
- * case field of {@link com.codenvy.api.core.rest.dto.ParameterDescriptor#required} is set to {@code true}.
+ * case field of {@link com.codenvy.api.core.rest.shared.dto.LinkParameter#required} is set to {@code true}.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see com.codenvy.api.core.rest.dto.ParameterDescriptor
- * @see com.codenvy.api.core.rest.dto.RequestBodyDescriptor
+ * @see com.codenvy.api.core.rest.shared.dto.LinkParameter
+ * @see com.codenvy.api.core.rest.shared.dto.RequestBodyDescriptor
  */
 @Target({ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)

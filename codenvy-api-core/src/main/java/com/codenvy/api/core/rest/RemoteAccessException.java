@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,20 +15,24 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest.dto;
+package com.codenvy.api.core.rest;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@SuppressWarnings("serail")
-public final class DtoException extends RuntimeException {
-    public DtoException(String message) {
+/**
+ * Thrown if cannot access remote API resource or when got a response from remote API that we don't understand.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+@SuppressWarnings("serial")
+public class RemoteAccessException extends RuntimeException {
+    public RemoteAccessException(String message) {
         super(message);
     }
 
-    public DtoException(String message, Throwable cause) {
+    public RemoteAccessException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public DtoException(Throwable cause) {
+    public RemoteAccessException(Throwable cause) {
         super(cause);
     }
 }

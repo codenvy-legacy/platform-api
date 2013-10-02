@@ -15,9 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest;
+package com.codenvy.api.core;
 
-import com.codenvy.api.core.rest.dto.ServiceError;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
+import com.codenvy.dto.server.DtoFactory;
 
 /**
  * Base class for all API errors.
@@ -26,31 +27,36 @@ import com.codenvy.api.core.rest.dto.ServiceError;
  */
 @SuppressWarnings("serial")
 public class ApiException extends Exception {
-    public static final int ERROR_CODE_UNKNOWN_ERROR = 1001;
-
     private final ServiceError serviceError;
 
     public ApiException(ServiceError serviceError) {
-        super(serviceError == null ? null : serviceError.getMessage());
+        super(serviceError.getMessage());
         this.serviceError = serviceError;
     }
 
     public ApiException(String message) {
         super(message);
-        this.serviceError = new ServiceError(message, ERROR_CODE_UNKNOWN_ERROR);
+
+        this.serviceError = createError(message);
     }
 
     public ApiException(String message, Throwable cause) {
         super(message, cause);
-        this.serviceError = new ServiceError(message, ERROR_CODE_UNKNOWN_ERROR);
+        this.serviceError = createError(message);
     }
 
     public ApiException(Throwable cause) {
         super(cause);
-        this.serviceError = new ServiceError(cause.getMessage(), ERROR_CODE_UNKNOWN_ERROR);
+        this.serviceError = createError(cause.getMessage());
     }
 
     public ServiceError getServiceError() {
         return serviceError;
+    }
+
+    private ServiceError createError(String message) {
+        ServiceError dto = DtoFactory.getInstance().createDto(ServiceError.class);
+        dto.setMessage(message);
+        return dto;
     }
 }

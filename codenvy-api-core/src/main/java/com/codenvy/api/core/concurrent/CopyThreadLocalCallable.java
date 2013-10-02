@@ -20,7 +20,7 @@ package com.codenvy.api.core.concurrent;
 import java.util.concurrent.Callable;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class CopyThreadLocalCallable<T> implements Callable<T> {
+class CopyThreadLocalCallable<T> implements Callable<T> {
     private final Callable<? extends T>                        wrapped;
     private final ThreadLocalPropagateContext.ThreadLocalState threadLocalState;
 

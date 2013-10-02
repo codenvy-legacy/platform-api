@@ -15,23 +15,31 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest.dto;
+package com.codenvy.api.core.rest.shared.dto;
 
-import java.util.Set;
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Delivers embedded DTO.
+ * Describes error which may be serialized to JSON format with {@link com.codenvy.api.core.rest.ApiExceptionMapper}
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @see com.codenvy.api.core.ApiException
+ * @see com.codenvy.api.core.rest.ApiExceptionMapper
  */
-public class CommonDtoTypesRegistry extends DtoTypesRegistry {
-    @Override
-    protected void addDtos(Set<Class<?>> dtos) {
-        dtos.add(Link.class);
-        dtos.add(ParameterDescriptor.class);
-        dtos.add(ParameterType.class);
-        dtos.add(RequestBodyDescriptor.class);
-        dtos.add(ServiceDescriptor.class);
-        dtos.add(ServiceError.class);
-    }
+@DTO
+public interface ServiceError {
+    /**
+     * Get error message.
+     *
+     * @return error message
+     */
+    String getMessage();
+
+    /**
+     * Set error message.
+     *
+     * @param message
+     *         error message
+     */
+    void setMessage(String message);
 }

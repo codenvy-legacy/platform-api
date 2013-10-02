@@ -30,8 +30,8 @@ public final class HttpDownloadPlugin implements DownloadPlugin {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection)new URL(downloadUri).openConnection();
-            conn.setConnectTimeout(HttpHelper.CONNECTION_TIMEOUT);
-            conn.setConnectTimeout(HttpHelper.READ_TIMEOUT);
+            conn.setConnectTimeout(30 * 1000);
+            conn.setConnectTimeout(30 * 1000);
             final int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
                 throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));

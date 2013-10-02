@@ -21,11 +21,10 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
-import com.codenvy.api.core.rest.dto.JsonDto;
-import com.codenvy.api.core.rest.dto.Link;
-import com.codenvy.api.core.rest.dto.ParameterDescriptor;
-import com.codenvy.api.core.rest.dto.ParameterType;
-import com.codenvy.api.core.rest.dto.ServiceDescriptor;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.LinkParameter;
+import com.codenvy.api.core.rest.shared.ParameterType;
+import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 
 import org.everrest.core.RequestHandler;
 import org.everrest.core.ResourceBinder;
@@ -44,6 +43,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -66,7 +66,7 @@ public class ServiceDescriptorTest {
         @Path("my_method")
         @GenerateLink(rel = "echo")
         @Produces("text/plain")
-        public String echo(@Description("some text") @Required @Valid({"a", "b"}) @QueryParam("text") String test) {
+        public String echo(@Description("some text") @Required @Valid({"a", "b"}) @DefaultValue("a") @QueryParam("text") String test) {
             return test;
         }
     }
@@ -134,14 +134,15 @@ public class ServiceDescriptorTest {
     @Test
     public void testLinkParameters() throws Exception {
         Link link = getLink("echo");
-        List<ParameterDescriptor> parameters = link.getParameters();
+        List<LinkParameter> parameters = link.getParameters();
         Assert.assertEquals(parameters.size(), 1);
-        ParameterDescriptor parameterDescriptor = parameters.get(0);
-        Assert.assertEquals(parameterDescriptor.getDescription(), "some text");
-        Assert.assertEquals(parameterDescriptor.getName(), "text");
-        Assert.assertEquals(parameterDescriptor.getType(), ParameterType.String);
-        Assert.assertTrue(parameterDescriptor.isRequired());
-        List<String> valid = parameterDescriptor.getValid();
+        LinkParameter linkParameter = parameters.get(0);
+        Assert.assertEquals(linkParameter.getDefaultValue(), "a");
+        Assert.assertEquals(linkParameter.getDescription(), "some text");
+        Assert.assertEquals(linkParameter.getName(), "text");
+        Assert.assertEquals(linkParameter.getType(), ParameterType.String);
+        Assert.assertTrue(linkParameter.isRequired());
+        List<String> valid = linkParameter.getValid();
         Assert.assertEquals(valid.size(), 2);
         Assert.assertTrue(valid.contains("a"));
         Assert.assertTrue(valid.contains("b"));
@@ -161,8 +162,6 @@ public class ServiceDescriptorTest {
         String path = SERVICE_URI;
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
-        JsonDto dto = JsonDto.fromJson((String)response.getEntity());
-        Assert.assertNotNull(dto);
-        return dto.cast();
+        return (ServiceDescriptor)response.getEntity();
     }
 }

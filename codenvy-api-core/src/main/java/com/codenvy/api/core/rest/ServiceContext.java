@@ -21,5 +21,5 @@ import javax.ws.rs.core.UriBuilder;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public interface ServiceContext {
-    UriBuilder getServicePathBuilder();
+    UriBuilder getServiceUriBuilder();
 }

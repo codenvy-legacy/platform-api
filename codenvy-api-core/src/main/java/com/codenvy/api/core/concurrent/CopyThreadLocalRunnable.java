@@ -18,7 +18,7 @@
 package com.codenvy.api.core.concurrent;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class CopyThreadLocalRunnable implements Runnable {
+class CopyThreadLocalRunnable implements Runnable {
     private final Runnable                                     wrapped;
     private final ThreadLocalPropagateContext.ThreadLocalState threadLocalState;
 

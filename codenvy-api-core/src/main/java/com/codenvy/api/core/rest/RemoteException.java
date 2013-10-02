@@ -17,7 +17,8 @@
  */
 package com.codenvy.api.core.rest;
 
-import com.codenvy.api.core.rest.dto.ServiceError;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
  * Represents an error from a remote server that we can understand.

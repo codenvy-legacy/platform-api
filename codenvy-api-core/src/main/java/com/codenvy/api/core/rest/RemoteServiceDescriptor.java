@@ -17,10 +17,9 @@
  */
 package com.codenvy.api.core.rest;
 
-import com.codenvy.api.core.rest.dto.DtoTypes;
-import com.codenvy.api.core.rest.dto.JsonDto;
-import com.codenvy.api.core.rest.dto.Link;
-import com.codenvy.api.core.rest.dto.ServiceDescriptor;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ import java.util.List;
  * <li>URL of {@code Service}</li>
  * <li>Version of API</li>
  * <li>Optional description of {@code Service}</li>
- * <li>Set of {@link com.codenvy.api.core.rest.dto.Link Link} to access {@code Service} functionality</li>
+ * <li>Set of {@link com.codenvy.api.core.rest.shared.dto.Link Link} to access {@code Service} functionality</li>
  * </ul>
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
@@ -73,7 +72,7 @@ public abstract class RemoteServiceDescriptor {
         // always copy list and links itself!
         final List<Link> copy = new ArrayList<>(links.size());
         for (Link link : links) {
-            copy.add(new Link(link));
+            copy.add(DtoFactory.getInstance().clone(link));
         }
         return copy;
     }
@@ -81,7 +80,7 @@ public abstract class RemoteServiceDescriptor {
     public Link getLink(String rel) throws IOException, RemoteException {
         for (Link link : getServiceDescriptor().getLinks()) {
             if (rel.equals(link.getRel())) {
-                return new Link(link);
+                return DtoFactory.getInstance().clone(link);
             }
         }
         return null;
@@ -93,11 +92,7 @@ public abstract class RemoteServiceDescriptor {
             synchronized (this) {
                 myServiceDescriptor = serviceDescriptor;
                 if (myServiceDescriptor == null) {
-                    final JsonDto dto = HttpHelper.request(baseUrl, "GET", null, null);
-                    if (dto == null || dto.getType() != DtoTypes.SERVICE_DESCRIPTOR_TYPE) {
-                        throw new UnknownRemoteException("Invalid response from remote server");
-                    }
-                    serviceDescriptor = myServiceDescriptor = dto.cast();
+                    serviceDescriptor = HttpJsonHelper.get(ServiceDescriptor.class, baseUrl);
                 }
             }
         }

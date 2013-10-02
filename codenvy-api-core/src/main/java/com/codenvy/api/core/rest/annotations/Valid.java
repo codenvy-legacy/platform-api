@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  * Helps to inform client about valid values of request parameters.
  * <p/>
  * This annotation may be applied to parameter of RESTful method annotated with {@link javax.ws.rs.QueryParam &#64;QueryParam}. In this
- * case value of this annotation is copied to field {@link com.codenvy.api.core.rest.dto.ParameterDescriptor#valid}
+ * case value of this annotation is copied to field {@link com.codenvy.api.core.rest.shared.dto.LinkParameter#valid}
  * <p/>
  * For example: There is EchoService. Let's see on the value of Valid annotation, it is {"hello", "goodbye"}.
  * <pre>
@@ -75,8 +75,8 @@ import java.lang.annotation.Target;
  * There are two "valid" values for parameter "message": ["hello", "goodbye"] in JSON output.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see com.codenvy.api.core.rest.dto.ParameterDescriptor
- * @see com.codenvy.api.core.rest.dto.RequestBodyDescriptor
+ * @see com.codenvy.api.core.rest.shared.dto.LinkParameter
+ * @see com.codenvy.api.core.rest.shared.dto.RequestBodyDescriptor
  */
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)

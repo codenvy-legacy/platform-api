@@ -18,53 +18,44 @@
 package com.codenvy.api.factory;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
 /** Advanced factory format for factory 1.1. Contains additional information about factory. */
-public class AdvancedFactoryUrl extends FactoryUrl {
+public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     private String id;
-    private Map<String, String> projectAttributes = Collections.emptyMap();
-    private String action;
     private String style;
     private String description;
     private String contactMail;
     private String author;
-    private String openFile;
     private String orgId;
     private String affiliateId;
+    private Set<Link> links = new LinkedHashSet<>();
 
     public AdvancedFactoryUrl() {
         super();
     }
 
-    public AdvancedFactoryUrl(String version, String vcs, String vcsUrl, String commitId) {
-        super(version, vcs, vcsUrl, commitId);
+    public AdvancedFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile,
+                              boolean keepVcsInfo, Map<String, String> projectAttributes) {
+        super(version, vcs, vcsUrl, commitId, action, openFile, keepVcsInfo, projectAttributes);
     }
 
     public AdvancedFactoryUrl(AdvancedFactoryUrl originFactory, Set<Link> links) {
         super(originFactory.getVersion(), originFactory.getVcs(), originFactory.getVcsUrl(),
-              originFactory.getCommitId(), links);
+              originFactory.getCommitId(), originFactory.getAction(), originFactory.getOpenFile(), originFactory.getKeepvcsinfo(),
+              originFactory.getProjectAttributes());
 
         id = originFactory.getId();
-        projectAttributes = originFactory.projectAttributes;
-        action = originFactory.getAction();
         style = originFactory.getStyle();
         description = originFactory.getDescription();
         contactMail = originFactory.getContactMail();
         author = originFactory.getAuthor();
-        openFile = originFactory.getOpenFile();
         orgId = originFactory.getOrgId();
         affiliateId = originFactory.getAffiliateId();
-    }
 
-    public String getAction() {
-        return action;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
+        setLinks(links);
     }
 
     public String getStyle() {
@@ -100,15 +91,6 @@ public class AdvancedFactoryUrl extends FactoryUrl {
         this.author = author;
     }
 
-    public String getOpenFile() {
-        return openFile;
-    }
-
-    // Method mame should be lowercased to use correctly from json builder.
-    public void setOpenfile(String openFile) {
-        this.openFile = openFile;
-    }
-
     public String getOrgId() {
         return orgId;
     }
@@ -135,13 +117,15 @@ public class AdvancedFactoryUrl extends FactoryUrl {
         this.id = id;
     }
 
-    public Map<String, String> getProjectAttributes() {
-        return Collections.unmodifiableMap(projectAttributes);
+    public Set<Link> getLinks() {
+        return Collections.unmodifiableSet(links);
     }
 
-    // Method mame should be lowercased to use correctly from json builder.
-    public void setProjectattributes(Map<String, String> projectAttributes) {
-        this.projectAttributes = new LinkedHashMap<>(projectAttributes);
+    public void setLinks(Set<Link> links) {
+        this.links = links;
+        if (links != null) {
+            this.links = new LinkedHashSet<>(links);
+        }
     }
 
     @Override
@@ -152,15 +136,13 @@ public class AdvancedFactoryUrl extends FactoryUrl {
 
         AdvancedFactoryUrl that = (AdvancedFactoryUrl)o;
 
-        if (action != null ? !action.equals(that.action) : that.action != null) return false;
         if (affiliateId != null ? !affiliateId.equals(that.affiliateId) : that.affiliateId != null) return false;
         if (author != null ? !author.equals(that.author) : that.author != null) return false;
         if (contactMail != null ? !contactMail.equals(that.contactMail) : that.contactMail != null) return false;
         if (description != null ? !description.equals(that.description) : that.description != null) return false;
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
-        if (openFile != null ? !openFile.equals(that.openFile) : that.openFile != null) return false;
+        if (!links.equals(that.links)) return false;
         if (orgId != null ? !orgId.equals(that.orgId) : that.orgId != null) return false;
-        if (projectAttributes != null ? !projectAttributes.equals(that.projectAttributes) : that.projectAttributes != null) return false;
         if (style != null ? !style.equals(that.style) : that.style != null) return false;
 
         return true;
@@ -170,15 +152,13 @@ public class AdvancedFactoryUrl extends FactoryUrl {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (id != null ? id.hashCode() : 0);
-        result = 31 * result + (projectAttributes != null ? projectAttributes.hashCode() : 0);
-        result = 31 * result + (action != null ? action.hashCode() : 0);
         result = 31 * result + (style != null ? style.hashCode() : 0);
         result = 31 * result + (description != null ? description.hashCode() : 0);
         result = 31 * result + (contactMail != null ? contactMail.hashCode() : 0);
         result = 31 * result + (author != null ? author.hashCode() : 0);
-        result = 31 * result + (openFile != null ? openFile.hashCode() : 0);
         result = 31 * result + (orgId != null ? orgId.hashCode() : 0);
         result = 31 * result + (affiliateId != null ? affiliateId.hashCode() : 0);
+        result = 31 * result + links.hashCode();
         return result;
     }
 }

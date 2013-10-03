@@ -20,7 +20,6 @@ package com.codenvy.api.factory;
 import com.codenvy.api.factory.store.FactoryStore;
 import com.codenvy.api.factory.store.SavedFactoryData;
 
-import org.apache.commons.fileupload.FileItem;
 import org.everrest.core.impl.provider.json.JsonException;
 import org.everrest.core.impl.provider.json.JsonParser;
 import org.everrest.core.impl.provider.json.JsonValue;
@@ -28,11 +27,20 @@ import org.everrest.core.impl.provider.json.ObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
 import javax.inject.Inject;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.Part;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import static javax.ws.rs.core.Response.Status;
 
@@ -45,9 +53,10 @@ public class FactoryService {
 
     /**
      * Save factory to storage and return stored data.
+     * If vcs is not set in factory URL it will be set with "git" value.
      *
-     * @param factoryData
-     *         - data to store
+     * @param request
+     *         - http request
      * @param uriInfo
      * @return - stored data
      * @throws FactoryUrlException
@@ -55,42 +64,55 @@ public class FactoryService {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public AdvancedFactoryUrl saveFactory(Iterator<FileItem> factoryData, @Context UriInfo uriInfo) throws FactoryUrlException {
+    public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo) throws FactoryUrlException {
         try {
-            Image image = null;
+            Set<Image> images = new HashSet<>();
             AdvancedFactoryUrl factoryUrl = null;
 
-            while (factoryData.hasNext()) {
-                FileItem fileItem = factoryData.next();
-                String fieldName = fileItem.getFieldName();
+            for (Part part : request.getParts()) {
+                String fieldName = part.getName();
                 if (fieldName.equals("factoryUrl")) {
                     JsonParser jsonParser = new JsonParser();
-                    jsonParser.parse(fileItem.getInputStream());
+                    jsonParser.parse(part.getInputStream());
                     JsonValue jsonValue = jsonParser.getJsonObject();
                     factoryUrl = ObjectBuilder.createObject(AdvancedFactoryUrl.class, jsonValue);
                 } else if (fieldName.equals("image")) {
-                    image = new Image(fileItem.get(), fileItem.getContentType(), fileItem.getName());
+                    try (InputStream inputStream = part.getInputStream()) {
+                        BufferedImage bufferedImage = ImageIO.read(inputStream);
+                        if (bufferedImage == null) {
+                            LOG.error("Can't read image content.");
+                            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Can't read image content.");
+                        }
+                        if (bufferedImage.getWidth() != 100 || bufferedImage.getHeight() != 100) {
+                            LOG.error("Wrong size of image.");
+                            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Wrong size of image.");
+                        }
+                        images.add(new Image(((DataBufferByte)bufferedImage.getRaster().getDataBuffer()).getData(), part.getContentType(),
+                                             part.getHeader("content-disposition")));
+                    }
                 }
             }
 
             if (factoryUrl == null) {
-                LOG.error("No factory URL information found in 'factoryUrl' section of multipart form-data");
+                LOG.error("No factory URL information found in 'factoryUrl' section of multipart form-data.");
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
-                                              "No factory URL information found in 'factoryUrl' section of multipart form-data");
+                                              "No factory URL information found in 'factoryUrl' section of multipart form-data.");
             }
 
             // check that vcs value is correct (only git is supported for now)
-            if (!"git".equals(factoryUrl.getVcs())) {
+            if (factoryUrl.getVcs() == null) {
+                factoryUrl.setVcs("git");
+            } else if (!"git".equals(factoryUrl.getVcs())) {
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               "Parameter vcs has illegal value. Only \"git\" is supported for now.");
             }
 
-            SavedFactoryData savedFactoryData = factoryStore.saveFactory(factoryUrl, image);
+            SavedFactoryData savedFactoryData = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = new AdvancedFactoryUrl(savedFactoryData.getFactoryUrl(),
                                                 LinksHelper.createLinks(factoryUrl, savedFactoryData.getImages(), uriInfo));
 
             return factoryUrl;
-        } catch (IOException | JsonException e) {
+        } catch (IOException | JsonException | ServletException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getLocalizedMessage(), e);
         }
@@ -112,7 +134,7 @@ public class FactoryService {
         SavedFactoryData savedFactoryData = factoryStore.getFactory(id);
         if (savedFactoryData == null) {
             LOG.error("Factory URL with id {} is not found.", id);
-            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
+            throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl(savedFactoryData.getFactoryUrl(), LinksHelper
@@ -124,22 +146,43 @@ public class FactoryService {
     /**
      * Get image information by its id.
      *
-     * @param id
+     * @param factoryId
+     *         - id of factory
+     * @param imageId
      *         - image id.
-     * @return - image information if id is correct.
+     * @return - image information if ids are correct. If imageId is not set, random image of factory will be returned. But if factory has
+     *         no images, exception will be thrown.
      * @throws FactoryUrlException
      */
     @GET
-    @Path("image/{id}")
+    @Path("{factoryId}/image/{imageId}")
     @Produces("image/*")
-    public Response getImage(@PathParam("id") String id) throws FactoryUrlException {
-        Image image = factoryStore.getImage(id);
-        if (image == null) {
-            LOG.error("Image with id {} is not found.", id);
-            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), String.format("Image with id %s is not found.", id));
+    public Response getImage(@PathParam("factoryId") String factoryId, @PathParam("imageId") String imageId) throws FactoryUrlException {
+        SavedFactoryData savedFactoryData = factoryStore.getFactory(factoryId);
+        if (savedFactoryData == null) {
+            LOG.error("Factory URL with id {} is not found.", factoryId);
+            throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
+                                          String.format("Factory URL with id %s is not found.", factoryId));
         }
-
-        return Response.ok(image.getImageData(), image.getMediaType()).build();
+        if (imageId == null || imageId.isEmpty()) {
+            Iterator<Image> it = savedFactoryData.getImages().iterator();
+            if (it.hasNext()) {
+                Image image = it.next();
+                return Response.ok(image.getImageData(), image.getMediaType()).build();
+            } else {
+                LOG.error("Default image for factory {} is not found.", factoryId);
+                throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
+                                              String.format("Default image for factory %s is not found.", factoryId));
+            }
+        } else {
+            for (Image image : savedFactoryData.getImages()) {
+                if (image.getName().equals(imageId)) {
+                    return Response.ok(image.getImageData(), image.getMediaType()).build();
+                }
+            }
+        }
+        LOG.error("Image with id {} is not found.", imageId);
+        throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Image with id %s is not found.", imageId));
     }
 
     /**
@@ -150,22 +193,18 @@ public class FactoryService {
      * @param type
      *         - type of snippet.
      * @param uriInfo
-     * @return - snippet content
+     * @return - snippet content. If snippet type is not set, "url" type will be used as default.
      * @throws FactoryUrlException
      */
     @GET
     @Path("{id}/snippet")
     @Produces({MediaType.TEXT_PLAIN})
-    public String getFactorySnippet(@PathParam("id") String id, @QueryParam("type") String type, @Context UriInfo uriInfo)
+    public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type,
+                                    @Context UriInfo uriInfo)
             throws FactoryUrlException {
         if (factoryStore.getFactory(id) == null) {
             LOG.error("Factory URL with id {} is not found.", id);
-            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
-        }
-
-        if (type == null || type.isEmpty()) {
-            LOG.error("Snippet type is not found");
-            throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), String.format("Snippet type \"%s\" is unsupported", type));
+            throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
         switch (type) {
@@ -181,7 +220,7 @@ public class FactoryService {
             default:
                 LOG.error("Snippet type {} is unsupported", type);
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
-                                              String.format("Snippet type \"%s\" is unsupported", type));
+                                              String.format("Snippet type \"%s\" is unsupported.", type));
         }
     }
 
@@ -193,6 +232,7 @@ public class FactoryService {
 
 
     private static String generateFactoryUrl(String id, UriInfo uriInfo) {
-        return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory-" + id).build().toString();
+        return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").replaceQuery(null).queryParam("id", id).build()
+                         .toString();
     }
 }

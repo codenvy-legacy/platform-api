@@ -21,6 +21,8 @@ import com.codenvy.api.factory.AdvancedFactoryUrl;
 import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.Image;
 
+import java.util.Set;
+
 /** Interface for CRUD operations with factory data. */
 public interface FactoryStore {
     /**
@@ -28,12 +30,12 @@ public interface FactoryStore {
      *
      * @param factoryUrl
      *         - factory information
-     * @param image
-     *         - factory image
+     * @param images
+     *         - factory images
      * @return - copy of saved data
      * @throws FactoryUrlException
      */
-    public SavedFactoryData saveFactory(AdvancedFactoryUrl factoryUrl, Image image) throws FactoryUrlException;
+    public SavedFactoryData saveFactory(AdvancedFactoryUrl factoryUrl, Set<Image> images) throws FactoryUrlException;
 
     /**
      * Remove factory by id
@@ -53,14 +55,4 @@ public interface FactoryStore {
      * @throws FactoryUrlException
      */
     public SavedFactoryData getFactory(String id) throws FactoryUrlException;
-
-    /**
-     * Retrieve image data by its id
-     *
-     * @param id
-     *         - image id
-     * @return - image if it exist in storage, null otherwise
-     * @throws FactoryUrlException
-     */
-    public Image getImage(String id) throws FactoryUrlException;
 }

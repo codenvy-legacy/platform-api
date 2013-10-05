@@ -30,20 +30,29 @@ import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configurable;
 import com.codenvy.api.core.config.Configuration;
+import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteAccessException;
 import com.codenvy.api.core.rest.RemoteException;
+import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.util.ComponentLoader;
+import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,7 +63,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Accepts all build request and redirects them to the slave-builders. If there is no any available slave-builder at the moment it stores
+ * build request and tries send request again. Requests don't stay in this queue forever. Max time (in minutes) for request to be in the
+ * queue set up by configuration parameter {@link #MAX_TIME_IN_QUEUE}.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @see Configurable
+ * @see Configuration
+ */
 public class BuildQueue implements Configurable, Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
@@ -66,8 +83,8 @@ public class BuildQueue implements Configurable, Lifecycle {
 
     private final BuilderListSorter                          builderListSorter;
     private final ExecutorService                            executor;
-    private final ConcurrentMap<Long, WaitingBuildTask>      tasks;
-    private final Queue<WaitingBuildTask>                    tasksFIFO;
+    private final ConcurrentMap<Long, BuildQueueTask>        tasks;
+    private final Queue<BuildQueueTask>                      tasksFIFO;
     private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
 
     private volatile boolean       maySetConfiguration;
@@ -99,7 +116,7 @@ public class BuildQueue implements Configurable, Lifecycle {
      */
     public int getWaitingNum() {
         int count = 0;
-        for (WaitingBuildTask request : tasks.values()) {
+        for (BuildQueueTask request : tasks.values()) {
             if (request.isWaiting()) {
                 count++;
             }
@@ -177,8 +194,28 @@ public class BuildQueue implements Configurable, Lifecycle {
         return modified;
     }
 
-    public WaitingBuildTask schedule(String workspace, String project) {
-        final BuildRequest request = null; // TODO
+    /**
+     * Schedule new build.
+     *
+     * @param workspace
+     *         name of workspace to which project belongs
+     * @param project
+     *         name of project
+     * @param serviceContext
+     *         ServiceContext
+     * @return BuildQueueTask
+     * @throws RemoteException
+     *         if error occurs when try to get info about project or access slave-builder
+     * @throws IOException
+     *         if an i/o error occurs
+     */
+    public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext)
+            throws RemoteException, IOException {
+        final Project myProject = getProject(workspace, project, serviceContext);
+        final BuildRequest request = DtoFactory.getInstance().createDto(BuildRequest.class);
+        request.setWorkspace(workspace);
+        request.setProject(project);
+        addRequestParameters(myProject, request);
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
@@ -187,7 +224,7 @@ public class BuildQueue implements Configurable, Lifecycle {
             }
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final WaitingBuildTask waiting = new WaitingBuildTask(request, future);
+        final BuildQueueTask waiting = new BuildQueueTask(request, future);
         tasks.put(waiting.getId(), waiting);
         tasksFIFO.offer(waiting);
         purgeExpiredTasks();
@@ -195,8 +232,31 @@ public class BuildQueue implements Configurable, Lifecycle {
         return waiting;
     }
 
-    public WaitingBuildTask schedule(String workspace, String project, String type) throws RemoteException {
-        final DependencyRequest request = null; // TODO
+    /**
+     * Schedule new dependencies analyze.
+     *
+     * @param workspace
+     *         name of workspace to which project belongs
+     * @param project
+     *         name of project
+     * @param type
+     *         type of analyze dependencies. Depends to implementation of slave-builder.
+     * @param serviceContext
+     *         ServiceContext
+     * @return BuildQueueTask
+     * @throws RemoteException
+     *         if error occurs when try to get info about project or access slave-builder
+     * @throws IOException
+     *         if an i/o error occurs
+     */
+    public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
+            throws RemoteException, IOException {
+        final Project myProject = getProject(workspace, project, serviceContext);
+        final DependencyRequest request = DtoFactory.getInstance().createDto(DependencyRequest.class);
+        request.setWorkspace(workspace);
+        request.setProject(project);
+        request.setType(type);
+        addRequestParameters(myProject, request);
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
@@ -205,12 +265,50 @@ public class BuildQueue implements Configurable, Lifecycle {
             }
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final WaitingBuildTask waiting = new WaitingBuildTask(request, future);
+        final BuildQueueTask waiting = new BuildQueueTask(request, future);
         tasks.put(waiting.getId(), waiting);
         tasksFIFO.offer(waiting);
         purgeExpiredTasks();
         executor.execute(future);
         return waiting;
+    }
+
+    private void addRequestParameters(Project project, BaseBuilderRequest request) {
+        request.setSourcesUrl(project.getLinks().get(com.codenvy.api.vfs.shared.dto.Link.REL_EXPORT).getHref());
+        for (Property property : project.getProperties()) {
+            if ("builder.name".equals(property.getName())) {
+                if (!property.getValue().isEmpty()) {
+                    request.setBuilder(property.getValue().get(0));
+                }
+            } else if ("builder.targets".equals(property.getName())) {
+                if (!property.getValue().isEmpty()) {
+                    request.setTargets(property.getValue());
+                }
+            } else if ("builder.options".equals(property.getName())) {
+                if (!property.getValue().isEmpty()) {
+                    final Map<String, String> options = new LinkedHashMap<>();
+                    for (String str : property.getValue()) {
+                        if (str != null) {
+                            final String[] pair = str.split("=");
+                            if (pair.length > 1) {
+                                options.put(pair[0], pair[1]);
+                            } else {
+                                options.put(pair[0], null);
+                            }
+                        }
+                    }
+                    request.setOptions(options);
+                }
+            }
+        }
+    }
+
+    private Project getProject(String workspace, String project, ServiceContext serviceContext) throws IOException, RemoteException {
+        final UriBuilder serviceUriBuilder = serviceContext.getBaseUriBuilder();
+        final String projectUrl = serviceUriBuilder.path(WorkspaceService.class)
+                                                   .path(WorkspaceService.class, "getProject")
+                                                   .build(workspace, project).toString();
+        return HttpJsonHelper.get(Project.class, projectUrl);
     }
 
     private BuilderList getBuilderList(BaseBuilderRequest request) {
@@ -244,7 +342,7 @@ public class BuildQueue implements Configurable, Lifecycle {
         final long timestamp = System.currentTimeMillis();
         int num = 0;
         int waitingNum = 0;
-        WaitingBuildTask current;
+        BuildQueueTask current;
         while ((current = tasksFIFO.peek()) != null && (current.getCreationDate() + maxTimeInQueueMillis) < timestamp) {
             if (current.isWaiting()) {
                 try {
@@ -263,8 +361,8 @@ public class BuildQueue implements Configurable, Lifecycle {
         }
     }
 
-    public WaitingBuildTask get(Long id) throws NoSuchBuildTaskException {
-        final WaitingBuildTask request = tasks.get(id);
+    public BuildQueueTask get(Long id) throws NoSuchBuildTaskException {
+        final BuildQueueTask request = tasks.get(id);
         if (request == null) {
             throw new NoSuchBuildTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
         }

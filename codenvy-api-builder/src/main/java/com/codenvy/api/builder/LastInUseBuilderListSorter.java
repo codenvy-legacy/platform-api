@@ -25,8 +25,8 @@ import java.util.List;
 public class LastInUseBuilderListSorter implements BuilderListSorter, Comparator<RemoteBuilder> {
 
     @Override
-    public void sort(List<RemoteBuilder> candidates) {
-        Collections.sort(candidates, this);
+    public void sort(List<RemoteBuilder> remoteBuilders) {
+        Collections.sort(remoteBuilders, this);
     }
 
     @Override

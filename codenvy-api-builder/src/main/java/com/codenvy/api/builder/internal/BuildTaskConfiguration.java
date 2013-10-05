@@ -30,7 +30,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * factory for configuration of BuildTask.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
 public class BuildTaskConfiguration {
     public static BuildTaskConfiguration newBuildConfiguration(Builder builder, BuildRequest request) throws IOException {
         final RemoteContent sources = RemoteContent.of(createSrcDirectory(builder.getRepository(), request), request.getSourcesUrl());
@@ -40,7 +44,10 @@ public class BuildTaskConfiguration {
     public static BuildTaskConfiguration newDependencyAnalysisConfiguration(Builder builder, DependencyRequest request)
             throws IOException, BuilderException {
         final RemoteContent sources = RemoteContent.of(createSrcDirectory(builder.getRepository(), request), request.getSourcesUrl());
-        final String type = request.getType();
+        String type = request.getType();
+        if (type == null) {
+            type = "list";
+        }
         final BuilderTaskType taskType;
         switch (type) {
             case "copy":

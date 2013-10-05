@@ -20,6 +20,7 @@ package com.codenvy.api.core.rest;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.dto.server.JsonSerializable;
 
@@ -89,13 +90,31 @@ public class HttpJsonHelper {
                 }
             }
 
+            final int responseCode = conn.getResponseCode();
+            if ((responseCode / 100) != 2) {
+                InputStream in = conn.getErrorStream();
+                if (in == null) {
+                    in = conn.getInputStream();
+                }
+                final String str = IoUtil.readAndCloseQuietly(in);
+                final String contentType = conn.getContentType();
+                if (contentType.startsWith("application/json")) {
+                    final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
+                    if (serviceError.getMessage() != null) {
+                        // Error is in format what we can understand.
+                        throw new RemoteException(serviceError);
+                    }
+                }
+                // Can't parse content as json or content has format other we expect for error.
+                throw new RemoteAccessException(
+                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", url, method, responseCode, str));
+            }
+            final String contentType = conn.getContentType();
+            if (!contentType.startsWith("application/json")) {
+                throw new RemoteAccessException("Unsupported type of response from remote server. ");
+            }
             try (InputStream input = conn.getInputStream()) {
                 return DtoFactory.getInstance().createDtoFromJson(input, dtoInterface);
-            } catch (IOException e) {
-                try (InputStream err = conn.getErrorStream()) {
-                    final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(err, ServiceError.class);
-                    throw (RemoteException)new RemoteException(serviceError).initCause(e);
-                }
             }
         } finally {
             conn.disconnect();

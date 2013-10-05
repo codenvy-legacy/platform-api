@@ -37,8 +37,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class WaitingBuildTask {
+/**
+ * Wrapper for RemoteBuildTask.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+public class BuildQueueTask {
     private static final AtomicLong sequence = new AtomicLong(1);
 
     private final Long                    id;
@@ -48,17 +52,27 @@ public class WaitingBuildTask {
 
     private RemoteBuildTask remote;
 
-    WaitingBuildTask(BaseBuilderRequest request, Future<RemoteBuildTask> future) {
+    BuildQueueTask(BaseBuilderRequest request, Future<RemoteBuildTask> future) {
         id = sequence.getAndIncrement();
         since = System.currentTimeMillis();
         this.future = future;
         this.request = request;
     }
 
+    /**
+     * Get unique id of this task.
+     *
+     * @return unique id of this task
+     */
     public Long getId() {
         return id;
     }
 
+    /**
+     * Reports that the task was interrupted.
+     *
+     * @return {@code true} if task was interrupted and {@code false} otherwise
+     */
     public boolean isCancelled() throws IOException, RemoteException {
         if (future.isCancelled()) {
             return true;
@@ -71,14 +85,31 @@ public class WaitingBuildTask {
         return remoteTask.getStatus().getStatus() == BuildStatus.CANCELLED;
     }
 
+    /**
+     * Reports that the task is waiting in the BuildQueue.
+     *
+     * @return {@code true} if task is waiting and {@code false} if the build process already started on remote slave-builder
+     */
     public boolean isWaiting() {
         return !future.isDone();
     }
 
+    /** Get date when this task was created. */
     public long getCreationDate() {
         return since;
     }
 
+    /**
+     * Cancel this task. If task already started then we ask remote slave-builder to stop it otherwise just remote this task from the
+     * BuildQueue.
+     *
+     * @throws RemoteException
+     *         if an error occurs when ask remote slave-builder interrupt build process
+     * @throws IOException
+     *         if an i/o error occurs
+     * @throws BuilderException
+     *         if other error occurs
+     */
     public void cancel() throws IOException, RemoteException, BuilderException {
         if (future.isCancelled()) {
             return;
@@ -90,6 +121,14 @@ public class WaitingBuildTask {
         }
     }
 
+    /**
+     * Get status of this task.
+     *
+     * @throws RemoteException
+     *         if an error occurs when ask remote slave-builder about status
+     * @throws IOException
+     *         if an i/o error occurs
+     */
     public BuildTaskDescriptor getStatus(ServiceContext restfulRequestContext) throws RemoteException, IOException {
         final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         if (isWaiting()) {
@@ -205,7 +244,7 @@ public class WaitingBuildTask {
 
     @Override
     public String toString() {
-        return "WaitingBuildTask{" +
+        return "BuildQueueTask{" +
                "id=" + id +
                ", request=" + request +
                '}';

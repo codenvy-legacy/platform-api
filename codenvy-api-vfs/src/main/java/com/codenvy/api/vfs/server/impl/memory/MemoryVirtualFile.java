@@ -943,6 +943,15 @@ public class MemoryVirtualFile implements VirtualFile {
                 }
                 zip.closeEntry();
             }
+            SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
+            if (searcherProvider != null) {
+                try {
+                    searcherProvider.getSearcher(mountPoint, true).add(this);
+                } catch (VirtualFileSystemException e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+
         } catch (RuntimeException e) {
             throw new VirtualFileSystemException(e.getMessage(), e);
         } finally {

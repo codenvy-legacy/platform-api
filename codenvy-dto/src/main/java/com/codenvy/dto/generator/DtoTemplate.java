@@ -23,8 +23,10 @@ import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -51,6 +53,9 @@ public class DtoTemplate {
             Arrays.asList(new Class<?>[]{String.class, Integer.class, Double.class, Float.class, Boolean.class}));
 
     private final List<DtoImpl> dtoInterfaces = new ArrayList<DtoImpl>();
+
+    // contains mapping for already implemented DTO interfaces
+    private final Map<Class<?>, Class<?>> implementedDtoInterfaces = new HashMap<Class<?>, Class<?>>();
 
     private final String packageName;
 
@@ -116,6 +121,16 @@ public class DtoTemplate {
         this.className = className;
         this.apiHash = apiHash;
         this.isServerType = isServerType;
+    }
+
+    public void addImplementation(Class<?> dtoInterface, Class<?> impl) {
+        implementedDtoInterfaces.put(dtoInterface, impl);
+    }
+
+    /** Some DTO interfaces may be already implemented in dependencies of current project. Try to reuse them. If this method returns
+     * <code>null</code> it means interface is not implemented yet. */
+    public Class<?> getDtoImplementation(Class<?> dtoInterface) {
+        return implementedDtoInterfaces.get(dtoInterface);
     }
 
     /**

@@ -237,7 +237,7 @@ public interface VirtualFileSystem {
      *         if user which perform operation has no permissions to do it
      * @throws VirtualFileSystemException
      *         if any other errors occur
-     * @see com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl#getAclCapability()
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getAclCapability()
      */
     @GET
     @Path("acl")
@@ -286,7 +286,7 @@ public interface VirtualFileSystem {
      *         </ul>
      * @param includePermissions
      *         if <code>true</code> add permissions for current user for each item. See {@link
-     *         com.codenvy.api.vfs.shared.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
+     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
      *         implementation specific.
      * @param propertyFilter
      *         only properties which are accepted by filter should be included in response. See
@@ -327,7 +327,7 @@ public interface VirtualFileSystem {
      *         depth for discover children if -1 then children at all levels
      * @param includePermissions
      *         if <code>true</code> add permissions for current user for each item. See {@link
-     *         com.codenvy.api.vfs.shared.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
+     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
      *         implementation specific.
      * @param propertyFilter
      *         only properties which are accepted by filter should be included in response. See
@@ -423,7 +423,7 @@ public interface VirtualFileSystem {
      *         id of item
      * @param includePermissions
      *         if <code>true</code> add permissions for current user in item description. See {@link
-     *         com.codenvy.api.vfs.shared.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
+     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
      *         implementation specific.
      * @param propertyFilter
      *         only properties which are accepted by filter should be included in response. See
@@ -451,7 +451,7 @@ public interface VirtualFileSystem {
      *         version id for File item. Pass <code>null</code> to get last version. Must be <code>null</code> for Folders.
      * @param includePermissions
      *         if <code>true</code> add permissions for current user in item description. See {@link
-     *         com.codenvy.api.vfs.shared.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
+     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
      *         implementation specific.
      * @param propertyFilter
      *         only properties which are accepted by filter should be included in response. See
@@ -600,7 +600,7 @@ public interface VirtualFileSystem {
      *         if user which perform operation has no permissions to do it
      * @throws VirtualFileSystemException
      *         if any other errors occur
-     * @see com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl#isLockSupported()
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#isLockSupported()
      */
     @POST
     @Path("lock")
@@ -706,7 +706,7 @@ public interface VirtualFileSystem {
      *         </ul>
      * @throws VirtualFileSystemException
      *         if any other errors occur
-     * @see com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl#getQueryCapability()
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getQueryCapability()
      */
     @POST
     @Path("search")
@@ -735,7 +735,7 @@ public interface VirtualFileSystem {
      *         </ul>
      * @throws VirtualFileSystemException
      *         if any other errors occur
-     * @see com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl#getQueryCapability()
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getQueryCapability()
      */
     @GET
     @Path("search")
@@ -799,7 +799,7 @@ public interface VirtualFileSystem {
      *         if user which perform operation has no permissions to do it
      * @throws VirtualFileSystemException
      *         if any other errors occur
-     * @see com.codenvy.api.vfs.shared.VirtualFileSystemInfoImpl#getAclCapability()
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getAclCapability()
      */
     @POST
     @Path("acl")

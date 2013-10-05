@@ -78,6 +78,11 @@ public abstract class Service {
             public UriBuilder getServiceUriBuilder() {
                 return uriInfo.getBaseUriBuilder().path(serviceClass);
             }
+
+            @Override
+            public UriBuilder getBaseUriBuilder() {
+                return uriInfo.getBaseUriBuilder();
+            }
         };
     }
 

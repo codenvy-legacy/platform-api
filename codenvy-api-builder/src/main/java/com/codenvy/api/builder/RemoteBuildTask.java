@@ -56,7 +56,7 @@ public class RemoteBuildTask {
      *         if get a response from remote API which may not be parsed to BuildTaskDescriptor
      * @throws java.io.IOException
      *         if any i/o error occurs when try to access remote builder
-     * @throws com.codenvy.api.core.rest.RemoteException
+     * @throws RemoteException
      *         if some other error occurs on remote server
      */
     public BuildTaskDescriptor getStatus() throws IOException, RemoteException {
@@ -70,7 +70,7 @@ public class RemoteBuildTask {
      * @return status of remote build process after the call
      * @throws java.io.IOException
      *         if any i/o error occurs when try to access remote builder
-     * @throws com.codenvy.api.core.rest.RemoteException
+     * @throws RemoteException
      *         if some other error occurs on remote server
      */
     public BuildTaskDescriptor cancel() throws IOException, RemoteException, BuilderException {
@@ -81,6 +81,16 @@ public class RemoteBuildTask {
         return HttpJsonHelper.request(BuildTaskDescriptor.class, link);
     }
 
+    /**
+     * Read logs of remote build process.
+     *
+     * @throws RemoteException
+     *         if some other error occurs on remote server
+     * @throws IOException
+     *         if an i/o error occurs
+     * @throws BuilderException
+     *         if other error occurs
+     */
     public void readLogs(ProxyResponse proxyResponse) throws IOException, RemoteException, BuilderException {
         final Link link = getLink(Constants.LINK_REL_VIEW_LOG);
         if (link == null) {
@@ -89,6 +99,16 @@ public class RemoteBuildTask {
         proxyRequest(link.getHref(), link.getMethod(), proxyResponse);
     }
 
+    /**
+     * Read report file of remote build process.
+     *
+     * @throws RemoteException
+     *         if some other error occurs on remote server
+     * @throws IOException
+     *         if an i/o error occurs
+     * @throws BuilderException
+     *         if other error occurs
+     */
     public void readReport(ProxyResponse proxyResponse) throws IOException, BuilderException, RemoteException {
         final Link link = getLink(Constants.LINK_REL_VIEW_REPORT);
         if (link == null) {
@@ -97,6 +117,12 @@ public class RemoteBuildTask {
         proxyRequest(link.getHref(), link.getMethod(), proxyResponse);
     }
 
+    /**
+     * Download result of remote build process.
+     *
+     * @throws IOException
+     *         if an i/o error occurs
+     */
     public void download(String path, ProxyResponse proxyResponse) throws IOException {
         //"download/{builder}/{id}?path={path}"
         proxyRequest(baseUrl + "/download/" + builder + '/' + taskId + "?path=" + path, "GET", proxyResponse);

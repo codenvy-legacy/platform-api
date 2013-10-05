@@ -20,7 +20,12 @@ package com.codenvy.api.builder;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Proxies response from slave-builder to the client. It helps to avoid download response from slave-builder and resent info to the client.
+ * Instead implementation of this interface may pump information from the slave-builder directly to the client.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
 public interface ProxyResponse {
     void setStatus(int status);
 

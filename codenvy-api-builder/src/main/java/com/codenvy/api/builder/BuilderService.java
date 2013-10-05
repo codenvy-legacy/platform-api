@@ -44,7 +44,11 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * RESTful frontend for BuildQueue.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 @Path("api/{ws-name}/builder")
 public final class BuilderService extends Service {
     @Inject
@@ -56,7 +60,7 @@ public final class BuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@PathParam("ws-name") String workspace,
                                      @PathParam("project") String project) throws Exception {
-        return buildQueue.schedule(workspace, project).getStatus(getServiceContext());
+        return buildQueue.scheduleBuild(workspace, project, getServiceContext()).getStatus(getServiceContext());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
@@ -68,7 +72,7 @@ public final class BuilderService extends Service {
                                             @PathParam("project") String project,
                                             @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
             throws Exception {
-        return buildQueue.schedule(workspace, project, analyzeType).getStatus(getServiceContext());
+        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getStatus(getServiceContext());
     }
 
     @GET

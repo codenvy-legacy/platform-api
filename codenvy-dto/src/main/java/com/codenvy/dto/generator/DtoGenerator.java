@@ -18,7 +18,9 @@ import com.codenvy.dto.shared.DTO;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 
+import org.reflections.Configuration;
 import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
@@ -142,15 +144,30 @@ public class DtoGenerator {
             }
 
             DtoTemplate dtoTemplate = new DtoTemplate(packageName, className, getApiHash(sb.toString()), impl.equals(SERVER));
-            Reflections reflection =
-                    new Reflections(new ConfigurationBuilder().setUrls(urls).setScanners(new TypeAnnotationsScanner()));
-            List<Class<?>> classes = new ArrayList<>(reflection.getTypesAnnotatedWith(DTO.class));
+            Reflections reflection = new Reflections(new ConfigurationBuilder().setUrls(urls).setScanners(new TypeAnnotationsScanner()));
+            List<Class<?>> dtos = new ArrayList<>(reflection.getTypesAnnotatedWith(DTO.class));
 
             // We sort alphabetically to ensure deterministic order of routing types.
-            Collections.sort(classes, new ClassesComparator());
+            Collections.sort(dtos, new ClassesComparator());
 
-            for (Class clazz : classes) {
+            for (Class<?> clazz : dtos) {
                 dtoTemplate.addInterface(clazz);
+            }
+
+            reflection = new Reflections(
+                    new ConfigurationBuilder().setUrls(ClasspathHelper.forClassLoader()).setScanners(new TypeAnnotationsScanner()));
+            List<Class<?>> dtosDependencies = new ArrayList<>(reflection.getTypesAnnotatedWith(DTO.class));
+            dtosDependencies.removeAll(dtos);
+
+            reflection = new Reflections(
+                    new ConfigurationBuilder().setUrls(ClasspathHelper.forClassLoader()).setScanners(new SubTypesScanner()));
+
+            for (Class<?> clazz : dtosDependencies) {
+                for (Class impl : reflection.getSubTypesOf(clazz)) {
+                    if (!(impl.isInterface() || urls.contains(impl.getProtectionDomain().getCodeSource().getLocation()))) {
+                        dtoTemplate.addImplementation(clazz, impl);
+                    }
+                }
             }
 
             // Emit the generated file.

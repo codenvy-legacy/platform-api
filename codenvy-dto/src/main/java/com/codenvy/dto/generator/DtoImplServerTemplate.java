@@ -30,10 +30,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 /** Generates the source code for a generated Server DTO impl. */
@@ -322,13 +325,18 @@ public class DtoImplServerTemplate extends DtoImpl {
             builder.append(i).append("JsonElement ").append(outVar).append(" = ").append(inVar).append(
                     " == null ? JsonNull.INSTANCE : ((").append(getImplNameForDto((Class<?>)expandedTypes.get(depth))).append(")")
                    .append(inVar).append(").toJsonElement();\n");
-
         } else if (rawClass.equals(String.class)) {
             builder.append(i).append("JsonElement ").append(outVar).append(" = (").append(inVar).append(
                     " == null) ? JsonNull.INSTANCE : new JsonPrimitive(").append(inVar).append(");\n");
         } else {
-            builder.append(i).append("JsonPrimitive ").append(outVar).append(" = new JsonPrimitive(").append(inVar).append(
-                    ");\n");
+            final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
+            if (dtoImplementation != null) {
+                builder.append(i).append("JsonElement ").append(outVar).append(" = ").append(inVar).append(
+                        " == null ? JsonNull.INSTANCE : ((").append(dtoImplementation.getCanonicalName()).append(")")
+                       .append(inVar).append(").toJsonElement();\n");
+            } else {
+                builder.append(i).append("JsonPrimitive ").append(outVar).append(" = new JsonPrimitive(").append(inVar).append(");\n");
+            }
         }
 
         if (depth + 1 < expandedTypes.size()) {
@@ -485,10 +493,17 @@ public class DtoImplServerTemplate extends DtoImpl {
             builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(
                     ".getAs").append(primitiveNameCap).append("();\n");
         } else {
-            // Use gson to handle all other types.
-            String rawClassName = rawClass.getName().replace('$', '.');
-            builder.append(i).append(rawClassName).append(" ").append(outVar).append(" = gson.fromJson(").append(
-                    inVar).append(", ").append(rawClassName).append(".class);\n");
+            final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
+            if (dtoImplementation != null) {
+                String className = getImplName(rawClass, false);
+                builder.append(i).append(className).append(" ").append(outVar).append(" = ")
+                       .append(dtoImplementation.getCanonicalName()).append(".fromJsonElement(").append(inVar).append(");\n");
+            } else {
+                // Use gson to handle all other types.
+                String rawClassName = rawClass.getName().replace('$', '.');
+                builder.append(i).append(rawClassName).append(" ").append(outVar).append(" = gson.fromJson(").append(
+                        inVar).append(", ").append(rawClassName).append(".class);\n");
+            }
         }
     }
 
@@ -649,25 +664,20 @@ public class DtoImplServerTemplate extends DtoImpl {
         String dtoInterface = getDtoInterface().getCanonicalName();
         String implClassName = getImplClassName();
         builder.append("    public ").append(implClassName).append("(").append(dtoInterface).append(" origin) {\n");
-        builder.append("      ").append(implClassName).append(" copy = new ").append(implClassName).append("();\n");
         for (Method method : getters) {
-//            String fieldName = getFieldName(method.getName());
             emitDeepCopyForField(expandType(method.getGenericReturnType()), 0, builder, "origin", method, "      ");
         }
         builder.append("    }\n\n");
     }
 
     private List<Method> getDtoGetters(Class<?> dtoInterface) {
-        List<Method> methodsToInclude = new ArrayList<Method>();
-        for (Method m : dtoInterface.getDeclaredMethods()) {
-            if (isDtoGetter(m)) {
-                methodsToInclude.add(m);
-            }
+        if (!getEnclosingTemplate().isDtoInterface(dtoInterface)) {
+            return Collections.emptyList();
         }
-
-        Class<?>[] superInterfaces = dtoInterface.getInterfaces();
-        // Collect methods on parent interfaces
-        for (Class<?> parent : superInterfaces) {
+        Set<Class<?>> allInterfaces = new LinkedHashSet<Class<?>>();
+        getAllInterfaces(dtoInterface, allInterfaces);
+        List<Method> methodsToInclude = new ArrayList<Method>();
+        for (Class<?> parent : allInterfaces) {
             if (getEnclosingTemplate().isDtoInterface(parent)) {
                 for (Method m : parent.getDeclaredMethods()) {
                     if (isDtoGetter(m)) {
@@ -679,19 +689,26 @@ public class DtoImplServerTemplate extends DtoImpl {
         return methodsToInclude;
     }
 
+    private static void getAllInterfaces(Class<?> parent, Set<Class<?>> found) {
+        found.add(parent);
+        Class<?>[] interfaces = parent.getInterfaces();
+        for (Class<?> i : interfaces) {
+            if (found.add(i)) {
+                getAllInterfaces(i, found);
+            }
+        }
+    }
+
     private void emitDeepCopyForField(List<Type> expandedTypes,
                                       int depth,
                                       StringBuilder builder,
                                       String originName,
                                       Method getter,
-//                                      String varName,
                                       String i) {
         String getterName = getter.getName();
         String fieldName = getFieldName(getterName);
         Type type = expandedTypes.get(depth);
-//        String thisVarName = "this_" + varName;
         String childName = fieldName + depth; // for collections children
-//        String thisCopyChildVarName = "this_" + childVarName;
         String entryVar = "entry" + depth;
         Class<?> rawClass = getRawClass(type);
         Class<?> childRawType = null;
@@ -699,33 +716,17 @@ public class DtoImplServerTemplate extends DtoImpl {
         if (isJsonArray(rawClass)) {
             childRawType = getRawClass(expandedTypes.get(depth + 1));
             String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
-//            String thisListName;
-//            String originListName = originName + "_" + varName;
-            if (depth == 0) {
-//                thisListName = "this." + varName;
-//                builder.append(i).append(thisListName).append(" = null;\n");
-            } else {
-//                thisListName = thisVarName;
-//                builder.append(i).append(getImplName(type, false)).append(" ").append(thisListName).append(" = null;\n");
-            }
-//            builder.append(i).append(originListName).append(" = ").append(originName).append(".").append(varName).append(";\n");
             builder.append(i).append("if (").append(originName).append(".").append(getterName).append("() != null) {\n");
-            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true)).append("();\n");
+            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true))
+                   .append("();\n");
             builder.append(i).append("  for (").append(childTypeName).append(" ").append(childName)
                    .append(" : ").append(originName).append(".").append(getterName).append("()) {\n");
         } else if (isJsonStringMap(rawClass)) {
             childRawType = getRawClass(expandedTypes.get(depth + 1));
             String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
-//            String mapName;
-//            if (depth == 0) {
-//                mapName = "this." + varName;
-//                builder.append(i).append(mapName).append(" = null;\n");
-//            } else {
-//                mapName = thisVarName;
-//                builder.append(i).append(getImplName(type, false)).append(" ").append(mapName).append(" = null;\n");
-//            }
             builder.append(i).append("if (").append(originName).append(".").append(getterName).append("() != null) {\n");
-            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true)).append("();\n");
+            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true))
+                   .append("();\n");
             builder.append(i).append("  for (java.util.Map.Entry<String, ").append(childTypeName).append("> ").append(
                     entryVar).append(" : ").append(originName).append(".").append(getterName).append("().entrySet()) {\n");
             builder.append(i).append("    ").append(childTypeName).append(" ").append(childName).append(" = ").append(

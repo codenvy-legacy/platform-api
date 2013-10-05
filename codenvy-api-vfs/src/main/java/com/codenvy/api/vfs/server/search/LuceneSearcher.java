@@ -253,12 +253,12 @@ public abstract class LuceneSearcher implements Searcher{
         LOG.debug("Indexed {} files from {}", indexedFiles, tree.getPath());
     }
 
-    protected void addFile(VirtualFile file) throws VirtualFileSystemException {
-        if (file.exists()) {
+    protected void addFile(VirtualFile virtualFile) throws VirtualFileSystemException {
+        if (virtualFile.exists()) {
             Reader fContentReader = null;
             try {
-                fContentReader = new BufferedReader(new InputStreamReader(file.getContent().getStream()));
-                luceneIndexWriter.addDocument(createDocument(file, fContentReader));
+                fContentReader = new BufferedReader(new InputStreamReader(virtualFile.getContent().getStream()));
+                luceneIndexWriter.updateDocument(new Term("path", virtualFile.getPath()), createDocument(virtualFile, fContentReader));
             } catch (OutOfMemoryError oome) {
                 close();
                 throw oome;

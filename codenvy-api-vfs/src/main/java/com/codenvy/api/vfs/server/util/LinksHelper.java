@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class for creation links. See {@link com.codenvy.api.vfs.shared.Item#getLinks()}
+ * Helper class for creation links. See {@link com.codenvy.api.vfs.shared.dto.Item#getLinks()}
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */

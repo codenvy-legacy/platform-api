@@ -29,6 +29,7 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.QueryCapability;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.net.URI;
@@ -68,7 +69,8 @@ public class MemoryFileSystem extends VirtualFileSystemImpl {
         vfsInfo.setPermissions(permissions);
         vfsInfo.setAclCapability(ACLCapability.MANAGE);
         vfsInfo.setQueryCapability(QueryCapability.FULLTEXT);
-        vfsInfo.setUrlTemplates(LinksHelper.createUrlTemplates(baseUri, vfsId));
+        vfsInfo.setUrlTemplates(LinksHelper.createUrlTemplates(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
+                EnvironmentContext.WORKSPACE_NAME)));
         vfsInfo.setRoot(root);
         return vfsInfo;
     }

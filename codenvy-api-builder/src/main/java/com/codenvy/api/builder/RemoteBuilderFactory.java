@@ -29,7 +29,12 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import java.io.IOException;
 import java.util.List;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Factory for RemoteBuilder. See {@link RemoteBuilder} about usage of this class.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @see RemoteBuilder
+ */
 public class RemoteBuilderFactory extends RemoteServiceDescriptor {
 
     public RemoteBuilderFactory(String baseUrl) {

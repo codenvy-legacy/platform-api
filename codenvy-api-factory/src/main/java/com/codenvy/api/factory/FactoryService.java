@@ -19,6 +19,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.store.FactoryStore;
 import com.codenvy.api.factory.store.SavedFactoryData;
+import com.codenvy.commons.lang.NameGenerator;
 
 import org.everrest.core.impl.provider.json.JsonException;
 import org.everrest.core.impl.provider.json.JsonParser;
@@ -88,7 +89,7 @@ public class FactoryService {
                             throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Wrong size of image.");
                         }
                         images.add(new Image(((DataBufferByte)bufferedImage.getRaster().getDataBuffer()).getData(), part.getContentType(),
-                                             part.getHeader("content-disposition")));
+                                             NameGenerator.generate(null, 16)));
                     }
                 }
             }

@@ -83,6 +83,8 @@ public class FactoryService {
                         int read = 0;
                         while ((read = inputStream.read(buffer, 0, buffer.length)) != -1) {
                             baos.write(buffer, 0, read);
+                            if (baos.size() > 1024*1024)
+                                throw new IOException("Maximum upload size exceeded.");
                         }
                         baos.flush();
 

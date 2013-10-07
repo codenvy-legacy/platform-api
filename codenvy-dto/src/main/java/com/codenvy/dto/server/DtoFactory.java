@@ -115,6 +115,13 @@ public final class DtoFactory {
         return (T)provider.clone(origin);
     }
 
+    public <T> String toJson(T dto) {
+        if (dto instanceof JsonSerializable) {
+            return ((JsonSerializable)dto).toJson();
+        }
+        throw new IllegalArgumentException("JsonSerializable instance required. ");
+    }
+
     /**
      * Creates new instance of class which implements specified DTO interface.
      *

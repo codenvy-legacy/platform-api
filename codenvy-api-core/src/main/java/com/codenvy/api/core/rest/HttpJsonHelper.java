@@ -22,7 +22,6 @@ import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.dto.server.JsonSerializable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +37,7 @@ import java.net.URLEncoder;
  */
 public class HttpJsonHelper {
 
-    public static <DTO> DTO request(Class<DTO> dtoInterface, Link link, JsonSerializable body, Pair<String, ?>... parameters)
+    public static <DTO> DTO request(Class<DTO> dtoInterface, Link link, Object body, Pair<String, ?>... parameters)
             throws IOException, RemoteException {
         return request(dtoInterface, link.getHref(), link.getMethod(), body, parameters);
     }
@@ -57,7 +56,7 @@ public class HttpJsonHelper {
     public static <DTO> DTO request(Class<DTO> dtoInterface,
                                     String url,
                                     String method,
-                                    JsonSerializable body,
+                                    Object body,
                                     Pair<String, ?>... parameters) throws IOException, RemoteException {
         if (parameters != null && parameters.length > 0) {
             final StringBuilder sb = new StringBuilder();
@@ -86,7 +85,7 @@ public class HttpJsonHelper {
                 conn.addRequestProperty("content-type", "application/json");
                 conn.setDoOutput(true);
                 try (OutputStream output = conn.getOutputStream()) {
-                    output.write(body.toJson().getBytes());
+                    output.write(DtoFactory.getInstance().toJson(body).getBytes());
                 }
             }
 
@@ -125,7 +124,7 @@ public class HttpJsonHelper {
         return request(dtoInterface, url, "GET", null, parameters);
     }
 
-    public static <DTO> DTO post(Class<DTO> dtoInterface, String url, JsonSerializable body, Pair<String, ?>... parameters)
+    public static <DTO> DTO post(Class<DTO> dtoInterface, String url, Object body, Pair<String, ?>... parameters)
             throws IOException, RemoteException {
         return request(dtoInterface, url, "POST", body, parameters);
     }

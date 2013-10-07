@@ -30,7 +30,6 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.dto.server.JsonSerializable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -111,7 +110,7 @@ public class RemoteBuilder {
     }
 
     private RemoteBuildTask doRequest(Link link, BaseBuilderRequest request) throws IOException, RemoteException {
-        final BuildTaskDescriptor build = HttpJsonHelper.request(BuildTaskDescriptor.class, link, (JsonSerializable)request);
+        final BuildTaskDescriptor build = HttpJsonHelper.request(BuildTaskDescriptor.class, link, request);
         lastUsage = System.currentTimeMillis();
         return new RemoteBuildTask(baseUrl, request.getBuilder(), build.getTaskId());
     }

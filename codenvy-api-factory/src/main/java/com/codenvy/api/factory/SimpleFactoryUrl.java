@@ -26,14 +26,14 @@ public class SimpleFactoryUrl {
     // mandatory parameters
     private String version;
     private String vcs;
-    private String vcsUrl;
-    private String commitId;
+    private String vcsurl;
+    private String commitid;
 
     // optional parameters
     private String action;
-    private String openFile;
-    private boolean keepVcsInfo = false;
-    private Map<String, String> projectAttributes = Collections.emptyMap();
+    private String openfile;
+    private boolean keepvcsinfo = false;
+    private Map<String, String> projectattributes = Collections.emptyMap();
 
     public SimpleFactoryUrl() {
     }
@@ -42,11 +42,11 @@ public class SimpleFactoryUrl {
                             Map<String, String> projectAttributes) {
         this.version = version;
         this.vcs = vcs;
-        this.vcsUrl = vcsUrl;
-        this.commitId = commitId;
+        this.vcsurl = vcsUrl;
+        this.commitid = commitId;
         this.action = action;
-        this.openFile = openFile;
-        this.keepVcsInfo = keepVcsInfo;
+        this.openfile = openFile;
+        this.keepvcsinfo = keepVcsInfo;
 
         setProjectattributes(projectAttributes);
     }
@@ -59,29 +59,26 @@ public class SimpleFactoryUrl {
         this.vcs = vcs;
     }
 
-    // Method mame should be lowercased to use correctly from json builder.
     public void setVcsurl(String vcsUrl) {
-        this.vcsUrl = vcsUrl;
+        this.vcsurl = vcsUrl;
     }
 
-    // Method mame should be lowercased to use correctly from json builder.
     public void setCommitid(String commitId) {
-        this.commitId = commitId;
+        this.commitid = commitId;
     }
 
     public void setAction(String action) {
         this.action = action;
     }
 
-    // Method mame should be lowercased to use correctly from json builder.
     public void setOpenfile(String openFile) {
-        this.openFile = openFile;
+        this.openfile = openFile;
     }
 
     // Method mame should be lowercased to use correctly from json builder.
     public void setProjectattributes(Map<String, String> projectAttributes) {
         if (projectAttributes != null) {
-            this.projectAttributes = new LinkedHashMap<>(projectAttributes);
+            this.projectattributes = new LinkedHashMap<>(projectAttributes);
         }
     }
 
@@ -93,12 +90,12 @@ public class SimpleFactoryUrl {
         return vcs;
     }
 
-    public String getVcsUrl() {
-        return vcsUrl;
+    public String getVcsurl() {
+        return vcsurl;
     }
 
-    public String getCommitId() {
-        return commitId;
+    public String getCommitid() {
+        return commitid;
     }
 
     public String getAction() {
@@ -106,20 +103,20 @@ public class SimpleFactoryUrl {
     }
 
 
-    public String getOpenFile() {
-        return openFile;
+    public String getOpenfile() {
+        return openfile;
     }
 
     public boolean getKeepvcsinfo() {
-        return keepVcsInfo;
+        return keepvcsinfo;
     }
 
     public void setKeepvcsinfo(boolean keepVcsInfo) {
-        this.keepVcsInfo = keepVcsInfo;
+        this.keepvcsinfo = keepVcsInfo;
     }
 
-    public Map<String, String> getProjectAttributes() {
-        return Collections.unmodifiableMap(projectAttributes);
+    public Map<String, String> getProjectattributes() {
+        return Collections.unmodifiableMap(projectattributes);
     }
 
     @Override
@@ -129,13 +126,13 @@ public class SimpleFactoryUrl {
 
         SimpleFactoryUrl that = (SimpleFactoryUrl)o;
 
-        if (keepVcsInfo != that.keepVcsInfo) return false;
+        if (keepvcsinfo != that.keepvcsinfo) return false;
         if (action != null ? !action.equals(that.action) : that.action != null) return false;
-        if (commitId != null ? !commitId.equals(that.commitId) : that.commitId != null) return false;
-        if (openFile != null ? !openFile.equals(that.openFile) : that.openFile != null) return false;
-        if (projectAttributes != null ? !projectAttributes.equals(that.projectAttributes) : that.projectAttributes != null) return false;
+        if (commitid != null ? !commitid.equals(that.commitid) : that.commitid != null) return false;
+        if (openfile != null ? !openfile.equals(that.openfile) : that.openfile != null) return false;
+        if (projectattributes != null ? !projectattributes.equals(that.projectattributes) : that.projectattributes != null) return false;
         if (vcs != null ? !vcs.equals(that.vcs) : that.vcs != null) return false;
-        if (vcsUrl != null ? !vcsUrl.equals(that.vcsUrl) : that.vcsUrl != null) return false;
+        if (vcsurl != null ? !vcsurl.equals(that.vcsurl) : that.vcsurl != null) return false;
         if (version != null ? !version.equals(that.version) : that.version != null) return false;
 
         return true;
@@ -145,12 +142,12 @@ public class SimpleFactoryUrl {
     public int hashCode() {
         int result = version != null ? version.hashCode() : 0;
         result = 31 * result + (vcs != null ? vcs.hashCode() : 0);
-        result = 31 * result + (vcsUrl != null ? vcsUrl.hashCode() : 0);
-        result = 31 * result + (commitId != null ? commitId.hashCode() : 0);
+        result = 31 * result + (vcsurl != null ? vcsurl.hashCode() : 0);
+        result = 31 * result + (commitid != null ? commitid.hashCode() : 0);
         result = 31 * result + (action != null ? action.hashCode() : 0);
-        result = 31 * result + (openFile != null ? openFile.hashCode() : 0);
-        result = 31 * result + (keepVcsInfo ? 1 : 0);
-        result = 31 * result + (projectAttributes != null ? projectAttributes.hashCode() : 0);
+        result = 31 * result + (openfile != null ? openfile.hashCode() : 0);
+        result = 31 * result + (keepvcsinfo ? 1 : 0);
+        result = 31 * result + (projectattributes != null ? projectattributes.hashCode() : 0);
         return result;
     }
 }

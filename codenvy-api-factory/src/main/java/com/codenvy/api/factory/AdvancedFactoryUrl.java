@@ -27,10 +27,10 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     private String id;
     private String style;
     private String description;
-    private String contactMail;
+    private String contactmail;
     private String author;
-    private String orgId;
-    private String affiliateId;
+    private String orgid;
+    private String affiliateid;
     private Set<Link> links = new LinkedHashSet<>();
 
     public AdvancedFactoryUrl() {
@@ -43,17 +43,17 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     }
 
     public AdvancedFactoryUrl(AdvancedFactoryUrl originFactory, Set<Link> links) {
-        super(originFactory.getVersion(), originFactory.getVcs(), originFactory.getVcsUrl(),
-              originFactory.getCommitId(), originFactory.getAction(), originFactory.getOpenFile(), originFactory.getKeepvcsinfo(),
-              originFactory.getProjectAttributes());
+        super(originFactory.getVersion(), originFactory.getVcs(), originFactory.getVcsurl(),
+              originFactory.getCommitid(), originFactory.getAction(), originFactory.getOpenfile(), originFactory.getKeepvcsinfo(),
+              originFactory.getProjectattributes());
 
         id = originFactory.getId();
         style = originFactory.getStyle();
         description = originFactory.getDescription();
-        contactMail = originFactory.getContactMail();
+        contactmail = originFactory.getContactmail();
         author = originFactory.getAuthor();
-        orgId = originFactory.getOrgId();
-        affiliateId = originFactory.getAffiliateId();
+        orgid = originFactory.getOrgid();
+        affiliateid = originFactory.getAffiliateid();
 
         setLinks(links);
     }
@@ -74,13 +74,12 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         this.description = description;
     }
 
-    public String getContactMail() {
-        return contactMail;
+    public String getContactmail() {
+        return contactmail;
     }
 
-    // Method mame should be lowercased to use correctly from json builder.
     public void setContactmail(String contactMail) {
-        this.contactMail = contactMail;
+        this.contactmail = contactMail;
     }
 
     public String getAuthor() {
@@ -91,22 +90,20 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         this.author = author;
     }
 
-    public String getOrgId() {
-        return orgId;
+    public String getOrgid() {
+        return orgid;
     }
 
-    // Method mame should be lowercased to use correctly from json builder.
     public void setOrgid(String orgId) {
-        this.orgId = orgId;
+        this.orgid = orgId;
     }
 
-    public String getAffiliateId() {
-        return affiliateId;
+    public String getAffiliateid() {
+        return affiliateid;
     }
 
-    // Method mame should be lowercased to use correctly from json builder.
     public void setAffiliateid(String affiliateId) {
-        this.affiliateId = affiliateId;
+        this.affiliateid = affiliateId;
     }
 
     public String getId() {
@@ -136,13 +133,13 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
 
         AdvancedFactoryUrl that = (AdvancedFactoryUrl)o;
 
-        if (affiliateId != null ? !affiliateId.equals(that.affiliateId) : that.affiliateId != null) return false;
+        if (affiliateid != null ? !affiliateid.equals(that.affiliateid) : that.affiliateid != null) return false;
         if (author != null ? !author.equals(that.author) : that.author != null) return false;
-        if (contactMail != null ? !contactMail.equals(that.contactMail) : that.contactMail != null) return false;
+        if (contactmail != null ? !contactmail.equals(that.contactmail) : that.contactmail != null) return false;
         if (description != null ? !description.equals(that.description) : that.description != null) return false;
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
         if (!links.equals(that.links)) return false;
-        if (orgId != null ? !orgId.equals(that.orgId) : that.orgId != null) return false;
+        if (orgid != null ? !orgid.equals(that.orgid) : that.orgid != null) return false;
         if (style != null ? !style.equals(that.style) : that.style != null) return false;
 
         return true;
@@ -154,10 +151,10 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         result = 31 * result + (id != null ? id.hashCode() : 0);
         result = 31 * result + (style != null ? style.hashCode() : 0);
         result = 31 * result + (description != null ? description.hashCode() : 0);
-        result = 31 * result + (contactMail != null ? contactMail.hashCode() : 0);
+        result = 31 * result + (contactmail != null ? contactmail.hashCode() : 0);
         result = 31 * result + (author != null ? author.hashCode() : 0);
-        result = 31 * result + (orgId != null ? orgId.hashCode() : 0);
-        result = 31 * result + (affiliateId != null ? affiliateId.hashCode() : 0);
+        result = 31 * result + (orgid != null ? orgid.hashCode() : 0);
+        result = 31 * result + (affiliateid != null ? affiliateid.hashCode() : 0);
         result = 31 * result + links.hashCode();
         return result;
     }

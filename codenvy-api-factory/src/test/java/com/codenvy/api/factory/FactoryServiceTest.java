@@ -35,6 +35,10 @@ import org.testng.annotations.Test;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ExceptionMapper;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -61,8 +65,8 @@ public class FactoryServiceTest {
     @InjectMocks
     private FactoryService factoryService;
 
-    @Test(enabled = false)
-    public void shouldBeAbleToSaveFactory() throws Exception {
+    @Test
+    public void shouldBeAbleToSaveFactory(ITestContext context) throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
@@ -70,18 +74,26 @@ public class FactoryServiceTest {
         factoryUrl.setVcs("git");
         factoryUrl.setV("1.1");
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+        Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
+        byte[] data = Files.readAllBytes(path);
+        Image savedImage = new Image(data, "image/jpeg", "imageName");
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
-                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
+                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(savedImage))));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(
+                new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(savedImage))));
 
         // when, then
-        given().//
+        Response response = given().//
                 multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
-                multiPart("image", "image.jpeg", new byte[500], "image/jpeg").//
-                expect().//
-                statusCode(Status.OK.getStatusCode()).//
+                multiPart("image", "100x100_image.jpeg", data, "image/jpeg").//
                 when().//
                 post(SERVICE_PATH);
+
+        assertEquals(response.getStatusCode(), 200);
+        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
+        assertTrue(responseFactoryUrl.getLinks().contains(
+                new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image/imageName", "image")));
     }
 
     @Test
@@ -227,21 +239,20 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        byte[] imageContent = new byte[100];
-        Image image = new Image(imageContent, "image/png", "imageId.png");
-        Set<Image> images = new HashSet<>();
-        images.add(image);
-        SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, images);
+        Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
+        byte[] imageContent = Files.readAllBytes(path);
+        Image image = new Image(imageContent, "image/jpeg", "imageName");
+        SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(image)));
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
 
         // when
-        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image/imageId.png");
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image/imageName");
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        assertEquals(response.getContentType(), "image/png");
-        assertEquals(response.getHeader("content-length"), "100");
+        assertEquals(response.getContentType(), "image/jpeg");
+        assertEquals(response.getHeader("content-length"), String.valueOf(imageContent.length));
         assertEquals(response.asByteArray(), imageContent);
     }
 

@@ -19,6 +19,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.store.FactoryStore;
 import com.codenvy.api.factory.store.SavedFactoryData;
+import com.codenvy.commons.lang.NameGenerator;
 
 import org.everrest.core.impl.provider.json.JsonException;
 import org.everrest.core.impl.provider.json.JsonParser;
@@ -36,8 +37,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -78,7 +78,15 @@ public class FactoryService {
                     factoryUrl = ObjectBuilder.createObject(AdvancedFactoryUrl.class, jsonValue);
                 } else if (fieldName.equals("image")) {
                     try (InputStream inputStream = part.getInputStream()) {
-                        BufferedImage bufferedImage = ImageIO.read(inputStream);
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        byte[] buffer = new byte[1024];
+                        int read = 0;
+                        while ((read = inputStream.read(buffer, 0, buffer.length)) != -1) {
+                            baos.write(buffer, 0, read);
+                        }
+                        baos.flush();
+
+                        BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(baos.toByteArray()));
                         if (bufferedImage == null) {
                             LOG.error("Can't read image content.");
                             throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Can't read image content.");
@@ -87,8 +95,9 @@ public class FactoryService {
                             LOG.error("Wrong size of image.");
                             throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Wrong size of image.");
                         }
-                        images.add(new Image(((DataBufferByte)bufferedImage.getRaster().getDataBuffer()).getData(), part.getContentType(),
-                                             part.getHeader("content-disposition")));
+
+                        images.add(new Image(baos.toByteArray(), part.getContentType(),
+                                             NameGenerator.generate(null, 16)));
                     }
                 }
             }

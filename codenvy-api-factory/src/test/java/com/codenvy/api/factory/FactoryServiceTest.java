@@ -93,7 +93,7 @@ public class FactoryServiceTest {
         assertEquals(response.getStatusCode(), 200);
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image/imageName", "image")));
+                new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=imageName", "image")));
     }
 
     @Test
@@ -134,7 +134,7 @@ public class FactoryServiceTest {
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/analytics/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
+                new Link("text/plain", getServerUrl(context) + "/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
                          "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
@@ -181,8 +181,8 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        Image image1 = new Image(null, "image/jpeg", "image123456789.jpeg");
-        Image image2 = new Image(null, "image/png", "image987654321.png");
+        Image image1 = new Image(null, "image/jpeg", "image123456789");
+        Image image2 = new Image(null, "image/png", "image987654321");
         Set<Image> images = new HashSet<>();
         images.add(image1);
         images.add(image2);
@@ -201,13 +201,13 @@ public class FactoryServiceTest {
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image/image123456789.jpeg",
+                new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=image123456789",
                          "image")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("image/png", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image/image987654321.png",
+                new Link("image/png", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=image987654321",
                          "image")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/analytics/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
+                new Link("text/plain", getServerUrl(context) + "/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
                          "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
@@ -247,7 +247,29 @@ public class FactoryServiceTest {
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
 
         // when
-        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image/imageName");
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image?imgId=imageName");
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        assertEquals(response.getContentType(), "image/jpeg");
+        assertEquals(response.getHeader("content-length"), String.valueOf(imageContent.length));
+        assertEquals(response.asByteArray(), imageContent);
+    }
+
+    @Test
+    public void shouldBeAbleToGetFactoryDefaultImage() throws Exception {
+        // given
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
+        byte[] imageContent = Files.readAllBytes(path);
+        Image image = new Image(imageContent, "image/jpeg", "imageName");
+        SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(image)));
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
+
+        // when
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image");
 
         // then
         assertEquals(response.getStatusCode(), 200);
@@ -269,9 +291,9 @@ public class FactoryServiceTest {
         given().//
                 expect().//
                 statusCode(404).//
-                body(equalTo(String.format("Image with id %s is not found.", "illegalImageId.png"))).//
+                body(equalTo(String.format("Image with id %s is not found.", "illegalImageId"))).//
                 when().//
-                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image/illegalImageId.png");
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image?imgId=illegalImageId");
     }
 
     @Test
@@ -285,7 +307,7 @@ public class FactoryServiceTest {
                 statusCode(404).//
                 body(equalTo(String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID))).//
                 when().//
-                get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/image/ImageId.png");
+                get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/image?imgId=ImageId");
     }
 
     @Test

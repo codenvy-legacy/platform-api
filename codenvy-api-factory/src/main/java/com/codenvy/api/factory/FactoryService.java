@@ -166,16 +166,17 @@ public class FactoryService {
      * @throws FactoryUrlException
      */
     @GET
-    @Path("{factoryId}/image/{imageId}")
+    @Path("{factoryId}/image")
     @Produces("image/*")
-    public Response getImage(@PathParam("factoryId") String factoryId, @PathParam("imageId") String imageId) throws FactoryUrlException {
+    public Response getImage(@PathParam("factoryId") String factoryId, @DefaultValue("") @QueryParam("imgId") String imageId)
+            throws FactoryUrlException {
         SavedFactoryData savedFactoryData = factoryStore.getFactory(factoryId);
         if (savedFactoryData == null) {
             LOG.error("Factory URL with id {} is not found.", factoryId);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
                                           String.format("Factory URL with id %s is not found.", factoryId));
         }
-        if (imageId == null || imageId.isEmpty()) {
+        if (imageId.isEmpty()) {
             Iterator<Image> it = savedFactoryData.getImages().iterator();
             if (it.hasNext()) {
                 Image image = it.next();
@@ -243,7 +244,6 @@ public class FactoryService {
 
 
     private static String generateFactoryUrl(String id, UriInfo uriInfo) {
-        return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").replaceQuery(null).queryParam("id", id).build()
-                         .toString();
+        return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").queryParam("id", id).build().toString();
     }
 }

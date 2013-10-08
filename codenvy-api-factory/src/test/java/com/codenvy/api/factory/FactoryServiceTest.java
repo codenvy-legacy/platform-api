@@ -80,8 +80,8 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
                 .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(savedImage))));
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(
-                new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(savedImage))));
+        //when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(
+        //        new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(savedImage))));
 
         // when, then
         Response response = given().//
@@ -145,6 +145,28 @@ public class FactoryServiceTest {
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown",
                          "snippet/markdown")));
+
+        verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<Image>emptySet()));
+    }
+
+    @Test
+    public void shouldBeAbleToSaveFactoryWithSetImageFieldButWithOutImage() throws Exception {
+        // given
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        factoryUrl.setCommitid("12345679");
+        factoryUrl.setVcs("git");
+        factoryUrl.setV("1.1");
+        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+
+        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
+                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
+
+        // when, then
+        given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
+                .multiPart("image", "100x100_image.jpeg", new byte[0], "image/jpeg")
+                .expect().statusCode(200)
+                .when().post(SERVICE_PATH);
 
         verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<Image>emptySet()));
     }

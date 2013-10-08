@@ -36,8 +36,10 @@ import javax.servlet.http.Part;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -80,11 +82,16 @@ public class FactoryService {
                     try (InputStream inputStream = part.getInputStream()) {
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         byte[] buffer = new byte[1024];
-                        int read = 0;
+                        int read;
                         while ((read = inputStream.read(buffer, 0, buffer.length)) != -1) {
                             baos.write(buffer, 0, read);
-                            if (baos.size() > 1024*1024)
+                            if (baos.size() > 1024 * 1024) {
                                 throw new IOException("Maximum upload size exceeded.");
+                            }
+                        }
+
+                        if (baos.size() == 0) {
+                            continue;
                         }
                         baos.flush();
 

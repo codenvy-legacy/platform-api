@@ -170,6 +170,30 @@ public class FactoryServiceTest {
     }
 
     @Test
+    public void shouldReturnStatus400OnSaveFactoryIfImageHasUnsupportedMediaType() throws Exception {
+        // given
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        factoryUrl.setCommitid("12345679");
+        factoryUrl.setVcs("git");
+        factoryUrl.setV("1.1");
+        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+
+        Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
+        byte[] data = Files.readAllBytes(path);
+
+        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
+                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<FactoryImage>()));
+
+        // when, then
+        given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
+                .multiPart("image", "100x100_image.jpeg", data, "image/tiff")
+                .expect().statusCode(400)
+                .body(equalTo("image/tiff is unsupported media type."))
+                .when().post(SERVICE_PATH);
+    }
+
+    @Test
     public void shouldBeAbleToSetVcsAsGitIfVcsIsNotSet() throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();

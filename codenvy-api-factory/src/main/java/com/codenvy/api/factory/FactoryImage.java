@@ -35,9 +35,18 @@ public class FactoryImage {
     }
 
     public FactoryImage(byte[] data, String mediaType, String name) throws IOException {
-        this.imageData = data;
-        this.mediaType = mediaType;
+        switch (mediaType) {
+            case "image/jpeg":
+            case "image/png":
+            case "image/gif":
+                this.mediaType = mediaType;
+                break;
+            default:
+                throw new IOException(mediaType + " is unsupported media type.");
+        }
+
         this.name = name;
+        this.imageData = data;
 
         BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(imageData));
         if (bufferedImage == null) {
@@ -68,8 +77,16 @@ public class FactoryImage {
         return mediaType;
     }
 
-    public void setMediaType(String mediaType) {
-        this.mediaType = mediaType;
+    public void setMediaType(String mediaType) throws IOException {
+        switch (mediaType) {
+            case "image/jpeg":
+            case "image/png":
+            case "image/gif":
+                this.mediaType = mediaType;
+                break;
+            default:
+                throw new IOException(mediaType + " is unsupported media type.");
+        }
     }
 
     public String getName() {
@@ -78,6 +95,13 @@ public class FactoryImage {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean hasContent() {
+        if (imageData != null && imageData.length > 0) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -128,7 +152,7 @@ public class FactoryImage {
             }
 
             if (baos.size() == 0) {
-                return null;
+                return new FactoryImage();
             }
             baos.flush();
 

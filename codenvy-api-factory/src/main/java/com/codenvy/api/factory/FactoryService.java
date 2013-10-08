@@ -62,6 +62,7 @@ public class FactoryService {
      *         - with response code 400 if factory url json is not found
      *         - with response code 400 if vcs is unsupported
      *         - with response code 400 if image content can't be read
+     *         - with response code 400 if image media type is unsupported
      *         - with response code 400 if image height or length isn't equal to 100 pixels
      *         - with response code 413 if image is too big
      *         - with response code 500 if internal server error occurs
@@ -85,7 +86,7 @@ public class FactoryService {
                     try (InputStream inputStream = part.getInputStream()) {
                         FactoryImage factoryImage =
                                 FactoryImage.createImage(inputStream, part.getContentType(), NameGenerator.generate(null, 16));
-                        if (factoryImage != null) {
+                        if (factoryImage.hasContent()) {
                             images.add(factoryImage);
                         }
                     }
@@ -123,35 +124,6 @@ public class FactoryService {
             throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getLocalizedMessage(), e);
         }
     }
-
-    /*/**
-     * Logs event generated during factory URL creation.
-     *
-     * @param vfsId
-     * @param projectId
-     * @param action
-     * @param factoryUrl
-     * @param idCommit
-     * @param vcs
-     * @param vcsUrl
-     */
-    /*@Path("log-factory-created")
-    @GET
-    public void logFactoryCreated(@QueryParam("vfsid") String vfsId, @QueryParam("projectid") String projectId,
-                                  @QueryParam("action") StringBuilder action,
-                                  @QueryParam("factoryurl") StringBuilder factoryUrl,
-                                  @QueryParam("idcommit") String idCommit, @QueryParam("vcs") String vcs,
-                                  @QueryParam("vcsurl") String vcsUrl) throws VirtualFileSystemException {
-        VirtualFileSystem vfs = vfsRegistry.getProvider(vfsId).newInstance(null, null);
-        String workspace = EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_NAME).toString();
-        Project project = (Project)vfs.getItem(projectId, false, PropertyFilter.ALL_FILTER);
-        String user = ConversationState.getCurrent().getIdentity().getUserId();
-        factoryUrl.append("&pname=").append(project.getName()).append("&wname=").append(workspace).append("&vcs=")
-                  .append(vcs).append("&vcsurl=").append(vcsUrl).append("&idcommit=").append(idCommit)
-                  .append("&action=").append(action).append("&ptype=").append(project.getProjectType());
-        LOG.info("EVENT#factory-created# WS#" + workspace + "# USER#" + user + "# PROJECT#" + project.getName() +
-                 "# TYPE#" + project.getProjectType() + "# REPO-URL#" + vcsUrl + "# FACTORY-URL#" + factoryUrl + "#");
-    }*/
 
     /**
      * Get factory information from storage by its id.

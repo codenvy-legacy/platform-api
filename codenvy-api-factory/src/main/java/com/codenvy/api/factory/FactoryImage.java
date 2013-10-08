@@ -35,26 +35,9 @@ public class FactoryImage {
     }
 
     public FactoryImage(byte[] data, String mediaType, String name) throws IOException {
-        switch (mediaType) {
-            case "image/jpeg":
-            case "image/png":
-            case "image/gif":
-                this.mediaType = mediaType;
-                break;
-            default:
-                throw new IOException(mediaType + " is unsupported media type.");
-        }
-
+        setMediaType(mediaType);
         this.name = name;
-        this.imageData = data;
-
-        BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(imageData));
-        if (bufferedImage == null) {
-            throw new IOException("Can't read image content.");
-        }
-        if (bufferedImage.getWidth() != 100 || bufferedImage.getHeight() != 100) {
-            throw new IOException("Wrong size of image.");
-        }
+        setImageData(data);
     }
 
     public byte[] getImageData() {
@@ -62,8 +45,6 @@ public class FactoryImage {
     }
 
     public void setImageData(byte[] imageData) throws IOException {
-        this.imageData = imageData;
-
         BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(imageData));
         if (bufferedImage == null) {
             throw new IOException("Can't read image content.");
@@ -71,6 +52,8 @@ public class FactoryImage {
         if (bufferedImage.getWidth() != 100 || bufferedImage.getHeight() != 100) {
             throw new IOException("Wrong size of image.");
         }
+
+        this.imageData = imageData;
     }
 
     public String getMediaType() {

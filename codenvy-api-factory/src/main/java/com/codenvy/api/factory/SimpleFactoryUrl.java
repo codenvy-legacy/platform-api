@@ -52,9 +52,7 @@ public class SimpleFactoryUrl {
         this.orgid = orgid;
         this.affiliateid = affiliateid;
 
-        if (projectAttributes != null) {
-            this.projectattributes = new LinkedHashMap<>(projectAttributes);
-        }
+        setProjectattributes(projectAttributes);
     }
 
     public void setV(String version) {

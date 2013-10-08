@@ -76,12 +76,10 @@ public class FactoryServiceTest {
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
         byte[] data = Files.readAllBytes(path);
-        Image savedImage = new Image(data, "image/jpeg", "imageName");
+        FactoryImage savedImage = new FactoryImage(data, "image/jpeg", "imageName");
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
                 .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(savedImage))));
-        //when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(
-        //        new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(savedImage))));
 
         // when, then
         Response response = given().//
@@ -120,7 +118,7 @@ public class FactoryServiceTest {
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
-                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
+                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<FactoryImage>()));
 
         // when, then
         Response response =
@@ -146,11 +144,11 @@ public class FactoryServiceTest {
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown",
                          "snippet/markdown")));
 
-        verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<Image>emptySet()));
+        verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<FactoryImage>emptySet()));
     }
 
     @Test
-    public void shouldBeAbleToSaveFactoryWithSetImageFieldButWithOutImage() throws Exception {
+    public void shouldBeAbleToSaveFactoryWithSetImageFieldButWithOutImageContent() throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
@@ -160,7 +158,7 @@ public class FactoryServiceTest {
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
-                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
+                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<FactoryImage>()));
 
         // when, then
         given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
@@ -168,7 +166,7 @@ public class FactoryServiceTest {
                 .expect().statusCode(200)
                 .when().post(SERVICE_PATH);
 
-        verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<Image>emptySet()));
+        verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<FactoryImage>emptySet()));
     }
 
     @Test
@@ -183,7 +181,7 @@ public class FactoryServiceTest {
         ArgumentCaptor<AdvancedFactoryUrl> argumentCaptor = ArgumentCaptor.forClass(AdvancedFactoryUrl.class);
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet()))
-                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<Image>()));
+                .thenReturn(new SavedFactoryData(factoryUrl, new HashSet<FactoryImage>()));
 
         // when, then
         given().//
@@ -203,9 +201,11 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        Image image1 = new Image(null, "image/jpeg", "image123456789");
-        Image image2 = new Image(null, "image/png", "image987654321");
-        Set<Image> images = new HashSet<>();
+        Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
+        byte[] data = Files.readAllBytes(path);
+        FactoryImage image1 = new FactoryImage(data, "image/jpeg", "image123456789");
+        FactoryImage image2 = new FactoryImage(data, "image/png", "image987654321");
+        Set<FactoryImage> images = new HashSet<>();
         images.add(image1);
         images.add(image2);
         SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, images);
@@ -263,7 +263,7 @@ public class FactoryServiceTest {
         factoryUrl.setId(CORRECT_FACTORY_ID);
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
         byte[] imageContent = Files.readAllBytes(path);
-        Image image = new Image(imageContent, "image/jpeg", "imageName");
+        FactoryImage image = new FactoryImage(imageContent, "image/jpeg", "imageName");
         SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(image)));
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
@@ -285,7 +285,7 @@ public class FactoryServiceTest {
         factoryUrl.setId(CORRECT_FACTORY_ID);
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
         byte[] imageContent = Files.readAllBytes(path);
-        Image image = new Image(imageContent, "image/jpeg", "imageName");
+        FactoryImage image = new FactoryImage(imageContent, "image/jpeg", "imageName");
         SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, new HashSet<>(Arrays.asList(image)));
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
@@ -305,7 +305,7 @@ public class FactoryServiceTest {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
         factoryUrl.setId(CORRECT_FACTORY_ID);
-        SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, new HashSet<Image>());
+        SavedFactoryData factoryData = new SavedFactoryData(factoryUrl, new HashSet<FactoryImage>());
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryData);
 
@@ -335,7 +335,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnUrlSnippet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<Image>()));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<FactoryImage>()));
 
         // when, then
         given().//
@@ -350,7 +350,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnUrlSnippetIfTypeIsNotSet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<Image>()));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<FactoryImage>()));
 
         // when, then
         given().//
@@ -365,7 +365,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnHtmlSnippet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<Image>()));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<FactoryImage>()));
 
         // when, then
         given().//
@@ -383,7 +383,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnMarkdownSnippet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<Image>()));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<FactoryImage>()));
 
         // when, then
         given().//
@@ -414,7 +414,7 @@ public class FactoryServiceTest {
     @Test(dataProvider = "badSnippetTypeProvider")
     public void shouldResponse400OnGetSnippetIfTypeIsIllegal(String type) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<Image>()));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new SavedFactoryData(new AdvancedFactoryUrl(), new HashSet<FactoryImage>()));
 
         // when, then
         given().//

@@ -29,7 +29,7 @@ public class LinksHelper {
 
     private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html"));
 
-    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<Image> images, UriInfo uriInfo) {
+    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images, UriInfo uriInfo) {
         Set<Link> links = new LinkedHashSet<>();
 
         final UriBuilder baseUriBuilder;
@@ -49,7 +49,7 @@ public class LinksHelper {
                          "self"));
 
         // uri's to retrieve images
-        for (Image image : images) {
+        for (FactoryImage image : images) {
             links.add(new Link(image.getMediaType(),
                                baseUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
                                              .build(fId, image.getName()).toString(), "image"));

@@ -33,13 +33,15 @@ public class SimpleFactoryUrl {
     private String action;
     private String openfile;
     private boolean keepvcsinfo = false;
+    private String orgid;
+    private String affiliateid;
     private Map<String, String> projectattributes = Collections.emptyMap();
 
     public SimpleFactoryUrl() {
     }
 
     public SimpleFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean keepVcsInfo,
-                            Map<String, String> projectAttributes) {
+                            String orgid, String affiliateid, Map<String, String> projectAttributes) {
         this.version = version;
         this.vcs = vcs;
         this.vcsurl = vcsUrl;
@@ -47,8 +49,12 @@ public class SimpleFactoryUrl {
         this.action = action;
         this.openfile = openFile;
         this.keepvcsinfo = keepVcsInfo;
+        this.orgid = orgid;
+        this.affiliateid = affiliateid;
 
-        setProjectattributes(projectAttributes);
+        if (projectAttributes != null) {
+            this.projectattributes = new LinkedHashMap<>(projectAttributes);
+        }
     }
 
     public void setV(String version) {
@@ -73,6 +79,18 @@ public class SimpleFactoryUrl {
 
     public void setOpenfile(String openFile) {
         this.openfile = openFile;
+    }
+
+    public void setKeepvcsinfo(boolean keepVcsInfo) {
+        this.keepvcsinfo = keepVcsInfo;
+    }
+
+    public void setOrgid(String orgid) {
+        this.orgid = orgid;
+    }
+
+    public void setAffiliateid(String affiliateid) {
+        this.affiliateid = affiliateid;
     }
 
     // Method mame should be lowercased to use correctly from json builder.
@@ -111,8 +129,12 @@ public class SimpleFactoryUrl {
         return keepvcsinfo;
     }
 
-    public void setKeepvcsinfo(boolean keepVcsInfo) {
-        this.keepvcsinfo = keepVcsInfo;
+    public String getOrgid() {
+        return orgid;
+    }
+
+    public String getAffiliateid() {
+        return affiliateid;
     }
 
     public Map<String, String> getProjectattributes() {
@@ -128,8 +150,10 @@ public class SimpleFactoryUrl {
 
         if (keepvcsinfo != that.keepvcsinfo) return false;
         if (action != null ? !action.equals(that.action) : that.action != null) return false;
+        if (affiliateid != null ? !affiliateid.equals(that.affiliateid) : that.affiliateid != null) return false;
         if (commitid != null ? !commitid.equals(that.commitid) : that.commitid != null) return false;
         if (openfile != null ? !openfile.equals(that.openfile) : that.openfile != null) return false;
+        if (orgid != null ? !orgid.equals(that.orgid) : that.orgid != null) return false;
         if (projectattributes != null ? !projectattributes.equals(that.projectattributes) : that.projectattributes != null) return false;
         if (vcs != null ? !vcs.equals(that.vcs) : that.vcs != null) return false;
         if (vcsurl != null ? !vcsurl.equals(that.vcsurl) : that.vcsurl != null) return false;
@@ -147,6 +171,8 @@ public class SimpleFactoryUrl {
         result = 31 * result + (action != null ? action.hashCode() : 0);
         result = 31 * result + (openfile != null ? openfile.hashCode() : 0);
         result = 31 * result + (keepvcsinfo ? 1 : 0);
+        result = 31 * result + (orgid != null ? orgid.hashCode() : 0);
+        result = 31 * result + (affiliateid != null ? affiliateid.hashCode() : 0);
         result = 31 * result + (projectattributes != null ? projectattributes.hashCode() : 0);
         return result;
     }

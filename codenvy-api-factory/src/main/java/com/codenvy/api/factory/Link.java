@@ -56,9 +56,6 @@ public class Link implements Externalizable {
     }
 
     public void setHref(String href) {
-        if (href == null) {
-            throw new IllegalArgumentException("Null href is not allowed.");
-        }
         this.href = href;
     }
 
@@ -67,9 +64,6 @@ public class Link implements Externalizable {
     }
 
     public void setRel(String rel) {
-        if (rel == null) {
-            throw new IllegalArgumentException("Null href is not allowed.");
-        }
         this.rel = rel;
     }
 

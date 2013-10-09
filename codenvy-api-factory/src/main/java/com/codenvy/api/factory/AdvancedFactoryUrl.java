@@ -29,8 +29,6 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     private String description;
     private String contactmail;
     private String author;
-    private String orgid;
-    private String affiliateid;
     private Set<Link> links = new LinkedHashSet<>();
 
     public AdvancedFactoryUrl() {
@@ -38,22 +36,20 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     }
 
     public AdvancedFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile,
-                              boolean keepVcsInfo, Map<String, String> projectAttributes) {
-        super(version, vcs, vcsUrl, commitId, action, openFile, keepVcsInfo, projectAttributes);
+                              boolean keepVcsInfo, String orgid, String affiliateid, Map<String, String> projectAttributes) {
+        super(version, vcs, vcsUrl, commitId, action, openFile, keepVcsInfo, orgid, affiliateid, projectAttributes);
     }
 
     public AdvancedFactoryUrl(AdvancedFactoryUrl originFactory, Set<Link> links) {
         super(originFactory.getVersion(), originFactory.getVcs(), originFactory.getVcsurl(),
               originFactory.getCommitid(), originFactory.getAction(), originFactory.getOpenfile(), originFactory.getKeepvcsinfo(),
-              originFactory.getProjectattributes());
+              originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getProjectattributes());
 
         id = originFactory.getId();
         style = originFactory.getStyle();
         description = originFactory.getDescription();
         contactmail = originFactory.getContactmail();
         author = originFactory.getAuthor();
-        orgid = originFactory.getOrgid();
-        affiliateid = originFactory.getAffiliateid();
 
         setLinks(links);
     }
@@ -90,22 +86,6 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         this.author = author;
     }
 
-    public String getOrgid() {
-        return orgid;
-    }
-
-    public void setOrgid(String orgId) {
-        this.orgid = orgId;
-    }
-
-    public String getAffiliateid() {
-        return affiliateid;
-    }
-
-    public void setAffiliateid(String affiliateId) {
-        this.affiliateid = affiliateId;
-    }
-
     public String getId() {
         return id;
     }
@@ -133,13 +113,11 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
 
         AdvancedFactoryUrl that = (AdvancedFactoryUrl)o;
 
-        if (affiliateid != null ? !affiliateid.equals(that.affiliateid) : that.affiliateid != null) return false;
         if (author != null ? !author.equals(that.author) : that.author != null) return false;
         if (contactmail != null ? !contactmail.equals(that.contactmail) : that.contactmail != null) return false;
         if (description != null ? !description.equals(that.description) : that.description != null) return false;
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
-        if (!links.equals(that.links)) return false;
-        if (orgid != null ? !orgid.equals(that.orgid) : that.orgid != null) return false;
+        if (links != null ? !links.equals(that.links) : that.links != null) return false;
         if (style != null ? !style.equals(that.style) : that.style != null) return false;
 
         return true;
@@ -153,9 +131,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         result = 31 * result + (description != null ? description.hashCode() : 0);
         result = 31 * result + (contactmail != null ? contactmail.hashCode() : 0);
         result = 31 * result + (author != null ? author.hashCode() : 0);
-        result = 31 * result + (orgid != null ? orgid.hashCode() : 0);
-        result = 31 * result + (affiliateid != null ? affiliateid.hashCode() : 0);
-        result = 31 * result + links.hashCode();
+        result = 31 * result + (links != null ? links.hashCode() : 0);
         return result;
     }
 }

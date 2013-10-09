@@ -29,7 +29,7 @@ public class LinksHelper {
 
     private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html"));
 
-    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<Image> images, UriInfo uriInfo) {
+    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images, UriInfo uriInfo) {
         Set<Link> links = new LinkedHashSet<>();
 
         final UriBuilder baseUriBuilder;
@@ -49,7 +49,7 @@ public class LinksHelper {
                          "self"));
 
         // uri's to retrieve images
-        for (Image image : images) {
+        for (FactoryImage image : images) {
             links.add(new Link(image.getMediaType(),
                                baseUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
                                              .build(fId, image.getName()).toString(), "image"));
@@ -72,5 +72,28 @@ public class LinksHelper {
                                          .toString(), "accepted"));
 
         return links;
+    }
+
+    /**
+     * Find links with given relation.
+     *
+     * @param links
+     *         - links for searching
+     * @param relation
+     *         - searching relation
+     * @return - set of links with relation equal to desired, empty set if there is no such links
+     */
+    public static Set<Link> getLinkByRelation(Set<Link> links, String relation) {
+        if (relation == null || links == null) {
+            throw new IllegalArgumentException("Value of parameters can't be null.");
+        }
+        Set<Link> result = new LinkedHashSet<>();
+        for (Link link : links) {
+            if (relation.equals(link.getRel())) {
+                result.add(link);
+            }
+        }
+
+        return result;
     }
 }

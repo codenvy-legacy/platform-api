@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
 
 /** Service for factory rest api features */
@@ -111,12 +112,16 @@ public class FactoryService {
             factoryUrl = new AdvancedFactoryUrl(savedFactoryData.getFactoryUrl(),
                                                 LinksHelper.createLinks(factoryUrl, savedFactoryData.getImages(), uriInfo));
 
-            LOG.info(new StringBuilder("EVENT#factory-created").append("# WS#").append("").append("# USER#").append("")
-                                                               .append("# PROJECT#")
-                                                               .append("").append("# TYPE#").append("").append("# REPO-URL#")
-                                                               .append(factoryUrl.getVcsurl())
-                                                               .append("# FACTORY-URL#")
-                                                               .append("").append("#").toString());
+            String createProjectLink = "";
+            Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
+            if (createProjectLinksIterator.hasNext()) {
+                createProjectLink = createProjectLinksIterator.next().getHref();
+            }
+            LOG.info(
+                    "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}}# " +
+                    "ORG-ID#{}}#",
+                    new String[]{"", "", "", nullToEmpty(factoryUrl.getProjectattributes().get("ptype")), factoryUrl.getVcsurl(),
+                                 createProjectLink, nullToEmpty(factoryUrl.getAffiliateid()), nullToEmpty(factoryUrl.getOrgid())});
 
             return factoryUrl;
         } catch (IOException | JsonException | ServletException e) {

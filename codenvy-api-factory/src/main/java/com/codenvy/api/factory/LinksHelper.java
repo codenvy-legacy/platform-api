@@ -73,4 +73,27 @@ public class LinksHelper {
 
         return links;
     }
+
+    /**
+     * Find links with given relation.
+     *
+     * @param links
+     *         - links for searching
+     * @param relation
+     *         - searching relation
+     * @return - set of links with relation equal to desired, empty set if there is no such links
+     */
+    public static Set<Link> getLinkByRelation(Set<Link> links, String relation) {
+        if (relation == null || links == null) {
+            throw new IllegalArgumentException("Value of parameters can't be null.");
+        }
+        Set<Link> result = new LinkedHashSet<>();
+        for (Link link : links) {
+            if (relation.equals(link.getRel())) {
+                result.add(link);
+            }
+        }
+
+        return result;
+    }
 }

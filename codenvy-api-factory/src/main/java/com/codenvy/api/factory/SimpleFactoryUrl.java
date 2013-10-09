@@ -24,7 +24,7 @@ import java.util.Map;
 /** Holds factory url parameters values, used in factory v1.0 */
 public class SimpleFactoryUrl {
     // mandatory parameters
-    private String version;
+    private String v;
     private String vcs;
     private String vcsurl;
     private String commitid;
@@ -33,26 +33,30 @@ public class SimpleFactoryUrl {
     private String action;
     private String openfile;
     private boolean keepvcsinfo = false;
+    private String orgid;
+    private String affiliateid;
     private Map<String, String> projectattributes = Collections.emptyMap();
 
     public SimpleFactoryUrl() {
     }
 
     public SimpleFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean keepVcsInfo,
-                            Map<String, String> projectAttributes) {
-        this.version = version;
+                            String orgid, String affiliateid, Map<String, String> projectAttributes) {
+        this.v = version;
         this.vcs = vcs;
         this.vcsurl = vcsUrl;
         this.commitid = commitId;
         this.action = action;
         this.openfile = openFile;
         this.keepvcsinfo = keepVcsInfo;
+        this.orgid = orgid;
+        this.affiliateid = affiliateid;
 
         setProjectattributes(projectAttributes);
     }
 
     public void setV(String version) {
-        this.version = version;
+        this.v = version;
     }
 
     public void setVcs(String vcs) {
@@ -75,6 +79,18 @@ public class SimpleFactoryUrl {
         this.openfile = openFile;
     }
 
+    public void setKeepvcsinfo(boolean keepVcsInfo) {
+        this.keepvcsinfo = keepVcsInfo;
+    }
+
+    public void setOrgid(String orgid) {
+        this.orgid = orgid;
+    }
+
+    public void setAffiliateid(String affiliateid) {
+        this.affiliateid = affiliateid;
+    }
+
     // Method mame should be lowercased to use correctly from json builder.
     public void setProjectattributes(Map<String, String> projectAttributes) {
         if (projectAttributes != null) {
@@ -82,8 +98,8 @@ public class SimpleFactoryUrl {
         }
     }
 
-    public String getVersion() {
-        return version;
+    public String getV() {
+        return v;
     }
 
     public String getVcs() {
@@ -111,8 +127,12 @@ public class SimpleFactoryUrl {
         return keepvcsinfo;
     }
 
-    public void setKeepvcsinfo(boolean keepVcsInfo) {
-        this.keepvcsinfo = keepVcsInfo;
+    public String getOrgid() {
+        return orgid;
+    }
+
+    public String getAffiliateid() {
+        return affiliateid;
     }
 
     public Map<String, String> getProjectattributes() {
@@ -128,25 +148,29 @@ public class SimpleFactoryUrl {
 
         if (keepvcsinfo != that.keepvcsinfo) return false;
         if (action != null ? !action.equals(that.action) : that.action != null) return false;
+        if (affiliateid != null ? !affiliateid.equals(that.affiliateid) : that.affiliateid != null) return false;
         if (commitid != null ? !commitid.equals(that.commitid) : that.commitid != null) return false;
         if (openfile != null ? !openfile.equals(that.openfile) : that.openfile != null) return false;
+        if (orgid != null ? !orgid.equals(that.orgid) : that.orgid != null) return false;
         if (projectattributes != null ? !projectattributes.equals(that.projectattributes) : that.projectattributes != null) return false;
         if (vcs != null ? !vcs.equals(that.vcs) : that.vcs != null) return false;
         if (vcsurl != null ? !vcsurl.equals(that.vcsurl) : that.vcsurl != null) return false;
-        if (version != null ? !version.equals(that.version) : that.version != null) return false;
+        if (v != null ? !v.equals(that.v) : that.v != null) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = version != null ? version.hashCode() : 0;
+        int result = v != null ? v.hashCode() : 0;
         result = 31 * result + (vcs != null ? vcs.hashCode() : 0);
         result = 31 * result + (vcsurl != null ? vcsurl.hashCode() : 0);
         result = 31 * result + (commitid != null ? commitid.hashCode() : 0);
         result = 31 * result + (action != null ? action.hashCode() : 0);
         result = 31 * result + (openfile != null ? openfile.hashCode() : 0);
         result = 31 * result + (keepvcsinfo ? 1 : 0);
+        result = 31 * result + (orgid != null ? orgid.hashCode() : 0);
+        result = 31 * result + (affiliateid != null ? affiliateid.hashCode() : 0);
         result = 31 * result + (projectattributes != null ? projectattributes.hashCode() : 0);
         return result;
     }

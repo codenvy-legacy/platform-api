@@ -18,8 +18,8 @@
 package com.codenvy.api.factory.store;
 
 import com.codenvy.api.factory.AdvancedFactoryUrl;
+import com.codenvy.api.factory.FactoryImage;
 import com.codenvy.api.factory.FactoryUrlException;
-import com.codenvy.api.factory.Image;
 
 import java.util.Set;
 
@@ -35,7 +35,7 @@ public interface FactoryStore {
      * @return - copy of saved data
      * @throws FactoryUrlException
      */
-    public SavedFactoryData saveFactory(AdvancedFactoryUrl factoryUrl, Set<Image> images) throws FactoryUrlException;
+    public SavedFactoryData saveFactory(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images) throws FactoryUrlException;
 
     /**
      * Remove factory by id

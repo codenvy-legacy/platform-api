@@ -29,7 +29,7 @@ public class LinksHelper {
 
     private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html"));
 
-    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<Image> images, UriInfo uriInfo) {
+    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images, UriInfo uriInfo) {
         Set<Link> links = new LinkedHashSet<>();
 
         final UriBuilder baseUriBuilder;
@@ -39,27 +39,28 @@ public class LinksHelper {
             baseUriBuilder = UriBuilder.fromUri("/");
         }
         // add path to factory service
-        baseUriBuilder.path(FactoryService.class);
+        UriBuilder factoryUriBuilder = baseUriBuilder.clone().path(FactoryService.class);
 
         String fId = factoryUrl.getId();
 
         // uri to retrieve factory
         links.add(
-                new Link(MediaType.APPLICATION_JSON, baseUriBuilder.clone().path(FactoryService.class, "getFactory").build(fId).toString(),
+                new Link(MediaType.APPLICATION_JSON,
+                         factoryUriBuilder.clone().path(FactoryService.class, "getFactory").build(fId).toString(),
                          "self"));
 
         // uri's to retrieve images
-        for (Image image : images) {
+        for (FactoryImage image : images) {
             links.add(new Link(image.getMediaType(),
-                               baseUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
-                                             .build(fId, image.getName()).toString(), "image"));
+                               factoryUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
+                                                .build(fId, image.getName()).toString(), "image"));
         }
 
         // uri's of snippets
         for (String snippetType : snippetTypes) {
             links.add(new Link(MediaType.TEXT_PLAIN,
-                               baseUriBuilder.clone().path(FactoryService.class, "getFactorySnippet").queryParam("type", snippetType)
-                                             .build(fId).toString(), "snippet/" + snippetType));
+                               factoryUriBuilder.clone().path(FactoryService.class, "getFactorySnippet").queryParam("type", snippetType)
+                                                .build(fId).toString(), "snippet/" + snippetType));
         }
 
         // uri to accept factory
@@ -68,9 +69,32 @@ public class LinksHelper {
 
         // links of analytics
         links.add(new Link(MediaType.TEXT_PLAIN,
-                           baseUriBuilder.clone().replacePath(null).path(MetricService.class).build("FACTORY_URL_ACCEPTED_NUMBER/" + fId)
-                                         .toString(), "accepted"));
+                           baseUriBuilder.clone().path(MetricService.class).build("FACTORY_URL_ACCEPTED_NUMBER/" + fId).toString(),
+                           "accepted"));
 
         return links;
+    }
+
+    /**
+     * Find links with given relation.
+     *
+     * @param links
+     *         - links for searching
+     * @param relation
+     *         - searching relation
+     * @return - set of links with relation equal to desired, empty set if there is no such links
+     */
+    public static Set<Link> getLinkByRelation(Set<Link> links, String relation) {
+        if (relation == null || links == null) {
+            throw new IllegalArgumentException("Value of parameters can't be null.");
+        }
+        Set<Link> result = new LinkedHashSet<>();
+        for (Link link : links) {
+            if (relation.equals(link.getRel())) {
+                result.add(link);
+            }
+        }
+
+        return result;
     }
 }

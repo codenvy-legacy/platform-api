@@ -18,15 +18,15 @@
 package com.codenvy.api.factory.store;
 
 import com.codenvy.api.factory.AdvancedFactoryUrl;
-import com.codenvy.api.factory.Image;
+import com.codenvy.api.factory.FactoryImage;
 
 import java.util.Set;
 
 public class SavedFactoryData {
     private AdvancedFactoryUrl factoryUrl;
-    private Set<Image>         images;
+    private Set<FactoryImage>  images;
 
-    public SavedFactoryData(AdvancedFactoryUrl factoryUrl, Set<Image> images) {
+    public SavedFactoryData(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images) {
         this.factoryUrl = factoryUrl;
         this.images = images;
     }
@@ -39,11 +39,11 @@ public class SavedFactoryData {
         this.factoryUrl = factoryUrl;
     }
 
-    public Set<Image> getImages() {
+    public Set<FactoryImage> getImages() {
         return images;
     }
 
-    public void setImages(Set<Image> images) {
+    public void setImages(Set<FactoryImage> images) {
         this.images = images;
     }
 }

@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.store.FactoryStore;
-import com.codenvy.api.factory.store.SavedFactoryData;
 import com.codenvy.commons.lang.NameGenerator;
 
 import org.everrest.core.impl.provider.json.JsonException;
@@ -108,9 +106,9 @@ public class FactoryService {
                                               "Parameter vcs has illegal value. Only \"git\" is supported for now.");
             }
 
-            SavedFactoryData savedFactoryData = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
-            factoryUrl = new AdvancedFactoryUrl(savedFactoryData.getFactoryUrl(),
-                                                LinksHelper.createLinks(factoryUrl, savedFactoryData.getImages(), uriInfo));
+            String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
+            factoryUrl = new AdvancedFactoryUrl(factoryStore.getFactory(factoryId),
+                                                LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(factoryId), uriInfo));
 
             String createProjectLink = "";
             Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
@@ -144,14 +142,13 @@ public class FactoryService {
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
     public AdvancedFactoryUrl getFactory(@PathParam("id") String id, @Context UriInfo uriInfo) throws FactoryUrlException {
-        SavedFactoryData savedFactoryData = factoryStore.getFactory(id);
-        if (savedFactoryData == null) {
+        AdvancedFactoryUrl factoryUrl = factoryStore.getFactory(id);
+        if (factoryUrl == null) {
             LOG.error("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
-        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl(savedFactoryData.getFactoryUrl(), LinksHelper
-                .createLinks(savedFactoryData.getFactoryUrl(), savedFactoryData.getImages(), uriInfo));
+        factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id), uriInfo));
 
         return factoryUrl;
     }
@@ -175,16 +172,15 @@ public class FactoryService {
     @Produces("image/*")
     public Response getImage(@PathParam("factoryId") String factoryId, @DefaultValue("") @QueryParam("imgId") String imageId)
             throws FactoryUrlException {
-        SavedFactoryData savedFactoryData = factoryStore.getFactory(factoryId);
-        if (savedFactoryData == null) {
+        Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(factoryId);
+        if (factoryImages == null) {
             LOG.error("Factory URL with id {} is not found.", factoryId);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
                                           String.format("Factory URL with id %s is not found.", factoryId));
         }
         if (imageId.isEmpty()) {
-            Iterator<FactoryImage> it = savedFactoryData.getImages().iterator();
-            if (it.hasNext()) {
-                FactoryImage image = it.next();
+            if (factoryImages.size() > 0) {
+                FactoryImage image = factoryImages.iterator().next();
                 return Response.ok(image.getImageData(), image.getMediaType()).build();
             } else {
                 LOG.error("Default image for factory {} is not found.", factoryId);
@@ -192,7 +188,7 @@ public class FactoryService {
                                               String.format("Default image for factory %s is not found.", factoryId));
             }
         } else {
-            for (FactoryImage image : savedFactoryData.getImages()) {
+            for (FactoryImage image : factoryImages) {
                 if (image.getName().equals(imageId)) {
                     return Response.ok(image.getImageData(), image.getMediaType()).build();
                 }

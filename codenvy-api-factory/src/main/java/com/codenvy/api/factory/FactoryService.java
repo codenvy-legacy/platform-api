@@ -48,6 +48,9 @@ public class FactoryService {
     @Inject
     private FactoryStore factoryStore;
 
+    @Inject
+    private AdvancedFactoryUrlValidator factoryUrlValidator;
+
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
      * should
@@ -105,6 +108,8 @@ public class FactoryService {
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               "Parameter vcs has illegal value. Only \"git\" is supported for now.");
             }
+
+            factoryUrlValidator.validate(factoryUrl);
 
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = new AdvancedFactoryUrl(factoryStore.getFactory(factoryId),

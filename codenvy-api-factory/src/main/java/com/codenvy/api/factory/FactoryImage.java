@@ -50,7 +50,9 @@ public class FactoryImage {
             throw new IOException("Can't read image content.");
         }
         if (bufferedImage.getWidth() != 100 || bufferedImage.getHeight() != 100) {
-            throw new IOException("Wrong size of image.");
+            throw new IOException(
+                    "Uploaded image has a wrong size. We only support image with a resolution 100 x 100. Please update your image and " +
+                    "upload it again.");
         }
 
         this.imageData = imageData;

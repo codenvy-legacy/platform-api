@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.analytics.server.MetricService;
+
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
@@ -27,89 +29,72 @@ public class LinksHelper {
 
     private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html"));
 
-    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<Image> images, UriInfo uriInfo) {
+    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images, UriInfo uriInfo) {
         Set<Link> links = new LinkedHashSet<>();
 
-        links.add(generateFactoryUrlLink(factoryUrl.getId(), uriInfo));
-        links.add(generateCreationLink(factoryUrl.getId(), uriInfo));
-        for (Image image : images) {
-            links.add(generateFactoryImageLink(factoryUrl.getId(), image, uriInfo));
+        final UriBuilder baseUriBuilder;
+        if (uriInfo != null) {
+            baseUriBuilder = UriBuilder.fromUri(uriInfo.getBaseUri());
+        } else {
+            baseUriBuilder = UriBuilder.fromUri("/");
         }
-        links.addAll(generateSnippetLinks(factoryUrl.getId(), uriInfo));
+        // add path to factory service
+        UriBuilder factoryUriBuilder = baseUriBuilder.clone().path(FactoryService.class);
 
-        links.addAll(generateSnippetLinks(factoryUrl.getId(), uriInfo));
+        String fId = factoryUrl.getId();
 
-        links.addAll(generateStatisticsLinks(factoryUrl.getId(), uriInfo));
+        // uri to retrieve factory
+        links.add(
+                new Link(MediaType.APPLICATION_JSON,
+                         factoryUriBuilder.clone().path(FactoryService.class, "getFactory").build(fId).toString(),
+                         "self"));
+
+        // uri's to retrieve images
+        for (FactoryImage image : images) {
+            links.add(new Link(image.getMediaType(),
+                               factoryUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
+                                                .build(fId, image.getName()).toString(), "image"));
+        }
+
+        // uri's of snippets
+        for (String snippetType : snippetTypes) {
+            links.add(new Link(MediaType.TEXT_PLAIN,
+                               factoryUriBuilder.clone().path(FactoryService.class, "getFactorySnippet").queryParam("type", snippetType)
+                                                .build(fId).toString(), "snippet/" + snippetType));
+        }
+
+        // uri to accept factory
+        links.add(new Link(MediaType.TEXT_HTML, baseUriBuilder.clone().replacePath("factory").queryParam("id", fId).build().toString(),
+                           "create-project"));
+
+        // links of analytics
+        links.add(new Link(MediaType.TEXT_PLAIN,
+                           baseUriBuilder.clone().path(MetricService.class).build("FACTORY_URL_ACCEPTED_NUMBER/" + fId).toString(),
+                           "accepted"));
 
         return links;
     }
 
-    private static Set<Link> generateStatisticsLinks(String factoryId, UriInfo uriInfo) {
-        Set<Link> statisticsLinks = new HashSet<>();
-        statisticsLinks.add(new Link("text/plain", generatePath(uriInfo, factoryId, "analytics/FACTORY_URL_ACCEPTED_NUMBER"), "accepted"));
-        return statisticsLinks;
-    }
-
-    private static Link generateFactoryImageLink(String factoryId, Image image, UriInfo uriInfo) {
-        return new Link(image.getMediaType(), generatePath(uriInfo, image.getName(), "factory/" + factoryId + "/image"), "image");
-    }
-
-    private static Link generateFactoryUrlLink(String id, UriInfo uriInfo) {
-        return new Link(MediaType.APPLICATION_JSON, generatePath(uriInfo, id, "factory"), "self");
-    }
-
-    private static Link generateCreationLink(String id, UriInfo uriInfo) {
-        UriBuilder ub;
-        if (uriInfo != null) {
-            ub = UriBuilder.fromUri(uriInfo.getBaseUri());
-        } else {
-            ub = UriBuilder.fromUri("/");
+    /**
+     * Find links with given relation.
+     *
+     * @param links
+     *         - links for searching
+     * @param relation
+     *         - searching relation
+     * @return - set of links with relation equal to desired, empty set if there is no such links
+     */
+    public static Set<Link> getLinkByRelation(Set<Link> links, String relation) {
+        if (relation == null || links == null) {
+            throw new IllegalArgumentException("Value of parameters can't be null.");
         }
-        ub.replacePath("factory");
-        ub.queryParam("id", id);
-        return new Link(MediaType.TEXT_HTML, ub.build().toString(), "create-project");
-    }
-
-    private static Set<Link> generateSnippetLinks(String id, UriInfo uriInfo) {
         Set<Link> result = new LinkedHashSet<>();
-        for (String snippetType : snippetTypes) {
-            result.add(new Link(MediaType.TEXT_PLAIN, generatePath(uriInfo, id, "factory", "snippet", "type", snippetType),
-                                "snippet/" + snippetType));
-        }
-        return result;
-    }
-
-    private static String generatePath(UriInfo uriInfo, String id, String rel) {
-        UriBuilder ub;
-        if (uriInfo != null) {
-            ub = UriBuilder.fromUri(uriInfo.getBaseUri());
-        } else {
-            ub = UriBuilder.fromUri("/");
-        }
-        ub.path(rel);
-        ub.path(id);
-
-        return ub.build().toString();
-    }
-
-    private static String generatePath(UriInfo uriInfo, String id, String rel, String servletPath, String... query) {
-        UriBuilder ub;
-        if (uriInfo != null) {
-            ub = UriBuilder.fromUri(uriInfo.getBaseUri());
-        } else {
-            ub = UriBuilder.fromUri("/");
-        }
-        ub.path(rel);
-        ub.path(id);
-        ub.path(servletPath);
-
-        if (query != null && query.length > 0) {
-            for (int i = 0; i < query.length; i++) {
-                String name = query[i];
-                String value = i < query.length ? query[++i] : "";
-                ub.queryParam(name, value);
+        for (Link link : links) {
+            if (relation.equals(link.getRel())) {
+                result.add(link);
             }
         }
-        return ub.build().toString();
+
+        return result;
     }
 }

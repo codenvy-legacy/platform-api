@@ -15,11 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.factory.store;
-
-import com.codenvy.api.factory.AdvancedFactoryUrl;
-import com.codenvy.api.factory.FactoryUrlException;
-import com.codenvy.api.factory.Image;
+package com.codenvy.api.factory;
 
 import java.util.Set;
 
@@ -32,10 +28,10 @@ public interface FactoryStore {
      *         - factory information
      * @param images
      *         - factory images
-     * @return - copy of saved data
+     * @return - if of stored factory
      * @throws FactoryUrlException
      */
-    public SavedFactoryData saveFactory(AdvancedFactoryUrl factoryUrl, Set<Image> images) throws FactoryUrlException;
+    public String saveFactory(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images) throws FactoryUrlException;
 
     /**
      * Remove factory by id
@@ -51,8 +47,18 @@ public interface FactoryStore {
      *
      * @param id
      *         - factory id
-     * @return - data if factory exist and found, null otherwise
+     * @return - {@code AdvancedFactoryUrl} if factory exist and found, null otherwise
      * @throws FactoryUrlException
      */
-    public SavedFactoryData getFactory(String id) throws FactoryUrlException;
+    public AdvancedFactoryUrl getFactory(String id) throws FactoryUrlException;
+
+    /**
+     * Retrieve factory images by factory id
+     *
+     * @param id
+     *         - factory id
+     * @return - {@code Set} of images if factory found, null otherwise
+     * @throws FactoryUrlException
+     */
+    public Set<FactoryImage> getFactoryImages(String id) throws FactoryUrlException;
 }

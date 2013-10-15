@@ -36,14 +36,14 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     }
 
     public AdvancedFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile,
-                              boolean vcsInfo, String orgid, String affiliateid, Map<String, String> projectAttributes) {
-        super(version, vcs, vcsUrl, commitId, action, openFile, vcsInfo, orgid, affiliateid, projectAttributes);
+                              boolean vcsInfo, String orgid, String affiliateid, String vcsBranch, Map<String, String> projectAttributes) {
+        super(version, vcs, vcsUrl, commitId, action, openFile, vcsInfo, orgid, affiliateid, vcsBranch, projectAttributes);
     }
 
     public AdvancedFactoryUrl(AdvancedFactoryUrl originFactory, Set<Link> links) {
         super(originFactory.getV(), originFactory.getVcs(), originFactory.getVcsurl(),
               originFactory.getCommitid(), originFactory.getAction(), originFactory.getOpenfile(), originFactory.getVcsinfo(),
-              originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getProjectattributes());
+              originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getVcsbranch(), originFactory.getProjectattributes());
 
         id = originFactory.getId();
         style = originFactory.getStyle();

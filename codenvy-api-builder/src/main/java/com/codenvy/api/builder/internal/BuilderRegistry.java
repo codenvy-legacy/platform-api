@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * Stores available builders.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see BuildWebhookNotifier
  */
 public class BuilderRegistry {
     private final Map<String, Builder> builders;

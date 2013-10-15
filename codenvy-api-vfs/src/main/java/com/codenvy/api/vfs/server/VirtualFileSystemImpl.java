@@ -75,7 +75,11 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Base implementation of VirtualFileSystem.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     private static final Logger LOG = LoggerFactory.getLogger(VirtualFileSystemImpl.class);
 
@@ -191,7 +195,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                     userContext.getVirtualFileSystemUser()));
         }
         if (newVirtualFile.getParent().isRoot()) {
-            //For child project project no need to fire event for delete project
+            //For child project project no need to fire event for create project
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", name, project.getProjectType());
         }
         return project;

@@ -23,6 +23,7 @@ import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
@@ -49,7 +50,8 @@ import java.io.OutputStream;
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-@Path("api/{ws-name}/builder")
+@Path("{ws-name}/builder")
+@Description("Builder API")
 public final class BuilderService extends Service {
     @Inject
     private BuildQueue buildQueue;

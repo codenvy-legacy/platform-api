@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.project.shared;
 
+import java.util.List;
+
 /**
  * Provides access to the value of attribute of Project.
  *
@@ -24,8 +26,8 @@ package com.codenvy.api.project.shared;
  */
 public interface AttributeValueProvider {
     /** Get value. */
-    String getValue();
+    List<String> getValues();
 
     /** Set value. */
-    void setValue(String value);
+    void setValues(List<String> value);
 }

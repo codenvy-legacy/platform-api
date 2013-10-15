@@ -20,6 +20,7 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BuilderServiceAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
+import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
@@ -31,12 +32,11 @@ import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configurable;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteAccessException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.util.ComponentLoader;
-import com.codenvy.api.vfs.shared.dto.Project;
-import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.project.server.DownloadZipAttributeValueProviderFactory;
+import com.codenvy.api.project.shared.dto.Attributes;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
@@ -211,25 +211,29 @@ public class BuildQueue implements Configurable, Lifecycle {
      */
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext)
             throws RemoteException, IOException {
-        final Project myProject = getProject(workspace, project, serviceContext);
+        final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
         final BuildRequest request = DtoFactory.getInstance().createDto(BuildRequest.class);
         request.setWorkspace(workspace);
         request.setProject(project);
-        addRequestParameters(myProject, request);
+        addRequestParameters(attributes, request);
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
             public RemoteBuildTask call() throws IOException, RemoteException {
-                return builderList.getBuilder(request).perform(request);
+                final RemoteBuilder builder = builderList.getBuilder(request);
+                if (builder == null) {
+                    throw new IllegalStateException("There is no any builder available. ");
+                }
+                return builder.perform(request);
             }
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final BuildQueueTask waiting = new BuildQueueTask(request, future);
-        tasks.put(waiting.getId(), waiting);
-        tasksFIFO.offer(waiting);
+        final BuildQueueTask task = new BuildQueueTask(request, future);
+        tasks.put(task.getId(), task);
+        tasksFIFO.offer(task);
         purgeExpiredTasks();
         executor.execute(future);
-        return waiting;
+        return task;
     }
 
     /**
@@ -251,43 +255,50 @@ public class BuildQueue implements Configurable, Lifecycle {
      */
     public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
             throws RemoteException, IOException {
-        final Project myProject = getProject(workspace, project, serviceContext);
+        final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
         final DependencyRequest request = DtoFactory.getInstance().createDto(DependencyRequest.class);
         request.setWorkspace(workspace);
         request.setProject(project);
         request.setType(type);
-        addRequestParameters(myProject, request);
+        addRequestParameters(attributes, request);
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
             public RemoteBuildTask call() throws IOException, RemoteException {
-                return builderList.getBuilder(request).perform(request);
+                final RemoteBuilder builder = builderList.getBuilder(request);
+                if (builder == null) {
+                    throw new IllegalStateException("There is no any builder available. ");
+                }
+                return builder.perform(request);
             }
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final BuildQueueTask waiting = new BuildQueueTask(request, future);
-        tasks.put(waiting.getId(), waiting);
-        tasksFIFO.offer(waiting);
+        final BuildQueueTask task = new BuildQueueTask(request, future);
+        tasks.put(task.getId(), task);
+        tasksFIFO.offer(task);
         purgeExpiredTasks();
         executor.execute(future);
-        return waiting;
+        return task;
     }
 
-    private void addRequestParameters(Project project, BaseBuilderRequest request) {
-        request.setSourcesUrl(project.getLinks().get(com.codenvy.api.vfs.shared.dto.Link.REL_EXPORT).getHref());
-        for (Property property : project.getProperties()) {
-            if ("builder.name".equals(property.getName())) {
-                if (!property.getValue().isEmpty()) {
-                    request.setBuilder(property.getValue().get(0));
+    private void addRequestParameters(Attributes attributes, BaseBuilderRequest request) {
+        for (Map.Entry<String, List<String>> entry : attributes.getAttributes().entrySet()) {
+            if (DownloadZipAttributeValueProviderFactory.ATTRIBUTE.equals(entry.getKey())) {
+                if (!entry.getValue().isEmpty()) {
+                    request.setSourcesUrl(entry.getValue().get(0));
                 }
-            } else if ("builder.targets".equals(property.getName())) {
-                if (!property.getValue().isEmpty()) {
-                    request.setTargets(property.getValue());
+            } else if (Constants.BUILDER_NAME.equals(entry.getKey())) {
+                if (!entry.getValue().isEmpty()) {
+                    request.setBuilder(entry.getValue().get(0));
                 }
-            } else if ("builder.options".equals(property.getName())) {
-                if (!property.getValue().isEmpty()) {
+            } else if (Constants.BUILDER_TARGETS.equals(entry.getKey())) {
+                if (!entry.getValue().isEmpty()) {
+                    request.setTargets(entry.getValue());
+                }
+            } else if (Constants.BUILDER_OPTIONS.equals(entry.getKey())) {
+                if (!entry.getValue().isEmpty()) {
                     final Map<String, String> options = new LinkedHashMap<>();
-                    for (String str : property.getValue()) {
+                    for (String str : entry.getValue()) {
                         if (str != null) {
                             final String[] pair = str.split("=");
                             if (pair.length > 1) {
@@ -303,12 +314,13 @@ public class BuildQueue implements Configurable, Lifecycle {
         }
     }
 
-    private Project getProject(String workspace, String project, ServiceContext serviceContext) throws IOException, RemoteException {
-        final UriBuilder serviceUriBuilder = serviceContext.getBaseUriBuilder();
-        final String projectUrl = serviceUriBuilder.path(WorkspaceService.class)
-                                                   .path(WorkspaceService.class, "getProject")
-                                                   .build(workspace, project).toString();
-        return HttpJsonHelper.get(Project.class, projectUrl);
+    private Attributes getProjectAttributes(String workspace, String project, ServiceContext serviceContext)
+            throws IOException, RemoteException {
+        final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
+        final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
+                                                .path(WorkspaceService.class, "getAttributes")
+                                                .build(workspace, project).toString();
+        return HttpJsonHelper.get(Attributes.class, projectUrl);
     }
 
     private BuilderList getBuilderList(BaseBuilderRequest request) {
@@ -345,6 +357,8 @@ public class BuildQueue implements Configurable, Lifecycle {
         BuildQueueTask current;
         while ((current = tasksFIFO.peek()) != null && (current.getCreationDate() + maxTimeInQueueMillis) < timestamp) {
             if (current.isWaiting()) {
+                // Do nothing for task which we already sent to slave builders.
+                // Slave builders have own control over build processes and able to terminate them if process is running for very long time.
                 try {
                     current.cancel();
                 } catch (Exception e) {
@@ -486,19 +500,27 @@ public class BuildQueue implements Configurable, Lifecycle {
 
         synchronized RemoteBuilder getBuilder(BaseBuilderRequest request) {
             final List<RemoteBuilder> candidates = new ArrayList<>();
+            int attemptGetState = 0;
             for (; ; ) {
                 final int size = builders.size();
                 if (size == 0) {
-                    throw new RemoteAccessException("There is no any builder in the list. ");
+                    return null;
                 }
 
                 for (RemoteBuilder builder : builders) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return null; // stop immediately
+                    }
                     if (request.getBuilder().equals(builder.getName())) {
                         SlaveBuilderState builderState;
                         try {
                             builderState = builder.getRemoteBuilderState();
                         } catch (Exception e) {
                             LOG.error(e.getMessage(), e);
+                            ++attemptGetState;
+                            if (attemptGetState > 10) {
+                                return null;
+                            }
                             continue;
                         }
                         if (builderState.getNumberOfActiveWorkers() < builderState.getNumberOfWorkers()) {
@@ -506,11 +528,13 @@ public class BuildQueue implements Configurable, Lifecycle {
                         }
                     }
                 }
+
                 if (candidates.isEmpty()) {
                     try {
                         wait(2000); // wait and try again
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                        return null; // expected to get here if task is canceled
                     }
                 } else {
                     if (candidates.size() > 0) {

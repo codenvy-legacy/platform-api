@@ -19,6 +19,7 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,7 +29,7 @@ import java.util.Map;
  */
 @DTO
 public interface Attributes {
-    Map<String, String> getAttributes();
+    Map<String, List<String>> getAttributes();
 
-    void setAttributes(Map<String, String> attributes);
+    void setAttributes(Map<String, List<String>> attributes);
 }

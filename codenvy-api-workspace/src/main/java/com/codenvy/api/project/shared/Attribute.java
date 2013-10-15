@@ -37,22 +37,12 @@ public class Attribute {
             this.property = property;
         }
 
-        public String getValue() {
-            final List<String> values = property.getValue();
-            if (!(values == null || values.isEmpty())) {
-                return values.get(0);
-            }
-            return null;
+        public List<String> getValues() {
+            return property.getValue();
         }
 
-        public void setValue(String value) {
-            if (value != null) {
-                final List<String> list = new ArrayList<>(1);
-                list.add(value);
-                property.setValue(list);
-            } else {
-                property.setValue(null);
-            }
+        public void setValues(List<String> value) {
+            property.setValue(value);
         }
     }
 
@@ -69,10 +59,7 @@ public class Attribute {
         this.valueProvider = valueProvider;
     }
 
-    /**
-     * Creates new Attribute and read name and value of Attribute from specified property. If Property has multiple value read first value
-     * of Property.
-     */
+    /** Creates new Attribute and read name and value of Attribute from specified property. */
     public Attribute(Property property) {
         this.name = property.getName();
         this.valueProvider = new DefaultValueProvider(property);
@@ -84,22 +71,61 @@ public class Attribute {
     }
 
     /**
-     * Get value of attribute.
+     * Get single value of attribute. If attribute has more than one value this method returns only first value.
+     * <p/>
+     * This method is shortcut for:
+     * <pre>
+     *    String name = ...
+     *    Attribute attribute = ...;
+     *    List&lt;String&gt; values = attribute.getValues();
+     *    if (values != null && !values.isEmpty())
+     *       return values.get(0);
+     *    else
+     *       return null;
+     * </pre>
      *
      * @return current value of attribute
      */
     public final String getValue() {
-        return valueProvider.getValue();
+        final List<String> values = getValues();
+        return values != null && !values.isEmpty() ? values.get(0) : null;
     }
 
     /**
-     * Set value of attribute.
+     * Get all values of attribute. Modifications to the returned {@code List} will not affect the internal {@code List}.
+     *
+     * @return current value of attribute
+     */
+    public final List<String> getValues() {
+        return valueProvider.getValues();
+    }
+
+    /**
+     * Set single value of attribute.
      *
      * @param value
      *         new value of attribute
      */
     public final void setValue(String value) {
-        valueProvider.setValue(value);
+        if (value != null) {
+            final List<String> list = new ArrayList<>(1);
+            list.add(value);
+            valueProvider.setValues(list);
+        }
+        valueProvider.setValues(null);
+    }
+
+    /**
+     * Set values of attribute.
+     *
+     * @param values
+     *         new value of attribute
+     */
+    public final void setValues(List<String> values) {
+        if (values != null) {
+            valueProvider.setValues(new ArrayList<>(values));
+        }
+        valueProvider.setValues(null);
     }
 
     /**
@@ -145,5 +171,4 @@ public class Attribute {
     public boolean hasChildren() {
         return !(children == null || children.isEmpty());
     }
-
 }

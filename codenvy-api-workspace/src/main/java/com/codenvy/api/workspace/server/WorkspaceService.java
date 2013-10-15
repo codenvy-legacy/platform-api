@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.workspace.server;
 
+import com.codenvy.api.project.server.AttributeValueProviderFactory;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.dto.Attributes;
 import com.codenvy.api.vfs.server.RequestContext;
@@ -49,10 +50,9 @@ import javax.ws.rs.ext.Providers;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@Path("api/{ws-name}/workspace")
+@Path("{ws-name}/workspace")
 public class WorkspaceService {
     @Inject
     private VirtualFileSystemRegistry             registry;
@@ -65,13 +65,13 @@ public class WorkspaceService {
     @Context
     private javax.servlet.http.HttpServletRequest request;
 
+    // >>> "shortcuts" for some vfs methods related to the project
+
     @GET
     @Path("projects/{name}")
     @Produces(MediaType.APPLICATION_JSON)
     public Project getProject(@PathParam("name") String name) throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem();
-        final Folder root = fileSystem.getInfo().getRoot();
-        final List<Item> projects = fileSystem.getChildren(root.getId(), -1, 0, "project", true, PropertyFilter.ALL_FILTER).getItems();
+        final List<Project> projects = getProjects();
         if (!projects.isEmpty()) {
             for (Item project : projects) {
                 if (name.equals(project.getName())) {
@@ -106,23 +106,25 @@ public class WorkspaceService {
         return fileSystem.createProject(root.getId(), name, type, properties);
     }
 
+    // <<<
+
     @GET
     @Path("projects/{project}/attributes")
     @Produces(MediaType.APPLICATION_JSON)
-    public Attributes getAttributes(@PathParam("project") String project,
-                                    @QueryParam("names") Set<String> attributeNames) throws VirtualFileSystemException {
-        final List<Property> properties = getProject(project).getProperties();
-        final Attributes attributes = DtoFactory.getInstance().createDto(Attributes.class);
-        if (properties != null) {
-            Map<String, String> values = new HashMap<>(properties.size());
-            for (Property property : properties) {
-                final Attribute attribute = new Attribute(property);
-                if (attributeNames == null || attributeNames.contains(attribute.getName())) {
-                    values.put(attribute.getName(), attribute.getValue());
-                }
-            }
-            attributes.setAttributes(values);
+    public Attributes getAttributes(@PathParam("project") String project) throws VirtualFileSystemException {
+        final Project myProject = getProject(project);
+        final Map<String, List<String>> values = new HashMap<>();
+        for (AttributeValueProviderFactory factory : AttributeValueProviderFactory.getInstances()) {
+            final Attribute attribute = new Attribute(factory.getName(), factory.newInstance(myProject));
+            values.put(attribute.getName(), attribute.getValues());
         }
+        // analyze properties
+        for (Property property : myProject.getProperties()) {
+            final Attribute attribute = new Attribute(property);
+            values.put(attribute.getName(), attribute.getValues());
+        }
+        final Attributes attributes = DtoFactory.getInstance().createDto(Attributes.class);
+        attributes.setAttributes(values);
         return attributes;
     }
 

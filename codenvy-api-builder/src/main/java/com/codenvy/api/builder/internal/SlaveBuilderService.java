@@ -49,9 +49,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@Path("api/builder")
-@Description("Builder API")
+/**
+ * RESTful interface for Builder.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
+@Path("internal/builder")
 public final class SlaveBuilderService extends Service {
 
     @Inject

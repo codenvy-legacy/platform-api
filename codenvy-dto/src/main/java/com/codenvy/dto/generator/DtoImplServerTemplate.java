@@ -665,7 +665,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         String implClassName = getImplClassName();
         builder.append("    public ").append(implClassName).append("(").append(dtoInterface).append(" origin) {\n");
         for (Method method : getters) {
-            emitDeepCopyForField(expandType(method.getGenericReturnType()), 0, builder, "origin", method, "      ");
+            emitDeepCopyForGetters(expandType(method.getGenericReturnType()), 0, builder, "origin", method, "      ");
         }
         builder.append("    }\n\n");
     }
@@ -699,111 +699,92 @@ public class DtoImplServerTemplate extends DtoImpl {
         }
     }
 
-    private void emitDeepCopyForField(List<Type> expandedTypes,
-                                      int depth,
-                                      StringBuilder builder,
-                                      String originName,
-                                      Method getter,
-                                      String i) {
+    private void emitDeepCopyForGetters(List<Type> expandedTypes, int depth, StringBuilder builder, String origin, Method getter,
+                                        String i) {
         String getterName = getter.getName();
         String fieldName = getFieldName(getterName);
+        String fieldNameIn = fieldName + "In";
+        String fieldNameOut = fieldName + "Out";
         Type type = expandedTypes.get(depth);
-        String childName = fieldName + depth; // for collections children
+        Class<?> rawClass = getRawClass(type);
+        String rawTypeName = getImplName(type, false);
+
+        if (isJsonArray(rawClass) || isJsonStringMap(rawClass)) {
+            builder.append(i).append(rawTypeName).append(" ").append(fieldNameIn).append(" = ").append(origin).append(".")
+                   .append(getterName).append("();\n");
+            builder.append(i).append("if (").append(fieldNameIn).append(" != null) {\n");
+            builder.append(i).append("  ").append(rawTypeName).append(" ").append(fieldNameOut)
+                   .append(" = new ").append(getImplName(type, true)).append("();\n");
+            emitDeepCopyCollections(expandedTypes, depth, builder, fieldNameIn, fieldNameOut, i);
+            builder.append(i).append("  ").append("this.").append(fieldName).append(" = ").append(fieldNameOut).append(";\n");
+            builder.append(i).append("}\n");
+        } else if (getEnclosingTemplate().isDtoInterface(rawClass)) {
+            builder.append(i).append(rawTypeName).append(" ").append(fieldNameIn).append(" = ").append(origin).append(".")
+                   .append(getterName).append("();\n");
+            builder.append(i).append("this.").append(fieldName).append(" = ");
+            emitCheckNullAndCopyDto(rawClass, fieldNameIn, builder);
+            builder.append(";\n");
+        } else {
+            builder.append(i).append("this.").append(fieldName).append(" = ")
+                   .append(origin).append(".").append(getterName).append("();\n");
+        }
+    }
+
+    private void emitDeepCopyCollections(List<Type> expandedTypes, int depth, StringBuilder builder, String varIn, String varOut,
+                                         String i) {
+        Type type = expandedTypes.get(depth);
+        String childVarIn = varIn + "_";
+        String childVarOut = varOut + "_";
         String entryVar = "entry" + depth;
         Class<?> rawClass = getRawClass(type);
-        Class<?> childRawType = null;
+        Class<?> childRawType = getRawClass(expandedTypes.get(depth + 1));
+        final String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
 
         if (isJsonArray(rawClass)) {
-            childRawType = getRawClass(expandedTypes.get(depth + 1));
-            String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
-            builder.append(i).append("if (").append(originName).append(".").append(getterName).append("() != null) {\n");
-            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true))
-                   .append("();\n");
-            builder.append(i).append("  for (").append(childTypeName).append(" ").append(childName)
-                   .append(" : ").append(originName).append(".").append(getterName).append("()) {\n");
+            builder.append(i).append("  for (").append(childTypeName).append(" ").append(childVarIn)
+                   .append(" : ").append(varIn).append(") {\n");
         } else if (isJsonStringMap(rawClass)) {
-            childRawType = getRawClass(expandedTypes.get(depth + 1));
-            String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
-            builder.append(i).append("if (").append(originName).append(".").append(getterName).append("() != null) {\n");
-            builder.append(i).append("  ").append("this.").append(fieldName).append(" = new ").append(getImplName(type, true))
-                   .append("();\n");
-            builder.append(i).append("  for (java.util.Map.Entry<String, ").append(childTypeName).append("> ").append(
-                    entryVar).append(" : ").append(originName).append(".").append(getterName).append("().entrySet()) {\n");
-            builder.append(i).append("    ").append(childTypeName).append(" ").append(childName).append(" = ").append(
+            builder.append(i).append("  for (java.util.Map.Entry<String, ").append(childTypeName).append("> ").append(entryVar)
+                   .append(" : ").append(varIn).append(".entrySet()) {\n");
+            builder.append(i).append("    ").append(childTypeName).append(" ").append(childVarIn).append(" = ").append(
                     entryVar).append(".getValue();\n");
         }
 
-        if (depth + 1 < expandedTypes.size()) {
-            emitDeepCopyForField(expandedTypes, depth + 1, builder, originName, getter, i + "  ");
-        }
-
-        if (isJsonArray(rawClass)) {
-            if (depth == 0) {
-                builder.append(i).append("    this.").append(fieldName).append(".add(");
+        if (isJsonArray(childRawType) || isJsonStringMap(childRawType)) {
+            builder.append(i).append("    if (").append(childVarIn).append(" != null) {\n");
+            builder.append(i).append("      ").append(childTypeName).append(" ").append(childVarOut)
+                   .append(" = new ").append(getImplName(expandedTypes.get(depth + 1), true)).append("();\n");
+            emitDeepCopyCollections(expandedTypes, depth + 1, builder, childVarIn, childVarOut, i + "    ");
+            builder.append(i).append("      ").append(varOut);
+            if (isJsonArray(rawClass)) {
+                builder.append(".add(");
             } else {
-                builder.append(i).append("    ").append("this.").append(fieldName).append(".add(");
+                builder.append(".put(").append(entryVar).append(".getKey(), ");
             }
-            if (mayReassign(childRawType)) {
-                builder.append(childName);
-            } else if (getEnclosingTemplate().isDtoInterface(childRawType)) {
-                emitCheckNullAndCopyDto(childRawType, childName, builder);
+            builder.append(childVarOut);
+            builder.append(");\n");
+            builder.append(i).append("    ").append("}\n");
+        } else {
+            builder.append(i).append("      ").append(varOut);
+            if (isJsonArray(rawClass)) {
+                builder.append(".add(");
             } else {
-                // List or Map
-                builder.append(childName);
+                builder.append(".put(").append(entryVar).append(".getKey(), ");
+            }
+            if (getEnclosingTemplate().isDtoInterface(childRawType)) {
+                emitCheckNullAndCopyDto(childRawType, childVarIn, builder);
+            } else {
+                builder.append(childVarIn);
             }
             builder.append(");\n");
-            builder.append(i).append("  ").append("}\n");
-            builder.append(i).append("}\n");
-        } else if (isJsonStringMap(rawClass)) {
-            if (depth == 0) {
-                builder.append(i).append("    this.").append(fieldName).append(".put(").append(entryVar).append(".getKey(), ");
-            } else {
-                builder.append(i).append("    ").append("this.").append(fieldName).append(".put(").append(entryVar).append(".getKey(), ");
-            }
-            if (mayReassign(childRawType)) {
-                builder.append(childName);
-            } else if (getEnclosingTemplate().isDtoInterface(childRawType)) {
-                emitCheckNullAndCopyDto(childRawType, childName, builder);
-            } else {
-                // List or Map
-                builder.append(childName);
-            }
-            builder.append(");\n");
-            builder.append(i).append("  ").append("}\n");
-            builder.append(i).append("}\n");
-        } else if (getEnclosingTemplate().isDtoInterface(rawClass)) {
-            if (depth == 0) {
-                builder.append(i).append("this.").append(fieldName).append(" = ");
-                emitCheckNullAndCopyDto(rawClass, fieldName, builder);
-                builder.append(";\n");
-            }
-        } else if (mayReassign(rawClass)) {
-            if (depth == 0) {
-                builder.append(i).append("this.").append(fieldName).append(" = ").append(originName).append(".").append(getterName)
-                       .append("();\n");
-            }
         }
+        builder.append(i).append("  }\n");
     }
 
     private void emitCheckNullAndCopyDto(Class<?> dto, String fieldName, StringBuilder builder) {
         String implName = dto.getSimpleName() + "Impl";
         builder.append(fieldName).append(" == null ? null : ")
                .append("new ").append(implName).append("(").append(fieldName).append(")");
-    }
-
-    private boolean mayReassign(Class<?> fieldType) {
-        return fieldType.isPrimitive()
-               || fieldType.isEnum()
-               || fieldType == String.class
-               || fieldType == Boolean.class
-               || fieldType == Integer.class
-               || fieldType == Byte.class
-               || fieldType == Character.class
-               || fieldType == Double.class
-               || fieldType == Float.class
-               || fieldType == Long.class
-               || fieldType == Short.class
-               || fieldType == Void.class;
     }
 
     /** Emit a method that ensures a collection is initialized. */

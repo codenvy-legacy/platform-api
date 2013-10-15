@@ -32,7 +32,7 @@ public class SimpleFactoryUrl {
     // optional parameters
     private String action;
     private String openfile;
-    private boolean keepvcsinfo = false;
+    private boolean vcsinfo = false;
     private String orgid;
     private String affiliateid;
     private Map<String, String> projectattributes = Collections.emptyMap();
@@ -40,7 +40,7 @@ public class SimpleFactoryUrl {
     public SimpleFactoryUrl() {
     }
 
-    public SimpleFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean keepVcsInfo,
+    public SimpleFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean vcsInfo,
                             String orgid, String affiliateid, Map<String, String> projectAttributes) {
         this.v = version;
         this.vcs = vcs;
@@ -48,7 +48,7 @@ public class SimpleFactoryUrl {
         this.commitid = commitId;
         this.action = action;
         this.openfile = openFile;
-        this.keepvcsinfo = keepVcsInfo;
+        this.vcsinfo = vcsInfo;
         this.orgid = orgid;
         this.affiliateid = affiliateid;
 
@@ -79,8 +79,8 @@ public class SimpleFactoryUrl {
         this.openfile = openFile;
     }
 
-    public void setKeepvcsinfo(boolean keepVcsInfo) {
-        this.keepvcsinfo = keepVcsInfo;
+    public void setVcsinfo(boolean vcsInfo) {
+        this.vcsinfo = vcsInfo;
     }
 
     public void setOrgid(String orgid) {
@@ -123,8 +123,8 @@ public class SimpleFactoryUrl {
         return openfile;
     }
 
-    public boolean getKeepvcsinfo() {
-        return keepvcsinfo;
+    public boolean getVcsinfo() {
+        return vcsinfo;
     }
 
     public String getOrgid() {
@@ -146,7 +146,7 @@ public class SimpleFactoryUrl {
 
         SimpleFactoryUrl that = (SimpleFactoryUrl)o;
 
-        if (keepvcsinfo != that.keepvcsinfo) return false;
+        if (vcsinfo != that.vcsinfo) return false;
         if (action != null ? !action.equals(that.action) : that.action != null) return false;
         if (affiliateid != null ? !affiliateid.equals(that.affiliateid) : that.affiliateid != null) return false;
         if (commitid != null ? !commitid.equals(that.commitid) : that.commitid != null) return false;
@@ -168,7 +168,7 @@ public class SimpleFactoryUrl {
         result = 31 * result + (commitid != null ? commitid.hashCode() : 0);
         result = 31 * result + (action != null ? action.hashCode() : 0);
         result = 31 * result + (openfile != null ? openfile.hashCode() : 0);
-        result = 31 * result + (keepvcsinfo ? 1 : 0);
+        result = 31 * result + (vcsinfo ? 1 : 0);
         result = 31 * result + (orgid != null ? orgid.hashCode() : 0);
         result = 31 * result + (affiliateid != null ? affiliateid.hashCode() : 0);
         result = 31 * result + (projectattributes != null ? projectattributes.hashCode() : 0);

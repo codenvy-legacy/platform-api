@@ -35,13 +35,14 @@ public class SimpleFactoryUrl {
     private boolean vcsinfo = false;
     private String orgid;
     private String affiliateid;
+    private String vcsbranch;
     private Map<String, String> projectattributes = Collections.emptyMap();
 
     public SimpleFactoryUrl() {
     }
 
     public SimpleFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean vcsInfo,
-                            String orgid, String affiliateid, Map<String, String> projectAttributes) {
+                            String orgid, String affiliateid, String vcsbranch, Map<String, String> projectAttributes) {
         this.v = version;
         this.vcs = vcs;
         this.vcsurl = vcsUrl;
@@ -51,6 +52,7 @@ public class SimpleFactoryUrl {
         this.vcsinfo = vcsInfo;
         this.orgid = orgid;
         this.affiliateid = affiliateid;
+        this.vcsbranch = vcsbranch;
 
         setProjectattributes(projectAttributes);
     }
@@ -89,6 +91,10 @@ public class SimpleFactoryUrl {
 
     public void setAffiliateid(String affiliateid) {
         this.affiliateid = affiliateid;
+    }
+
+    public void setVcsbranch(String vcsbranch) {
+        this.vcsbranch = vcsbranch;
     }
 
     // Method mame should be lowercased to use correctly from json builder.
@@ -135,6 +141,10 @@ public class SimpleFactoryUrl {
         return affiliateid;
     }
 
+    public String getVcsbranch() {
+        return vcsbranch;
+    }
+
     public Map<String, String> getProjectattributes() {
         return Collections.unmodifiableMap(projectattributes);
     }
@@ -153,9 +163,10 @@ public class SimpleFactoryUrl {
         if (openfile != null ? !openfile.equals(that.openfile) : that.openfile != null) return false;
         if (orgid != null ? !orgid.equals(that.orgid) : that.orgid != null) return false;
         if (projectattributes != null ? !projectattributes.equals(that.projectattributes) : that.projectattributes != null) return false;
-        if (vcs != null ? !vcs.equals(that.vcs) : that.vcs != null) return false;
-        if (vcsurl != null ? !vcsurl.equals(that.vcsurl) : that.vcsurl != null) return false;
         if (v != null ? !v.equals(that.v) : that.v != null) return false;
+        if (vcs != null ? !vcs.equals(that.vcs) : that.vcs != null) return false;
+        if (vcsbranch != null ? !vcsbranch.equals(that.vcsbranch) : that.vcsbranch != null) return false;
+        if (vcsurl != null ? !vcsurl.equals(that.vcsurl) : that.vcsurl != null) return false;
 
         return true;
     }
@@ -171,6 +182,7 @@ public class SimpleFactoryUrl {
         result = 31 * result + (vcsinfo ? 1 : 0);
         result = 31 * result + (orgid != null ? orgid.hashCode() : 0);
         result = 31 * result + (affiliateid != null ? affiliateid.hashCode() : 0);
+        result = 31 * result + (vcsbranch != null ? vcsbranch.hashCode() : 0);
         result = 31 * result + (projectattributes != null ? projectattributes.hashCode() : 0);
         return result;
     }

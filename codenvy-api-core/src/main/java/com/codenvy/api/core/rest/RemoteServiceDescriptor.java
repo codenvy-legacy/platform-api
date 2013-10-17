@@ -40,14 +40,14 @@ import java.util.List;
  * @see #getDescription()
  * @see #getLinks()
  */
-public abstract class RemoteServiceDescriptor {
+public class RemoteServiceDescriptor {
 
     protected final String baseUrl;
 
     // will be initialized when it is needed
     private volatile ServiceDescriptor serviceDescriptor;
 
-    protected RemoteServiceDescriptor(String baseUrl) {
+    public RemoteServiceDescriptor(String baseUrl) {
         this.baseUrl = baseUrl;
     }
 
@@ -86,7 +86,7 @@ public abstract class RemoteServiceDescriptor {
         return null;
     }
 
-    private ServiceDescriptor getServiceDescriptor() throws IOException, RemoteException {
+    public ServiceDescriptor getServiceDescriptor() throws IOException, RemoteException {
         ServiceDescriptor myServiceDescriptor = serviceDescriptor;
         if (myServiceDescriptor == null) {
             synchronized (this) {

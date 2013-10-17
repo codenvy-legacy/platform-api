@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.builder.internal.dto.BuildTaskDescriptor;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.rest.RemoteContent;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.util.CommandLine;
@@ -124,7 +124,7 @@ public interface BuildTask {
      * @return BuildTaskDescriptor
      * @throws BuilderException
      *         if an error occurs when try to get status of build process
-     * @see com.codenvy.api.builder.internal.dto.BuildTaskDescriptor#getLinks()
+     * @see com.codenvy.api.builder.dto.BuildTaskDescriptor#getLinks()
      * @see com.codenvy.api.core.rest.shared.dto.Link
      */
     BuildTaskDescriptor getDescriptor(ServiceContext restfulRequestContext) throws BuilderException;

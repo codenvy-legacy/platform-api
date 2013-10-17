@@ -30,4 +30,6 @@ public interface DependencyRequest extends BaseBuilderRequest {
     String getType();
 
     void setType(String type);
+
+    DependencyRequest withType(String type);
 }

@@ -135,8 +135,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
     // --------------------------------------------
 
     protected Property createProperty(String name, String value) {
-        final Property property = DtoFactory.getInstance().createDto(Property.class);
-        property.setName(name);
+        final Property property = DtoFactory.getInstance().createDto(Property.class).withName(name);
         if (value != null) {
             List<String> values = new ArrayList<>(1);
             values.add(value);
@@ -161,12 +160,9 @@ public abstract class MemoryFileSystemTest extends TestCase {
             for (BasicPermissions permission : e.getValue()) {
                 plainPermissions.add(permission.value());
             }
-            final Principal copyPrincipal = DtoFactory.getInstance().createDto(Principal.class);
-            copyPrincipal.setName(principal.getName());
-            copyPrincipal.setType(principal.getType());
-            final AccessControlEntry ace = DtoFactory.getInstance().createDto(AccessControlEntry.class);
-            ace.setPrincipal(copyPrincipal);
-            ace.setPermissions(plainPermissions);
+            final Principal copyPrincipal = DtoFactory.getInstance().clone(principal);
+            final AccessControlEntry ace = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                                     .withPrincipal(copyPrincipal).withPermissions(plainPermissions);
             acl.add(ace);
         }
         return acl;

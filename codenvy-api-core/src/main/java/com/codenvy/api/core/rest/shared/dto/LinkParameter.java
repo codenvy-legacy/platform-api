@@ -39,6 +39,8 @@ public interface LinkParameter {
      */
     String getName();
 
+    LinkParameter withName(String name);
+
     /**
      * Set name of parameter.
      *
@@ -53,6 +55,8 @@ public interface LinkParameter {
      * @return defaultValue of parameter
      */
     String getDefaultValue();
+
+    LinkParameter withDefaultValue(String defaultValue);
 
     /**
      * Set defaultValue of parameter.
@@ -69,6 +73,8 @@ public interface LinkParameter {
      * @see com.codenvy.api.core.rest.annotations.Description
      */
     String getDescription();
+
+    LinkParameter withDescription(String description);
 
     /**
      * Set optional description of parameter.
@@ -87,6 +93,8 @@ public interface LinkParameter {
      */
     ParameterType getType();
 
+    LinkParameter withType(ParameterType type);
+
     /**
      * Set type of parameter.
      *
@@ -104,6 +112,8 @@ public interface LinkParameter {
      */
     boolean isRequired();
 
+    LinkParameter withRequired(boolean required);
+
     /**
      * @param required
      *         {@code true} if parameter is required and {@code false} otherwise
@@ -118,6 +128,8 @@ public interface LinkParameter {
      * @see com.codenvy.api.core.rest.annotations.Valid
      */
     List<String> getValid();
+
+    LinkParameter withValid(List<String> valid);
 
     /**
      * Set optional list of constraint strings.

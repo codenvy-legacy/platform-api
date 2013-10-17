@@ -31,5 +31,7 @@ import java.util.Map;
 public interface Attributes {
     Map<String, List<String>> getAttributes();
 
+    Attributes withAttributes(Map<String, List<String>> attributes);
+
     void setAttributes(Map<String, List<String>> attributes);
 }

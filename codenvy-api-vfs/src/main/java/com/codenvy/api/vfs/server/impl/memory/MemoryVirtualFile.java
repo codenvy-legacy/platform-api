@@ -174,9 +174,8 @@ public class MemoryVirtualFile implements VirtualFile {
         final Principal groupPrincipal = DtoFactory.getInstance().createDto(Principal.class);
         groupPrincipal.setName("workspace/developer");
         groupPrincipal.setType(Principal.Type.GROUP);
-        final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class);
-        anyPrincipal.setName(VirtualFileSystemInfo.ANY_PRINCIPAL);
-        anyPrincipal.setType(Principal.Type.USER);
+        final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class)
+                                                 .withName(VirtualFileSystemInfo.ANY_PRINCIPAL).withType(Principal.Type.USER);
         this.permissionsMap.put(groupPrincipal, EnumSet.of(BasicPermissions.ALL));
         this.permissionsMap.put(anyPrincipal, EnumSet.of(BasicPermissions.READ));
         this.properties = new HashMap<>();
@@ -291,8 +290,6 @@ public class MemoryVirtualFile implements VirtualFile {
             final Principal principal = ace.getPrincipal();
             // Do not use 'transport' object directly, copy it instead.
             final Principal copyPrincipal = DtoFactory.getInstance().clone(principal);
-            copyPrincipal.setName(principal.getName());
-            copyPrincipal.setType(principal.getType());
             Set<BasicPermissions> permissions = update.get(copyPrincipal);
             if (permissions == null) {
                 permissions = EnumSet.noneOf(BasicPermissions.class);
@@ -348,8 +345,7 @@ public class MemoryVirtualFile implements VirtualFile {
         checkExist();
         final Map<Principal, Set<BasicPermissions>> copy = new HashMap<>(permissionsMap.size());
         for (Map.Entry<Principal, Set<BasicPermissions>> e : permissionsMap.entrySet()) {
-            final Principal principal = e.getKey();
-            final Principal copyPrincipal = DtoFactory.getInstance().clone(principal);
+            final Principal copyPrincipal = DtoFactory.getInstance().clone(e.getKey());
             copy.put(copyPrincipal, EnumSet.copyOf(e.getValue()));
         }
         return copy;
@@ -367,10 +363,9 @@ public class MemoryVirtualFile implements VirtualFile {
             for (BasicPermissions permission : e.getValue()) {
                 plainPermissions.add(permission.value());
             }
-            final AccessControlEntry ace = DtoFactory.getInstance().createDto(AccessControlEntry.class);
-            ace.setPrincipal(principal); // principal is already copied in method getPermissions
-            ace.setPermissions(plainPermissions);
-            acl.add(ace);
+            // principal is already copied in method getPermissions
+            acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                              .withPrincipal(principal).withPermissions(plainPermissions));
         }
         return acl;
     }
@@ -382,8 +377,7 @@ public class MemoryVirtualFile implements VirtualFile {
             final String name = e.getKey();
             if (filter.accept(name)) {
                 final List<String> value = e.getValue();
-                final Property property = DtoFactory.getInstance().createDto(Property.class);
-                property.setName(name);
+                final Property property = DtoFactory.getInstance().createDto(Property.class).withName(name);
                 if (value != null) {
                     property.setValue(new ArrayList<>(value));
                 }
@@ -903,17 +897,17 @@ public class MemoryVirtualFile implements VirtualFile {
                             }
                         }
                         if (!hasMimeType) {
-                            final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class);
-                            mimeTypeProperty.setName("vfs:mimeType");
-                            mimeTypeProperty.setValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
+                            final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class)
+                                                                        .withName("vfs:mimeType")
+                                                                        .withValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
                             properties.add(mimeTypeProperty);
                         }
 
                         current.updateProperties(properties, null);
                     } else {
-                        final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class);
-                        mimeTypeProperty.setName("vfs:mimeType");
-                        mimeTypeProperty.setValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
+                        final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class)
+                                                                    .withName("vfs:mimeType")
+                                                                    .withValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
                         properties.add(mimeTypeProperty);
                         current.updateProperties(Collections.<Property>singletonList(mimeTypeProperty), null);
                     }
@@ -1154,9 +1148,8 @@ public class MemoryVirtualFile implements VirtualFile {
         while (current != null) {
             final Map<Principal, Set<BasicPermissions>> objectPermissions = current.getPermissions();
             if (!objectPermissions.isEmpty()) {
-                final Principal userPrincipal = DtoFactory.getInstance().createDto(Principal.class);
-                userPrincipal.setName(user.getUserId());
-                userPrincipal.setType(Principal.Type.USER);
+                final Principal userPrincipal =
+                        DtoFactory.getInstance().createDto(Principal.class).withName(user.getUserId()).withType(Principal.Type.USER);
                 Set<BasicPermissions> userPermissions = objectPermissions.get(userPrincipal);
                 if (userPermissions != null) {
                     return userPermissions.contains(permission) || userPermissions.contains(BasicPermissions.ALL);
@@ -1164,18 +1157,16 @@ public class MemoryVirtualFile implements VirtualFile {
                 Collection<String> groups = user.getGroups();
                 if (!groups.isEmpty()) {
                     for (String group : groups) {
-                        final Principal groupPrincipal = DtoFactory.getInstance().createDto(Principal.class);
-                        groupPrincipal.setName(group);
-                        groupPrincipal.setType(Principal.Type.GROUP);
+                        final Principal groupPrincipal =
+                                DtoFactory.getInstance().createDto(Principal.class).withName(group).withType(Principal.Type.GROUP);
                         userPermissions = objectPermissions.get(groupPrincipal);
                         if (userPermissions != null) {
                             return userPermissions.contains(permission) || userPermissions.contains(BasicPermissions.ALL);
                         }
                     }
                 }
-                final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class);
-                anyPrincipal.setName(VirtualFileSystemInfo.ANY_PRINCIPAL);
-                anyPrincipal.setType(Principal.Type.USER);
+                final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class)
+                                                         .withName(VirtualFileSystemInfo.ANY_PRINCIPAL).withType(Principal.Type.USER);
                 userPermissions = objectPermissions.get(anyPrincipal);
                 return userPermissions != null && (userPermissions.contains(permission) || userPermissions.contains(BasicPermissions.ALL));
             }

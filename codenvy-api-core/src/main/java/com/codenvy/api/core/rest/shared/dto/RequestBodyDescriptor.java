@@ -33,6 +33,8 @@ public interface RequestBodyDescriptor {
      */
     String getDescription();
 
+    RequestBodyDescriptor withDescription(String description);
+
     /**
      * Set optional description of request body.
      *

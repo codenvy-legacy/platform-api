@@ -46,6 +46,8 @@ public interface BuilderDescriptor {
      */
     void setName(String name);
 
+    BuilderDescriptor withName(String name);
+
     /**
      * Get optional description of Builder.
      *
@@ -60,4 +62,6 @@ public interface BuilderDescriptor {
      *         builder description
      */
     void setDescription(String description);
+
+    BuilderDescriptor withDescription(String description);
 }

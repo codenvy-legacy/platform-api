@@ -41,4 +41,6 @@ public interface BuilderServiceLocation {
      *         resource URL
      */
     void setUrl(String url);
+
+    BuilderServiceLocation withUrl(String url);
 }

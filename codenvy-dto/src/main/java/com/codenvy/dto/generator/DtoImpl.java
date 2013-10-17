@@ -91,6 +91,10 @@ abstract class DtoImpl {
         return "set" + getCamelCaseName(fieldName);
     }
 
+    protected String getWithName(String fieldName) {
+        return "with" + getCamelCaseName(fieldName);
+    }
+
     protected String getListAdderName(String fieldName) {
         return "add" + getCamelCaseName(fieldName);
     }
@@ -264,10 +268,6 @@ abstract class DtoImpl {
         Map<Integer, Method> methodsMap = new HashMap<Integer, Method>();
         int maxIndex = 0;
         for (Method method : dtoInterface.getMethods()) {
-            if (method.getName().equals("getType")) {
-                continue;
-            }
-
             SerializationIndex serializationIndex = method.getAnnotation(SerializationIndex.class);
             Preconditions.checkNotNull(serializationIndex, "Serialization index is not specified for %s in %s",
                                        method.getName(), dtoInterface.getSimpleName());

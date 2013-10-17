@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderList;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -71,9 +71,7 @@ public final class SlaveBuilderService extends Service {
         for (Builder builder : all) {
             list.add(builder.getDescriptor());
         }
-        final BuilderList result = DtoFactory.getInstance().createDto(BuilderList.class);
-        result.setBuilders(list);
-        return result;
+        return DtoFactory.getInstance().createDto(BuilderList.class).withBuilders(list);
     }
 
     @GenerateLink(rel = Constants.LINK_REL_BUILDER_STATE)
@@ -84,18 +82,17 @@ public final class SlaveBuilderService extends Service {
                                              @Description("Name of the builder")
                                              @QueryParam("builder") String builder) throws Exception {
         final Builder myBuilder = getBuilder(builder);
-        final InstanceState instanceState = DtoFactory.getInstance().createDto(InstanceState.class);
-        instanceState.setCpuPercentUsage(SystemInfo.cpu());
-        instanceState.setTotalMemory(SystemInfo.totalMemory());
-        instanceState.setFreeMemory(SystemInfo.freeMemory());
-        final SlaveBuilderState builderState = DtoFactory.getInstance().createDto(SlaveBuilderState.class);
-        builderState.setName(myBuilder.getName());
-        builderState.setNumberOfWorkers(myBuilder.getNumberOfWorkers());
-        builderState.setNumberOfActiveWorkers(myBuilder.getNumberOfActiveWorkers());
-        builderState.setInternalQueueSize(myBuilder.getInternalQueueSize());
-        builderState.setMaxInternalQueueSize(myBuilder.getMaxInternalQueueSize());
-        builderState.setInstanceState(instanceState);
-        return builderState;
+        final InstanceState instanceState = DtoFactory.getInstance().createDto(InstanceState.class)
+                                                      .withCpuPercentUsage(SystemInfo.cpu())
+                                                      .withTotalMemory(SystemInfo.totalMemory())
+                                                      .withFreeMemory(SystemInfo.freeMemory());
+        return DtoFactory.getInstance().createDto(SlaveBuilderState.class)
+                         .withName(myBuilder.getName())
+                         .withNumberOfWorkers(myBuilder.getNumberOfWorkers())
+                         .withNumberOfActiveWorkers(myBuilder.getNumberOfActiveWorkers())
+                         .withInternalQueueSize(myBuilder.getInternalQueueSize())
+                         .withMaxInternalQueueSize(myBuilder.getMaxInternalQueueSize())
+                         .withInstanceState(instanceState);
     }
 
     @GenerateLink(rel = Constants.LINK_REL_BUILD)

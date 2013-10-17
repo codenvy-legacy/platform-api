@@ -29,9 +29,13 @@ import com.codenvy.dto.shared.DTO;
 public interface BuilderServiceAccessCriteria {
     String getWorkspace();
 
+    BuilderServiceAccessCriteria withWorkspace(String workspace);
+
     void setWorkspace(String workspace);
 
     String getProject();
+
+    BuilderServiceAccessCriteria withProject(String project);
 
     void setProject(String project);
 }

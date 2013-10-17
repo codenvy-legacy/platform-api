@@ -35,6 +35,8 @@ public interface Link {
      */
     String getHref();
 
+    Link withHref(String href);
+
     /**
      * Set URL of resource link.
      *
@@ -49,6 +51,8 @@ public interface Link {
      * @return short description of resource link
      */
     String getRel();
+
+    Link withRel(String rel);
 
     /**
      * Set short description of resource link.
@@ -65,6 +69,8 @@ public interface Link {
      */
     String getMethod();
 
+    Link withMethod(String method);
+
     /**
      * Set HTTP method to use with resource.
      *
@@ -79,6 +85,8 @@ public interface Link {
      * @return media type produced by resource
      */
     String getProduces();
+
+    Link withProduces(String produces);
 
     /**
      * Set media type produced by resource.
@@ -95,6 +103,8 @@ public interface Link {
      */
     String getConsumes();
 
+    Link withConsumes(String consumes);
+
     /**
      * Set media type consumed by resource.
      *
@@ -110,6 +120,8 @@ public interface Link {
      */
     List<LinkParameter> getParameters();
 
+    Link withParameters(List<LinkParameter> parameters);
+
     /**
      * Set description of the query parameters (if any) of request.
      *
@@ -124,6 +136,8 @@ public interface Link {
      * @return request body description
      */
     RequestBodyDescriptor getRequestBody();
+
+    Link withRequestBody(RequestBodyDescriptor requestBody);
 
     /**
      * Set request body description.

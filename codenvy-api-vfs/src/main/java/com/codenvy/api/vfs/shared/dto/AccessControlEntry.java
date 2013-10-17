@@ -31,18 +31,14 @@ public interface AccessControlEntry {
     /** @return principal's permissions */
     List<String> getPermissions();
 
-    /**
-     * @param permissions
-     *         new set of permissions
-     */
+    AccessControlEntry withPermissions(List<String> permissions);
+
     void setPermissions(List<String> permissions);
 
     /** @return principal */
     Principal getPrincipal();
 
-    /**
-     * @param principal
-     *         principal
-     */
+    AccessControlEntry withPrincipal(Principal principal);
+
     void setPrincipal(Principal principal);
 }

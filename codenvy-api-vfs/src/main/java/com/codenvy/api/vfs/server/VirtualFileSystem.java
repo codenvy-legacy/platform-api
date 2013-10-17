@@ -1029,38 +1029,4 @@ public interface VirtualFileSystem {
     Response uploadZip(String parentId, java.util.Iterator<FileItem> formData) throws ItemNotFoundException,
                                                                                       InvalidArgumentException, PermissionDeniedException,
                                                                                       IOException, VirtualFileSystemException;
-
-    /**
-     * Watch updates all files under project. Client must call this method to add watching updates of project. It is
-     * implementation specific how client will be notified about updates.
-     *
-     * @param projectId
-     *         id of project to be watched for updates
-     * @throws ItemNotFoundException
-     *         if <code>projectId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>projectId</code> is not a project or already watched
-     * @throws VirtualFileSystemException
-     *         if any other errors occur
-     */
-    @GET
-    @Path("watch/start")
-    void startWatchUpdates(String projectId) throws ItemNotFoundException, InvalidArgumentException, VirtualFileSystemException;
-
-    /**
-     * Stop watch updates of specified project.
-     *
-     * @param projectId
-     *         id of project to be watched for updates
-     * @throws ItemNotFoundException
-     *         if <code>projectId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>projectId</code> is not under watching
-     * @throws VirtualFileSystemException
-     *         if any other errors occur
-     * @see #startWatchUpdates
-     */
-    @GET
-    @Path("watch/stop")
-    void stopWatchUpdates(String projectId) throws ItemNotFoundException, InvalidArgumentException, VirtualFileSystemException;
 }

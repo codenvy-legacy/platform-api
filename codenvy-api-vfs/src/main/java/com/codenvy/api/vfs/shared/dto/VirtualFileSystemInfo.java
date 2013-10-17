@@ -30,41 +30,61 @@ public interface VirtualFileSystemInfo {
 
     String getId();
 
+    VirtualFileSystemInfo withId(String id);
+
     void setId(String id);
 
     boolean isVersioningSupported();
+
+    VirtualFileSystemInfo withVersioningSupported(boolean versioningSupported);
 
     void setVersioningSupported(boolean versioningSupported);
 
     boolean isLockSupported();
 
+    VirtualFileSystemInfo withLockSupported(boolean lockSupported);
+
     void setLockSupported(boolean lockSupported);
 
     String getAnonymousPrincipal();
 
-    void setAnyPrincipal(String anyPrincipal);
-
-    String getAnyPrincipal();
+    VirtualFileSystemInfo withAnonymousPrincipal(String anonymousPrincipal);
 
     void setAnonymousPrincipal(String anonymousPrincipal);
 
+    String getAnyPrincipal();
+
+    VirtualFileSystemInfo withAnyPrincipal(String anyPrincipal);
+
+    void setAnyPrincipal(String anyPrincipal);
+
     List<String> getPermissions();
+
+    VirtualFileSystemInfo withPermissions(List<String> permissions);
 
     void setPermissions(List<String> permissions);
 
     ACLCapability getAclCapability();
 
+    VirtualFileSystemInfo withAclCapability(ACLCapability aclCapability);
+
     void setAclCapability(ACLCapability aclCapability);
 
     QueryCapability getQueryCapability();
+
+    VirtualFileSystemInfo withQueryCapability(QueryCapability queryCapability);
 
     void setQueryCapability(QueryCapability queryCapability);
 
     Map<String, Link> getUrlTemplates();
 
+    VirtualFileSystemInfo withUrlTemplates(Map<String, Link> uriTemplates);
+
     void setUrlTemplates(Map<String, Link> uriTemplates);
 
     Folder getRoot();
+
+    VirtualFileSystemInfo withRoot(Folder root);
 
     void setRoot(Folder root);
 

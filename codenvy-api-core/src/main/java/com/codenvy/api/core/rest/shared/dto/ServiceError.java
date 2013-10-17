@@ -35,6 +35,8 @@ public interface ServiceError {
      */
     String getMessage();
 
+    ServiceError withMessage(String message);
+
     /**
      * Set error message.
      *

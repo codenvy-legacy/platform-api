@@ -264,11 +264,7 @@ public class LinksHelper {
     }
 
     private static Link createLink(String href, String rel, String type) {
-        Link link = DtoFactory.getInstance().createDto(Link.class);
-        link.setHref(href);
-        link.setRel(rel);
-        link.setType(type);
-        return link;
+        return DtoFactory.getInstance().createDto(Link.class).withHref(href).withRel(rel).withType(type);
     }
 
     private static String createURI(UriBuilder baseUriBuilder, String wsName, String rel, String id, String... query) {

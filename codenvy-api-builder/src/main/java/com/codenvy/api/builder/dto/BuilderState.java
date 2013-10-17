@@ -29,10 +29,14 @@ public interface BuilderState {
     /** Get total number of tasks of Builder. */
     int getTotalNum();
 
+    BuilderState withTotalNum(int totalNum);
+
     void setTotalNum(int totalNum);
 
     /** Get number of waiting tasks of Builder. */
     int getWaitingNum();
+
+    BuilderState withWaitingNum(int waitingNum);
 
     void setWaitingNum(int waitingNum);
 }

@@ -26,6 +26,8 @@ import java.util.List;
 public interface ItemNode {
     Item getItem();
 
+    ItemNode withItem(Item item);
+
     void setItem(Item item);
 
     /**
@@ -35,11 +37,7 @@ public interface ItemNode {
      */
     List<ItemNode> getChildren();
 
-    /**
-     * Set children of item.
-     *
-     * @param children
-     *         of item. Always must be <code>null</code> for files
-     */
+    ItemNode withChildren(List<ItemNode> children);
+
     void setChildren(List<ItemNode> children);
 }

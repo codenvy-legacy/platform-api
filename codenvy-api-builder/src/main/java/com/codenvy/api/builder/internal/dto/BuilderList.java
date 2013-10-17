@@ -30,5 +30,7 @@ import java.util.List;
 public interface BuilderList {
     List<BuilderDescriptor> getBuilders();
 
+    BuilderList withBuilders(List<BuilderDescriptor> builders);
+
     void setBuilders(List<BuilderDescriptor> builders);
 }

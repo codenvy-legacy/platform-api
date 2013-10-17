@@ -38,6 +38,8 @@ public interface BaseBuilderRequest {
      */
     String getSourcesUrl();
 
+    BaseBuilderRequest withSourcesUrl(String sourcesUrl);
+
     void setSourcesUrl(String sourcesUrl);
 
     /**
@@ -45,6 +47,8 @@ public interface BaseBuilderRequest {
      * to get list of available builders.
      */
     String getBuilder();
+
+    BaseBuilderRequest withBuilder(String builder);
 
     void setBuilder(String builder);
 
@@ -54,6 +58,8 @@ public interface BaseBuilderRequest {
      */
     List<String> getTargets();
 
+    BaseBuilderRequest withTargets(List<String> targets);
+
     void setTargets(List<String> targets);
 
     /**
@@ -62,15 +68,21 @@ public interface BaseBuilderRequest {
      */
     Map<String, String> getOptions();
 
+    BaseBuilderRequest withOptions(Map<String, String> options);
+
     void setOptions(Map<String, String> options);
 
     /** Name of workspace which the sources are belong. */
     String getWorkspace();
 
+    BaseBuilderRequest withWorkspace(String workspace);
+
     void setWorkspace(String workspace);
 
     /** Name of project which represents sources on the ide side. */
     String getProject();
+
+    BaseBuilderRequest withProject(String project);
 
     void setProject(String project);
 }

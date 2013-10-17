@@ -55,8 +55,6 @@ public class ApiException extends Exception {
     }
 
     private ServiceError createError(String message) {
-        ServiceError dto = DtoFactory.getInstance().createDto(ServiceError.class);
-        dto.setMessage(message);
-        return dto;
+        return DtoFactory.getInstance().createDto(ServiceError.class).withMessage(message);
     }
 }

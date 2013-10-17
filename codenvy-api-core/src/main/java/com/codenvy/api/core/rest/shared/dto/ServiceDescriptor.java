@@ -37,6 +37,8 @@ public interface ServiceDescriptor {
      */
     String getHref();
 
+    ServiceDescriptor withHref(String href);
+
     /**
      * Set location to get this service descriptor in JSON format.
      *
@@ -51,6 +53,8 @@ public interface ServiceDescriptor {
      * @return description of the Service
      */
     String getDescription();
+
+    ServiceDescriptor withDescription(String description);
 
     /**
      * Set description of the Service.
@@ -67,6 +71,8 @@ public interface ServiceDescriptor {
      */
     String getVersion();
 
+    ServiceDescriptor withVersion(String version);
+
     /**
      * Get API version.
      *
@@ -82,6 +88,8 @@ public interface ServiceDescriptor {
      * @return set of links to the resources provided by the Service
      */
     List<Link> getLinks();
+
+    ServiceDescriptor withLinks(List<Link> links);
 
     /**
      * Set links to the resources provided by the Service,

@@ -81,6 +81,8 @@ public class BuildQueue implements Configurable, Lifecycle {
      */
     public static final String MAX_TIME_IN_QUEUE = "builder.queue.max_time_in_queue";
 
+    private static final long CHECK_AVAILABLE_BUILDER_DELAY = 2000;
+
     private final BuilderListSorter                          builderListSorter;
     private final ExecutorService                            executor;
     private final ConcurrentMap<Long, BuildQueueTask>        tasks;
@@ -256,10 +258,10 @@ public class BuildQueue implements Configurable, Lifecycle {
     public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
             throws RemoteException, IOException {
         final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
-        final DependencyRequest request = DtoFactory.getInstance().createDto(DependencyRequest.class);
-        request.setWorkspace(workspace);
-        request.setProject(project);
-        request.setType(type);
+        final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
+                                                                       .withType(type)
+                                                                       .withWorkspace(workspace)
+                                                                       .withProject(project);
         addRequestParameters(attributes, request);
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
@@ -383,6 +385,20 @@ public class BuildQueue implements Configurable, Lifecycle {
         return request;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * Note: Sub-classes should copy default configuration from super class.
+     * <pre>
+     * &#064Override
+     * public Configuration getDefaultConfiguration() {
+     *     Configuration superConf = super.getDefaultConfiguration();
+     *     Configuration myConf = new Configuration(superConf);
+     *     // add new parameters or update parameters provided by method from super class
+     *     return myConf;
+     * }
+     * </pre>
+     */
     @Override
     public final Configuration getDefaultConfiguration() {
         final Configuration defaultConfiguration = new Configuration();
@@ -393,7 +409,7 @@ public class BuildQueue implements Configurable, Lifecycle {
     @Override
     public final void setConfiguration(Configuration configuration) {
         if (maySetConfiguration) {
-            this.configuration = configuration;
+            this.configuration = new Configuration(configuration);
         } else {
             throw new IllegalStateException();
         }
@@ -401,14 +417,19 @@ public class BuildQueue implements Configurable, Lifecycle {
 
     @Override
     public final Configuration getConfiguration() {
-        return configuration;
+        Configuration myConfiguration = this.configuration;
+        if (myConfiguration != null) {
+            return new Configuration(myConfiguration);
+        }
+        return getDefaultConfiguration();
     }
 
     @Override
     public void start() {
         maySetConfiguration = false;
-        final Configuration configuration = getConfiguration();
-        final int maxTimeInQueueMinutes = configuration.getInt(MAX_TIME_IN_QUEUE, 10);
+        final Configuration myConfiguration = getConfiguration();
+        LOG.debug("{}", myConfiguration);
+        final int maxTimeInQueueMinutes = myConfiguration.getInt(MAX_TIME_IN_QUEUE, 10);
         if (maxTimeInQueueMinutes < 1) {
             throw new LifecycleException(String.format("Invalid %s parameter", MAX_TIME_IN_QUEUE));
         }
@@ -531,7 +552,7 @@ public class BuildQueue implements Configurable, Lifecycle {
 
                 if (candidates.isEmpty()) {
                     try {
-                        wait(2000); // wait and try again
+                        wait(CHECK_AVAILABLE_BUILDER_DELAY); // wait and try again
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         return null; // expected to get here if task is canceled

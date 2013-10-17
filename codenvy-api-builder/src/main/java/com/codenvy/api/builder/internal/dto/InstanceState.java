@@ -28,13 +28,19 @@ import com.codenvy.dto.shared.DTO;
 public interface InstanceState {
     int getCpuPercentUsage();
 
+    InstanceState withCpuPercentUsage(int cpuPercentUsage);
+
     void setCpuPercentUsage(int cpuPercentUsage);
 
     long getTotalMemory();
 
+    InstanceState withTotalMemory(long totalMemory);
+
     void setTotalMemory(long totalMemory);
 
     long getFreeMemory();
+
+    InstanceState withFreeMemory(long freeMemory);
 
     void setFreeMemory(long freeMemory);
 }

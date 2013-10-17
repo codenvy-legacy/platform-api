@@ -56,13 +56,19 @@ public interface Link {
 
     String getHref();
 
+    Link withHref(String href);
+
     void setHref(String href);
 
     String getRel();
 
+    Link withRel(String rel);
+
     void setRel(String rel);
 
     String getType();
+
+    Link withType(String type);
 
     void setType(String type);
 }

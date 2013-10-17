@@ -17,11 +17,11 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
 import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -58,20 +58,20 @@ public final class BuilderService extends Service {
 
     @GenerateLink(rel = Constants.LINK_REL_BUILD)
     @POST
-    @Path("{project}/build")
+    @Path("build")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@PathParam("ws-name") String workspace,
-                                     @PathParam("project") String project) throws Exception {
+                                     @Required @Description("project name") @QueryParam("project") String project) throws Exception {
         return buildQueue.scheduleBuild(workspace, project, getServiceContext()).getStatus(getServiceContext());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
     @POST
-    @Path("{project}/dependencies")
+    @Path("dependencies")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor dependencies(@PathParam("ws-name") String workspace,
-                                            @PathParam("project") String project,
+                                            @Required @Description("project name") @QueryParam("project") String project,
                                             @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
             throws Exception {
         return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getStatus(getServiceContext());
@@ -124,10 +124,9 @@ public final class BuilderService extends Service {
     @Path("state")
     @Produces(MediaType.APPLICATION_JSON)
     public BuilderState state() {
-        final BuilderState result = DtoFactory.getInstance().createDto(BuilderState.class);
-        result.setTotalNum(buildQueue.getTotalNum());
-        result.setWaitingNum(buildQueue.getWaitingNum());
-        return result;
+        return DtoFactory.getInstance().createDto(BuilderState.class)
+                         .withTotalNum(buildQueue.getTotalNum())
+                         .withWaitingNum(buildQueue.getWaitingNum());
     }
 
     //@RolesAllowed("cloud/admin")

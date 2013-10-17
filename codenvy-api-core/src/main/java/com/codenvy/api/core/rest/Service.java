@@ -112,13 +112,13 @@ public abstract class Service {
             }
         }
         final Description description = service.getAnnotation(Description.class);
-        final ServiceDescriptor dto = DtoFactory.getInstance().createDto(ServiceDescriptor.class);
+        final ServiceDescriptor dto = DtoFactory.getInstance().createDto(ServiceDescriptor.class)
+                                                .withHref(uriInfo.getRequestUri().toString())
+                                                .withLinks(links)
+                                                .withVersion(Constants.API_VERSION);
         if (description != null) {
             dto.setDescription(description.value());
         }
-        dto.setHref(uriInfo.getRequestUri().toString());
-        dto.setLinks(links);
-        dto.setVersion(Constants.API_VERSION);
         return dto;
     }
 
@@ -158,10 +158,10 @@ public abstract class Service {
             baseUriBuilder.path(path.value());
         }
 
-        final Link link = DtoFactory.getInstance().createDto(Link.class);
-        link.setRel(linkRel);
-        link.setHref(baseUriBuilder.build(pathParameters).toString());
-        link.setMethod(httpMethod);
+        final Link link = DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(linkRel)
+                                    .withHref(baseUriBuilder.build(pathParameters).toString())
+                                    .withMethod(httpMethod);
         if (consumes != null) {
             link.setConsumes(consumes.value()[0]);
         }
@@ -197,24 +197,24 @@ public abstract class Service {
                         }
                     }
                     if (queryParam != null) {
-                        LinkParameter parameter = DtoFactory.getInstance().createDto(LinkParameter.class);
-                        parameter.setName(queryParam.value());
+                        LinkParameter parameter = DtoFactory.getInstance().createDto(LinkParameter.class)
+                                                            .withName(queryParam.value())
+                                                            .withRequired(required != null)
+                                                            .withType(getParameterType(parameterClasses[i]));
                         if (defaultValue != null) {
                             parameter.setDefaultValue(defaultValue.value());
                         }
                         if (description != null) {
                             parameter.setDescription(description.value());
                         }
-                        parameter.setRequired(required != null);
-                        parameter.setType(getParameterType(parameterClasses[i]));
                         if (valid != null) {
                             parameter.setValid(Arrays.asList(valid.value()));
                         }
                         link.getParameters().add(parameter);
                     } else if (isBodyParameter) {
                         if (description != null) {
-                            RequestBodyDescriptor bodyDescriptor = DtoFactory.getInstance().createDto(RequestBodyDescriptor.class);
-                            bodyDescriptor.setDescription(description.value());
+                            link.setRequestBody(DtoFactory.getInstance().createDto(RequestBodyDescriptor.class)
+                                                          .withDescription(description.value()));
                         }
                     }
                 }

@@ -25,19 +25,21 @@ public interface Lock {
     /** @return the owner */
     String getOwner();
 
+    Lock withOwner(String owner);
+
     void setOwner(String owner);
 
     /** @return the lockToken */
     String getLockToken();
+
+    Lock withLockToken(String lockToken);
 
     void setLockToken(String lockToken);
 
     /** @return the timeout */
     long getTimeout();
 
-    /**
-     * @param timeout
-     *         the timeout to set
-     */
+    Lock withTimeout(long timeout);
+
     void setTimeout(long timeout);
 }

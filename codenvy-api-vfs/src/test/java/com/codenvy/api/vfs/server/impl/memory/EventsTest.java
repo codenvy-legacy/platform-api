@@ -207,39 +207,4 @@ public class EventsTest extends MemoryFileSystemTest {
         VirtualFileSystem vfs = listener.events.get(0).getVirtualFileSystem();
         vfs.updateItem(fileId, Collections.<Property>emptyList(), null);
     }
-
-    public void testStartProjectUpdateListener() throws Exception {
-        int configuredListeners = eventListenerList.size();
-        String path = SERVICE_URI + "watch/start/" + testEventsProject.getId();
-        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null);
-
-        assertEquals(204, response.getStatus());
-        assertEquals("Project update listener must be added. ", configuredListeners + 1, eventListenerList.size());
-    }
-
-    public void testStopProjectUpdateListener() throws Exception {
-        String path = SERVICE_URI + "watch/start/" + testEventsProject.getId();
-        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null);
-        assertEquals(204, response.getStatus());
-
-        int configuredListeners = eventListenerList.size();
-        path = SERVICE_URI + "watch/stop/" + testEventsProject.getId();
-        response = launcher.service("GET", path, BASE_URI, null, null, null);
-
-        assertEquals(204, response.getStatus());
-        assertEquals("Project update listener must be removed. ", configuredListeners - 1, eventListenerList.size());
-    }
-
-    public void testProjectUpdateListener() throws Exception {
-        String path = SERVICE_URI + "watch/start/" + testEventsProject.getId();
-        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null);
-        assertEquals(204, response.getStatus());
-        assertEquals("0", testEventsProject.getPropertyValue("vfs:lastUpdateTime"));
-
-        String name = "testProjectUpdateListenerFolder";
-        path = SERVICE_URI + "folder/" + testEventsProject.getId() + '?' + "name=" + name;
-        response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(200, response.getStatus());
-        assertFalse("Lst update time must be changed. ", "0".equals(testEventsProject.getPropertyValue("vfs:lastUpdateTime")));
-    }
 }

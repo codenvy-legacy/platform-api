@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.builder.dto;
 
 import com.codenvy.api.builder.internal.BuildStatus;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -34,17 +34,25 @@ import java.util.List;
 public interface BuildTaskDescriptor {
     BuildStatus getStatus();
 
+    BuildTaskDescriptor withStatus(BuildStatus status);
+
     void setStatus(BuildStatus status);
 
     long getStartTime();
+
+    BuildTaskDescriptor withStartTime(long startTime);
 
     void setStartTime(long startTime);
 
     List<Link> getLinks();
 
+    BuildTaskDescriptor withLinks(List<Link> links);
+
     void setLinks(List<Link> links);
 
     long getTaskId();
+
+    BuildTaskDescriptor withTaskId(long taskId);
 
     void setTaskId(long taskId);
 }

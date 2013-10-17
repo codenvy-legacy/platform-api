@@ -26,9 +26,13 @@ import java.util.List;
 public interface Property {
     String getName();
 
+    Property withName(String name);
+
     void setName(String name);
 
     List<String> getValue();
+
+    Property withValue(List<String> value);
 
     void setValue(List<String> value);
 }

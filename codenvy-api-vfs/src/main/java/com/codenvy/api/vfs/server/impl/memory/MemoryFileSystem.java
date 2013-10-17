@@ -60,18 +60,17 @@ public class MemoryFileSystem extends VirtualFileSystemImpl {
             permissions.add(bp.value());
         }
         final Folder root = (Folder)fromVirtualFile(getMountPoint().getRoot(), true, PropertyFilter.ALL_FILTER);
-        final VirtualFileSystemInfo vfsInfo = DtoFactory.getInstance().createDto(VirtualFileSystemInfo.class);
-        vfsInfo.setId(vfsId);
-        vfsInfo.setVersioningSupported(false);
-        vfsInfo.setLockSupported(true);
-        vfsInfo.setAnonymousPrincipal(VirtualFileSystemInfo.ANONYMOUS_PRINCIPAL);
-        vfsInfo.setAnyPrincipal(VirtualFileSystemInfo.ANY_PRINCIPAL);
-        vfsInfo.setPermissions(permissions);
-        vfsInfo.setAclCapability(ACLCapability.MANAGE);
-        vfsInfo.setQueryCapability(QueryCapability.FULLTEXT);
-        vfsInfo.setUrlTemplates(LinksHelper.createUrlTemplates(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
-                EnvironmentContext.WORKSPACE_NAME)));
-        vfsInfo.setRoot(root);
-        return vfsInfo;
+        return DtoFactory.getInstance().createDto(VirtualFileSystemInfo.class)
+                         .withId(vfsId)
+                         .withVersioningSupported(false)
+                         .withLockSupported(true)
+                         .withAnonymousPrincipal(VirtualFileSystemInfo.ANONYMOUS_PRINCIPAL)
+                         .withAnyPrincipal(VirtualFileSystemInfo.ANY_PRINCIPAL)
+                         .withPermissions(permissions)
+                         .withAclCapability(ACLCapability.MANAGE)
+                         .withQueryCapability(QueryCapability.FULLTEXT)
+                         .withUrlTemplates(LinksHelper.createUrlTemplates(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
+                                 EnvironmentContext.WORKSPACE_NAME)))
+                         .withRoot(root);
     }
 }

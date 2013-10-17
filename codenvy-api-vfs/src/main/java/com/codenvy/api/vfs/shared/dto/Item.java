@@ -33,65 +33,57 @@ public interface Item {
     /** @return id of virtual file system that contains object */
     String getVfsId();
 
+    Item withVfsId(String vfsId);
+
     void setVfsId(String vfsId);
 
     /** @return id of object */
     String getId();
 
-    /**
-     * @param id
-     *         the id of object
-     */
+    Item withId(String id);
+
     void setId(String id);
 
     /** @return name of object */
     String getName();
 
-    /**
-     * @param name
-     *         the name of object
-     */
+    Item withName(String name);
+
     void setName(String name);
 
     /** @return type of item */
     ItemType getItemType();
+
+    Item withItemType(ItemType itemType);
 
     void setItemType(ItemType itemType);
 
     /** @return path */
     String getPath();
 
-    /**
-     * @param path
-     *         the path
-     */
+    Item withPath(String path);
+
     void setPath(String path);
 
     /** @return id of parent folder and <code>null</code> if current item is root folder */
     String getParentId();
 
-    /**
-     * @param parentId
-     *         id of parent folder and <code>null</code> if current item is root folder
-     */
+    Item withParentId(String parentId);
+
     void setParentId(String parentId);
 
     /** @return creation date */
     long getCreationDate();
 
-    /**
-     * @param creationDate
-     *         the creation date
-     */
+    Item withCreationDate(long creationDate);
+
     void setCreationDate(long creationDate);
 
     /** @return media type */
     String getMimeType();
 
-    /**
-     * @param mimeType
-     *         media type
-     */
+    Item withMimeType(String mimeType);
+
     void setMimeType(String mimeType);
 
     /**
@@ -101,7 +93,8 @@ public interface Item {
      */
     List<Property> getProperties();
 
-    /** @see #getProperties() */
+    Item withProperties(List<Property> properties);
+
     void setProperties(List<Property> properties);
 
     /**
@@ -111,7 +104,8 @@ public interface Item {
      */
     Map<String, Link> getLinks();
 
-    /** @see #getLinks() */
+    Item withLinks(Map<String, Link> links);
+
     void setLinks(Map<String, Link> links);
 
     /**
@@ -122,6 +116,7 @@ public interface Item {
      */
     List<String> getPermissions();
 
-    /** @see #getPermissions() */
+    Item withPermissions(List<String> permissions);
+
     void setPermissions(List<String> permissions);
 }

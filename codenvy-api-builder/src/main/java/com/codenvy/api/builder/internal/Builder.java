@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.Lifecycle;
@@ -138,10 +138,9 @@ public abstract class Builder implements Configurable, Lifecycle {
     public abstract String getDescription();
 
     public BuilderDescriptor getDescriptor() {
-        final BuilderDescriptor descriptor = DtoFactory.getInstance().createDto(BuilderDescriptor.class);
-        descriptor.setName(getName());
-        descriptor.setDescription(getDescription());
-        return descriptor;
+        return DtoFactory.getInstance().createDto(BuilderDescriptor.class)
+                         .withName(getName())
+                         .withDescription(getDescription());
     }
 
     /**
@@ -179,9 +178,10 @@ public abstract class Builder implements Configurable, Lifecycle {
      * <pre>
      * &#064Override
      * public Configuration getDefaultConfiguration() {
-     *     Configuration defConf = super.getDefaultConfiguration();
+     *     Configuration superConf = super.getDefaultConfiguration();
+     *     Configuration myConf = new Configuration(superConf);
      *     // add new parameters or update parameters provided by method from super class
-     *     return defConf;
+     *     return myConf;
      * }
      * </pre>
      */
@@ -199,7 +199,7 @@ public abstract class Builder implements Configurable, Lifecycle {
     @Override
     public final void setConfiguration(Configuration configuration) {
         if (maySetConfiguration) {
-            this.configuration = configuration;
+            this.configuration = new Configuration(configuration);
         } else {
             throw new IllegalStateException();
         }
@@ -207,7 +207,11 @@ public abstract class Builder implements Configurable, Lifecycle {
 
     @Override
     public final Configuration getConfiguration() {
-        return new Configuration(configuration);
+        Configuration myConfiguration = this.configuration;
+        if (myConfiguration != null) {
+            return new Configuration(myConfiguration);
+        }
+        return getDefaultConfiguration();
     }
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
@@ -654,82 +658,71 @@ public abstract class Builder implements Configurable, Lifecycle {
                                        : (isStarted() ? BuildStatus.IN_PROGRESS : BuildStatus.IN_QUEUE);
             final List<Link> links = new ArrayList<>();
             final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
-            final Link statusLink = DtoFactory.getInstance().createDto(Link.class);
-            statusLink.setRel(Constants.LINK_REL_GET_STATUS);
-            statusLink.setHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getStatus").build(builder, taskId).toString());
-            statusLink.setMethod("GET");
-            statusLink.setProduces(MediaType.APPLICATION_JSON);
-            links.add(statusLink);
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withRel(Constants.LINK_REL_GET_STATUS)
+                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getStatus")
+                                                            .build(builder, taskId).toString())
+                                .withMethod("GET")
+                                .withProduces(MediaType.APPLICATION_JSON));
 
             if (status == BuildStatus.IN_QUEUE || status == BuildStatus.IN_PROGRESS) {
-                final Link cancelLink = DtoFactory.getInstance().createDto(Link.class);
-                statusLink.setRel(Constants.LINK_REL_CANCEL);
-                statusLink.setHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "cancel").build(builder, taskId).toString());
-                statusLink.setMethod("POST");
-                statusLink.setProduces(MediaType.APPLICATION_JSON);
-                links.add(cancelLink);
+                links.add(DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_CANCEL)
+                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "cancel")
+                                                                .build(builder, taskId).toString())
+                                    .withMethod("POST")
+                                    .withProduces(MediaType.APPLICATION_JSON));
             }
 
             if (status != BuildStatus.IN_QUEUE) {
-                final Link logsLink = DtoFactory.getInstance().createDto(Link.class);
-                logsLink.setRel(Constants.LINK_REL_VIEW_LOG);
-                logsLink.setHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getLogs").build(builder, taskId).toString());
-                logsLink.setMethod("GET");
-                logsLink.setProduces(getBuildLogger().getContentType());
-                links.add(logsLink);
-
-                final Link browseLink = DtoFactory.getInstance().createDto(Link.class);
-                browseLink.setRel(Constants.LINK_REL_BROWSE);
-                browseLink.setHref(
-                        servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/").build(builder, taskId)
-                                          .toString());
-                browseLink.setMethod("GET");
-                browseLink.setProduces(MediaType.TEXT_HTML);
-                links.add(browseLink);
+                links.add(DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_VIEW_LOG)
+                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getLogs")
+                                                                .build(builder, taskId).toString())
+                                    .withMethod("GET")
+                                    .withProduces(getBuildLogger().getContentType()));
+                links.add(DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_BROWSE)
+                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/")
+                                                                .build(builder, taskId).toString())
+                                    .withMethod("GET")
+                                    .withProduces(MediaType.TEXT_HTML));
             }
 
             if (status == BuildStatus.SUCCESSFUL) {
                 for (FileAdapter ru : result.getResultUnits()) {
-                    final Link downloadLink = DtoFactory.getInstance().createDto(Link.class);
-                    downloadLink.setRel(Constants.LINK_REL_DOWNLOAD_RESULT);
-                    downloadLink.setHref(
-                            servicePathBuilder.clone().path(SlaveBuilderService.class, "download").queryParam("path", ru.getHref())
-                                              .build(builder, taskId).toString());
-                    downloadLink.setMethod("GET");
-                    downloadLink.setProduces(ru.getContentType());
-                    links.add(downloadLink);
+                    links.add(DtoFactory.getInstance().createDto(Link.class)
+                                        .withRel(Constants.LINK_REL_DOWNLOAD_RESULT)
+                                        .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "download")
+                                                                    .queryParam("path", ru.getHref()).build(builder, taskId).toString())
+                                        .withMethod("GET").withProduces(ru.getContentType()));
                 }
             }
 
             if ((status == BuildStatus.SUCCESSFUL || status == BuildStatus.FAILED) && result.hasBuildReport()) {
                 final FileAdapter br = result.getBuildReport();
                 if (br.isDirectory()) {
-                    final Link reportLink = DtoFactory.getInstance().createDto(Link.class);
-                    reportLink.setRel(Constants.LINK_REL_VIEW_REPORT);
-                    reportLink.setHref(
-                            servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", br.getHref())
-                                              .build(builder, taskId).toString());
-                    reportLink.setMethod("GET");
-                    reportLink.setProduces(MediaType.TEXT_HTML);
-                    links.add(reportLink);
+                    links.add(DtoFactory.getInstance().createDto(Link.class)
+                                        .withRel(Constants.LINK_REL_VIEW_REPORT)
+                                        .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse")
+                                                                    .queryParam("path", br.getHref()).build(builder, taskId).toString())
+                                        .withMethod("GET")
+                                        .withProduces(MediaType.TEXT_HTML));
                 } else {
-                    final Link reportLink = DtoFactory.getInstance().createDto(Link.class);
-                    reportLink.setRel(Constants.LINK_REL_VIEW_REPORT);
-                    reportLink.setHref(
-                            servicePathBuilder.clone().path(SlaveBuilderService.class, "view").queryParam("path", br.getHref())
-                                              .build(builder, taskId).toString());
-                    reportLink.setMethod("GET");
-                    reportLink.setProduces(br.getContentType());
-                    links.add(reportLink);
+                    links.add(DtoFactory.getInstance().createDto(Link.class)
+                                        .withRel(Constants.LINK_REL_VIEW_REPORT)
+                                        .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "view")
+                                                                    .queryParam("path", br.getHref()).build(builder, taskId).toString())
+                                        .withMethod("GET")
+                                        .withProduces(br.getContentType()));
                 }
             }
 
-            final BuildTaskDescriptor descriptor = DtoFactory.getInstance().createDto(BuildTaskDescriptor.class);
-            descriptor.setTaskId(taskId);
-            descriptor.setStatus(status);
-            descriptor.setLinks(links);
-            descriptor.setStartTime(getStartTime());
-            return descriptor;
+            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
+                             .withTaskId(taskId)
+                             .withStatus(status)
+                             .withLinks(links)
+                             .withStartTime(getStartTime());
         }
 
         @Override

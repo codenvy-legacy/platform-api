@@ -17,11 +17,11 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.BuildStatus;
 import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.internal.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.rest.RemoteAccessException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
@@ -133,43 +133,35 @@ public class BuildQueueTask {
         final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         if (isWaiting()) {
             final List<Link> links = new ArrayList<>(2);
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withRel(Constants.LINK_REL_GET_STATUS)
+                                .withHref(servicePathBuilder.clone().path(BuilderService.class, "getStatus")
+                                                            .build(request.getWorkspace(), id).toString()).withMethod("GET")
+                                .withProduces(MediaType.APPLICATION_JSON));
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withRel(Constants.LINK_REL_CANCEL)
+                                .withHref(servicePathBuilder.clone().path(BuilderService.class, "cancel")
+                                                            .build(request.getWorkspace(), id).toString())
+                                .withMethod("POST")
+                                .withProduces(MediaType.APPLICATION_JSON));
 
-            final Link statusLink = DtoFactory.getInstance().createDto(Link.class);
-            statusLink.setRel(Constants.LINK_REL_GET_STATUS);
-            statusLink.setHref(
-                    servicePathBuilder.clone().path(BuilderService.class, "getStatus").build(request.getWorkspace(), id).toString());
-            statusLink.setMethod("GET");
-            statusLink.setProduces(MediaType.APPLICATION_JSON);
-            links.add(statusLink);
-
-            final Link cancelLink = DtoFactory.getInstance().createDto(Link.class);
-            cancelLink.setRel(Constants.LINK_REL_CANCEL);
-            cancelLink
-                    .setHref(servicePathBuilder.clone().path(BuilderService.class, "cancel").build(request.getWorkspace(), id).toString());
-            cancelLink.setMethod("POST");
-            cancelLink.setProduces(MediaType.APPLICATION_JSON);
-            links.add(cancelLink);
-
-            final BuildTaskDescriptor descriptor = DtoFactory.getInstance().createDto(BuildTaskDescriptor.class);
-            descriptor.setTaskId(id);
-            descriptor.setStatus(BuildStatus.IN_QUEUE);
-            descriptor.setLinks(links);
-            descriptor.setStartTime(-1);
-            return descriptor;
+            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
+                             .withTaskId(id)
+                             .withStatus(BuildStatus.IN_QUEUE)
+                             .withLinks(links)
+                             .withStartTime(-1);
         } else if (isCancelled()) {
-            final BuildTaskDescriptor descriptor = DtoFactory.getInstance().createDto(BuildTaskDescriptor.class);
-            descriptor.setTaskId(id);
-            descriptor.setStatus(BuildStatus.CANCELLED);
-            descriptor.setStartTime(-1);
-            return descriptor;
+            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
+                             .withTaskId(id)
+                             .withStatus(BuildStatus.CANCELLED)
+                             .withStartTime(-1);
         } else {
             final BuildTaskDescriptor remoteStatus = getRemoteTask().getStatus();
-            final BuildTaskDescriptor descriptor = DtoFactory.getInstance().createDto(BuildTaskDescriptor.class);
-            descriptor.setTaskId(id);
-            descriptor.setStatus(remoteStatus.getStatus());
-            descriptor.setLinks(rewriteKnownLinks(remoteStatus.getLinks(), servicePathBuilder));
-            descriptor.setStartTime(remoteStatus.getStartTime());
-            return descriptor;
+            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
+                             .withTaskId(id)
+                             .withStatus(remoteStatus.getStatus())
+                             .withLinks(rewriteKnownLinks(remoteStatus.getLinks(), servicePathBuilder))
+                             .withStartTime(remoteStatus.getStartTime());
         }
     }
 

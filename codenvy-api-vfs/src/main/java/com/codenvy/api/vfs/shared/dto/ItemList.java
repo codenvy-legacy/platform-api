@@ -31,6 +31,8 @@ public interface ItemList {
     /** @return set of items */
     List<Item> getItems();
 
+    ItemList withItems(List<Item> list);
+
     void setItems(List<Item> list);
 
     /**
@@ -40,10 +42,14 @@ public interface ItemList {
      */
     int getNumItems();
 
+    ItemList withNumItems(int numItems);
+
     void setNumItems(int numItems);
 
     /** @return <code>false</code> if this is last sub-set of items in paging */
     boolean isHasMoreItems();
+
+    ItemList withHasMoreItems(boolean hasMoreItems);
 
     void setHasMoreItems(boolean hasMoreItems);
 }

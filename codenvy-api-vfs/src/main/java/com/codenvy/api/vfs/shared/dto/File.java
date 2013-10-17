@@ -25,36 +25,28 @@ public interface File extends Item {
     /** @return version id */
     String getVersionId();
 
-    /**
-     * @param versionId
-     *         the version id
-     */
+    File withVersionId(String versionId);
+
     void setVersionId(String versionId);
 
     /** @return content length */
     long getLength();
 
-    /**
-     * @param length
-     *         the content length
-     */
+    File withLength(long length);
+
     void setLength(long length);
 
     /** @return date of last modification */
     long getLastModificationDate();
 
-    /**
-     * @param lastModificationDate
-     *         the date of last modification
-     */
+    File withLastModificationDate(long lastModificationDate);
+
     void setLastModificationDate(long lastModificationDate);
 
     /** @return <code>true</code> if object locked and <code>false</code> otherwise */
     boolean isLocked();
 
-    /**
-     * @param locked
-     *         locking flag. Must be <code>true</code> if object locked and <code>false</code> otherwise
-     */
+    File withLocked(boolean locked);
+
     void setLocked(boolean locked);
 }

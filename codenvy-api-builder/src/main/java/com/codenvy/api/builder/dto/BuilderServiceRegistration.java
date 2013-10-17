@@ -29,9 +29,13 @@ import com.codenvy.dto.shared.DTO;
 public interface BuilderServiceRegistration {
     BuilderServiceLocation getBuilderServiceLocation();
 
+    BuilderServiceRegistration withBuilderServiceLocation(BuilderServiceLocation builderServiceLocation);
+
     void setBuilderServiceLocation(BuilderServiceLocation builderServiceLocation);
 
     BuilderServiceAccessCriteria getBuilderServiceAccessCriteria();
+
+    BuilderServiceRegistration withBuilderServiceAccessCriteria(BuilderServiceAccessCriteria builderServiceAccessCriteria);
 
     void setBuilderServiceAccessCriteria(BuilderServiceAccessCriteria builderServiceAccessCriteria);
 }

@@ -28,25 +28,37 @@ import com.codenvy.dto.shared.DTO;
 public interface SlaveBuilderState {
     String getName();
 
+    SlaveBuilderState withName(String name);
+
     void setName(String name);
 
     int getNumberOfWorkers();
+
+    SlaveBuilderState withNumberOfWorkers(int numberOfWorkers);
 
     void setNumberOfWorkers(int numberOfWorkers);
 
     int getNumberOfActiveWorkers();
 
+    SlaveBuilderState withNumberOfActiveWorkers(int numberOfActiveWorkers);
+
     void setNumberOfActiveWorkers(int numberOfActiveWorkers);
 
     int getInternalQueueSize();
+
+    SlaveBuilderState withInternalQueueSize(int internalQueueSize);
 
     void setInternalQueueSize(int internalQueueSize);
 
     int getMaxInternalQueueSize();
 
+    SlaveBuilderState withMaxInternalQueueSize(int maxInternalQueueSize);
+
     void setMaxInternalQueueSize(int maxInternalQueueSize);
 
     InstanceState getInstanceState();
+
+    SlaveBuilderState withInstanceState(InstanceState instanceState);
 
     void setInstanceState(InstanceState instanceState);
 }

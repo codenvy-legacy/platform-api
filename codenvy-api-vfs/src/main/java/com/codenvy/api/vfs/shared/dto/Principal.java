@@ -30,9 +30,13 @@ public interface Principal {
 
     String getName();
 
+    Principal withName(String name);
+
     void setName(String name);
 
     Type getType();
+
+    Principal withType(Type type);
 
     void setType(Type type);
 }

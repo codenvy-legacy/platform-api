@@ -64,6 +64,9 @@ public class DtoImplServerTemplate extends DtoImpl {
         emitFields(methods, builder);
         emitMethods(methods, builder);
         List<Method> getters = getDtoGetters(getDtoInterface());
+        // "builder" method, it is method that set field and return "this" instance
+        emitWithMethods(getters, getDtoInterface().getCanonicalName(), builder);
+
         emitEqualsAndHashCode(getters, builder);
         emitSerializer(getters, builder);
         emitDeserializer(getters, builder);
@@ -153,12 +156,9 @@ public class DtoImplServerTemplate extends DtoImpl {
         }
     }
 
-    /**
-     * Emits a method to get a field. Getting a collection ensures that the collection
-     * is created.
-     */
+    /** Emits a method to get a field. Getting a collection ensures that the collection is created. */
     private void emitGetter(Method method, String methodName, String fieldName, String returnType, StringBuilder builder) {
-        builder.append("\n    @Override\n    public ");
+        builder.append("    @Override\n    public ");
         builder.append(returnType);
         builder.append(" ");
         builder.append(methodName);
@@ -354,10 +354,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         }
     }
 
-    /**
-     * Generates a static factory method that creates a new instance based
-     * on a JsonElement.
-     */
+    /** Generates a static factory method that creates a new instance based on a JsonElement. */
     private void emitDeserializer(List<Method> getters, StringBuilder builder) {
         builder.append("    public static ").append(getImplClassName()).append(" fromJsonElement(JsonElement jsonElem) {\n");
         builder.append("      if (jsonElem == null || jsonElem.isJsonNull()) {\n");
@@ -556,10 +553,10 @@ public class DtoImplServerTemplate extends DtoImpl {
             emitFactoryMethod(builder);
         }
 
-        emmitDefaultConstructor(builder);
+        emitDefaultConstructor(builder);
     }
 
-    private void emmitDefaultConstructor(StringBuilder builder) {
+    private void emitDefaultConstructor(StringBuilder builder) {
         builder.append("    protected ");
         builder.append(getImplClassName());
         builder.append("() {\n");
@@ -607,6 +604,27 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append("v;\n    }\n\n");
     }
 
+    private void emitWithMethods(List<Method> getters, String dtoInterfaceName, StringBuilder builder) {
+        for (Method method : getters) {
+            String fieldName = getFieldName(method.getName());
+            emitWithMethod(method, dtoInterfaceName, fieldName, builder);
+        }
+    }
+
+    private void emitWithMethod(Method method, String dtoInterfaceName, String fieldName, StringBuilder builder) {
+        builder.append("    public ");
+        builder.append(dtoInterfaceName);
+        builder.append(" ");
+        builder.append(getWithName(fieldName));
+        builder.append("(");
+        builder.append(getFqParameterizedName(method.getGenericReturnType()));
+        builder.append(" v) {\n");
+        builder.append("      ");
+        builder.append(fieldName);
+        builder.append(" = ");
+        builder.append("v;\n      return this;\n    }\n\n");
+    }
+
     /**
      * Emits an add method to add to a list. If the list is null, it is created.
      *
@@ -645,10 +663,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append("    }\n\n");
     }
 
-    /**
-     * Emits a method to clear a list or map. Clearing the collections ensures
-     * that the collection is created.
-     */
+    /** Emits a method to clear a list or map. Clearing the collections ensures that the collection is created. */
     private void emitClear(String fieldName, StringBuilder builder) {
         builder.append("    public void ");
         builder.append(getClearName(fieldName));
@@ -804,10 +819,8 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     /**
-     * Appends a suitable type for the given type. For example, at minimum, this
-     * will replace DTO interfaces with their implementation classes and JSON
-     * collections with corresponding Java types. If a suitable type cannot be
-     * determined, this will throw an exception.
+     * Appends a suitable type for the given type. For example, at minimum, this will replace DTO interfaces with their implementation
+     * classes and JSON collections with corresponding Java types. If a suitable type cannot be determined, this will throw an exception.
      *
      * @param genericType
      *         the type as returned by e.g.
@@ -818,9 +831,9 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     /**
-     * In most cases we simply echo the return type and field name, except for
-     * JsonArray<T>, which is special in the server impl case, since it must be
-     * represented by a List<T> for Gson to correctly serialize/deserialize it.
+     * In most cases we simply echo the return type and field name, except for JsonArray<T>, which is special in the server impl case,
+     * since
+     * it must be represented by a List<T> for Gson to correctly serialize/deserialize it.
      *
      * @param method
      *         The getter method.
@@ -838,11 +851,9 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     /**
-     * Returns the fully-qualified type name using Java concrete implementation
-     * classes.
+     * Returns the fully-qualified type name using Java concrete implementation classes.
      * <p/>
-     * For example, for JsonArray&lt;JsonStringMap&lt;Dto&gt;&gt;, this would
-     * return "ArrayList&lt;Map&lt;String, DtoImpl&gt;&gt;".
+     * For example, for JsonArray&lt;JsonStringMap&lt;Dto&gt;&gt;, this would return "ArrayList&lt;Map&lt;String, DtoImpl&gt;&gt;".
      */
     private String getImplName(Type type, boolean allowJreCollectionInterface) {
         Class<?> rawClass = getRawClass(type);
@@ -889,9 +900,9 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     /**
-     * Returns the fully-qualified type name using Java concrete implementation
-     * classes of the first type argument for a parameterized type. If one is
-     * not specified, returns "Object".
+     * Returns the fully-qualified type name using Java concrete implementation classes of the first type argument for a parameterized
+     * type.
+     * If one is not specified, returns "Object".
      *
      * @param type
      *         the parameterized type

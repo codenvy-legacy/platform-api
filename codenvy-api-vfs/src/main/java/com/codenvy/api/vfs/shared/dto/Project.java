@@ -26,5 +26,7 @@ public interface Project extends Folder {
 
     String getProjectType();
 
+    Project withProjectType(String projectType);
+
     void setProjectType(String projectType);
 }

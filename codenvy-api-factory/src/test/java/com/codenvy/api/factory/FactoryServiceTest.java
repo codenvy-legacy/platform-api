@@ -36,10 +36,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static com.jayway.restassured.RestAssured.given;
 import static javax.ws.rs.core.Response.Status;
@@ -81,7 +78,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<>(Arrays.asList(savedImage)));
 
         // when, then
         Response response = given().//
@@ -92,8 +88,14 @@ public class FactoryServiceTest {
 
         assertEquals(response.getStatusCode(), 200);
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
-        assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=imageName", "image")));
+        boolean found = false;
+        Iterator<Link> iter = responseFactoryUrl.getLinks().iterator();
+         while (iter.hasNext()) {
+             Link link = iter.next();
+             if (link.getRel().equals("image") && link.getType().equals("image/jpeg") && !link.getHref().isEmpty())
+                 found = true;
+         }
+        assertTrue(found);
     }
 
     @Test
@@ -121,7 +123,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<FactoryImage>());
 
         // when, then
         Response response =
@@ -162,7 +163,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<FactoryImage>());
 
         // when, then
         given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
@@ -188,7 +188,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<FactoryImage>());
 
         // when, then
         given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
@@ -211,7 +210,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<FactoryImage>());
 
         // when, then
         given().//
@@ -240,7 +238,7 @@ public class FactoryServiceTest {
         images.add(image2);
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(images);
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(images);
 
         // when
         Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
@@ -293,7 +291,7 @@ public class FactoryServiceTest {
         byte[] imageContent = Files.readAllBytes(path);
         FactoryImage image = new FactoryImage(imageContent, "image/jpeg", "imageName");
 
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<>(Arrays.asList(image)));
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(new HashSet<>(Arrays.asList(image)));
 
         // when
         Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image?imgId=imageName");
@@ -312,7 +310,7 @@ public class FactoryServiceTest {
         byte[] imageContent = Files.readAllBytes(path);
         FactoryImage image = new FactoryImage(imageContent, "image/jpeg", "imageName");
 
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<>(Arrays.asList(image)));
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(new HashSet<>(Arrays.asList(image)));
 
         // when
         Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image");
@@ -327,7 +325,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldReturnStatus404OnGetFactoryImageWithIllegalId() throws Exception {
         // given
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID)).thenReturn(new HashSet<FactoryImage>());
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(new HashSet<FactoryImage>());
 
         // when, then
         given().//
@@ -341,7 +339,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldResponse404OnGetImageIfFactoryDoesNotExist() throws Exception {
         // given
-        when(factoryStore.getFactoryImages(ILLEGAL_FACTORY_ID)).thenReturn(null);
+        when(factoryStore.getFactoryImages(ILLEGAL_FACTORY_ID, null)).thenReturn(null);
 
         // when, then
         given().//

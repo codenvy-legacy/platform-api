@@ -55,10 +55,12 @@ public interface FactoryStore {
     /**
      * Retrieve factory images by factory id
      *
-     * @param id
+     * @param factoryId
      *         - factory id
+     * @param imageId
+     *         - id of the requested image. When null, all images for given factory will be returned.
      * @return - {@code Set} of images if factory found, null otherwise
      * @throws FactoryUrlException
      */
-    public Set<FactoryImage> getFactoryImages(String id) throws FactoryUrlException;
+    public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws FactoryUrlException;
 }

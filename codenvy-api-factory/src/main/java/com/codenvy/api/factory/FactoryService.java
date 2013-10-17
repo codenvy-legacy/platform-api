@@ -113,7 +113,7 @@ public class FactoryService {
 
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = new AdvancedFactoryUrl(factoryStore.getFactory(factoryId),
-                                                LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(factoryId), uriInfo));
+                                                LinksHelper.createLinks(factoryUrl, images, uriInfo));
 
             String createProjectLink = "";
             Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
@@ -153,7 +153,7 @@ public class FactoryService {
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
-        factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id), uriInfo));
+        factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
 
         return factoryUrl;
     }
@@ -177,7 +177,7 @@ public class FactoryService {
     @Produces("image/*")
     public Response getImage(@PathParam("factoryId") String factoryId, @DefaultValue("") @QueryParam("imgId") String imageId)
             throws FactoryUrlException {
-        Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(factoryId);
+        Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(factoryId, null);
         if (factoryImages == null) {
             LOG.error("Factory URL with id {} is not found.", factoryId);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),

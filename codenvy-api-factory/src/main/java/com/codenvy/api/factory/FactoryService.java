@@ -34,6 +34,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -153,7 +154,12 @@ public class FactoryService {
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
-        factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
+        try {
+            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
+                                                                                    uriInfo));
+        } catch (UnsupportedEncodingException e) {
+            throw new FactoryUrlException(e.getLocalizedMessage(), e);
+        }
 
         return factoryUrl;
     }

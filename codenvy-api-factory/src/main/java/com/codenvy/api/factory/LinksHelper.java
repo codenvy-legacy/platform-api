@@ -17,12 +17,16 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.analytics.server.MetricService;
+import com.codenvy.api.analytics.AnalyticsService;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /** Helper class for creation links. */
 public class LinksHelper {
@@ -69,7 +73,7 @@ public class LinksHelper {
 
         // links of analytics
         links.add(new Link(MediaType.TEXT_PLAIN,
-                           baseUriBuilder.clone().path(MetricService.class).build("FACTORY_URL_ACCEPTED_NUMBER/" + fId).toString(),
+                           baseUriBuilder.clone().path(AnalyticsService.class).build("FACTORY_URL_ACCEPTED_NUMBER/" + fId).toString(),
                            "accepted"));
 
         return links;

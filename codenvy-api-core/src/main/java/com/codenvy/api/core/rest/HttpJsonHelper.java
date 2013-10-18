@@ -135,9 +135,12 @@ public class HttpJsonHelper {
             if (!(contentType == null || contentType.startsWith("application/json"))) {
                 throw new RemoteAccessException("Unsupported type of response from remote server. ");
             }
-            try (InputStream input = conn.getInputStream()) {
-                return DtoFactory.getInstance().createDtoFromJson(input, dtoInterface);
+            if (dtoInterface != null) {
+                try (InputStream input = conn.getInputStream()) {
+                    return DtoFactory.getInstance().createDtoFromJson(input, dtoInterface);
+                }
             }
+            return null;
         } finally {
             conn.disconnect();
         }

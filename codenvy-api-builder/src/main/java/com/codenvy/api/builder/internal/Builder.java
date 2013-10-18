@@ -17,9 +17,9 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
@@ -136,12 +136,6 @@ public abstract class Builder implements Configurable, Lifecycle {
      * @return the description of builder
      */
     public abstract String getDescription();
-
-    public BuilderDescriptor getDescriptor() {
-        return DtoFactory.getInstance().createDto(BuilderDescriptor.class)
-                         .withName(getName())
-                         .withDescription(getDescription());
-    }
 
     /**
      * Get result of FutureBuildTask. Getting result is implementation specific and mostly depends to build system, e.g. maven usually

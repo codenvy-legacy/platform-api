@@ -20,7 +20,7 @@ package com.codenvy.api.builder.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Provides info for registration new slave builder.
+ * Provides info for registration new SlaveBuilderService.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  * @see com.codenvy.api.builder.BuilderService#register(BuilderServiceRegistration)

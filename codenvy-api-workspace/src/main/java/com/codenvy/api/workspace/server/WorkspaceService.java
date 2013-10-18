@@ -17,6 +17,10 @@
  */
 package com.codenvy.api.workspace.server;
 
+import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.annotations.Description;
+import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.project.server.AttributeValueProviderFactory;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.dto.Attributes;
@@ -53,7 +57,7 @@ import java.util.Map;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 @Path("{ws-name}/workspace")
-public class WorkspaceService {
+public class WorkspaceService extends Service {
     @Inject
     private VirtualFileSystemRegistry             registry;
     @Inject
@@ -67,10 +71,11 @@ public class WorkspaceService {
 
     // >>> "shortcuts" for some vfs methods related to the project
 
+    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_PROJECT)
     @GET
-    @Path("projects/{name}")
+    @Path("project")
     @Produces(MediaType.APPLICATION_JSON)
-    public Project getProject(@PathParam("name") String name) throws VirtualFileSystemException {
+    public Project getProject(@Required @Description("project name") String name) throws VirtualFileSystemException {
         final List<Project> projects = getProjects();
         if (!projects.isEmpty()) {
             for (Item project : projects) {
@@ -83,6 +88,7 @@ public class WorkspaceService {
         throw new ItemNotFoundException(String.format("Project '%s' does not exists in workspace. ", name));
     }
 
+    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_PROJECTS)
     @GET
     @Path("projects")
     @Produces(MediaType.APPLICATION_JSON)
@@ -94,13 +100,14 @@ public class WorkspaceService {
         return projects;
     }
 
+    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_CREATE_PROJECT)
     @POST
-    @Path("projects")
+    @Path("project")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Project createProject(@QueryParam("name") String name,
-                                 @QueryParam("type") String type,
-                                 List<Property> properties) throws VirtualFileSystemException {
+    public Project createProject(@Required @Description("project name") @QueryParam("name") String name,
+                                 @Description("project type") @QueryParam("type") String type,
+                                 @Description("properties of project") List<Property> properties) throws VirtualFileSystemException {
         final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
         return fileSystem.createProject(root.getId(), name, type, properties);
@@ -108,10 +115,12 @@ public class WorkspaceService {
 
     // <<<
 
+    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_ATTRIBUTES_OF_PROJECT)
     @GET
-    @Path("projects/{project}/attributes")
+    @Path("project/attributes")
     @Produces(MediaType.APPLICATION_JSON)
-    public Attributes getAttributes(@PathParam("project") String project) throws VirtualFileSystemException {
+    public Attributes getAttributes(@Required @Description("project name") @QueryParam("name") String project)
+            throws VirtualFileSystemException {
         final Project myProject = getProject(project);
         final Map<String, List<String>> values = new HashMap<>();
         for (AttributeValueProviderFactory factory : AttributeValueProviderFactory.getInstances()) {

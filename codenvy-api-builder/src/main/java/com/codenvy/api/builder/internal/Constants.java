@@ -23,7 +23,7 @@ public class Constants {
     public static final String BUILDER_NAME                        = "builder.name";
     public static final String BUILDER_TARGETS                     = "builder.targets";
     public static final String BUILDER_OPTIONS                     = "builder.options";
-    // rels for known links
+    // rels for known builder links
     public static final String LINK_REL_REGISTER_BUILDER_SERVICE   = "register builder service";
     public static final String LINK_REL_UNREGISTER_BUILDER_SERVICE = "unregister builder service";
     public static final String LINK_REL_QUEUE_STATE                = "queue state";

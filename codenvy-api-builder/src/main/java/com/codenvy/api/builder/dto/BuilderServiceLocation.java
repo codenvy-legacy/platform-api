@@ -20,7 +20,7 @@ package com.codenvy.api.builder.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Location of {@code Builder} resource.
+ * Location of {@code SlaveBuilderService} resource.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  * @see com.codenvy.api.builder.internal.SlaveBuilderService
@@ -28,14 +28,14 @@ import com.codenvy.dto.shared.DTO;
 @DTO
 public interface BuilderServiceLocation {
     /**
-     * Get URL of this Builder. This URL may be used for direct access to the {@code Builder} functionality.
+     * Get URL of this SlaveBuilderService. This URL may be used for direct access to the {@code SlaveBuilderService} functionality.
      *
      * @return resource URL
      */
     String getUrl();
 
     /**
-     * Set URL of this Builder. This URL may be used for direct access to the {@code Builder} functionality.
+     * Set URL of this SlaveBuilderService. This URL may be used for direct access to the {@code SlaveBuilderService} functionality.
      *
      * @param url
      *         resource URL

@@ -35,6 +35,7 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.util.ComponentLoader;
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.DownloadZipAttributeValueProviderFactory;
 import com.codenvy.api.project.shared.dto.Attributes;
 import com.codenvy.api.workspace.server.WorkspaceService;
@@ -112,14 +113,14 @@ public class BuildQueue implements Configurable, Lifecycle {
     }
 
     /**
-     * Get number of request which are waiting for processing.
+     * Get number of tasks which are waiting for processing.
      *
-     * @return number of request which are waiting for processing
+     * @return number of tasks which are waiting for processing
      */
     public int getWaitingNum() {
         int count = 0;
-        for (BuildQueueTask request : tasks.values()) {
-            if (request.isWaiting()) {
+        for (BuildQueueTask task : tasks.values()) {
+            if (task.isWaiting()) {
                 count++;
             }
         }
@@ -321,8 +322,8 @@ public class BuildQueue implements Configurable, Lifecycle {
         final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
         final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
                                                 .path(WorkspaceService.class, "getAttributes")
-                                                .build(workspace, project).toString();
-        return HttpJsonHelper.get(Attributes.class, projectUrl);
+                                                .build(workspace).toString();
+        return HttpJsonHelper.get(Attributes.class, projectUrl, Pair.of("name", project));
     }
 
     private BuilderList getBuilderList(BaseBuilderRequest request) {
@@ -378,11 +379,11 @@ public class BuildQueue implements Configurable, Lifecycle {
     }
 
     public BuildQueueTask get(Long id) throws NoSuchBuildTaskException {
-        final BuildQueueTask request = tasks.get(id);
-        if (request == null) {
+        final BuildQueueTask task = tasks.get(id);
+        if (task == null) {
             throw new NoSuchBuildTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
         }
-        return request;
+        return task;
     }
 
     /**

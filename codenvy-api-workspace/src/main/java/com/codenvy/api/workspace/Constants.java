@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,13 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.workspace;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public enum BuildStatus {
-    SUCCESSFUL,
-    FAILED,
-    CANCELLED,
-    IN_PROGRESS,
-    IN_QUEUE
+/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+public class Constants {
+    // rels for known workspace links
+    public static final String LINK_REL_GET_PROJECTS              = "get projects";
+    public static final String LINK_REL_GET_PROJECT               = "get project";
+    public static final String LINK_REL_CREATE_PROJECT            = "create project";
+    public static final String LINK_REL_GET_ATTRIBUTES_OF_PROJECT = "get attributes of project";
+
+    private Constants() {
+    }
 }

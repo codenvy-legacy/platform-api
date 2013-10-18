@@ -60,7 +60,7 @@ public final class SlaveBuilderService extends Service {
     @Inject
     private BuilderRegistry builders;
 
-    /** Get list of available Builders which can be accessible over this InternalBuilderService. */
+    /** Get list of available Builders which can be accessible over this SlaveBuilderService. */
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_BUILDERS)
     @GET
     @Path("available")
@@ -69,7 +69,9 @@ public final class SlaveBuilderService extends Service {
         final Set<Builder> all = builders.getAll();
         final List<BuilderDescriptor> list = new ArrayList<>(all.size());
         for (Builder builder : all) {
-            list.add(builder.getDescriptor());
+            list.add(DtoFactory.getInstance().createDto(BuilderDescriptor.class)
+                               .withName(builder.getName())
+                               .withDescription(builder.getDescription()));
         }
         return DtoFactory.getInstance().createDto(BuilderList.class).withBuilders(list);
     }

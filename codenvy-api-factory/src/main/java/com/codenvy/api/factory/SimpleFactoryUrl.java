@@ -18,6 +18,7 @@
 package com.codenvy.api.factory;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -100,7 +101,7 @@ public class SimpleFactoryUrl {
     // Method mame should be lowercased to use correctly from json builder.
     public void setProjectattributes(Map<String, String> projectAttributes) {
         if (projectAttributes != null) {
-            this.projectattributes = new LinkedHashMap<>(projectAttributes);
+            this.projectattributes = new HashMap<String, String>(projectAttributes);
         }
     }
 

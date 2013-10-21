@@ -48,11 +48,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.codenvy.analytics</groupId>
-            <artifactId>analytics-core</artifactId>
-            <version>${codenvy.analytics.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.codenvy.platform-api</groupId>
             <artifactId>codenvy-api-core</artifactId>
             <version>${project.version}</version>

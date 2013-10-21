@@ -18,10 +18,16 @@
 
 package com.codenvy.api.analytics.impl;
 
-import com.codenvy.analytics.metrics.MetricFactory;
-import com.codenvy.analytics.metrics.value.ValueDataFactory;
+import com.codenvy.api.analytics.MetricHandler;
+import com.codenvy.api.analytics.dto.MetricInfoDTO;
+import com.codenvy.api.analytics.dto.MetricInfoListDTO;
+import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.exception.MetricNotFoundException;
+import com.codenvy.api.core.rest.ServiceContext;
+import com.codenvy.dto.server.DtoFactory;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,9 +35,48 @@ import java.util.Map;
  *
  * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
-public class DummyMetricHandler extends FileBasedMetricHandler {
+public class DummyMetricHandler implements MetricHandler {
 
-    protected String getMetricValue(String metricName, Map<String, String> executionContext) throws IOException {
-        return ValueDataFactory.createDefaultValue(MetricFactory.createMetric(metricName).getValueDataClass()).getAsString();
+    @Override
+    public MetricValueDTO getValue(String metricName, Map<String, String> metricContext, ServiceContext serviceContext)
+            throws MetricNotFoundException {
+        return createDummyMetricValueDTO(metricName);
+    }
+
+    @Override
+    public MetricInfoDTO getInfo(String metricName, ServiceContext serviceContext) throws MetricNotFoundException {
+        return createDummyMetricInfoDto(metricName);
+    }
+
+    @Override
+    public MetricInfoListDTO getAllInfo(ServiceContext serviceContext) {
+        return null;
+    }
+
+    private MetricInfoDTO createDummyMetricInfoDto(String metricName) {
+        MetricInfoDTO metricInfoDTO = DtoFactory.getInstance().createDto(MetricInfoDTO.class);
+        metricInfoDTO.setName(metricName);
+        metricInfoDTO.setDescription(metricName + " description");
+
+        return metricInfoDTO;
+    }
+
+    private MetricValueDTO createDummyMetricValueDTO(String metricName) {
+        MetricValueDTO metricValueDTO = DtoFactory.getInstance().createDto(MetricValueDTO.class);
+        metricValueDTO.setValue(metricName + " value");
+
+        return metricValueDTO;
+    }
+
+    private MetricInfoListDTO createDummyMetricInfoListDTO() {
+        MetricInfoListDTO metricInfoListDTO = DtoFactory.getInstance().createDto(MetricInfoListDTO.class);
+        int counter = 10;
+        List<MetricInfoDTO> metricInfoDTOs = new ArrayList<>();
+
+        while (counter-- > 0) {
+            metricInfoDTOs.add(createDummyMetricInfoDto("Metric " + counter));
+        }
+        metricInfoListDTO.setMetrics(metricInfoDTOs);
+        return metricInfoListDTO;
     }
 }

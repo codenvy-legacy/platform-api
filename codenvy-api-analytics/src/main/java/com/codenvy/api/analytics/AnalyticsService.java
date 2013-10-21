@@ -19,7 +19,6 @@
 package com.codenvy.api.analytics;
 
 
-import com.codenvy.analytics.metrics.MetricParameter;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
@@ -107,13 +106,6 @@ public class AnalyticsService extends Service {
             context.put(key.toUpperCase(), parameters.getFirst(key));
         }
 
-        if (context.get(MetricParameter.FROM_DATE.name()) == null) {
-            MetricParameter.FROM_DATE.putDefaultValue(context);
-        }
-
-        if (context.get(MetricParameter.TO_DATE.name()) == null) {
-            MetricParameter.TO_DATE.putDefaultValue(context);
-        }
 
         return context;
     }

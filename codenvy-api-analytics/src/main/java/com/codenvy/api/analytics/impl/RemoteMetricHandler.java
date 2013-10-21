@@ -18,25 +18,29 @@
 
 package com.codenvy.api.analytics.impl;
 
+import com.codenvy.api.analytics.AnalyticsService;
 import com.codenvy.api.analytics.MetricHandler;
+import com.codenvy.api.analytics.dto.Constants;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.dto.util.MetricDTOFactory;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.RemoteAccessException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -110,7 +114,7 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     private void updateLinks(ServiceContext serviceContext, MetricInfoDTO metricInfoDTO) {
-        metricInfoDTO.setLinks(MetricDTOFactory.getLinks(metricInfoDTO.getName(), serviceContext));
+        metricInfoDTO.setLinks(getLinks(metricInfoDTO.getName(), serviceContext));
     }
 
     private void updateLinks(ServiceContext serviceContext, MetricInfoListDTO metricInfoListDTO) {
@@ -129,7 +133,7 @@ public class RemoteMetricHandler implements MetricHandler {
 
     private UriBuilder getUriBuilder(ServiceContext serviceContext, String methodName) {
         return serviceContext.getServiceUriBuilder().clone().host(host).port(new Integer(port)).scheme("http")
-                             .path(MetricDTOFactory.getMethod(methodName));
+                             .path(getMethod(methodName));
     }
 
     private <DTO> DTO request(Class<DTO> dtoInterface,
@@ -200,4 +204,28 @@ public class RemoteMetricHandler implements MetricHandler {
             conn.disconnect();
         }
     }
+
+    private static List<Link> getLinks(String metricName, ServiceContext restfulRequestContext) {
+        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
+        List<Link> links = new ArrayList<>();
+
+        final Link statusLink = DtoFactory.getInstance().createDto(Link.class);
+        statusLink.setRel(Constants.LINK_REL_GET_METRIC_VALUE);
+        statusLink.setHref(servicePathBuilder.clone().path(getMethod("getValue")).build(metricName, "name").toString());
+        statusLink.setMethod("GET");
+        statusLink.setProduces(MediaType.APPLICATION_JSON);
+        links.add(statusLink);
+        return links;
+    }
+
+    private static Method getMethod(String name) {
+        for (Method analyticsMethod : AnalyticsService.class.getMethods()) {
+            if (analyticsMethod.getName().equals(name)) {
+                return analyticsMethod;
+            }
+        }
+
+        throw new RuntimeException("No '" + name + "' method found in " + AnalyticsService.class + "class");
+    }
+
 }

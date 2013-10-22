@@ -17,10 +17,13 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.analytics.AnalyticsService;
+
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.*;
 
 /** Helper class for creation links. */
@@ -70,11 +73,11 @@ public class LinksHelper {
         links.add(createProject);
 
         // links of analytics
-        /*links.add(new Link(MediaType.TEXT_PLAIN,
+        links.add(new Link(MediaType.TEXT_PLAIN,
                            baseUriBuilder.clone().path(AnalyticsService.class).path(AnalyticsService.class, "getValue")
                                          .queryParam("factory_url", URLEncoder.encode(createProject.getHref(), "UTF-8")).build(
                                    "FACTORY_URL_ACCEPTED_NUMBER").toString(),
-                           "accepted"));*/
+                           "accepted"));
 
         return links;
     }

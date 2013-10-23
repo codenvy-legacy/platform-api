@@ -33,6 +33,7 @@ import org.testng.annotations.Test;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ExceptionMapper;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -90,11 +91,11 @@ public class FactoryServiceTest {
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
         boolean found = false;
         Iterator<Link> iter = responseFactoryUrl.getLinks().iterator();
-         while (iter.hasNext()) {
-             Link link = iter.next();
-             if (link.getRel().equals("image") && link.getType().equals("image/jpeg") && !link.getHref().isEmpty())
-                 found = true;
-         }
+        while (iter.hasNext()) {
+            Link link = iter.next();
+            if (link.getRel().equals("image") && link.getType().equals("image/jpeg") && !link.getHref().isEmpty())
+                found = true;
+        }
         assertTrue(found);
     }
 
@@ -120,6 +121,7 @@ public class FactoryServiceTest {
         factoryUrl.setVcs("git");
         factoryUrl.setV("1.1");
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+        Link expectedCreateProject = new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project");
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
@@ -133,11 +135,10 @@ public class FactoryServiceTest {
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("application/json", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID, "self")));
+        assertTrue(responseFactoryUrl.getLinks().contains(expectedCreateProject));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project")));
-        assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
-                         "accepted")));
+                new Link("text/plain", getServerUrl(context) + "/rest/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                                       URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
                          "snippet/url")));
@@ -236,6 +237,7 @@ public class FactoryServiceTest {
         Set<FactoryImage> images = new HashSet<>();
         images.add(image1);
         images.add(image2);
+        Link expectedCreateProject = new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project");
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
         when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(images);
@@ -248,8 +250,7 @@ public class FactoryServiceTest {
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("application/json", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID, "self")));
-        assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project")));
+        assertTrue(responseFactoryUrl.getLinks().contains(expectedCreateProject));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("image/jpeg", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=image123456789",
                          "image")));
@@ -257,8 +258,8 @@ public class FactoryServiceTest {
                 new Link("image/png", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=image987654321",
                          "image")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/FACTORY_URL_ACCEPTED_NUMBER/" + CORRECT_FACTORY_ID,
-                         "accepted")));
+                new Link("text/plain", getServerUrl(context) + "/rest/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                                       URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
                          "snippet/url")));

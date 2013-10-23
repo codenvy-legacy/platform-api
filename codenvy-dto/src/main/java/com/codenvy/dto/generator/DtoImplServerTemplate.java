@@ -598,7 +598,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append("(");
         builder.append(getFqParameterizedName(method.getGenericReturnType()));
         builder.append(" v) {\n");
-        builder.append("      ");
+        builder.append("      this.");
         builder.append(fieldName);
         builder.append(" = ");
         builder.append("v;\n    }\n\n");
@@ -619,7 +619,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append("(");
         builder.append(getFqParameterizedName(method.getGenericReturnType()));
         builder.append(" v) {\n");
-        builder.append("      ");
+        builder.append("      this.");
         builder.append(fieldName);
         builder.append(" = ");
         builder.append("v;\n      return this;\n    }\n\n");

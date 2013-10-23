@@ -29,6 +29,7 @@ import com.codenvy.dto.server.DtoFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Simple dummy extension to avoid huge operations. Instead default values returned.
@@ -50,7 +51,7 @@ public class DummyMetricHandler implements MetricHandler {
 
     @Override
     public MetricInfoListDTO getAllInfo(ServiceContext serviceContext) {
-        return null;
+        return createDummyMetricInfoListDTO();
     }
 
     private MetricInfoDTO createDummyMetricInfoDto(String metricName) {
@@ -63,7 +64,11 @@ public class DummyMetricHandler implements MetricHandler {
 
     private MetricValueDTO createDummyMetricValueDTO(String metricName) {
         MetricValueDTO metricValueDTO = DtoFactory.getInstance().createDto(MetricValueDTO.class);
-        metricValueDTO.setValue(metricName + " value");
+        if ("FACTORY_URL_ACCEPTED_NUMBER".equalsIgnoreCase(metricName)) {
+            metricValueDTO.setValue(String.valueOf(new Random().nextInt(256)));
+        } else {
+            metricValueDTO.setValue(metricName + " value");
+        }
 
         return metricValueDTO;
     }

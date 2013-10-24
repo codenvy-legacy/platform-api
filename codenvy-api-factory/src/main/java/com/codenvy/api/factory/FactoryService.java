@@ -113,8 +113,8 @@ public class FactoryService {
             factoryUrlValidator.validate(factoryUrl);
 
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
-            factoryUrl = new AdvancedFactoryUrl(factoryStore.getFactory(factoryId),
-                                                LinksHelper.createLinks(factoryUrl, images, uriInfo));
+            factoryUrl = factoryStore.getFactory(factoryId);
+            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, images, uriInfo));
 
             String createProjectLink = "";
             Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();

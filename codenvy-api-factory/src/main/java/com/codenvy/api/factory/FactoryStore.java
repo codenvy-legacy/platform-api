@@ -59,7 +59,7 @@ public interface FactoryStore {
      *         - factory id
      * @param imageId
      *         - id of the requested image. When null, all images for given factory will be returned.
-     * @return - {@code Set} of images if factory found, null otherwise
+     * @return - {@code Set} of images if factory found, empty set otherwise
      * @throws FactoryUrlException
      */
     public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws FactoryUrlException;

@@ -36,6 +36,10 @@ public interface MetricInfoDTO {
     String getDescription();
 
     void setDescription(String description);
+    
+    String getType();
+
+    void setType(String type);
 
     List<Link> getLinks();
 

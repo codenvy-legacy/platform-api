@@ -17,10 +17,7 @@
  */
 package com.codenvy.api.analytics.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
-
-import java.util.List;
 
 /**
  * Simple interface to contain metric value.
@@ -32,5 +29,9 @@ public interface MetricValueDTO {
     String getValue();
 
     void setValue(String name);
+    
+    String getType();
+
+    void setType(String type);
 }
 

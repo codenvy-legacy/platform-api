@@ -392,25 +392,49 @@ public class FactoryServiceTest {
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(equalTo("<script type=\"text/javascript\" language=\"javascript\" src=\"" + getServerUrl(context) +
-                             "/factory/factory.js\" target=\"" + getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID +
-                             "\"></script>"))
+                             "/factory/resources/embed.js?" + CORRECT_FACTORY_ID + "\"></script>"))
                 .//
                         when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=html");
     }
 
     @Test
-    public void shouldBeAbleToReturnMarkdownSnippet(ITestContext context) throws Exception {
+    public void shouldBeAbleToReturnMarkdownSnippetWithImage(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(new AdvancedFactoryUrl());
+        String imageName = "1241234";
+        AdvancedFactoryUrl furl = new AdvancedFactoryUrl();
+        furl.setStyle("Advanced");
+        FactoryImage image = new FactoryImage();
+        image.setName(imageName);
 
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(new HashSet<>(Arrays.asList(image)));
         // when, then
         given().//
                 expect().//
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(
-                equalTo("[![alt](" + getServerUrl(context) + "/images/factory/factory.png)](" + getServerUrl(context) + "/factory?id=" +
+                equalTo("[![alt](" + getServerUrl(context) + "/api/factory/" + CORRECT_FACTORY_ID + "/image?imgId=" + imageName + ")](" + getServerUrl(context) + "/factory?id=" +
+                        CORRECT_FACTORY_ID + ")")).//
+                when().//
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+    }
+
+    @Test
+    public void shouldBeAbleToReturnMarkdownSnippetWithoutImage(ITestContext context) throws Exception {
+        // given
+        AdvancedFactoryUrl furl = new AdvancedFactoryUrl();
+        furl.setStyle("White");
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
+        // when, then
+        given().//
+                expect().//
+                statusCode(200).//
+                contentType(MediaType.TEXT_PLAIN).//
+                body(
+                equalTo("[![alt](" + getServerUrl(context) + "/factory/resources/factory-white.png)](" + getServerUrl(context) + "/factory?id=" +
                         CORRECT_FACTORY_ID + ")")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");

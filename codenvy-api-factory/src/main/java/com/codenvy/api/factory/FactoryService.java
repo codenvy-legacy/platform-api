@@ -35,7 +35,6 @@ import javax.ws.rs.core.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.Formatter;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;

@@ -166,7 +166,7 @@ public class DtoImplServerTemplate extends DtoImpl {
 
         // Initialize the collection.
         Class<?> returnTypeClass = method.getReturnType();
-        if (isJsonArray(returnTypeClass) || isJsonStringMap(returnTypeClass)) {
+        if (isList(returnTypeClass) || isMap(returnTypeClass)) {
             builder.append("      ");
             builder.append(getEnsureName(fieldName));
             builder.append("();\n");
@@ -195,11 +195,11 @@ public class DtoImplServerTemplate extends DtoImpl {
                 emitSetter(method, fieldName, builder);
 
                 // List-specific methods.
-                if (isJsonArray(returnTypeClass)) {
+                if (isList(returnTypeClass)) {
                     emitListAdd(method, fieldName, builder);
                     emitClear(fieldName, builder);
                     emitEnsureCollection(method, fieldName, builder);
-                } else if (isJsonStringMap(returnTypeClass)) {
+                } else if (isMap(returnTypeClass)) {
                     emitMapPut(method, fieldName, builder);
                     emitClear(fieldName, builder);
                     emitEnsureCollection(method, fieldName, builder);
@@ -263,7 +263,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         List<Type> expandedTypes = expandType(method.getGenericReturnType());
         emitSerializerImpl(expandedTypes, 0, builder, fieldName, fieldNameOut, baseIndentation);
         if (isLastMethod(method)) {
-            if (isJsonArray(getRawClass(expandedTypes.get(0)))) {
+            if (isList(getRawClass(expandedTypes.get(0)))) {
                 builder.append("      if (").append(fieldNameOut).append(".size() != 0) {\n");
                 builder.append("        result.add(").append(fieldNameOut).append(");\n");
                 builder.append("      }\n");
@@ -298,7 +298,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         String entryVar = "entry" + depth;
         Class<?> rawClass = getRawClass(type);
 
-        if (isJsonArray(rawClass)) {
+        if (isList(rawClass)) {
             String childInTypeName = getImplName(expandedTypes.get(depth + 1), false);
             builder.append(i).append("JsonArray ").append(outVar).append(" = new JsonArray();\n");
             if (depth == 0) {
@@ -307,7 +307,7 @@ public class DtoImplServerTemplate extends DtoImpl {
             builder.append(i).append("for (").append(childInTypeName).append(" ").append(childInVar).append(" : ").append(
                     inVar).append(") {\n");
 
-        } else if (isJsonStringMap(rawClass)) {
+        } else if (isMap(rawClass)) {
             String childInTypeName = getImplName(expandedTypes.get(depth + 1), false);
             builder.append(i).append("JsonObject ").append(outVar).append(" = new JsonObject();\n");
             if (depth == 0) {
@@ -343,11 +343,11 @@ public class DtoImplServerTemplate extends DtoImpl {
             emitSerializerImpl(expandedTypes, depth + 1, builder, childInVar, childOutVar, i + "  ");
         }
 
-        if (isJsonArray(rawClass)) {
+        if (isList(rawClass)) {
             builder.append(i).append("  ").append(outVar).append(".add(").append(childOutVar).append(");\n");
             builder.append(i).append("}\n");
 
-        } else if (isJsonStringMap(rawClass)) {
+        } else if (isMap(rawClass)) {
             builder.append(i).append("  ").append(outVar).append(".add(").append(entryVar).append(".getKey(), ").append(
                     childOutVar).append(");\n");
             builder.append(i).append("}\n");
@@ -447,7 +447,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         String childOutVar = outVar + "_";
         Class<?> rawClass = getRawClass(type);
 
-        if (isJsonArray(rawClass)) {
+        if (isList(rawClass)) {
             String inVarIterator = inVar + "Iterator";
             builder.append(i).append(getImplName(type, false)).append(" ").append(outVar).append(" = null;\n");
             builder.append(i).append("if (").append(inVar).append(" != null && !").append(inVar).append(".isJsonNull()) {\n");
@@ -462,7 +462,7 @@ public class DtoImplServerTemplate extends DtoImpl {
             builder.append(i).append("    ").append(outVar).append(".add(").append(childOutVar).append(");\n");
             builder.append(i).append("  }\n");
             builder.append(i).append("}\n");
-        } else if (isJsonStringMap(rawClass)) {
+        } else if (isMap(rawClass)) {
             // TODO: Handle type
             String entryVar = "entry" + depth;
             String entriesVar = "entries" + depth;
@@ -571,14 +571,14 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     private void emitReturn(Method method, String fieldName, StringBuilder builder) {
-        if (isJsonArray(method.getReturnType())) {
+        if (isList(method.getReturnType())) {
             // Wrap the returned List in the server adapter.
             builder.append("new ");
             builder.append(JSON_ARRAY_IMPL);
             builder.append("(");
             builder.append(fieldName);
             builder.append(")");
-        } else if (isJsonStringMap(method.getReturnType())) {
+        } else if (isMap(method.getReturnType())) {
             // Wrap the Map.
             builder.append("new ");
             builder.append(JSON_MAP_IMPL);
@@ -724,7 +724,7 @@ public class DtoImplServerTemplate extends DtoImpl {
         Class<?> rawClass = getRawClass(type);
         String rawTypeName = getImplName(type, false);
 
-        if (isJsonArray(rawClass) || isJsonStringMap(rawClass)) {
+        if (isList(rawClass) || isMap(rawClass)) {
             builder.append(i).append(rawTypeName).append(" ").append(fieldNameIn).append(" = ").append(origin).append(".")
                    .append(getterName).append("();\n");
             builder.append(i).append("if (").append(fieldNameIn).append(" != null) {\n");
@@ -755,23 +755,23 @@ public class DtoImplServerTemplate extends DtoImpl {
         Class<?> childRawType = getRawClass(expandedTypes.get(depth + 1));
         final String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
 
-        if (isJsonArray(rawClass)) {
+        if (isList(rawClass)) {
             builder.append(i).append("  for (").append(childTypeName).append(" ").append(childVarIn)
                    .append(" : ").append(varIn).append(") {\n");
-        } else if (isJsonStringMap(rawClass)) {
+        } else if (isMap(rawClass)) {
             builder.append(i).append("  for (java.util.Map.Entry<String, ").append(childTypeName).append("> ").append(entryVar)
                    .append(" : ").append(varIn).append(".entrySet()) {\n");
             builder.append(i).append("    ").append(childTypeName).append(" ").append(childVarIn).append(" = ").append(
                     entryVar).append(".getValue();\n");
         }
 
-        if (isJsonArray(childRawType) || isJsonStringMap(childRawType)) {
+        if (isList(childRawType) || isMap(childRawType)) {
             builder.append(i).append("    if (").append(childVarIn).append(" != null) {\n");
             builder.append(i).append("      ").append(childTypeName).append(" ").append(childVarOut)
                    .append(" = new ").append(getImplName(expandedTypes.get(depth + 1), true)).append("();\n");
             emitDeepCopyCollections(expandedTypes, depth + 1, builder, childVarIn, childVarOut, i + "    ");
             builder.append(i).append("      ").append(varOut);
-            if (isJsonArray(rawClass)) {
+            if (isList(rawClass)) {
                 builder.append(".add(");
             } else {
                 builder.append(".put(").append(entryVar).append(".getKey(), ");
@@ -781,7 +781,7 @@ public class DtoImplServerTemplate extends DtoImpl {
             builder.append(i).append("    ").append("}\n");
         } else {
             builder.append(i).append("      ").append(varOut);
-            if (isJsonArray(rawClass)) {
+            if (isList(rawClass)) {
                 builder.append(".add(");
             } else {
                 builder.append(".put(").append(entryVar).append(".getKey(), ");
@@ -863,9 +863,9 @@ public class DtoImplServerTemplate extends DtoImpl {
                                    HashMap.class.getCanonicalName() + "<String, ");
 
         if (allowJreCollectionInterface) {
-            if (isJsonArray(rawClass)) {
+            if (isList(rawClass)) {
                 fqName = fqName.replaceFirst(List.class.getCanonicalName(), ArrayList.class.getCanonicalName());
-            } else if (isJsonStringMap(rawClass)) {
+            } else if (isMap(rawClass)) {
                 fqName = fqName.replaceFirst(Map.class.getCanonicalName(), HashMap.class.getCanonicalName());
             }
         }

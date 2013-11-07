@@ -236,13 +236,27 @@ public class DtoTemplate {
             builder.append("import java.util.List;\n");
             builder.append("import java.util.Map;\n");
         }
+        if (!isServerType) {
+            builder.append("import com.codenvy.ide.dto.DtoClientImpl;\n");
+            builder.append("import com.codenvy.ide.dto.DtoFactoryVisitor;\n");
+            builder.append("import com.codenvy.ide.dto.JsonSerializable;\n");
+            builder.append("import com.google.gwt.json.client.*;\n");
+            builder.append("import com.google.inject.Singleton;\n");
+        }
         builder.append("\n\n@SuppressWarnings({\"unchecked\", \"cast\"})\n");
+        if (!isServerType) {
+            builder.append("@Singleton\n");
+            builder.append("@DtoClientImpl\n");
+        }
         // Note that we always use fully qualified path names when referencing Types
         // so we need not add any import statements for anything.
         builder.append("public class ");
         builder.append(className);
         if (isServerType) {
             builder.append(" implements ").append(DtoFactoryVisitor.class.getCanonicalName());
+        }
+        if (!isServerType) {
+            builder.append(" implements ").append("DtoFactoryVisitor");
         }
         builder.append(" {\n\n");
         if (isServerType) {
@@ -270,9 +284,24 @@ public class DtoTemplate {
             builder.append("  }\n\n");
         }
         if (!isServerType) {
-            builder.append("  private  ");
-            builder.append(className);
-            builder.append("() {}\n");
+            builder.append("  @Override\n" +
+                           "  public void accept(com.codenvy.ide.dto.DtoFactory dtoFactory) {\n");
+            for (DtoImpl dto : getDtoInterfaces()) {
+                String dtoInterface = dto.getDtoInterface().getCanonicalName();
+                builder.append("    dtoFactory.registerProvider(").append(dtoInterface).append(".class").append(", ")
+                       .append("new com.codenvy.ide.dto.DtoProvider<").append(dtoInterface).append(">() {\n");
+                builder.append("        public Class<? extends ").append(dtoInterface).append("> getImplClass() {\n")
+                       .append("            return ").append(dto.getImplClassName()).append(".class;\n");
+                builder.append("        }\n\n");
+                builder.append("        public ").append(dtoInterface).append(" newInstance() {\n")
+                       .append("            return ").append(dto.getImplClassName()).append(".make();\n");
+                builder.append("        }\n\n");
+                builder.append("        public ").append(dtoInterface).append(" fromJson(String json) {\n")
+                       .append("            return ").append(dto.getImplClassName()).append(".fromJsonString(json);\n");
+                builder.append("        }\n");
+                builder.append("    });\n");
+            }
+            builder.append("  }\n\n");
         }
     }
 

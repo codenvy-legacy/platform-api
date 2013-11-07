@@ -179,13 +179,13 @@ abstract class DtoImpl {
         return DtoTemplate.jreWhitelist.contains(genericType);
     }
 
-    /** Tests whether or not a given return type is a JsonArray. */
-    public static boolean isJsonArray(Class<?> returnType) {
+    /** Tests whether or not a given return type is a java.util.List. */
+    public static boolean isList(Class<?> returnType) {
         return returnType.equals(List.class);
     }
 
-    /** Tests whether or not a given return type is a JsonArray. */
-    public static boolean isJsonStringMap(Class<?> returnType) {
+    /** Tests whether or not a given return type is a java.util.Map. */
+    public static boolean isMap(Class<?> returnType) {
         return returnType.equals(Map.class);
     }
 
@@ -226,7 +226,7 @@ abstract class DtoImpl {
             } else {
                 if (curType instanceof Class) {
                     Class<?> clazz = (Class<?>)curType;
-                    if (isJsonArray(clazz) || isJsonStringMap(clazz)) {
+                    if (isList(clazz) || isMap(clazz)) {
                         throw new DtoTemplate.MalformedDtoInterfaceException(
                                 "JsonArray and JsonStringMap MUST have a generic type specified (and no... ? " + "doesn't cut it!).");
                     }

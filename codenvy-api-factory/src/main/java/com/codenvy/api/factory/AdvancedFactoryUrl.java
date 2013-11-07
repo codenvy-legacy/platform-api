@@ -17,10 +17,7 @@
  */
 package com.codenvy.api.factory;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /** Advanced factory format for factory 1.1. Contains additional information about factory. */
 public class AdvancedFactoryUrl extends SimpleFactoryUrl {
@@ -29,7 +26,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     private String description;
     private String contactmail;
     private String author;
-    private Set<Link> links = new LinkedHashSet<>();
+    private Set<Link> links = new HashSet<Link>();
 
     public AdvancedFactoryUrl() {
         super();
@@ -101,7 +98,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     public void setLinks(Set<Link> links) {
         this.links = links;
         if (links != null) {
-            this.links = new LinkedHashSet<>(links);
+            this.links = new HashSet<Link>(links);
         }
     }
 

@@ -18,13 +18,8 @@
 
 package com.codenvy.api.factory;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 /** An object that contain URL for some resource. */
-public class Link implements Externalizable {
+public class Link {
     /** Produced media type of resource described by this link. */
     private String type;
 
@@ -102,19 +97,5 @@ public class Link implements Externalizable {
     @Override
     public String toString() {
         return "Link{" + "type='" + type + '\'' + ", href='" + href + '\'' + ", rel='" + rel + '\'' + '}';
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(type);
-        out.writeUTF(href);
-        out.writeUTF(rel);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        type = (String)in.readObject();
-        href = in.readUTF();
-        rel = in.readUTF();
     }
 }

@@ -81,7 +81,7 @@
         <module>codenvy-api-factory</module>
         <module>codenvy-builder-tools</module>
         <module>codenvy-api-builder</module>
-        <module>codenvy-api-runner</module>
+        <!--<module>codenvy-api-runner</module>-->
         <module>codenvy-api-analytics</module>
   </modules>
 </project>

@@ -228,24 +228,22 @@ public class FactoryService {
     public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type,
                                     @Context UriInfo uriInfo)
             throws FactoryUrlException {
-        if (factoryStore.getFactory(id) == null) {
+        AdvancedFactoryUrl factory = factoryStore.getFactory(id);
+        if (factory == null) {
             LOG.error("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
-        String factoryUrl = UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").queryParam("id", id).build().toString();
+
         switch (type) {
             case "url":
-                return factoryUrl;
+                return SnippetGenerator.generateUrlSnippet(id, uriInfo.getBaseUri());
             case "html":
-                return new StringBuilder().append("<script type=\"text/javascript\" language=\"javascript\" src=\"")
-                                          .append(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("/factory/factory.js").build()
-                                                            .toString()).append("\" target=\"").append(factoryUrl).append("\"></script>")
-                                          .toString();
+                return SnippetGenerator.generateHtmlSnippet(id, uriInfo.getBaseUri());
             case "markdown":
-                return new StringBuilder().append("[![alt](")
-                                          .append(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("/images/factory/factory.png")
-                                                            .build().toString()).append(")](").append(factoryUrl).append(")").toString();
+                return SnippetGenerator
+                        .generateMarkdownSnippet(id, factoryStore.getFactoryImages(id, null), factory.getStyle(),
+                                                 uriInfo.getBaseUri());
             default:
                 LOG.error("Snippet type {} is unsupported", type);
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),

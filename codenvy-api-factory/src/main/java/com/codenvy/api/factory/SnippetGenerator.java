@@ -35,7 +35,7 @@ public class SnippetGenerator {
         Formatter formatter = new Formatter(sb);
         formatter.format("<script type=\"text/javascript\" language=\"javascript\" " +
                          "src=\"%1$s/factory/resources/embed.js?%2$s\"></script>",
-                         UriBuilder.fromUri(baseUri).replacePath("").build(), id);
+                         UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id);
         return sb.toString();
     }
 
@@ -49,24 +49,26 @@ public class SnippetGenerator {
         switch (style) {
             case "Advanced":
             case "Advanced with Counter":
-                formatter.format("[![alt](%1$s/api/factory/%2$s/image?imgId=%3$s)](%4$s)",
-                                 UriBuilder.fromUri(baseUri).replacePath("").build(), id,
-                                 factoryImages.iterator().next().getName(), factoryURL);
+                if (factoryImages.size() > 0) {
+                    formatter.format("[![alt](%1$s/api/factory/%2$s/image?imgId=%3$s)](%4$s)",
+                                     UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id,
+                                     factoryImages.iterator().next().getName(), factoryURL);
+                } else {
+                    throw new IllegalArgumentException("Factory with advanced style MUST have at leas one image.");
+                }
                 break;
-
             case "White":
             case "Horizontal,White":
             case "Vertical,White":
                 formatter.format("[![alt](%1$s/factory/resources/factory-white.png)](%2$s)",
-                                 UriBuilder.fromUri(baseUri).replacePath("").build(), factoryURL);
+                                 UriBuilder.fromUri(baseUri).replacePath("").build().toString(), factoryURL);
                 break;
             case "Dark":
             case "Horizontal,Dark":
             case "Vertical,Dark":
                 formatter.format("[![alt](%1$s/factory/resources/factory-dark.png)](%2$s)",
-                                 UriBuilder.fromUri(baseUri).replacePath("").build(), factoryURL);
+                                 UriBuilder.fromUri(baseUri).replacePath("").build().toString(), factoryURL);
                 break;
-
             default:
                 throw new IllegalArgumentException("Invalid factory style.");
         }

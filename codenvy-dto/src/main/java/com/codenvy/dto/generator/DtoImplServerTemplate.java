@@ -557,14 +557,14 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     private void emitDefaultConstructor(StringBuilder builder) {
-        builder.append("    protected ");
+        builder.append("    public ");
         builder.append(getImplClassName());
         builder.append("() {\n");
         builder.append("    }\n\n");
     }
 
     private void emitProtectedConstructor(StringBuilder builder) {
-        builder.append("    protected ");
+        builder.append("    public ");
         builder.append(getImplClassName());
         builder.append("(int type) {\n      super(type);\n");
         builder.append("    }\n\n");

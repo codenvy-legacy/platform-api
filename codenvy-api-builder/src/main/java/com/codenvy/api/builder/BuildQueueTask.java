@@ -21,10 +21,11 @@ import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.core.rest.RemoteAccessException;
+import com.codenvy.api.core.rest.ProxyResponse;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
@@ -41,11 +42,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public class BuildQueueTask {
+public final class BuildQueueTask implements Cancellable {
     private static final AtomicLong sequence = new AtomicLong(1);
 
     private final Long                    id;
-    private final long                    since;
+    private final long                    created;
     private final BaseBuilderRequest      request;
     private final Future<RemoteBuildTask> future;
 
@@ -53,7 +54,7 @@ public class BuildQueueTask {
 
     BuildQueueTask(BaseBuilderRequest request, Future<RemoteBuildTask> future) {
         id = sequence.getAndIncrement();
-        since = System.currentTimeMillis();
+        created = System.currentTimeMillis();
         this.future = future;
         this.request = request;
     }
@@ -72,16 +73,13 @@ public class BuildQueueTask {
      *
      * @return {@code true} if task was interrupted and {@code false} otherwise
      */
-    public boolean isCancelled() throws IOException, RemoteException {
+    public boolean isCancelled() throws IOException, RemoteException, BuilderException {
         if (future.isCancelled()) {
             return true;
         }
         final RemoteBuildTask remoteTask = getRemoteTask();
-        if (remoteTask == null) {
-            // is not started yet, so is not cancelled
-            return false;
-        }
-        return remoteTask.getStatus().getStatus() == BuildStatus.CANCELLED;
+        // if task is not started yet it is not cancelled
+        return remoteTask != null && remoteTask.getBuildTaskDescriptor().getStatus() == BuildStatus.CANCELLED;
     }
 
     /**
@@ -94,8 +92,8 @@ public class BuildQueueTask {
     }
 
     /** Get date when this task was created. */
-    public long getCreationDate() {
-        return since;
+    public long getCreationTime() {
+        return created;
     }
 
     /**
@@ -109,14 +107,16 @@ public class BuildQueueTask {
      * @throws BuilderException
      *         if other error occurs
      */
+    @Override
     public void cancel() throws IOException, RemoteException, BuilderException {
         if (future.isCancelled()) {
             return;
         }
-        if (isWaiting()) {
-            future.cancel(true);
+        final RemoteBuildTask remoteTask = getRemoteTask();
+        if (remoteTask != null) {
+            remoteTask.cancel();
         } else {
-            getRemoteTask().cancel();
+            future.cancel(true);
         }
     }
 
@@ -124,13 +124,15 @@ public class BuildQueueTask {
      * Get status of this task.
      *
      * @throws RemoteException
-     *         if an error occurs when ask remote slave-builder about status
+     *         if an error that we understand occurs when ask remote slave-builder about status
      * @throws IOException
-     *         if an i/o error occurs
+     *         if an i/o error occurs when ask remote slave-builder about status
+     * @throws BuilderException
+     *         if any other errors
      */
-    public BuildTaskDescriptor getStatus(ServiceContext restfulRequestContext) throws RemoteException, IOException {
-        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
+    public BuildTaskDescriptor getDescriptor(ServiceContext restfulRequestContext) throws RemoteException, IOException, BuilderException {
         if (isWaiting()) {
+            final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
             final List<Link> links = new ArrayList<>(2);
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_GET_STATUS)
@@ -143,25 +145,24 @@ public class BuildQueueTask {
                                                             .build(request.getWorkspace(), id).toString())
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
-
             return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
                              .withTaskId(id)
                              .withStatus(BuildStatus.IN_QUEUE)
                              .withLinks(links)
                              .withStartTime(-1);
-        } else if (isCancelled()) {
+        } else if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
                              .withTaskId(id)
                              .withStatus(BuildStatus.CANCELLED)
                              .withStartTime(-1);
-        } else {
-            final BuildTaskDescriptor remoteStatus = getRemoteTask().getStatus();
-            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
-                             .withTaskId(id)
-                             .withStatus(remoteStatus.getStatus())
-                             .withLinks(rewriteKnownLinks(remoteStatus.getLinks(), servicePathBuilder))
-                             .withStartTime(remoteStatus.getStartTime());
         }
+        final BuildTaskDescriptor remoteStatus = getRemoteTask().getBuildTaskDescriptor();
+        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
+        return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
+                         .withTaskId(id)
+                         .withStatus(remoteStatus.getStatus())
+                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks(), servicePathBuilder))
+                         .withStartTime(remoteStatus.getStartTime());
     }
 
     private List<Link> rewriteKnownLinks(List<Link> links, UriBuilder serviceUriBuilder) {
@@ -206,7 +207,7 @@ public class BuildQueueTask {
         return rewritten;
     }
 
-    private RemoteBuildTask getRemoteTask() throws IOException, RemoteException {
+    private RemoteBuildTask getRemoteTask() throws IOException, RemoteException, BuilderException {
         if (!future.isDone()) {
             return null;
         }
@@ -219,14 +220,14 @@ public class BuildQueueTask {
                 final Throwable cause = e.getCause();
                 if (cause instanceof Error) {
                     throw (Error)cause; // lets caller to get Error as is
-                } else if (cause instanceof RemoteAccessException) {
-                    throw (RemoteAccessException)cause;
+                } else if (cause instanceof RuntimeException) {
+                    throw (RuntimeException)cause;
                 } else if (cause instanceof RemoteException) {
                     throw (RemoteException)cause;
                 } else if (cause instanceof IOException) {
                     throw (IOException)cause;
                 } else {
-                    throw new RemoteAccessException(cause.getMessage(), cause);
+                    throw new BuilderException(cause.getMessage(), cause);
                 }
             }
         }

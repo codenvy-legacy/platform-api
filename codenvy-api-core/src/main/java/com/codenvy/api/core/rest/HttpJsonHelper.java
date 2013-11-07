@@ -68,12 +68,10 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws IOException
-     *         if an i/o error occurs
      * @throws RemoteException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
-     * @throws RemoteAccessException
-     *         if server returns error response in unsupported format
+     * @throws IOException
+     *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
     public static <DTO> DTO request(Class<DTO> dtoInterface,
@@ -128,12 +126,12 @@ public class HttpJsonHelper {
                     }
                 }
                 // Can't parse content as json or content has format other we expect for error.
-                throw new RemoteAccessException(
+                throw new IOException(
                         String.format("Failed access: %s, method: %s, response code: %d, message: %s", url, method, responseCode, str));
             }
             final String contentType = conn.getContentType();
             if (!(contentType == null || contentType.startsWith("application/json"))) {
-                throw new RemoteAccessException("Unsupported type of response from remote server. ");
+                throw new IOException("Unsupported type of response from remote server, 'application/json' expected. ");
             }
             if (dtoInterface != null) {
                 try (InputStream input = conn.getInputStream()) {
@@ -157,12 +155,10 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws IOException
-     *         if an i/o error occurs
      * @throws RemoteException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
-     * @throws RemoteAccessException
-     *         if server returns error response in unsupported format
+     * @throws IOException
+     *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
     public static <DTO> DTO get(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters) throws IOException, RemoteException {
@@ -182,12 +178,10 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws IOException
-     *         if an i/o error occurs
      * @throws RemoteException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
-     * @throws RemoteAccessException
-     *         if server returns error response in unsupported format
+     * @throws IOException
+     *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
     public static <DTO> DTO post(Class<DTO> dtoInterface, String url, Object body, Pair<String, ?>... parameters)

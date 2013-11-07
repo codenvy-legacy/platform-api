@@ -17,22 +17,19 @@
  */
 package com.codenvy.api.core.rest;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 /**
- * Thrown if cannot access remote API resource or when got a response from remote API that we don't understand.
+ * Proxies response from remote server to the client. It helps to avoid download response from remote server and resend info to the client.
+ * Instead implementation of this interface may pump information from the remote server directly to the client.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-@SuppressWarnings("serial")
-public class RemoteAccessException extends RuntimeException {
-    public RemoteAccessException(String message) {
-        super(message);
-    }
+public interface ProxyResponse {
+    void setStatus(int status);
 
-    public RemoteAccessException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    void addHttpHeader(String name, String value);
 
-    public RemoteAccessException(Throwable cause) {
-        super(cause);
-    }
+    OutputStream getOutputStream() throws IOException;
 }

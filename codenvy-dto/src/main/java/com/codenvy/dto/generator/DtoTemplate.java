@@ -262,6 +262,9 @@ public class DtoTemplate {
                 builder.append("        public ").append(dtoInterface).append(" fromJson(String json) {\n")
                        .append("            return ").append(dto.getImplClassName()).append(".fromJsonString(json);\n");
                 builder.append("        }\n\n");
+                builder.append("        public ").append(dtoInterface).append(" fromJson(com.google.gson.JsonElement json) {\n")
+                       .append("            return ").append(dto.getImplClassName()).append(".fromJsonElement(json);\n");
+                builder.append("        }\n\n");
                 builder.append("        public ").append(dtoInterface).append(" clone(").append(dtoInterface).append(" origin) {\n")
                        .append("            return new ").append(dto.getImplClassName()).append("(origin);\n");
                 builder.append("        }\n");

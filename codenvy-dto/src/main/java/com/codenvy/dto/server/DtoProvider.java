@@ -17,6 +17,8 @@
  */
 package com.codenvy.dto.server;
 
+import com.google.gson.JsonElement;
+
 /**
  * Provides implementation of DTO interface.
  *
@@ -26,6 +28,8 @@ public interface DtoProvider<DTO> {
     Class<? extends DTO> getImplClass();
 
     DTO fromJson(String json);
+
+    DTO fromJson(JsonElement json);
 
     DTO newInstance();
 

@@ -25,7 +25,6 @@ import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteAccessException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
@@ -96,15 +95,15 @@ public class RemoteBuilder {
     public RemoteBuildTask perform(BuildRequest request) throws IOException, RemoteException {
         final Link link = getLink(Constants.LINK_REL_BUILD);
         if (link == null) {
-            throw new RemoteAccessException("Unable get URL for starting remote process");
+            throw new IllegalStateException("Unable get URL for starting remote process");
         }
         return doRequest(link, request);
     }
 
-    public RemoteBuildTask perform(DependencyRequest request) throws RemoteAccessException, IOException, RemoteException {
+    public RemoteBuildTask perform(DependencyRequest request) throws IOException, RemoteException {
         final Link link = getLink(Constants.LINK_REL_DEPENDENCIES_ANALYSIS);
         if (link == null) {
-            throw new RemoteAccessException("Unable get URL for starting remote process");
+            throw new IllegalStateException("Unable get URL for starting remote process");
         }
         return doRequest(link, request);
     }
@@ -118,7 +117,7 @@ public class RemoteBuilder {
     public SlaveBuilderState getRemoteBuilderState() throws IOException, RemoteException {
         final Link stateLink = getLink(Constants.LINK_REL_BUILDER_STATE);
         if (stateLink == null) {
-            throw new RemoteAccessException("Unable get URL for getting state of a remote builder");
+            throw new IllegalStateException("Unable get URL for getting state of a remote builder");
         }
         return HttpJsonHelper.request(SlaveBuilderState.class, stateLink, Pair.of("builder", name));
     }
@@ -126,7 +125,7 @@ public class RemoteBuilder {
     private Link getLink(String rel) {
         for (Link link : links) {
             if (rel.equals(link.getRel())) {
-                // create copy of link since we pass it to different methods
+                // create copy of link since we pass it outside from this class
                 return DtoFactory.getInstance().clone(link);
             }
         }

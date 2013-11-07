@@ -22,17 +22,20 @@ import java.util.Comparator;
 import java.util.List;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public class LastInUseBuilderListSorter implements BuilderListSorter, Comparator<RemoteBuilder> {
-
+public class LastInUseBuilderSelectionStrategy implements BuilderSelectionStrategy, Comparator<RemoteBuilder> {
     @Override
-    public void sort(List<RemoteBuilder> remoteBuilders) {
+    public RemoteBuilder select(List<RemoteBuilder> remoteBuilders) {
+        if (remoteBuilders==null||remoteBuilders.isEmpty()) {
+            throw new IllegalArgumentException("empty or null list");
+        }
         Collections.sort(remoteBuilders, this);
+        return remoteBuilders.get(0);
     }
 
     @Override
     public int compare(RemoteBuilder o1, RemoteBuilder o2) {
-        final Long time1 = o1.getLastUsageTime();
-        final Long time2 = o2.getLastUsageTime();
+        final long time1 = o1.getLastUsageTime();
+        final long time2 = o2.getLastUsageTime();
         if (time1 < time2) {
             return 1;
         }

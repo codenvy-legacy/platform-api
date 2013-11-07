@@ -18,16 +18,13 @@
 package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.dto.BuilderServiceLocation;
-import com.codenvy.api.builder.dto.BuilderServiceRegistration;
-import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.internal.Constants;
+import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -41,9 +38,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * RESTful frontend for BuildQueue.
@@ -62,7 +56,7 @@ public final class BuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@PathParam("ws-name") String workspace,
                                      @Required @Description("project name") @QueryParam("project") String project) throws Exception {
-        return buildQueue.scheduleBuild(workspace, project, getServiceContext()).getStatus(getServiceContext());
+        return buildQueue.scheduleBuild(workspace, project, getServiceContext()).getDescriptor(getServiceContext());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
@@ -74,21 +68,24 @@ public final class BuilderService extends Service {
                                             @Required @Description("project name") @QueryParam("project") String project,
                                             @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
             throws Exception {
-        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getStatus(getServiceContext());
+        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getDescriptor(
+                getServiceContext());
     }
 
     @GET
     @Path("status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor getStatus(@PathParam("id") Long id) throws Exception {
-        return buildQueue.get(id).getStatus(getServiceContext());
+        return buildQueue.get(id).getDescriptor(getServiceContext());
     }
 
     @POST
     @Path("cancel/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public void cancel(@PathParam("id") Long id) throws Exception {
-        buildQueue.get(id).cancel();
+    public BuildTaskDescriptor cancel(@PathParam("id") Long id) throws Exception {
+        final BuildQueueTask task = buildQueue.get(id);
+        task.cancel();
+        return task.getDescriptor(getServiceContext());
     }
 
     @GET
@@ -114,63 +111,5 @@ public final class BuilderService extends Service {
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
         buildQueue.get(id).download(path, new HttpServletProxyResponse(httpServletResponse));
-    }
-
-    //
-
-    //@RolesAllowed("cloud/admin")
-    @GenerateLink(rel = Constants.LINK_REL_QUEUE_STATE)
-    @GET
-    @Path("state")
-    @Produces(MediaType.APPLICATION_JSON)
-    public BuilderState state() {
-        return DtoFactory.getInstance().createDto(BuilderState.class)
-                         .withTotalNum(buildQueue.getTotalNum())
-                         .withWaitingNum(buildQueue.getWaitingNum());
-    }
-
-    //@RolesAllowed("cloud/admin")
-    @GenerateLink(rel = Constants.LINK_REL_REGISTER_BUILDER_SERVICE)
-    @POST
-    @Path("register")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response register(BuilderServiceRegistration registration) throws Exception {
-        buildQueue.registerBuilderService(registration);
-        return Response.status(Response.Status.OK).build();
-    }
-
-    //@RolesAllowed("cloud/admin")
-    @GenerateLink(rel = Constants.LINK_REL_UNREGISTER_BUILDER_SERVICE)
-    @POST
-    @Path("unregister")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response unregister(BuilderServiceLocation location) throws Exception {
-        buildQueue.unregisterBuilderService(location);
-        return Response.status(Response.Status.OK).build();
-    }
-
-    public static final class HttpServletProxyResponse implements ProxyResponse {
-        private final HttpServletResponse httpServletResponse;
-
-        public HttpServletProxyResponse(HttpServletResponse httpServletResponse) {
-            this.httpServletResponse = httpServletResponse;
-        }
-
-        @Override
-        public void setStatus(int status) {
-            httpServletResponse.setStatus(status);
-        }
-
-        @Override
-        public void addHttpHeader(String name, String value) {
-            httpServletResponse.addHeader(name, value);
-        }
-
-        @Override
-        public OutputStream getOutputStream() throws IOException {
-            return httpServletResponse.getOutputStream();
-        }
     }
 }

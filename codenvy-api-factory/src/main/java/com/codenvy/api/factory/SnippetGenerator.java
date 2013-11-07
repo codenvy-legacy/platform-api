@@ -34,9 +34,7 @@ public class SnippetGenerator {
         StringBuilder sb = new StringBuilder();
         Formatter formatter = new Formatter(sb);
         formatter.format("<script type=\"text/javascript\" language=\"javascript\" " +
-                         "src=\"%1$s/factory/resources/embed.js?" +
-                         "%2$s\">" +
-                         "</script>",
+                         "src=\"%1$s/factory/resources/embed.js?%2$s\"></script>",
                          UriBuilder.fromUri(baseUri).replacePath("").build(), id);
         return sb.toString();
     }

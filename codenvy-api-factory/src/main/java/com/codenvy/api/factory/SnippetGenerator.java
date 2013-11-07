@@ -31,12 +31,11 @@ public class SnippetGenerator {
     }
 
     public static String generateHtmlSnippet(String id, URI baseUri) {
-        StringBuilder sb = new StringBuilder();
-        Formatter formatter = new Formatter(sb);
+        Formatter formatter = new Formatter();
         formatter.format("<script type=\"text/javascript\" language=\"javascript\" " +
                          "src=\"%1$s/factory/resources/embed.js?%2$s\"></script>",
                          UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id);
-        return sb.toString();
+        return formatter.toString();
     }
 
 
@@ -44,8 +43,7 @@ public class SnippetGenerator {
                                                  URI baseUri) {
         String factoryURL =
                 UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
-        StringBuilder sb = new StringBuilder();
-        Formatter formatter = new Formatter(sb);
+        Formatter formatter = new Formatter();
         switch (style) {
             case "Advanced":
             case "Advanced with Counter":
@@ -72,7 +70,7 @@ public class SnippetGenerator {
             default:
                 throw new IllegalArgumentException("Invalid factory style.");
         }
-        return sb.toString();
+        return formatter.toString();
     }
 
 }

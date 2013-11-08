@@ -63,19 +63,19 @@ public class RemoteMetricHandler implements MetricHandler {
     public RemoteMetricHandler(Properties properties) {
         this.login = properties.getProperty("login");
         if (this.login == null) {
-            new IllegalArgumentException("Not defined mandatory property 'login'");
+            throw new IllegalArgumentException("Not defined mandatory property 'login'");
         }
         this.pass = properties.getProperty("pass");
         if (this.pass == null) {
-            new IllegalArgumentException("Not defined mandatory property 'pass'");
+            throw new IllegalArgumentException("Not defined mandatory property 'pass'");
         }
         this.host = properties.getProperty("host");
         if (this.host == null) {
-            new IllegalArgumentException("Not defined mandatory property 'host'");
+            throw new IllegalArgumentException("Not defined mandatory property 'host'");
         }
         this.port = properties.getProperty("port");
         if (this.port == null) {
-            new IllegalArgumentException("Not defined mandatory property 'port'");
+            throw new IllegalArgumentException("Not defined mandatory property 'port'");
         }
     }
 

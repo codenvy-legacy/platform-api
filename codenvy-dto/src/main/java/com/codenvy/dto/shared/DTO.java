@@ -23,7 +23,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marker annotation, used to inform DTO generator, that particular interface should be used for generating DTO.
+ * DTO interface definition annotation. Used to mark interface for generating DTO.
  *
  * @author <a href="mailto:azatsarynnyy@codenvy.com">Artem Zatsarynnyy</a>
  */

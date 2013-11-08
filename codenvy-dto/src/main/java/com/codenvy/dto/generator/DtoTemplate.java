@@ -237,7 +237,7 @@ public class DtoTemplate {
             builder.append("import java.util.Map;\n");
         }
         if (!isServerType) {
-            builder.append("import com.codenvy.ide.dto.DtoClientImpl;\n");
+            builder.append("import com.codenvy.ide.dto.ClientDtoFactoryVisitor;\n");
             builder.append("import com.codenvy.ide.dto.DtoFactoryVisitor;\n");
             builder.append("import com.codenvy.ide.dto.JsonSerializable;\n");
             builder.append("import com.google.gwt.json.client.*;\n");

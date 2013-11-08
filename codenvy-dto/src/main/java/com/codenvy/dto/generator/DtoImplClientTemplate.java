@@ -322,7 +322,7 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append(i).append("JSONValue ").append(outVar).append(" = new JSONNumber(").append(inVar).append(");\n");
         } else if (isBoolean(rawClass)) {
             builder.append(i).append("JSONValue ").append(outVar).append(" = (").append(inVar).append(
-                    " == null) ? JSONNull.getInstance() : JSONBoolean.getInstance(").append(inVar).append(");\n");
+                    ".isNull() != null) ? JSONNull.getInstance() : JSONBoolean.getInstance(").append(inVar).append(");\n");
         } else {
             final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
             if (dtoImplementation != null) {

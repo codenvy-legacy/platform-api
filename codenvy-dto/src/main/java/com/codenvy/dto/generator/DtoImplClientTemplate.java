@@ -475,7 +475,7 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append(i).append("  }\n");
             builder.append(i).append("}\n");
         } else if (rawClass.isEnum()) {
-            String primitiveName = rawClass.getSimpleName();
+            String primitiveName = rawClass.getCanonicalName();
             builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(primitiveName).
                     append(".valueOf(").append(inVar).append(".isString().stringValue());\n");
         } else if (getEnclosingTemplate().isDtoInterface(rawClass)) {

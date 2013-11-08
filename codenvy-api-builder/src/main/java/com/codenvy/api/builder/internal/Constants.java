@@ -20,9 +20,9 @@ package com.codenvy.api.builder.internal;
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class Constants {
     // properties of project which are interesting for builder
-    public static final String BUILDER_NAME                        = "builder.name";
-    public static final String BUILDER_TARGETS                     = "builder.targets";
-    public static final String BUILDER_OPTIONS                     = "builder.options";
+    public static final String BUILDER_NAME                        = "builder_name";
+    public static final String BUILDER_TARGETS                     = "builder_${builder}_targets";
+    public static final String BUILDER_OPTIONS                     = "builder_${builder}_options";
     // rels for known builder links
     public static final String LINK_REL_REGISTER_BUILDER_SERVICE   = "register builder service";
     public static final String LINK_REL_UNREGISTER_BUILDER_SERVICE = "unregister builder service";

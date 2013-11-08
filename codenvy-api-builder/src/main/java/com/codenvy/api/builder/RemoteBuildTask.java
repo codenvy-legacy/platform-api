@@ -21,6 +21,7 @@ import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.rest.HttpJsonHelper;
+import com.codenvy.api.core.rest.ProxyResponse;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 
@@ -52,14 +53,12 @@ public class RemoteBuildTask {
      * Get actual status of remote build process.
      *
      * @return status of remote build process
-     * @throws com.codenvy.api.core.rest.RemoteAccessException
-     *         if get a response from remote API which may not be parsed to BuildTaskDescriptor
      * @throws java.io.IOException
      *         if any i/o error occurs when try to access remote builder
      * @throws RemoteException
      *         if some other error occurs on remote server
      */
-    public BuildTaskDescriptor getStatus() throws IOException, RemoteException {
+    public BuildTaskDescriptor getBuildTaskDescriptor() throws IOException, RemoteException {
         //"status/{builder}/{id}"
         return HttpJsonHelper.get(BuildTaskDescriptor.class, baseUrl + "/status/" + builder + '/' + taskId);
     }
@@ -158,7 +157,7 @@ public class RemoteBuildTask {
     }
 
     private Link getLink(String rel) throws IOException, RemoteException {
-        for (Link link : getStatus().getLinks()) {
+        for (Link link : getBuildTaskDescriptor().getLinks()) {
             if (rel.equals(link.getRel())) {
                 return link;
             }

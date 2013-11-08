@@ -15,21 +15,12 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder;
+package com.codenvy.api.runner.internal;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import com.codenvy.api.runner.RunnerException;
+import com.codenvy.api.runner.internal.dto.RunRequest;
 
-/**
- * Proxies response from slave-builder to the client. It helps to avoid download response from slave-builder and resent info to the client.
- * Instead implementation of this interface may pump information from the slave-builder directly to the client.
- *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
- */
-public interface ProxyResponse {
-    void setStatus(int status);
-
-    void addHttpHeader(String name, String value);
-
-    OutputStream getOutputStream() throws IOException;
+/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+public interface RunnerConfigurationFactory {
+    RunnerConfiguration createRunnerConfiguration(RunRequest request) throws RunnerException;
 }

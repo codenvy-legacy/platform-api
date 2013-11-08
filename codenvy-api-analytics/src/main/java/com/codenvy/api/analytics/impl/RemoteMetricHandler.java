@@ -25,7 +25,6 @@ import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
-import com.codenvy.api.core.rest.RemoteAccessException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -86,7 +85,7 @@ public class RemoteMetricHandler implements MetricHandler {
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class, redirectURI.toString(), "GET", null, pairs.toArray(new Pair[pairs.size()]));
-        } catch (RemoteAccessException | IOException | RemoteException e) {
+        } catch (IOException | RemoteException e) {
             throw new MetricNotFoundException();
         }
     }
@@ -97,7 +96,7 @@ public class RemoteMetricHandler implements MetricHandler {
             MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, redirectURI.toString(), "GET", null);
             updateLinks(serviceContext, metricInfoDTO);
             return metricInfoDTO;
-        } catch (RemoteAccessException | IOException | RemoteException e) {
+        } catch (IOException | RemoteException e) {
             throw new MetricNotFoundException();
         }
     }
@@ -108,7 +107,7 @@ public class RemoteMetricHandler implements MetricHandler {
             MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, redirectURI.toString(), "GET", null);
             updateLinks(serviceContext, metricInfoListDTO);
             return metricInfoListDTO;
-        } catch (RemoteAccessException | IOException | RemoteException e) {
+        } catch (IOException | RemoteException e) {
             throw new RuntimeException("Can't get generate metric info list!");
         }
     }
@@ -190,12 +189,12 @@ public class RemoteMetricHandler implements MetricHandler {
                     }
                 }
                 // Can't parse content as json or content has format other we expect for error.
-                throw new RemoteAccessException(
+                throw new IOException(
                         String.format("Failed access: %s, method: %s, response code: %d, message: %s", url, method, responseCode, str));
             }
             final String contentType = conn.getContentType();
             if (!contentType.startsWith("application/json")) {
-                throw new RemoteAccessException("Unsupported type of response from remote server. ");
+                throw new IOException("Unsupported type of response from remote server. ");
             }
             try (InputStream input = conn.getInputStream()) {
                 return DtoFactory.getInstance().createDtoFromJson(input, dtoInterface);

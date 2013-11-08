@@ -122,7 +122,7 @@ public abstract class Service {
         return dto;
     }
 
-    public static Link generateLinkForMethod(UriInfo uriInfo, String linkRel, Method method, Object... pathParameters) {
+    private static Link generateLinkForMethod(UriInfo uriInfo, String linkRel, Method method, Object... pathParameters) {
         String httpMethod = null;
         if (getAnnotation(method, GET.class) != null) {
             httpMethod = "GET";

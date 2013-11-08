@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -84,7 +85,7 @@ public class BuildQueue implements Configurable, Lifecycle {
 
     private static final long CHECK_AVAILABLE_BUILDER_DELAY = 2000;
 
-    private final BuilderListSorter                          builderListSorter;
+    private final BuilderSelectionStrategy                   builderSelector;
     private final ExecutorService                            executor;
     private final ConcurrentMap<Long, BuildQueueTask>        tasks;
     private final Queue<BuildQueueTask>                      tasksFIFO;
@@ -95,7 +96,7 @@ public class BuildQueue implements Configurable, Lifecycle {
     private          long          maxTimeInQueueMillis;
 
     public BuildQueue() {
-        builderListSorter = ComponentLoader.one(BuilderListSorter.class);
+        builderSelector = ComponentLoader.one(BuilderSelectionStrategy.class);
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("BuildQueue-", true));
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
@@ -133,13 +134,10 @@ public class BuildQueue implements Configurable, Lifecycle {
      * @param registration
      *         BuilderServiceRegistration
      * @return {@code true} if set of available Builders changed as result of the call
-     * @throws com.codenvy.api.core.rest.RemoteAccessException
-     *         if an error occurs when try to access remote BuildService
      * @throws java.io.IOException
      *         if any i/o error occurs when try to access remote BuildService
      * @throws RemoteException
-     *         if we access remote BuildService successfully but get error response which can understand and transform it to
-     *         RemoteApiException
+     *         if we access remote BuildService successfully but get error response
      */
     public boolean registerBuilderService(BuilderServiceRegistration registration) throws IOException, RemoteException {
         final BuilderServiceAccessCriteria accessCriteria = registration.getBuilderServiceAccessCriteria();
@@ -148,7 +146,7 @@ public class BuildQueue implements Configurable, Lifecycle {
                                    : new BuilderListKey(null, null);
         BuilderList builderList = builderListMapping.get(key);
         if (builderList == null) {
-            final BuilderList newBuilderList = new BuilderList(builderListSorter);
+            final BuilderList newBuilderList = new BuilderList(builderSelector);
             builderList = builderListMapping.putIfAbsent(key, newBuilderList);
             if (builderList == null) {
                 builderList = newBuilderList;
@@ -169,13 +167,10 @@ public class BuildQueue implements Configurable, Lifecycle {
      * @param location
      *         BuilderServiceLocation
      * @return {@code true} if set of available Builders changed as result of the call
-     * @throws com.codenvy.api.core.rest.RemoteAccessException
-     *         if an error occurs when try to access remote BuildService
      * @throws java.io.IOException
      *         if any i/o error occurs when try to access remote BuildService
      * @throws RemoteException
-     *         if we access remote BuildService successfully but get error response which can understand and transform it to
-     *         RemoteApiException
+     *         if we access remote BuildService successfully but get error response
      */
     public boolean unregisterBuilderService(BuilderServiceLocation location) throws RemoteException, IOException {
         final RemoteBuilderFactory factory = new RemoteBuilderFactory(location.getUrl());
@@ -285,20 +280,26 @@ public class BuildQueue implements Configurable, Lifecycle {
     }
 
     private void addRequestParameters(Attributes attributes, BaseBuilderRequest request) {
+        List<String> list = attributes.getAttributes().get(Constants.BUILDER_NAME);
+        if (list == null || list.isEmpty()) {
+            throw new IllegalStateException(
+                    String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
+        }
+        final String builder = list.get(0);
+        request.setBuilder(builder);
+        final String buildTargets = Constants.BUILDER_TARGETS.replace("${builder}", builder);
+        final String buildOptions = Constants.BUILDER_OPTIONS.replace("${builder}", builder);
+
         for (Map.Entry<String, List<String>> entry : attributes.getAttributes().entrySet()) {
             if (DownloadZipAttributeValueProviderFactory.ATTRIBUTE.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setSourcesUrl(entry.getValue().get(0));
                 }
-            } else if (Constants.BUILDER_NAME.equals(entry.getKey())) {
-                if (!entry.getValue().isEmpty()) {
-                    request.setBuilder(entry.getValue().get(0));
-                }
-            } else if (Constants.BUILDER_TARGETS.equals(entry.getKey())) {
+            } else if (buildTargets.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setTargets(entry.getValue());
                 }
-            } else if (Constants.BUILDER_OPTIONS.equals(entry.getKey())) {
+            } else if (buildOptions.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     final Map<String, String> options = new LinkedHashMap<>();
                     for (String str : entry.getValue()) {
@@ -341,7 +342,7 @@ public class BuildQueue implements Configurable, Lifecycle {
                     builderList = builderListMapping.get(new BuilderListKey(null, workspace));
                 }
                 if (builderList == null) {
-                    // seems there is no dedicated builders for specified request, use shared then
+                    // seems there is no dedicated builders for specified request, use shared one then
                     builderList = builderListMapping.get(new BuilderListKey(null, null));
                 }
             }
@@ -357,20 +358,24 @@ public class BuildQueue implements Configurable, Lifecycle {
         final long timestamp = System.currentTimeMillis();
         int num = 0;
         int waitingNum = 0;
-        BuildQueueTask current;
-        while ((current = tasksFIFO.peek()) != null && (current.getCreationDate() + maxTimeInQueueMillis) < timestamp) {
-            if (current.isWaiting()) {
-                // Do nothing for task which we already sent to slave builders.
-                // Slave builders have own control over build processes and able to terminate them if process is running for very long time.
+        for (Iterator<BuildQueueTask> i = tasksFIFO.iterator(); i.hasNext(); ) {
+            final BuildQueueTask task = i.next();
+            if ((task.getCreationTime() + maxTimeInQueueMillis) > timestamp) {
+                // Don't need to check other tasks if find first one that is not expired yet.
+                break;
+            }
+            if (task.isWaiting()) {
+                // Do nothing for task which we already sent to slave builders. Slave builders have own control over build processes and
+                // able to terminate them if process is running for very long time.
                 try {
-                    current.cancel();
+                    task.cancel();
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
                 }
                 waitingNum++;
             }
-            tasksFIFO.poll();
-            tasks.remove(current.getId());
+            i.remove();
+            tasks.remove(task.getId());
             num++;
         }
         if (num > 0) {
@@ -435,6 +440,29 @@ public class BuildQueue implements Configurable, Lifecycle {
             throw new LifecycleException(String.format("Invalid %s parameter", MAX_TIME_IN_QUEUE));
         }
         maxTimeInQueueMillis = TimeUnit.MINUTES.toMillis(maxTimeInQueueMinutes);
+        final InputStream regConf =
+                Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builder_service_registrations.json");
+        if (regConf != null) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        for (BuilderServiceRegistration registration : DtoFactory.getInstance().createListDtoFromJson(regConf,
+                                                                                                                      BuilderServiceRegistration.class)) {
+                            registerBuilderService(registration);
+                            LOG.debug("Register slave builder: {}", registration);
+                        }
+                    } catch (IOException | RemoteException e) {
+                        LOG.error(e.getMessage(), e);
+                    } finally {
+                        try {
+                            regConf.close();
+                        } catch (IOException ignored) {
+                        }
+                    }
+                }
+            });
+        }
     }
 
     @Override
@@ -493,10 +521,10 @@ public class BuildQueue implements Configurable, Lifecycle {
 
     private static class BuilderList {
         final Collection<RemoteBuilder> builders;
-        final BuilderListSorter         builderListSorter;
+        final BuilderSelectionStrategy  builderSelector;
 
-        BuilderList(BuilderListSorter builderListSorter) {
-            this.builderListSorter = builderListSorter;
+        BuilderList(BuilderSelectionStrategy builderSelector) {
+            this.builderSelector = builderSelector;
             builders = new LinkedHashSet<>();
         }
 
@@ -560,7 +588,7 @@ public class BuildQueue implements Configurable, Lifecycle {
                     }
                 } else {
                     if (candidates.size() > 0) {
-                        builderListSorter.sort(candidates);
+                        return builderSelector.select(candidates);
                     }
                     return candidates.get(0);
                 }

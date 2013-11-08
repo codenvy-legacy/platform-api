@@ -15,24 +15,22 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest;
+package com.codenvy.api.runner.internal.dto;
 
-/**
- * Thrown if cannot access remote API resource or when got a response from remote API that we don't understand.
- *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- */
-@SuppressWarnings("serial")
-public class RemoteAccessException extends RuntimeException {
-    public RemoteAccessException(String message) {
-        super(message);
-    }
+import com.codenvy.dto.shared.DTO;
 
-    public RemoteAccessException(String message, Throwable cause) {
-        super(message, cause);
-    }
+/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+@DTO
+public interface ConfigurationParameter {
+    String getName();
 
-    public RemoteAccessException(Throwable cause) {
-        super(cause);
-    }
+    void setName(String name);
+
+    ConfigurationParameter withName(String name);
+
+    String getValue();
+
+    void setValue(String value);
+
+    ConfigurationParameter withValue(String value);
 }

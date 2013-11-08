@@ -20,15 +20,15 @@ package com.codenvy.api.builder;
 import java.util.List;
 
 /**
- * Sorts List of remote builder according to some order with depends on implementation. BuildQueue uses implementation of this interface fo
+ * Selects the 'best' RemoteBuilder from the List according to implementation. BuildQueue uses implementation of this interface fo
  * find the 'best' slave-builder for processing incoming build request. If more then one slave-builder available then BuildQueue collects
- * them (their front-ends which are represented by RemoteBuilder) and passes to implementation of this interface. After sort BuildQueue get
- * first one from the list and send build request to it.
+ * them (their front-ends which are represented by RemoteBuilder) and passes to implementation of this interface. This implementation
+ * should select the 'best' one.
  * <p/>
- * FQN of implementation of this interface must be placed in file META-INF/services/com.codenvy.api.builder.BuilderListSorter
+ * FQN of implementation of this interface must be placed in file META-INF/services/com.codenvy.api.builder.BuilderSelectionStrategy
  *
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-public interface BuilderListSorter {
-    void sort(List<RemoteBuilder> remoteBuilders);
+public interface BuilderSelectionStrategy {
+    RemoteBuilder select(List<RemoteBuilder> remoteBuilders);
 }

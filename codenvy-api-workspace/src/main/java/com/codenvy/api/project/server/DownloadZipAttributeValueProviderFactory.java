@@ -29,7 +29,7 @@ import java.util.List;
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
 public final class DownloadZipAttributeValueProviderFactory extends AttributeValueProviderFactory {
-    public static final String ATTRIBUTE = "sources.download_zip.url";
+    public static final String ATTRIBUTE = "sources_download_url";
 
     @Override
     public String getName() {

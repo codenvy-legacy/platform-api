@@ -75,33 +75,46 @@ public interface BuildTask {
      * Reports whether build task is started or not.
      *
      * @return {@code true} if task is started and {@code false} otherwise
+     * @throws BuilderException
+     *         if an error occurs when try to check status of build process
      */
-    boolean isStarted();
+    boolean isStarted() throws BuilderException;
 
     /**
      * Get time when task was started.
      *
      * @return time when task was started or {@code -1} if task is not started yet
+     * @throws BuilderException
+     *         if an error occurs when try to check status of build process
      * @see #isStarted()
      */
-    long getStartTime();
+    long getStartTime() throws BuilderException;
 
     /**
      * Reports whether build task is done (successfully ends, fails, cancelled) or not.
      *
      * @return {@code true} if task is done and {@code false} otherwise
+     * @throws BuilderException
+     *         if an error occurs when try to check status of build process
      */
-    boolean isDone();
+    boolean isDone() throws BuilderException;
 
     /**
      * Reports that the process was interrupted.
      *
      * @return {@code true} if task was interrupted and {@code false} otherwise
+     * @throws BuilderException
+     *         if an error occurs when try to check status of build process
      */
-    boolean isCancelled();
+    boolean isCancelled() throws BuilderException;
 
-    /** Interrupt build process. */
-    void cancel();
+    /**
+     * Interrupt build process.
+     *
+     * @throws BuilderException
+     *         if an error occurs when try to interrupt build process
+     */
+    void cancel() throws BuilderException;
 
     /**
      * Get build result.

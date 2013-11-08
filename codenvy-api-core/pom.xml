@@ -179,8 +179,8 @@
                                 <include>**/*Test.java</include>
                             </includes>
                             <excludes>
-                                <exclude>com/codenvy/core/api/util/ProcessUtilTest.java</exclude>
-                                <exclude>com/codenvy/core/api/util/StandardLinuxShellTest.java</exclude>
+                                <exclude>com/codenvy/api/core/util/ProcessUtilTest.java</exclude>
+                                <exclude>com/codenvy/api/core/util/StandardLinuxShellTest.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
@@ -202,8 +202,8 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
                             <includes>
-                                <include>com/codenvy/core/api/util/ProcessUtilTest.java</include>
-                                <include>com/codenvy/core/api/util/StandardLinuxShellTest.java</include>
+                                <include>com/codenvy/api/core/util/ProcessUtilTest.java</include>
+                                <include>com/codenvy/api/core/util/StandardLinuxShellTest.java</include>
                                 <include>**/*Test.java</include>
                             </includes>
                         </configuration>

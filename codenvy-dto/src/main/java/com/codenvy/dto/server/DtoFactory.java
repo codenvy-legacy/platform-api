@@ -25,6 +25,8 @@ import com.codenvy.dto.shared.JsonArray;
 import com.codenvy.dto.shared.JsonStringMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonSyntaxException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -33,6 +35,8 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -47,14 +51,14 @@ public final class DtoFactory {
     private static final Gson gson = new GsonBuilder().serializeNulls().create();
 
     private static final Cache<Type, ParameterizedType> listTypeCache = new SynchronizedCache<>(
-            new LoadingValueSLRUCache<Type, ParameterizedType>(100, 100) {
+            new LoadingValueSLRUCache<Type, ParameterizedType>(16, 16) {
                 @Override
                 protected ParameterizedType loadValue(Type type) {
                     return ParameterizedTypeImpl.newParameterizedType(List.class, type);
                 }
             });
     private static final Cache<Type, ParameterizedType> mapTypeCache  = new SynchronizedCache<>(
-            new LoadingValueSLRUCache<Type, ParameterizedType>(100, 100) {
+            new LoadingValueSLRUCache<Type, ParameterizedType>(16, 16) {
                 @Override
                 protected ParameterizedType loadValue(Type type) {
                     return ParameterizedTypeImpl.newParameterizedType(Map.class, String.class, type);
@@ -205,15 +209,19 @@ public final class DtoFactory {
      * @throws IllegalArgumentException
      *         if can't provide any implementation for specified interface
      */
-    @SuppressWarnings("unchecked")
     public <T> JsonArray<T> createListDtoFromJson(String json, Class<T> dtoInterface) {
         final DtoProvider<T> dtoProvider = getDtoProvider(dtoInterface);
-        return new JsonArrayImpl((List)gson.fromJson(json, listTypeCache.get(dtoProvider.getImplClass())));
+        final List<JsonElement> list = gson.fromJson(json, listTypeCache.get(JsonElement.class));
+        final List<T> result = new ArrayList<>(list.size());
+        for (JsonElement e : list) {
+            result.add(dtoProvider.fromJson(e));
+        }
+        return new JsonArrayImpl<>(result);
     }
 
 
     /**
-     * Deserializes the JSON data from the specified reader into list of objects of the specified type.
+     * Parses the JSON data from the specified reader into list of objects of the specified type.
      *
      * @param json
      *         JSON data
@@ -222,17 +230,28 @@ public final class DtoFactory {
      * @return list of DTO
      * @throws IllegalArgumentException
      *         if can't provide any implementation for specified interface
-     * @throws IOException
-     *         if an i/o error occurs
      */
-    @SuppressWarnings("unchecked")
     public <T> JsonArray<T> createListDtoFromJson(Reader json, Class<T> dtoInterface) throws IOException {
         final DtoProvider<T> dtoProvider = getDtoProvider(dtoInterface);
-        return new JsonArrayImpl((List)gson.fromJson(json, listTypeCache.get(dtoProvider.getImplClass())));
+        final List<JsonElement> list;
+        try {
+            list = gson.fromJson(json, listTypeCache.get(JsonElement.class));
+        } catch (JsonSyntaxException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException)cause;
+            }
+            throw e;
+        }
+        final List<T> result = new ArrayList<>(list.size());
+        for (JsonElement e : list) {
+            result.add(dtoProvider.fromJson(e));
+        }
+        return new JsonArrayImpl<>(result);
     }
 
     /**
-     * Deserializes the JSON data from the specified stream into list of objects of the specified type.
+     * Parses the JSON data from the specified stream into list of objects of the specified type.
      *
      * @param json
      *         JSON data
@@ -261,15 +280,19 @@ public final class DtoFactory {
      * @throws IllegalArgumentException
      *         if can't provide any implementation for specified interface
      */
-    @SuppressWarnings("unchecked")
     public <T> JsonStringMap<T> createMapDtoFromJson(String json, Class<T> dtoInterface) {
         final DtoProvider<T> dtoProvider = getDtoProvider(dtoInterface);
-        return new JsonStringMapImpl((Map)gson.fromJson(json, mapTypeCache.get(dtoProvider.getImplClass())));
+        final Map<String, JsonElement> map = gson.fromJson(json, mapTypeCache.get(JsonElement.class));
+        final Map<String, T> result = new LinkedHashMap<>(map.size());
+        for (Map.Entry<String, JsonElement> e : map.entrySet()) {
+            result.put(e.getKey(), dtoProvider.fromJson(e.getValue()));
+        }
+        return new JsonStringMapImpl<>(result);
     }
 
 
     /**
-     * Deserializes the JSON data from the specified reader into map of objects of the specified type.
+     * Parses the JSON data from the specified reader into map of objects of the specified type.
      *
      * @param json
      *         JSON data
@@ -284,11 +307,25 @@ public final class DtoFactory {
     @SuppressWarnings("unchecked")
     public <T> JsonStringMap<T> createMapDtoFromJson(Reader json, Class<T> dtoInterface) throws IOException {
         final DtoProvider<T> dtoProvider = getDtoProvider(dtoInterface);
-        return new JsonStringMapImpl((Map)gson.fromJson(json, mapTypeCache.get(dtoProvider.getImplClass())));
+        final Map<String, JsonElement> map;
+        try {
+            map = gson.fromJson(json, mapTypeCache.get(JsonElement.class));
+        } catch (JsonSyntaxException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException)cause;
+            }
+            throw e;
+        }
+        final Map<String, T> result = new LinkedHashMap<>(map.size());
+        for (Map.Entry<String, JsonElement> e : map.entrySet()) {
+            result.put(e.getKey(), dtoProvider.fromJson(e.getValue()));
+        }
+        return new JsonStringMapImpl<>(result);
     }
 
     /**
-     * Deserializes the JSON data from the specified stream into map of objects of the specified type.
+     * Parses the JSON data from the specified stream into map of objects of the specified type.
      *
      * @param json
      *         JSON data

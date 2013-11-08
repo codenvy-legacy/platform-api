@@ -64,7 +64,7 @@ public class BuilderRegistry {
      * @return {@code Builder} or {@code null} if there is no such {@code Builder}
      */
     public Builder remove(String name) {
-        return builders.get(name);
+        return builders.remove(name);
     }
 
     /**
@@ -74,5 +74,9 @@ public class BuilderRegistry {
      */
     public Set<Builder> getAll() {
         return new LinkedHashSet<>(builders.values());
+    }
+
+    public void clear() {
+        builders.clear();
     }
 }

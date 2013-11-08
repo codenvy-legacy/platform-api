@@ -48,9 +48,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -98,11 +98,11 @@ public abstract class Builder implements Configurable, Lifecycle {
     /** Name of configuration parameter that provides build timeout is seconds (by default 300). After this time build may be terminated. */
     public static final String TIMEOUT                 = "builder.build_timeout";
 
-    private final AtomicLong                           buildIdSequence;
-    private final ConcurrentMap<Long, CachedBuildTask> tasks;
-    private final Queue<CachedBuildTask>               tasksFIFO;
-    private final Queue<java.io.File>                  cleanerQueue;
-    private final Set<BuildListener>                   buildListeners;
+    private final AtomicLong                             buildIdSequence;
+    private final ConcurrentMap<Long, CachedBuildTask>   tasks;
+    private final ConcurrentLinkedQueue<CachedBuildTask> tasksFIFO;
+    private final ConcurrentLinkedQueue<java.io.File>    cleanerQueue;
+    private final Set<BuildListener>                     buildListeners;
 
     private int queueSize;
     private int timeout;
@@ -360,9 +360,9 @@ public abstract class Builder implements Configurable, Lifecycle {
                 new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), config, logger, callback);
         final long expirationTime = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(cleanBuildResultDelay);
         final CachedBuildTask cachedTask = new CachedBuildTask(task, expirationTime);
+        purgeExpiredTasks();
         tasks.put(task.getId(), cachedTask);
         tasksFIFO.offer(cachedTask);
-        purgeExpiredTasks();
         executor.execute(task);
         return task;
     }
@@ -461,20 +461,25 @@ public abstract class Builder implements Configurable, Lifecycle {
 
     /** Removes expired tasks. */
     private void purgeExpiredTasks() {
-        CachedBuildTask current;
         int num = 0;
-        while ((current = tasksFIFO.peek()) != null && current.isExpired()) {
-            if (!current.task.isDone()) {
+        for (Iterator<CachedBuildTask> i = tasksFIFO.iterator(); i.hasNext(); ) {
+            final CachedBuildTask next = i.next();
+            if (!next.isExpired()) {
+                // Don't need to check other tasks if find first one that is not expired yet.
+                break;
+            }
+            if (!next.task.isDone()) {
                 try {
-                    current.task.cancel();
+                    next.task.cancel();
                 } catch (RuntimeException e) {
                     LOG.error(e.getMessage(), e);
+                    continue; // try next time
                 }
             }
-            tasksFIFO.poll();
-            tasks.remove(current.task.getId());
+            i.remove();
+            tasks.remove(next.task.getId());
             try {
-                cleanup(current.task);
+                cleanup(next.task);
             } catch (RuntimeException e) {
                 LOG.error(e.getMessage(), e);
             }

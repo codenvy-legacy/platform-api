@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentMap;
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
 public class CustomPortService {
+    // TODO: make singleton!
     private static final Logger LOG = LoggerFactory.getLogger(CustomPortService.class);
     private final ConcurrentMap<Integer, Boolean> portsInUse;
     private       Pair<Integer, Integer>          range;

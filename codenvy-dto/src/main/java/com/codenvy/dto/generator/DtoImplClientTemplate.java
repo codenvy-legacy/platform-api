@@ -353,7 +353,7 @@ public class DtoImplClientTemplate extends DtoImpl {
 
     /** Generates a static factory method that creates a new instance based on a JsonElement. */
     private void emitDeserializer(List<Method> getters, StringBuilder builder) {
-        builder.append("    public static ").append(getImplClassName()).append(" fromJsonObject(JSONObject json) {\n");
+        builder.append("    public static ").append(getImplClassName()).append(" fromJsonObject(JSONValue jsonValue) {\n");
         builder.append("      if (json == null || json.isNull() != null) {\n");
         builder.append("        return null;\n");
         builder.append("      }\n\n");
@@ -364,6 +364,7 @@ public class DtoImplClientTemplate extends DtoImpl {
                 emitDeserializeFieldForMethodCompact(method, builder);
             }
         } else {
+            builder.append("      JSONObject json = jsonValue.isObject();\n");
             for (Method method : getters) {
                 emitDeserializeFieldForMethod(method, builder);
             }
@@ -379,7 +380,7 @@ public class DtoImplClientTemplate extends DtoImpl {
         builder.append("      if (jsonString == null) {\n");
         builder.append("        return null;\n");
         builder.append("      }\n\n");
-        builder.append("      return fromJsonObject(JSONParser.parseStrict(jsonString).isObject());\n");
+        builder.append("      return fromJsonObject(JSONParser.parseStrict(jsonString));\n");
         builder.append("    }\n\n");
     }
 

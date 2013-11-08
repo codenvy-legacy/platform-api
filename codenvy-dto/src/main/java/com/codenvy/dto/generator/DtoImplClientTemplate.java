@@ -354,7 +354,7 @@ public class DtoImplClientTemplate extends DtoImpl {
     /** Generates a static factory method that creates a new instance based on a JsonElement. */
     private void emitDeserializer(List<Method> getters, StringBuilder builder) {
         builder.append("    public static ").append(getImplClassName()).append(" fromJsonObject(JSONValue jsonValue) {\n");
-        builder.append("      if (json == null || json.isNull() != null) {\n");
+        builder.append("      if (jsonValue == null || jsonValue.isNull() != null) {\n");
         builder.append("        return null;\n");
         builder.append("      }\n\n");
         builder.append("      ").append(getImplClassName()).append(" dto = new ").append(getImplClassName()).append(

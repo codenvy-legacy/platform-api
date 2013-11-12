@@ -445,7 +445,7 @@ public class DtoImplClientTemplate extends DtoImpl {
 
         if (isList(rawClass)) {
             builder.append(i).append(getImplName(type, false)).append(" ").append(outVar).append(" = null;\n");
-            builder.append(i).append("if (").append(inVar).append(" != null && ").append(inVar).append(".isNull() != null) {\n");
+            builder.append(i).append("if (").append(inVar).append(" != null && ").append(inVar).append(".isNull() == null) {\n");
             builder.append(i).append("  ").append(outVar).append(" = new ").append(getImplName(type, true)).append("();\n");
             builder.append(i).append("  for (int i = 0; i < ").append(inVar).append(".isArray().size(); i++) {\n");
             builder.append(i).append("    JSONValue ").append(childInVar).append(" = ").append(inVar).append(".isArray().get(i);\n");
@@ -460,7 +460,7 @@ public class DtoImplClientTemplate extends DtoImpl {
             String entryVar = "key" + depth;
             String entriesVar = "keySet" + depth;
             builder.append(i).append(getImplName(type, false)).append(" ").append(outVar).append(" = null;\n");
-            builder.append(i).append("if (").append(inVar).append(" != null && ").append(inVar).append(".isNull() != null) {\n");
+            builder.append(i).append("if (").append(inVar).append(" != null && ").append(inVar).append(".isNull() == null) {\n");
             builder.append(i).append("  ").append(outVar).append(" = new ").append(getImplName(type, true)).append("();\n");
             builder.append(i).append("  java.util.Set<String> ").append(entriesVar).append(
                     " = ").append(inVar).append(".isObject().keySet();\n");
@@ -484,8 +484,8 @@ public class DtoImplClientTemplate extends DtoImpl {
                    .append(".fromJsonObject(").append(inVar).append(");\n");
         } else if (rawClass.equals(String.class)) {
             String primitiveName = rawClass.getSimpleName();
-            builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(
-                    ".isString().stringValue();\n");
+            builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isString() != null ? ").append(inVar).append(
+                    ".isString().stringValue() : null;\n");
         } else if (isNumber(rawClass)) {
             String primitiveName = rawClass.getSimpleName();
             String typeCast = rawClass.equals(double.class) || rawClass.equals(Double.class) ? "" : "(" + getPrimitiveName(rawClass) + ")";

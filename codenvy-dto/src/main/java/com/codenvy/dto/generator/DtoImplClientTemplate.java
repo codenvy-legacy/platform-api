@@ -440,6 +440,7 @@ public class DtoImplClientTemplate extends DtoImpl {
 
         Type type = expandedTypes.get(depth);
         String childInVar = inVar + "_";
+        String childInVarIterator = childInVar + "_iterator";
         String childOutVar = outVar + "_";
         Class<?> rawClass = getRawClass(type);
 
@@ -447,8 +448,8 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append(i).append(getImplName(type, false)).append(" ").append(outVar).append(" = null;\n");
             builder.append(i).append("if (").append(inVar).append(" != null && ").append(inVar).append(".isNull() == null) {\n");
             builder.append(i).append("  ").append(outVar).append(" = new ").append(getImplName(type, true)).append("();\n");
-            builder.append(i).append("  for (int i = 0; i < ").append(inVar).append(".isArray().size(); i++) {\n");
-            builder.append(i).append("    JSONValue ").append(childInVar).append(" = ").append(inVar).append(".isArray().get(i);\n");
+            builder.append(i).append("  for (int ").append(childInVarIterator).append(" = 0; ").append(childInVarIterator).append(" < ").append(inVar).append(".isArray().size(); ").append(childInVarIterator).append("++) {\n");
+            builder.append(i).append("    JSONValue ").append(childInVar).append(" = ").append(inVar).append(".isArray().get(").append(childInVarIterator).append(");\n");
 
             emitDeserializerImpl(expandedTypes, depth + 1, builder, childInVar, childOutVar, i + "    ");
 

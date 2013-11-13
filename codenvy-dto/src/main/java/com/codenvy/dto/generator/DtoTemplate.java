@@ -246,7 +246,7 @@ public class DtoTemplate {
         builder.append("\n\n@SuppressWarnings({\"unchecked\", \"cast\"})\n");
         if (!isServerType) {
             builder.append("@Singleton\n");
-            builder.append("@DtoClientImpl\n");
+            builder.append("@ClientDtoFactoryVisitor\n");
         }
         // Note that we always use fully qualified path names when referencing Types
         // so we need not add any import statements for anything.

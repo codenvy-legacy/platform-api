@@ -549,37 +549,40 @@ public class BuildQueue implements Configurable, Lifecycle {
         }
 
         synchronized RemoteBuilder getBuilder(BaseBuilderRequest request) {
-            final List<RemoteBuilder> candidates = new ArrayList<>();
+            final List<RemoteBuilder> matched = new ArrayList<>();
+            for (RemoteBuilder builder : builders) {
+                if (request.getBuilder().equals(builder.getName())) {
+                    matched.add(builder);
+                }
+            }
+            final int size = matched.size();
+            if (size == 0) {
+                return null;
+            }
+            final List<RemoteBuilder> available = new ArrayList<>(matched.size());
             int attemptGetState = 0;
             for (; ; ) {
-                final int size = builders.size();
-                if (size == 0) {
-                    return null;
-                }
-
-                for (RemoteBuilder builder : builders) {
+                for (RemoteBuilder builder : matched) {
                     if (Thread.currentThread().isInterrupted()) {
                         return null; // stop immediately
                     }
-                    if (request.getBuilder().equals(builder.getName())) {
-                        SlaveBuilderState builderState;
-                        try {
-                            builderState = builder.getRemoteBuilderState();
-                        } catch (Exception e) {
-                            LOG.error(e.getMessage(), e);
-                            ++attemptGetState;
-                            if (attemptGetState > 10) {
-                                return null;
-                            }
-                            continue;
+                    SlaveBuilderState builderState;
+                    try {
+                        builderState = builder.getRemoteBuilderState();
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage(), e);
+                        ++attemptGetState;
+                        if (attemptGetState > 10) {
+                            return null;
                         }
-                        if (builderState.getNumberOfActiveWorkers() < builderState.getNumberOfWorkers()) {
-                            candidates.add(builder);
-                        }
+                        continue;
+                    }
+                    if (builderState.getNumberOfActiveWorkers() < builderState.getNumberOfWorkers()) {
+                        available.add(builder);
                     }
                 }
 
-                if (candidates.isEmpty()) {
+                if (available.isEmpty()) {
                     try {
                         wait(CHECK_AVAILABLE_BUILDER_DELAY); // wait and try again
                     } catch (InterruptedException e) {
@@ -587,10 +590,10 @@ public class BuildQueue implements Configurable, Lifecycle {
                         return null; // expected to get here if task is canceled
                     }
                 } else {
-                    if (candidates.size() > 0) {
-                        return builderSelector.select(candidates);
+                    if (available.size() > 0) {
+                        return builderSelector.select(available);
                     }
-                    return candidates.get(0);
+                    return available.get(0);
                 }
             }
         }

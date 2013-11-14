@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.project.shared;
 
-import com.codenvy.api.vfs.shared.dto.Property;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,20 +27,40 @@ import java.util.List;
  * @see AttributeValueProvider
  */
 public class Attribute {
-    /** Implementation of AttributeValueProvider which uses Property. */
     private static class DefaultValueProvider implements AttributeValueProvider {
-        final Property property;
+        List<String> values;
 
-        DefaultValueProvider(Property property) {
-            this.property = property;
+        DefaultValueProvider(List<String> values) {
+            if (!(values == null || values.isEmpty())) {
+                this.values = new ArrayList<>(values);
+            }
+        }
+
+        DefaultValueProvider(String value) {
+            if (value != null) {
+                this.values = new ArrayList<>(1);
+                this.values.add(value);
+            }
         }
 
         public List<String> getValues() {
-            return property.getValue();
+            if (values == null) {
+                values = new ArrayList<>(2);
+            }
+            return values;
         }
 
-        public void setValues(List<String> value) {
-            property.setValue(value);
+        public void setValues(List<String> values) {
+            if (this.values == null) {
+                if (values != null) {
+                    this.values = new ArrayList<>(values);
+                }
+            } else {
+                this.values.clear();
+                if (!(values == null || values.isEmpty())) {
+                    this.values.addAll(values);
+                }
+            }
         }
     }
 
@@ -59,10 +77,16 @@ public class Attribute {
         this.valueProvider = valueProvider;
     }
 
-    /** Creates new Attribute and read name and value of Attribute from specified property. */
-    public Attribute(Property property) {
-        this.name = property.getName();
-        this.valueProvider = new DefaultValueProvider(property);
+    /** Creates new Attribute. */
+    public Attribute(String name, String value) {
+        this.name = name;
+        this.valueProvider = new DefaultValueProvider(value);
+    }
+
+    /** Creates new Attribute. */
+    public Attribute(String name, List<String> values) {
+        this.name = name;
+        this.valueProvider = new DefaultValueProvider(values);
     }
 
     /** Name of attribute. */

@@ -129,7 +129,7 @@ public class WorkspaceService extends Service {
         }
         // analyze properties
         for (Property property : myProject.getProperties()) {
-            final Attribute attribute = new Attribute(property);
+            final Attribute attribute = new Attribute(property.getName(), property.getValue());
             values.put(attribute.getName(), attribute.getValues());
         }
         final Attributes attributes = DtoFactory.getInstance().createDto(Attributes.class);

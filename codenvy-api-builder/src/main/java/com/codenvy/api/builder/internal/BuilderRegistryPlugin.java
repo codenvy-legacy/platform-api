@@ -15,12 +15,13 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner;
+package com.codenvy.api.builder.internal;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public enum ApplicationStatus {
-    NEW,
-    RUNNING,
-    STOPPED,
-    CANCELLED
+/**
+ * Helps to register Builder in builder registry.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
+public interface BuilderRegistryPlugin {
+    void registerTo(BuilderRegistry registry);
 }

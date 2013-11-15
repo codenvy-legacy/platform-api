@@ -22,18 +22,18 @@ public class Constants {
     // properties of project which are interesting for runner
     public static final String RUNNER_NAME                        = "runner_name";
     public static final String RUNNER_DEBUG_MODE                  = "runner_${runner}_debugmode";
-    public static final String RUNNER_PARAMETERS                  = "runner_${runner}_parameters";
+    public static final String RUNNER_OPTIONS                     = "runner_${runner}_options";
+    // Known RUNNER PARAMETERS:
+    public static final String MEMORY                             = "memory";
     // rels for known runner links
     public static final String LINK_REL_REGISTER_RUNNER_SERVICE   = "register runner service";
     public static final String LINK_REL_UNREGISTER_RUNNER_SERVICE = "unregister runner service";
-
-    public static final String LINK_REL_AVAILABLE_RUNNERS = "available runners";
-    public static final String LINK_REL_RUNNER_STATE      = "runners state";
-    public static final String LINK_REL_RUN               = "run";
-
-    public static final String LINK_REL_GET_STATUS = "get status";
-    public static final String LINK_REL_VIEW_LOG   = "view logs";
-    public static final String LINK_REL_STOP       = "stop";
+    public static final String LINK_REL_AVAILABLE_RUNNERS         = "available runners";
+    public static final String LINK_REL_RUNNER_STATE              = "runners state";
+    public static final String LINK_REL_RUN                       = "run";
+    public static final String LINK_REL_GET_STATUS                = "get status";
+    public static final String LINK_REL_VIEW_LOG                  = "view logs";
+    public static final String LINK_REL_STOP                      = "stop";
 
     private Constants() {
     }

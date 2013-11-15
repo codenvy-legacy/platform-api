@@ -15,12 +15,18 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner;
+package com.codenvy.api.core.config;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public enum ApplicationStatus {
-    NEW,
-    RUNNING,
-    STOPPED,
-    CANCELLED
+/**
+ * Provide single configuration for all API components.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
+// Will not need it when start to use IoC container for platform API.
+public class SingletonConfiguration {
+    private static final Configuration cfg = new Configuration();
+
+    public static Configuration get() {
+        return cfg;
+    }
 }

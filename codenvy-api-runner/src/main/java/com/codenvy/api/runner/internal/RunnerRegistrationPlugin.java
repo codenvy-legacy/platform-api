@@ -15,12 +15,13 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner;
+package com.codenvy.api.runner.internal;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public enum ApplicationStatus {
-    NEW,
-    RUNNING,
-    STOPPED,
-    CANCELLED
+/**
+ * Helps to register Runner in runner registry.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
+public interface RunnerRegistrationPlugin {
+    void registerTo(RunnerRegistry registry);
 }

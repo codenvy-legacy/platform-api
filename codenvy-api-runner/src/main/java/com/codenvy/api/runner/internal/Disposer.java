@@ -15,12 +15,9 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner;
+package com.codenvy.api.runner.internal;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public enum ApplicationStatus {
-    NEW,
-    RUNNING,
-    STOPPED,
-    CANCELLED
+public interface Disposer {
+    void dispose();
 }

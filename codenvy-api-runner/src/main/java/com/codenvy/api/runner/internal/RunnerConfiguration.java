@@ -17,14 +17,22 @@
  */
 package com.codenvy.api.runner.internal;
 
+import com.codenvy.api.runner.internal.dto.RunRequest;
+import com.codenvy.dto.server.DtoFactory;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class RunnerConfiguration {
     private final int memory;
     private final int debugPort;
+    private final RunRequest request;
 
-    public RunnerConfiguration(int memory, int debugPort) {
+    public RunnerConfiguration(int memory, int debugPort, RunRequest request) {
         this.memory = memory;
         this.debugPort = debugPort;
+        this.request = request;
     }
 
     public int getMemory() {
@@ -33,5 +41,22 @@ public class RunnerConfiguration {
 
     public int getDebugPort() {
         return debugPort;
+    }
+
+    public Map<String, String> getOptions() {
+        return new LinkedHashMap<>(request.getOptions());
+    }
+
+    public RunRequest getRequest() {
+        return DtoFactory.getInstance().clone(request);
+    }
+
+    @Override
+    public String toString() {
+        return "RunnerConfiguration{" +
+               "memory=" + memory +
+               ", debugPort=" + debugPort +
+               ", request=" + request +
+               '}';
     }
 }

@@ -38,7 +38,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 /**
- * RESTful API for RunnerManager.
+ * RESTful API for RunQueue.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
@@ -46,7 +46,7 @@ import javax.ws.rs.core.MediaType;
 @Description("Runner API")
 public class RunnerService extends Service {
     @Inject
-    private RunnerManager runner;
+    private RunQueue runner;
 
     @GenerateLink(rel = Constants.LINK_REL_RUN)
     @Path("run")

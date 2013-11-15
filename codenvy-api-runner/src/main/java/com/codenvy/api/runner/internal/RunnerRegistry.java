@@ -22,7 +22,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Stores available runners.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public class RunnerRegistry {
     private final Map<String, Runner> runners;
 
@@ -31,7 +35,11 @@ public class RunnerRegistry {
     }
 
     /**
-     * TODO
+     * Add {@code Runner}. Uses {@code String} returned by method {@code Runner.getName()} as runner's identifier. If {@code Runner}
+     * with the same name already registered it is replaced by new one.
+     *
+     * @param myRunner
+     *         Runner
      */
     public void add(Runner myRunner) {
         runners.put(myRunner.getName(), myRunner);

@@ -111,4 +111,34 @@ public class ConfigurationTest {
         cfg.set(name, value);
         cfg.getFile(name, null);
     }
+
+    @Test
+    public void testMergeRetain() throws Exception {
+        Configuration cfg1 = new Configuration();
+        cfg1.set("a", "A1");
+        cfg1.set("b", "B1");
+        Configuration cfg2 = new Configuration();
+        cfg2.set("a", "A2");
+        cfg2.set("b", "B2");
+        cfg2.set("c", "C2");
+        cfg1.merge(cfg2, Configuration.MergePolicy.RETAIN);
+        Assert.assertEquals(cfg1.get("a"), "A1");
+        Assert.assertEquals(cfg1.get("b"), "B1");
+        Assert.assertEquals(cfg1.get("c"), "C2");
+    }
+
+    @Test
+    public void testMergeOverride() throws Exception {
+        Configuration cfg1 = new Configuration();
+        cfg1.set("a", "A1");
+        cfg1.set("b", "B1");
+        Configuration cfg2 = new Configuration();
+        cfg2.set("a", "A2");
+        cfg2.set("b", "B2");
+        cfg2.set("c", "C2");
+        cfg1.merge(cfg2, Configuration.MergePolicy.OVERRIDE);
+        Assert.assertEquals(cfg1.get("a"), "A2");
+        Assert.assertEquals(cfg1.get("b"), "B2");
+        Assert.assertEquals(cfg1.get("c"), "C2");
+    }
 }

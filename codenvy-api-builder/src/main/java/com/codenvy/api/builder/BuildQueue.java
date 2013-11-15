@@ -29,8 +29,8 @@ import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
-import com.codenvy.api.core.config.Configurable;
 import com.codenvy.api.core.config.Configuration;
+import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
@@ -71,10 +71,9 @@ import java.util.concurrent.TimeUnit;
  * queue set up by configuration parameter {@link #MAX_TIME_IN_QUEUE}.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see Configurable
  * @see Configuration
  */
-public class BuildQueue implements Configurable, Lifecycle {
+public class BuildQueue implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
     /**
@@ -91,9 +90,8 @@ public class BuildQueue implements Configurable, Lifecycle {
     private final Queue<BuildQueueTask>                      tasksFIFO;
     private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
 
-    private volatile boolean       maySetConfiguration;
-    private          Configuration configuration;
-    private          long          maxTimeInQueueMillis;
+    private long    maxTimeInQueueMillis;
+    private boolean started;
 
     public BuildQueue() {
         builderSelector = ComponentLoader.one(BuilderSelectionStrategy.class);
@@ -101,7 +99,6 @@ public class BuildQueue implements Configurable, Lifecycle {
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
         builderListMapping = new ConcurrentHashMap<>();
-        maySetConfiguration = true;
     }
 
     /**
@@ -110,6 +107,7 @@ public class BuildQueue implements Configurable, Lifecycle {
      * @return total size of queue of tasks
      */
     public int getTotalNum() {
+        checkStarted();
         return tasks.size();
     }
 
@@ -119,6 +117,7 @@ public class BuildQueue implements Configurable, Lifecycle {
      * @return number of tasks which are waiting for processing
      */
     public int getWaitingNum() {
+        checkStarted();
         int count = 0;
         for (BuildQueueTask task : tasks.values()) {
             if (task.isWaiting()) {
@@ -140,6 +139,7 @@ public class BuildQueue implements Configurable, Lifecycle {
      *         if we access remote BuildService successfully but get error response
      */
     public boolean registerBuilderService(BuilderServiceRegistration registration) throws IOException, RemoteException {
+        checkStarted();
         final BuilderServiceAccessCriteria accessCriteria = registration.getBuilderServiceAccessCriteria();
         final BuilderListKey key = accessCriteria != null
                                    ? new BuilderListKey(accessCriteria.getProject(), accessCriteria.getWorkspace())
@@ -173,6 +173,7 @@ public class BuildQueue implements Configurable, Lifecycle {
      *         if we access remote BuildService successfully but get error response
      */
     public boolean unregisterBuilderService(BuilderServiceLocation location) throws RemoteException, IOException {
+        checkStarted();
         final RemoteBuilderFactory factory = new RemoteBuilderFactory(location.getUrl());
         final List<RemoteBuilder> toRemove = new ArrayList<>();
         for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
@@ -209,6 +210,7 @@ public class BuildQueue implements Configurable, Lifecycle {
      */
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext)
             throws RemoteException, IOException {
+        checkStarted();
         final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
         final BuildRequest request = DtoFactory.getInstance().createDto(BuildRequest.class);
         request.setWorkspace(workspace);
@@ -253,6 +255,7 @@ public class BuildQueue implements Configurable, Lifecycle {
      */
     public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
             throws RemoteException, IOException {
+        checkStarted();
         final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
                                                                        .withType(type)
@@ -384,6 +387,7 @@ public class BuildQueue implements Configurable, Lifecycle {
     }
 
     public BuildQueueTask get(Long id) throws NoSuchBuildTaskException {
+        checkStarted();
         final BuildQueueTask task = tasks.get(id);
         if (task == null) {
             throw new NoSuchBuildTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
@@ -391,48 +395,11 @@ public class BuildQueue implements Configurable, Lifecycle {
         return task;
     }
 
-    /**
-     * {@inheritDoc}
-     * <p/>
-     * Note: Sub-classes should copy default configuration from super class.
-     * <pre>
-     * &#064Override
-     * public Configuration getDefaultConfiguration() {
-     *     Configuration superConf = super.getDefaultConfiguration();
-     *     Configuration myConf = new Configuration(superConf);
-     *     // add new parameters or update parameters provided by method from super class
-     *     return myConf;
-     * }
-     * </pre>
-     */
     @Override
-    public final Configuration getDefaultConfiguration() {
-        final Configuration defaultConfiguration = new Configuration();
-        defaultConfiguration.setInt(MAX_TIME_IN_QUEUE, 10);
-        return defaultConfiguration;
-    }
-
-    @Override
-    public final void setConfiguration(Configuration configuration) {
-        if (maySetConfiguration) {
-            this.configuration = new Configuration(configuration);
-        } else {
-            throw new IllegalStateException();
+    public synchronized void start() {
+        if (started) {
+            throw new IllegalStateException("Already started");
         }
-    }
-
-    @Override
-    public final Configuration getConfiguration() {
-        Configuration myConfiguration = this.configuration;
-        if (myConfiguration != null) {
-            return new Configuration(myConfiguration);
-        }
-        return getDefaultConfiguration();
-    }
-
-    @Override
-    public void start() {
-        maySetConfiguration = false;
         final Configuration myConfiguration = getConfiguration();
         LOG.debug("{}", myConfiguration);
         final int maxTimeInQueueMinutes = myConfiguration.getInt(MAX_TIME_IN_QUEUE, 10);
@@ -463,10 +430,22 @@ public class BuildQueue implements Configurable, Lifecycle {
                 }
             });
         }
+        started = true;
+    }
+
+    protected synchronized void checkStarted() {
+        if (!started) {
+            throw new IllegalArgumentException("Lifecycle instance is not started yet.");
+        }
+    }
+
+    protected Configuration getConfiguration() {
+        return SingletonConfiguration.get();
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
+        checkStarted();
         executor.shutdown();
         try {
             if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
@@ -476,6 +455,10 @@ public class BuildQueue implements Configurable, Lifecycle {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
+        tasks.clear();
+        tasksFIFO.clear();
+        builderListMapping.clear();
+        started = false;
     }
 
     private static class BuilderListKey {

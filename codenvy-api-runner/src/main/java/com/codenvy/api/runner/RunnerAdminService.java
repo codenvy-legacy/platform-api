@@ -42,7 +42,7 @@ import javax.ws.rs.core.Response;
 //@RolesAllowed("cloud/admin")
 public class RunnerAdminService extends Service {
     @Inject
-    private RunnerManager runner;
+    private RunQueue runner;
 
     @GenerateLink(rel = Constants.LINK_REL_REGISTER_RUNNER_SERVICE)
     @POST

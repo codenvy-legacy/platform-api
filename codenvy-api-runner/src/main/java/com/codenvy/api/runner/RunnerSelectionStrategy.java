@@ -20,9 +20,9 @@ package com.codenvy.api.runner;
 import java.util.List;
 
 /**
- * Selects the 'best' RemoteRunner from the List according to implementation. RunnerManager uses implementation of this interface fo
+ * Selects the 'best' RemoteRunner from the List according to implementation. RunQueue uses implementation of this interface fo
  * find the 'best' slave-runner for processing incoming request for running application. If more then one slave-runner available then
- * RunnerManager collects them (their front-ends which are represented by RemoteRunner) and passes to implementation of this interface.
+ * RunQueue collects them (their front-ends which are represented by RemoteRunner) and passes to implementation of this interface.
  * This implementation should select the 'best' one.
  * <p/>
  * FQN of implementation of this interface must be placed in file META-INF/services/com.codenvy.api.runner.RunnerSelectionStrategy

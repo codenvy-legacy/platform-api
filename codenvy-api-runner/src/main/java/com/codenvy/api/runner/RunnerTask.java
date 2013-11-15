@@ -175,11 +175,7 @@ public final class RunnerTask implements Cancellable {
      * @return {@code true} if process was interrupted and {@code false} otherwise
      */
     public boolean isCancelled() throws IOException, RemoteException, RunnerException {
-        if (future.isCancelled()) {
-            return true;
-        }
-        final RemoteRunnerProcess remoteProcess = getRemoteProcess();
-        return remoteProcess != null && remoteProcess.getApplicationProcessDescriptor().getStatus() == ApplicationStatus.CANCELLED;
+        return future.isCancelled();
     }
 
     /** Stop process. */

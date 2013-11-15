@@ -23,8 +23,8 @@ import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
-import com.codenvy.api.core.config.Configurable;
 import com.codenvy.api.core.config.Configuration;
+import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.DownloadPlugin;
 import com.codenvy.api.core.rest.FileAdapter;
 import com.codenvy.api.core.rest.RemoteContent;
@@ -71,7 +71,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public abstract class Builder implements Configurable, Lifecycle {
+public abstract class Builder implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
 
     /**
@@ -98,29 +98,27 @@ public abstract class Builder implements Configurable, Lifecycle {
     /** Name of configuration parameter that provides build timeout is seconds (by default 300). After this time build may be terminated. */
     public static final String TIMEOUT                 = "builder.build_timeout";
 
-    private final AtomicLong                             buildIdSequence;
+    private static final AtomicLong buildIdSequence = new AtomicLong(1);
+
     private final ConcurrentMap<Long, CachedBuildTask>   tasks;
     private final ConcurrentLinkedQueue<CachedBuildTask> tasksFIFO;
     private final ConcurrentLinkedQueue<java.io.File>    cleanerQueue;
     private final Set<BuildListener>                     buildListeners;
 
-    private int queueSize;
-    private int timeout;
-    private int cleanBuildResultDelay;
+    private int     queueSize;
+    private int     timeout;
+    private int     cleanBuildResultDelay;
+    private boolean started;
 
-    private volatile boolean                  maySetConfiguration;
-    private          Configuration            configuration;
-    private          ScheduledExecutorService cleaner;
-    private          ThreadPoolExecutor       executor;
-    private          java.io.File             repository;
+    private ScheduledExecutorService cleaner;
+    private ThreadPoolExecutor       executor;
+    private java.io.File             repository;
 
     public Builder() {
-        buildIdSequence = new AtomicLong(1);
         buildListeners = new LinkedHashSet<>();
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
         cleanerQueue = new ConcurrentLinkedQueue<>();
-        maySetConfiguration = true;
     }
 
     /**
@@ -165,52 +163,15 @@ public abstract class Builder implements Configurable, Lifecycle {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     * <p/>
-     * Note: Sub-classes should copy default configuration from super class.
-     * <pre>
-     * &#064Override
-     * public Configuration getDefaultConfiguration() {
-     *     Configuration superConf = super.getDefaultConfiguration();
-     *     Configuration myConf = new Configuration(superConf);
-     *     // add new parameters or update parameters provided by method from super class
-     *     return myConf;
-     * }
-     * </pre>
-     */
-    @Override
-    public Configuration getDefaultConfiguration() {
-        final Configuration defaultConfiguration = new Configuration();
-        defaultConfiguration.setFile(REPOSITORY, new java.io.File(System.getProperty("java.io.tmpdir")));
-        defaultConfiguration.setInt(NUMBER_OF_WORKERS, Runtime.getRuntime().availableProcessors());
-        defaultConfiguration.setInt(INTERNAL_QUEUE_SIZE, 100);
-        defaultConfiguration.setInt(CLEAN_RESULT_DELAY_TIME, 60);
-        defaultConfiguration.setInt(TIMEOUT, 300);
-        return defaultConfiguration;
-    }
-
-    @Override
-    public final void setConfiguration(Configuration configuration) {
-        if (maySetConfiguration) {
-            this.configuration = new Configuration(configuration);
-        } else {
-            throw new IllegalStateException();
-        }
-    }
-
-    @Override
-    public final Configuration getConfiguration() {
-        Configuration myConfiguration = this.configuration;
-        if (myConfiguration != null) {
-            return new Configuration(myConfiguration);
-        }
-        return getDefaultConfiguration();
+    protected Configuration getConfiguration() {
+        return SingletonConfiguration.get();
     }
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
-    public void start() {
-        maySetConfiguration = false;
+    public synchronized void start() {
+        if (started) {
+            throw new IllegalStateException("Already started");
+        }
         final Configuration myConfiguration = getConfiguration();
         LOG.debug("{}", myConfiguration);
         final java.io.File path = myConfiguration.getFile(REPOSITORY, new java.io.File(System.getProperty("java.io.tmpdir")));
@@ -230,6 +191,13 @@ public abstract class Builder implements Configurable, Lifecycle {
                 buildListeners.add(listener);
             }
         }
+        started = true;
+    }
+
+    protected synchronized void checkStarted() {
+        if (!started) {
+            throw new IllegalArgumentException("Lifecycle instance is not started yet.");
+        }
     }
 
     /**
@@ -238,7 +206,8 @@ public abstract class Builder implements Configurable, Lifecycle {
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
     @Override
-    public void stop() {
+    public synchronized void stop() {
+        checkStarted();
         executor.shutdown();
         try {
             if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
@@ -266,9 +235,15 @@ public abstract class Builder implements Configurable, Lifecycle {
                 }
             }
         }
+        tasks.clear();
+        tasksFIFO.clear();
+        cleanerQueue.clear();
+        buildListeners.clear();
+        started = false;
     }
 
     public java.io.File getRepository() {
+        checkStarted();
         return repository;
     }
 
@@ -319,6 +294,7 @@ public abstract class Builder implements Configurable, Lifecycle {
      *         if an error occurs
      */
     public BuildTask perform(BuildRequest request) throws BuilderException {
+        checkStarted();
         final BuildTaskConfiguration buildConfiguration;
         try {
             buildConfiguration = BuildTaskConfiguration.newBuildConfiguration(this, request);
@@ -341,6 +317,7 @@ public abstract class Builder implements Configurable, Lifecycle {
      *         if an error occurs
      */
     public BuildTask perform(DependencyRequest request) throws BuilderException {
+        checkStarted();
         final BuildTaskConfiguration buildConfiguration;
         try {
             buildConfiguration = BuildTaskConfiguration.newDependencyAnalysisConfiguration(this, request);
@@ -444,18 +421,22 @@ public abstract class Builder implements Configurable, Lifecycle {
     }
 
     public int getNumberOfWorkers() {
+        checkStarted();
         return executor.getCorePoolSize();
     }
 
     public int getNumberOfActiveWorkers() {
+        checkStarted();
         return executor.getActiveCount();
     }
 
     public int getInternalQueueSize() {
+        checkStarted();
         return executor.getQueue().size();
     }
 
     public int getMaxInternalQueueSize() {
+        checkStarted();
         return queueSize;
     }
 
@@ -544,6 +525,7 @@ public abstract class Builder implements Configurable, Lifecycle {
      * @see #removeBuildListener(BuildListener)
      */
     public final BuildTask getBuildTask(Long id) throws NoSuchBuildTaskException {
+        checkStarted();
         final CachedBuildTask e = tasks.get(id);
         if (e == null) {
             throw new NoSuchBuildTaskException(id);
@@ -580,7 +562,7 @@ public abstract class Builder implements Configurable, Lifecycle {
         }
 
         @Override
-        public Long getId() {
+        public final Long getId() {
             return id;
         }
 
@@ -763,27 +745,31 @@ public abstract class Builder implements Configurable, Lifecycle {
 
         @Override
         protected void beforeExecute(Thread t, Runnable r) {
-            final FutureBuildTask futureBuildTask = (FutureBuildTask)r; // We know it is FutureBuildTask
-            for (BuildListener buildListener : getBuildListeners()) {
-                try {
-                    buildListener.begin(futureBuildTask);
-                } catch (RuntimeException e) {
-                    LOG.error(e.getMessage(), e);
+            if (r instanceof FutureBuildTask) {
+                final FutureBuildTask futureBuildTask = (FutureBuildTask)r;
+                for (BuildListener buildListener : getBuildListeners()) {
+                    try {
+                        buildListener.begin(futureBuildTask);
+                    } catch (RuntimeException e) {
+                        LOG.error(e.getMessage(), e);
+                    }
                 }
+                futureBuildTask.started();
             }
-            futureBuildTask.started();
             super.beforeExecute(t, r);
         }
 
         @Override
         protected void afterExecute(Runnable r, Throwable t) {
             super.afterExecute(r, t);
-            final FutureBuildTask futureBuildTask = (FutureBuildTask)r; // We know it is FutureBuildTask
-            for (BuildListener buildListener : getBuildListeners()) {
-                try {
-                    buildListener.end(futureBuildTask);
-                } catch (RuntimeException e) {
-                    LOG.error(e.getMessage(), e);
+            if (r instanceof FutureBuildTask) {
+                final FutureBuildTask futureBuildTask = (FutureBuildTask)r; // We know it is FutureBuildTask
+                for (BuildListener buildListener : getBuildListeners()) {
+                    try {
+                        buildListener.end(futureBuildTask);
+                    } catch (RuntimeException e) {
+                        LOG.error(e.getMessage(), e);
+                    }
                 }
             }
         }

@@ -36,7 +36,22 @@ public final class HttpDownloadPlugin implements DownloadPlugin {
             if (responseCode != 200) {
                 throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
             }
-            final java.io.File tempFile = new java.io.File(downloadTo, "downloaded.file");
+            final String contentDisposition = conn.getHeaderField("Content-Disposition");
+            String fileName = null;
+            if (contentDisposition != null) {
+                int fNameStart = contentDisposition.indexOf("filename=");
+                if (fNameStart > 0) {
+                    int fNameEnd = contentDisposition.indexOf(';', fNameStart + 1);
+                    if (fNameEnd < 0) {
+                        fNameEnd = contentDisposition.length();
+                    }
+                    fileName = contentDisposition.substring(fNameStart, fNameEnd).split("=")[1];
+                    if (fileName.charAt(0) == '"' && fileName.charAt(fileName.length() - 1) == '"') {
+                        fileName = fileName.substring(1, fileName.length() - 1);
+                    }
+                }
+            }
+            final java.io.File tempFile = new java.io.File(downloadTo, fileName == null ? "downloaded.file" : fileName);
             try (InputStream in = conn.getInputStream()) {
                 Files.copy(in, tempFile.toPath());
             }

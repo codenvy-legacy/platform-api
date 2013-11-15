@@ -15,12 +15,14 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner;
+package com.codenvy.api.runner.internal;
+
+import com.codenvy.api.runner.RunnerException;
 
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public enum ApplicationStatus {
-    NEW,
-    RUNNING,
-    STOPPED,
-    CANCELLED
+@SuppressWarnings("serial")
+public class AllocateResourceException extends RunnerException {
+    public AllocateResourceException(String message) {
+        super(message);
+    }
 }

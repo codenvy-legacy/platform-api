@@ -19,8 +19,11 @@ package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.NoSuchRunnerException;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
@@ -39,6 +42,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -79,23 +83,25 @@ public class SlaveRunnerService extends Service {
     public ApplicationProcessDescriptor run(@Description("Parameters for run task in JSON format") RunRequest request)
             throws RunnerException, IOException, RemoteException {
         final Runner runner = getRunner(request.getRunner());
-        return runner.execute(request).getDescriptor(getServiceContext());
+        final RunnerProcess process = runner.execute(request);
+        return getDescriptor(process, getServiceContext());
     }
 
     @GET
     @Path("status/{runner}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor getStatus(@PathParam("runner") String runner, @PathParam("id") Long id) throws Exception {
-        return getRunner(runner).getApplicationProcess(id).getDescriptor(getServiceContext());
+        final RunnerProcess process = getRunner(runner).getProcess(id);
+        return getDescriptor(process, getServiceContext());
     }
 
     @POST
     @Path("stop/{runner}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor stop(@PathParam("runner") String runner, @PathParam("id") Long id) throws Exception {
-        final ApplicationProcess process = getRunner(runner).getApplicationProcess(id);
-        process.stop();
-        return process.getDescriptor(getServiceContext());
+        final RunnerProcess process = getRunner(runner).getProcess(id);
+        process.cancel();
+        return getDescriptor(process, getServiceContext());
     }
 
     @GET
@@ -103,7 +109,7 @@ public class SlaveRunnerService extends Service {
     public void getLogs(@PathParam("runner") String runner,
                         @PathParam("id") Long id,
                         @Context HttpServletResponse httpServletResponse) throws Exception {
-        final ApplicationLogger logger = getRunner(runner).getApplicationProcess(id).getLogger();
+        final ApplicationLogger logger = getRunner(runner).getProcess(id).getLogger();
         httpServletResponse.setContentType(logger.getContentType());
         final PrintWriter output = httpServletResponse.getWriter();
         logger.getLogs(output);
@@ -116,5 +122,36 @@ public class SlaveRunnerService extends Service {
             throw new NoSuchRunnerException(name);
         }
         return myRunner;
+    }
+
+    public ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws RunnerException {
+        final ApplicationStatus status = process.isStopped() ? ApplicationStatus.STOPPED
+                                                             : process.isRunning() ? ApplicationStatus.RUNNING : ApplicationStatus.NEW;
+        final List<Link> links = new ArrayList<>(3);
+        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withRel(Constants.LINK_REL_GET_STATUS)
+                            .withHref(servicePathBuilder.clone().path(getClass(), "getStatus")
+                                                        .build(process.getRunner(), process.getId()).toString())
+                            .withMethod("GET")
+                            .withProduces(MediaType.APPLICATION_JSON));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withRel(Constants.LINK_REL_VIEW_LOG)
+                            .withHref(servicePathBuilder.clone().path(getClass(), "getLogs")
+                                                        .build(process.getRunner(), process.getId()).toString())
+                            .withMethod("GET")
+                            .withProduces(process.getLogger().getContentType()));
+        if (ApplicationStatus.RUNNING == status) {
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withRel(Constants.LINK_REL_STOP)
+                                .withHref(servicePathBuilder.clone().path(getClass(), "stop")
+                                                            .build(process.getRunner(), process.getId()).toString())
+                                .withMethod("POST")
+                                .withProduces(MediaType.APPLICATION_JSON));
+        }
+        return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
+                         .withProcessId(process.getId())
+                         .withStatus(status)
+                         .withLinks(links);
     }
 }

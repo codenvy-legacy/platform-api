@@ -21,11 +21,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Implementation of BuilderSelectionStrategy that selects most recent used builder.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
 public class LastInUseBuilderSelectionStrategy implements BuilderSelectionStrategy, Comparator<RemoteBuilder> {
     @Override
     public RemoteBuilder select(List<RemoteBuilder> remoteBuilders) {
-        if (remoteBuilders==null||remoteBuilders.isEmpty()) {
+        if (remoteBuilders == null || remoteBuilders.isEmpty()) {
             throw new IllegalArgumentException("empty or null list");
         }
         Collections.sort(remoteBuilders, this);

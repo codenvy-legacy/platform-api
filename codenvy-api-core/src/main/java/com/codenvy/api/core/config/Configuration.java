@@ -21,6 +21,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -51,6 +52,24 @@ public class Configuration {
      */
     public Configuration(Configuration other) {
         this.properties = other == null ? new Properties() : (Properties)other.properties.clone();
+    }
+
+    public enum MergePolicy {
+        RETAIN, OVERRIDE
+    }
+
+    public void merge(Configuration other, MergePolicy policy) {
+        if (policy == MergePolicy.OVERRIDE) {
+            properties.putAll(other.getProperties());
+        } else {
+            synchronized (properties) {
+                for (Map.Entry<Object, Object> entry : other.properties.entrySet()) {
+                    if (!properties.containsKey(entry.getKey())) {
+                        properties.put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -123,8 +142,10 @@ public class Configuration {
      *         the new value
      */
     public void setIfNotSet(String name, String value) {
-        if (get(name) == null) {
-            set(name, value);
+        synchronized (properties) {
+            if (get(name) == null) {
+                set(name, value);
+            }
         }
     }
 

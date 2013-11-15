@@ -21,8 +21,8 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.config.Configurable;
 import com.codenvy.api.core.config.Configuration;
+import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
@@ -62,8 +62,8 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class RunnerManager implements Configurable, Lifecycle {
-    private static final Logger LOG = LoggerFactory.getLogger(RunnerManager.class);
+public class RunQueue implements Lifecycle {
+    private static final Logger LOG = LoggerFactory.getLogger(RunQueue.class);
 
     /**
      * Name of configuration parameter that points to the base API location. If such parameter isn't specified than use the same base
@@ -79,11 +79,10 @@ public class RunnerManager implements Configurable, Lifecycle {
     private final ConcurrentMap<RunnerListKey, RemoteRunnerList> runnerListMapping;
     private final ConcurrentMap<Long, RunnerTask>                tasks;
 
-    private Configuration configuration;
-    private String        baseApiUrl;
-    private volatile boolean maySetConfiguration = true;
+    private String  baseApiUrl;
+    private boolean started;
 
-    public RunnerManager() {
+    public RunQueue() {
         runnerSelector = new RunnerSelectionStrategy() {
             @Override
             public RemoteRunner select(List<RemoteRunner> remoteBuilders) {
@@ -91,12 +90,13 @@ public class RunnerManager implements Configurable, Lifecycle {
             }
         }/*TODO: use configured component  ComponentLoader.one(RunnerSelectionStrategy.class)*/;
         tasks = new ConcurrentHashMap<>();
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory("RunnerManager-", true));
+        executor = Executors.newCachedThreadPool(new NamedThreadFactory("RunQueue-", true));
         runnerListMapping = new ConcurrentHashMap<>();
     }
 
     public RunnerTask run(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException, RunnerException {
+        checkStarted();
         // TODO: check do we need build the project
         final UriBuilder baseUriBuilder = baseApiUrl == null ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
         final Attributes projectAttributes = getProjectAttributes(workspace, project, baseUriBuilder.clone());
@@ -128,15 +128,15 @@ public class RunnerManager implements Configurable, Lifecycle {
         }
         final String runner = list.get(0);
         request.setRunner(runner);
-        final String debugMode = Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner);
-        final String parameters = Constants.RUNNER_PARAMETERS.replace("${runner}", runner);
+        final String runDebugMode = Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner);
+        final String runOptions = Constants.RUNNER_OPTIONS.replace("${runner}", runner);
 
         for (Map.Entry<String, List<String>> entry : attributes.getAttributes().entrySet()) {
-            if (debugMode.equals(entry.getKey())) {
+            if (runDebugMode.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(entry.getValue().get(0)));
                 }
-            } else if (parameters.equals(entry.getKey())) {
+            } else if (runOptions.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     final Map<String, String> options = new LinkedHashMap<>();
                     for (String str : entry.getValue()) {
@@ -205,7 +205,7 @@ public class RunnerManager implements Configurable, Lifecycle {
                             case FAILED:
                                 String msg = "Unable start application. Build of application is failed or cancelled.";
                                 final Link logLink =
-                                        getLink(buildDescriptor, com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
+                                        getLink(buildDescriptor, com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
                                 if (logLink != null) {
                                     msg += (" Build logs: " + logLink.getHref());
                                 }
@@ -267,6 +267,7 @@ public class RunnerManager implements Configurable, Lifecycle {
     }
 
     public RunnerTask getTask(Long id) throws NoSuchRunnerTaskException {
+        checkStarted();
         final RunnerTask task = tasks.get(id);
         if (task == null) {
             throw new NoSuchRunnerTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
@@ -274,53 +275,30 @@ public class RunnerManager implements Configurable, Lifecycle {
         return task;
     }
 
-    /**
-     * {@inheritDoc}
-     * <p/>
-     * Note: Sub-classes should copy default configuration from super class.
-     * <pre>
-     * &#064Override
-     * public Configuration getDefaultConfiguration() {
-     *     Configuration superConf = super.getDefaultConfiguration();
-     *     Configuration myConf = new Configuration(superConf);
-     *     // add new parameters or update parameters provided by method from super class
-     *     return myConf;
-     * }
-     * </pre>
-     */
-    @Override
-    public Configuration getDefaultConfiguration() {
-        return new Configuration();
+    protected Configuration getConfiguration() {
+        return SingletonConfiguration.get();
     }
 
     @Override
-    public void setConfiguration(Configuration configuration) {
-        if (maySetConfiguration) {
-            this.configuration = new Configuration(configuration);
-        } else {
-            throw new IllegalStateException();
+    public synchronized void start() {
+        if (started) {
+            throw new IllegalStateException("Already started");
         }
-    }
-
-    @Override
-    public Configuration getConfiguration() {
-        Configuration myConfiguration = this.configuration;
-        if (myConfiguration != null) {
-            return new Configuration(myConfiguration);
-        }
-        return getDefaultConfiguration();
-    }
-
-    @Override
-    public void start() {
-        maySetConfiguration = false;
         final Configuration myConfiguration = getConfiguration();
         baseApiUrl = myConfiguration.get(BASE_API_URL);
         LOG.debug("{}", myConfiguration);
+        started = true;
+    }
+
+    protected synchronized void checkStarted() {
+        if (!started) {
+            throw new IllegalArgumentException("Lifecycle instance is not started yet.");
+        }
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
+        checkStarted();
         executor.shutdown();
         try {
             if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
@@ -330,9 +308,13 @@ public class RunnerManager implements Configurable, Lifecycle {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
+        tasks.clear();
+        runnerListMapping.clear();
+        started = false;
     }
 
     public boolean registerRunnerService(RunnerServiceRegistration registration) throws RemoteException, IOException, RunnerException {
+        checkStarted();
         final RunnerServiceAccessCriteria accessCriteria = registration.getRunnerServiceAccessCriteria();
         final RunnerListKey key = accessCriteria != null
                                   ? new RunnerListKey(accessCriteria.getProject(), accessCriteria.getWorkspace())
@@ -355,6 +337,7 @@ public class RunnerManager implements Configurable, Lifecycle {
     }
 
     public boolean unregisterRunnerService(RunnerServiceLocation location) throws RemoteException, IOException, RunnerException {
+        checkStarted();
         final RemoteRunnerFactory factory = new RemoteRunnerFactory(location.getUrl());
         final List<RemoteRunner> toRemove = new ArrayList<>();
         for (RunnerDescriptor builderDescriptor : factory.getAvailableRunners()) {

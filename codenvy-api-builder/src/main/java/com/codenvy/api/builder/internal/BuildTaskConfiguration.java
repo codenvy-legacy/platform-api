@@ -21,6 +21,7 @@ import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.rest.RemoteContent;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.io.FileFilter;
 import java.io.IOException;
@@ -122,7 +123,7 @@ public class BuildTaskConfiguration {
     }
 
     public BaseBuilderRequest getRequest() {
-        return request;
+        return DtoFactory.getInstance().clone(request);
     }
 
     @Override

@@ -26,7 +26,6 @@ import com.codenvy.api.builder.internal.Builder;
 import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.DelegateBuildLogger;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.rest.RemoteContent;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;
@@ -106,9 +105,6 @@ public class BuilderTest {
     public void setUp() throws Exception {
         repo = createRepository();
         builder = new MyBuilder();
-        final Configuration configuration = new Configuration();
-        configuration.setFile(Builder.REPOSITORY, repo);
-        builder.setConfiguration(configuration);
         builder.start();
     }
 

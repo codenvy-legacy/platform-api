@@ -91,6 +91,10 @@ public abstract class Runner implements Lifecycle {
                                                                 RunnerConfiguration runnerCfg,
                                                                 ApplicationProcess.Callback callback) throws RunnerException;
 
+    protected ExecutorService getExecutor() {
+        return executor;
+    }
+
     protected Configuration getConfiguration() {
         return SingletonConfiguration.get();
     }

@@ -21,6 +21,7 @@ import com.codenvy.commons.json.JsonHelper;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
+import org.everrest.assured.JettyHttpServer;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Matchers;
@@ -81,11 +82,11 @@ public class FactoryServiceTest {
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 
         // when, then
-        Response response = given().//
+        Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
                 multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
-                multiPart("image", "100x100_image.jpeg", data, "image/jpeg").//
+                multiPart("image", path.toFile(), "image/jpeg").//
                 when().//
-                post(SERVICE_PATH);
+                post("/private"+SERVICE_PATH);
 
         assertEquals(response.getStatusCode(), 200);
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);

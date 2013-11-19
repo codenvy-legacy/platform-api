@@ -38,17 +38,28 @@ public class ResourceAllocators {
         return ResourceAllocatorsHolder.INSTANCE;
     }
 
-    private final Semaphore mem;
+    private final int       memSize;
+    private final Semaphore memSemaphore;
 
     private ResourceAllocators(int memSize) {
         if (memSize <= 0) {
             throw new IllegalArgumentException(String.format("Invalid mem size %d", memSize));
         }
-        mem = new Semaphore(memSize);
+        this.memSize = memSize;
+        memSemaphore = new Semaphore(memSize);
     }
 
     public ResourceAllocator newMemoryAllocator(int size) {
         return new MemoryAllocator(size);
+    }
+
+
+    public int freeMemory() {
+        return memSemaphore.availablePermits();
+    }
+
+    public int totalMemory() {
+        return memSize;
     }
 
     //
@@ -68,17 +79,17 @@ public class ResourceAllocators {
 
         @Override
         public MemoryAllocator allocate() throws AllocateResourceException {
-            if (!mem.tryAcquire(size)) {
+            if (!memSemaphore.tryAcquire(size)) {
                 throw new AllocateResourceException(String.format("Couldn't allocate %dM for starting application", size));
             }
-            LOG.info("allocate memory: {}M, available: {}M", size, mem.availablePermits()); // TODO: debug
+            LOG.info("allocate memory: {}M, available: {}M", size, memSemaphore.availablePermits()); // TODO: debug
             return this;
         }
 
         @Override
         public void release() {
-            mem.release(size);
-            LOG.info("release memory: {}M, available: {}M", size, mem.availablePermits());  // TODO: debug
+            memSemaphore.release(size);
+            LOG.info("release memory: {}M, available: {}M", size, memSemaphore.availablePermits());  // TODO: debug
         }
     }
 }

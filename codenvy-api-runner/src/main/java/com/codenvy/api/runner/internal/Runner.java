@@ -45,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
@@ -69,6 +70,7 @@ public abstract class Runner implements Lifecycle {
     private final Map<Long, CachedRunnerProcess> processes;
     private final Map<Long, List<Disposer>>      applicationDisposers;
     private final Object                         applicationDisposersLock;
+    private final AtomicInteger                  runningAppsCounter;
 
     private int     cleanupDelay;
     private boolean started;
@@ -79,6 +81,7 @@ public abstract class Runner implements Lifecycle {
         portService = new CustomPortService();
         applicationDisposers = new HashMap<>();
         applicationDisposersLock = new Object();
+        runningAppsCounter = new AtomicInteger(0);
     }
 
     public abstract String getName();
@@ -88,8 +91,7 @@ public abstract class Runner implements Lifecycle {
     public abstract RunnerConfigurationFactory getRunnerConfigurationFactory();
 
     protected abstract ApplicationProcess newApplicationProcess(DeploymentSources toDeploy,
-                                                                RunnerConfiguration runnerCfg,
-                                                                ApplicationProcess.Callback callback) throws RunnerException;
+                                                                RunnerConfiguration runnerCfg) throws RunnerException;
 
     protected ExecutorService getExecutor() {
         return executor;
@@ -186,50 +188,30 @@ public abstract class Runner implements Lifecycle {
         final RunnerProcessImpl process = new RunnerProcessImpl(id, getName(), runnerCfg);
         purgeExpiredProcesses();
         processes.put(id, new CachedRunnerProcess(process, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(cleanupDelay)));
-        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
+        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.MILLISECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocators.ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
                                                                                        .newMemoryAllocator(mem)
                                                                                        .allocate();
-        final ApplicationProcess.Callback callback = new ApplicationProcess.Callback() {
-            @Override
-            public void started(ApplicationProcess realProcess) {
-                process.started(realProcess);
-                watcher.start(process);
-                // TODO: debug
-                LOG.info("Started {}", process);
-            }
-
-            @Override
-            public void stopped(ApplicationProcess realProcess) {
-                watcher.stop();
-                memoryAllocator.release();
-                process.stopped();
-                // TODO: debug
-                LOG.info("Stopped {}", process);
-            }
-
-            @Override
-            public void startError(Throwable error) {
-                LOG.error(String.format("Failed start %s", process), error);
-                watcher.stop();
-                memoryAllocator.release();
-                process.setError(error);
-            }
-
-            @Override
-            public void stopError(Throwable error) {
-                LOG.error(String.format("Stop error %s", process), error);
-                process.setError(error);
-            }
-        };
         executor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    newApplicationProcess(downloadApplication(remoteContent), runnerCfg, callback).start();
-                } catch (Throwable e) {
-                    callback.startError(e);
+                    final ApplicationProcess realProcess = newApplicationProcess(downloadApplication(remoteContent), runnerCfg);
+                    realProcess.start();
+                    process.started(realProcess);
+                    watcher.start(process);
+                    runningAppsCounter.incrementAndGet();
+                    LOG.info("Started {}", process); // TODO: debug
+                    realProcess.waitFor();
+                    process.stopped();
+                    LOG.info("Stopped {}", process); // TODO: debug
+                } catch (RunnerException e) {
+                    process.setError(e);
+                } finally {
+                    watcher.stop();
+                    memoryAllocator.release();
+                    runningAppsCounter.decrementAndGet();
                 }
             }
         });
@@ -302,6 +284,14 @@ public abstract class Runner implements Lifecycle {
                 }
             }
         }
+    }
+
+    public int getRunningAppsNum() {
+        return runningAppsCounter.get();
+    }
+
+    public int getTotalAppsNum() {
+        return processes.size();
     }
 
     private static class RunnerProcessImpl implements RunnerProcess {

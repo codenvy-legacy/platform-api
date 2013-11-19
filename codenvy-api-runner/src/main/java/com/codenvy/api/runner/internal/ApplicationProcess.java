@@ -27,61 +27,67 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
 public abstract class ApplicationProcess {
-    public static interface Callback {
-        void started(ApplicationProcess process);
-
-        void stopped(ApplicationProcess process);
-
-        void startError(Throwable error);
-
-        void stopError(Throwable error);
-    }
-
     private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final Callback callback;
-    private final Long     id;
+    private final Long id;
 
-    public ApplicationProcess(Callback callback) {
-        if (callback == null) {
-            throw new IllegalArgumentException();
-        }
-        this.callback = callback;
+    public ApplicationProcess() {
         this.id = sequence.getAndIncrement();
     }
 
+    /**
+     * Get unique id of this process.
+     *
+     * @return unique id of this process
+     */
     public final Long getId() {
         return id;
     }
 
-    /** Starts application process. */
-    public final void start() {
-        try {
-            doStart();
-            callback.started(this);
-        } catch (Throwable e) {
-            callback.startError(e);
-        }
-    }
+    /**
+     * Starts application process.
+     *
+     * @throws RunnerException
+     *         if an error occurs when start process
+     * @throws IllegalStateException
+     *         if process is already started
+     */
+    public abstract void start() throws RunnerException;
 
-    protected abstract void doStart() throws Throwable;
+    /**
+     * Stops application process.
+     *
+     * @throws RunnerException
+     *         if an error occurs when stop process
+     * @throws IllegalStateException
+     *         if process isn't started yet
+     */
+    public abstract void stop() throws RunnerException;
 
-    /** Stops application process. */
-    public final void stop() {
-        try {
-            doStop();
-            callback.stopped(this);
-        } catch (Throwable e) {
-            callback.stopError(e);
-        }
-    }
+    /**
+     * Wait, if necessary, until this process stops, then returns exit code.
+     *
+     * @throws IllegalStateException
+     *         if process isn't started yet
+     * @throws RunnerException
+     *         if any other error occurs
+     */
+    public abstract int waitFor() throws RunnerException;
 
-    protected abstract void doStop() throws Throwable;
-
-    /** Get exit code of application process. Returns {@code -1} if application is not started or still running. */
+    /**
+     * Get exit code of application process. Returns {@code -1} if application is not started or still running.
+     *
+     * @throws RunnerException
+     *         if an error occurs when try getting process' exit code
+     */
     public abstract int exitCode() throws RunnerException;
 
-    /** Reports whether application process is running or not. */
+    /**
+     * Reports whether application process is running or not.
+     *
+     * @throws RunnerException
+     *         if an error occurs when try getting process' status
+     */
     public abstract boolean isRunning() throws RunnerException;
 
     /** Get application logger. */

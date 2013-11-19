@@ -22,7 +22,9 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.SystemInfo;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.NoSuchRunnerException;
 import com.codenvy.api.runner.RunnerException;
@@ -30,6 +32,7 @@ import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerList;
+import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
@@ -40,6 +43,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
@@ -114,6 +118,24 @@ public class SlaveRunnerService extends Service {
         final PrintWriter output = httpServletResponse.getWriter();
         logger.getLogs(output);
         output.flush();
+    }
+
+    @GenerateLink(rel = Constants.LINK_REL_RUNNER_STATE)
+    @GET
+    @Path("state")
+    @Produces(MediaType.APPLICATION_JSON)
+    public RunnerState getBuilderState(@Required
+                                       @Description("Name of the runner")
+                                       @QueryParam("runner") String builder) throws Exception {
+        final Runner myRunner = getRunner(builder);
+        final ResourceAllocators allocators = ResourceAllocators.getInstance();
+        return DtoFactory.getInstance().createDto(RunnerState.class)
+                         .withName(myRunner.getName())
+                         .withRunningAppsNum(myRunner.getRunningAppsNum())
+                         .withTotalAppsNum(myRunner.getTotalAppsNum())
+                         .withCpuPercentUsage(SystemInfo.cpu())
+                         .withTotalMemory(allocators.totalMemory())
+                         .withFreeMemory(allocators.freeMemory());
     }
 
     private Runner getRunner(String name) throws NoSuchRunnerException {

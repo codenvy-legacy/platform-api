@@ -257,7 +257,7 @@ public class FactoryService {
      * Temporary workaround method to init SSO client
      */
     @GET
-    @Path("ssoinit")
+    @Path("sso/init")
     @Deprecated
     public void ssoInit(){
     }

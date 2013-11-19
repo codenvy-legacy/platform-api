@@ -71,7 +71,7 @@ public class FactoryService {
      *         - with response code 413 if image is too big
      *         - with response code 500 if internal server error occurs
      */
-    //@RolesAllowed("user")
+    @RolesAllowed("user")
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})

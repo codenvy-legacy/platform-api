@@ -26,6 +26,7 @@ import org.everrest.core.impl.provider.json.ObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -70,6 +71,7 @@ public class FactoryService {
      *         - with response code 413 if image is too big
      *         - with response code 500 if internal server error occurs
      */
+    //@RolesAllowed("user")
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
@@ -249,5 +251,14 @@ public class FactoryService {
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               String.format("Snippet type \"%s\" is unsupported.", type));
         }
+    }
+
+    /**
+     * Temporary workaround method to init SSO client
+     */
+    @GET
+    @Path("ssoinit")
+    @Deprecated
+    public void ssoInit(){
     }
 }

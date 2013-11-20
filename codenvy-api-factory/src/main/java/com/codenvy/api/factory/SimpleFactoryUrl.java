@@ -17,10 +17,7 @@
  */
 package com.codenvy.api.factory;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /** Holds factory url parameters values, used in factory v1.0 */
 public class SimpleFactoryUrl {
@@ -124,7 +121,6 @@ public class SimpleFactoryUrl {
     public String getAction() {
         return action;
     }
-
 
     public String getOpenfile() {
         return openfile;

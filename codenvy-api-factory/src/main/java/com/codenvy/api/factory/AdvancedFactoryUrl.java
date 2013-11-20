@@ -18,6 +18,7 @@
 package com.codenvy.api.factory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /** Advanced factory format for factory 1.1. Contains additional information about factory. */
 public class AdvancedFactoryUrl extends SimpleFactoryUrl {
@@ -26,7 +27,11 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     private String description;
     private String contactmail;
     private String author;
-    private Set<Link> links = new HashSet<Link>();
+    private String userid;
+    private long      validuntil = TimeUnit.DAYS.toMillis(3650) + System.currentTimeMillis(); //10 * 365 = 10 years
+    private long      validsince = System.currentTimeMillis();
+    private long      created    = System.currentTimeMillis();
+    private Set<Link> links      = new HashSet<Link>();
 
     public AdvancedFactoryUrl() {
         super();
@@ -47,6 +52,10 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         description = originFactory.getDescription();
         contactmail = originFactory.getContactmail();
         author = originFactory.getAuthor();
+        userid = originFactory.getUserid();
+        validuntil = originFactory.validuntil;
+        validsince = originFactory.validsince;
+        created = originFactory.created;
 
         setLinks(links);
     }
@@ -91,6 +100,14 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         this.id = id;
     }
 
+    public String getUserid() {
+        return userid;
+    }
+
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+
     public Set<Link> getLinks() {
         return Collections.unmodifiableSet(links);
     }
@@ -102,6 +119,30 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         }
     }
 
+    public long getValiduntil() {
+        return validuntil;
+    }
+
+    public void setValiduntil(long validuntil) {
+        this.validuntil = validuntil;
+    }
+
+    public long getValidsince() {
+        return validsince;
+    }
+
+    public void setValidsince(long validsince) {
+        this.validsince = validsince;
+    }
+
+    public long getCreated() {
+        return created;
+    }
+
+    public void setCreated(long created) {
+        this.created = created;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -110,12 +151,16 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
 
         AdvancedFactoryUrl that = (AdvancedFactoryUrl)o;
 
+        if (created != that.created) return false;
+        if (validsince != that.validsince) return false;
+        if (validuntil != that.validuntil) return false;
         if (author != null ? !author.equals(that.author) : that.author != null) return false;
         if (contactmail != null ? !contactmail.equals(that.contactmail) : that.contactmail != null) return false;
         if (description != null ? !description.equals(that.description) : that.description != null) return false;
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
         if (links != null ? !links.equals(that.links) : that.links != null) return false;
         if (style != null ? !style.equals(that.style) : that.style != null) return false;
+        if (userid != null ? !userid.equals(that.userid) : that.userid != null) return false;
 
         return true;
     }
@@ -128,6 +173,10 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         result = 31 * result + (description != null ? description.hashCode() : 0);
         result = 31 * result + (contactmail != null ? contactmail.hashCode() : 0);
         result = 31 * result + (author != null ? author.hashCode() : 0);
+        result = 31 * result + (userid != null ? userid.hashCode() : 0);
+        result = 31 * result + (int)(validuntil ^ (validuntil >>> 32));
+        result = 31 * result + (int)(validsince ^ (validsince >>> 32));
+        result = 31 * result + (int)(created ^ (created >>> 32));
         result = 31 * result + (links != null ? links.hashCode() : 0);
         return result;
     }

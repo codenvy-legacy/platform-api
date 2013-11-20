@@ -18,26 +18,21 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.organization.client.UserManager;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
 import org.everrest.assured.JettyHttpServer;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Matchers;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ExceptionMapper;
+import java.io.File;
 import java.net.URLEncoder;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.*;
 
 import static com.jayway.restassured.RestAssured.given;
@@ -55,6 +50,7 @@ public class FactoryServiceTest {
     private final String          ILLEGAL_FACTORY_ID = "illegalFactoryId";
     private final String          SERVICE_PATH       = "/factory";
     private final ExceptionMapper exceptionMapper    = new FactoryServiceExceptionMapper();
+    private com.codenvy.organization.model.User user;
 
     @Mock
     private FactoryStore factoryStore;
@@ -62,8 +58,17 @@ public class FactoryServiceTest {
     @Mock
     private AdvancedFactoryUrlValidator factoryUrlValidator;
 
+    @Mock
+    private UserManager userManager;
+
     @InjectMocks
     private FactoryService factoryService;
+
+    @BeforeMethod
+    public void setUp() throws Exception {
+        user = new com.codenvy.organization.model.User();
+        user.setId("123456789");
+    }
 
     @Test
     public void shouldBeAbleToSaveFactory(ITestContext context) throws Exception {
@@ -75,18 +80,17 @@ public class FactoryServiceTest {
         factoryUrl.setV("1.1");
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
-        byte[] data = Files.readAllBytes(path);
-        FactoryImage savedImage = new FactoryImage(data, "image/jpeg", "imageName");
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
                 multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
                 multiPart("image", path.toFile(), "image/jpeg").//
                 when().//
-                post("/private"+SERVICE_PATH);
+                post("/private" + SERVICE_PATH);
 
         assertEquals(response.getStatusCode(), 200);
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
@@ -104,13 +108,13 @@ public class FactoryServiceTest {
     public void shouldReturnStatus400IfSaveRequestHaveNotFactoryInfo() throws Exception {
         // given
         // when, then
-        given().//
+        given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
                 multiPart("someOtherData", "Some content", MediaType.TEXT_PLAIN).//
                 expect().//
                 statusCode(Status.BAD_REQUEST.getStatusCode()).//
                 body(equalTo("No factory URL information found in 'factoryUrl' section of multipart form-data.")).//
                 when().//
-                post(SERVICE_PATH);
+                post("/private" + SERVICE_PATH);
     }
 
     @Test
@@ -126,28 +130,31 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         Response response =
-                given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).when().post(SERVICE_PATH);
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
+                        .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).when()
+                        .post("/private" + SERVICE_PATH);
 
         // then
         assertEquals(response.getStatusCode(), 200);
         AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("application/json", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID, "self")));
+                new Link("application/json", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID, "self")));
         assertTrue(responseFactoryUrl.getLinks().contains(expectedCreateProject));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                new Link("text/plain", getServerUrl(context) + "/rest/private/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
                                        URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
+                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
                          "snippet/url")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=html",
+                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=html",
                          "snippet/html")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown",
+                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown",
                          "snippet/markdown")));
 
         verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<FactoryImage>emptySet()));
@@ -165,12 +172,14 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
-        given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
-                .multiPart("image", "100x100_image.jpeg", new byte[0], "image/jpeg")
+        given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
+                .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
+                .multiPart("image", File.createTempFile("123456", ".jpeg"), "image/jpeg")//
                 .expect().statusCode(200)
-                .when().post(SERVICE_PATH);
+                .when().post("/private" + SERVICE_PATH);
 
         verify(factoryStore).saveFactory(Matchers.<AdvancedFactoryUrl>any(), eq(Collections.<FactoryImage>emptySet()));
     }
@@ -186,17 +195,17 @@ public class FactoryServiceTest {
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
 
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
-        byte[] data = Files.readAllBytes(path);
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 
         // when, then
-        given().multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
-                .multiPart("image", "100x100_image.jpeg", data, "image/tiff")
+        given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
+                .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
+                .multiPart("image", path.toFile(), "image/tiff")//
                 .expect().statusCode(400)
                 .body(equalTo("image/tiff is unsupported media type."))
-                .when().post(SERVICE_PATH);
+                .when().post("/private" + SERVICE_PATH);
     }
 
     @Test
@@ -212,14 +221,15 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
-        given().//
+        given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
                 multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
                 expect().//
                 statusCode(Status.OK.getStatusCode()).//
                 when().//
-                post(SERVICE_PATH);
+                post("/private" + SERVICE_PATH);
 
         verify(factoryStore).saveFactory(argumentCaptor.capture(), anySet());
 
@@ -416,7 +426,8 @@ public class FactoryServiceTest {
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(
-                equalTo("[![alt](" + getServerUrl(context) + "/api/factory/" + CORRECT_FACTORY_ID + "/image?imgId=" + imageName + ")](" + getServerUrl(context) + "/factory?id=" +
+                equalTo("[![alt](" + getServerUrl(context) + "/api/factory/" + CORRECT_FACTORY_ID + "/image?imgId=" + imageName + ")](" +
+                        getServerUrl(context) + "/factory?id=" +
                         CORRECT_FACTORY_ID + ")")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
@@ -435,7 +446,8 @@ public class FactoryServiceTest {
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(
-                equalTo("[![alt](" + getServerUrl(context) + "/factory/resources/factory-white.png)](" + getServerUrl(context) + "/factory?id=" +
+                equalTo("[![alt](" + getServerUrl(context) + "/factory/resources/factory-white.png)](" + getServerUrl(context) +
+                        "/factory?id=" +
                         CORRECT_FACTORY_ID + ")")).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");

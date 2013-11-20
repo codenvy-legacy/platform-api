@@ -18,11 +18,10 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.organization.client.UserManager;
+import com.codenvy.organization.exception.OrganizationServiceException;
 
-import org.everrest.core.impl.provider.json.JsonException;
-import org.everrest.core.impl.provider.json.JsonParser;
-import org.everrest.core.impl.provider.json.JsonValue;
-import org.everrest.core.impl.provider.json.ObjectBuilder;
+import org.everrest.core.impl.provider.json.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,12 +32,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.io.*;
+import java.security.Principal;
+import java.util.*;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
@@ -52,6 +48,9 @@ public class FactoryService {
 
     @Inject
     private AdvancedFactoryUrlValidator factoryUrlValidator;
+
+    @Inject
+    private UserManager userManager;
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
@@ -75,7 +74,8 @@ public class FactoryService {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo) throws FactoryUrlException {
+    public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo,
+                                          @Context SecurityContext securityContext) throws FactoryUrlException {
         try {
             Set<FactoryImage> images = new HashSet<>();
             AdvancedFactoryUrl factoryUrl = null;
@@ -114,6 +114,13 @@ public class FactoryService {
 
             factoryUrlValidator.validate(factoryUrl);
 
+            Principal userPrincipal = securityContext.getUserPrincipal();
+            if (userPrincipal == null || userPrincipal.getName() == null) {
+                throw new FactoryUrlException(403, "You are not authenticated for using this method");
+            }
+            factoryUrl.setUserid(userManager.getUserByAlias(userPrincipal.getName()).getId());
+
+            factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = factoryStore.getFactory(factoryId);
             factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, images, uriInfo));
@@ -130,7 +137,7 @@ public class FactoryService {
                                  createProjectLink, nullToEmpty(factoryUrl.getAffiliateid()), nullToEmpty(factoryUrl.getOrgid())});
 
             return factoryUrl;
-        } catch (IOException | JsonException | ServletException e) {
+        } catch (IOException | JsonException | ServletException | OrganizationServiceException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getLocalizedMessage(), e);
         }
@@ -253,12 +260,10 @@ public class FactoryService {
         }
     }
 
-    /**
-     * Temporary workaround method to init SSO client
-     */
+    /** Temporary workaround method to init SSO client */
     @GET
     @Path("sso/init")
     @Deprecated
-    public void ssoInit(){
+    public void ssoInit() {
     }
 }

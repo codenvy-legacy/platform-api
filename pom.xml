@@ -29,14 +29,14 @@
     <groupId>com.codenvy.platform-api</groupId>
     <artifactId>codenvy-platform-api-parent</artifactId>
     <name>Codenvy Platform API :: Parent</name>
-    <version>1.0.0-beta2</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
         <developerConnection>scm:git:git@github.com:codenvy/platform-api.git</developerConnection>
-      <tag>1.0.0-beta2</tag>
+      <tag>HEAD</tag>
     </scm>
     <properties>
         <!-- Codenvy -->

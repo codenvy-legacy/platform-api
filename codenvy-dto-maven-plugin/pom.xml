@@ -23,7 +23,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>1.0.0-beta2</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>codenvy-dto-maven-plugin</artifactId>

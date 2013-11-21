@@ -43,6 +43,12 @@ public interface ApplicationProcessDescriptor {
 
     ApplicationProcessDescriptor withStatus(ApplicationStatus status);
 
+    long getStartTime();
+
+    ApplicationProcessDescriptor withStartTime(long startTime);
+
+    void setStartTime(long startTime);
+
     String getUrl();
 
     void setUrl(String url);

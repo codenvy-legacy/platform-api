@@ -20,6 +20,7 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BuilderServiceAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
+import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
@@ -28,7 +29,6 @@ import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
@@ -55,10 +55,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -77,27 +75,30 @@ public class BuildQueue implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
     /**
-     * Name of configuration parameter that sets max time (in minutes) which request may be in this queue. After this time the results of
-     * build may be removed. Default value is 10 minutes.
+     * Name of configuration parameter that sets max time (in seconds) which request may be in this queue. After this time the results of
+     * build may be removed. Default value is 600 seconds (10 minutes).
      */
     public static final String MAX_TIME_IN_QUEUE = "builder.queue.max_time_in_queue";
+    /** Name of configuration parameter that provides build timeout is seconds (by default 300). After this time build may be terminated. */
+    public static final String BUILD_TIMEOUT     = "builder.queue.build_timeout";
 
     private static final long CHECK_AVAILABLE_BUILDER_DELAY = 2000;
 
     private final BuilderSelectionStrategy                   builderSelector;
     private final ExecutorService                            executor;
     private final ConcurrentMap<Long, BuildQueueTask>        tasks;
-    private final Queue<BuildQueueTask>                      tasksFIFO;
     private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
 
+    /** Max time for request to be in queue in milliseconds. */
     private long    maxTimeInQueueMillis;
+    /** Build timeout in seconds. */
+    private long    timeout;
     private boolean started;
 
     public BuildQueue() {
         builderSelector = ComponentLoader.one(BuilderSelectionStrategy.class);
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("BuildQueue-", true));
         tasks = new ConcurrentHashMap<>();
-        tasksFIFO = new ConcurrentLinkedQueue<>();
         builderListMapping = new ConcurrentHashMap<>();
     }
 
@@ -137,8 +138,10 @@ public class BuildQueue implements Lifecycle {
      *         if any i/o error occurs when try to access remote BuildService
      * @throws RemoteException
      *         if we access remote BuildService successfully but get error response
+     * @throws BuilderException
+     *         if other type of error occurs
      */
-    public boolean registerBuilderService(BuilderServiceRegistration registration) throws IOException, RemoteException {
+    public boolean registerBuilderService(BuilderServiceRegistration registration) throws IOException, RemoteException, BuilderException {
         checkStarted();
         final BuilderServiceAccessCriteria accessCriteria = registration.getBuilderServiceAccessCriteria();
         final BuilderListKey key = accessCriteria != null
@@ -171,8 +174,10 @@ public class BuildQueue implements Lifecycle {
      *         if any i/o error occurs when try to access remote BuildService
      * @throws RemoteException
      *         if we access remote BuildService successfully but get error response
+     * @throws BuilderException
+     *         if other type of error occurs
      */
-    public boolean unregisterBuilderService(BuilderServiceLocation location) throws RemoteException, IOException {
+    public boolean unregisterBuilderService(BuilderServiceLocation location) throws RemoteException, IOException, BuilderException {
         checkStarted();
         final RemoteBuilderFactory factory = new RemoteBuilderFactory(location.getUrl());
         final List<RemoteBuilder> toRemove = new ArrayList<>();
@@ -209,20 +214,21 @@ public class BuildQueue implements Lifecycle {
      *         if an i/o error occurs
      */
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext)
-            throws RemoteException, IOException {
+            throws RemoteException, IOException, BuilderException {
         checkStarted();
         final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
-        final BuildRequest request = DtoFactory.getInstance().createDto(BuildRequest.class);
-        request.setWorkspace(workspace);
-        request.setProject(project);
+        final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
+                                                             .withWorkspace(workspace)
+                                                             .withProject(project);
         addRequestParameters(attributes, request);
+        request.setTimeout(getBuildTimeout(request));
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
-            public RemoteBuildTask call() throws IOException, RemoteException {
+            public RemoteBuildTask call() throws IOException, RemoteException, BuilderException {
                 final RemoteBuilder builder = builderList.getBuilder(request);
                 if (builder == null) {
-                    throw new IllegalStateException("There is no any builder available. ");
+                    throw new BuilderException("There is no any builder available. ");
                 }
                 return builder.perform(request);
             }
@@ -230,7 +236,6 @@ public class BuildQueue implements Lifecycle {
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
         final BuildQueueTask task = new BuildQueueTask(request, future);
         tasks.put(task.getId(), task);
-        tasksFIFO.offer(task);
         purgeExpiredTasks();
         executor.execute(future);
         return task;
@@ -254,7 +259,7 @@ public class BuildQueue implements Lifecycle {
      *         if an i/o error occurs
      */
     public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
-            throws RemoteException, IOException {
+            throws RemoteException, IOException, BuilderException {
         checkStarted();
         final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
@@ -262,13 +267,14 @@ public class BuildQueue implements Lifecycle {
                                                                        .withWorkspace(workspace)
                                                                        .withProject(project);
         addRequestParameters(attributes, request);
+        request.setTimeout(getBuildTimeout(request));
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
-            public RemoteBuildTask call() throws IOException, RemoteException {
+            public RemoteBuildTask call() throws IOException, RemoteException, BuilderException {
                 final RemoteBuilder builder = builderList.getBuilder(request);
                 if (builder == null) {
-                    throw new IllegalStateException("There is no any builder available. ");
+                    throw new BuilderException("There is no any builder available. ");
                 }
                 return builder.perform(request);
             }
@@ -276,7 +282,6 @@ public class BuildQueue implements Lifecycle {
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
         final BuildQueueTask task = new BuildQueueTask(request, future);
         tasks.put(task.getId(), task);
-        tasksFIFO.offer(task);
         purgeExpiredTasks();
         executor.execute(future);
         return task;
@@ -330,7 +335,7 @@ public class BuildQueue implements Lifecycle {
         return HttpJsonHelper.get(Attributes.class, projectUrl, Pair.of("name", project));
     }
 
-    private BuilderList getBuilderList(BaseBuilderRequest request) {
+    private BuilderList getBuilderList(BaseBuilderRequest request) throws BuilderException {
         final String project = request.getProject();
         final String workspace = request.getWorkspace();
         BuilderList builderList = builderListMapping.get(new BuilderListKey(project, workspace));
@@ -352,34 +357,39 @@ public class BuildQueue implements Lifecycle {
         }
         if (builderList == null) {
             // Cannot continue, typically should never happen. At least shared builders should be available for everyone.
-            throw new IllegalStateException("There is no any builder to process this request. ");
+            throw new BuilderException("There is no any builder to process this request. ");
         }
         return builderList;
+    }
+
+    private long getBuildTimeout(BaseBuilderRequest request) {
+        // TODO: calculate in different way for different workspace/project.
+        return timeout;
     }
 
     private void purgeExpiredTasks() {
         final long timestamp = System.currentTimeMillis();
         int num = 0;
         int waitingNum = 0;
-        for (Iterator<BuildQueueTask> i = tasksFIFO.iterator(); i.hasNext(); ) {
+        for (Iterator<BuildQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
             final BuildQueueTask task = i.next();
-            if ((task.getCreationTime() + maxTimeInQueueMillis) > timestamp) {
-                // Don't need to check other tasks if find first one that is not expired yet.
-                break;
-            }
-            if (task.isWaiting()) {
-                // Do nothing for task which we already sent to slave builders. Slave builders have own control over build processes and
-                // able to terminate them if process is running for very long time.
+            boolean waiting;
+            long sendTime;
+            if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
+                || ((sendTime = task.getSendToRemoteBuilderTime()) > 0 && (sendTime + task.getRequest().getTimeout()) < timestamp)) {
                 try {
                     task.cancel();
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
+                    continue; // try next time
                 }
-                waitingNum++;
+                if (waiting) {
+                    waitingNum++;
+                }
+                i.remove();
+                tasks.remove(task.getId());
+                num++;
             }
-            i.remove();
-            tasks.remove(task.getId());
-            num++;
         }
         if (num > 0) {
             LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
@@ -402,11 +412,8 @@ public class BuildQueue implements Lifecycle {
         }
         final Configuration myConfiguration = getConfiguration();
         LOG.debug("{}", myConfiguration);
-        final int maxTimeInQueueMinutes = myConfiguration.getInt(MAX_TIME_IN_QUEUE, 10);
-        if (maxTimeInQueueMinutes < 1) {
-            throw new LifecycleException(String.format("Invalid %s parameter", MAX_TIME_IN_QUEUE));
-        }
-        maxTimeInQueueMillis = TimeUnit.MINUTES.toMillis(maxTimeInQueueMinutes);
+        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(myConfiguration.getInt(MAX_TIME_IN_QUEUE, 600));
+        timeout = myConfiguration.getInt(BUILD_TIMEOUT, 300);
         final InputStream regConf =
                 Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builder_service_registrations.json");
         if (regConf != null) {
@@ -419,7 +426,7 @@ public class BuildQueue implements Lifecycle {
                             registerBuilderService(registration);
                             LOG.debug("Register slave builder: {}", registration);
                         }
-                    } catch (IOException | RemoteException e) {
+                    } catch (IOException | RemoteException | BuilderException e) {
                         LOG.error(e.getMessage(), e);
                     } finally {
                         try {
@@ -456,7 +463,6 @@ public class BuildQueue implements Lifecycle {
             Thread.currentThread().interrupt();
         }
         tasks.clear();
-        tasksFIFO.clear();
         builderListMapping.clear();
         started = false;
     }

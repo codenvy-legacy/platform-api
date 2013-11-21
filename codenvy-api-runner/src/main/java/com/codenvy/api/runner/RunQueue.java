@@ -28,6 +28,7 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.dto.Attributes;
 import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
@@ -37,6 +38,7 @@ import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.dto.DebugMode;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
+import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
@@ -46,16 +48,17 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -71,30 +74,56 @@ public class RunQueue implements Lifecycle {
      * URL is <i>http://codenvy.com/api/my_workspace</i> so we will try to find builder API at URL:
      * <i>http://codenvy.com/api/my_workspace/builder</i> and workspace API at URL: <i>http://codenvy.com/api/my_workspace/workspace</i>
      */
-    public static final  String BASE_API_URL             = "runner.base_api_url";
-    private static final long   CHECK_BUILD_RESULT_DELAY = 2000;
+    public static final String BASE_API_URL         = "runner.queue.base_api_url";
+    /**
+     * Name of configuration parameter that set default memory size for application in megabytes. 128 is default value if this property is
+     * not set.
+     */
+    public static final String DEFAULT_MEMORY_SIZE  = "runner.default_app_mem_size";
+    /**
+     * Name of configuration parameter that sets max time (in seconds) which request may be in this queue. After this time the request may
+     * be removed from the queue. Default value is 600 seconds (10 minutes).
+     */
+    public static final String MAX_TIME_IN_QUEUE    = "runner.queue.max_time_in_queue";
+    /**
+     * Name of configuration parameter that sets lifetime (in seconds) of application. After this time the application may be terminated.
+     * Default value is 900 seconds (15 minutes).
+     */
+    public static final String APPLICATION_LIFETIME = "runner.queue.app_lifetime";
+
+    /** Pause in milliseconds for checking the result of build process. */
+    private static final long CHECK_BUILD_RESULT_DELAY     = 2000;
+    private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
 
     private final RunnerSelectionStrategy                        runnerSelector;
     private final ExecutorService                                executor;
     private final ConcurrentMap<RunnerListKey, RemoteRunnerList> runnerListMapping;
-    private final ConcurrentMap<Long, RunnerTask>                tasks;
+    private final ConcurrentMap<Long, RunQueueTask>              tasks;
 
     private String  baseApiUrl;
+    /**
+     * Default size of memory for application. This value used is there is nothing specified in properties of project.
+     *
+     * @see #DEFAULT_MEMORY_SIZE
+     */
+    private int     defMemSize;
+    /**
+     * Max time for request to be in queue in milliseconds.
+     *
+     * @see #MAX_TIME_IN_QUEUE
+     */
+    private long    maxTimeInQueueMillis;
+    private long    appLifetime;
     private boolean started;
 
     public RunQueue() {
-        runnerSelector = new RunnerSelectionStrategy() {
-            @Override
-            public RemoteRunner select(List<RemoteRunner> remoteBuilders) {
-                return remoteBuilders.get(0);
-            }
-        }/*TODO: use configured component  ComponentLoader.one(RunnerSelectionStrategy.class)*/;
+        runnerSelector = ComponentLoader.one(RunnerSelectionStrategy.class);
         tasks = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("RunQueue-", true));
         runnerListMapping = new ConcurrentHashMap<>();
     }
 
-    public RunnerTask run(String workspace, String project, ServiceContext serviceContext)
+    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException, RunnerException {
         checkStarted();
         // TODO: check do we need build the project
@@ -106,14 +135,14 @@ public class RunQueue implements Lifecycle {
         final RemoteServiceDescriptor builderService = new RemoteServiceDescriptor(builderUrl);
         final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
         if (buildLink == null) {
-            throw new IllegalStateException("Unable get URL for starting build of the application");
+            throw new RunnerException("Unable get URL for starting build of the application");
         }
         // schedule build
         final BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
                                                                            buildLink,
                                                                            Pair.of("project", project));
         final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(createTaskFor(buildDescriptor, request));
-        final RunnerTask task = new RunnerTask(request, future);
+        final RunQueueTask task = new RunQueueTask(request, future);
         purgeExpiredTasks();
         tasks.put(task.getId(), task);
         executor.execute(future);
@@ -129,12 +158,18 @@ public class RunQueue implements Lifecycle {
         final String runner = list.get(0);
         request.setRunner(runner);
         final String runDebugMode = Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner);
+        final String runMemSize = Constants.RUNNER_MEMORY_SIZE.replace("${runner}", runner);
         final String runOptions = Constants.RUNNER_OPTIONS.replace("${runner}", runner);
 
         for (Map.Entry<String, List<String>> entry : attributes.getAttributes().entrySet()) {
             if (runDebugMode.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(entry.getValue().get(0)));
+                }
+            }
+            if (runMemSize.equals(entry.getKey())) {
+                if (!entry.getValue().isEmpty()) {
+                    request.setMemorySize(Integer.parseInt(entry.getValue().get(0)));
                 }
             } else if (runOptions.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
@@ -153,6 +188,10 @@ public class RunQueue implements Lifecycle {
                 }
             }
         }
+        // use default value if memory is not set in project properties
+        if (request.getMemorySize() <= 0) {
+            request.setMemorySize(defMemSize);
+        }
     }
 
     private Attributes getProjectAttributes(String workspace, String project, UriBuilder baseUriBuilder)
@@ -170,6 +209,7 @@ public class RunQueue implements Lifecycle {
                 if (buildDescriptor != null) {
                     final Link buildStatusLink = getLink(buildDescriptor, com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
                     if (buildStatusLink == null) {
+                        // TODO: more info!!!
                         throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
                     }
                     for (; ; ) {
@@ -244,31 +284,43 @@ public class RunQueue implements Lifecycle {
     }
 
     private long getApplicationLifetime(RunRequest request) {
-        return 10 * 60 * 1000; // 10 min. TODO: calculate in different way for different workspace/project.
+        // TODO: calculate in different way for different workspace/project.
+        return appLifetime;
     }
 
     private void purgeExpiredTasks() {
         final long timestamp = System.currentTimeMillis();
         int num = 0;
-        for (Iterator<RunnerTask> i = tasks.values().iterator(); i.hasNext(); ) {
-            final RunnerTask task = i.next();
-            final long lifetime = task.getRequest().getLifetime();
-            final long processStartTime = task.getRunnerProcessStartTime();
-            if ((processStartTime > 0 && (processStartTime + lifetime) < timestamp) // running longer then expect
-                || ((task.getCreationTime() + lifetime) < timestamp)) { // created but not started, may be because too long build process
+        int waitingNum = 0;
+        for (Iterator<RunQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
+            final RunQueueTask task = i.next();
+            boolean waiting;
+            long sendTime;
+            // 1. not started, may be because too long build process
+            // 2. running longer then expect
+            if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
+                || ((sendTime = task.getSendToRemoteRunnerTime()) > 0 && (sendTime + task.getRequest().getLifetime()) < timestamp)) {
+                try {
+                    task.cancel();
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                    continue; // try next time
+                }
+                if (waiting) {
+                    waitingNum++;
+                }
                 i.remove();
-                tasks.remove(task.getId());
                 num++;
             }
         }
         if (num > 0) {
-            LOG.debug("Remove {} expired tasks", num);
+            LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
         }
     }
 
-    public RunnerTask getTask(Long id) throws NoSuchRunnerTaskException {
+    public RunQueueTask getTask(Long id) throws NoSuchRunnerTaskException {
         checkStarted();
-        final RunnerTask task = tasks.get(id);
+        final RunQueueTask task = tasks.get(id);
         if (task == null) {
             throw new NoSuchRunnerTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
         }
@@ -285,8 +337,34 @@ public class RunQueue implements Lifecycle {
             throw new IllegalStateException("Already started");
         }
         final Configuration myConfiguration = getConfiguration();
-        baseApiUrl = myConfiguration.get(BASE_API_URL);
         LOG.debug("{}", myConfiguration);
+        baseApiUrl = myConfiguration.get(BASE_API_URL);
+        defMemSize = myConfiguration.getInt(DEFAULT_MEMORY_SIZE, 128);
+        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(myConfiguration.getInt(MAX_TIME_IN_QUEUE, 600));
+        appLifetime = myConfiguration.getInt(APPLICATION_LIFETIME, 900);
+        final InputStream regConf =
+                Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/runner_service_registrations.json");
+        if (regConf != null) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        for (RunnerServiceRegistration registration : DtoFactory.getInstance().createListDtoFromJson(regConf,
+                                                                                                                     RunnerServiceRegistration.class)) {
+                            registerRunnerService(registration);
+                            LOG.debug("Register slave runner: {}", registration);
+                        }
+                    } catch (IOException | RemoteException | RunnerException e) {
+                        LOG.error(e.getMessage(), e);
+                    } finally {
+                        try {
+                            regConf.close();
+                        } catch (IOException ignored) {
+                        }
+                    }
+                }
+            });
+        }
         started = true;
     }
 
@@ -321,7 +399,7 @@ public class RunQueue implements Lifecycle {
                                   : new RunnerListKey(null, null);
         RemoteRunnerList runnerList = runnerListMapping.get(key);
         if (runnerList == null) {
-            final RemoteRunnerList newRunnerList = new RemoteRunnerList();
+            final RemoteRunnerList newRunnerList = new RemoteRunnerList(runnerSelector);
             runnerList = runnerListMapping.putIfAbsent(key, newRunnerList);
             if (runnerList == null) {
                 runnerList = newRunnerList;
@@ -340,16 +418,16 @@ public class RunQueue implements Lifecycle {
         checkStarted();
         final RemoteRunnerFactory factory = new RemoteRunnerFactory(location.getUrl());
         final List<RemoteRunner> toRemove = new ArrayList<>();
-        for (RunnerDescriptor builderDescriptor : factory.getAvailableRunners()) {
-            toRemove.add(factory.getRemoteRunner(builderDescriptor.getName()));
+        for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
+            toRemove.add(factory.getRemoteRunner(runnerDescriptor.getName()));
         }
 
         boolean modified = false;
         for (Iterator<RemoteRunnerList> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
-            final RemoteRunnerList builderList = i.next();
-            if (builderList.removeRunners(toRemove)) {
+            final RemoteRunnerList runnerList = i.next();
+            if (runnerList.removeRunners(toRemove)) {
                 modified |= true;
-                if (builderList.size() == 0) {
+                if (runnerList.size() == 0) {
                     i.remove();
                 }
             }
@@ -370,28 +448,28 @@ public class RunQueue implements Lifecycle {
     private RemoteRunner getRunner(RunRequest request) throws RunnerException {
         final String project = request.getProject();
         final String workspace = request.getWorkspace();
-        RemoteRunnerList builderList = runnerListMapping.get(new RunnerListKey(project, workspace));
-        if (builderList == null) {
+        RemoteRunnerList runnerList = runnerListMapping.get(new RunnerListKey(project, workspace));
+        if (runnerList == null) {
             if (project != null || workspace != null) {
                 if (project != null && workspace != null) {
-                    // have dedicated builders for project in some workspace?
-                    builderList = runnerListMapping.get(new RunnerListKey(project, workspace));
+                    // have dedicated runners for project in some workspace?
+                    runnerList = runnerListMapping.get(new RunnerListKey(project, workspace));
                 }
-                if (builderList == null && workspace != null) {
-                    // have dedicated builders for whole workspace (omit project) ?
-                    builderList = runnerListMapping.get(new RunnerListKey(null, workspace));
+                if (runnerList == null && workspace != null) {
+                    // have dedicated runners for whole workspace (omit project) ?
+                    runnerList = runnerListMapping.get(new RunnerListKey(null, workspace));
                 }
-                if (builderList == null) {
-                    // seems there is no dedicated builders for specified request, use shared one then
-                    builderList = runnerListMapping.get(new RunnerListKey(null, null));
+                if (runnerList == null) {
+                    // seems there is no dedicated runners for specified request, use shared one then
+                    runnerList = runnerListMapping.get(new RunnerListKey(null, null));
                 }
             }
         }
-        if (builderList == null) {
+        if (runnerList == null) {
             // Can't continue, typically should never happen. At least shared runners should be available for everyone.
             throw new RunnerException("There is no any runner to process this request. ");
         }
-        final RemoteRunner runner = builderList.getRunner(request, runnerSelector);
+        final RemoteRunner runner = runnerList.getRunner(request);
         if (runner == null) {
             throw new RunnerException("There is no any runner to process this request. ");
         }
@@ -441,34 +519,80 @@ public class RunQueue implements Lifecycle {
 
     private static class RemoteRunnerList {
         final Collection<RemoteRunner> runners;
+        final RunnerSelectionStrategy  runnerSelector;
 
-        RemoteRunnerList() {
-            runners = new CopyOnWriteArraySet<>();
+        RemoteRunnerList(RunnerSelectionStrategy runnerSelector) {
+            this.runnerSelector = runnerSelector;
+            runners = new LinkedHashSet<>();
         }
 
-        boolean addRunners(Collection<? extends RemoteRunner> list) {
-            return runners.addAll(list);
+        synchronized boolean addRunners(Collection<? extends RemoteRunner> list) {
+            if (runners.addAll(list)) {
+                notifyAll();
+                return true;
+            }
+            return false;
         }
 
-        boolean removeRunners(Collection<? extends RemoteRunner> list) {
-            return runners.removeAll(list);
+        synchronized boolean removeRunners(Collection<? extends RemoteRunner> list) {
+            if (runners.removeAll(list)) {
+                notifyAll();
+                return true;
+            }
+            return false;
         }
 
-        int size() {
+        synchronized int size() {
             return runners.size();
         }
 
-        RemoteRunner getRunner(RunRequest request, RunnerSelectionStrategy selectionStrategy) {
-            final List<RemoteRunner> candidates = new ArrayList<>();
+        synchronized RemoteRunner getRunner(RunRequest request) {
+            final List<RemoteRunner> matched = new ArrayList<>();
             for (RemoteRunner runner : runners) {
-                // TODO: check is available
-                candidates.add(runner);
+                if (request.getRunner().equals(runner.getName())) {
+                    matched.add(runner);
+                }
             }
-            if (candidates.isEmpty()) {
+            final int size = matched.size();
+            if (size == 0) {
                 return null;
             }
-            return selectionStrategy.select(candidates);
+            final List<RemoteRunner> available = new ArrayList<>(matched.size());
+            int attemptGetState = 0;
+            for (; ; ) {
+                for (RemoteRunner runner : matched) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return null; // stop immediately
+                    }
+                    RunnerState runnerState;
+                    try {
+                        runnerState = runner.getRemoteRunnerState();
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage(), e);
+                        ++attemptGetState;
+                        if (attemptGetState > 10) {
+                            return null;
+                        }
+                        continue;
+                    }
+                    if (runnerState.getFreeMemory() >= request.getMemorySize()) {
+                        available.add(runner);
+                    }
+                }
+                if (available.isEmpty()) {
+                    try {
+                        wait(CHECK_AVAILABLE_RUNNER_DELAY); // wait and try again
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return null; // expected to get here if task is canceled
+                    }
+                } else {
+                    if (available.size() > 0) {
+                        return runnerSelector.select(available);
+                    }
+                    return available.get(0);
+                }
+            }
         }
-
     }
 }

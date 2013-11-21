@@ -49,6 +49,13 @@ public interface RunRequest {
 
     RunRequest withDebugMode(DebugMode debugMode);
 
+    /** Get memory size (in megabytes) that is required for starting application. */
+    int getMemorySize();
+
+    void setMemorySize(int mem);
+
+    RunRequest withMemorySize(int mem);
+
     /** Optional parameters for Runner. Supported options depend on Runner implementation. */
     Map<String, String> getOptions();
 
@@ -57,8 +64,8 @@ public interface RunRequest {
     RunRequest withOptions(Map<String, String> options);
 
     /**
-     * Get application lifetime in milliseconds. If application is running longer then this time {@link
-     * com.codenvy.api.runner.internal.Runner} must terminate the application.
+     * Get application lifetime in seconds. If application is running longer then this time {@link com.codenvy.api.runner.internal.Runner}
+     * must terminate the application.
      */
     long getLifetime();
 

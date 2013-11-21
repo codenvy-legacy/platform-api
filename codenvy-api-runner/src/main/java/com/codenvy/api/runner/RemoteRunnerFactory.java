@@ -40,7 +40,7 @@ public class RemoteRunnerFactory extends RemoteServiceDescriptor {
                 return new RemoteRunner(baseUrl, runnerDescriptor, getLinks());
             }
         }
-        throw new IllegalStateException(String.format("Invalid runner name %s", name));
+        throw new RunnerException(String.format("Invalid runner name %s", name));
     }
 
     public List<RunnerDescriptor> getAvailableRunners() throws IOException, RemoteException, RunnerException {

@@ -124,10 +124,10 @@ public class SlaveRunnerService extends Service {
     @GET
     @Path("state")
     @Produces(MediaType.APPLICATION_JSON)
-    public RunnerState getBuilderState(@Required
-                                       @Description("Name of the runner")
-                                       @QueryParam("runner") String builder) throws Exception {
-        final Runner myRunner = getRunner(builder);
+    public RunnerState getRunnerState(@Required
+                                      @Description("Name of the runner")
+                                      @QueryParam("runner") String runner) throws Exception {
+        final Runner myRunner = getRunner(runner);
         final ResourceAllocators allocators = ResourceAllocators.getInstance();
         return DtoFactory.getInstance().createDto(RunnerState.class)
                          .withName(myRunner.getName())

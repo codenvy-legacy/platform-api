@@ -68,6 +68,10 @@ public final class BuildQueueTask implements Cancellable {
         return id;
     }
 
+    public BaseBuilderRequest getRequest() {
+        return request;
+    }
+
     /**
      * Reports that the task was interrupted.
      *
@@ -77,7 +81,7 @@ public final class BuildQueueTask implements Cancellable {
         if (future.isCancelled()) {
             return true;
         }
-        final RemoteBuildTask remoteTask = getRemoteTask();
+        final RemoteBuildTask remoteTask = getRemoteBuildTask();
         // if task is not started yet it is not cancelled
         return remoteTask != null && remoteTask.getBuildTaskDescriptor().getStatus() == BuildStatus.CANCELLED;
     }
@@ -96,6 +100,22 @@ public final class BuildQueueTask implements Cancellable {
         return created;
     }
 
+    /** Get date when request for start application was sent to remote builder. Returns {@code -1} if process is still in the queue. */
+    public long getSendToRemoteBuilderTime() {
+        if (isWaiting()) {
+            return -1;
+        }
+        try {
+            final RemoteBuildTask remoteTask = getRemoteBuildTask();
+            if (remoteTask != null) {
+                return remoteTask.getCreationTime();
+            }
+        } catch (Exception ignored) {
+            // If get exception then process is not started.
+        }
+        return -1;
+    }
+
     /**
      * Cancel this task. If task already started then we ask remote slave-builder to stop it otherwise just remote this task from the
      * BuildQueue.
@@ -112,7 +132,7 @@ public final class BuildQueueTask implements Cancellable {
         if (future.isCancelled()) {
             return;
         }
-        final RemoteBuildTask remoteTask = getRemoteTask();
+        final RemoteBuildTask remoteTask = getRemoteBuildTask();
         if (remoteTask != null) {
             remoteTask.cancel();
         } else {
@@ -156,7 +176,7 @@ public final class BuildQueueTask implements Cancellable {
                              .withStatus(BuildStatus.CANCELLED)
                              .withStartTime(-1);
         }
-        final BuildTaskDescriptor remoteStatus = getRemoteTask().getBuildTaskDescriptor();
+        final BuildTaskDescriptor remoteStatus = getRemoteBuildTask().getBuildTaskDescriptor();
         final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
                          .withTaskId(id)
@@ -207,7 +227,7 @@ public final class BuildQueueTask implements Cancellable {
         return rewritten;
     }
 
-    private RemoteBuildTask getRemoteTask() throws IOException, RemoteException, BuilderException {
+    private RemoteBuildTask getRemoteBuildTask() throws IOException, RemoteException, BuilderException {
         if (!future.isDone()) {
             return null;
         }
@@ -247,7 +267,7 @@ public final class BuildQueueTask implements Cancellable {
             // Logs aren't available until build starts
             throw new BuilderException("Logs are not available. Task is not started yet.");
         }
-        getRemoteTask().readLogs(proxyResponse);
+        getRemoteBuildTask().readLogs(proxyResponse);
     }
 
     public void readReport(ProxyResponse proxyResponse) throws BuilderException, IOException, RemoteException {
@@ -255,7 +275,7 @@ public final class BuildQueueTask implements Cancellable {
             // Logs aren't available until build starts
             throw new BuilderException("Report is not available. Task is not started yet.");
         }
-        getRemoteTask().readReport(proxyResponse);
+        getRemoteBuildTask().readReport(proxyResponse);
     }
 
     public void download(String path, ProxyResponse proxyResponse) throws BuilderException, IOException, RemoteException {
@@ -263,6 +283,6 @@ public final class BuildQueueTask implements Cancellable {
             // There is nothing for download until build ends
             throw new BuilderException("Downloads are not available. Task is not started yet.");
         }
-        getRemoteTask().download(path, proxyResponse);
+        getRemoteBuildTask().download(path, proxyResponse);
     }
 }

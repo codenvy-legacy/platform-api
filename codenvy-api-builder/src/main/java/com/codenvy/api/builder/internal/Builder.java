@@ -86,8 +86,8 @@ public abstract class Builder implements Lifecycle {
      */
     public static final String NUMBER_OF_WORKERS       = "builder.workers_number";
     /**
-     * Name of configuration parameter that sets time (in minutes) of keeping the results (artifact and logs) of build (by default 60
-     * minutes). After this time the results of build may be removed.
+     * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build (by default 3600
+     * seconds or 1 hour). After this time the results of build may be removed.
      */
     public static final String CLEAN_RESULT_DELAY_TIME = "builder.clean_result_delay_time";
     /**
@@ -95,8 +95,6 @@ public abstract class Builder implements Lifecycle {
      * provided by this parameter.
      */
     public static final String INTERNAL_QUEUE_SIZE     = "builder.internal_queue_size";
-    /** Name of configuration parameter that provides build timeout is seconds (by default 300). After this time build may be terminated. */
-    public static final String TIMEOUT                 = "builder.build_timeout";
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
@@ -106,7 +104,6 @@ public abstract class Builder implements Lifecycle {
     private final Set<BuildListener>                     buildListeners;
 
     private int     queueSize;
-    private int     timeout;
     private int     cleanBuildResultDelay;
     private boolean started;
 
@@ -181,11 +178,10 @@ public abstract class Builder implements Lifecycle {
         }
         int workerNumber = myConfiguration.getInt(NUMBER_OF_WORKERS, Runtime.getRuntime().availableProcessors());
         queueSize = myConfiguration.getInt(INTERNAL_QUEUE_SIZE, 100);
-        cleanBuildResultDelay = myConfiguration.getInt(CLEAN_RESULT_DELAY_TIME, 60);
-        timeout = myConfiguration.getInt(TIMEOUT, -1); // Do not restore from default is caller don't want it.
+        cleanBuildResultDelay = myConfiguration.getInt(CLEAN_RESULT_DELAY_TIME, 3600);
         executor = new MyThreadPoolExecutor(workerNumber, queueSize);
         cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
-        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.MINUTES);
+        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.SECONDS);
         synchronized (buildListeners) {
             for (BuildListener listener : ComponentLoader.all(BuildListener.class)) {
                 buildListeners.add(listener);
@@ -332,10 +328,10 @@ public abstract class Builder implements Lifecycle {
 
     protected BuildTask execute(BuildTaskConfiguration config, BuildTask.Callback callback, BuildLogger logger) throws BuilderException {
         final CommandLine commandLine = createCommandLine(config);
-        final Callable<Boolean> callable = createTaskFor(commandLine, config.getSources(), logger);
+        final Callable<Boolean> callable = createTaskFor(commandLine, config.getSources(), logger, config.getRequest().getTimeout());
         final FutureBuildTask task =
                 new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), config, logger, callback);
-        final long expirationTime = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(cleanBuildResultDelay);
+        final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
         final CachedBuildTask cachedTask = new CachedBuildTask(task, expirationTime);
         purgeExpiredTasks();
         tasks.put(task.getId(), cachedTask);
@@ -344,7 +340,10 @@ public abstract class Builder implements Lifecycle {
         return task;
     }
 
-    protected Callable<Boolean> createTaskFor(final CommandLine commandLine, final RemoteContent sources, final BuildLogger logger) {
+    protected Callable<Boolean> createTaskFor(final CommandLine commandLine,
+                                              final RemoteContent sources,
+                                              final BuildLogger logger,
+                                              final long timeout) {
         return new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {

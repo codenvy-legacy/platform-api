@@ -53,6 +53,16 @@ public interface BaseBuilderRequest {
     void setBuilder(String builder);
 
     /**
+     * Get build timeout in seconds. If build is running longer then this time {@link com.codenvy.api.builder.internal.Builder} must
+     * terminate the build.
+     */
+    long getTimeout();
+
+    void setTimeout(long time);
+
+    BaseBuilderRequest withTimeout(long time);
+
+    /**
      * Build targets, e.g. "clean", "compile", ... . Supported targets depend on builder implementation. Builder uses default targets if
      * this parameter is not provided by client.
      */

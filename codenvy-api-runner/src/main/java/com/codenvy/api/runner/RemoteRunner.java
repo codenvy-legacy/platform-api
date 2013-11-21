@@ -20,9 +20,11 @@ package com.codenvy.api.runner;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
+import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
@@ -76,6 +78,14 @@ public class RemoteRunner {
         final ApplicationProcessDescriptor process = HttpJsonHelper.request(ApplicationProcessDescriptor.class, link, request);
         lastUsage = System.currentTimeMillis();
         return new RemoteRunnerProcess(baseUrl, request.getRunner(), process.getProcessId());
+    }
+
+    public RunnerState getRemoteRunnerState() throws IOException, RemoteException, RunnerException {
+        final Link stateLink = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_STATE);
+        if (stateLink == null) {
+            throw new RunnerException("Unable get URL for getting state of a remote runner");
+        }
+        return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
     }
 
     private Link getLink(String rel) {

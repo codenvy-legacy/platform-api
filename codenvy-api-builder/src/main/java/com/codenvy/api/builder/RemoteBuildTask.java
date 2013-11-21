@@ -24,6 +24,10 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.ProxyResponse;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.ValueHolder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,9 +41,12 @@ import java.net.URL;
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
 public class RemoteBuildTask {
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteBuildTask.class);
+
     private final String baseUrl;
     private final String builder;
     private final Long   taskId;
+    private final long   created;
 
     /* Package visibility, not expected to be created by api users.
        They should use RemoteBuilder instead and get an instance of remote task. */
@@ -47,6 +54,12 @@ public class RemoteBuildTask {
         this.baseUrl = baseUrl;
         this.builder = builder;
         this.taskId = taskId;
+        created = System.currentTimeMillis();
+    }
+
+    /** Get date when this remote build task was started. */
+    long getCreationTime() {
+        return created;
     }
 
     /**
@@ -73,9 +86,18 @@ public class RemoteBuildTask {
      *         if some other error occurs on remote server
      */
     public BuildTaskDescriptor cancel() throws IOException, RemoteException, BuilderException {
-        final Link link = getLink(Constants.LINK_REL_CANCEL);
+        final ValueHolder<BuildTaskDescriptor> holder = new ValueHolder<>();
+        final Link link = getLink(Constants.LINK_REL_CANCEL, holder);
         if (link == null) {
-            throw new BuilderException("Can't cancel task. Task is not started yet or already done.");
+            switch (holder.get().getStatus()) {
+                case SUCCESSFUL:
+                case FAILED:
+                case CANCELLED:
+                    LOG.info("Can't cancel build, status is {}", holder.get().getStatus()); // TODO: debug
+                    return holder.get();
+                default:
+                    throw new BuilderException("Can't cancel task. Cancellation link is not available");
+            }
         }
         return HttpJsonHelper.request(BuildTaskDescriptor.class, link);
     }
@@ -91,7 +113,7 @@ public class RemoteBuildTask {
      *         if other error occurs
      */
     public void readLogs(ProxyResponse proxyResponse) throws IOException, RemoteException, BuilderException {
-        final Link link = getLink(Constants.LINK_REL_VIEW_LOG);
+        final Link link = getLink(Constants.LINK_REL_VIEW_LOG, null);
         if (link == null) {
             throw new BuilderException("Logs are not available.");
         }
@@ -109,7 +131,7 @@ public class RemoteBuildTask {
      *         if other error occurs
      */
     public void readReport(ProxyResponse proxyResponse) throws IOException, BuilderException, RemoteException {
-        final Link link = getLink(Constants.LINK_REL_VIEW_REPORT);
+        final Link link = getLink(Constants.LINK_REL_VIEW_REPORT, null);
         if (link == null) {
             throw new BuilderException("Report is not available.");
         }
@@ -156,13 +178,16 @@ public class RemoteBuildTask {
         }
     }
 
-    private Link getLink(String rel) throws IOException, RemoteException {
-        for (Link link : getBuildTaskDescriptor().getLinks()) {
+    private Link getLink(String rel, ValueHolder<BuildTaskDescriptor> statusHolder) throws IOException, RemoteException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        if (statusHolder != null) {
+            statusHolder.set(descriptor);
+        }
+        for (Link link : descriptor.getLinks()) {
             if (rel.equals(link.getRel())) {
                 return link;
             }
         }
         return null;
     }
-
 }

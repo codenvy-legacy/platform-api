@@ -15,13 +15,28 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.core.util;
 
 /**
- * Helps to register Builder in builder registry.
+ * Holder for a value of type <code>T</code>.
  *
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-public interface BuilderRegistryPlugin {
-    void registerTo(BuilderRegistry registry);
+public final class ValueHolder<T> {
+    private T value;
+
+    public ValueHolder(T value) {
+        this.value = value;
+    }
+
+    public ValueHolder() {
+    }
+
+    public T get() {
+        return value;
+    }
+
+    public void set(T value) {
+        this.value = value;
+    }
 }

@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
@@ -92,18 +93,18 @@ public class RemoteBuilder {
         return lastUsage;
     }
 
-    public RemoteBuildTask perform(BuildRequest request) throws IOException, RemoteException {
+    public RemoteBuildTask perform(BuildRequest request) throws IOException, RemoteException, BuilderException {
         final Link link = getLink(Constants.LINK_REL_BUILD);
         if (link == null) {
-            throw new IllegalStateException("Unable get URL for starting remote process");
+            throw new BuilderException("Unable get URL for starting remote process");
         }
         return doRequest(link, request);
     }
 
-    public RemoteBuildTask perform(DependencyRequest request) throws IOException, RemoteException {
+    public RemoteBuildTask perform(DependencyRequest request) throws IOException, RemoteException, BuilderException {
         final Link link = getLink(Constants.LINK_REL_DEPENDENCIES_ANALYSIS);
         if (link == null) {
-            throw new IllegalStateException("Unable get URL for starting remote process");
+            throw new BuilderException("Unable get URL for starting remote process");
         }
         return doRequest(link, request);
     }
@@ -114,10 +115,10 @@ public class RemoteBuilder {
         return new RemoteBuildTask(baseUrl, request.getBuilder(), build.getTaskId());
     }
 
-    public SlaveBuilderState getRemoteBuilderState() throws IOException, RemoteException {
+    public SlaveBuilderState getRemoteBuilderState() throws IOException, RemoteException, BuilderException {
         final Link stateLink = getLink(Constants.LINK_REL_BUILDER_STATE);
         if (stateLink == null) {
-            throw new IllegalStateException("Unable get URL for getting state of a remote builder");
+            throw new BuilderException("Unable get URL for getting state of a remote builder");
         }
         return HttpJsonHelper.request(SlaveBuilderState.class, stateLink, Pair.of("builder", name));
     }

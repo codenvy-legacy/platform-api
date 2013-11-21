@@ -188,13 +188,10 @@ public class Configuration {
      */
     public int getInt(String name, int defaultValue) {
         final String str = get(name);
-        if (str == null)
-            return defaultValue;
-        try {
-            return Integer.parseInt(str);
-        } catch (NumberFormatException e) {
+        if (str == null) {
             return defaultValue;
         }
+        return Integer.parseInt(str);
     }
 
     /**
@@ -222,13 +219,10 @@ public class Configuration {
      */
     public long getLong(String name, long defaultValue) {
         final String str = get(name);
-        if (str == null)
-            return defaultValue;
-        try {
-            return Long.parseLong(str);
-        } catch (NumberFormatException e) {
+        if (str == null) {
             return defaultValue;
         }
+        return Long.parseLong(str);
     }
 
     /**
@@ -255,13 +249,10 @@ public class Configuration {
      */
     public float getFloat(String name, float defaultValue) {
         final String str = get(name);
-        if (str == null)
-            return defaultValue;
-        try {
-            return Float.parseFloat(str);
-        } catch (NumberFormatException e) {
+        if (str == null) {
             return defaultValue;
         }
+        return Float.parseFloat(str);
     }
 
     /**
@@ -288,13 +279,10 @@ public class Configuration {
      */
     public double getDouble(String name, double defaultValue) {
         final String str = get(name);
-        if (str == null)
-            return defaultValue;
-        try {
-            return Double.parseDouble(str);
-        } catch (NumberFormatException e) {
+        if (str == null) {
             return defaultValue;
         }
+        return Double.parseDouble(str);
     }
 
     /**

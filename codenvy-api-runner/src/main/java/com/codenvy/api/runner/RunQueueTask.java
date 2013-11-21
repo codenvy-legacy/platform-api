@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public final class RunnerTask implements Cancellable {
+public final class RunQueueTask implements Cancellable {
     private static final AtomicLong sequence = new AtomicLong(1);
 
     private final Long                        id;
@@ -51,7 +51,7 @@ public final class RunnerTask implements Cancellable {
 
     private RemoteRunnerProcess myRemoteProcess;
 
-    RunnerTask(RunRequest request, Future<RemoteRunnerProcess> future) {
+    RunQueueTask(RunRequest request, Future<RemoteRunnerProcess> future) {
         this.id = sequence.getAndIncrement();
         this.future = future;
         this.request = request;
@@ -76,15 +76,12 @@ public final class RunnerTask implements Cancellable {
         return created;
     }
 
-    /**
-     * Get date when this application process was started. Returns {@code -1} if process is not started yet or if can't determine start
-     * time.
-     */
-    public long getRunnerProcessStartTime() {
+    /** Get date when request for start application was sent to remote runner. Returns {@code -1} if process is still in the queue. */
+    public long getSendToRemoteRunnerTime() {
         try {
             final RemoteRunnerProcess remoteProcess = getRemoteProcess();
             if (remoteProcess != null) {
-                return remoteProcess.getStartTime();
+                return remoteProcess.getCreationTime();
             }
         } catch (Exception ignored) {
             // If get exception then process is not started.
@@ -178,6 +175,15 @@ public final class RunnerTask implements Cancellable {
         return future.isCancelled();
     }
 
+    /**
+     * Reports that the task is waiting in the RunQueue.
+     *
+     * @return {@code true} if task is waiting and {@code false} if the process already started on remote slave-runner
+     */
+    public boolean isWaiting() {
+        return !future.isDone();
+    }
+
     /** Stop process. */
     public void stop() throws RemoteException, IOException, RunnerException {
         if (future.isCancelled()) {
@@ -230,7 +236,7 @@ public final class RunnerTask implements Cancellable {
 
     @Override
     public String toString() {
-        return "RunnerTask{" +
+        return "RunQueueTask{" +
                "id=" + id +
                ", request=" + request +
                '}';

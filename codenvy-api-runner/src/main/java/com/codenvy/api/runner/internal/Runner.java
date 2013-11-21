@@ -53,14 +53,12 @@ public abstract class Runner implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
     public static final  String DEPLOY_DIRECTORY   = "runner.deploy_directory";
+    public static final  String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
+
     private static final String MIN_PORT           = "runner.min_port";
     private static final String MAX_PORT           = "runner.max_port";
-    private static final String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
-
-    /** Default memory size for application in megabytes. */
-    public static final int DEFAULT_MEMORY_SIZE = 128; // TODO
 
     private java.io.File deployDirectory;
 
@@ -114,7 +112,7 @@ public abstract class Runner implements Lifecycle {
             throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
         portService.setRange(myConfiguration.getInt(MIN_PORT, 49152), myConfiguration.getInt(MAX_PORT, 65535));
-        cleanupDelay = myConfiguration.getInt(CLEANUP_DELAY_TIME, 15);
+        cleanupDelay = myConfiguration.getInt(CLEANUP_DELAY_TIME, 900); // 15 minutes
         started = true;
     }
 
@@ -187,8 +185,8 @@ public abstract class Runner implements Lifecycle {
         final Long id = processIdSequence.getAndIncrement();
         final RunnerProcessImpl process = new RunnerProcessImpl(id, getName(), runnerCfg);
         purgeExpiredProcesses();
-        processes.put(id, new CachedRunnerProcess(process, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(cleanupDelay)));
-        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.MILLISECONDS);
+        processes.put(id, new CachedRunnerProcess(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
+        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocators.ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
                                                                                        .newMemoryAllocator(mem)

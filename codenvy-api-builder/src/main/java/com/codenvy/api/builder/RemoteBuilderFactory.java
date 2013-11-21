@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderList;
@@ -40,19 +41,19 @@ public class RemoteBuilderFactory extends RemoteServiceDescriptor {
         super(baseUrl);
     }
 
-    public RemoteBuilder getRemoteBuilder(String name) throws IOException, RemoteException {
+    public RemoteBuilder getRemoteBuilder(String name) throws IOException, RemoteException, BuilderException {
         for (BuilderDescriptor builderDescriptor : getAvailableBuilders()) {
             if (name.equals(builderDescriptor.getName())) {
                 return new RemoteBuilder(baseUrl, builderDescriptor, getLinks());
             }
         }
-        throw new IllegalStateException(String.format("Invalid builder name %s", name));
+        throw new BuilderException(String.format("Invalid builder name %s", name));
     }
 
-    public List<BuilderDescriptor> getAvailableBuilders() throws IOException, RemoteException {
+    public List<BuilderDescriptor> getAvailableBuilders() throws IOException, RemoteException, BuilderException {
         final Link link = getLink(Constants.LINK_REL_AVAILABLE_BUILDERS);
         if (link == null) {
-            throw new IllegalStateException("Unable get URL for retrieving list of remote builders");
+            throw new BuilderException("Unable get URL for retrieving list of remote builders");
         }
 
         return HttpJsonHelper.request(BuilderList.class, link).getBuilders();

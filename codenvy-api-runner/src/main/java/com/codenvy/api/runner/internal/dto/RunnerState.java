@@ -20,7 +20,7 @@ package com.codenvy.api.runner.internal.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes state of computer. Provided as part of state of slave builder.
+ * Describes state of computer. Provided as part of state of slave runner.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */

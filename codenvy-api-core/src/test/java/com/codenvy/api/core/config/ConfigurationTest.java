@@ -47,7 +47,6 @@ public class ConfigurationTest {
         cfg.setBoolean(name, value);
         Assert.assertEquals(cfg.getBoolean(name, false), value);
         Assert.assertEquals(cfg.get(name), "true");
-        Assert.assertEquals(cfg.getInt(name, 123), 123);
         cfg.set(name, null);
         Assert.assertNull(cfg.get(name));
     }
@@ -60,7 +59,6 @@ public class ConfigurationTest {
         cfg.setInt(name, value);
         Assert.assertEquals(cfg.getInt(name, 456), value);
         Assert.assertEquals(cfg.get(name), "123");
-        Assert.assertEquals(cfg.getBoolean(name, true), false); // second is set but not boolean
         cfg.set(name, null);
         Assert.assertNull(cfg.get(name));
     }

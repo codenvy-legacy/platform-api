@@ -40,21 +40,21 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.1</version>
+            <version>${google.gson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>12.0.1</version>
+            <version>${guava.version}</version>
         </dependency>
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
-            <version>0.9.9-RC1</version>
+            <version>${reflections.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>dom4j</groupId>
                     <artifactId>dom4j</artifactId>
+                    <groupId>dom4j</groupId>
                 </exclusion>
             </exclusions>
         </dependency>

@@ -21,20 +21,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.codenvy.platform-api</groupId>
         <artifactId>codenvy-platform-api-parent</artifactId>
+        <groupId>com.codenvy.platform-api</groupId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-
     <artifactId>codenvy-api-core</artifactId>
-    <name>Codenvy API Core</name>
     <packaging>jar</packaging>
-
+    <name>Codenvy API Core</name>
+    <properties>
+        <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
+    </properties>
     <dependencies>
         <dependency>
-            <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-dto</artifactId>
-            <version>${project.version}</version>
+            <groupId>com.codenvy.commons</groupId>
+            <artifactId>codenvy-commons-json</artifactId>
+            <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
@@ -42,9 +43,19 @@
             <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.codenvy.commons</groupId>
-            <artifactId>codenvy-commons-json</artifactId>
-            <version>${codenvy.commons.version}</version>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-dto</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>3.5.2</version>
         </dependency>
         <dependency>
             <groupId>javax.ws.rs</groupId>
@@ -58,14 +69,10 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>3.5.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.1</version>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
@@ -73,17 +80,7 @@
             <version>${testng.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
-    <properties>
-        <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
-    </properties>
     <build>
         <resources>
             <resource>
@@ -155,6 +152,13 @@
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.codenvy.platform-api</groupId>
+                        <artifactId>codenvy-api-core</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <dtoPackages>
                         <package>com.codenvy.api.core.rest.shared.dto</package>
@@ -163,17 +167,9 @@
                     <genClassName>com.codenvy.api.core.server.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.codenvy.platform-api</groupId>
-                        <artifactId>codenvy-api-core</artifactId>
-                        <version>${project.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
-
     <profiles>
         <profile>
             <id>default</id>
@@ -202,8 +198,8 @@
             <id>linux</id>
             <activation>
                 <os>
-                    <family>unix</family>
                     <name>linux</name>
+                    <family>unix</family>
                 </os>
             </activation>
             <build>

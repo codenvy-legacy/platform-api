@@ -21,26 +21,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.codenvy.platform-api</groupId>
         <artifactId>codenvy-platform-api-parent</artifactId>
+        <groupId>com.codenvy.platform-api</groupId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-
     <artifactId>codenvy-api-workspace</artifactId>
-    <name>Codenvy API Workspace</name>
     <packaging>jar</packaging>
-
+    <name>Codenvy API Workspace</name>
+    <properties>
+        <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
+    </properties>
     <dependencies>
-        <dependency>
-            <groupId>com.codenvy.commons</groupId>
-            <artifactId>codenvy-commons-lang</artifactId>
-            <version>${codenvy.commons.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.codenvy.commons</groupId>
-            <artifactId>codenvy-commons-json</artifactId>
-            <version>${codenvy.commons.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
             <artifactId>codenvy-api-core</artifactId>
@@ -52,10 +43,14 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>${testng.version}</version>
-            <scope>test</scope>
+            <groupId>com.codenvy.commons</groupId>
+            <artifactId>codenvy-commons-json</artifactId>
+            <version>${codenvy.commons.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.codenvy.commons</groupId>
+            <artifactId>codenvy-commons-lang</artifactId>
+            <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -63,10 +58,13 @@
             <version>${logback.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
-    <properties>
-        <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
-    </properties>
     <build>
         <plugins>
             <plugin>
@@ -127,6 +125,13 @@
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.codenvy.platform-api</groupId>
+                        <artifactId>codenvy-api-workspace</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <dtoPackages>
                         <package>com.codenvy.api.project.shared.dto</package>
@@ -135,13 +140,6 @@
                     <genClassName>com.codenvy.api.project.server.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.codenvy.platform-api</groupId>
-                        <artifactId>codenvy-api-workspace</artifactId>
-                        <version>${project.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>

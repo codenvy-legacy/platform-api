@@ -421,6 +421,10 @@ public class BuildQueue implements Lifecycle {
                 @Override
                 public void run() {
                     try {
+                        Thread.sleep(5000); // TODO: fix this, add this to give couple of time for starting servlet container
+                    } catch (InterruptedException ignored) {
+                    }
+                    try {
                         for (BuilderServiceRegistration registration : DtoFactory.getInstance().createListDtoFromJson(regConf,
                                                                                                                       BuilderServiceRegistration.class)) {
                             registerBuilderService(registration);

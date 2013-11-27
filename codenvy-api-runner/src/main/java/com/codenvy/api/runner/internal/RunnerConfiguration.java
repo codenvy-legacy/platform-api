@@ -26,17 +26,24 @@ import java.util.Map;
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class RunnerConfiguration {
     private final int memory;
+    /** Application port. */
+    private final int port;
     private final int debugPort;
     private final RunRequest request;
 
-    public RunnerConfiguration(int memory, int debugPort, RunRequest request) {
+    public RunnerConfiguration(int memory, int port, int debugPort, RunRequest request) {
         this.memory = memory;
+        this.port = port;
         this.debugPort = debugPort;
         this.request = request;
     }
 
     public int getMemory() {
         return memory;
+    }
+
+    public int getPort() {
+        return port;
     }
 
     public int getDebugPort() {
@@ -55,6 +62,7 @@ public class RunnerConfiguration {
     public String toString() {
         return "RunnerConfiguration{" +
                "memory=" + memory +
+               ", port=" + port +
                ", debugPort=" + debugPort +
                ", request=" + request +
                '}';

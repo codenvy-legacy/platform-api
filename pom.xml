@@ -23,7 +23,7 @@
     <parent>
         <artifactId>maven-parent-pom</artifactId>
         <groupId>com.codenvy</groupId>
-        <version>2.0.1</version>
+        <version>3.0.1</version>
     </parent>
     <groupId>com.codenvy.platform-api</groupId>
     <artifactId>codenvy-platform-api-parent</artifactId>
@@ -71,6 +71,8 @@
         <maven.model.version>3.0.5</maven.model.version>
         <maven.plugin-annotations.version>3.2</maven.plugin-annotations.version>
         <maven.plugin-api.version>2.0</maven.plugin-api.version>
+        <maven.releases.repo.url>https://maven.codenvycorp.com/content/repositories/codenvy-private-releases/</maven.releases.repo.url>
+        <maven.snapshots.repo.url>https://maven.codenvycorp.com/content/repositories/codenvy-private-snapshots/</maven.snapshots.repo.url>
         <mockito.version>1.9.5</mockito.version>
         <mockitong.version>0.3</mockitong.version>
         <org.exoplatform.core.version>2.4.9-GA</org.exoplatform.core.version>

@@ -174,6 +174,8 @@ public class SlaveRunnerService extends Service {
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())
                          .withStatus(status)
-                         .withLinks(links);
+                         .withLinks(links)
+                         .withPort(process.getConfiguration().getPort())
+                         .withDebugPort(process.getConfiguration().getDebugPort());
     }
 }

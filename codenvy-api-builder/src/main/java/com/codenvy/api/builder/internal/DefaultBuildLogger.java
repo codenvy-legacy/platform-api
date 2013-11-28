@@ -17,12 +17,11 @@
  */
 package com.codenvy.api.builder.internal;
 
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 /**
  * File based implementation of BuildLogger.
@@ -39,12 +38,12 @@ public final class DefaultBuildLogger implements BuildLogger {
         this.file = file;
         this.contentType = contentType;
         autoFlush = true;
-        writer = new BufferedWriter(new FileWriter(file));
+        writer = Files.newBufferedWriter(file.toPath(), Charset.defaultCharset());
     }
 
     @Override
     public Reader getReader() throws IOException {
-        return new FileReader(file);
+        return Files.newBufferedReader(file.toPath(), Charset.defaultCharset());
     }
 
     @Override

@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.core.util;
 
+import com.codenvy.api.core.config.SingletonConfiguration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,39 +30,115 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * Helps to find free ports.
+ * Usage:
+ * <pre>
+ *     CustomPortService portService = ...
+ *     int free = portService.acquire();
+ *     if (free < 0) {
+ *         // No free ports.
+ *     } else {
+ *         try {
+ *             // Do something.
+ *         } finally {
+ *             portService.release(free);
+ *         }
+ *     }
+ * </pre>
+ * <p/>
+ * Note: It is important to release port when it is not needed any more, otherwise it will be not possible to reuse ports.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @see #MIN_PORT
+ * @see #MAX_PORT
  */
+//@javax.inject.Singleton
 public class CustomPortService {
-    // TODO: make singleton!
+    /** Name of configuration parameter that sets min port number. Default value is 49152. */
+    public static final String MIN_PORT = "sys.resources.min_port";
+    /** Name of configuration parameter that sets max port number. Default value is 65535. */
+    public static final String MAX_PORT = "sys.resources.max_port";
+
     private static final Logger LOG = LoggerFactory.getLogger(CustomPortService.class);
+
+    private static class CustomPortServiceHolder {
+        static final CustomPortService INSTANCE = new CustomPortService(Pair.of(SingletonConfiguration.get().getInt(MIN_PORT, 49152),
+                                                                                SingletonConfiguration.get().getInt(MAX_PORT, 65535)));
+    }
+
+    public static CustomPortService getInstance() {
+        return CustomPortServiceHolder.INSTANCE;
+    }
+
     private final ConcurrentMap<Integer, Boolean> portsInUse;
-    private       Pair<Integer, Integer>          range;
-
-    public CustomPortService(int minPort, int maxPort) {
-        this(Pair.of(minPort, maxPort));
-    }
-
-    public CustomPortService() {
-        this(null);
-    }
+    private final Pair<Integer, Integer>          range;
 
     private CustomPortService(Pair<Integer, Integer> range) {
+        if (range.first < 0 || range.second > 65535) {
+            throw new IllegalArgumentException(String.format("Invalid port range: [%d:%d]", range.first, range.second));
+        }
         this.range = range;
         portsInUse = new ConcurrentHashMap<>();
     }
 
     /**
-     * Get free port from the range specified in constructor of this class.
+     * This service stores allocated ports in internal storage to avoid checking ports that already in use. After calling this method
+     * storage is cleared. For next port allocation this service will iterates through range of configured ports until finds free port.
+     * It may be expensive since checking port means trying to open {@link ServerSocket} and {@link DatagramSocket} on each port in the
+     * range.
+     *
+     * @see #MIN_PORT
+     * @see #MAX_PORT
+     */
+    public void reset() {
+        portsInUse.clear();
+    }
+
+    /**
+     * Returns range of ports that service uses for lookup free port. Modifications to the returned {@code Pair} will not affect the
+     * internal {@code Pair}.
+     */
+    public Pair<Integer, Integer> getRange() {
+        return Pair.of(range.first, range.second);
+    }
+
+    /**
+     * Get free port from the whole range of possible ports.
      *
      * @return free port or {@code -1} if there is no free port
      */
     public int acquire() {
-        final Pair<Integer, Integer> range = this.range;
-        if (range == null) {
-            return -1;
+        return doAcquire(range.first, range.second);
+    }
+
+    /**
+     * Get free port from the specified range. Specified range may not be wider than configured range otherwise IllegalArgumentException is
+     * thrown. Configured range may be checked with method {@link #getRange()}.
+     *
+     * @return free port or {@code -1} if there is no free port
+     * @throws IllegalArgumentException
+     *         if {@code min > range.first} or if {@code min > range.second}
+     * @see #getRange()
+     * @see #MIN_PORT
+     * @see #MAX_PORT
+     */
+    public int acquire(int min, int max) {
+        if (min < range.first) {
+            throw new IllegalArgumentException(String.format("Min port value may not be less than %d", range.first));
         }
-        for (int port = range.first; port <= range.second; port++) {
+        if (max > range.second) {
+            throw new IllegalArgumentException(String.format("Max port value may not be greater than %d", range.second));
+        }
+        return doAcquire(min, max);
+    }
+
+    public void release(int port) {
+        if (port != -1) {
+            portsInUse.remove(port);
+        }
+    }
+
+    private int doAcquire(int min, int max) {
+        for (int port = min; port <= max; port++) {
             if (portsInUse.putIfAbsent(port, Boolean.TRUE) == null) {
                 ServerSocket ss = null;
                 DatagramSocket ds = null;
@@ -85,21 +163,5 @@ public class CustomPortService {
             }
         }
         return -1;
-    }
-
-    public void release(int port) {
-        portsInUse.remove(port);
-    }
-
-    public void setRange(int minPort, int maxPort) {
-        range = Pair.of(minPort, maxPort);
-    }
-
-    public Pair<Integer, Integer> getRange() {
-        final Pair<Integer, Integer> range = this.range;
-        if (range == null) {
-            return Pair.of(-1, -1);
-        }
-        return Pair.of(range.first, range.second);
     }
 }

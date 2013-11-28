@@ -21,12 +21,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 
 /**
  * Provides information about operating system.
@@ -167,7 +169,8 @@ public class SystemInfo {
         private int[] readCpuTimes() throws IOException {
             final int[] times = new int[4];
             final String line;
-            try (BufferedReader reader = new BufferedReader(new FileReader("/proc/stat"))) {
+            try (BufferedReader reader = Files.newBufferedReader(FileSystems.getDefault().getPath("/proc/stat"),
+                                                                 Charset.forName("UTF-8"))) {
                 line = reader.readLine(); // need first line only
             }
             if (line.startsWith("cpu")) { // just to be sure we have correct line
@@ -205,7 +208,8 @@ public class SystemInfo {
          */
         private long readMem(String kindOf) throws IOException {
             String line;
-            try (BufferedReader reader = new BufferedReader(new FileReader("/proc/meminfo"))) {
+            try (BufferedReader reader = Files.newBufferedReader(FileSystems.getDefault().getPath("/proc/meminfo"),
+                                                                 Charset.forName("UTF-8"))) {
                 line = reader.readLine();
                 while (line != null && !line.startsWith(kindOf)) {
                     line = reader.readLine();

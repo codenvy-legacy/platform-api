@@ -18,6 +18,7 @@
 package com.codenvy.api.core.rest;
 
 import com.codenvy.api.core.util.ComponentLoader;
+import com.codenvy.api.core.util.DownloadPlugin;
 
 /**
  * Represents content of remote file.
@@ -25,12 +26,14 @@ import com.codenvy.api.core.util.ComponentLoader;
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
 public final class RemoteContent {
-    private static final DownloadPlugin CUSTOM_DOWNLOAD_PLUGIN = ComponentLoader.one(DownloadPlugin.class);
+    private static final DownloadPlugin DEFAULT_DOWNLOAD_PLUGIN = ComponentLoader.one(DownloadPlugin.class);
 
-    public static RemoteContent of(final java.io.File downloadDirectory, final String downloadUrl) {
-        return new RemoteContent(downloadDirectory,
-                                 downloadUrl,
-                                 CUSTOM_DOWNLOAD_PLUGIN);
+    public static RemoteContent of(java.io.File downloadDirectory, String downloadUrl) {
+        return new RemoteContent(downloadDirectory, downloadUrl, DEFAULT_DOWNLOAD_PLUGIN);
+    }
+
+    public static RemoteContent of(java.io.File downloadDirectory, String downloadUrl, DownloadPlugin downloadPlugin) {
+        return new RemoteContent(downloadDirectory, downloadUrl, downloadPlugin);
     }
 
     private final FileAdapter    downloadDirectory;

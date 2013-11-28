@@ -21,9 +21,9 @@ import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.rest.RemoteContent;
+import com.codenvy.api.core.util.HttpDownloadPluginWithUpdates;
 import com.codenvy.dto.server.DtoFactory;
 
-import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -38,13 +38,17 @@ import java.util.Map;
  */
 public class BuildTaskConfiguration {
     public static BuildTaskConfiguration newBuildConfiguration(Builder builder, BuildRequest request) throws IOException {
-        final RemoteContent sources = RemoteContent.of(createSrcDirectory(builder.getRepository(), request), request.getSourcesUrl());
+        final RemoteContent sources = RemoteContent.of(createSrcDirectory(builder.getRepository(), request),
+                                                       request.getSourcesUrl(),
+                                                       new HttpDownloadPluginWithUpdates());
         return new BuildTaskConfiguration(sources, BuilderTaskType.DEFAULT, request);
     }
 
     public static BuildTaskConfiguration newDependencyAnalysisConfiguration(Builder builder, DependencyRequest request)
             throws IOException, BuilderException {
-        final RemoteContent sources = RemoteContent.of(createSrcDirectory(builder.getRepository(), request), request.getSourcesUrl());
+        final RemoteContent sources = RemoteContent.of(createSrcDirectory(builder.getRepository(), request),
+                                                       request.getSourcesUrl(),
+                                                       new HttpDownloadPluginWithUpdates());
         String type = request.getType();
         if (type == null) {
             type = "list";
@@ -75,23 +79,11 @@ public class BuildTaskConfiguration {
             if (!(workspaceDirectory.exists() || workspaceDirectory.mkdir())) {
                 throw new IOException(String.format("Unable create %s", workspaceDirectory));
             }
-            java.io.File tmp = new java.io.File(workspaceDirectory, project);
-            if (!tmp.mkdir()) {
-                int suffix = workspaceDirectory.listFiles(new FileFilter() {
-                    @Override
-                    public boolean accept(java.io.File path) {
-                        return path.isDirectory() && path.getName().startsWith(project);
-                    }
-                }).length;
-                for (; ; ) {
-                    tmp = new java.io.File(workspaceDirectory, project + '(' + suffix + ')');
-                    if (tmp.mkdir()) {
-                        break;
-                    }
-                    suffix++;
-                }
+            java.io.File projectDirectory = new java.io.File(workspaceDirectory, project);
+            if (!(projectDirectory.exists() || projectDirectory.mkdir())) {
+                throw new IOException(String.format("Unable create %s", projectDirectory));
             }
-            srcDirectory = tmp;
+            srcDirectory = projectDirectory;
         }
         return srcDirectory;
     }

@@ -818,7 +818,8 @@ public interface VirtualFileSystem {
      * @param newcontent
      *         new content of File
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if there is no lock token, e.g.
+     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if there is no lock token,
+     *         e.g.
      *         item is not locked
      * @throws ItemNotFoundException
      *         if <code>id</code> does not exist
@@ -891,6 +892,54 @@ public interface VirtualFileSystem {
                                                     PermissionDeniedException, IOException, VirtualFileSystemException;
 
     /**
+     * Export content of <code>folderId</code> to ZIP archive. Unlike to the method {@link #exportZip(String)} this method includes in the
+     * zip response only updated files. Caller must send list of files with their md5sums in next format:
+     * <pre>
+     * &lt;md5sum&gt;&lt;space&gt;&lt;file path relative to requested folder&gt;
+     * ...
+     * </pre>
+     * For example:
+     * <pre>
+     * ae3ddf74ea668c7fcee0e3865173e10b  my_project/pom.xml
+     * 3ad8580e46189873b48c27983d965df8  my_project/src/main/java/org/test/Main.java
+     * ...
+     * </pre>
+     * Example of typical usage of such method.
+     * <ol>
+     * <li>Imagine caller has content of this folder stored remotely</li>
+     * <li>In some point of time caller likes to get updates</li>
+     * <li>Caller traverses local tree and count md5sum for each file, folders must be omitted</li>
+     * <li>Caller sends request. See about format of request body above</li>
+     * <li>Response contains only files for which the md5sum does not match. Comma-separated list of names of removed files is added in
+     * response header: <i>x-removed-paths</i></li>
+     * <li>If there is no any updates this method return response with status: 204 No Content</li>
+     * <li>Depending to the response caller updates his local copy of this folder</li>
+     * </ol>
+     *
+     * @param folderId
+     *         folder for ZIP
+     * @param in
+     *         stream, see above about its format
+     * @return ZIP as stream
+     * @throws ItemNotFoundException
+     *         if <code>folderId</code> does not exist
+     * @throws InvalidArgumentException
+     *         if <code>folderId</code> item is not a folder or project
+     * @throws PermissionDeniedException
+     *         if user which perform operation has no permissions to do it
+     * @throws IOException
+     *         if any i/o errors occur
+     * @throws VirtualFileSystemException
+     *         if any other errors occur
+     */
+    @POST
+    @Path("export")
+    @Produces({"application/zip"})
+    @Consumes({"text/plain"})
+    Response exportZip(String folderId, InputStream in) throws ItemNotFoundException, InvalidArgumentException,
+                                                            PermissionDeniedException, IOException, VirtualFileSystemException;
+
+    /**
      * Import ZIP content.
      *
      * @param parentId
@@ -919,8 +968,7 @@ public interface VirtualFileSystem {
                                                                               IOException, VirtualFileSystemException;
 
     /**
-     * Download binary content of File. Response must contains 'Content-Disposition' header to force web browser save
-     * file.
+     * Download binary content of File. Response must contains 'Content-Disposition' header to force web browser saves file.
      *
      * @param id
      *         id of File
@@ -940,8 +988,7 @@ public interface VirtualFileSystem {
                                             VirtualFileSystemException;
 
     /**
-     * Upload content of file. Content of file is part of 'multipart/form-data request', e.g. content sent from HTML
-     * form.
+     * Upload content of file. Content of file is part of 'multipart/form-data request', e.g. content sent from HTML form.
      *
      * @param parentId
      *         id of parent for new File
@@ -979,8 +1026,8 @@ public interface VirtualFileSystem {
                                                                                        IOException;
 
     /**
-     * Download content of <code>folderId</code> as ZIP archive. Response must contains 'Content-Disposition' header to
-     * force web browser save file.
+     * Download content of <code>folderId</code> as ZIP archive. Response must contains 'Content-Disposition' header to force web browser
+     * saves file.
      *
      * @param folderId
      *         folder for ZIP

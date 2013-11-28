@@ -42,7 +42,7 @@ public final class DownloadZipAttributeValueProviderFactory extends AttributeVal
             @Override
             public List<String> getValues() {
                 final List<String> list = new ArrayList<>(1);
-                list.add(project.getLinks().get(com.codenvy.api.vfs.shared.dto.Link.REL_DOWNLOAD_ZIP).getHref());
+                list.add(project.getLinks().get(com.codenvy.api.vfs.shared.dto.Link.REL_EXPORT).getHref());
                 return list;
             }
 

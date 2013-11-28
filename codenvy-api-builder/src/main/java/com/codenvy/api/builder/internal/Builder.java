@@ -25,7 +25,7 @@ import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.config.SingletonConfiguration;
-import com.codenvy.api.core.rest.DownloadPlugin;
+import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.rest.FileAdapter;
 import com.codenvy.api.core.rest.RemoteContent;
 import com.codenvy.api.core.rest.ServiceContext;

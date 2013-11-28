@@ -22,6 +22,8 @@ import com.codenvy.commons.json.JsonHelper;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +48,7 @@ public final class DependencyCollector {
     }
 
     public void writeJson(java.io.File jsonFile) throws IOException {
-        try (Writer writer = new FileWriter(jsonFile)) {
+        try (Writer writer = Files.newBufferedWriter(jsonFile.toPath(), Charset.forName("UTF-8"))) {
             writeJson(writer);
         }
     }

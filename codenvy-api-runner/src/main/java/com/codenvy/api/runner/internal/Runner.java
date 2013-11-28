@@ -21,9 +21,8 @@ import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.config.SingletonConfiguration;
-import com.codenvy.api.core.rest.DownloadPlugin;
+import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.rest.RemoteContent;
-import com.codenvy.api.core.util.CustomPortService;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
 import com.codenvy.api.runner.RunnerException;
@@ -55,14 +54,9 @@ public abstract class Runner implements Lifecycle {
     public static final  String DEPLOY_DIRECTORY   = "runner.deploy_directory";
     public static final  String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
 
-    private static final String MIN_PORT           = "runner.min_port";
-    private static final String MAX_PORT           = "runner.max_port";
-
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
     private java.io.File deployDirectory;
-
-    protected final CustomPortService portService;
 
     private final ExecutorService                executor;
     private final Map<Long, CachedRunnerProcess> processes;
@@ -76,7 +70,6 @@ public abstract class Runner implements Lifecycle {
     public Runner() {
         processes = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
-        portService = new CustomPortService();
         applicationDisposers = new HashMap<>();
         applicationDisposersLock = new Object();
         runningAppsCounter = new AtomicInteger(0);
@@ -111,7 +104,6 @@ public abstract class Runner implements Lifecycle {
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
-        portService.setRange(myConfiguration.getInt(MIN_PORT, 49152), myConfiguration.getInt(MAX_PORT, 65535));
         cleanupDelay = myConfiguration.getInt(CLEANUP_DELAY_TIME, 900); // 15 minutes
         started = true;
     }
@@ -188,7 +180,7 @@ public abstract class Runner implements Lifecycle {
         processes.put(id, new CachedRunnerProcess(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
-        final ResourceAllocators.ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
+        final ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
                                                                                        .newMemoryAllocator(mem)
                                                                                        .allocate();
         executor.execute(new Runnable() {

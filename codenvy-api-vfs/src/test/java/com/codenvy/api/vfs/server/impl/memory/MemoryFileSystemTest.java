@@ -505,14 +505,4 @@ public abstract class MemoryFileSystemTest extends TestCase {
                           .queryParam("skipCount", "[skipCount]").queryParam("propertyFilter", "[propertyFilter]").build().toString(),
                 template.getHref());
     }
-
-    static class Pair<A, B> {
-        final A a;
-        final B b;
-
-        Pair(A a, B b) {
-            this.a = a;
-            this.b = b;
-        }
-    }
 }

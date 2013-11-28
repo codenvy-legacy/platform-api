@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.vfs.server;
 
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.exceptions.HtmlErrorFormatter;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
@@ -61,14 +62,18 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -632,13 +637,120 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     @Path("export/{folderId}")
     @Override
-    public ContentStream
-    exportZip(@PathParam("folderId") String folderId) throws IOException, VirtualFileSystemException {
+    public ContentStream exportZip(@PathParam("folderId") String folderId) throws IOException, VirtualFileSystemException {
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
         if (!virtualFile.isFolder()) {
             throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
-        return virtualFile.zip();
+        return virtualFile.zip(VirtualFileFilter.ALL);
+    }
+
+    @Path("export/{folderId}")
+    @Override
+    public Response exportZip(@PathParam("folderId") String folderId, InputStream in) throws IOException, VirtualFileSystemException {
+        final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
+        if (!virtualFile.isFolder()) {
+            throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
+        }
+        final List<Pair<String, String>> remote = new ArrayList<>();
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String hash = line.substring(0, 32); // 32 is length of MD-5 hash sum
+            int startPath = 33;
+            int l = line.length();
+            while (startPath < l && Character.isWhitespace(line.charAt(startPath))) {
+                startPath++;
+            }
+            String relPath = line.substring(startPath);
+            remote.add(Pair.of(hash, relPath));
+        }
+        if (remote.isEmpty()) {
+            final ContentStream zip = virtualFile.zip(VirtualFileFilter.ALL);
+            return Response
+                    .ok(zip.getStream(), zip.getMimeType())
+                    .lastModified(zip.getLastModificationDate())
+                    .header(HttpHeaders.CONTENT_LENGTH, Long.toString(zip.getLength()))
+                    .header("Content-Disposition", "attachment; filename=\"" + zip.getFileName() + '"')
+                    .build();
+        }
+        final LazyIterator<Pair<String, String>> md5Sums = virtualFile.countMd5Sums();
+        final int size = md5Sums.size();
+        final List<Pair<String, String>> local =
+                size > 0 ? new ArrayList<Pair<String, String>>(size) : new ArrayList<Pair<String, String>>();
+        while (md5Sums.hasNext()) {
+            local.add(md5Sums.next());
+        }
+        final Comparator<Pair<String, String>> comp = new Comparator<Pair<String, String>>() {
+            @Override
+            public int compare(Pair<String, String> o1, Pair<String, String> o2) {
+                return o1.second.compareTo(o2.second);
+            }
+        };
+        Collections.sort(remote, comp);
+        Collections.sort(local, comp);
+        int remoteIndex = 0;
+        int localIndex = 0;
+        final List<Pair<String, com.codenvy.api.vfs.server.Path>> diff = new LinkedList<>();
+        while (remoteIndex < remote.size() && localIndex < local.size()) {
+            final Pair<String, String> remoteItem = remote.get(remoteIndex);
+            final Pair<String, String> localItem = local.get(localIndex);
+            // compare path
+            int r = remoteItem.second.compareTo(localItem.second);
+            if (r == 0) {
+                // remote and local file exist, compare md5sum
+                if (!remoteItem.first.equals(localItem.first)) {
+                    diff.add(Pair.of(remoteItem.second, virtualFile.getVirtualFilePath().newPath(localItem.second)));
+                }
+                remoteIndex++;
+                localIndex++;
+            } else if (r > 0) {
+                // new file
+                diff.add(Pair.of((String)null, virtualFile.getVirtualFilePath().newPath(localItem.second)));
+                localIndex++;
+            } else {
+                // deleted file
+                diff.add(Pair.of(remoteItem.second, (com.codenvy.api.vfs.server.Path)null));
+                remoteIndex++;
+            }
+        }
+        while (remoteIndex < remote.size()) {
+            diff.add(Pair.of(remote.get(remoteIndex++).second, (com.codenvy.api.vfs.server.Path)null));
+        }
+        while (localIndex < local.size()) {
+            diff.add(Pair.of((String)null, virtualFile.getVirtualFilePath().newPath(local.get(localIndex++).second)));
+        }
+
+        final ContentStream zip = virtualFile.zip(new VirtualFileFilter() {
+            @Override
+            public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+                for (Pair<String, com.codenvy.api.vfs.server.Path> pair : diff) {
+                    if (pair.second != null
+                        && (pair.second.equals(file.getVirtualFilePath()) || pair.second.isChild(file.getVirtualFilePath()))) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+        final StringBuilder deleted = new StringBuilder();
+        for (Pair<String, com.codenvy.api.vfs.server.Path> pair : diff) {
+            if (pair.first != null && pair.second == null) {
+                if (deleted.length() > 0) {
+                    deleted.append(',');
+                }
+                deleted.append(pair.first);
+            }
+        }
+        final Response.ResponseBuilder responseBuilder = Response
+                .ok(zip.getStream(), zip.getMimeType())
+                .lastModified(zip.getLastModificationDate())
+                .header(HttpHeaders.CONTENT_LENGTH, Long.toString(zip.getLength()))
+                .header("Content-Disposition", "attachment; filename=\"" + zip.getFileName() + '"');
+        if (deleted.length() > 0) {
+            responseBuilder.header("x-removed-paths", deleted.toString());
+        }
+        return  responseBuilder.build();
     }
 
     @Path("import/{parentId}")

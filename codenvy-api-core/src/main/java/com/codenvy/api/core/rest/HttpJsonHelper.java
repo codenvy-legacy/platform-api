@@ -20,12 +20,15 @@ package com.codenvy.api.core.rest;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
-import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.io.CharStreams;
+import com.google.common.io.InputSupplier;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -116,7 +119,13 @@ public class HttpJsonHelper {
                 if (in == null) {
                     in = conn.getInputStream();
                 }
-                final String str = IoUtil.readAndCloseQuietly(in);
+                final InputStream fIn = in;
+                final String str = CharStreams.toString(new InputSupplier<Reader>() {
+                    @Override
+                    public Reader getInput() throws IOException {
+                        return new InputStreamReader(fIn);
+                    }
+                });
                 final String contentType = conn.getContentType();
                 if (contentType != null && contentType.startsWith("application/json")) {
                     final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);

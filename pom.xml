@@ -64,6 +64,8 @@
         <javax.ws.rs.version>1.0</javax.ws.rs.version>
         <junit.version>4.10</junit.version>
         <logback.version>1.0.0</logback.version>
+        <maven.releases.repo.url>https://maven.codenvycorp.com/content/repositories/codenvy-private-releases/</maven.releases.repo.url>
+        <maven.snapshots.repo.url>https://maven.codenvycorp.com/content/repositories/codenvy-private-snapshots/</maven.snapshots.repo.url>
         <mockito.version>1.9.5</mockito.version>
         <mockitong.version>0.3</mockitong.version>
         <org.exoplatform.core.version>2.4.9-GA</org.exoplatform.core.version>

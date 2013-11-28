@@ -53,8 +53,8 @@
             <version>0.9.9-RC1</version>
             <exclusions>
                 <exclusion>
-                    <groupId>dom4j</groupId>
                     <artifactId>dom4j</artifactId>
+                    <groupId>dom4j</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -67,6 +67,19 @@
     </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>pre-compile-test-sources</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -98,19 +111,6 @@
                                 <source>${generated.test.sources.directory}</source>
                             </sources>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>pre-compile-test-sources</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

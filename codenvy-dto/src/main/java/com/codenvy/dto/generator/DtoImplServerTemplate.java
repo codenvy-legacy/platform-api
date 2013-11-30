@@ -529,7 +529,12 @@ public class DtoImplServerTemplate extends DtoImpl {
                 // We special case RoutableDto's impl since it isnt generated.
                 builder.append(ROUTABLE_DTO_IMPL);
             } else {
-                builder.append(superType.getSimpleName()).append("Impl");
+                final Class<?> superTypeImpl = getEnclosingTemplate().getDtoImplementation(superType);
+                if (superTypeImpl == null) {
+                    builder.append(superType.getSimpleName()).append("Impl");
+                } else {
+                    builder.append(superTypeImpl.getCanonicalName());
+                }
             }
         }
         builder.append(" implements ");

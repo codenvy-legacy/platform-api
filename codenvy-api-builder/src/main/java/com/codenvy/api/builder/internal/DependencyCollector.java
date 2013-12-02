@@ -49,6 +49,6 @@ public final class DependencyCollector {
     }
 
     public void writeJson(Writer output) throws IOException {
-        DtoFactory.getInstance().toJson(dependencies);
+        output.write(DtoFactory.getInstance().toJson(dependencies));
     }
 }

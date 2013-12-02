@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,21 +15,22 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.util;
+package com.codenvy.api.builder.internal;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-//@javax.inject.Singleton
-public abstract class ShellFactory {
-    private static final ShellFactory INSTANCE = ComponentLoader.one(ShellFactory.class);
+import java.io.IOException;
 
-    public static ShellFactory getInstance() {
-        return INSTANCE;
-    }
+/**
+ * Manages build sources.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
+public interface SourcesManager {
+    /**
+     * Get build sources. Sources are copied to the directory {@code configuration.getWorkDir()}.
+     *
+     * @see BuilderConfiguration#getWorkDir()
+     */
+    void getSources(BuilderConfiguration configuration) throws IOException;
 
-    public abstract Shell getShell();
-
-    /** Creates command line to run system command from set of arguments. */
-    public static interface Shell {
-        String[] createShellCommand(CommandLine args);
-    }
+    java.io.File getDirectory();
 }

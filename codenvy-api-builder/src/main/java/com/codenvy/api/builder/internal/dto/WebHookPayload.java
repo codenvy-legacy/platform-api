@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,21 +15,26 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.util;
+package com.codenvy.api.builder.internal.dto;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-//@javax.inject.Singleton
-public abstract class ShellFactory {
-    private static final ShellFactory INSTANCE = ComponentLoader.one(ShellFactory.class);
+import com.codenvy.dto.shared.DTO;
 
-    public static ShellFactory getInstance() {
-        return INSTANCE;
-    }
+/**
+ * JSON representation of this instance is posted to remote URL when build is done.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
+@DTO
+public interface WebHookPayload {
+    boolean isSuccessful();
 
-    public abstract Shell getShell();
+    WebHookPayload withSuccessful(boolean b);
 
-    /** Creates command line to run system command from set of arguments. */
-    public static interface Shell {
-        String[] createShellCommand(CommandLine args);
-    }
+    void setSuccessful(boolean b);
+
+    String getUrl();
+
+    void setUrl(String url);
+
+    WebHookPayload withUrl(String url);
 }

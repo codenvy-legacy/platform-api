@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Enumeration;
 import java.util.Properties;
 
@@ -53,7 +54,7 @@ public class ConfigurationListener implements ServletContextListener {
             final java.io.File rootCfg = new java.io.File(serverRoot, "configuration.properties");
             if (rootCfg.exists()) {
                 final Properties rootProps = new Properties();
-                try (InputStream in = new FileInputStream(rootCfg)) {
+                try (InputStream in = Files.newInputStream(rootCfg.toPath())) {
                     rootProps.load(in);
                 } catch (IOException e) {
                     throw new IllegalStateException(e.getMessage(), e);

@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest;
+package com.codenvy.api.core.util;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,13 +23,17 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * DownloadPlugin that downloads single file.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public final class HttpDownloadPlugin implements DownloadPlugin {
     @Override
-    public void download(String downloadUri, java.io.File downloadTo, Callback callback) {
+    public void download(String downloadUrl, java.io.File downloadTo, Callback callback) {
         HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection)new URL(downloadUri).openConnection();
+            conn = (HttpURLConnection)new URL(downloadUrl).openConnection();
             conn.setConnectTimeout(30 * 1000);
             conn.setConnectTimeout(30 * 1000);
             final int responseCode = conn.getResponseCode();

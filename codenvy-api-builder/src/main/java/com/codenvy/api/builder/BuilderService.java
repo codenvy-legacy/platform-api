@@ -19,6 +19,7 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
+import com.codenvy.api.builder.internal.dto.WebHookPayload;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -111,5 +112,11 @@ public final class BuilderService extends Service {
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
         buildQueue.get(id).download(path, new HttpServletProxyResponse(httpServletResponse));
+    }
+
+    @POST
+    @Path("webhook")
+    public void webhook(WebHookPayload callback) throws Exception {
+        System.out.println("CALLBACK: " + callback); // TODO
     }
 }

@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.vfs.server;
 
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
@@ -59,6 +60,9 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      *         if an error occurs
      */
     String getPath() throws VirtualFileSystemException;
+
+    /** Get internal representation of path of item. */
+    Path getVirtualFilePath() throws VirtualFileSystemException;
 
     /**
      * Tests whether this VirtualFile exists.
@@ -307,13 +311,15 @@ public interface VirtualFile extends Comparable<VirtualFile> {
     /**
      * Get zipped content of folder denoted by this VirtualFile.
      *
+     * @param filter
+     *         filter of file. Only files that are matched to the filter are added in the zip archive
      * @return zipped content of folder denoted by this VirtualFile
      * @throws IOException
      *         if i/o error occurs
      * @throws VirtualFileSystemException
      *         if this VirtualFile does not denote a folder or other error occurs
      */
-    ContentStream zip() throws IOException, VirtualFileSystemException;
+    ContentStream zip(VirtualFileFilter filter) throws IOException, VirtualFileSystemException;
 
     /**
      * Import ZIP content to the folder denoted by this VirtualFile.
@@ -520,4 +526,20 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      *         if an error occurs
      */
     void accept(VirtualFileVisitor visitor) throws VirtualFileSystemException;
+
+    /**
+     * Traverse recursively all files in current folder and count md5sum for each file. Method returns
+     * <code>Pair&lt;String, String&gt;</code> for each file, all folders are omitted. Each <code>Pair</code> contains following structure:
+     * <pre>
+     *     Pair&lt;String,String&gt; pair = ...
+     *     pair.first // md5sum of file represented as HEX String
+     *     pair.second // Path of file that is relative to this file
+     * </pre>
+     * If this VirtualFile is not a folder this method returns empty iterator. Note: any order of items in the returned iterator is not
+     * guaranteed.
+     *
+     * @throws VirtualFileSystemException
+     *         if any error occurs
+     */
+    LazyIterator<Pair<String, String>> countMd5Sums() throws VirtualFileSystemException;
 }

@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
@@ -24,14 +25,20 @@ import com.codenvy.api.builder.internal.dto.BuilderList;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.InstanceState;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
-import com.codenvy.api.core.rest.FileAdapter;
+import com.codenvy.api.builder.internal.dto.WebHookPayload;
+import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.ContentTypeGuesser;
 import com.codenvy.api.core.util.SystemInfo;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.dto.server.DtoFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -56,6 +63,7 @@ import java.util.Set;
  */
 @Path("internal/builder")
 public final class SlaveBuilderService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(SlaveBuilderService.class);
 
     @Inject
     private BuilderRegistry builders;
@@ -103,7 +111,10 @@ public final class SlaveBuilderService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@Description("Parameters for build task in JSON format") BuildRequest request) throws Exception {
-        return getBuilder(request.getBuilder()).perform(request).getDescriptor(getServiceContext());
+        final String webHookUrl = request.getWebHookUrl();
+        final BuildTask task = getBuilder(request.getBuilder())
+                .perform(request, webHookUrl == null ? null : new WebHookCallback(webHookUrl, getServiceContext()));
+        return getDescriptor(task, getServiceContext());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
@@ -113,14 +124,18 @@ public final class SlaveBuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor dependencies(@Description("Parameters for analyze dependencies in JSON format") DependencyRequest request)
             throws Exception {
-        return getBuilder(request.getBuilder()).perform(request).getDescriptor(getServiceContext());
+        final String webHookUrl = request.getWebHookUrl();
+        final BuildTask task = getBuilder(request.getBuilder())
+                .perform(request, webHookUrl == null ? null : new WebHookCallback(webHookUrl, getServiceContext()));
+        return getDescriptor(task, getServiceContext());
     }
 
     @GET
     @Path("status/{builder}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor getStatus(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
-        return getBuilder(builder).getBuildTask(id).getDescriptor(getServiceContext());
+        final BuildTask task = getBuilder(builder).getBuildTask(id);
+        return getDescriptor(task, getServiceContext());
     }
 
     @GET
@@ -136,7 +151,7 @@ public final class SlaveBuilderService extends Service {
     public BuildTaskDescriptor cancel(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
         final BuildTask task = getBuilder(builder).getBuildTask(id);
         task.cancel();
-        return task.getDescriptor(getServiceContext());
+        return getDescriptor(task, getServiceContext());
     }
 
     @GET
@@ -146,48 +161,51 @@ public final class SlaveBuilderService extends Service {
                            @Required @QueryParam("path") String path) throws Exception {
         final Builder myBuilder = getBuilder(builder);
         final BuildTask task = myBuilder.getBuildTask(id);
-        final FileAdapter srcDir = task.getSources().getDirectory();
-        final FileAdapter target = srcDir.getChild(path);
+        final java.io.File workDir = task.getConfiguration().getWorkDir();
+        final java.io.File target = new java.io.File(workDir, path);
         if (target.isDirectory()) {
             final StringWriter buff = new StringWriter();
             buff.write("<div class='file-browser'>");
             final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
-            for (java.io.File file : target.getIoFile().listFiles()) {
-                final String name = file.getName();
-                buff.write("<div class='file-browser-item'>");
-                buff.write("<span class='file-browser-name'>");
-                buff.write(name);
-                buff.write("</span>");
-                buff.write("&nbsp;");
-                if (file.isFile()) {
-                    buff.write("<span class='file-browser-file-open'>");
-                    buff.write(String.format("<a target='_blank' href='%s'>open</a>",
-                                             serviceUriBuilder.clone().path(getClass(), "view")
-                                                              .replaceQueryParam("path", path + '/' + name)
-                                                              .build(task.getBuilder(), task.getId()).toString()));
+            final java.io.File[] list = target.listFiles();
+            if (list != null) {
+                for (java.io.File file : list) {
+                    final String name = file.getName();
+                    buff.write("<div class='file-browser-item'>");
+                    buff.write("<span class='file-browser-name'>");
+                    buff.write(name);
                     buff.write("</span>");
                     buff.write("&nbsp;");
-                    buff.write("<span class='file-browser-file-download'>");
-                    buff.write(String.format("<a href='%s'>download</a>",
-                                             serviceUriBuilder.clone().path(getClass(), "download")
-                                                              .replaceQueryParam("path", path + '/' + name)
-                                                              .build(task.getBuilder(), task.getId()).toString()));
-                    buff.write("</span>");
-                } else if (file.isDirectory()) {
-                    buff.write("<span class='file-browser-directory-open'>");
-                    buff.write(String.format("<a href='%s'>open</a>",
-                                             serviceUriBuilder.clone().path(getClass(), "browse")
-                                                              .replaceQueryParam("path", path + '/' + name)
-                                                              .build(task.getBuilder(), task.getId()).toString()));
-                    buff.write("</span>");
-                    buff.write("&nbsp;");
+                    if (file.isFile()) {
+                        buff.write("<span class='file-browser-file-open'>");
+                        buff.write(String.format("<a target='_blank' href='%s'>open</a>",
+                                                 serviceUriBuilder.clone().path(getClass(), "view")
+                                                                  .replaceQueryParam("path", path + '/' + name)
+                                                                  .build(task.getBuilder(), task.getId()).toString()));
+                        buff.write("</span>");
+                        buff.write("&nbsp;");
+                        buff.write("<span class='file-browser-file-download'>");
+                        buff.write(String.format("<a href='%s'>download</a>",
+                                                 serviceUriBuilder.clone().path(getClass(), "download")
+                                                                  .replaceQueryParam("path", path + '/' + name)
+                                                                  .build(task.getBuilder(), task.getId()).toString()));
+                        buff.write("</span>");
+                    } else if (file.isDirectory()) {
+                        buff.write("<span class='file-browser-directory-open'>");
+                        buff.write(String.format("<a href='%s'>open</a>",
+                                                 serviceUriBuilder.clone().path(getClass(), "browse")
+                                                                  .replaceQueryParam("path", path + '/' + name)
+                                                                  .build(task.getBuilder(), task.getId()).toString()));
+                        buff.write("</span>");
+                        buff.write("&nbsp;");
+                    }
+                    buff.write("</div>");
                 }
-                buff.write("</div>");
             }
             buff.write("</div>");
             return Response.status(200).entity(buff.toString()).type(MediaType.TEXT_HTML).build();
         }
-        throw new InvalidArgumentException(String.format("%s does not exist or is not a folder", path));
+        throw new BuilderException(String.format("%s does not exist or is not a folder", path));
     }
 
     @GET
@@ -195,16 +213,16 @@ public final class SlaveBuilderService extends Service {
     public Response download(@PathParam("builder") String builder,
                              @PathParam("id") Long id,
                              @Required @QueryParam("path") String path) throws Exception {
-        final FileAdapter srcDir = getBuilder(builder).getBuildTask(id).getSources().getDirectory();
-        final FileAdapter target = srcDir.getChild(path);
+        final java.io.File workDir = getBuilder(builder).getBuildTask(id).getConfiguration().getWorkDir();
+        final java.io.File target = new java.io.File(workDir, path);
         if (target.isFile()) {
             return Response.status(200)
                            .header("Content-Disposition", String.format("attachment; filename=\"%s\"", target.getName()))
-                           .type(target.getContentType())
-                           .entity(target.getIoFile())
+                           .type(ContentTypeGuesser.guessContentType(target))
+                           .entity(target)
                            .build();
         }
-        throw new InvalidArgumentException(String.format("%s does not exist or is not a file", path));
+        throw new BuilderException(String.format("%s does not exist or is not a file", path));
     }
 
     @GET
@@ -212,12 +230,12 @@ public final class SlaveBuilderService extends Service {
     public Response view(@PathParam("builder") String builder,
                          @PathParam("id") Long id,
                          @Required @QueryParam("path") String path) throws Exception {
-        final FileAdapter srcDir = getBuilder(builder).getBuildTask(id).getSources().getDirectory();
-        final FileAdapter target = srcDir.getChild(path);
+        final java.io.File workDir = getBuilder(builder).getBuildTask(id).getConfiguration().getWorkDir();
+        final java.io.File target = new java.io.File(workDir, path);
         if (target.isFile()) {
-            return Response.status(200).type(target.getContentType()).entity(target.getIoFile()).build();
+            return Response.status(200).type(ContentTypeGuesser.guessContentType(target)).entity(target).build();
         }
-        throw new InvalidArgumentException(String.format("%s does not exist or is not a file", path));
+        throw new BuilderException(String.format("%s does not exist or is not a file", path));
     }
 
     private Builder getBuilder(String name) throws NoSuchBuilderException {
@@ -226,5 +244,110 @@ public final class SlaveBuilderService extends Service {
             throw new NoSuchBuilderException(name);
         }
         return myBuilder;
+    }
+
+    private BuildTaskDescriptor getDescriptor(BuildTask task, ServiceContext restfulRequestContext) throws BuilderException {
+        final String builder = task.getBuilder();
+        final Long taskId = task.getId();
+        final BuildResult result = task.getResult();
+        final java.nio.file.Path workDirPath = task.getConfiguration().getWorkDir().toPath();
+        final BuildStatus status = task.isDone()
+                                   ? (task.isCancelled() ? BuildStatus.CANCELLED
+                                                         : (result.isSuccessful() ? BuildStatus.SUCCESSFUL : BuildStatus.FAILED))
+                                   : (task.isStarted() ? BuildStatus.IN_PROGRESS : BuildStatus.IN_QUEUE);
+        final List<Link> links = new ArrayList<>();
+        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withRel(Constants.LINK_REL_GET_STATUS)
+                            .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getStatus")
+                                                        .build(builder, taskId).toString())
+                            .withMethod("GET")
+                            .withProduces(MediaType.APPLICATION_JSON));
+
+        if (status == BuildStatus.IN_QUEUE || status == BuildStatus.IN_PROGRESS) {
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withRel(Constants.LINK_REL_CANCEL)
+                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "cancel")
+                                                            .build(builder, taskId).toString())
+                                .withMethod("POST")
+                                .withProduces(MediaType.APPLICATION_JSON));
+        }
+
+        if (status != BuildStatus.IN_QUEUE) {
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withRel(Constants.LINK_REL_VIEW_LOG)
+                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getLogs")
+                                                            .build(builder, taskId).toString())
+                                .withMethod("GET")
+                                .withProduces(task.getBuildLogger().getContentType()));
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withRel(Constants.LINK_REL_BROWSE)
+                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/")
+                                                            .build(builder, taskId).toString())
+                                .withMethod("GET")
+                                .withProduces(MediaType.TEXT_HTML));
+        }
+
+        if (status == BuildStatus.SUCCESSFUL) {
+            for (java.io.File ru : result.getResults()) {
+                links.add(DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_DOWNLOAD_RESULT)
+                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "download")
+                                                                .queryParam("path", workDirPath.relativize(ru.toPath()))
+                                                                .build(builder, taskId).toString())
+                                    .withMethod("GET").withProduces(ContentTypeGuesser.guessContentType(ru)));
+            }
+        }
+
+        if ((status == BuildStatus.SUCCESSFUL || status == BuildStatus.FAILED) && result.hasBuildReport()) {
+            final java.io.File br = result.getBuildReport();
+            if (br.isDirectory()) {
+                links.add(DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_VIEW_REPORT)
+                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse")
+                                                                .queryParam("path", workDirPath.relativize(br.toPath()))
+                                                                .build(builder, taskId).toString())
+                                    .withMethod("GET")
+                                    .withProduces(MediaType.TEXT_HTML));
+            } else {
+                links.add(DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_VIEW_REPORT)
+                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "view")
+                                                                .queryParam("path", workDirPath.relativize(br.toPath()))
+                                                                .build(builder, taskId).toString())
+                                    .withMethod("GET")
+                                    .withProduces(ContentTypeGuesser.guessContentType(br)));
+            }
+        }
+
+        return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
+                         .withTaskId(taskId)
+                         .withStatus(status)
+                         .withLinks(links)
+                         .withStartTime(task.getStartTime());
+    }
+
+    private static class WebHookCallback implements BuildTask.Callback {
+        final String         url;
+        final ServiceContext serviceContext;
+
+        WebHookCallback(String url, ServiceContext serviceContext) {
+            this.url = url;
+            this.serviceContext = serviceContext;
+        }
+
+        @Override
+        public void done(BuildTask task) {
+            try {
+                final String getStatus = serviceContext.getServiceUriBuilder().path(SlaveBuilderService.class, "getStatus")
+                                                       .build(task.getBuilder(), task.getId()).toString();
+                final WebHookPayload payload = DtoFactory.getInstance().createDto(WebHookPayload.class)
+                                                         .withSuccessful(task.getResult().isSuccessful())
+                                                         .withUrl(getStatus);
+                HttpJsonHelper.post(null, url, payload);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
     }
 }

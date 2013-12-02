@@ -21,12 +21,12 @@ import com.codenvy.api.builder.internal.BuildListener;
 import com.codenvy.api.builder.internal.BuildLogger;
 import com.codenvy.api.builder.internal.BuildResult;
 import com.codenvy.api.builder.internal.BuildTask;
-import com.codenvy.api.builder.internal.BuildTaskConfiguration;
 import com.codenvy.api.builder.internal.Builder;
+import com.codenvy.api.builder.internal.BuilderConfiguration;
 import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.DelegateBuildLogger;
+import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.core.rest.RemoteContent;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
@@ -61,17 +61,28 @@ public class BuilderTest {
         }
 
         @Override
-        protected CommandLine createCommandLine(BuildTaskConfiguration config) {
+        protected CommandLine createCommandLine(BuilderConfiguration config) {
             return new CommandLine("echo", "test"); // display line of text
         }
 
         @Override
-        protected BuildLogger createBuildLogger(BuildTaskConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
+        protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
             return logger = new MyDelegateBuildLogger(super.createBuildLogger(buildConfiguration, logFile));
         }
 
         @Override
-        protected void downloadSources(RemoteContent sources) {
+        public SourcesManager getSourcesManager() {
+            return new SourcesManager() {
+                @Override
+                public void getSources(BuilderConfiguration configuration) throws IOException {
+                    // Don't need for current set of tests.
+                }
+
+                @Override
+                public java.io.File getDirectory() {
+                    return getSourcesDirectory();
+                }
+            };
         }
     }
 
@@ -123,17 +134,24 @@ public class BuilderTest {
         return root;
     }
 
-    @Test
+        @Test
     public void testRunTask() throws Exception {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
-        final BuildTask task = builder.perform(buildRequest);
+        final boolean[] b = new boolean[]{false};
+        final BuildTask task = builder.perform(buildRequest, new BuildTask.Callback() {
+            @Override
+            public void done(BuildTask task) {
+                b[0] = true;
+            }
+        });
         waitForTask(task);
+        Assert.assertTrue(b[0], "callback error");
         Assert.assertEquals(builder.logger.getLogsAsString(), "test");
     }
 
-    @Test
+        @Test
     public void testBuildListener() throws Exception {
         final boolean[] beginFlag = new boolean[]{false};
         final boolean[] endFlag = new boolean[]{false};
@@ -152,7 +170,7 @@ public class BuilderTest {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
-        final BuildTask task = builder.perform(buildRequest);
+        final BuildTask task = builder.perform(buildRequest, null);
         waitForTask(task);
         Assert.assertTrue(beginFlag[0]);
         Assert.assertTrue(endFlag[0]);

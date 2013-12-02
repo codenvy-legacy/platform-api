@@ -15,55 +15,57 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal;
+package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.runner.internal.dto.RunRequest;
+import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.dto.server.DtoFactory;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class RunnerConfiguration {
-    private final int memory;
-    /** Application port. */
-    private final int port;
-    private final int debugPort;
-    private final RunRequest request;
+/**
+ * Builder configuration for particular build process.
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
+public class BuilderConfiguration {
+    private final java.io.File       workDir;
+    private final BuilderTaskType    taskType;
+    private final BaseBuilderRequest request;
 
-    public RunnerConfiguration(int memory, int port, int debugPort, RunRequest request) {
-        this.memory = memory;
-        this.port = port;
-        this.debugPort = debugPort;
+    public BuilderConfiguration(java.io.File workDir, BuilderTaskType taskType, BaseBuilderRequest request) {
+        this.workDir = workDir;
+        this.taskType = taskType;
         this.request = request;
     }
 
-    public int getMemory() {
-        return memory;
+    public java.io.File getWorkDir() {
+        return workDir;
     }
 
-    public int getPort() {
-        return port;
+    public BuilderTaskType getTaskType() {
+        return taskType;
     }
 
-    public int getDebugPort() {
-        return debugPort;
+    public List<String> getTargets() {
+        return new ArrayList<>(request.getTargets());
     }
 
     public Map<String, String> getOptions() {
         return new LinkedHashMap<>(request.getOptions());
     }
 
-    public RunRequest getRequest() {
+    public BaseBuilderRequest getRequest() {
         return DtoFactory.getInstance().clone(request);
     }
 
     @Override
     public String toString() {
-        return "RunnerConfiguration{" +
-               "memory=" + memory +
-               ", port=" + port +
-               ", debugPort=" + debugPort +
+        return "BuilderConfiguration{" +
+               "workDir=" + workDir +
+               ", taskType=" + taskType +
                ", request=" + request +
                '}';
     }

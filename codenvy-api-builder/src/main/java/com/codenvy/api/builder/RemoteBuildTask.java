@@ -93,7 +93,7 @@ public class RemoteBuildTask {
                 case SUCCESSFUL:
                 case FAILED:
                 case CANCELLED:
-                    LOG.info("Can't cancel build, status is {}", holder.get().getStatus()); // TODO: debug
+                    LOG.debug("Can't cancel build, status is {}", holder.get().getStatus());
                     return holder.get();
                 default:
                     throw new BuilderException("Can't cancel task. Cancellation link is not available");

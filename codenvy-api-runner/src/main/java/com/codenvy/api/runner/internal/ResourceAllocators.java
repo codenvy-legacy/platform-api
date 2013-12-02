@@ -24,8 +24,24 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Semaphore;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Allocator for resources.
+ * Usage (memory allocation as example):
+ * <pre>
+ *     int mem = ...
+ *     ResourceAllocator memAllocator = ResourceAllocators.getInstance().newMemoryAllocator(mem).allocate();
+ *     try {
+ *         // do something
+ *     } finally {
+ *         memAllocator.release();
+ *     }
+ * </pre>
+ *
+ * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ */
+//@javax.inject.Singleton
 public class ResourceAllocators {
+    /** Name of configuration parameter that sets amount of memory (in megabytes) for running application. */
     public static final String TOTAL_APPS_MEM_SIZE = "runner.total_apps_mem_size_mb";
 
     private static final Logger LOG = LoggerFactory.getLogger(ResourceAllocators.class);
@@ -49,27 +65,51 @@ public class ResourceAllocators {
         memSemaphore = new Semaphore(memSize);
     }
 
+    /**
+     * Create new memory allocator. Returned instance doesn't manage memory directly or indirectly it just remembers size of requested
+     * memory and prevents getting more amount of memory than it is set in configuration. To 'allocate' memory caller must call method
+     * {@link ResourceAllocator#allocate()}. It is important to call method {@link
+     * ResourceAllocator#release()} to release allocated memory. Typically this should be done after stopping of
+     * application.
+     *
+     * @param size
+     *         memory size in megabytes
+     * @return memory allocator
+     * @see #freeMemory()
+     * @see #totalMemory()
+     * @see #TOTAL_APPS_MEM_SIZE
+     */
     public ResourceAllocator newMemoryAllocator(int size) {
         return new MemoryAllocator(size);
     }
 
-
+    /**
+     * Returns amount of 'free' memory in megabytes. The returned value is not related to amount of free memory in the Java virtual
+     * machine or free physical memory. It shows how much memory is available for <b>all</b> Runners for starting new applications.
+     *
+     * @return amount of 'free' memory in megabytes
+     * @see #totalMemory()
+     * @see #TOTAL_APPS_MEM_SIZE
+     */
     public int freeMemory() {
         return memSemaphore.availablePermits();
     }
 
+    /**
+     * Returns 'total' amount of memory in megabytes. The returned value is not related to amount of memory in the Java virtual machine or
+     * total physical memory. It shows how much memory is defined for <b>all</b> Runners for starting applications.
+     *
+     * @return amount of 'total' memory in megabytes
+     * @see #freeMemory()
+     * @see #TOTAL_APPS_MEM_SIZE
+     */
     public int totalMemory() {
         return memSize;
     }
 
-    //
+    /* ===== INTERNAL STUFF ===== */
 
-    public static interface ResourceAllocator {
-        ResourceAllocator allocate() throws AllocateResourceException;
-
-        void release();
-    }
-
+    /** Manages memory available for running applications. */
     private class MemoryAllocator implements ResourceAllocator {
         final int size;
 

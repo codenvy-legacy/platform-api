@@ -222,6 +222,7 @@ public class BuildQueue implements Lifecycle {
                                                              .withProject(project);
         addRequestParameters(attributes, request);
         request.setTimeout(getBuildTimeout(request));
+        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace).toString());
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
@@ -268,6 +269,7 @@ public class BuildQueue implements Lifecycle {
                                                                        .withProject(project);
         addRequestParameters(attributes, request);
         request.setTimeout(getBuildTimeout(request));
+        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace).toString());
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
@@ -420,6 +422,10 @@ public class BuildQueue implements Lifecycle {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
+                    try {
+                        Thread.sleep(5000); // TODO: fix this, add this to give couple of time for starting servlet container
+                    } catch (InterruptedException ignored) {
+                    }
                     try {
                         for (BuilderServiceRegistration registration : DtoFactory.getInstance().createListDtoFromJson(regConf,
                                                                                                                       BuilderServiceRegistration.class)) {

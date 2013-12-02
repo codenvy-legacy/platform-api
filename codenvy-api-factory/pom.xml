@@ -23,17 +23,12 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.3.1-SNAPSHOT</version>
+        <version>0.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-factory</artifactId>
     <packaging>jar</packaging>
     <name>Codenvy Platform API ::Factory</name>
     <dependencies>
-        <dependency>
-            <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-analytics</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-json</artifactId>
@@ -50,6 +45,11 @@
             <version>${codenvy.organization.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-api-analytics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>${javax.servlet-api.version}</version>
@@ -62,6 +62,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.everrest</groupId>
             <artifactId>everrest-assured</artifactId>
             <version>${everrest.assured.version}</version>
@@ -71,12 +77,6 @@
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-core</artifactId>
             <version>${hamcrest.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- Mock testing -->

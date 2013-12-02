@@ -18,13 +18,15 @@
 package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.dto.Dependency;
-import com.codenvy.api.builder.dto.DependencyList;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.dto.server.JsonArrayImpl;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Collects dependencies of project and writes it in JSON format.
@@ -32,14 +34,14 @@ import java.nio.file.Files;
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
 public final class DependencyCollector {
-    private final DependencyList dependencies;
+    private final List<Dependency> dependencies;
 
     public DependencyCollector() {
-        dependencies = DtoFactory.getInstance().createDto(DependencyList.class);
+        dependencies = new ArrayList<>();
     }
 
     public void addDependency(Dependency dependency) {
-        dependencies.getDependencies().add(dependency);
+        dependencies.add(dependency);
     }
 
     public void writeJson(java.io.File jsonFile) throws IOException {
@@ -49,6 +51,7 @@ public final class DependencyCollector {
     }
 
     public void writeJson(Writer output) throws IOException {
-        output.write(DtoFactory.getInstance().toJson(dependencies));
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        output.write(dtoFactory.toJson(new JsonArrayImpl<>(dependencies)));
     }
 }

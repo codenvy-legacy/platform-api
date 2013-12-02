@@ -17,9 +17,6 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.core.rest.RemoteContent;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.util.CommandLine;
 
 /**
@@ -56,13 +53,6 @@ public interface BuildTask {
      * @return name of builder which owns this task
      */
     String getBuilder();
-
-    /**
-     * Get source directory.
-     *
-     * @return source directory
-     */
-    RemoteContent getSources();
 
     /**
      * Get build logger.
@@ -130,22 +120,9 @@ public interface BuildTask {
     BuildResult getResult() throws BuilderException;
 
     /**
-     * Get descriptor of this task.
-     *
-     * @param restfulRequestContext
-     *         context of RESTful service through which this method is called
-     * @return BuildTaskDescriptor
-     * @throws BuilderException
-     *         if an error occurs when try to get status of build process
-     * @see com.codenvy.api.builder.dto.BuildTaskDescriptor#getLinks()
-     * @see com.codenvy.api.core.rest.shared.dto.Link
-     */
-    BuildTaskDescriptor getDescriptor(ServiceContext restfulRequestContext) throws BuilderException;
-
-    /**
      * Get configuration of this task.
      *
      * @return configuration of this task
      */
-    BuildTaskConfiguration getConfiguration();
+    BuilderConfiguration getConfiguration();
 }

@@ -22,7 +22,7 @@ import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.util.DownloadPlugin;
-import com.codenvy.api.core.rest.RemoteContent;
+import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
 import com.codenvy.api.runner.RunnerException;
@@ -51,8 +51,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Runner implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
-    public static final  String DEPLOY_DIRECTORY   = "runner.deploy_directory";
-    public static final  String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
+    public static final String DEPLOY_DIRECTORY   = "runner.deploy_directory";
+    public static final String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
@@ -63,6 +63,7 @@ public abstract class Runner implements Lifecycle {
     private final Map<Long, List<Disposer>>      applicationDisposers;
     private final Object                         applicationDisposersLock;
     private final AtomicInteger                  runningAppsCounter;
+    private final DownloadPlugin                 downloadPlugin;
 
     private int     cleanupDelay;
     private boolean started;
@@ -73,6 +74,7 @@ public abstract class Runner implements Lifecycle {
         applicationDisposers = new HashMap<>();
         applicationDisposersLock = new Object();
         runningAppsCounter = new AtomicInteger(0);
+        downloadPlugin = new HttpDownloadPlugin();
     }
 
     public abstract String getName();
@@ -173,7 +175,6 @@ public abstract class Runner implements Lifecycle {
         // TODO: cleanup
         final java.io.File downloadDir = Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
-        final RemoteContent remoteContent = RemoteContent.of(downloadDir, request.getDeploymentSourcesUrl());
         final Long id = processIdSequence.getAndIncrement();
         final RunnerProcessImpl process = new RunnerProcessImpl(id, getName(), runnerCfg);
         purgeExpiredProcesses();
@@ -181,13 +182,14 @@ public abstract class Runner implements Lifecycle {
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
-                                                                                       .newMemoryAllocator(mem)
-                                                                                       .allocate();
+                                                                    .newMemoryAllocator(mem)
+                                                                    .allocate();
         executor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    final ApplicationProcess realProcess = newApplicationProcess(downloadApplication(remoteContent), runnerCfg);
+                    final ApplicationProcess realProcess =
+                            newApplicationProcess(downloadApplication(downloadDir, request.getDeploymentSourcesUrl()), runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
                     watcher.start(process);
@@ -208,10 +210,10 @@ public abstract class Runner implements Lifecycle {
         return process;
     }
 
-    protected DeploymentSources downloadApplication(RemoteContent sources) throws RunnerException {
+    protected DeploymentSources downloadApplication(java.io.File downloadTo, String url) throws RunnerException {
         final IOException[] errorHolder = new IOException[1];
         final DeploymentSources[] resultHolder = new DeploymentSources[1];
-        sources.download(new DownloadPlugin.Callback() {
+        downloadPlugin.download(url, downloadTo, new DownloadPlugin.Callback() {
             @Override
             public void done(java.io.File downloaded) {
                 resultHolder[0] = new DeploymentSources(downloaded);

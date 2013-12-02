@@ -17,15 +17,14 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.api.builder.dto.Dependency;
+import com.codenvy.api.builder.dto.DependencyList;
+import com.codenvy.dto.server.DtoFactory;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Collects dependencies of project and writes it in JSON format.
@@ -33,18 +32,14 @@ import java.util.List;
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
 public final class DependencyCollector {
-    private final List<Dependency> dependencies;
+    private final DependencyList dependencies;
 
     public DependencyCollector() {
-        dependencies = new ArrayList<>();
+        dependencies = DtoFactory.getInstance().createDto(DependencyList.class);
     }
 
     public void addDependency(Dependency dependency) {
-        dependencies.add(dependency);
-    }
-
-    public Dependency[] getDependencies() {
-        return dependencies.toArray(new Dependency[dependencies.size()]);
+        dependencies.getDependencies().add(dependency);
     }
 
     public void writeJson(java.io.File jsonFile) throws IOException {
@@ -54,54 +49,6 @@ public final class DependencyCollector {
     }
 
     public void writeJson(Writer output) throws IOException {
-        output.write(JsonHelper.toJson(dependencies));
-    }
-
-    /**
-     * Describes one dependency of project.
-     *
-     * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
-     */
-    public static class Dependency {
-        /**
-         * Full name of project dependency. Typically name should provide information about name of library including a version number.
-         * Different build system may sub-classes of this class to provide more details about dependency.
-         */
-        private String fullName;
-
-        public Dependency(String fullName) {
-            this.fullName = fullName;
-        }
-
-        public Dependency() {
-        }
-
-        /**
-         * get name of project dependency.
-         *
-         * @return name of project dependency
-         * @see #fullName
-         */
-        public String getFullName() {
-            return fullName;
-        }
-
-        /**
-         * Set name of project dependency.
-         *
-         * @param fullName
-         *         name of project dependency
-         * @see #fullName
-         */
-        public void setFullName(String fullName) {
-            this.fullName = fullName;
-        }
-
-        @Override
-        public String toString() {
-            return "Dependency{" +
-                   "fullName='" + fullName + '\'' +
-                   '}';
-        }
+        DtoFactory.getInstance().toJson(dependencies);
     }
 }

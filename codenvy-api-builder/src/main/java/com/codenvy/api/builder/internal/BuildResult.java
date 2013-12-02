@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.core.rest.FileAdapter;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,10 +28,10 @@ import java.util.List;
 public class BuildResult {
     private final boolean success;
 
-    private List<FileAdapter> artifacts;
-    private FileAdapter       report;
+    private List<java.io.File> artifacts;
+    private java.io.File       report;
 
-    public BuildResult(boolean success, List<FileAdapter> artifacts, FileAdapter report) {
+    public BuildResult(boolean success, List<java.io.File> artifacts, java.io.File report) {
         this.success = success;
         if (artifacts != null) {
             this.artifacts = new ArrayList<>(artifacts);
@@ -43,11 +41,11 @@ public class BuildResult {
         this.report = report;
     }
 
-    public BuildResult(boolean success, List<FileAdapter> artifacts) {
+    public BuildResult(boolean success, List<java.io.File> artifacts) {
         this(success, artifacts, null);
     }
 
-    public BuildResult(boolean success, FileAdapter report) {
+    public BuildResult(boolean success, java.io.File report) {
         this(success, null, report);
     }
 
@@ -65,7 +63,7 @@ public class BuildResult {
     }
 
     /** Build artifacts or {@code null} if build failed or there is no any result of build process. */
-    public List<FileAdapter> getResultUnits() {
+    public List<java.io.File> getResults() {
         if (artifacts == null) {
             artifacts = new ArrayList<>();
         }
@@ -88,11 +86,11 @@ public class BuildResult {
      *
      * @return report about build or {@code null}
      */
-    public FileAdapter getBuildReport() {
+    public java.io.File getBuildReport() {
         return report;
     }
 
-    public void setBuildReport(FileAdapter report) {
+    public void setBuildReport(java.io.File report) {
         this.report = report;
     }
 }

@@ -95,4 +95,11 @@ public interface BaseBuilderRequest {
     BaseBuilderRequest withProject(String project);
 
     void setProject(String project);
+
+    /** URL that will be notified when build is done: successfully, failed or cancelled. */
+    String getWebHookUrl();
+
+    BaseBuilderRequest withWebHookUrl(String webHookUrl);
+
+    void setWebHookUrl(String webHookUrl);
 }

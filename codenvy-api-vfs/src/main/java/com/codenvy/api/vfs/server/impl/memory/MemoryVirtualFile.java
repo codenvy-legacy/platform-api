@@ -17,34 +17,15 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.util.ContentTypeGuesser;
 import com.codenvy.api.core.util.Pair;
-import com.codenvy.api.vfs.server.ContentStream;
-import com.codenvy.api.vfs.server.LazyIterator;
-import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.Path;
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileFilter;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
-import com.codenvy.api.vfs.server.VirtualFileVisitor;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
-import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
-import com.codenvy.api.vfs.server.exceptions.LockException;
-import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
-import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
+import com.codenvy.api.vfs.server.*;
+import com.codenvy.api.vfs.server.exceptions.*;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
-import com.codenvy.api.vfs.server.util.MediaTypes;
 import com.codenvy.api.vfs.server.util.NotClosableInputStream;
 import com.codenvy.api.vfs.server.util.ZipContent;
 import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
-import com.codenvy.api.vfs.shared.dto.Folder;
-import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Project;
-import com.codenvy.api.vfs.shared.dto.Property;
-import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.*;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NameGenerator;
@@ -57,22 +38,9 @@ import com.google.common.io.InputSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.*;
+import java.io.File;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -250,7 +218,7 @@ public class MemoryVirtualFile implements VirtualFile {
         checkExist();
         String mediaType = getPropertyValue("vfs:mimeType");
         if (mediaType == null) {
-            mediaType = isFile() ? MediaTypes.INSTANCE.getMediaType(getName()) : Folder.FOLDER_MIME_TYPE;
+            mediaType = isFile() ? ContentTypeGuesser.guessContentType(new File(getName())) : Folder.FOLDER_MIME_TYPE;
         }
         return mediaType;
     }
@@ -977,7 +945,7 @@ public class MemoryVirtualFile implements VirtualFile {
                         mediaType = file.getPropertyValue("vfs:mimeType");
                         file.updateContent(mediaType, noCloseZip, null);
                     } else {
-                        mediaType = MediaTypes.INSTANCE.getMediaType(name);
+                        mediaType = ContentTypeGuesser.guessContentType(new File(name));
                         file = newFile((MemoryVirtualFile)current, name, noCloseZip, mediaType);
                         ((MemoryVirtualFile)current).addChild(file);
                         mountPoint.putItem((MemoryVirtualFile)file);

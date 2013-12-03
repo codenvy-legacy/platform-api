@@ -139,15 +139,8 @@ public class BuilderTest {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
-        final boolean[] b = new boolean[]{false};
-        final BuildTask task = builder.perform(buildRequest, new BuildTask.Callback() {
-            @Override
-            public void done(BuildTask task) {
-                b[0] = true;
-            }
-        });
+        final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
-        Assert.assertTrue(b[0], "callback error");
         Assert.assertEquals(builder.logger.getLogsAsString(), "test");
     }
 
@@ -170,7 +163,7 @@ public class BuilderTest {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
-        final BuildTask task = builder.perform(buildRequest, null);
+        final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
         Assert.assertTrue(beginFlag[0]);
         Assert.assertTrue(endFlag[0]);

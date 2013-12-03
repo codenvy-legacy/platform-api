@@ -48,6 +48,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.everrest</groupId>
+            <artifactId>everrest-websockets</artifactId>
+            <version>${everrest.version}</version>
+        </dependency>
+        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>${servlet-api.version}</version>

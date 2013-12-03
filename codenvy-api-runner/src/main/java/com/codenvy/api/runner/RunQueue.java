@@ -143,6 +143,8 @@ public class RunQueue implements Lifecycle {
                                                                            Pair.of("project", project));
         final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(createTaskFor(buildDescriptor, request));
         final RunQueueTask task = new RunQueueTask(request, future);
+        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(RunnerService.class, "webhook").build(workspace,
+                                                                                                               task.getId()).toString());
         purgeExpiredTasks();
         tasks.put(task.getId(), task);
         executor.execute(future);

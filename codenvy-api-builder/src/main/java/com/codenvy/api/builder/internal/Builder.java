@@ -23,6 +23,7 @@ import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.config.SingletonConfiguration;
+import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.api.core.util.ComponentLoader;
@@ -46,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -86,10 +88,10 @@ public abstract class Builder implements Lifecycle {
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
-    private final ConcurrentMap<Long, CachedBuildTask>   tasks;
-    private final ConcurrentLinkedQueue<CachedBuildTask> tasksFIFO;
-    private final ConcurrentLinkedQueue<java.io.File>    cleanerQueue;
-    private final Set<BuildListener>                     buildListeners;
+    private final ConcurrentMap<Long, BuildTaskEntry>   tasks;
+    private final ConcurrentLinkedQueue<BuildTaskEntry> tasksFIFO;
+    private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
+    private final Set<BuildListener>                    buildListeners;
 
     private int     queueSize;
     private int     cleanBuildResultDelay;
@@ -141,6 +143,10 @@ public abstract class Builder implements Lifecycle {
     protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws BuilderException;
 
     protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws BuilderException;
+
+    public ExecutorService getExecutor() {
+        return executor;
+    }
 
     protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
         try {
@@ -302,19 +308,18 @@ public abstract class Builder implements Lifecycle {
      *
      * @param request
      *         build request
-     * @param callback
-     *         build task callback. The parameter is optional and may be {@code null}.
      * @return build task
      * @throws BuilderException
      *         if an error occurs
      */
-    public BuildTask perform(BuildRequest request, BuildTask.Callback callback) throws BuilderException {
+    public BuildTask perform(BuildRequest request) throws BuilderException {
         checkStarted();
         final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
         final java.io.File workDir = configuration.getWorkDir();
         final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(configuration, logFile);
-        return execute(configuration, callback, logger);
+        final String webHookUrl = request.getWebHookUrl();
+        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
     }
 
     /**
@@ -322,19 +327,18 @@ public abstract class Builder implements Lifecycle {
      *
      * @param request
      *         build request
-     * @param callback
-     *         build task callback. The parameter is optional and may be {@code null}.
      * @return build task
      * @throws BuilderException
      *         if an error occurs
      */
-    public BuildTask perform(DependencyRequest request, BuildTask.Callback callback) throws BuilderException {
+    public BuildTask perform(DependencyRequest request) throws BuilderException {
         checkStarted();
         final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
         final java.io.File workDir = configuration.getWorkDir();
         final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(configuration, logFile);
-        return execute(configuration, callback, logger);
+        final String webHookUrl = request.getWebHookUrl();
+        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
     }
 
     protected BuildTask execute(BuilderConfiguration configuration, BuildTask.Callback callback, BuildLogger logger)
@@ -344,7 +348,7 @@ public abstract class Builder implements Lifecycle {
         final FutureBuildTask task =
                 new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), configuration, logger, callback);
         final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
-        final CachedBuildTask cachedTask = new CachedBuildTask(task, expirationTime);
+        final BuildTaskEntry cachedTask = new BuildTaskEntry(task, expirationTime);
         purgeExpiredTasks();
         tasks.put(task.getId(), cachedTask);
         tasksFIFO.offer(cachedTask);
@@ -416,8 +420,8 @@ public abstract class Builder implements Lifecycle {
     /** Removes expired tasks. */
     private void purgeExpiredTasks() {
         int num = 0;
-        for (Iterator<CachedBuildTask> i = tasksFIFO.iterator(); i.hasNext(); ) {
-            final CachedBuildTask next = i.next();
+        for (Iterator<BuildTaskEntry> i = tasksFIFO.iterator(); i.hasNext(); ) {
+            final BuildTaskEntry next = i.next();
             if (!next.isExpired()) {
                 // Don't need to check other tasks if find first one that is not expired yet.
                 break;
@@ -501,7 +505,7 @@ public abstract class Builder implements Lifecycle {
      */
     public final BuildTask getBuildTask(Long id) throws NoSuchBuildTaskException {
         checkStarted();
-        final CachedBuildTask e = tasks.get(id);
+        final BuildTaskEntry e = tasks.get(id);
         if (e == null) {
             throw new NoSuchBuildTaskException(id);
         }
@@ -563,7 +567,13 @@ public abstract class Builder implements Lifecycle {
         @Override
         protected void done() {
             if (callback != null) {
-                callback.done(this);
+                // NOTE: important to do it in separate thread!
+                getExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.done(FutureBuildTask.this);
+                    }
+                });
             }
         }
 
@@ -694,12 +704,12 @@ public abstract class Builder implements Lifecycle {
         }
     }
 
-    private static final class CachedBuildTask {
+    private static final class BuildTaskEntry {
         private final long            expirationTime;
         private final int             hash;
         private final FutureBuildTask task;
 
-        private CachedBuildTask(FutureBuildTask task, long expirationTime) {
+        private BuildTaskEntry(FutureBuildTask task, long expirationTime) {
             this.task = task;
             this.expirationTime = expirationTime;
             this.hash = 7 * 31 + task.getId().hashCode();
@@ -710,8 +720,8 @@ public abstract class Builder implements Lifecycle {
             if (this == o) {
                 return true;
             }
-            if (o instanceof CachedBuildTask) {
-                return task.getId().equals(((CachedBuildTask)o).task.getId());
+            if (o instanceof BuildTaskEntry) {
+                return task.getId().equals(((BuildTaskEntry)o).task.getId());
             }
             return false;
         }
@@ -727,9 +737,26 @@ public abstract class Builder implements Lifecycle {
 
         @Override
         public String toString() {
-            return "CachedBuildTask{" +
+            return "BuildTaskEntry{" +
                    "task=" + task +
                    '}';
+        }
+    }
+
+    private static class WebHookCallback implements BuildTask.Callback {
+        final String url;
+
+        WebHookCallback(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public void done(BuildTask task) {
+            try {
+                HttpJsonHelper.post(null, url, null);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
         }
     }
 }

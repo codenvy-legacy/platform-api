@@ -19,13 +19,18 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.dto.WebHookPayload;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
+import com.codenvy.dto.server.DtoFactory;
+
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -48,6 +53,8 @@ import javax.ws.rs.core.MediaType;
 @Path("{ws-name}/builder")
 @Description("Builder API")
 public final class BuilderService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(BuilderService.class);
+
     @Inject
     private BuildQueue buildQueue;
 
@@ -77,14 +84,14 @@ public final class BuilderService extends Service {
     @Path("status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor getStatus(@PathParam("id") Long id) throws Exception {
-        return buildQueue.get(id).getDescriptor(getServiceContext());
+        return buildQueue.getTask(id).getDescriptor(getServiceContext());
     }
 
     @POST
     @Path("cancel/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor cancel(@PathParam("id") Long id) throws Exception {
-        final BuildQueueTask task = buildQueue.get(id);
+        final BuildQueueTask task = buildQueue.getTask(id);
         task.cancel();
         return task.getDescriptor(getServiceContext());
     }
@@ -94,7 +101,7 @@ public final class BuilderService extends Service {
     public void getLogs(@PathParam("id") Long id,
                         @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
-        buildQueue.get(id).readLogs(new HttpServletProxyResponse(httpServletResponse));
+        buildQueue.getTask(id).readLogs(new HttpServletProxyResponse(httpServletResponse));
     }
 
     @GET
@@ -102,7 +109,7 @@ public final class BuilderService extends Service {
     public void getReport(@PathParam("id") Long id,
                           @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
-        buildQueue.get(id).readReport(new HttpServletProxyResponse(httpServletResponse));
+        buildQueue.getTask(id).readReport(new HttpServletProxyResponse(httpServletResponse));
     }
 
     @GET
@@ -111,12 +118,26 @@ public final class BuilderService extends Service {
                          @Required @QueryParam("path") String path,
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
-        buildQueue.get(id).download(path, new HttpServletProxyResponse(httpServletResponse));
+        buildQueue.getTask(id).download(path, new HttpServletProxyResponse(httpServletResponse));
     }
 
     @POST
-    @Path("webhook")
-    public void webhook(WebHookPayload callback) throws Exception {
-        System.out.println("CALLBACK: " + callback); // TODO
+    @Path("webhook/{id}")
+    public void webhook(@PathParam("id") Long id) {
+        final ChannelBroadcastMessage message = new ChannelBroadcastMessage();
+        try {
+            final BuildTaskDescriptor taskDescriptor = buildQueue.getTask(id).getDescriptor(getServiceContext());
+            message.setChannel("builder:status:" + id);
+            message.setType(ChannelBroadcastMessage.Type.NONE);
+            message.setBody(DtoFactory.getInstance().toJson(taskDescriptor));
+        } catch (Exception e) {
+            message.setType(ChannelBroadcastMessage.Type.ERROR);
+            message.setBody(e.getMessage());
+        }
+        try {
+            WSConnectionContext.sendMessage(message);
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
     }
 }

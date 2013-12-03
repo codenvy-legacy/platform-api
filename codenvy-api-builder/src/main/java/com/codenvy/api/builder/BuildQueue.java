@@ -222,7 +222,6 @@ public class BuildQueue implements Lifecycle {
                                                              .withProject(project);
         addRequestParameters(attributes, request);
         request.setTimeout(getBuildTimeout(request));
-        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace).toString());
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
@@ -236,6 +235,8 @@ public class BuildQueue implements Lifecycle {
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
         final BuildQueueTask task = new BuildQueueTask(request, future);
+        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace,
+                                                                                                                task.getId()).toString());
         tasks.put(task.getId(), task);
         purgeExpiredTasks();
         executor.execute(future);
@@ -269,7 +270,6 @@ public class BuildQueue implements Lifecycle {
                                                                        .withProject(project);
         addRequestParameters(attributes, request);
         request.setTimeout(getBuildTimeout(request));
-        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace).toString());
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
             @Override
@@ -283,6 +283,8 @@ public class BuildQueue implements Lifecycle {
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
         final BuildQueueTask task = new BuildQueueTask(request, future);
+        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace,
+                                                                                                                task.getId()).toString());
         tasks.put(task.getId(), task);
         purgeExpiredTasks();
         executor.execute(future);
@@ -398,7 +400,7 @@ public class BuildQueue implements Lifecycle {
         }
     }
 
-    public BuildQueueTask get(Long id) throws NoSuchBuildTaskException {
+    public BuildQueueTask getTask(Long id) throws NoSuchBuildTaskException {
         checkStarted();
         final BuildQueueTask task = tasks.get(id);
         if (task == null) {

@@ -31,9 +31,9 @@ public interface RunRequest {
     /** Location of deployment sources. Deployment sources typically points to zip bundle of application that is ready to run. */
     String getDeploymentSourcesUrl();
 
-    void setDeploymentSourcesUrl(String deploymentSources);
+    void setDeploymentSourcesUrl(String url);
 
-    RunRequest withDeploymentSourcesUrl(String deploymentSources);
+    RunRequest withDeploymentSourcesUrl(String url);
 
     /** Name of {@link com.codenvy.api.runner.internal.Runner} which should be used for running this application. */
     String getRunner();
@@ -80,10 +80,16 @@ public interface RunRequest {
 
     RunRequest withWorkspace(String workspace);
 
-    /** Name of project which represents sources on thr ide side. */
+    /** Name of project which represents sources on the ide side. */
     String getProject();
 
     void setProject(String project);
 
     RunRequest withProject(String project);
+
+    String getWebHookUrl();
+
+    RunRequest withWebHookUrl(String url);
+
+    void setWebHookUrl(String url);
 }

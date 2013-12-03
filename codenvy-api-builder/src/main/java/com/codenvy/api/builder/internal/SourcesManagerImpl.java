@@ -159,22 +159,23 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 }
             }
             final int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
-            }
-            try (InputStream in = conn.getInputStream()) {
-                ZipUtils.unzip(in, downloadTo);
-            }
-            final String removeHeader = conn.getHeaderField("x-removed-paths");
-            if (removeHeader != null) {
-                for (String item : removeHeader.split(",")) {
-                    java.io.File f = new java.io.File(downloadTo, item);
-                    if (!f.delete()) {
-                        if (f.exists()) {
-                            throw new IOException(String.format("Can't delete %s", item));
+            if (responseCode == 200) {
+                try (InputStream in = conn.getInputStream()) {
+                    ZipUtils.unzip(in, downloadTo);
+                }
+                final String removeHeader = conn.getHeaderField("x-removed-paths");
+                if (removeHeader != null) {
+                    for (String item : removeHeader.split(",")) {
+                        java.io.File f = new java.io.File(downloadTo, item);
+                        if (!f.delete()) {
+                            if (f.exists()) {
+                                throw new IOException(String.format("Can't delete %s", item));
+                            }
                         }
                     }
                 }
+            } else if (responseCode != 204) {
+                throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
             }
             callback.done(downloadTo);
         } catch (IOException e) {

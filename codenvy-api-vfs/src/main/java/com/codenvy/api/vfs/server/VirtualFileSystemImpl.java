@@ -652,7 +652,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (!virtualFile.isFolder()) {
             throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
-        final List<Pair<String, String>> remote = new ArrayList<>();
+        final List<Pair<String, String>> remote = new LinkedList<>();
         final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         String line;
         while ((line = reader.readLine()) != null) {
@@ -663,7 +663,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 startPath++;
             }
             String relPath = line.substring(startPath);
-            remote.add(Pair.of(hash, relPath));
+            if (!".project".equals(relPath)) { // skip .project file
+                remote.add(Pair.of(hash, relPath));
+            }
         }
         if (remote.isEmpty()) {
             final ContentStream zip = virtualFile.zip(VirtualFileFilter.ALL);
@@ -719,6 +721,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         }
         while (localIndex < local.size()) {
             diff.add(Pair.of((String)null, virtualFile.getVirtualFilePath().newPath(local.get(localIndex++).second)));
+        }
+
+        if (diff.isEmpty()) {
+            return Response.status(204).build();
         }
 
         final ContentStream zip = virtualFile.zip(new VirtualFileFilter() {

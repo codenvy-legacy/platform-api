@@ -254,6 +254,7 @@ public abstract class Builder implements Lifecycle {
     }
 
     public SourcesManager getSourcesManager() {
+        checkStarted();
         return sourcesManager;
     }
 

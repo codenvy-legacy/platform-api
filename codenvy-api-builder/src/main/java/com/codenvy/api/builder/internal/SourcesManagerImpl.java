@@ -63,10 +63,12 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         final BaseBuilderRequest request = configuration.getRequest();
         // Directory for sources. Keep sources to avoid download whole project before build.
         // This directory is not permanent and may be removed at any time.
-        final java.io.File srcDir = new java.io.File(directory, request.getWorkspace() + java.io.File.separatorChar + request.getProject());
+        final String workspace = request.getWorkspace();
+        final String project = request.getProject();
+        final java.io.File srcDir = new java.io.File(directory, workspace + java.io.File.separatorChar + project);
         // Temporary directory where we copy sources before build.
         final java.io.File workDir = configuration.getWorkDir();
-        final String key = request.getWorkspace() + request.getProject();
+        final String key = workspace + project;
         // Avoid multiple threads download source of the same project.
         Future<Void> future = tasks.get(key);
         final IOException[] errorHolder = new IOException[1];

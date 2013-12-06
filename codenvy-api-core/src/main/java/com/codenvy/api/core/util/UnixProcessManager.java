@@ -168,6 +168,9 @@ class UnixProcessManager extends ProcessManager {
 
     @Override
     public boolean isAlive(int pid) {
+        if (pid <= 0) {
+            return false;
+        }
         if (SystemInfo.isMacOS()) {
             final String cmd = "kill -0 " + pid;
             final StringBuilder error = new StringBuilder();

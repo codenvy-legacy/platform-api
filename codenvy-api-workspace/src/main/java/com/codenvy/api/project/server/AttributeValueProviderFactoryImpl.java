@@ -19,19 +19,18 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.project.shared.AttributeValueProvider;
-import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.project.shared.AttributeValueProviderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Factory for {@link AttributeValueProvider}.
- * <p/>
- * FQN of implementation of this interface must be placed in file META-INF/services/com.codenvy.api.project.server.AttributeValueProviderFactory.
+ * Server side implementation of {@link AttributeValueProvider}.
  *
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-public abstract class AttributeValueProviderFactory {
+//@javax.inject.Singleton
+public abstract class AttributeValueProviderFactoryImpl implements AttributeValueProviderFactory {
     private static final AttributeValueProviderFactory[] EMPTY = new AttributeValueProviderFactory[0];
 
     private static List<AttributeValueProviderFactory> all = new ArrayList<>(ComponentLoader.all(AttributeValueProviderFactory.class));
@@ -40,9 +39,4 @@ public abstract class AttributeValueProviderFactory {
     public static AttributeValueProviderFactory[] getInstances() {
         return all.toArray(EMPTY);
     }
-
-    /** Name of Attribute for which this factory may produce AttributeValueProvider. */
-    public abstract String getName();
-
-    public abstract AttributeValueProvider newInstance(Project project);
 }

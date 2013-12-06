@@ -15,9 +15,8 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.server;
+package com.codenvy.api.project.shared;
 
-import com.codenvy.api.project.shared.AttributeValueProvider;
 import com.codenvy.api.vfs.shared.dto.Project;
 
 import java.util.ArrayList;
@@ -28,8 +27,13 @@ import java.util.List;
  *
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-public final class DownloadZipAttributeValueProviderFactory extends AttributeValueProviderFactory {
+public final class DownloadZipServerAttributeValueProviderFactory implements AttributeValueProviderFactory {
     public static final String ATTRIBUTE = "sources_download_url";
+
+    @Override
+    public boolean isApplicable(ProjectType type) {
+        return true;
+    }
 
     @Override
     public String getName() {

@@ -30,7 +30,11 @@ import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
-import com.codenvy.api.project.shared.dto.Attributes;
+import com.codenvy.api.project.server.ProjectDescriptionConverterImpl;
+import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.ProjectDescription;
+import com.codenvy.api.project.shared.ProjectDescriptionConverter;
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServiceLocation;
 import com.codenvy.api.runner.dto.RunnerServiceRegistration;
@@ -99,6 +103,7 @@ public class RunQueue implements Lifecycle {
     private final ExecutorService                                executor;
     private final ConcurrentMap<RunnerListKey, RemoteRunnerList> runnerListMapping;
     private final ConcurrentMap<Long, RunQueueTask>              tasks;
+    private final ProjectDescriptionConverter                    descriptionConverter;
 
     private String  baseApiUrl;
     /**
@@ -121,6 +126,7 @@ public class RunQueue implements Lifecycle {
         tasks = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("RunQueue-", true));
         runnerListMapping = new ConcurrentHashMap<>();
+        descriptionConverter = new ProjectDescriptionConverterImpl();
     }
 
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext)
@@ -128,9 +134,9 @@ public class RunQueue implements Lifecycle {
         checkStarted();
         // TODO: check do we need build the project
         final UriBuilder baseUriBuilder = baseApiUrl == null ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
-        final Attributes projectAttributes = getProjectAttributes(workspace, project, baseUriBuilder.clone());
+        final ProjectDescription description = getProjectDescription(workspace, project, baseUriBuilder.clone());
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class).withWorkspace(workspace).withProject(project);
-        addRequestParameters(projectAttributes, request);
+        addRequestParameters(description, request);
         final String builderUrl = baseUriBuilder.clone().path(BuilderService.class).build(workspace).toString();
         final RemoteServiceDescriptor builderService = new RemoteServiceDescriptor(builderUrl);
         final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
@@ -151,32 +157,32 @@ public class RunQueue implements Lifecycle {
         return task;
     }
 
-    private void addRequestParameters(Attributes attributes, RunRequest request) {
-        List<String> list = attributes.getAttributes().get(Constants.RUNNER_NAME);
-        if (list == null || list.isEmpty()) {
+    private void addRequestParameters(ProjectDescription description, RunRequest request) {
+        final Attribute runnerNameAttribute = description.getAttribute(Constants.RUNNER_NAME);
+        final String runner;
+        if (runnerNameAttribute == null || (runner = runnerNameAttribute.getValue()) == null) {
             throw new IllegalStateException(
                     String.format("Name of runner is not specified, be sure property of project %s is set", Constants.RUNNER_NAME));
         }
-        final String runner = list.get(0);
         request.setRunner(runner);
         final String runDebugMode = Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner);
         final String runMemSize = Constants.RUNNER_MEMORY_SIZE.replace("${runner}", runner);
         final String runOptions = Constants.RUNNER_OPTIONS.replace("${runner}", runner);
 
-        for (Map.Entry<String, List<String>> entry : attributes.getAttributes().entrySet()) {
-            if (runDebugMode.equals(entry.getKey())) {
-                if (!entry.getValue().isEmpty()) {
-                    request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(entry.getValue().get(0)));
+        for (Attribute attribute : description.getAttributes()) {
+            if (runDebugMode.equals(attribute.getName())) {
+                if (attribute.getValue() != null) {
+                    request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(attribute.getValue()));
                 }
             }
-            if (runMemSize.equals(entry.getKey())) {
-                if (!entry.getValue().isEmpty()) {
-                    request.setMemorySize(Integer.parseInt(entry.getValue().get(0)));
+            if (runMemSize.equals(attribute.getName())) {
+                if (attribute.getValue() != null) {
+                    request.setMemorySize(Integer.parseInt(attribute.getValue()));
                 }
-            } else if (runOptions.equals(entry.getKey())) {
-                if (!entry.getValue().isEmpty()) {
+            } else if (runOptions.equals(attribute.getName())) {
+                if (!attribute.getValue().isEmpty()) {
                     final Map<String, String> options = new LinkedHashMap<>();
-                    for (String str : entry.getValue()) {
+                    for (String str : attribute.getValues()) {
                         if (str != null) {
                             final String[] pair = str.split("=");
                             if (pair.length > 1) {
@@ -196,12 +202,13 @@ public class RunQueue implements Lifecycle {
         }
     }
 
-    private Attributes getProjectAttributes(String workspace, String project, UriBuilder baseUriBuilder)
+    private ProjectDescription getProjectDescription(String workspace, String project, UriBuilder baseUriBuilder)
             throws IOException, RemoteException {
         final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
-                                                .path(WorkspaceService.class, "getAttributes")
+                                                .path(WorkspaceService.class, "getProjectDescriptor")
                                                 .build(workspace).toString();
-        return HttpJsonHelper.get(Attributes.class, projectUrl, Pair.of("name", project));
+        final ProjectDescriptor descriptor = HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
+        return descriptionConverter.fromDescriptor(descriptor);
     }
 
     private Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor, final RunRequest request) {

@@ -21,9 +21,11 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.project.server.AttributeValueProviderFactory;
+import com.codenvy.api.project.server.AttributeValueProviderFactoryImpl;
 import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.dto.Attributes;
+import com.codenvy.api.project.shared.AttributeValueProviderFactory;
+import com.codenvy.api.project.shared.dto.AttributeDTO;
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.vfs.server.RequestContext;
 import com.codenvy.api.vfs.server.RequestValidator;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
@@ -44,16 +46,14 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Providers;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 @Path("{ws-name}/workspace")
@@ -117,24 +117,28 @@ public class WorkspaceService extends Service {
 
     @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_ATTRIBUTES_OF_PROJECT)
     @GET
-    @Path("project/attributes")
+    @Path("project/descriptor")
     @Produces(MediaType.APPLICATION_JSON)
-    public Attributes getAttributes(@Required @Description("project name") @QueryParam("name") String project)
+    public ProjectDescriptor getProjectDescriptor(@Required @Description("project name") @QueryParam("name") String project)
             throws VirtualFileSystemException {
         final Project myProject = getProject(project);
-        final Map<String, List<String>> values = new HashMap<>();
-        for (AttributeValueProviderFactory factory : AttributeValueProviderFactory.getInstances()) {
+        final List<AttributeDTO> attributes = new ArrayList<>();
+        for (AttributeValueProviderFactory factory : AttributeValueProviderFactoryImpl.getInstances()) {
             final Attribute attribute = new Attribute(factory.getName(), factory.newInstance(myProject));
-            values.put(attribute.getName(), attribute.getValues());
+            attributes.add(DtoFactory.getInstance().createDto(AttributeDTO.class)
+                                     .withName(attribute.getFullName())
+                                     .withValue(attribute.getValues()));
         }
         // analyze properties
         for (Property property : myProject.getProperties()) {
             final Attribute attribute = new Attribute(property.getName(), property.getValue());
-            values.put(attribute.getName(), attribute.getValues());
+            attributes.add(DtoFactory.getInstance().createDto(AttributeDTO.class)
+                                     .withName(attribute.getFullName())
+                                     .withValue(attribute.getValues()));
         }
-        final Attributes attributes = DtoFactory.getInstance().createDto(Attributes.class);
-        attributes.setAttributes(values);
-        return attributes;
+        return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
+                         .withAttributes(attributes)
+                         .withName(myProject.getName());
     }
 
     @Path("vfs")

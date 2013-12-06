@@ -168,6 +168,10 @@ class UnixProcessManager extends ProcessManager {
 
     @Override
     public boolean isAlive(int pid) {
+        if (SystemInfo.isMacOS()) {
+            // It works for linux also
+            return 0 == system("kill -0 " + pid);
+        }
         return new java.io.File("/proc/" + pid).exists();
     }
 

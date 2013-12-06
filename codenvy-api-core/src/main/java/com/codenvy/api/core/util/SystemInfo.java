@@ -40,6 +40,7 @@ public class SystemInfo {
 
     public static final  String  OS      = System.getProperty("os.name").toLowerCase();
     private static final boolean linux   = OS.startsWith("linux");
+    private static final boolean mac     = OS.startsWith("mac");
     private static final boolean windows = OS.startsWith("windows");
     private static final boolean unix    = !windows;
 
@@ -49,6 +50,10 @@ public class SystemInfo {
 
     public static boolean isWindows() {
         return windows;
+    }
+
+    public static boolean isMacOS() {
+        return mac;
     }
 
     public static boolean isUnix() {

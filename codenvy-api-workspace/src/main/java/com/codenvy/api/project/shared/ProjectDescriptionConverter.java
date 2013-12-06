@@ -74,12 +74,12 @@ public abstract class ProjectDescriptionConverter {
                             parent = attr;
                         }
                     }
-                    parent.addChild(new Attribute(fullName.substring(j + 1), (String)null));
+                    parent.addChild(new Attribute(fullName.substring(j + 1), dto.getValue()));
                 } else {
-                    root.addChild(new Attribute(fullName.substring(i + 1), (String)null));
+                    root.addChild(new Attribute(fullName.substring(i + 1), dto.getValue()));
                 }
             } else {
-                attributes.put(fullName, new Attribute(fullName, (String)null));
+                attributes.put(fullName, new Attribute(fullName, dto.getValue()));
             }
         }
         return new ProjectDescription(descriptor.getName(),

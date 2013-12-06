@@ -38,7 +38,7 @@ import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectDescriptionConverterImpl;
 import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.DownloadZipServerAttributeValueProviderFactory;
+import com.codenvy.api.project.shared.DownloadZipAttributeValueProviderFactory;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectDescriptionConverter;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -309,7 +309,7 @@ public class BuildQueue implements Lifecycle {
         final String buildOptions = Constants.BUILDER_OPTIONS.replace("${builder}", builder);
 
         for (Attribute attribute : description.getAttributes()) {
-            if (DownloadZipServerAttributeValueProviderFactory.ATTRIBUTE.equals(attribute.getName())) {
+            if (DownloadZipAttributeValueProviderFactory.ATTRIBUTE.equals(attribute.getName())) {
                 request.setSourcesUrl(attribute.getValue());
             } else if (buildTargets.equals(attribute.getName())) {
                 if (!attribute.getValue().isEmpty()) {

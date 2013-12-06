@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-public final class DownloadZipServerAttributeValueProviderFactory implements AttributeValueProviderFactory {
+public final class DownloadZipAttributeValueProviderFactory implements AttributeValueProviderFactory {
     public static final String ATTRIBUTE = "sources_download_url";
 
     @Override

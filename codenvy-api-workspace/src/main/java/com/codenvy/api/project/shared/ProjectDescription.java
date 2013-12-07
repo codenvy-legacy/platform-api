@@ -26,30 +26,30 @@ import java.util.List;
  * @author gazarenkov
  */
 public class ProjectDescription {
-    private final String      name;
+    //private final String      name;
     private final ProjectType projectType;
 
     private List<Attribute> attributes;
 
-    public ProjectDescription(String name, ProjectType projectType, List<Attribute> attributes) {
-        if (name == null) {
-            throw new IllegalArgumentException("Project name may not be null. ");
-        }
+    public ProjectDescription(ProjectType projectType, List<Attribute> attributes) {
+//        if (name == null) {
+//            throw new IllegalArgumentException("Project name may not be null. ");
+//        }
         if (projectType == null) {
             throw new IllegalArgumentException("Project type may not be null. ");
         }
-        this.name = name;
+//        this.name = name;
         this.projectType = projectType;
         this.attributes = attributes;
     }
 
-    public ProjectDescription(ProjectType projectType, String name) {
-        this(name, projectType, null);
-    }
-
-    public String getName() {
-        return name;
-    }
+//    public ProjectDescription(ProjectType projectType, String name) {
+//        this(name, projectType, null);
+//    }
+//
+//    public String getName() {
+//        return name;
+//    }
 
     /** @return Project type */
     public ProjectType getProjectType() {
@@ -80,5 +80,9 @@ public class ProjectDescription {
             }
         }
         return null;
+    }
+
+    public void addAttributes(List<Attribute> attrs) {
+        this.attributes.addAll(attrs);
     }
 }

@@ -132,7 +132,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             if (errorHolder[0] != null) {
                 throw errorHolder[0];
             }
-            Files.copy(srcDir.toPath(), workDir.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
             Files.setLastModifiedTime(srcDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

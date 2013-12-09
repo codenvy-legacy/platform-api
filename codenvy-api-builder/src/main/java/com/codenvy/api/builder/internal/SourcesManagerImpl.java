@@ -134,7 +134,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 throw errorHolder[0];
             }
             Files.copy(srcDir.toPath(), workDir.toPath());
-            Files.setLastModifiedTime(workDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
+            Files.setLastModifiedTime(srcDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
@@ -245,7 +245,9 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                         if (tasks.get(key) == null) {
                             projectKeyHolder.set(key);
                             try {
-                                removeFilesWithoutRemainingLifeTime(project);
+                                if (isFileShouldBeRemoved(project)) {
+                                    IoUtil.deleteRecursive(project);
+                                }
                             } finally {
                                 projectKeyHolder.set(null);
                                 synchronized (SourcesManagerImpl.this) {
@@ -258,25 +260,6 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 }
             }
         };
-    }
-
-    /**
-     * Remove all files without remaining life time if project is not downloading
-     *
-     * @param project
-     *         project that will be checked
-     */
-    private void removeFilesWithoutRemainingLifeTime(File project) {
-        Queue<File> shouldBeChecked = new LinkedList<>();
-        shouldBeChecked.add(project);
-        while (shouldBeChecked.size() != 0) {
-            File current = shouldBeChecked.poll();
-            if (isFileShouldBeRemoved(current)) {
-                IoUtil.deleteRecursive(current);
-            } else if (current.isDirectory()) {
-                shouldBeChecked.addAll(Arrays.asList(current.listFiles()));
-            }
-        }
     }
 
     /**

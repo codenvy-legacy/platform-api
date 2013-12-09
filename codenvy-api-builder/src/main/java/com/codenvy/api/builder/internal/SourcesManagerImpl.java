@@ -36,6 +36,7 @@ import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Implementation of SourcesManager that stores sources locally and gets only updated files over virtual file system RESt API.
@@ -56,7 +58,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private static final Logger   LOG                        = LoggerFactory.getLogger(SourcesManagerImpl.class);
-    private static final String   SCHEDULER_TASK_KEY         = "scheduler_check_task_key";
     /**
      * Time of files life estimating settings.
      * For example: if ESTIMATE_OF_FILE_LIFE_UNIT is TimeUnit.DAYS
@@ -72,13 +73,14 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private final java.io.File                        directory;
     private final ScheduledExecutorService            checkAndDeleteFilesScheduler;
     private final ConcurrentMap<String, Future<Void>> tasks;
+    private final AtomicReference<String> projectKeyHolder = new AtomicReference<>();
 
     public SourcesManagerImpl(java.io.File directory) {
         this.directory = directory;
         tasks = new ConcurrentHashMap<>();
         checkAndDeleteFilesScheduler = Executors.newSingleThreadScheduledExecutor();
         checkAndDeleteFilesScheduler
-                .scheduleAtFixedRate(createRemoveFilesWithRemainingLifeTimeTask(), TASK_EXECUTION_PERIOD, TASK_EXECUTION_PERIOD,
+                .scheduleAtFixedRate(createSchedulerTask(), TASK_EXECUTION_PERIOD, TASK_EXECUTION_PERIOD,
                                      TASK_EXECUTION_PERIOD_UNIT);
     }
 
@@ -93,6 +95,12 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         // Temporary directory where we copy sources before build.
         final java.io.File workDir = configuration.getWorkDir();
         final String key = workspace + project;
+        try {
+            waitIfNeedToCheckProject(key);
+        } catch (InterruptedException e) {
+            LOG.error(e.getMessage(), e);
+            Thread.currentThread().interrupt();
+        }
         // Avoid multiple threads download source of the same project.
         Future<Void> future = tasks.get(key);
         final IOException[] errorHolder = new IOException[1];
@@ -125,7 +133,8 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             if (errorHolder[0] != null) {
                 throw errorHolder[0];
             }
-            IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
+            Files.copy(srcDir.toPath(), workDir.toPath());
+            Files.setLastModifiedTime(workDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
@@ -185,7 +194,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 }
             }
             final int responseCode = conn.getResponseCode();
-            if (responseCode == 200) {
+            if (responseCode == HttpURLConnection.HTTP_OK) {
                 try (InputStream in = conn.getInputStream()) {
                     ZipUtils.unzip(in, downloadTo);
                 }
@@ -193,14 +202,10 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 if (removeHeader != null) {
                     for (String item : removeHeader.split(",")) {
                         java.io.File f = new java.io.File(downloadTo, item);
-                        if (!f.delete()) {
-                            if (f.exists()) {
-                                throw new IOException(String.format("Can't delete %s", item));
-                            }
-                        }
+                        Files.delete(f.toPath());
                     }
                 }
-            } else if (responseCode != 204) {
+            } else if (responseCode != HttpURLConnection.HTTP_NO_CONTENT) {
                 throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
             }
             callback.done(downloadTo);
@@ -223,63 +228,68 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
      * Create runnable task that will check last files modifications and remove any of them
      * if it needed.
      *
-     * @return runnable task for
+     * @return runnable task for scheduler
      */
-    private Runnable createRemoveFilesWithRemainingLifeTimeTask() {
+    private Runnable createSchedulerTask() {
         return new Runnable() {
             @Override
             public void run() {
-                Future<Void> future = tasks.get(SCHEDULER_TASK_KEY);
-                if (future == null) {
-                    FutureTask<Void> newFuture = new FutureTask<>(new Runnable() {
-                        @Override
-                        public void run() {
-                            removeFilesWithRemainingLifeTime(directory);
+                //get list of workspaces
+                File[] workspaces = directory.listFiles();
+                for (File workspace : workspaces) {
+                    //get list of workspace projects
+                    File[] projects = workspace.listFiles();
+                    for (File project : projects) {
+                        String key = workspace.getName() + project.getName();
+                        //if project is not downloading
+                        if (tasks.get(key) == null) {
+                            projectKeyHolder.set(key);
+                            try {
+                                removeFilesWithoutRemainingLifeTime(project);
+                            } finally {
+                                projectKeyHolder.set(null);
+                                synchronized (SourcesManagerImpl.this) {
+                                    SourcesManagerImpl.this.notify();
+                                }
+                            }
                         }
-                    }, null);
-                    future = tasks.putIfAbsent(SCHEDULER_TASK_KEY, newFuture);
-                    if (future == null) {
-                        future = newFuture;
-                        newFuture.run();
+
                     }
-                }
-                try {
-                    //block current thread until files checking is not complete.
-                    future.get();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (ExecutionException e) {
-                    // Runnable does not throw checked exceptions.
-                    final Throwable cause = e.getCause();
-                    if (cause instanceof Error) {
-                        throw (Error)cause;
-                    } else {
-                        throw (RuntimeException)cause;
-                    }
-                } finally {
-                    tasks.remove(SCHEDULER_TASK_KEY);
                 }
             }
         };
     }
 
-
     /**
-     * Remove all files with remaining life time
+     * Remove all files without remaining life time if project is not downloading
      *
-     * @param rootDirectory
-     *         directory that contains files that should be checked
+     * @param project
+     *         project that will be checked
      */
-    private void removeFilesWithRemainingLifeTime(File rootDirectory) {
+    private void removeFilesWithoutRemainingLifeTime(File project) {
         Queue<File> shouldBeChecked = new LinkedList<>();
-        shouldBeChecked.addAll(Arrays.asList(rootDirectory.listFiles()));
+        shouldBeChecked.add(project);
         while (shouldBeChecked.size() != 0) {
             File current = shouldBeChecked.poll();
             if (isFileShouldBeRemoved(current)) {
-                current.delete();
+                IoUtil.deleteRecursive(current);
             } else if (current.isDirectory()) {
                 shouldBeChecked.addAll(Arrays.asList(current.listFiles()));
             }
+        }
+    }
+
+    /**
+     * Wait if project is checking with scheduler
+     *
+     * @param key
+     *         project key
+     * @throws InterruptedException
+     *         when it is not possible to wait
+     */
+    private synchronized void waitIfNeedToCheckProject(String key) throws InterruptedException {
+        while (key.equals(projectKeyHolder.get())) {
+            wait();
         }
     }
 

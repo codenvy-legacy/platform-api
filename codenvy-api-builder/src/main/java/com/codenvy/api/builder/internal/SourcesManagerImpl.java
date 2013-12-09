@@ -36,11 +36,10 @@ import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -133,7 +132,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             if (errorHolder[0] != null) {
                 throw errorHolder[0];
             }
-            Files.copy(srcDir.toPath(), workDir.toPath());
+            Files.copy(srcDir.toPath(), workDir.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Files.setLastModifiedTime(srcDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

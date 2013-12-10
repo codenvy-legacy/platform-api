@@ -17,10 +17,6 @@
  */
 package com.codenvy.api.project.shared;
 
-import com.codenvy.api.project.server.ProjectDescriptionRegistry;
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.ProjectType;
-
 import java.util.List;
 
 /**
@@ -28,15 +24,8 @@ import java.util.List;
  *
  * @author gazarenkov
  */
-public abstract class ProjectTypeExtension {
+public interface ProjectTypeExtension {
+    ProjectType getProjectType();
 
-    protected ProjectTypeExtension(ProjectDescriptionRegistry registry) {
-
-        registry.registerType(this);
-
-    }
-
-    public abstract ProjectType getProjectType();
-
-    public abstract List<Attribute> getPredefinedAttributes();
+    List<Attribute> getPredefinedAttributes();
 }

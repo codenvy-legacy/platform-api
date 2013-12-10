@@ -17,37 +17,15 @@
  */
 package com.codenvy.api.project.shared;
 
+import java.util.List;
+
 /**
- * ProjectType
- * the named group of attributes for Project Description
+ * ProjectDescriptionExtension
  *
  * @author gazarenkov
  */
-public class ProjectType {
+public interface ProjectTypeDescriptionExtension {
+    List<Attribute> getAttributes();
 
-    private final String id;
-    private final String name;
-
-    public ProjectType(String id, String name) {
-        this.name = name;
-        this.id = id;
-    }
-
-    /** @return type ID supposed to be unique within IDE */
-    public String getId() {
-        return id;
-    }
-
-    /** @return type display name */
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return "ProjectType{" +
-               "id='" + id + '\'' +
-               ", name='" + name + '\'' +
-               '}';
-    }
+    List<ProjectType> getProjectTypes();
 }

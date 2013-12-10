@@ -15,8 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.shared.ValueProvider;
 import com.codenvy.api.vfs.shared.dto.Project;
 
 import java.util.ArrayList;
@@ -27,7 +29,7 @@ import java.util.List;
  *
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-public final class DownloadZipAttributeValueProviderFactory implements AttributeValueProviderFactory {
+public final class DownloadZipValueProviderFactory implements ValueProviderFactory {
     public static final String ATTRIBUTE = "sources_download_url";
 
     @Override
@@ -41,8 +43,8 @@ public final class DownloadZipAttributeValueProviderFactory implements Attribute
     }
 
     @Override
-    public AttributeValueProvider newInstance(final Project project) {
-        return new AttributeValueProvider() {
+    public ValueProvider newInstance(final Project project) {
+        return new ValueProvider() {
             @Override
             public List<String> getValues() {
                 final List<String> list = new ArrayList<>(1);

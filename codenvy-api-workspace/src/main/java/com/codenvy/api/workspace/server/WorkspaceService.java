@@ -21,11 +21,12 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.project.server.AttributeValueProviderFactoryImpl;
+import com.codenvy.api.project.server.ProjectDescriptionFactory;
 import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.AttributeValueProviderFactory;
-import com.codenvy.api.project.shared.dto.AttributeDTO;
+import com.codenvy.api.project.shared.ProjectDescription;
+import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.vfs.server.RequestContext;
 import com.codenvy.api.vfs.server.RequestValidator;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
@@ -37,37 +38,43 @@ import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.Folder;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Project;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Providers;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 @Path("{ws-name}/workspace")
 public class WorkspaceService extends Service {
     @Inject
-    private VirtualFileSystemRegistry             registry;
+    private VirtualFileSystemRegistry registry;
     @Inject
-    private EventListenerList                     listeners;
+    private EventListenerList         listeners;
     @Inject
-    private RequestValidator                      requestValidator;
+    private RequestValidator          requestValidator;
+    @Inject
+    private ProjectDescriptionFactory projectDescriptionFactory;
     @Context
-    private Providers                             providers;
+    private Providers                 providers;
     @Context
-    private javax.servlet.http.HttpServletRequest request;
+    private HttpServletRequest        request;
 
     // >>> "shortcuts" for some vfs methods related to the project
 
@@ -75,13 +82,24 @@ public class WorkspaceService extends Service {
     @GET
     @Path("project")
     @Produces(MediaType.APPLICATION_JSON)
-    public Project getProject(@Required @Description("project name") String name) throws VirtualFileSystemException {
-        final List<Project> projects = getProjects();
+    public ProjectDescriptor getProject(@Required @Description("project name") @QueryParam("name") String name)
+            throws VirtualFileSystemException {
+        final VirtualFileSystem fileSystem = getVirtualFileSystem();
+        final Folder root = fileSystem.getInfo().getRoot();
+        final List<Item> projects = fileSystem.getChildren(root.getId(), -1, 0, "project", true, PropertyFilter.ALL_FILTER).getItems();
         if (!projects.isEmpty()) {
             for (Item project : projects) {
                 if (name.equals(project.getName())) {
-                    // We know item is Project since we requests virtual filesystem to show only projects.
-                    return (Project)project;
+                    final ProjectDescription description = projectDescriptionFactory.getDescription((Project)project);
+                    final ProjectType projectType = description.getProjectType();
+                    final Map<String, List<String>> attributeValues = new HashMap<>();
+                    for (Attribute attribute : description.getAttributes()) {
+                        attributeValues.put(attribute.getName(), attribute.getValues());
+                    }
+                    return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
+                                     .withProjectTypeId(projectType.getId())
+                                     .withProjectTypeName(projectType.getName())
+                                     .withAttributes(attributeValues);
                 }
             }
         }
@@ -93,11 +111,18 @@ public class WorkspaceService extends Service {
     @Path("projects")
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("unchecked")
-    public List<Project> getProjects() throws VirtualFileSystemException {
+    public List<ProjectReference> getProjects(@PathParam("ws-name") String workspace) throws VirtualFileSystemException {
         final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
-        final List projects = fileSystem.getChildren(root.getId(), -1, 0, "project", true, PropertyFilter.ALL_FILTER).getItems();
-        return projects;
+        final List<Item> projects = fileSystem.getChildren(root.getId(), -1, 0, "project", true, PropertyFilter.ALL_FILTER).getItems();
+        final List<ProjectReference> result = new ArrayList<>();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder().path(getClass(), "getProject");
+        for (Item project : projects) {
+            result.add(DtoFactory.getInstance().createDto(ProjectReference.class)
+                                 .withName(project.getName())
+                                 .withUrl(uriBuilder.clone().queryParam("name", project.getName()).build(workspace).toString()));
+        }
+        return result;
     }
 
     @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_CREATE_PROJECT)
@@ -105,40 +130,22 @@ public class WorkspaceService extends Service {
     @Path("project")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Project createProject(@Required @Description("project name") @QueryParam("name") String name,
-                                 @Description("project type") @QueryParam("type") String type,
-                                 @Description("properties of project") List<Property> properties) throws VirtualFileSystemException {
+    public ProjectDescriptor createProject(@Required @Description("project name") @QueryParam("name") String name,
+                                           @Description("descriptor of project") ProjectDescriptor descriptor)
+            throws VirtualFileSystemException {
         final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
-        return fileSystem.createProject(root.getId(), name, type, properties);
-    }
-
-    // <<<
-
-    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_ATTRIBUTES_OF_PROJECT)
-    @GET
-    @Path("project/descriptor")
-    @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor getProjectDescriptor(@Required @Description("project name") @QueryParam("name") String project)
-            throws VirtualFileSystemException {
-        final Project myProject = getProject(project);
-        final List<AttributeDTO> attributes = new ArrayList<>();
-        for (AttributeValueProviderFactory factory : AttributeValueProviderFactoryImpl.getInstances()) {
-            final Attribute attribute = new Attribute(factory.getName(), factory.newInstance(myProject));
-            attributes.add(DtoFactory.getInstance().createDto(AttributeDTO.class)
-                                     .withName(attribute.getFullName())
-                                     .withValue(attribute.getValues()));
-        }
-        // analyze properties
-        for (Property property : myProject.getProperties()) {
-            final Attribute attribute = new Attribute(property.getName(), property.getValue());
-            attributes.add(DtoFactory.getInstance().createDto(AttributeDTO.class)
-                                     .withName(attribute.getFullName())
-                                     .withValue(attribute.getValues()));
+        final Project project = fileSystem.createProject(root.getId(), name, descriptor.getProjectTypeId(), null);
+        final ProjectDescription description = projectDescriptionFactory.getDescription(project);
+        final ProjectType projectType = description.getProjectType();
+        final Map<String, List<String>> attributeValues = new HashMap<>();
+        for (Attribute attribute : description.getAttributes()) {
+            attributeValues.put(attribute.getName(), attribute.getValues());
         }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
-                         .withAttributes(attributes)
-                         .withName(myProject.getName());
+                         .withProjectTypeId(projectType.getId())
+                         .withProjectTypeName(projectType.getName())
+                         .withAttributes(attributeValues);
     }
 
     @Path("vfs")

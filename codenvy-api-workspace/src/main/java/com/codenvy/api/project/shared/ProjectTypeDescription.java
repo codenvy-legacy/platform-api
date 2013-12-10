@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -20,14 +20,16 @@ package com.codenvy.api.project.shared;
 import java.util.List;
 
 /**
- * Provides access to the value of attribute of Project.
+ * Description of type of project.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public interface AttributeValueProvider {
-    /** Get value. */
-    List<String> getValues();
+public class ProjectTypeDescription extends ProjectDescription {
+    public ProjectTypeDescription(ProjectType projectType, Attribute... attributes) {
+        super(projectType, attributes);
+    }
 
-    /** Set value. */
-    void setValues(List<String> value);
+    public ProjectTypeDescription(ProjectType projectType, List<Attribute> attributes) {
+        super(projectType, attributes);
+    }
 }

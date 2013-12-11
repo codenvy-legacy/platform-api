@@ -19,17 +19,25 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Reference to the IDE Project.
+ *
+ * @author andrew00x
+ */
 @DTO
 public interface ProjectReference {
+    /** Get name of project. */
     String getName();
 
+    /** Set name of project. */
     void setName(String name);
 
     ProjectReference withName(String name);
 
+    /** Get URL for getting detailed information about project. */
     String getUrl();
 
+    /** Set URL for getting detailed information about project. */
     void setUrl(String url);
 
     ProjectReference withUrl(String url);

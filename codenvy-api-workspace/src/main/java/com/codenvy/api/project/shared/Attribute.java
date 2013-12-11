@@ -18,6 +18,7 @@
 package com.codenvy.api.project.shared;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -25,49 +26,13 @@ import java.util.List;
  * NOTE that this class is not thread-safe. If multiple threads access an this instance concurrently, and at least one of the threads
  * modifies this instance, then access to this instance must be synchronized with some external mechanism.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see ValueProvider
  */
 public class Attribute {
-    private static class DefaultValueProvider implements ValueProvider {
-        List<String> values;
 
-        DefaultValueProvider(List<String> values) {
-            if (!(values == null || values.isEmpty())) {
-                this.values = new ArrayList<>(values);
-            }
-        }
-
-        DefaultValueProvider(String value) {
-            if (value != null) {
-                this.values = new ArrayList<>(1);
-                this.values.add(value);
-            }
-        }
-
-        public List<String> getValues() {
-            if (values == null) {
-                values = new ArrayList<>(2);
-            }
-            return values;
-        }
-
-        public void setValues(List<String> values) {
-            if (this.values == null) {
-                if (values != null) {
-                    this.values = values;
-                }
-            } else {
-                this.values.clear();
-                if (!(values == null || values.isEmpty())) {
-                    this.values.addAll(values);
-                }
-            }
-        }
-    }
-
-    private final ValueProvider valueProvider;
     private final String        name;
+    private final ValueProvider valueProvider;
 
     /**
      * Creates new Attribute with specified <code>name</code> and use specified <code>ValueProvider</code> to reading and updating
@@ -98,7 +63,7 @@ public class Attribute {
     }
 
     /** Get name of this attribute. */
-    public String getName() {
+    public final String getName() {
         return name;
     }
 
@@ -160,5 +125,25 @@ public class Attribute {
         } else {
             valueProvider.setValues(null);
         }
+    }
+
+    /**
+     * Set values of attribute.
+     *
+     * @param values
+     *         new value of attribute
+     */
+    public final void setValues(String... values) {
+        if (values != null) {
+            final List<String> list = new ArrayList<>();
+            Collections.addAll(list, values);
+            valueProvider.setValues(list);
+        } else {
+            valueProvider.setValues(null);
+        }
+    }
+
+    public final ValueProvider getValueProvider() {
+        return valueProvider;
     }
 }

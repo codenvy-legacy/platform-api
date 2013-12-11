@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ValueProvider;
 import com.codenvy.api.vfs.shared.dto.Project;
 
@@ -27,19 +26,12 @@ import java.util.List;
 /**
  * Provides URL for download project as zip bundle.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class DownloadZipValueProviderFactory implements ValueProviderFactory {
-    public static final String ATTRIBUTE = "sources_download_url";
-
-    @Override
-    public boolean isApplicable(ProjectType type) {
-        return true;
-    }
-
     @Override
     public String getName() {
-        return ATTRIBUTE;
+        return "zipball_sources_url";
     }
 
     @Override
@@ -54,7 +46,7 @@ public final class DownloadZipValueProviderFactory implements ValueProviderFacto
 
             @Override
             public void setValues(List<String> value) {
-                // Nothing to do. Value is not persistent.
+                // Nothing to do.
             }
         };
     }

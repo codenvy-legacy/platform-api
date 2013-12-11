@@ -22,7 +22,7 @@ import org.testng.annotations.Test;
 
 import java.util.Arrays;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class AttributeTest {
     @Test
     public void getValues() {

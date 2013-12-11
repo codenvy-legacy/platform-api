@@ -22,14 +22,26 @@ import java.util.List;
 /**
  * Description of type of project.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class ProjectTypeDescription extends ProjectDescription {
     public ProjectTypeDescription(ProjectType projectType, Attribute... attributes) {
         super(projectType, attributes);
+        addCommonAttributes();
     }
 
     public ProjectTypeDescription(ProjectType projectType, List<Attribute> attributes) {
         super(projectType, attributes);
+        addCommonAttributes();
+    }
+
+    public ProjectTypeDescription(ProjectType projectType) {
+        super(projectType);
+        addCommonAttributes();
+    }
+
+    // Probably temporary solution for adding common attributes that are applicable for any type of project.
+    protected void addCommonAttributes() {
+        setAttribute(new Attribute("zipball_sources_url", "<url for downloading zip bundle of folder or project>"));
     }
 }

@@ -19,9 +19,10 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.ValueProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.shared.dto.Project;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public interface PersistentValueProvider  extends ValueProvider {
-    void store(Project project, VirtualFileSystem vfs);
+    void store(Project project, VirtualFileSystem vfs) throws VirtualFileSystemException;
 }

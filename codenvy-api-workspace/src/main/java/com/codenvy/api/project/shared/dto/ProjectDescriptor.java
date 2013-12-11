@@ -25,25 +25,31 @@ import java.util.Map;
 /**
  * Data transfer object (DTO) for com.codenvy.api.project.shared.ProjectDescription.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface ProjectDescriptor {
+    /** Get unique ID of type of project. */
     String getProjectTypeId();
 
+    /** Set unique ID of type of project. */
     void setProjectTypeId(String id);
 
     ProjectDescriptor withProjectTypeId(String id);
 
+    /** Get display name of type of project. */
     String getProjectTypeName();
 
+    /** Set display name of type of project. */
     void setProjectTypeName(String name);
 
     ProjectDescriptor withProjectTypeName(String name);
 
+    /** Get attributes of project. */
     Map<String, List<String>> getAttributes();
 
-    ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
-
+    /** Set attributes of project. */
     void setAttributes(Map<String, List<String>> attributes);
+
+    ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
 }

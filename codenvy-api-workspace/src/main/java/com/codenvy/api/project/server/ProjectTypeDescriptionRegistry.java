@@ -58,12 +58,16 @@ public class ProjectTypeDescriptionRegistry {
         }
     }
 
-    public ProjectTypeDescription unregisterProjectType(ProjectType type) {
+    public ProjectTypeDescription unregisterDescription(ProjectType type) {
         return descriptions.remove(type.getId());
     }
 
-    public ProjectTypeDescription getProjectType(ProjectType type) {
-        return descriptions.get(type.getId());
+    public ProjectTypeDescription getDescription(ProjectType type) {
+        final ProjectTypeDescription typeDescription = descriptions.get(type.getId());
+        if (typeDescription != null) {
+            return typeDescription;
+        }
+        return new ProjectTypeDescription(type);
     }
 
     public List<ProjectTypeDescription> getDescriptions() {

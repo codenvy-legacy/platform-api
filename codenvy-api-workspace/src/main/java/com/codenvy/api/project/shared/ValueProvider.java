@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Provides access to the value of attribute of Project.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface ValueProvider {
     /** Get value. */

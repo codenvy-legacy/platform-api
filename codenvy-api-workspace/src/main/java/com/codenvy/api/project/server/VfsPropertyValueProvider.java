@@ -17,51 +17,43 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.DefaultValueProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public class VfsPropertyValueProvider implements PersistentValueProvider {
+/** @author andrew00x */
+public class VfsPropertyValueProvider extends DefaultValueProvider implements PersistentValueProvider {
+    private final String propertyName;
 
-    private List<String> values;
-
-    public VfsPropertyValueProvider(List<String> values) {
-        this.values = new ArrayList<>(values);
+    public VfsPropertyValueProvider(String propertyName, List<String> values) {
+        super(values);
+        this.propertyName = propertyName;
     }
 
-    public VfsPropertyValueProvider(String... values) {
-        if (values != null) {
-            this.values = new ArrayList<>();
-            Collections.addAll(this.values, values);
-        }
+    public VfsPropertyValueProvider(String propertyName, String... values) {
+        super(values);
+        this.propertyName = propertyName;
+    }
+
+    public VfsPropertyValueProvider(String propertyName, String value) {
+        super(value);
+        this.propertyName = propertyName;
+    }
+
+    public VfsPropertyValueProvider(String propertyName) {
+        this.propertyName = propertyName;
     }
 
     @Override
-    public void store(Project project, VirtualFileSystem vfs) {
-        // TODO
-    }
-
-    public List<String> getValues() {
-        if (values == null) {
-            values = new ArrayList<>(2);
-        }
-        return values;
-    }
-
-    public void setValues(List<String> values) {
-        if (this.values == null) {
-            if (values != null) {
-                this.values = values;
-            }
-        } else {
-            this.values.clear();
-            if (!(values == null || values.isEmpty())) {
-                this.values.addAll(values);
-            }
-        }
+    public void store(Project project, VirtualFileSystem vfs) throws VirtualFileSystemException {
+        final List<Property> properties = new ArrayList<>(1);
+        properties.add(DtoFactory.getInstance().createDto(Property.class).withName(propertyName).withValue(getValues()));
+        vfs.updateItem(project.getId(), properties, null);
     }
 }

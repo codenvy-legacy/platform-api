@@ -22,7 +22,7 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Data transfer object (DTO) for com.codenvy.api.project.shared.ProjectTypeDescription.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface ProjectTypeDescriptor extends ProjectDescriptor {

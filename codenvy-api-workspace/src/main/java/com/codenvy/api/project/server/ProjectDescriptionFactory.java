@@ -19,27 +19,33 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 
 import javax.inject.Singleton;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 @Singleton
 public class ProjectDescriptionFactory {
-    private final ProjectTypeRegistry        projectTypeRegistry;
-    private final List<ValueProviderFactory> valueProviderFactories;
+    private final ProjectTypeRegistry               projectTypeRegistry;
+    private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
+    private final Map<String, ValueProviderFactory> valueProviderFactories;
 
-    public ProjectDescriptionFactory(ProjectTypeRegistry projectTypeRegistry) {
+    public ProjectDescriptionFactory(ProjectTypeRegistry projectTypeRegistry, ProjectTypeDescriptionRegistry typeDescriptionRegistry) {
         this.projectTypeRegistry = projectTypeRegistry;
+        this.typeDescriptionRegistry = typeDescriptionRegistry;
         // TODO: rework with IoC
-        valueProviderFactories = new ArrayList<>(ComponentLoader.all(ValueProviderFactory.class));
+        valueProviderFactories = new HashMap<>();
+        for (ValueProviderFactory valueProviderFactory : ComponentLoader.all(ValueProviderFactory.class)) {
+            valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
+        }
     }
 
     public PersistentProjectDescription getDescription(Project project) {
@@ -49,29 +55,39 @@ public class ProjectDescriptionFactory {
     }
 
     protected ProjectType getProjectType(Project project) {
-        for (Property property : project.getProperties()) {
+        ProjectType type = null;
+        List<Property> properties = project.getProperties();
+        for (int i = 0, size = properties.size(); i < size && type == null; i++) {
+            Property property = properties.get(i);
             if ("vfs:projectType".equals(property.getName())) {
                 final List<String> value = property.getValue();
                 if (!(value == null || value.isEmpty())) {
-                    return projectTypeRegistry.getProjectType(value.get(0));
+                    type = projectTypeRegistry.getProjectType(value.get(0));
                 }
             }
         }
-        return null;
+        if (type == null) {
+            type = new ProjectType("unknown", "unknown"); // TODO : Decide how should we treat such situation??
+        }
+        return type;
     }
 
     protected List<Attribute> getAttributes(ProjectType projectType, Project project) {
         final Map<String, Attribute> attributes = new LinkedHashMap<>();
-        for (ValueProviderFactory factory : valueProviderFactories) {
-            if (factory.isApplicable(projectType)) {
-                final String attributeName = factory.getName();
-                attributes.put(attributeName, new Attribute(attributeName, factory.newInstance(project)));
-            }
-        }
         for (Property property : project.getProperties()) {
-            final String attributeName = property.getName();
-            if (!attributes.containsKey(attributeName)) {
-                attributes.put(attributeName, new Attribute(attributeName, new VfsPropertyValueProvider(property.getValue())));
+            final String propertyName = property.getName();
+            attributes.put(propertyName, new Attribute(propertyName, new VfsPropertyValueProvider(propertyName, property.getValue())));
+        }
+        final ProjectTypeDescription typeDescription = typeDescriptionRegistry.getDescription(projectType);
+        if (typeDescription != null) {
+            for (Attribute attribute : typeDescription.getAttributes()) {
+                final String attributeName = attribute.getName();
+                if (!attributes.containsKey(attributeName)) {
+                    final ValueProviderFactory factory = valueProviderFactories.get(attributeName);
+                    if (factory != null) {
+                        attributes.put(attributeName, new Attribute(attributeName, factory.newInstance(project)));
+                    }
+                }
             }
         }
         return new ArrayList<>(attributes.values());

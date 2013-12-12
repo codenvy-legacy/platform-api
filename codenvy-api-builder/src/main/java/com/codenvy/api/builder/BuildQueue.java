@@ -70,6 +70,7 @@ import java.util.concurrent.TimeUnit;
  * queue set up by configuration parameter {@link #MAX_TIME_IN_QUEUE}.
  *
  * @author andrew00x
+ * @author Eugene Voevodin
  * @see Configuration
  */
 public class BuildQueue implements Lifecycle {
@@ -310,11 +311,11 @@ public class BuildQueue implements Lifecycle {
                 if (!entry.getValue().isEmpty()) {
                     request.setSourcesUrl(entry.getValue().get(0));
                 }
-            } else if (request.getTargets() == null && buildTargets.equals(entry.getKey())) {
+            } else if (request.getTargets().isEmpty() && buildTargets.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setTargets(entry.getValue());
                 }
-            } else if (request.getOptions() == null && buildOptions.equals(entry.getKey())) {
+            } else if (request.getOptions().isEmpty() && buildOptions.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     final Map<String, String> options = new LinkedHashMap<>();
                     for (String str : entry.getValue()) {

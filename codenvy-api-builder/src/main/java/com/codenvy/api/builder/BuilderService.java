@@ -50,6 +50,7 @@ import javax.ws.rs.core.MediaType;
  * RESTful frontend for BuildQueue.
  *
  * @author andrew00x
+ * @author Eugene Voevodin
  */
 @Path("{ws-name}/builder")
 @Description("Builder API")
@@ -65,7 +66,7 @@ public final class BuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@PathParam("ws-name") String workspace,
                                      @Required @Description("project name") @QueryParam("project") String project,
-                                     BuildOptions options) throws Exception {
+                                     @Description("build options") BuildOptions options) throws Exception {
         return buildQueue.scheduleBuild(workspace, project, getServiceContext(), options).getDescriptor(getServiceContext());
     }
 

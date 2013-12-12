@@ -19,6 +19,7 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
+import com.codenvy.api.builder.internal.dto.BuildOptions;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -48,7 +49,7 @@ import javax.ws.rs.core.MediaType;
 /**
  * RESTful frontend for BuildQueue.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @Path("{ws-name}/builder")
 @Description("Builder API")
@@ -63,8 +64,9 @@ public final class BuilderService extends Service {
     @Path("build")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@PathParam("ws-name") String workspace,
-                                     @Required @Description("project name") @QueryParam("project") String project) throws Exception {
-        return buildQueue.scheduleBuild(workspace, project, getServiceContext()).getDescriptor(getServiceContext());
+                                     @Required @Description("project name") @QueryParam("project") String project,
+                                     BuildOptions options) throws Exception {
+        return buildQueue.scheduleBuild(workspace, project, getServiceContext(), options).getDescriptor(getServiceContext());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)

@@ -20,6 +20,7 @@ package com.codenvy.api.factory;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.organization.client.UserManager;
 import com.codenvy.organization.exception.OrganizationServiceException;
+import com.codenvy.organization.model.User;
 
 import org.everrest.core.impl.provider.json.*;
 import org.slf4j.Logger;
@@ -118,7 +119,13 @@ public class FactoryService {
             if (userPrincipal == null || userPrincipal.getName() == null) {
                 throw new FactoryUrlException(403, "You are not authenticated for using this method");
             }
-            factoryUrl.setUserid(userManager.getUserByAlias(userPrincipal.getName()).getId());
+
+            User user = userManager.getUserByAlias(userPrincipal.getName());
+            if (user == null || user.isTemporary()) {
+                throw new FactoryUrlException(403, "Current user is not authenticated for using this method.");
+            }
+
+            factoryUrl.setUserid(user.getId());
 
             factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));

@@ -27,5 +27,5 @@ import java.util.List;
 public interface ProjectTypeExtension {
     ProjectType getProjectType();
 
-    List<AttributeDescription> getAttributeDescriptions();
+    List<Attribute> getPredefinedAttributes();
 }

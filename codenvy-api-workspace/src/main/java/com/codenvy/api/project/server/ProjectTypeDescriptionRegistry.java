@@ -44,8 +44,7 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     public void registerProjectType(ProjectTypeExtension extension) {
-        final ProjectType projectType = extension.getProjectType();
-        descriptions.put(projectType.getId(), new ProjectTypeDescription(projectType, extension.getAttributeDescriptions()));
+        // TODO: implement
     }
 
     public void registerDescription(ProjectTypeDescriptionExtension extension) {

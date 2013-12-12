@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.Lifecycle;
@@ -59,7 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Super-class for all implementation of Builder.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class Builder implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
@@ -364,7 +365,9 @@ public abstract class Builder implements Lifecycle {
         return new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-                getSourcesManager().getSources(configuration);
+                BaseBuilderRequest request = configuration.getRequest();
+                getSourcesManager()
+                        .getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
                 StreamPump output = null;
                 Watchdog watcher = null;
                 int result = -1;

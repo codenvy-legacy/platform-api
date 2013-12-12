@@ -36,7 +36,6 @@ import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,7 +52,8 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Implementation of SourcesManager that stores sources locally and gets only updated files over virtual file system RESt API.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
+ * @author Eugene Voevodin
  */
 public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private static final Logger   LOG                        = LoggerFactory.getLogger(SourcesManagerImpl.class);
@@ -83,16 +83,18 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                                      TASK_EXECUTION_PERIOD_UNIT);
     }
 
-    @Override
+
     public void getSources(BuilderConfiguration configuration) throws IOException {
         final BaseBuilderRequest request = configuration.getRequest();
+        getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
+    }
+
+    @Override
+    public void getSources(String workspace, String project,final String sourcesUrl, File workDir) throws IOException {
         // Directory for sources. Keep sources to avoid download whole project before build.
         // This directory is not permanent and may be removed at any time.
-        final String workspace = request.getWorkspace();
-        final String project = request.getProject();
         final java.io.File srcDir = new java.io.File(directory, workspace + java.io.File.separatorChar + project);
         // Temporary directory where we copy sources before build.
-        final java.io.File workDir = configuration.getWorkDir();
         final String key = workspace + project;
         try {
             waitIfNeedToCheckProject(key);
@@ -107,7 +109,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             final FutureTask<Void> newFuture = new FutureTask<>(new Runnable() {
                 @Override
                 public void run() {
-                    download(request.getSourcesUrl(), srcDir, new Callback() {
+                    download(sourcesUrl, srcDir, new Callback() {
                         @Override
                         public void done(java.io.File downloaded) {
                             // Don't need this event. We are waiting until download is done.

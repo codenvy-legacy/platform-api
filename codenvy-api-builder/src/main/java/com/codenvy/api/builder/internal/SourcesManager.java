@@ -22,15 +22,20 @@ import java.io.IOException;
 /**
  * Manages build sources.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
+ * @author Eugene Voevodin
  */
 public interface SourcesManager {
     /**
-     * Get build sources. Sources are copied to the directory {@code configuration.getWorkDir()}.
+     * Get build sources. Sources are copied to the directory <code>workDir</code>.
      *
-     * @see BuilderConfiguration#getWorkDir()
+     * @workspace workspace
+     * @project project
+     * @sourcesUrl sources url
+     * @workDir directory where sources will be copied
      */
-    void getSources(BuilderConfiguration configuration) throws IOException;
+
+    void getSources(String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
 
     java.io.File getDirectory();
 }

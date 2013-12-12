@@ -17,15 +17,7 @@
  */
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.internal.BuildListener;
-import com.codenvy.api.builder.internal.BuildLogger;
-import com.codenvy.api.builder.internal.BuildResult;
-import com.codenvy.api.builder.internal.BuildTask;
-import com.codenvy.api.builder.internal.Builder;
-import com.codenvy.api.builder.internal.BuilderConfiguration;
-import com.codenvy.api.builder.internal.BuilderException;
-import com.codenvy.api.builder.internal.DelegateBuildLogger;
-import com.codenvy.api.builder.internal.SourcesManager;
+import com.codenvy.api.builder.internal.*;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;
@@ -35,9 +27,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class BuilderTest {
 
     // Simple test for main Builder components. Don't run any real build processes.
@@ -73,8 +66,9 @@ public class BuilderTest {
         @Override
         public SourcesManager getSourcesManager() {
             return new SourcesManager() {
+
                 @Override
-                public void getSources(BuilderConfiguration configuration) throws IOException {
+                public void getSources(String workspace, String project, String sourcesUrl, File workDir) throws IOException {
                     // Don't need for current set of tests.
                 }
 
@@ -134,7 +128,7 @@ public class BuilderTest {
         return root;
     }
 
-        @Test
+    @Test
     public void testRunTask() throws Exception {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
@@ -144,7 +138,7 @@ public class BuilderTest {
         Assert.assertEquals(builder.logger.getLogsAsString(), "test");
     }
 
-        @Test
+    @Test
     public void testBuildListener() throws Exception {
         final boolean[] beginFlag = new boolean[]{false};
         final boolean[] endFlag = new boolean[]{false};

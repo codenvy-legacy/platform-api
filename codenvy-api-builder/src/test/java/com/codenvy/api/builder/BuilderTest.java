@@ -17,7 +17,15 @@
  */
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.internal.*;
+import com.codenvy.api.builder.internal.BuildListener;
+import com.codenvy.api.builder.internal.BuildLogger;
+import com.codenvy.api.builder.internal.BuildResult;
+import com.codenvy.api.builder.internal.BuildTask;
+import com.codenvy.api.builder.internal.Builder;
+import com.codenvy.api.builder.internal.BuilderConfiguration;
+import com.codenvy.api.builder.internal.BuilderException;
+import com.codenvy.api.builder.internal.DelegateBuildLogger;
+import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;

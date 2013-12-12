@@ -25,7 +25,7 @@ import java.util.List;
  * @author gazarenkov
  */
 public interface ProjectTypeDescriptionExtension {
-    List<Attribute> getAttributes();
-
     List<ProjectType> getProjectTypes();
+
+    List<AttributeDescription> getAttributeDescriptions();
 }

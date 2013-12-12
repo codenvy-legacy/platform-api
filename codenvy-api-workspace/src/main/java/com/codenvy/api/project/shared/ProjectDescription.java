@@ -29,9 +29,9 @@ import java.util.Map;
  * @author gazarenkov
  */
 public class ProjectDescription {
-    protected ProjectType projectType;
+    private ProjectType projectType;
 
-    protected final Map<String, Attribute> attributes;
+    private final Map<String, Attribute> attributes;
 
     public ProjectDescription(ProjectType projectType, Attribute... attributes) {
         if (projectType == null) {
@@ -103,12 +103,12 @@ public class ProjectDescription {
         return attributes.get(name) != null;
     }
 
-    /** Set single attribute. New attribute will override exited attribute. */
+    /** Set single attribute. New attribute will override exited attribute with the same name. */
     public void setAttribute(Attribute attribute) {
         attributes.put(attribute.getName(), attribute);
     }
 
-    /** Set attributes. New attributes will override exited attributes. */
+    /** Set attributes. New attributes will override exited attributes with the same names. */
     public void setAttributes(Attribute... elements) {
         if (elements != null && elements.length > 0) {
             for (Attribute attribute : elements) {
@@ -117,7 +117,7 @@ public class ProjectDescription {
         }
     }
 
-    /** Set attributes. New attributes will override exited attributes. */
+    /** Set attributes. New attributes will override exited attributes with the same names. */
     public void setAttributes(List<Attribute> list) {
         if (!(list == null || list.isEmpty())) {
             for (Attribute attribute : list) {

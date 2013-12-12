@@ -18,9 +18,10 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
+import com.codenvy.api.project.shared.dto.AttributeDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTypeDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -30,9 +31,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * ProjectDescriptionService
@@ -54,11 +53,11 @@ public class ProjectTypeDescriptionService extends Service {
             final ProjectTypeDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectTypeDescriptor.class);
             descriptor.setProjectTypeId(projectType.getId());
             descriptor.setProjectTypeName(projectType.getName());
-            final Map<String, List<String>> attributeValues = new HashMap<>();
-            for (Attribute attribute : typeDescription.getAttributes()) {
-                attributeValues.put(attribute.getName(), attribute.getValues());
+            final List<AttributeDescriptor> attributeDescriptors = new ArrayList<>();
+            for (AttributeDescription attributeDescription : typeDescription.getAttributeDescriptions()) {
+                attributeDescriptors.add(DtoFactory.getInstance().createDto(AttributeDescriptor.class).withName(attributeDescription.getName()));
             }
-            descriptor.setAttributes(attributeValues);
+            descriptor.setAttributeDescriptors(attributeDescriptors);
             types.add(descriptor);
         }
         return types;

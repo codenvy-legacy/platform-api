@@ -19,6 +19,7 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.codenvy.api.vfs.shared.dto.Project;
@@ -80,8 +81,8 @@ public class ProjectDescriptionFactory {
         }
         final ProjectTypeDescription typeDescription = typeDescriptionRegistry.getDescription(projectType);
         if (typeDescription != null) {
-            for (Attribute attribute : typeDescription.getAttributes()) {
-                final String attributeName = attribute.getName();
+            for (AttributeDescription attributeDescription : typeDescription.getAttributeDescriptions()) {
+                final String attributeName = attributeDescription.getName();
                 if (!attributes.containsKey(attributeName)) {
                     final ValueProviderFactory factory = valueProviderFactories.get(attributeName);
                     if (factory != null) {

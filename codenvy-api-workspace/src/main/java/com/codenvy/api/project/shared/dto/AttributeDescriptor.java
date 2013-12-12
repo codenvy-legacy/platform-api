@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,17 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.shared.dto;
 
-import java.util.List;
+import com.codenvy.dto.shared.DTO;
 
 /**
- * ProjectTypeExtension
+ * Data transfer object (DTO) for com.codenvy.api.project.shared.AttributeDescription
  *
- * @author gazarenkov
+ * @author andrew00x
  */
-public interface ProjectTypeExtension {
-    ProjectType getProjectType();
+@DTO
+public interface AttributeDescriptor {
+    String getName();
 
-    List<AttributeDescription> getAttributeDescriptions();
+    void setName(String name);
+
+    AttributeDescriptor withName(String name);
 }

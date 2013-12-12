@@ -19,11 +19,34 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
+
 /**
  * Data transfer object (DTO) for com.codenvy.api.project.shared.ProjectTypeDescription.
  *
  * @author andrew00x
  */
 @DTO
-public interface ProjectTypeDescriptor extends ProjectDescriptor {
+public interface ProjectTypeDescriptor {
+    /** Get unique ID of type of project. */
+    String getProjectTypeId();
+
+    /** Set unique ID of type of project. */
+    void setProjectTypeId(String id);
+
+    ProjectTypeDescriptor withProjectTypeId(String id);
+
+    /** Get display name of type of project. */
+    String getProjectTypeName();
+
+    /** Set display name of type of project. */
+    void setProjectTypeName(String name);
+
+    ProjectTypeDescriptor withProjectTypeName(String name);
+
+    List<AttributeDescriptor> getAttributeDescriptors();
+
+    void setAttributeDescriptors(List<AttributeDescriptor> attributeDescriptors);
+
+    ProjectTypeDescriptor withAttributeDescriptors(List<AttributeDescriptor> attributeDescriptors);
 }

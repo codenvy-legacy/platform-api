@@ -100,7 +100,7 @@ public class FactoryService {
             }
 
             if (factoryUrl == null) {
-                LOG.error("No factory URL information found in 'factoryUrl' section of multipart form-data.");
+                LOG.warn("No factory URL information found in 'factoryUrl' section of multipart form-data.");
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               "No factory URL information found in 'factoryUrl' section of multipart form-data.");
             }
@@ -166,7 +166,7 @@ public class FactoryService {
     public AdvancedFactoryUrl getFactory(@PathParam("id") String id, @Context UriInfo uriInfo) throws FactoryUrlException {
         AdvancedFactoryUrl factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
-            LOG.error("Factory URL with id {} is not found.", id);
+            LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
@@ -201,7 +201,7 @@ public class FactoryService {
             throws FactoryUrlException {
         Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(factoryId, null);
         if (factoryImages == null) {
-            LOG.error("Factory URL with id {} is not found.", factoryId);
+            LOG.warn("Factory URL with id {} is not found.", factoryId);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
                                           String.format("Factory URL with id %s is not found.", factoryId));
         }
@@ -210,7 +210,7 @@ public class FactoryService {
                 FactoryImage image = factoryImages.iterator().next();
                 return Response.ok(image.getImageData(), image.getMediaType()).build();
             } else {
-                LOG.error("Default image for factory {} is not found.", factoryId);
+                LOG.warn("Default image for factory {} is not found.", factoryId);
                 throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
                                               String.format("Default image for factory %s is not found.", factoryId));
             }
@@ -221,7 +221,7 @@ public class FactoryService {
                 }
             }
         }
-        LOG.error("Image with id {} is not found.", imageId);
+        LOG.warn("Image with id {} is not found.", imageId);
         throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Image with id %s is not found.", imageId));
     }
 
@@ -246,7 +246,7 @@ public class FactoryService {
             throws FactoryUrlException {
         AdvancedFactoryUrl factory = factoryStore.getFactory(id);
         if (factory == null) {
-            LOG.error("Factory URL with id {} is not found.", id);
+            LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
@@ -261,7 +261,7 @@ public class FactoryService {
                         .generateMarkdownSnippet(id, factoryStore.getFactoryImages(id, null), factory.getStyle(),
                                                  uriInfo.getBaseUri());
             default:
-                LOG.error("Snippet type {} is unsupported", type);
+                LOG.warn("Snippet type {} is unsupported", type);
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               String.format("Snippet type \"%s\" is unsupported.", type));
         }

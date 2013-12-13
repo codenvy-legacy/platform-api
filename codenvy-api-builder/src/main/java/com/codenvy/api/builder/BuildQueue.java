@@ -24,6 +24,7 @@ import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.internal.dto.BuildOptions;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -68,7 +69,8 @@ import java.util.concurrent.TimeUnit;
  * build request and tries send request again. Requests don't stay in this queue forever. Max time (in minutes) for request to be in the
  * queue set up by configuration parameter {@link #MAX_TIME_IN_QUEUE}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
+ * @author Eugene Voevodin
  * @see Configuration
  */
 public class BuildQueue implements Lifecycle {
@@ -213,13 +215,15 @@ public class BuildQueue implements Lifecycle {
      * @throws IOException
      *         if an i/o error occurs
      */
-    public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext)
+    public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws RemoteException, IOException, BuilderException {
         checkStarted();
         final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
                                                              .withProject(project);
+        request.setOptions(buildOptions.getOptions());
+        request.setTargets(buildOptions.getTargets());
         addRequestParameters(attributes, request);
         request.setTimeout(getBuildTimeout(request));
         final BuilderList builderList = getBuilderList(request);
@@ -307,11 +311,11 @@ public class BuildQueue implements Lifecycle {
                 if (!entry.getValue().isEmpty()) {
                     request.setSourcesUrl(entry.getValue().get(0));
                 }
-            } else if (buildTargets.equals(entry.getKey())) {
+            } else if (request.getTargets().isEmpty() && buildTargets.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setTargets(entry.getValue());
                 }
-            } else if (buildOptions.equals(entry.getKey())) {
+            } else if (request.getOptions().isEmpty() && buildOptions.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     final Map<String, String> options = new LinkedHashMap<>();
                     for (String str : entry.getValue()) {

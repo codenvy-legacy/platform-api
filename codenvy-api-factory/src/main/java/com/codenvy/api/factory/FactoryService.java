@@ -45,13 +45,11 @@ import static javax.ws.rs.core.Response.Status;
 public class FactoryService {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
     @Inject
-    private FactoryStore factoryStore;
-
+    private FactoryStore                factoryStore;
     @Inject
     private AdvancedFactoryUrlValidator factoryUrlValidator;
-
     @Inject
-    private UserManager userManager;
+    private UserManager                 userManager;
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
@@ -140,8 +138,14 @@ public class FactoryService {
             LOG.info(
                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}}# " +
                     "ORG-ID#{}}#",
-                    new String[]{"", "", "", nullToEmpty(factoryUrl.getProjectattributes().get("ptype")), factoryUrl.getVcsurl(),
-                                 createProjectLink, nullToEmpty(factoryUrl.getAffiliateid()), nullToEmpty(factoryUrl.getOrgid())});
+                    "",
+                    userPrincipal.getName(),
+                    "",
+                    nullToEmpty(factoryUrl.getProjectattributes().get("ptype")),
+                    factoryUrl.getVcsurl(),
+                    createProjectLink,
+                    nullToEmpty(factoryUrl.getAffiliateid()),
+                    nullToEmpty(factoryUrl.getOrgid()));
 
             return factoryUrl;
         } catch (IOException | JsonException | ServletException | OrganizationServiceException e) {

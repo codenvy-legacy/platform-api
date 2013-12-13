@@ -15,19 +15,14 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.server;
 
-import java.util.List;
+import com.codenvy.api.project.shared.ValueProvider;
+import com.codenvy.api.vfs.server.VirtualFileSystem;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.shared.dto.Project;
 
-/**
- * Provides access to the value of attribute of Project.
- *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- */
-public interface AttributeValueProvider {
-    /** Get value. */
-    List<String> getValues();
-
-    /** Set value. */
-    void setValues(List<String> value);
+/** @author andrew00x */
+public interface PersistentValueProvider  extends ValueProvider {
+    void store(Project project, VirtualFileSystem vfs) throws VirtualFileSystemException;
 }

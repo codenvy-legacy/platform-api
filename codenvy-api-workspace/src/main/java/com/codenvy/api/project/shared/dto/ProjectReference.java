@@ -15,16 +15,30 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.workspace;
+package com.codenvy.api.project.shared.dto;
 
-/** @author andrew00x */
-public class Constants {
-    // rels for known workspace links
-    public static final String LINK_REL_GET_PROJECTS   = "get projects";
-    public static final String LINK_REL_GET_PROJECT    = "get project";
-    public static final String LINK_REL_CREATE_PROJECT = "create project";
-    public static final String LINK_REL_UPDATE_PROJECT = "update project";
+import com.codenvy.dto.shared.DTO;
 
-    private Constants() {
-    }
+/**
+ * Reference to the IDE Project.
+ *
+ * @author andrew00x
+ */
+@DTO
+public interface ProjectReference {
+    /** Get name of project. */
+    String getName();
+
+    /** Set name of project. */
+    void setName(String name);
+
+    ProjectReference withName(String name);
+
+    /** Get URL for getting detailed information about project. */
+    String getUrl();
+
+    /** Set URL for getting detailed information about project. */
+    void setUrl(String url);
+
+    ProjectReference withUrl(String url);
 }

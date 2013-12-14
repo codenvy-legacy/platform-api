@@ -136,8 +136,7 @@ public class FactoryService {
                 createProjectLink = createProjectLinksIterator.next().getHref();
             }
             LOG.info(
-                    "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}}# " +
-                    "ORG-ID#{}}#",
+                    "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
                     "",
                     userPrincipal.getName(),
                     "",

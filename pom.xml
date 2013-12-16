@@ -41,6 +41,7 @@
         <module>codenvy-api-builder</module>
         <module>codenvy-api-runner</module>
         <module>codenvy-api-analytics</module>
+        <module>codenvy-api-war</module>
     </modules>
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>

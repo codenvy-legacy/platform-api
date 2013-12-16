@@ -22,12 +22,15 @@
          version="3.0"
          metadata-complete="true">
     <display-name>Codenvy API</display-name>
-    <servlet>
-        <servlet-name>EverrestServlet</servlet-name>
-        <servlet-class>org.everrest.core.servlet.EverrestServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>EverrestServlet</servlet-name>
-        <url-pattern>/*</url-pattern>
-    </servlet-mapping>
+    <listener>
+        <listener-class>com.codenvy.inject.CodenvyBootstrap</listener-class>
+    </listener>
+    <filter>
+        <filter-name>guiceFilter</filter-name>
+        <filter-class>com.google.inject.servlet.GuiceFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>guiceFilter</filter-name>
+        <url-pattern>/rest/*</url-pattern>
+    </filter-mapping>
 </web-app>

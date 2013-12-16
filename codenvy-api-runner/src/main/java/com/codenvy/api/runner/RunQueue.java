@@ -42,10 +42,13 @@ import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
@@ -100,21 +103,39 @@ public class RunQueue implements Lifecycle {
     private final ConcurrentMap<RunnerListKey, RemoteRunnerList> runnerListMapping;
     private final ConcurrentMap<Long, RunQueueTask>              tasks;
 
-    private String  baseApiUrl;
-    /**
-     * Default size of memory for application. This value used is there is nothing specified in properties of project.
-     *
-     * @see #DEFAULT_MEMORY_SIZE
-     */
-    private int     defMemSize;
     /**
      * Max time for request to be in queue in milliseconds.
      *
      * @see #MAX_TIME_IN_QUEUE
      */
-    private long    maxTimeInQueueMillis;
-    private long    appLifetime;
-    private boolean started;
+    private long                   maxTimeInQueueMillis;
+
+    private boolean                started;
+
+    @Named(BASE_API_URL)
+    @Inject
+    private ConfigurationParameter baseApiUrl;
+
+    /**
+     * Default size of memory for application. This value used is there is nothing specified in properties of project.
+     *
+     * @see #DEFAULT_MEMORY_SIZE
+     */
+    @Named(DEFAULT_MEMORY_SIZE)
+    @Inject
+    private ConfigurationParameter defMemSize;
+
+    /**
+     * Max time for request to be in queue in seconds.
+     *
+     * @see #MAX_TIME_IN_QUEUE
+     */
+    @Named(MAX_TIME_IN_QUEUE)
+    @Inject
+    private ConfigurationParameter maxTimeInQueue;
+    @Named(APPLICATION_LIFETIME)
+    @Inject
+    private ConfigurationParameter                  appLifetime;
 
     public RunQueue() {
         runnerSelector = ComponentLoader.one(RunnerSelectionStrategy.class);
@@ -127,7 +148,8 @@ public class RunQueue implements Lifecycle {
             throws IOException, RemoteException, RunnerException {
         checkStarted();
         // TODO: check do we need build the project
-        final UriBuilder baseUriBuilder = baseApiUrl == null ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
+        final UriBuilder baseUriBuilder =
+                baseApiUrl == null ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl.asString());
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, baseUriBuilder.clone());
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class).withWorkspace(workspace).withProject(project);
         addRequestParameters(descriptor, request);
@@ -192,7 +214,7 @@ public class RunQueue implements Lifecycle {
         }
         // use default value if memory is not set in project properties
         if (request.getMemorySize() <= 0) {
-            request.setMemorySize(defMemSize);
+            request.setMemorySize(defMemSize.asInt());
         }
     }
 
@@ -287,7 +309,7 @@ public class RunQueue implements Lifecycle {
 
     private long getApplicationLifetime(RunRequest request) {
         // TODO: calculate in different way for different workspace/project.
-        return appLifetime;
+        return appLifetime.asInt();
     }
 
     private void purgeExpiredTasks() {
@@ -338,12 +360,10 @@ public class RunQueue implements Lifecycle {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        baseApiUrl = myConfiguration.get(BASE_API_URL);
-        defMemSize = myConfiguration.getInt(DEFAULT_MEMORY_SIZE, 128);
-        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(myConfiguration.getInt(MAX_TIME_IN_QUEUE, 600));
-        appLifetime = myConfiguration.getInt(APPLICATION_LIFETIME, 900);
+//        final Configuration myConfiguration = getConfiguration();
+//        LOG.debug("{}", myConfiguration);
+//        defMemSize = myConfiguration.getInt(DEFAULT_MEMORY_SIZE, 128);
+        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue.asInt());
         final InputStream regConf =
                 Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/runner_service_registrations.json");
         if (regConf != null) {

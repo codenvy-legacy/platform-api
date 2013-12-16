@@ -221,8 +221,10 @@ public class BuildQueue implements Lifecycle {
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
                                                              .withProject(project);
-        request.setOptions(buildOptions.getOptions());
-        request.setTargets(buildOptions.getTargets());
+        if (buildOptions != null) {
+            request.setOptions(buildOptions.getOptions());
+            request.setTargets(buildOptions.getTargets());
+        }
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final BuilderList builderList = getBuilderList(request);

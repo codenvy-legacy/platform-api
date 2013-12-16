@@ -339,7 +339,7 @@ public class BuildQueue implements Lifecycle {
             throws IOException, RemoteException {
         final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
         final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
-                                                .path(WorkspaceService.class, "getProjectDescriptor")
+                                                .path(WorkspaceService.class, "getProject")
                                                 .build(workspace).toString();
         return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
     }

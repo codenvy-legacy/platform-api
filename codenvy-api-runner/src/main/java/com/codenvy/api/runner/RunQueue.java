@@ -199,7 +199,7 @@ public class RunQueue implements Lifecycle {
     private ProjectDescriptor getProjectDescription(String workspace, String project, UriBuilder baseUriBuilder)
             throws IOException, RemoteException {
         final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
-                                                .path(WorkspaceService.class, "getProjectDescriptor")
+                                                .path(WorkspaceService.class, "getProject")
                                                 .build(workspace).toString();
         return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
     }

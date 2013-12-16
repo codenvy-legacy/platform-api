@@ -41,10 +41,13 @@ import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
@@ -92,9 +95,16 @@ public class BuildQueue implements Lifecycle {
 
     /** Max time for request to be in queue in milliseconds. */
     private long    maxTimeInQueueMillis;
-    /** Build timeout in seconds. */
-    private long    timeout;
     private boolean started;
+
+    @Named(MAX_TIME_IN_QUEUE)
+    @Inject
+    private ConfigurationParameter maxTimeInQueue;
+
+    @Named(BUILD_TIMEOUT)
+    @Inject
+    private ConfigurationParameter timeout;
+
 
     public BuildQueue() {
         builderSelector = ComponentLoader.one(BuilderSelectionStrategy.class);
@@ -373,7 +383,7 @@ public class BuildQueue implements Lifecycle {
 
     private long getBuildTimeout(BaseBuilderRequest request) {
         // TODO: calculate in different way for different workspace/project.
-        return timeout;
+        return timeout.asLong();
     }
 
     private void purgeExpiredTasks() {
@@ -419,10 +429,7 @@ public class BuildQueue implements Lifecycle {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(myConfiguration.getInt(MAX_TIME_IN_QUEUE, 600));
-        timeout = myConfiguration.getInt(BUILD_TIMEOUT, 300);
+        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue.asInt());
         final InputStream regConf =
                 Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builder_service_registrations.json");
         if (regConf != null) {

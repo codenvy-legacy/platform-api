@@ -33,10 +33,13 @@ import com.codenvy.api.core.util.StreamPump;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -94,15 +97,29 @@ public abstract class Builder implements Lifecycle {
     private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
     private final Set<BuildListener>                    buildListeners;
 
-    private int     queueSize;
-    private int     cleanBuildResultDelay;
-    private boolean started;
-
+    private boolean                  started;
     private ScheduledExecutorService cleaner;
-    private ThreadPoolExecutor       executor;
-    private java.io.File             repository;
-    private java.io.File             builds;
-    private SourcesManager           sourcesManager;
+
+    private ThreadPoolExecutor executor;
+    private java.io.File       repository;
+    private java.io.File       builds;
+    private SourcesManager     sourcesManager;
+
+    @Named(REPOSITORY)
+    @Inject
+    private ConfigurationParameter repositoryPath;
+
+    @Named(NUMBER_OF_WORKERS)
+    @Inject
+    private ConfigurationParameter numberOfWorkers;
+
+    @Named(INTERNAL_QUEUE_SIZE)
+    @Inject
+    private ConfigurationParameter queueSize;
+
+    @Named(CLEAN_RESULT_DELAY_TIME)
+    @Inject
+    private ConfigurationParameter cleanBuildResultDelay;
 
     public Builder() {
         buildListeners = new LinkedHashSet<>();
@@ -166,10 +183,7 @@ public abstract class Builder implements Lifecycle {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        final java.io.File path = myConfiguration.getFile(REPOSITORY, new java.io.File(System.getProperty("java.io.tmpdir")));
-        repository = new java.io.File(path, getName());
+        repository = new java.io.File(repositoryPath.asString(), getName());
         if (!(repository.exists() || repository.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", repository.getAbsolutePath()));
         }
@@ -182,12 +196,9 @@ public abstract class Builder implements Lifecycle {
             throw new LifecycleException(String.format("Unable create directory %s", builds.getAbsolutePath()));
         }
         sourcesManager = new SourcesManagerImpl(sources);
-        int workerNumber = myConfiguration.getInt(NUMBER_OF_WORKERS, Runtime.getRuntime().availableProcessors());
-        queueSize = myConfiguration.getInt(INTERNAL_QUEUE_SIZE, 100);
-        cleanBuildResultDelay = myConfiguration.getInt(CLEAN_RESULT_DELAY_TIME, 3600);
-        executor = new MyThreadPoolExecutor(workerNumber, queueSize);
+        executor = new MyThreadPoolExecutor(numberOfWorkers.asInt(), queueSize.asInt());
         cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
-        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.SECONDS);
+        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay.asInt(), cleanBuildResultDelay.asInt(), TimeUnit.SECONDS);
         synchronized (buildListeners) {
             for (BuildListener listener : ComponentLoader.all(BuildListener.class)) {
                 buildListeners.add(listener);
@@ -349,7 +360,7 @@ public abstract class Builder implements Lifecycle {
         final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
         final FutureBuildTask task =
                 new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), configuration, logger, callback);
-        final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
+        final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay.asInt());
         final BuildTaskEntry cachedTask = new BuildTaskEntry(task, expirationTime);
         purgeExpiredTasks();
         tasks.put(task.getId(), cachedTask);
@@ -418,7 +429,7 @@ public abstract class Builder implements Lifecycle {
 
     public int getMaxInternalQueueSize() {
         checkStarted();
-        return queueSize;
+        return queueSize.asInt();
     }
 
     /** Removes expired tasks. */

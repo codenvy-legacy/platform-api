@@ -31,10 +31,13 @@ import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -67,8 +70,15 @@ public abstract class Runner implements Lifecycle {
     private final AtomicInteger                 runningAppsCounter;
     private final DownloadPlugin                downloadPlugin;
 
-    private int     cleanupDelay;
     private boolean started;
+
+    @Named(DEPLOY_DIRECTORY)
+    @Inject
+    private ConfigurationParameter deployDirectoryPath;
+
+    @Named(CLEANUP_DELAY_TIME)
+    @Inject
+    private ConfigurationParameter cleanupDelay;
 
     public Runner() {
         processes = new ConcurrentHashMap<>();
@@ -101,14 +111,10 @@ public abstract class Runner implements Lifecycle {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        final java.io.File path = myConfiguration.getFile(DEPLOY_DIRECTORY, new java.io.File(System.getProperty("java.io.tmpdir")));
-        deployDirectory = new java.io.File(path, getName());
+        deployDirectory = new java.io.File(deployDirectoryPath.asString(), getName());
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
-        cleanupDelay = myConfiguration.getInt(CLEANUP_DELAY_TIME, 900); // 15 minutes
         started = true;
     }
 
@@ -184,7 +190,7 @@ public abstract class Runner implements Lifecycle {
                                                                 runnerCfg,
                                                                 webHookUrl == null ? null : new WebHookCallback(webHookUrl));
         purgeExpiredProcesses();
-        processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
+        processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay.asInt())));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
@@ -296,7 +302,7 @@ public abstract class Runner implements Lifecycle {
         private final Long                id;
         private final String              runner;
         private final RunnerConfiguration configuration;
-        private final Callback callback;
+        private final Callback            callback;
 
         private ApplicationProcess realProcess;
         private long               startTime;

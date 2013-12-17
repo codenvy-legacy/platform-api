@@ -19,8 +19,6 @@ package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
@@ -66,28 +64,30 @@ public abstract class Runner implements Lifecycle {
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
-    private java.io.File deployDirectory;
-
     private final ExecutorService               executor;
     private final Map<Long, RunnerProcessEntry> processes;
     private final Map<Long, List<Disposer>>     applicationDisposers;
     private final Object                        applicationDisposersLock;
     private final AtomicInteger                 runningAppsCounter;
+    private final java.io.File                  deployDirectoryRoot;
+    private final DownloadPlugin                downloadPlugin;
+    private final ResourceAllocators            allocators;
     private final int                           cleanupDelay;
-    private final String                        deployDirectoryPath;
 
-    private final DownloadPlugin downloadPlugin;
-    private       boolean        started;
+
+    private java.io.File deployDirectory;
+    private boolean      started;
 
     @Inject
     public Runner(@Named(DEPLOY_DIRECTORY) ConfigurationParameter deployDirectoryPath,
-                  @Named(CLEANUP_DELAY_TIME) ConfigurationParameter cleanupDelay) {
-        this(deployDirectoryPath.asString(), cleanupDelay.asInt());
+                  @Named(CLEANUP_DELAY_TIME) ConfigurationParameter cleanupDelay, ResourceAllocators allocators) {
+        this(deployDirectoryPath.asFile(), cleanupDelay.asInt(), allocators);
     }
 
-    public Runner(String deployDirectoryPath, int cleanupDelay) {
-        this.deployDirectoryPath = deployDirectoryPath;
+    public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators) {
+        this.deployDirectoryRoot = deployDirectoryRoot;
         this.cleanupDelay = cleanupDelay;
+        this.allocators = allocators;
         processes = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
         applicationDisposers = new HashMap<>();
@@ -109,17 +109,13 @@ public abstract class Runner implements Lifecycle {
         return executor;
     }
 
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
-    }
-
     @PostConstruct
     @Override
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        deployDirectory = new java.io.File(deployDirectoryPath, getName());
+        deployDirectory = new java.io.File(deployDirectoryRoot, getName());
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
@@ -202,9 +198,8 @@ public abstract class Runner implements Lifecycle {
         processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
-        final ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
-                                                                    .newMemoryAllocator(mem)
-                                                                    .allocate();
+        final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem)
+                                                            .allocate();
         executor.execute(new Runnable() {
             @Override
             public void run() {

@@ -30,12 +30,9 @@ import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
-import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
@@ -76,7 +73,6 @@ import java.util.concurrent.TimeUnit;
  *
  * @author andrew00x
  * @author Eugene Voevodin
- * @see Configuration
  */
 @Singleton
 public class BuildQueue implements Lifecycle {
@@ -469,10 +465,6 @@ public class BuildQueue implements Lifecycle {
         if (!started) {
             throw new IllegalArgumentException("Lifecycle instance is not started yet.");
         }
-    }
-
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
     }
 
     @PreDestroy

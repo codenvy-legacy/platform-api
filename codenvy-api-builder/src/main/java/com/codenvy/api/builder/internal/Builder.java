@@ -22,12 +22,9 @@ import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
-import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.ProcessUtil;
 import com.codenvy.api.core.util.StreamPump;
 import com.codenvy.api.core.util.Watchdog;
@@ -97,11 +94,11 @@ public abstract class Builder implements Lifecycle {
     private final ConcurrentMap<Long, BuildTaskEntry>   tasks;
     private final ConcurrentLinkedQueue<BuildTaskEntry> tasksFIFO;
     private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
-    private final String repositoryPath;
+    private final java.io.File                          rootDirectory;
     private final Set<BuildListener>                    buildListeners;
-    private final int cleanBuildResultDelay;
-    private final int queueSize;
-    private final int numberOfWorkers;
+    private final int                                   cleanBuildResultDelay;
+    private final int                                   queueSize;
+    private final int                                   numberOfWorkers;
 
     private boolean                  started;
     private ScheduledExecutorService cleaner;
@@ -116,11 +113,11 @@ public abstract class Builder implements Lifecycle {
                    @Named(NUMBER_OF_WORKERS) ConfigurationParameter numberOfWorkers,
                    @Named(INTERNAL_QUEUE_SIZE) ConfigurationParameter queueSize,
                    @Named(CLEAN_RESULT_DELAY_TIME) ConfigurationParameter cleanBuildResultDelay) {
-        this(repositoryPath.asString(), numberOfWorkers.asInt(), queueSize.asInt(), cleanBuildResultDelay.asInt());
+        this(repositoryPath.asFile(), numberOfWorkers.asInt(), queueSize.asInt(), cleanBuildResultDelay.asInt());
     }
 
-    public Builder(String repositoryPath, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
-        this.repositoryPath = repositoryPath;
+    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
+        this.rootDirectory = rootDirectory;
         this.numberOfWorkers = numberOfWorkers;
         this.queueSize = queueSize;
         this.cleanBuildResultDelay = cleanBuildResultDelay;
@@ -176,9 +173,6 @@ public abstract class Builder implements Lifecycle {
         }
     }
 
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
-    }
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
@@ -187,7 +181,7 @@ public abstract class Builder implements Lifecycle {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        repository = new java.io.File(repositoryPath, getName());
+        repository = new java.io.File(rootDirectory, getName());
         if (!(repository.exists() || repository.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", repository.getAbsolutePath()));
         }

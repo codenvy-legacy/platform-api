@@ -21,14 +21,11 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
@@ -350,10 +347,6 @@ public class RunQueue implements Lifecycle {
             throw new NoSuchRunnerTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
         }
         return task;
-    }
-
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
     }
 
     @PostConstruct

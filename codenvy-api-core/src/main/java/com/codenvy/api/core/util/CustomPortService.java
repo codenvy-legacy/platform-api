@@ -17,11 +17,13 @@
  */
 package com.codenvy.api.core.util;
 
-import com.codenvy.api.core.config.SingletonConfiguration;
+import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -61,19 +63,15 @@ public class CustomPortService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomPortService.class);
 
-    private static class CustomPortServiceHolder {
-        static final CustomPortService INSTANCE = new CustomPortService(Pair.of(SingletonConfiguration.get().getInt(MIN_PORT, 49152),
-                                                                                SingletonConfiguration.get().getInt(MAX_PORT, 65535)));
-    }
-
-    public static CustomPortService getInstance() {
-        return CustomPortServiceHolder.INSTANCE;
-    }
-
     private final ConcurrentMap<Integer, Boolean> portsInUse;
     private final Pair<Integer, Integer>          range;
 
-    private CustomPortService(Pair<Integer, Integer> range) {
+    @Inject
+    public CustomPortService(@Named(MIN_PORT) ConfigurationParameter minPort, @Named(MAX_PORT) ConfigurationParameter maxPort) {
+        this(Pair.of(minPort.asInt(), maxPort.asInt()));
+    }
+
+    public CustomPortService(Pair<Integer, Integer> range) {
         if (range.first < 0 || range.second > 65535) {
             throw new IllegalArgumentException(String.format("Invalid port range: [%d:%d]", range.first, range.second));
         }

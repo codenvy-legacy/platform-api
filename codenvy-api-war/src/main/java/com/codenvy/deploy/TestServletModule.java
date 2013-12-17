@@ -17,18 +17,16 @@
  */
 package com.codenvy.deploy;
 
-import com.codenvy.api.builder.BuildQueue;
-import com.codenvy.api.builder.BuilderService;
 import com.codenvy.inject.DynaModule;
-import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.google.inject.servlet.ServletModule;
+
+import org.everrest.guice.servlet.GuiceEverrestServlet;
 
 /** @author andrew00x */
 @DynaModule
-public class TestModule implements Module {
+public class TestServletModule extends ServletModule {
     @Override
-    public void configure(Binder binder) {
-        binder.bind(BuilderService.class);
-        binder.bind(BuildQueue.class);
+    protected void configureServlets() {
+        serve("/*").with(GuiceEverrestServlet.class);
     }
 }

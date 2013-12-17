@@ -46,8 +46,11 @@ import com.codenvy.inject.ConfigurationParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,6 +78,7 @@ import java.util.concurrent.TimeUnit;
  * @author Eugene Voevodin
  * @see Configuration
  */
+@Singleton
 public class BuildQueue implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
@@ -104,7 +108,6 @@ public class BuildQueue implements Lifecycle {
     @Named(BUILD_TIMEOUT)
     @Inject
     private ConfigurationParameter timeout;
-
 
     public BuildQueue() {
         builderSelector = ComponentLoader.one(BuilderSelectionStrategy.class);
@@ -424,6 +427,7 @@ public class BuildQueue implements Lifecycle {
         return task;
     }
 
+    @PostConstruct
     @Override
     public synchronized void start() {
         if (started) {
@@ -470,6 +474,7 @@ public class BuildQueue implements Lifecycle {
         return SingletonConfiguration.get();
     }
 
+    @PreDestroy
     @Override
     public synchronized void stop() {
         checkStarted();

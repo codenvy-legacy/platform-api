@@ -16,6 +16,10 @@ public class VariableHelper {
     private static final Logger LOG = LoggerFactory.getLogger(VariableHelper.class);
 
     public static List<Variable> getVariables(String json) {
+        if (json == null || json.isEmpty()) {
+            return null;
+        }
+
         try {
             return Arrays.asList(fromJson(json, Variable[].class, null));
         } catch (JsonParseException e) {

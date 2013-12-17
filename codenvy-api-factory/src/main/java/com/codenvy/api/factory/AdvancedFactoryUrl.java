@@ -38,14 +38,14 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     }
 
     public AdvancedFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile,
-                              boolean vcsInfo, String orgid, String affiliateid, String vcsBranch, Map<String, String> projectAttributes) {
-        super(version, vcs, vcsUrl, commitId, action, openFile, vcsInfo, orgid, affiliateid, vcsBranch, projectAttributes);
+                              boolean vcsInfo, String orgid, String affiliateid, String vcsBranch, Map<String, String> projectAttributes, List<Variable> variables) {
+        super(version, vcs, vcsUrl, commitId, action, openFile, vcsInfo, orgid, affiliateid, vcsBranch, projectAttributes, variables);
     }
 
     public AdvancedFactoryUrl(AdvancedFactoryUrl originFactory, Set<Link> links) {
         super(originFactory.getV(), originFactory.getVcs(), originFactory.getVcsurl(),
               originFactory.getCommitid(), originFactory.getAction(), originFactory.getOpenfile(), originFactory.getVcsinfo(),
-              originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getVcsbranch(), originFactory.getProjectattributes());
+              originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getVcsbranch(), originFactory.getProjectattributes(), originFactory.getVariables());
 
         id = originFactory.getId();
         style = originFactory.getStyle();
@@ -146,7 +146,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AdvancedFactoryUrl)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
 
         AdvancedFactoryUrl that = (AdvancedFactoryUrl)o;

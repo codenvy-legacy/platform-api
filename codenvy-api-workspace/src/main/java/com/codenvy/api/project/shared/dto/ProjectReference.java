@@ -15,27 +15,30 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.shared.dto;
 
-import java.io.IOException;
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Manages build sources.
+ * Reference to the IDE Project.
  *
  * @author andrew00x
- * @author Eugene Voevodin
  */
-public interface SourcesManager {
-    /**
-     * Get build sources. Sources are copied to the directory <code>workDir</code>.
-     *
-     * @workspace workspace
-     * @project project
-     * @sourcesUrl sources url
-     * @workDir directory where sources will be copied
-     */
+@DTO
+public interface ProjectReference {
+    /** Get name of project. */
+    String getName();
 
-    void getSources(String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
+    /** Set name of project. */
+    void setName(String name);
 
-    java.io.File getDirectory();
+    ProjectReference withName(String name);
+
+    /** Get URL for getting detailed information about project. */
+    String getUrl();
+
+    /** Set URL for getting detailed information about project. */
+    void setUrl(String url);
+
+    ProjectReference withUrl(String url);
 }

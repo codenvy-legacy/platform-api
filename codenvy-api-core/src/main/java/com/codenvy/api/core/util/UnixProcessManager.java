@@ -168,6 +168,42 @@ class UnixProcessManager extends ProcessManager {
 
     @Override
     public boolean isAlive(int pid) {
+        if (pid <= 0) {
+            return false;
+        }
+        if (SystemInfo.isMacOS()) {
+            final String cmd = "kill -0 " + pid;
+            final StringBuilder error = new StringBuilder();
+            final LineConsumer stdout = new LineConsumer() {
+                @Override
+                public void writeLine(String line) throws IOException {
+                }
+
+                @Override
+                public void close() throws IOException {
+                }
+            };
+
+            final LineConsumer stderr = new LineConsumer() {
+                @Override
+                public void writeLine(String line) throws IOException {
+                    if (error.length() > 0) {
+                        error.append('\n');
+                    }
+                    error.append(line);
+                }
+
+                @Override
+                public void close() throws IOException {
+                }
+            };
+            try {
+                ProcessUtil.process(Runtime.getRuntime().exec(cmd), stdout, stderr);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+            return !(error.length() > 0 && error.toString().contains("No such process"));
+        }
         return new java.io.File("/proc/" + pid).exists();
     }
 

@@ -15,27 +15,19 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.shared;
 
-import java.io.IOException;
+import java.util.List;
 
 /**
- * Manages build sources.
+ * Provides access to the value of attribute of Project.
  *
  * @author andrew00x
- * @author Eugene Voevodin
  */
-public interface SourcesManager {
-    /**
-     * Get build sources. Sources are copied to the directory <code>workDir</code>.
-     *
-     * @workspace workspace
-     * @project project
-     * @sourcesUrl sources url
-     * @workDir directory where sources will be copied
-     */
+public interface ValueProvider {
+    /** Get value. */
+    List<String> getValues();
 
-    void getSources(String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
-
-    java.io.File getDirectory();
+    /** Set value. */
+    void setValues(List<String> value);
 }

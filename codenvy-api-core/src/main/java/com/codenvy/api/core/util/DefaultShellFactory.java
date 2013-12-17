@@ -21,7 +21,7 @@ package com.codenvy.api.core.util;
 public class DefaultShellFactory extends ShellFactory {
     @Override
     public Shell getShell() {
-        if (SystemInfo.isLinux()) {
+        if (SystemInfo.isUnix()) {
             return new StandardLinuxShell();
         }
         throw new IllegalStateException("Unsupported OS");

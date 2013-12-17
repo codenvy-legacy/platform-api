@@ -24,6 +24,7 @@ import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.internal.dto.BuildOptions;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -36,8 +37,7 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
-import com.codenvy.api.project.server.DownloadZipAttributeValueProviderFactory;
-import com.codenvy.api.project.shared.dto.Attributes;
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
@@ -68,7 +68,8 @@ import java.util.concurrent.TimeUnit;
  * build request and tries send request again. Requests don't stay in this queue forever. Max time (in minutes) for request to be in the
  * queue set up by configuration parameter {@link #MAX_TIME_IN_QUEUE}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
+ * @author Eugene Voevodin
  * @see Configuration
  */
 public class BuildQueue implements Lifecycle {
@@ -213,14 +214,18 @@ public class BuildQueue implements Lifecycle {
      * @throws IOException
      *         if an i/o error occurs
      */
-    public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext)
+    public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws RemoteException, IOException, BuilderException {
         checkStarted();
-        final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
+        final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
                                                              .withProject(project);
-        addRequestParameters(attributes, request);
+        if (buildOptions != null) {
+            request.setOptions(buildOptions.getOptions());
+            request.setTargets(buildOptions.getTargets());
+        }
+        addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
@@ -263,12 +268,12 @@ public class BuildQueue implements Lifecycle {
     public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
             throws RemoteException, IOException, BuilderException {
         checkStarted();
-        final Attributes attributes = getProjectAttributes(workspace, project, serviceContext);
+        final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
                                                                        .withType(type)
                                                                        .withWorkspace(workspace)
                                                                        .withProject(project);
-        addRequestParameters(attributes, request);
+        addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final BuilderList builderList = getBuilderList(request);
         final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
@@ -291,27 +296,27 @@ public class BuildQueue implements Lifecycle {
         return task;
     }
 
-    private void addRequestParameters(Attributes attributes, BaseBuilderRequest request) {
-        List<String> list = attributes.getAttributes().get(Constants.BUILDER_NAME);
-        if (list == null || list.isEmpty()) {
+    private void addRequestParameters(ProjectDescriptor descriptor, BaseBuilderRequest request) {
+        final String builder;
+        List<String> builderAttribute = descriptor.getAttributes().get(Constants.BUILDER_NAME);
+        if (builderAttribute == null || builderAttribute.isEmpty() || (builder = builderAttribute.get(0)) == null) {
             throw new IllegalStateException(
                     String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
         }
-        final String builder = list.get(0);
         request.setBuilder(builder);
         final String buildTargets = Constants.BUILDER_TARGETS.replace("${builder}", builder);
         final String buildOptions = Constants.BUILDER_OPTIONS.replace("${builder}", builder);
 
-        for (Map.Entry<String, List<String>> entry : attributes.getAttributes().entrySet()) {
-            if (DownloadZipAttributeValueProviderFactory.ATTRIBUTE.equals(entry.getKey())) {
+        for (Map.Entry<String, List<String>> entry : descriptor.getAttributes().entrySet()) {
+            if ("zipball_sources_url".equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setSourcesUrl(entry.getValue().get(0));
                 }
-            } else if (buildTargets.equals(entry.getKey())) {
+            } else if (buildTargets.equals(entry.getKey()) && request.getTargets().isEmpty()) {
                 if (!entry.getValue().isEmpty()) {
                     request.setTargets(entry.getValue());
                 }
-            } else if (buildOptions.equals(entry.getKey())) {
+            } else if (buildOptions.equals(entry.getKey()) && request.getOptions().isEmpty()) {
                 if (!entry.getValue().isEmpty()) {
                     final Map<String, String> options = new LinkedHashMap<>();
                     for (String str : entry.getValue()) {
@@ -330,13 +335,13 @@ public class BuildQueue implements Lifecycle {
         }
     }
 
-    private Attributes getProjectAttributes(String workspace, String project, ServiceContext serviceContext)
+    private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException {
         final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
         final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
-                                                .path(WorkspaceService.class, "getAttributes")
+                                                .path(WorkspaceService.class, "getProject")
                                                 .build(workspace).toString();
-        return HttpJsonHelper.get(Attributes.class, projectUrl, Pair.of("name", project));
+        return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
     }
 
     private BuilderList getBuilderList(BaseBuilderRequest request) throws BuilderException {

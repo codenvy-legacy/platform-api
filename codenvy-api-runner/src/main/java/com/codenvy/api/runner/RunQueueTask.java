@@ -151,6 +151,8 @@ public final class RunQueueTask implements Cancellable {
                 copy.setHref(
                         serviceUriBuilder.clone().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
+            } else {
+                rewritten.add(DtoFactory.getInstance().clone(link));
             }
         }
         return rewritten;

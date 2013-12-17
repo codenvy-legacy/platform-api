@@ -35,9 +35,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class BuilderTest {
 
     // Simple test for main Builder components. Don't run any real build processes.
@@ -73,8 +74,9 @@ public class BuilderTest {
         @Override
         public SourcesManager getSourcesManager() {
             return new SourcesManager() {
+
                 @Override
-                public void getSources(BuilderConfiguration configuration) throws IOException {
+                public void getSources(String workspace, String project, String sourcesUrl, File workDir) throws IOException {
                     // Don't need for current set of tests.
                 }
 
@@ -134,7 +136,7 @@ public class BuilderTest {
         return root;
     }
 
-        @Test
+    @Test
     public void testRunTask() throws Exception {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
@@ -144,7 +146,7 @@ public class BuilderTest {
         Assert.assertEquals(builder.logger.getLogsAsString(), "test");
     }
 
-        @Test
+    @Test
     public void testBuildListener() throws Exception {
         final boolean[] beginFlag = new boolean[]{false};
         final boolean[] endFlag = new boolean[]{false};

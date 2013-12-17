@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.codenvy.commons.json.JsonHelper.fromJson;
@@ -17,7 +18,7 @@ public class VariableHelper {
 
     public static List<Variable> getVariables(String json) {
         if (json == null || json.isEmpty()) {
-            return null;
+            return Collections.emptyList();
         }
 
         try {
@@ -26,6 +27,6 @@ public class VariableHelper {
             LOG.error(e.getLocalizedMessage(), e);
         }
 
-        return null;
+        return Collections.emptyList();
     }
 }

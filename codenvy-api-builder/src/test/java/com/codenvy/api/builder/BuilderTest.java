@@ -46,6 +46,10 @@ public class BuilderTest {
     public static class MyBuilder extends Builder {
         MyDelegateBuildLogger logger;
 
+        public MyBuilder(String repositoryPath, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
+            super(repositoryPath, numberOfWorkers, queueSize, cleanBuildResultDelay);
+        }
+
         @Override
         public String getName() {
             return "my";
@@ -117,7 +121,8 @@ public class BuilderTest {
     @BeforeTest
     public void setUp() throws Exception {
         repo = createRepository();
-        builder = new MyBuilder();
+        builder = new MyBuilder(Thread.currentThread().getContextClassLoader().getResource(".").getPath(),
+                                Runtime.getRuntime().availableProcessors(), 100, 3600);
         builder.start();
     }
 

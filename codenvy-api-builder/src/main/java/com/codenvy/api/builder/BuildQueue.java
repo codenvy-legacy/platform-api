@@ -96,20 +96,21 @@ public class BuildQueue implements Lifecycle {
     private final ExecutorService                            executor;
     private final ConcurrentMap<Long, BuildQueueTask>        tasks;
     private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
-
+    private final int maxTimeInQueue;
+    private final int timeout;
     /** Max time for request to be in queue in milliseconds. */
     private long    maxTimeInQueueMillis;
     private boolean started;
 
-    @Named(MAX_TIME_IN_QUEUE)
     @Inject
-    private ConfigurationParameter maxTimeInQueue;
+    public BuildQueue(@Named(MAX_TIME_IN_QUEUE) ConfigurationParameter maxTimeInQueue,
+                      @Named(BUILD_TIMEOUT) ConfigurationParameter timeout) {
+        this(maxTimeInQueue.asInt(), timeout.asInt());
+    }
 
-    @Named(BUILD_TIMEOUT)
-    @Inject
-    private ConfigurationParameter timeout;
-
-    public BuildQueue() {
+    public BuildQueue(int maxTimeInQueue, int timeout) {
+        this.timeout = timeout;
+        this.maxTimeInQueue = maxTimeInQueue;
         builderSelector = ComponentLoader.one(BuilderSelectionStrategy.class);
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("BuildQueue-", true));
         tasks = new ConcurrentHashMap<>();
@@ -386,7 +387,7 @@ public class BuildQueue implements Lifecycle {
 
     private long getBuildTimeout(BaseBuilderRequest request) {
         // TODO: calculate in different way for different workspace/project.
-        return timeout.asLong();
+        return timeout;
     }
 
     private void purgeExpiredTasks() {
@@ -433,7 +434,7 @@ public class BuildQueue implements Lifecycle {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue.asInt());
+        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         final InputStream regConf =
                 Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builder_service_registrations.json");
         if (regConf != null) {

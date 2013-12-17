@@ -36,6 +36,8 @@ import com.codenvy.inject.ConfigurationParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.io.IOException;
@@ -52,7 +54,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * @author andrew00x
+ * @author Eugene Voevodin
+ */
 public abstract class Runner implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
@@ -68,19 +73,21 @@ public abstract class Runner implements Lifecycle {
     private final Map<Long, List<Disposer>>     applicationDisposers;
     private final Object                        applicationDisposersLock;
     private final AtomicInteger                 runningAppsCounter;
-    private final DownloadPlugin                downloadPlugin;
+    private final int                           cleanupDelay;
+    private final String                        deployDirectoryPath;
 
-    private boolean started;
+    private final DownloadPlugin downloadPlugin;
+    private       boolean        started;
 
-    @Named(DEPLOY_DIRECTORY)
     @Inject
-    private ConfigurationParameter deployDirectoryPath;
+    public Runner(@Named(DEPLOY_DIRECTORY) ConfigurationParameter deployDirectoryPath,
+                  @Named(CLEANUP_DELAY_TIME) ConfigurationParameter cleanupDelay) {
+        this(deployDirectoryPath.asString(), cleanupDelay.asInt());
+    }
 
-    @Named(CLEANUP_DELAY_TIME)
-    @Inject
-    private ConfigurationParameter cleanupDelay;
-
-    public Runner() {
+    public Runner(String deployDirectoryPath, int cleanupDelay) {
+        this.deployDirectoryPath = deployDirectoryPath;
+        this.cleanupDelay = cleanupDelay;
         processes = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
         applicationDisposers = new HashMap<>();
@@ -106,12 +113,13 @@ public abstract class Runner implements Lifecycle {
         return SingletonConfiguration.get();
     }
 
+    @PostConstruct
     @Override
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        deployDirectory = new java.io.File(deployDirectoryPath.asString(), getName());
+        deployDirectory = new java.io.File(deployDirectoryPath, getName());
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
@@ -124,6 +132,7 @@ public abstract class Runner implements Lifecycle {
         }
     }
 
+    @PreDestroy
     @Override
     public synchronized void stop() {
         checkStarted();
@@ -190,7 +199,7 @@ public abstract class Runner implements Lifecycle {
                                                                 runnerCfg,
                                                                 webHookUrl == null ? null : new WebHookCallback(webHookUrl));
         purgeExpiredProcesses();
-        processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay.asInt())));
+        processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()

@@ -38,6 +38,8 @@ import com.codenvy.inject.ConfigurationParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.io.IOException;
@@ -95,7 +97,11 @@ public abstract class Builder implements Lifecycle {
     private final ConcurrentMap<Long, BuildTaskEntry>   tasks;
     private final ConcurrentLinkedQueue<BuildTaskEntry> tasksFIFO;
     private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
+    private final String repositoryPath;
     private final Set<BuildListener>                    buildListeners;
+    private final int cleanBuildResultDelay;
+    private final int queueSize;
+    private final int numberOfWorkers;
 
     private boolean                  started;
     private ScheduledExecutorService cleaner;
@@ -105,23 +111,19 @@ public abstract class Builder implements Lifecycle {
     private java.io.File       builds;
     private SourcesManager     sourcesManager;
 
-    @Named(REPOSITORY)
     @Inject
-    private ConfigurationParameter repositoryPath;
+    public Builder(@Named(REPOSITORY) ConfigurationParameter repositoryPath,
+                   @Named(NUMBER_OF_WORKERS) ConfigurationParameter numberOfWorkers,
+                   @Named(INTERNAL_QUEUE_SIZE) ConfigurationParameter queueSize,
+                   @Named(CLEAN_RESULT_DELAY_TIME) ConfigurationParameter cleanBuildResultDelay) {
+        this(repositoryPath.asString(), numberOfWorkers.asInt(), queueSize.asInt(), cleanBuildResultDelay.asInt());
+    }
 
-    @Named(NUMBER_OF_WORKERS)
-    @Inject
-    private ConfigurationParameter numberOfWorkers;
-
-    @Named(INTERNAL_QUEUE_SIZE)
-    @Inject
-    private ConfigurationParameter queueSize;
-
-    @Named(CLEAN_RESULT_DELAY_TIME)
-    @Inject
-    private ConfigurationParameter cleanBuildResultDelay;
-
-    public Builder() {
+    public Builder(String repositoryPath, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
+        this.repositoryPath = repositoryPath;
+        this.numberOfWorkers = numberOfWorkers;
+        this.queueSize = queueSize;
+        this.cleanBuildResultDelay = cleanBuildResultDelay;
         buildListeners = new LinkedHashSet<>();
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
@@ -179,11 +181,13 @@ public abstract class Builder implements Lifecycle {
     }
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
+    @PostConstruct
+    @Override
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        repository = new java.io.File(repositoryPath.asString(), getName());
+        repository = new java.io.File(repositoryPath, getName());
         if (!(repository.exists() || repository.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", repository.getAbsolutePath()));
         }
@@ -196,9 +200,9 @@ public abstract class Builder implements Lifecycle {
             throw new LifecycleException(String.format("Unable create directory %s", builds.getAbsolutePath()));
         }
         sourcesManager = new SourcesManagerImpl(sources);
-        executor = new MyThreadPoolExecutor(numberOfWorkers.asInt(), queueSize.asInt());
+        executor = new MyThreadPoolExecutor(numberOfWorkers, queueSize);
         cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
-        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay.asInt(), cleanBuildResultDelay.asInt(), TimeUnit.SECONDS);
+        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.SECONDS);
         synchronized (buildListeners) {
             for (BuildListener listener : ComponentLoader.all(BuildListener.class)) {
                 buildListeners.add(listener);
@@ -218,6 +222,7 @@ public abstract class Builder implements Lifecycle {
      * <p/>
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
+    @PreDestroy
     @Override
     public synchronized void stop() {
         checkStarted();
@@ -360,7 +365,7 @@ public abstract class Builder implements Lifecycle {
         final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
         final FutureBuildTask task =
                 new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), configuration, logger, callback);
-        final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay.asInt());
+        final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
         final BuildTaskEntry cachedTask = new BuildTaskEntry(task, expirationTime);
         purgeExpiredTasks();
         tasks.put(task.getId(), cachedTask);
@@ -429,7 +434,7 @@ public abstract class Builder implements Lifecycle {
 
     public int getMaxInternalQueueSize() {
         checkStarted();
-        return queueSize.asInt();
+        return queueSize;
     }
 
     /** Removes expired tasks. */

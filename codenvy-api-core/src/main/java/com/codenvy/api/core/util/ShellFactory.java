@@ -17,8 +17,10 @@
  */
 package com.codenvy.api.core.util;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-//@javax.inject.Singleton
+import javax.inject.Singleton;
+
+/** @author andrew00x */
+@Singleton
 public abstract class ShellFactory {
     private static final ShellFactory INSTANCE = ComponentLoader.one(ShellFactory.class);
 

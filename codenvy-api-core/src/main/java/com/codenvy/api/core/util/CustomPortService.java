@@ -22,6 +22,7 @@ import com.codenvy.api.core.config.SingletonConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
@@ -47,11 +48,11 @@ import java.util.concurrent.ConcurrentMap;
  * <p/>
  * Note: It is important to release port when it is not needed any more, otherwise it will be not possible to reuse ports.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see #MIN_PORT
  * @see #MAX_PORT
  */
-//@javax.inject.Singleton
+@Singleton
 public class CustomPortService {
     /** Name of configuration parameter that sets min port number. Default value is 49152. */
     public static final String MIN_PORT = "sys.resources.min_port";

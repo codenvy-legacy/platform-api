@@ -64,25 +64,22 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Builder implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
 
-    /**
-     * Name of configuration parameter that points to the directory where all builds stored. Is such parameter is not specified then
-     * 'java.io.tmpdir' used.
-     */
-    public static final String REPOSITORY              = "builder.build_repository";
+    /** Name of configuration parameter that points to the directory where all builds stored. */
+    public static final String REPOSITORY              = "builder.internal.build_repository";
     /**
      * Name of configuration parameter that sets the number of build workers. In other words it set the number of build
-     * process that can be run at the same time. If this parameter is not set then the number of available processors
+     * process that can be run at the same time. If this parameter is set to -1 then the number of available processors
      * used, e.g. {@code Runtime.getRuntime().availableProcessors();}
      */
-    public static final String NUMBER_OF_WORKERS       = "builder.workers_number";
+    public static final String NUMBER_OF_WORKERS       = "builder.internal.workers_number";
     /**
-     * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build (by default 3600
-     * seconds or 1 hour). After this time the results of build may be removed.
+     * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build. After this time the
+     * results of build may be removed.
      */
-    public static final String CLEAN_RESULT_DELAY_TIME = "builder.clean_result_delay_time";
+    public static final String CLEAN_RESULT_DELAY_TIME = "builder.internal.clean_result_delay_time";
     /**
-     * Name of parameter that set the max size of build queue (by default 100). The number of build task in queue may not be greater than
-     * provided by this parameter.
+     * Name of parameter that set the max size of build queue. The number of build task in queue may not be greater than provided by this
+     * parameter.
      */
     public static final String INTERNAL_QUEUE_SIZE     = "builder.internal_queue_size";
 

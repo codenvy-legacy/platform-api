@@ -56,9 +56,9 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Singleton
 public class CustomPortService {
-    /** Name of configuration parameter that sets min port number. Default value is 49152. */
+    /** Name of configuration parameter that sets min port number. */
     public static final String MIN_PORT = "sys.resources.min_port";
-    /** Name of configuration parameter that sets max port number. Default value is 65535. */
+    /** Name of configuration parameter that sets max port number. */
     public static final String MAX_PORT = "sys.resources.max_port";
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomPortService.class);

@@ -80,10 +80,10 @@ public class BuildQueue implements Lifecycle {
 
     /**
      * Name of configuration parameter that sets max time (in seconds) which request may be in this queue. After this time the results of
-     * build may be removed. Default value is 600 seconds (10 minutes).
+     * build may be removed.
      */
     public static final String MAX_TIME_IN_QUEUE = "builder.queue.max_time_in_queue";
-    /** Name of configuration parameter that provides build timeout is seconds (by default 300). After this time build may be terminated. */
+    /** Name of configuration parameter that provides build timeout is seconds. After this time build may be terminated. */
     public static final String BUILD_TIMEOUT     = "builder.queue.build_timeout";
 
     private static final long CHECK_AVAILABLE_BUILDER_DELAY = 2000;

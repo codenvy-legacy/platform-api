@@ -18,16 +18,15 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.inject.DynaModule;
-import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
 /** @author andrew00x */
 @DynaModule
-public class ValueProviderFactoryModule implements Module {
+public class ValueProviderFactoryModule extends AbstractModule {
     @Override
-    public void configure(Binder binder) {
-        Multibinder<ValueProviderFactory> multiBinder = Multibinder.newSetBinder(binder, ValueProviderFactory.class);
+    protected void configure() {
+        Multibinder<ValueProviderFactory> multiBinder = Multibinder.newSetBinder(binder(), ValueProviderFactory.class);
         multiBinder.addBinding().to(DownloadZipValueProviderFactory.class);
     }
 }

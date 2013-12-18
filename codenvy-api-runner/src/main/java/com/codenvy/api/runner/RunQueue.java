@@ -109,16 +109,17 @@ public class RunQueue implements Lifecycle {
     private final int                                            defMemSize;
     private final String                                         baseApiUrl;
     private final int                                            appLifetime;
-    private final int                                            maxTimeInQueue;
+    private final long                                           maxTimeInQueueMillis;
 
-    private long    maxTimeInQueueMillis;
     private boolean started;
 
     @Inject
-    public RunQueue(@Named(BASE_API_URL) ConfigurationParameter baseApiUrl, @Named(DEFAULT_MEMORY_SIZE) ConfigurationParameter defMemSize,
+    public RunQueue(@Named(BASE_API_URL) ConfigurationParameter baseApiUrl,
+                    @Named(DEFAULT_MEMORY_SIZE) ConfigurationParameter defMemSize,
                     @Named(MAX_TIME_IN_QUEUE) ConfigurationParameter maxTimeInQueue,
-                    @Named(APPLICATION_LIFETIME) ConfigurationParameter appLifetime) {
-        this(baseApiUrl.asString(), defMemSize.asInt(), maxTimeInQueue.asInt(), appLifetime.asInt());
+                    @Named(APPLICATION_LIFETIME) ConfigurationParameter appLifetime,
+                    RunnerSelectionStrategy runnerSelector) {
+        this(baseApiUrl.asString(), defMemSize.asInt(), maxTimeInQueue.asInt(), appLifetime.asInt(), runnerSelector);
     }
 
     /**
@@ -131,12 +132,12 @@ public class RunQueue implements Lifecycle {
      * @param appLifetime
      *         application life time in seconds. After this time the application may be terminated.
      */
-    public RunQueue(String baseApiUrl, int defMemSize, int maxTimeInQueue, int appLifetime) {
+    public RunQueue(String baseApiUrl, int defMemSize, int maxTimeInQueue, int appLifetime, RunnerSelectionStrategy runnerSelector) {
         this.baseApiUrl = baseApiUrl;
         this.defMemSize = defMemSize;
-        this.maxTimeInQueue = maxTimeInQueue;
+        this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.appLifetime = appLifetime;
-        runnerSelector = ComponentLoader.one(RunnerSelectionStrategy.class);
+        this.runnerSelector = runnerSelector;
         tasks = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("RunQueue-", true));
         runnerListMapping = new ConcurrentHashMap<>();
@@ -147,7 +148,7 @@ public class RunQueue implements Lifecycle {
         checkStarted();
         // TODO: check do we need build the project
         final UriBuilder baseUriBuilder =
-                baseApiUrl == null ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
+                baseApiUrl == null || baseApiUrl.isEmpty() ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, baseUriBuilder.clone());
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class).withWorkspace(workspace).withProject(project);
         addRequestParameters(descriptor, request);
@@ -293,9 +294,9 @@ public class RunQueue implements Lifecycle {
             return false;
         } else {
             try {
-                // create copy of link when pass it outside!!
-                final BuildTaskDescriptor result =
-                        HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(cancelLink));
+                final BuildTaskDescriptor result = HttpJsonHelper.request(BuildTaskDescriptor.class,
+                                                                          // create copy of link when pass it outside!!
+                                                                          DtoFactory.getInstance().clone(cancelLink));
                 LOG.debug("Build cancellation result {}", result);
                 return result != null && result.getStatus() == BuildStatus.CANCELLED;
             } catch (Exception e) {
@@ -355,10 +356,6 @@ public class RunQueue implements Lifecycle {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-//        final Configuration myConfiguration = getConfiguration();
-//        LOG.debug("{}", myConfiguration);
-//        defMemSize = myConfiguration.getInt(DEFAULT_MEMORY_SIZE, 128);
-        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         final InputStream regConf =
                 Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/runner_service_registrations.json");
         if (regConf != null) {

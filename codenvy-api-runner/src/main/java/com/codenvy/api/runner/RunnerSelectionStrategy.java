@@ -24,10 +24,8 @@ import java.util.List;
  * find the 'best' slave-runner for processing incoming request for running application. If more then one slave-runner available then
  * RunQueue collects them (their front-ends which are represented by RemoteRunner) and passes to implementation of this interface.
  * This implementation should select the 'best' one.
- * <p/>
- * FQN of implementation of this interface must be placed in file META-INF/services/com.codenvy.api.runner.RunnerSelectionStrategy
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface RunnerSelectionStrategy {
     RemoteRunner select(List<RemoteRunner> remoteRunners);

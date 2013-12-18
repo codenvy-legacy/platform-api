@@ -18,11 +18,10 @@
 package com.codenvy.api.builder.internal;
 
 /**
- * Build listener abstraction. FQN of classes which implement this interface and have a zero-argument constructor may be add in file
- * <pre>META-INF/services/com.codenvy.api.builder.BuildListener</pre>. In this case it will be loaded automatically by {@code Builder}.
- * Implementation of this interface may be registered in {@code Builder} with method {@link com.codenvy.api.builder.internal.Builder#addBuildListener(BuildListener)}.
+ * Build listener abstraction. Implementation of this interface may be registered in {@code Builder} with method {@link
+ * com.codenvy.api.builder.internal.Builder#addBuildListener(BuildListener)}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see com.codenvy.api.builder.internal.Builder#addBuildListener(BuildListener)
  * @see com.codenvy.api.builder.internal.Builder#removeBuildListener(BuildListener)
  */

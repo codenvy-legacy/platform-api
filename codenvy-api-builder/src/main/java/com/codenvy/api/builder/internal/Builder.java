@@ -30,15 +30,12 @@ import com.codenvy.api.core.util.StreamPump;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
-import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -107,14 +104,6 @@ public abstract class Builder implements Lifecycle {
     private java.io.File       repository;
     private java.io.File       builds;
     private SourcesManager     sourcesManager;
-
-    @Inject
-    public Builder(@Named(REPOSITORY) ConfigurationParameter repositoryPath,
-                   @Named(NUMBER_OF_WORKERS) ConfigurationParameter numberOfWorkers,
-                   @Named(INTERNAL_QUEUE_SIZE) ConfigurationParameter queueSize,
-                   @Named(CLEAN_RESULT_DELAY_TIME) ConfigurationParameter cleanBuildResultDelay) {
-        this(repositoryPath.asFile(), numberOfWorkers.asInt(), queueSize.asInt(), cleanBuildResultDelay.asInt());
-    }
 
     public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
         this.rootDirectory = rootDirectory;
@@ -197,11 +186,6 @@ public abstract class Builder implements Lifecycle {
         executor = new MyThreadPoolExecutor(numberOfWorkers, queueSize);
         cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
         cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.SECONDS);
-        synchronized (buildListeners) {
-            for (BuildListener listener : ComponentLoader.all(BuildListener.class)) {
-                buildListeners.add(listener);
-            }
-        }
         started = true;
     }
 

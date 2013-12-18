@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
+import javax.inject.Singleton;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -25,8 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Stores available builders.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
+@Singleton
 public class BuilderRegistry {
     private final Map<String, Builder> builders;
 

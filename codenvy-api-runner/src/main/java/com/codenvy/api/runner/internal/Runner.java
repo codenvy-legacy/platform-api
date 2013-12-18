@@ -78,9 +78,9 @@ public abstract class Runner implements Lifecycle {
     private java.io.File deployDirectory;
     private boolean      started;
 
-    @Inject
     public Runner(@Named(DEPLOY_DIRECTORY) ConfigurationParameter deployDirectoryPath,
-                  @Named(CLEANUP_DELAY_TIME) ConfigurationParameter cleanupDelay, ResourceAllocators allocators) {
+                  @Named(CLEANUP_DELAY_TIME) ConfigurationParameter cleanupDelay,
+                  ResourceAllocators allocators) {
         this(deployDirectoryPath.asFile(), cleanupDelay.asInt(), allocators);
     }
 

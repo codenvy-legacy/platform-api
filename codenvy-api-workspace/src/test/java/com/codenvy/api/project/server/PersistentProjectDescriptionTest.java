@@ -45,6 +45,7 @@ import javax.ws.rs.ext.RuntimeDelegate;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -73,7 +74,9 @@ public class PersistentProjectDescriptionTest {
         vfs = new MemoryFileSystem(URI.create(""), new EventListenerList(), "test_workspace", userContext, mountPoint, null);
         ProjectTypeRegistry typeRegistry = new ProjectTypeRegistry();
         typeRegistry.registerProjectType(new ProjectType("test_type", "test type"));
-        factory = new ProjectDescriptionFactory(typeRegistry, new ProjectTypeDescriptionRegistry(typeRegistry));
+        factory = new ProjectDescriptionFactory(typeRegistry,
+                                                new ProjectTypeDescriptionRegistry(typeRegistry),
+                                                Collections.<ValueProviderFactory>emptySet());
         List<Property> properties = new ArrayList<>();
         properties.add(DtoFactory.getInstance().createDto(Property.class)
                                  .withName("test_property")

@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,13 +15,19 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.server;
 
-/**
- * Helps to register Builder in builder registry.
- *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
- */
-public interface BuilderRegistrationPlugin {
-    void registerTo(BuilderRegistry registry);
+import com.codenvy.inject.DynaModule;
+import com.google.inject.Binder;
+import com.google.inject.Module;
+import com.google.inject.multibindings.Multibinder;
+
+/** @author andrew00x */
+@DynaModule
+public class ValueProviderFactoryModule implements Module {
+    @Override
+    public void configure(Binder binder) {
+        Multibinder<ValueProviderFactory> multiBinder = Multibinder.newSetBinder(binder, ValueProviderFactory.class);
+        multiBinder.addBinding().to(DownloadZipValueProviderFactory.class);
+    }
 }

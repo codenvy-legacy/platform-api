@@ -428,7 +428,7 @@ public class RunQueue implements Lifecycle {
         final RemoteRunnerFactory factory = new RemoteRunnerFactory(registration.getRunnerServiceLocation().getUrl());
         final List<RemoteRunner> toAdd = new ArrayList<>();
         for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
-            toAdd.add(factory.getRemoteRunner(runnerDescriptor.getName()));
+            toAdd.add(factory.createRemoteRunner(runnerDescriptor));
         }
         return runnerList.addRunners(toAdd);
     }
@@ -438,7 +438,7 @@ public class RunQueue implements Lifecycle {
         final RemoteRunnerFactory factory = new RemoteRunnerFactory(location.getUrl());
         final List<RemoteRunner> toRemove = new ArrayList<>();
         for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
-            toRemove.add(factory.getRemoteRunner(runnerDescriptor.getName()));
+            toRemove.add(factory.createRemoteRunner(runnerDescriptor));
         }
 
         boolean modified = false;

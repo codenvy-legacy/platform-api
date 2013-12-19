@@ -26,7 +26,6 @@ import com.codenvy.api.project.server.ProjectDescriptionFactory;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.vfs.server.RequestContext;
-import com.codenvy.api.vfs.server.RequestValidator;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
@@ -39,8 +38,8 @@ import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -62,17 +61,12 @@ public class WorkspaceService extends Service {
     @Inject
     private VirtualFileSystemRegistry registry;
     @Inject
+    @Nullable
     private EventListenerList         listeners;
-    @Inject
-    private RequestValidator          requestValidator;
     @Inject
     private ProjectDescriptionFactory projectDescriptionFactory;
     @Context
     private Providers                 providers;
-    @Context
-    private HttpServletRequest        request;
-
-    // >>> "shortcuts" for some vfs methods related to the project
 
     @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_PROJECT)
     @GET
@@ -147,9 +141,6 @@ public class WorkspaceService extends Service {
     @Path("vfs")
     @Produces(MediaType.APPLICATION_JSON)
     public VirtualFileSystem getVirtualFileSystem() throws VirtualFileSystemException {
-        if (requestValidator != null) {
-            requestValidator.validate(request);
-        }
         RequestContext context = null;
         final ContextResolver<RequestContext> contextResolver = providers.getContextResolver(RequestContext.class, null);
         if (contextResolver != null) {

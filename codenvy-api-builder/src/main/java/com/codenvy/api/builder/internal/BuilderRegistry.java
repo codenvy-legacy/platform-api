@@ -40,11 +40,11 @@ public class BuilderRegistry {
      * Add {@code Builder}. Uses {@code String} returned by method {@code Builder.getName()} as builder's identifier. If {@code Builder}
      * with the same name already registered it is replaced by new one.
      *
-     * @param myBuilder
+     * @param builder
      *         Builder
      */
-    public void add(Builder myBuilder) {
-        builders.put(myBuilder.getName(), myBuilder);
+    public void add(Builder builder) {
+        builders.put(builder.getName(), builder);
     }
 
     /**

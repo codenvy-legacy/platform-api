@@ -171,7 +171,7 @@ public class BuildQueue implements Lifecycle {
         final RemoteBuilderFactory factory = new RemoteBuilderFactory(registration.getBuilderServiceLocation().getUrl());
         final List<RemoteBuilder> toAdd = new ArrayList<>();
         for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
-            toAdd.add(factory.getRemoteBuilder(builderDescriptor.getName()));
+            toAdd.add(factory.createRemoteBuilder(builderDescriptor));
         }
         return builderList.addBuilders(toAdd);
     }
@@ -194,7 +194,7 @@ public class BuildQueue implements Lifecycle {
         final RemoteBuilderFactory factory = new RemoteBuilderFactory(location.getUrl());
         final List<RemoteBuilder> toRemove = new ArrayList<>();
         for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
-            toRemove.add(factory.getRemoteBuilder(builderDescriptor.getName()));
+            toRemove.add(factory.createRemoteBuilder(builderDescriptor));
         }
 
         boolean modified = false;

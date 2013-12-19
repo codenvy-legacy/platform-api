@@ -180,7 +180,7 @@ public abstract class Builder implements Lifecycle {
             throw new LifecycleException(String.format("Unable create directory %s", builds.getAbsolutePath()));
         }
         sourcesManager = new SourcesManagerImpl(sources);
-        executor = new MyThreadPoolExecutor(numberOfWorkers, queueSize);
+        executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers, queueSize);
         cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
         cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.SECONDS);
         started = true;

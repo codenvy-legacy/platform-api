@@ -22,6 +22,7 @@ import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.commons.env.EnvironmentContext;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -37,7 +38,7 @@ import java.util.List;
 /**
  * Provides access to virtual file systems which have registered providers in VirtualFileSystemRegistry.
  *
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @Path("{ws-name}/vfs")
 public class VirtualFileSystemFactory {
@@ -45,9 +46,11 @@ public class VirtualFileSystemFactory {
     private VirtualFileSystemRegistry registry;
 
     @Inject
+    @Nullable
     private EventListenerList listeners;
 
     @Inject
+    @Nullable
     private RequestValidator requestValidator;
 
     @Context

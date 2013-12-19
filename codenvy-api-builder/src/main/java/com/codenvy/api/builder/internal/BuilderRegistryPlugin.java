@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -17,28 +17,21 @@
  */
 package com.codenvy.api.builder.internal;
 
-import java.io.IOException;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Set;
 
 /**
- * Manages build sources.
+ * Helps register {@link Builder}s on startup.
  *
  * @author andrew00x
- * @author Eugene Voevodin
  */
-public interface SourcesManager {
-    /**
-     * Get build sources. Sources are copied to the directory <code>workDir</code>.
-     *
-     * @param workspace
-     *         workspace
-     * @param project
-     *         project
-     * @param sourcesUrl
-     *         sources url
-     * @param workDir
-     *         directory where sources will be copied
-     */
-    void getSources(String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
-
-    java.io.File getDirectory();
+@Singleton
+public final class BuilderRegistryPlugin {
+    @Inject
+    public BuilderRegistryPlugin(BuilderRegistry registry, Set<Builder> builders) {
+        for (Builder builder : builders) {
+            registry.add(builder);
+        }
+    }
 }

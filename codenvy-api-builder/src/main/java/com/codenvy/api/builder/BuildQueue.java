@@ -337,7 +337,8 @@ public class BuildQueue implements Lifecycle {
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException {
-        final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
+        final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder().replacePath("/ide/rest"); //TODO: temporary add this until we not move all services to the API war
+
         final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
                                                 .path(WorkspaceService.class, "getProject")
                                                 .build(workspace).toString();

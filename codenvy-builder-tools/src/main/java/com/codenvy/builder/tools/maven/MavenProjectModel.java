@@ -17,17 +17,25 @@
  */
 package com.codenvy.builder.tools.maven;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Contains information about the Maven POM.
+ *
+ * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ */
 public class MavenProjectModel {
-    private String            groupId;
-    private String            artifactId;
-    private String            version;
-    private String            packaging;
-    private String            name;
-    private String            description;
-    private MavenProjectModel parent;
-    private java.io.File      pomFile;
-    private java.io.File      projectDirectory;
+    private String                groupId;
+    private String                artifactId;
+    private String                version;
+    private String                packaging;
+    private String                name;
+    private String                description;
+    private MavenProjectModel     parent;
+    private List<MavenDependency> dependencies;
+    private java.io.File          pomFile;
+    private java.io.File          projectDirectory;
 
     public MavenProjectModel(String groupId,
                              String artifactId,
@@ -36,6 +44,7 @@ public class MavenProjectModel {
                              String name,
                              String description,
                              MavenProjectModel parent,
+                             List<MavenDependency> dependencies,
                              java.io.File pomFile,
                              java.io.File projectDirectory) {
         this.groupId = groupId;
@@ -45,6 +54,7 @@ public class MavenProjectModel {
         this.name = name;
         this.description = description;
         this.parent = parent;
+        this.dependencies = dependencies;
         this.pomFile = pomFile;
         this.projectDirectory = projectDirectory;
     }
@@ -84,6 +94,17 @@ public class MavenProjectModel {
 
     public MavenProjectModel getParent() {
         return parent;
+    }
+
+    public List<MavenDependency> getDependencies() {
+        if (dependencies == null) {
+            dependencies = new ArrayList<>();
+        }
+        return dependencies;
+    }
+
+    public void addDependency(MavenDependency dependency) {
+        getDependencies().add(dependency);
     }
 
     public java.io.File getPomFile() {

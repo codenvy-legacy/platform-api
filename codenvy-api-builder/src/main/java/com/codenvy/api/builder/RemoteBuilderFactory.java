@@ -50,6 +50,10 @@ public class RemoteBuilderFactory extends RemoteServiceDescriptor {
         throw new BuilderException(String.format("Invalid builder name %s", name));
     }
 
+    public RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws IOException, RemoteException {
+        return new RemoteBuilder(baseUrl, descriptor, getLinks());
+    }
+
     public List<BuilderDescriptor> getAvailableBuilders() throws IOException, RemoteException, BuilderException {
         final Link link = getLink(Constants.LINK_REL_AVAILABLE_BUILDERS);
         if (link == null) {

@@ -76,6 +76,16 @@ public class FactoryService {
     public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo,
                                           @Context SecurityContext securityContext) throws FactoryUrlException {
         try {
+            Principal userPrincipal = securityContext.getUserPrincipal();
+            if (userPrincipal == null || userPrincipal.getName() == null) {
+                throw new FactoryUrlException(Status.UNAUTHORIZED.getStatusCode(), "You are not authenticated for using this method.");
+            }
+
+            User user = userManager.getUserByAlias(userPrincipal.getName());
+            if (user.isTemporary()) {
+                throw new FactoryUrlException(Status.FORBIDDEN.getStatusCode(), "Current user is not allowed for using this method.");
+            }
+
             Set<FactoryImage> images = new HashSet<>();
             AdvancedFactoryUrl factoryUrl = null;
 
@@ -112,16 +122,6 @@ public class FactoryService {
             }
 
             factoryUrlValidator.validate(factoryUrl);
-
-            Principal userPrincipal = securityContext.getUserPrincipal();
-            if (userPrincipal == null || userPrincipal.getName() == null) {
-                throw new FactoryUrlException(403, "You are not authenticated for using this method");
-            }
-
-            User user = userManager.getUserByAlias(userPrincipal.getName());
-            if (user == null || user.isTemporary()) {
-                throw new FactoryUrlException(403, "Current user is not authenticated for using this method.");
-            }
 
             factoryUrl.setUserid(user.getId());
 
@@ -268,12 +268,5 @@ public class FactoryService {
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               String.format("Snippet type \"%s\" is unsupported.", type));
         }
-    }
-
-    /** Temporary workaround method to init SSO client */
-    @GET
-    @Path("sso/init")
-    @Deprecated
-    public void ssoInit() {
     }
 }

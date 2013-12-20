@@ -107,6 +107,8 @@ public class FactoryServiceTest {
     @Test
     public void shouldReturnStatus400IfSaveRequestHaveNotFactoryInfo() throws Exception {
         // given
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
+
         // when, then
         given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
                 multiPart("someOtherData", "Some content", MediaType.TEXT_PLAIN).//
@@ -198,6 +200,7 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//

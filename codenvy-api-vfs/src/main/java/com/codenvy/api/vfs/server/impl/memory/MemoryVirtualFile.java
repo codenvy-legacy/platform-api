@@ -863,7 +863,7 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ZipOutputStream zipOut = new ZipOutputStream(out);
-        if (isProject()) {
+        if (isProject() && getChild(".project") == null) {
             zipOut.putNextEntry(new ZipEntry(".project"));
             zipOut.write(JsonHelper.toJson(getProperties(PropertyFilter.ALL_FILTER)).getBytes());
         }

@@ -35,12 +35,13 @@ public class SimpleFactoryUrl {
     private String affiliateid;
     private String vcsbranch;
     private Map<String, String> projectattributes = Collections.emptyMap();
+    private List<Variable> variables = Collections.emptyList();
 
     public SimpleFactoryUrl() {
     }
 
     public SimpleFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean vcsInfo,
-                            String orgid, String affiliateid, String vcsbranch, Map<String, String> projectAttributes) {
+                            String orgid, String affiliateid, String vcsbranch, Map<String, String> projectAttributes, List<Variable> variables) {
         this.v = version;
         this.vcs = vcs;
         this.vcsurl = vcsUrl;
@@ -51,6 +52,7 @@ public class SimpleFactoryUrl {
         this.orgid = orgid;
         this.affiliateid = affiliateid;
         this.vcsbranch = vcsbranch;
+        this.variables = variables;
 
         setProjectattributes(projectAttributes);
     }
@@ -146,10 +148,18 @@ public class SimpleFactoryUrl {
         return Collections.unmodifiableMap(projectattributes);
     }
 
+    public List<Variable> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(List<Variable> variables) {
+        this.variables = variables;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof SimpleFactoryUrl)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
 
         SimpleFactoryUrl that = (SimpleFactoryUrl)o;
 
@@ -161,6 +171,7 @@ public class SimpleFactoryUrl {
         if (orgid != null ? !orgid.equals(that.orgid) : that.orgid != null) return false;
         if (projectattributes != null ? !projectattributes.equals(that.projectattributes) : that.projectattributes != null) return false;
         if (v != null ? !v.equals(that.v) : that.v != null) return false;
+        if (variables != null ? !variables.equals(that.variables) : that.variables != null) return false;
         if (vcs != null ? !vcs.equals(that.vcs) : that.vcs != null) return false;
         if (vcsbranch != null ? !vcsbranch.equals(that.vcsbranch) : that.vcsbranch != null) return false;
         if (vcsurl != null ? !vcsurl.equals(that.vcsurl) : that.vcsurl != null) return false;
@@ -181,6 +192,7 @@ public class SimpleFactoryUrl {
         result = 31 * result + (affiliateid != null ? affiliateid.hashCode() : 0);
         result = 31 * result + (vcsbranch != null ? vcsbranch.hashCode() : 0);
         result = 31 * result + (projectattributes != null ? projectattributes.hashCode() : 0);
+        result = 31 * result + (variables != null ? variables.hashCode() : 0);
         return result;
     }
 }

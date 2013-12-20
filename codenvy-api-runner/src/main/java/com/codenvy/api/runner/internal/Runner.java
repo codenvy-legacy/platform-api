@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
@@ -56,11 +54,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author andrew00x
  * @author Eugene Voevodin
  */
-public abstract class Runner implements Lifecycle {
+public abstract class Runner {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
-    public static final String DEPLOY_DIRECTORY   = "runner.deploy_directory";
-    public static final String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
+    public static final String DEPLOY_DIRECTORY   = "runner.internal.deploy_directory";
+    public static final String CLEANUP_DELAY_TIME = "runner.internal.clean_delay_time";
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
@@ -104,14 +102,13 @@ public abstract class Runner implements Lifecycle {
     }
 
     @PostConstruct
-    @Override
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
         deployDirectory = new java.io.File(deployDirectoryRoot, getName());
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
         started = true;
     }
@@ -123,7 +120,6 @@ public abstract class Runner implements Lifecycle {
     }
 
     @PreDestroy
-    @Override
     public synchronized void stop() {
         checkStarted();
         executor.shutdownNow();

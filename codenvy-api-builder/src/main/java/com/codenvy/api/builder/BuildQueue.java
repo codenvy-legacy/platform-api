@@ -29,7 +29,6 @@ import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
-import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
@@ -50,7 +49,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -75,7 +73,7 @@ import java.util.concurrent.TimeUnit;
  * @author Eugene Voevodin
  */
 @Singleton
-public class BuildQueue implements Lifecycle {
+public class BuildQueue {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
     /**
@@ -426,37 +424,9 @@ public class BuildQueue implements Lifecycle {
     }
 
     @PostConstruct
-    @Override
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
-        }
-        final InputStream regConf =
-                Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builder_service_registrations.json");
-        if (regConf != null) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(5000); // TODO: fix this, add this to give couple of time for starting servlet container
-                    } catch (InterruptedException ignored) {
-                    }
-                    try {
-                        for (BuilderServiceRegistration registration : DtoFactory.getInstance().createListDtoFromJson(regConf,
-                                                                                                                      BuilderServiceRegistration.class)) {
-                            registerBuilderService(registration);
-                            LOG.debug("Register slave builder: {}", registration);
-                        }
-                    } catch (IOException | RemoteException | BuilderException e) {
-                        LOG.error(e.getMessage(), e);
-                    } finally {
-                        try {
-                            regConf.close();
-                        } catch (IOException ignored) {
-                        }
-                    }
-                }
-            });
         }
         started = true;
     }
@@ -468,7 +438,6 @@ public class BuildQueue implements Lifecycle {
     }
 
     @PreDestroy
-    @Override
     public synchronized void stop() {
         checkStarted();
         executor.shutdown();

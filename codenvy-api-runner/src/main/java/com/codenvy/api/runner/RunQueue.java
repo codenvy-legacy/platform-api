@@ -20,7 +20,6 @@ package com.codenvy.api.runner;
 import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
@@ -51,7 +50,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -72,7 +70,7 @@ import java.util.concurrent.TimeUnit;
  * @author Eugene Voevodin
  */
 @Singleton
-public class RunQueue implements Lifecycle {
+public class RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(RunQueue.class);
 
     /**
@@ -82,20 +80,14 @@ public class RunQueue implements Lifecycle {
      * <i>http://codenvy.com/api/my_workspace/builder</i> and workspace API at URL: <i>http://codenvy.com/api/my_workspace/workspace</i>
      */
     public static final String BASE_API_URL         = "runner.queue.base_api_url";
-    /**
-     * Name of configuration parameter that set default memory size for application in megabytes. 128 is default value if this property is
-     * not set.
-     */
+    /** Name of configuration parameter that set default memory size for application in megabytes. */
     public static final String DEFAULT_MEMORY_SIZE  = "runner.default_app_mem_size";
     /**
      * Name of configuration parameter that sets max time (in seconds) which request may be in this queue. After this time the request may
-     * be removed from the queue. Default value is 600 seconds (10 minutes).
+     * be removed from the queue.
      */
     public static final String MAX_TIME_IN_QUEUE    = "runner.queue.max_time_in_queue";
-    /**
-     * Name of configuration parameter that sets lifetime (in seconds) of application. After this time the application may be terminated.
-     * Default value is 900 seconds (15 minutes).
-     */
+    /** Name of configuration parameter that sets lifetime (in seconds) of application. After this time the application may be terminated. */
     public static final String APPLICATION_LIFETIME = "runner.queue.app_lifetime";
 
     /** Pause in milliseconds for checking the result of build process. */
@@ -351,37 +343,9 @@ public class RunQueue implements Lifecycle {
     }
 
     @PostConstruct
-    @Override
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
-        }
-        final InputStream regConf =
-                Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/runner_service_registrations.json");
-        if (regConf != null) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(5000); // TODO: fix this, add this to give couple of time for starting servlet container
-                    } catch (InterruptedException ignored) {
-                    }
-                    try {
-                        for (RunnerServiceRegistration registration : DtoFactory.getInstance().createListDtoFromJson(regConf,
-                                                                                                                     RunnerServiceRegistration.class)) {
-                            registerRunnerService(registration);
-                            LOG.debug("Register slave runner: {}", registration);
-                        }
-                    } catch (IOException | RemoteException | RunnerException e) {
-                        LOG.error(e.getMessage(), e);
-                    } finally {
-                        try {
-                            regConf.close();
-                        } catch (IOException ignored) {
-                        }
-                    }
-                }
-            });
         }
         started = true;
     }
@@ -393,7 +357,6 @@ public class RunQueue implements Lifecycle {
     }
 
     @PreDestroy
-    @Override
     public synchronized void stop() {
         checkStarted();
         executor.shutdown();

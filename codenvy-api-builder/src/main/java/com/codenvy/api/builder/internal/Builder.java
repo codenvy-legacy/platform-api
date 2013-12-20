@@ -20,8 +20,6 @@ package com.codenvy.api.builder.internal;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
@@ -61,7 +59,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author andrew00x
  */
-public abstract class Builder implements Lifecycle {
+public abstract class Builder {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
 
     /** Name of configuration parameter that points to the directory where all builds stored. */
@@ -162,22 +160,21 @@ public abstract class Builder implements Lifecycle {
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
-    @Override
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
         repository = new java.io.File(rootDirectory, getName());
         if (!(repository.exists() || repository.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", repository.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", repository.getAbsolutePath()));
         }
         final java.io.File sources = new java.io.File(repository, "sources");
         if (!(sources.exists() || sources.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", sources.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", sources.getAbsolutePath()));
         }
         builds = new java.io.File(repository, "builds");
         if (!(builds.exists() || builds.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", builds.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", builds.getAbsolutePath()));
         }
         sourcesManager = new SourcesManagerImpl(sources);
         executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers, queueSize);
@@ -198,7 +195,6 @@ public abstract class Builder implements Lifecycle {
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
     @PreDestroy
-    @Override
     public synchronized void stop() {
         checkStarted();
         executor.shutdown();

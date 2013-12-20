@@ -43,6 +43,10 @@ public class RemoteRunnerFactory extends RemoteServiceDescriptor {
         throw new RunnerException(String.format("Invalid runner name %s", name));
     }
 
+    public RemoteRunner createRemoteRunner(RunnerDescriptor descriptor) throws IOException, RemoteException {
+        return new RemoteRunner(baseUrl, descriptor, getLinks());
+    }
+
     public List<RunnerDescriptor> getAvailableRunners() throws IOException, RemoteException, RunnerException {
         final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_AVAILABLE_RUNNERS);
         if (link == null) {

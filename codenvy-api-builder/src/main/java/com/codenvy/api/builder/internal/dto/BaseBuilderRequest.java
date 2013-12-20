@@ -38,9 +38,9 @@ public interface BaseBuilderRequest {
      */
     String getSourcesUrl();
 
-    BaseBuilderRequest withSourcesUrl(String sourcesUrl);
+    BaseBuilderRequest withSourcesUrl(String url);
 
-    void setSourcesUrl(String sourcesUrl);
+    void setSourcesUrl(String url);
 
     /**
      * Name of which should be used for build. Client should use method {@link com.codenvy.api.builder.internal.SlaveBuilderService#availableBuilders()}
@@ -99,7 +99,7 @@ public interface BaseBuilderRequest {
     /** URL that will be notified when build is done: successfully, failed or cancelled. */
     String getWebHookUrl();
 
-    BaseBuilderRequest withWebHookUrl(String webHookUrl);
+    BaseBuilderRequest withWebHookUrl(String url);
 
-    void setWebHookUrl(String webHookUrl);
+    void setWebHookUrl(String url);
 }

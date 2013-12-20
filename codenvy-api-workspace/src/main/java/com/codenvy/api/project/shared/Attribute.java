@@ -18,79 +18,52 @@
 package com.codenvy.api.project.shared;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Attribute of Project. Attribute may be hierarchical; one Attribute may contain other set of child attributes.
+ * Attribute of Project.
+ * NOTE that this class is not thread-safe. If multiple threads access an this instance concurrently, and at least one of the threads
+ * modifies this instance, then access to this instance must be synchronized with some external mechanism.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see AttributeValueProvider
+ * @author andrew00x
+ * @see ValueProvider
  */
 public class Attribute {
-    private static class DefaultValueProvider implements AttributeValueProvider {
-        List<String> values;
 
-        DefaultValueProvider(List<String> values) {
-            if (!(values == null || values.isEmpty())) {
-                this.values = new ArrayList<>(values);
-            }
-        }
-
-        DefaultValueProvider(String value) {
-            if (value != null) {
-                this.values = new ArrayList<>(1);
-                this.values.add(value);
-            }
-        }
-
-        public List<String> getValues() {
-            if (values == null) {
-                values = new ArrayList<>(2);
-            }
-            return values;
-        }
-
-        public void setValues(List<String> values) {
-            if (this.values == null) {
-                if (values != null) {
-                    this.values = new ArrayList<>(values);
-                }
-            } else {
-                this.values.clear();
-                if (!(values == null || values.isEmpty())) {
-                    this.values.addAll(values);
-                }
-            }
-        }
-    }
-
-    private final AttributeValueProvider valueProvider;
-    private final String                 name;
-    private       List<Attribute>        children;
+    private final String        name;
+    private final ValueProvider valueProvider;
 
     /**
-     * Creates new Attribute with specified <code>name</code> and use specified <code>AttributeValueProvider</code> to reading and updating
+     * Creates new Attribute with specified <code>name</code> and use specified <code>ValueProvider</code> to reading and updating
      * value of this Attribute.
+     *
+     * @throws IllegalArgumentException
+     *         If {@code name} is {@code null} or empty
      */
-    public Attribute(String name, AttributeValueProvider valueProvider) {
+    public Attribute(String name, ValueProvider valueProvider) {
+        if (name == null) {
+            throw new IllegalArgumentException("Null name is not allowed. ");
+        }
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("Name may not be empty. ");
+        }
         this.name = name;
         this.valueProvider = valueProvider;
     }
 
     /** Creates new Attribute. */
     public Attribute(String name, String value) {
-        this.name = name;
-        this.valueProvider = new DefaultValueProvider(value);
+        this(name, new DefaultValueProvider(value));
     }
 
     /** Creates new Attribute. */
     public Attribute(String name, List<String> values) {
-        this.name = name;
-        this.valueProvider = new DefaultValueProvider(values);
+        this(name, new DefaultValueProvider(values));
     }
 
-    /** Name of attribute. */
-    public String getName() {
+    /** Get name of this attribute. */
+    public final String getName() {
         return name;
     }
 
@@ -112,7 +85,7 @@ public class Attribute {
      */
     public final String getValue() {
         final List<String> values = getValues();
-        return values != null && !values.isEmpty() ? values.get(0) : null;
+        return !(values == null || values.isEmpty()) ? values.get(0) : null;
     }
 
     /**
@@ -135,8 +108,9 @@ public class Attribute {
             final List<String> list = new ArrayList<>(1);
             list.add(value);
             valueProvider.setValues(list);
+        } else {
+            valueProvider.setValues(null);
         }
-        valueProvider.setValues(null);
     }
 
     /**
@@ -148,51 +122,28 @@ public class Attribute {
     public final void setValues(List<String> values) {
         if (values != null) {
             valueProvider.setValues(new ArrayList<>(values));
+        } else {
+            valueProvider.setValues(null);
         }
-        valueProvider.setValues(null);
     }
 
     /**
-     * Add child Attribute to this Attribute.
+     * Set values of attribute.
      *
-     * @param child
-     *         Attribute to add
-     * @throws IllegalArgumentException
-     *         if specified attribute is {code null}
+     * @param values
+     *         new value of attribute
      */
-    public void addChild(Attribute child) {
-        if (child == null) {
-            throw new IllegalArgumentException("Null attribute is not allowed. ");
+    public final void setValues(String... values) {
+        if (values != null) {
+            final List<String> list = new ArrayList<>();
+            Collections.addAll(list, values);
+            valueProvider.setValues(list);
+        } else {
+            valueProvider.setValues(null);
         }
-        if (children == null) {
-            children = new ArrayList<>(4);
-        }
-        children.add(child);
     }
 
-    /** Get child Attribute by {@code name}. */
-    public Attribute getChild(String name) {
-        if (children == null) {
-            return null;
-        }
-        for (Attribute child : children) {
-            if (name.equals(child.getName())) {
-                return child;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Get list of child Attribute. In case if this Attribute hasn't child this method returns empty {@code List} never {2code null}.
-     * Modifications to the returned {@code List} will not affect the internal {@code List}.
-     */
-    public List<Attribute> getChildren() {
-        return children == null ? new ArrayList<Attribute>(2) : new ArrayList<>(children);
-    }
-
-    /** Tests whether this Attribute has child Attributes. */
-    public boolean hasChildren() {
-        return !(children == null || children.isEmpty());
+    public final ValueProvider getValueProvider() {
+        return valueProvider;
     }
 }

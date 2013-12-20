@@ -15,19 +15,30 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.shared.dto;
 
-import java.util.List;
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Provides access to the value of attribute of Project.
+ * Reference to the IDE Project.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
-public interface AttributeValueProvider {
-    /** Get value. */
-    List<String> getValues();
+@DTO
+public interface ProjectReference {
+    /** Get name of project. */
+    String getName();
 
-    /** Set value. */
-    void setValues(List<String> value);
+    /** Set name of project. */
+    void setName(String name);
+
+    ProjectReference withName(String name);
+
+    /** Get URL for getting detailed information about project. */
+    String getUrl();
+
+    /** Set URL for getting detailed information about project. */
+    void setUrl(String url);
+
+    ProjectReference withUrl(String url);
 }

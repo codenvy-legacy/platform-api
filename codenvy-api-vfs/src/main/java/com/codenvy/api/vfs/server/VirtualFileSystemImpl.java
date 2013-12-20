@@ -108,6 +108,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         this.searcherProvider = searcherProvider;
     }
 
+    @Override
     public MountPoint getMountPoint() {
         return mountPoint;
     }
@@ -303,6 +304,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                          .withHasMoreItems(children.hasNext());
     }
 
+    @Override
+    public ItemList getChildren(String folderId, int maxItems, int skipCount, String itemType, boolean includePermissions)
+            throws VirtualFileSystemException {
+        return getChildren(folderId, maxItems, skipCount, itemType, includePermissions, PropertyFilter.ALL_FILTER);
+    }
+
     @Path("tree/{id}")
     @Override
     public ItemNode getTree(@PathParam("id") String folderId,
@@ -317,6 +324,11 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         return DtoFactory.getInstance().createDto(ItemNode.class)
                          .withItem(fromVirtualFile(virtualFile, includePermissions, propertyFilter))
                          .withChildren(getTreeLevel(virtualFile, depth, includePermissions, propertyFilter));
+    }
+
+    @Override
+    public ItemNode getTree(String folderId, int depth, boolean includePermissions) throws VirtualFileSystemException {
+        return getTree(folderId, depth, includePermissions, PropertyFilter.ALL_FILTER);
     }
 
     private List<ItemNode> getTreeLevel(VirtualFile virtualFile, int depth, boolean includePermissions, PropertyFilter propertyFilter)
@@ -368,6 +380,11 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         return fromVirtualFile(mountPoint.getVirtualFileById(id), includePermissions, propertyFilter);
     }
 
+    @Override
+    public Item getItem(String id, boolean includePermissions) throws VirtualFileSystemException {
+        return getItem(id, includePermissions, PropertyFilter.ALL_FILTER);
+    }
+
     @Path("itembypath/{path:.*}")
     @Override
     public Item getItemByPath(@PathParam("path") String path,
@@ -385,6 +402,11 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         }
 
         return fromVirtualFile(virtualFile, includePermissions, propertyFilter);
+    }
+
+    @Override
+    public Item getItemByPath(String path, String versionId, boolean includePermissions) throws VirtualFileSystemException {
+        return getItemByPath(path, versionId, includePermissions, PropertyFilter.ALL_FILTER);
     }
 
     @Path("version/{id}/{versionId}")
@@ -424,6 +446,11 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         }
         return DtoFactory.getInstance().createDto(ItemList.class).withItems(items).withNumItems(versions.size())
                          .withHasMoreItems(versions.hasNext());
+    }
+
+    @Override
+    public ItemList getVersions(String id, int maxItems, int skipCount) throws VirtualFileSystemException {
+        return getVersions(id, maxItems, skipCount, PropertyFilter.ALL_FILTER);
     }
 
     @Path("lock/{id}")
@@ -531,6 +558,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                              .withHasMoreItems(length < result.length);
         }
         throw new NotSupportedException("Not supported. ");
+    }
+
+    @Override
+    public ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount)
+            throws NotSupportedException, VirtualFileSystemException {
+        return search(query, maxItems, skipCount, PropertyFilter.ALL_FILTER);
     }
 
     @Override
@@ -652,7 +685,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (!virtualFile.isFolder()) {
             throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
-        final List<Pair<String, String>> remote = new ArrayList<>();
+        final List<Pair<String, String>> remote = new LinkedList<>();
         final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         String line;
         while ((line = reader.readLine()) != null) {
@@ -663,7 +696,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 startPath++;
             }
             String relPath = line.substring(startPath);
-            remote.add(Pair.of(hash, relPath));
+            if (!".project".equals(relPath)) { // skip .project file
+                remote.add(Pair.of(hash, relPath));
+            }
         }
         if (remote.isEmpty()) {
             final ContentStream zip = virtualFile.zip(VirtualFileFilter.ALL);
@@ -719,6 +754,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         }
         while (localIndex < local.size()) {
             diff.add(Pair.of((String)null, virtualFile.getVirtualFilePath().newPath(local.get(localIndex++).second)));
+        }
+
+        if (diff.isEmpty()) {
+            return Response.status(204).build();
         }
 
         final ContentStream zip = virtualFile.zip(new VirtualFileFilter() {

@@ -318,6 +318,10 @@ public interface VirtualFileSystem {
                          PropertyFilter propertyFilter)
             throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
 
+    // For local usage. This method is not accessible over REST interface.
+    ItemList getChildren(String folderId, int maxItems, int skipCount, String itemType, boolean includePermissions)
+            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+
     /**
      * Get tree of items starts from specified folder.
      *
@@ -346,6 +350,10 @@ public interface VirtualFileSystem {
     @Path("tree")
     @Produces({MediaType.APPLICATION_JSON})
     ItemNode getTree(String folderId, int depth, Boolean includePermissions, PropertyFilter propertyFilter)
+            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+
+    // For local usage. This method is not accessible over REST interface.
+    ItemNode getTree(String folderId, int depth, boolean includePermissions)
             throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
 
     /**
@@ -442,6 +450,10 @@ public interface VirtualFileSystem {
     Item getItem(String id, Boolean includePermissions, PropertyFilter propertyFilter)
             throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
 
+    // For local usage. This method is not accessible over REST interface.
+    Item getItem(String id, boolean includePermissions)
+            throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
+
     /**
      * Get item by path.
      *
@@ -468,6 +480,10 @@ public interface VirtualFileSystem {
     @Path("itembypath")
     @Produces({MediaType.APPLICATION_JSON})
     Item getItemByPath(String path, String versionId, Boolean includePermissions, PropertyFilter propertyFilter)
+            throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
+
+    // For local usage. This method is not accessible over REST interface.
+    Item getItemByPath(String path, String versionId, boolean includePermissions)
             throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
 
     /**
@@ -573,6 +589,10 @@ public interface VirtualFileSystem {
     @Path("version-history")
     @Produces({MediaType.APPLICATION_JSON})
     ItemList getVersions(String id, int maxItems, int skipCount, PropertyFilter propertyFilter)
+            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+
+    // For local usage. This method is not accessible over REST interface.
+    ItemList getVersions(String id, int maxItems, int skipCount)
             throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
 
     /**
@@ -711,8 +731,12 @@ public interface VirtualFileSystem {
     @POST
     @Path("search")
     @Produces({MediaType.APPLICATION_JSON})
-    ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount,
-                    PropertyFilter propertyFilter) throws NotSupportedException, InvalidArgumentException, VirtualFileSystemException;
+    ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount, PropertyFilter propertyFilter)
+            throws NotSupportedException, InvalidArgumentException, VirtualFileSystemException;
+
+    // For local usage. This method is not accessible over REST interface.
+    ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount)
+            throws NotSupportedException, InvalidArgumentException, VirtualFileSystemException;
 
     /**
      * Execute a SQL query statement against the contents of virtual file system.
@@ -1076,4 +1100,5 @@ public interface VirtualFileSystem {
     Response uploadZip(String parentId, java.util.Iterator<FileItem> formData) throws ItemNotFoundException,
                                                                                       InvalidArgumentException, PermissionDeniedException,
                                                                                       IOException, VirtualFileSystemException;
+    MountPoint getMountPoint();
 }

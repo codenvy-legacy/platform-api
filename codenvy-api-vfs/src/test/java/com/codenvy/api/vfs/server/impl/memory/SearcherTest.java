@@ -148,7 +148,7 @@ public class SearcherTest extends MemoryFileSystemTest {
         TopDocs topDocs = luceneSearcher.search(new PrefixQuery(new Term("path", searchTestPath)), 10);
         assertEquals(3, topDocs.totalHits);
         searcher.releaseLuceneSearcher(luceneSearcher);
-        mountPoint.getVirtualFile(searchTestPath).createFile("new_file", null, new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
+        mountPoint.getVirtualFile(searchTestPath).createFile("new_file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
 
         luceneSearcher = searcher.getLuceneSearcher();
         topDocs = luceneSearcher.search(new PrefixQuery(new Term("path", searchTestPath)), 10);
@@ -162,7 +162,7 @@ public class SearcherTest extends MemoryFileSystemTest {
                 new QueryParser(Version.LUCENE_29, "text", new SimpleAnalyzer()).parse("updated"), 10);
         assertEquals(0, topDocs.totalHits);
         searcher.releaseLuceneSearcher(luceneSearcher);
-        mountPoint.getVirtualFile(file2).updateContent(null, new ByteArrayInputStream("updated content".getBytes()), null);
+        mountPoint.getVirtualFile(file2).updateContent("text/plain", new ByteArrayInputStream("updated content".getBytes()), null);
 
         luceneSearcher = searcher.getLuceneSearcher();
         topDocs = luceneSearcher.search(new QueryParser(Version.LUCENE_29, "text", new SimpleAnalyzer()).parse("updated"), 10);

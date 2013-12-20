@@ -25,8 +25,6 @@ import com.codenvy.api.builder.internal.dto.BuilderList;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.InstanceState;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
-import com.codenvy.api.builder.internal.dto.WebHookPayload;
-import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -36,9 +34,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ContentTypeGuesser;
 import com.codenvy.api.core.util.SystemInfo;
 import com.codenvy.dto.server.DtoFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -63,8 +58,6 @@ import java.util.Set;
  */
 @Path("internal/builder")
 public final class SlaveBuilderService extends Service {
-    private static final Logger LOG = LoggerFactory.getLogger(SlaveBuilderService.class);
-
     @Inject
     private BuilderRegistry builders;
 
@@ -111,9 +104,7 @@ public final class SlaveBuilderService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@Description("Parameters for build task in JSON format") BuildRequest request) throws Exception {
-        final String webHookUrl = request.getWebHookUrl();
-        final BuildTask task = getBuilder(request.getBuilder())
-                .perform(request, webHookUrl == null ? null : new WebHookCallback(webHookUrl, getServiceContext()));
+        final BuildTask task = getBuilder(request.getBuilder()).perform(request);
         return getDescriptor(task, getServiceContext());
     }
 
@@ -124,9 +115,7 @@ public final class SlaveBuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor dependencies(@Description("Parameters for analyze dependencies in JSON format") DependencyRequest request)
             throws Exception {
-        final String webHookUrl = request.getWebHookUrl();
-        final BuildTask task = getBuilder(request.getBuilder())
-                .perform(request, webHookUrl == null ? null : new WebHookCallback(webHookUrl, getServiceContext()));
+        final BuildTask task = getBuilder(request.getBuilder()).perform(request);
         return getDescriptor(task, getServiceContext());
     }
 
@@ -325,29 +314,5 @@ public final class SlaveBuilderService extends Service {
                          .withStatus(status)
                          .withLinks(links)
                          .withStartTime(task.getStartTime());
-    }
-
-    private static class WebHookCallback implements BuildTask.Callback {
-        final String         url;
-        final ServiceContext serviceContext;
-
-        WebHookCallback(String url, ServiceContext serviceContext) {
-            this.url = url;
-            this.serviceContext = serviceContext;
-        }
-
-        @Override
-        public void done(BuildTask task) {
-            try {
-                final String getStatus = serviceContext.getServiceUriBuilder().path(SlaveBuilderService.class, "getStatus")
-                                                       .build(task.getBuilder(), task.getId()).toString();
-                final WebHookPayload payload = DtoFactory.getInstance().createDto(WebHookPayload.class)
-                                                         .withSuccessful(task.getResult().isSuccessful())
-                                                         .withUrl(getStatus);
-                HttpJsonHelper.post(null, url, payload);
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
-        }
     }
 }

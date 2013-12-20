@@ -46,7 +46,7 @@ public class MemoryMountPoint implements MountPoint {
     private final SearcherProvider             searcherProvider;
     private final VirtualFileSystemUserContext userContext;
 
-    MemoryMountPoint(SearcherProvider searcherProvider, VirtualFileSystemUserContext userContext) {
+    public MemoryMountPoint(SearcherProvider searcherProvider, VirtualFileSystemUserContext userContext) {
         this.searcherProvider = searcherProvider;
         this.userContext = userContext;
         entries = new HashMap<>();

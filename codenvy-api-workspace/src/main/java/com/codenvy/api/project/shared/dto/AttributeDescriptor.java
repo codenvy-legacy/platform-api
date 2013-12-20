@@ -15,26 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * JSON representation of this instance is posted to remote URL when build is done.
+ * Data transfer object (DTO) for com.codenvy.api.project.shared.AttributeDescription
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
-public interface WebHookPayload {
-    boolean isSuccessful();
+public interface AttributeDescriptor {
+    String getName();
 
-    WebHookPayload withSuccessful(boolean b);
+    void setName(String name);
 
-    void setSuccessful(boolean b);
-
-    String getUrl();
-
-    void setUrl(String url);
-
-    WebHookPayload withUrl(String url);
+    AttributeDescriptor withName(String name);
 }

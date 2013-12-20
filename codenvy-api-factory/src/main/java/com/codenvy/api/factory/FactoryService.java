@@ -20,6 +20,7 @@ package com.codenvy.api.factory;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.organization.client.UserManager;
 import com.codenvy.organization.exception.OrganizationServiceException;
+import com.codenvy.organization.model.User;
 
 import org.everrest.core.impl.provider.json.*;
 import org.slf4j.Logger;
@@ -44,13 +45,11 @@ import static javax.ws.rs.core.Response.Status;
 public class FactoryService {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
     @Inject
-    private FactoryStore factoryStore;
-
+    private FactoryStore                factoryStore;
     @Inject
     private AdvancedFactoryUrlValidator factoryUrlValidator;
-
     @Inject
-    private UserManager userManager;
+    private UserManager                 userManager;
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
@@ -77,6 +76,16 @@ public class FactoryService {
     public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo,
                                           @Context SecurityContext securityContext) throws FactoryUrlException {
         try {
+            Principal userPrincipal = securityContext.getUserPrincipal();
+            if (userPrincipal == null || userPrincipal.getName() == null) {
+                throw new FactoryUrlException(Status.UNAUTHORIZED.getStatusCode(), "You are not authenticated for using this method.");
+            }
+
+            User user = userManager.getUserByAlias(userPrincipal.getName());
+            if (user.isTemporary()) {
+                throw new FactoryUrlException(Status.FORBIDDEN.getStatusCode(), "Current user is not allowed for using this method.");
+            }
+
             Set<FactoryImage> images = new HashSet<>();
             AdvancedFactoryUrl factoryUrl = null;
 
@@ -99,7 +108,7 @@ public class FactoryService {
             }
 
             if (factoryUrl == null) {
-                LOG.error("No factory URL information found in 'factoryUrl' section of multipart form-data.");
+                LOG.warn("No factory URL information found in 'factoryUrl' section of multipart form-data.");
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               "No factory URL information found in 'factoryUrl' section of multipart form-data.");
             }
@@ -114,11 +123,7 @@ public class FactoryService {
 
             factoryUrlValidator.validate(factoryUrl);
 
-            Principal userPrincipal = securityContext.getUserPrincipal();
-            if (userPrincipal == null || userPrincipal.getName() == null) {
-                throw new FactoryUrlException(403, "You are not authenticated for using this method");
-            }
-            factoryUrl.setUserid(userManager.getUserByAlias(userPrincipal.getName()).getId());
+            factoryUrl.setUserid(user.getId());
 
             factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
@@ -131,10 +136,15 @@ public class FactoryService {
                 createProjectLink = createProjectLinksIterator.next().getHref();
             }
             LOG.info(
-                    "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}}# " +
-                    "ORG-ID#{}}#",
-                    new String[]{"", "", "", nullToEmpty(factoryUrl.getProjectattributes().get("ptype")), factoryUrl.getVcsurl(),
-                                 createProjectLink, nullToEmpty(factoryUrl.getAffiliateid()), nullToEmpty(factoryUrl.getOrgid())});
+                    "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
+                    "",
+                    userPrincipal.getName(),
+                    "",
+                    nullToEmpty(factoryUrl.getProjectattributes().get("ptype")),
+                    factoryUrl.getVcsurl(),
+                    createProjectLink,
+                    nullToEmpty(factoryUrl.getAffiliateid()),
+                    nullToEmpty(factoryUrl.getOrgid()));
 
             return factoryUrl;
         } catch (IOException | JsonException | ServletException | OrganizationServiceException e) {
@@ -159,7 +169,7 @@ public class FactoryService {
     public AdvancedFactoryUrl getFactory(@PathParam("id") String id, @Context UriInfo uriInfo) throws FactoryUrlException {
         AdvancedFactoryUrl factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
-            LOG.error("Factory URL with id {} is not found.", id);
+            LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
@@ -194,7 +204,7 @@ public class FactoryService {
             throws FactoryUrlException {
         Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(factoryId, null);
         if (factoryImages == null) {
-            LOG.error("Factory URL with id {} is not found.", factoryId);
+            LOG.warn("Factory URL with id {} is not found.", factoryId);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
                                           String.format("Factory URL with id %s is not found.", factoryId));
         }
@@ -203,7 +213,7 @@ public class FactoryService {
                 FactoryImage image = factoryImages.iterator().next();
                 return Response.ok(image.getImageData(), image.getMediaType()).build();
             } else {
-                LOG.error("Default image for factory {} is not found.", factoryId);
+                LOG.warn("Default image for factory {} is not found.", factoryId);
                 throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
                                               String.format("Default image for factory %s is not found.", factoryId));
             }
@@ -214,7 +224,7 @@ public class FactoryService {
                 }
             }
         }
-        LOG.error("Image with id {} is not found.", imageId);
+        LOG.warn("Image with id {} is not found.", imageId);
         throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Image with id %s is not found.", imageId));
     }
 
@@ -239,7 +249,7 @@ public class FactoryService {
             throws FactoryUrlException {
         AdvancedFactoryUrl factory = factoryStore.getFactory(id);
         if (factory == null) {
-            LOG.error("Factory URL with id {} is not found.", id);
+            LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
@@ -254,16 +264,9 @@ public class FactoryService {
                         .generateMarkdownSnippet(id, factoryStore.getFactoryImages(id, null), factory.getStyle(),
                                                  uriInfo.getBaseUri());
             default:
-                LOG.error("Snippet type {} is unsupported", type);
+                LOG.warn("Snippet type {} is unsupported", type);
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
                                               String.format("Snippet type \"%s\" is unsupported.", type));
         }
-    }
-
-    /** Temporary workaround method to init SSO client */
-    @GET
-    @Path("sso/init")
-    @Deprecated
-    public void ssoInit() {
     }
 }

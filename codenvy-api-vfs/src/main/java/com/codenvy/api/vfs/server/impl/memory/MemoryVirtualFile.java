@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.util.ContentTypeGuesser;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.LazyIterator;
@@ -35,7 +36,6 @@ import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
-import com.codenvy.api.vfs.server.util.MediaTypes;
 import com.codenvy.api.vfs.server.util.NotClosableInputStream;
 import com.codenvy.api.vfs.server.util.ZipContent;
 import com.codenvy.api.vfs.shared.PropertyFilter;
@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -250,7 +251,7 @@ public class MemoryVirtualFile implements VirtualFile {
         checkExist();
         String mediaType = getPropertyValue("vfs:mimeType");
         if (mediaType == null) {
-            mediaType = isFile() ? MediaTypes.INSTANCE.getMediaType(getName()) : Folder.FOLDER_MIME_TYPE;
+            mediaType = isFile() ? ContentTypeGuesser.guessContentType(new File(getName())) : Folder.FOLDER_MIME_TYPE;
         }
         return mediaType;
     }
@@ -862,7 +863,7 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ZipOutputStream zipOut = new ZipOutputStream(out);
-        if (isProject()) {
+        if (isProject() && getChild(".project") == null) {
             zipOut.putNextEntry(new ZipEntry(".project"));
             zipOut.write(JsonHelper.toJson(getProperties(PropertyFilter.ALL_FILTER)).getBytes());
         }
@@ -977,7 +978,7 @@ public class MemoryVirtualFile implements VirtualFile {
                         mediaType = file.getPropertyValue("vfs:mimeType");
                         file.updateContent(mediaType, noCloseZip, null);
                     } else {
-                        mediaType = MediaTypes.INSTANCE.getMediaType(name);
+                        mediaType = ContentTypeGuesser.guessContentType(new File(name));
                         file = newFile((MemoryVirtualFile)current, name, noCloseZip, mediaType);
                         ((MemoryVirtualFile)current).addChild(file);
                         mountPoint.putItem((MemoryVirtualFile)file);

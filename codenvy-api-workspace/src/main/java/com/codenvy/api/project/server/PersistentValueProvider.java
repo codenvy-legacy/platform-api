@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,23 +15,14 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.shared.dto;
+package com.codenvy.api.project.server;
 
-import com.codenvy.dto.shared.DTO;
+import com.codenvy.api.project.shared.ValueProvider;
+import com.codenvy.api.vfs.server.VirtualFileSystem;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.shared.dto.Project;
 
-import java.util.List;
-import java.util.Map;
-
-/**
- * Represent attributes of Project.
- *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
- */
-@DTO
-public interface Attributes {
-    Map<String, List<String>> getAttributes();
-
-    Attributes withAttributes(Map<String, List<String>> attributes);
-
-    void setAttributes(Map<String, List<String>> attributes);
+/** @author andrew00x */
+public interface PersistentValueProvider  extends ValueProvider {
+    void store(Project project, VirtualFileSystem vfs) throws VirtualFileSystemException;
 }

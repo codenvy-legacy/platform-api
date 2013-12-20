@@ -2,8 +2,8 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- * [2012] - [2013] Codenvy, S.A.
- * All Rights Reserved.
+ *  [2012] - [2013] Codenvy, S.A.
+ *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
@@ -15,26 +15,17 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.util;
+package com.codenvy.api.project.shared;
 
-import org.exoplatform.commons.utils.MimeTypeResolver;
+import java.util.List;
 
 /**
- * Resolves media type from file name extension.
+ * ProjectTypeExtension
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author gazarenkov
  */
-public enum MediaTypes {
-    INSTANCE;
+public interface ProjectTypeExtension {
+    ProjectType getProjectType();
 
-    final MimeTypeResolver resolver;
-
-    private MediaTypes() {
-        resolver = new MimeTypeResolver();
-        resolver.setDefaultMimeType("text/plain");
-    }
-
-    public String getMediaType(String filename) {
-        return resolver.getMimeType(filename);
-    }
+    List<Attribute> getPredefinedAttributes();
 }

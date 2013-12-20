@@ -25,6 +25,7 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
@@ -36,6 +37,7 @@ import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.api.workspace.server.WorkspaceService;
+import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.inject.ConfigurationParameter;
@@ -50,8 +52,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -94,14 +98,14 @@ public class RunQueue {
     private static final long CHECK_BUILD_RESULT_DELAY     = 2000;
     private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
 
-    private final RunnerSelectionStrategy                        runnerSelector;
-    private final ExecutorService                                executor;
-    private final ConcurrentMap<RunnerListKey, RemoteRunnerList> runnerListMapping;
-    private final ConcurrentMap<Long, RunQueueTask>              tasks;
-    private final int                                            defMemSize;
-    private final String                                         baseApiUrl;
-    private final int                                            appLifetime;
-    private final long                                           maxTimeInQueueMillis;
+    private final RunnerSelectionStrategy                  runnerSelector;
+    private final ExecutorService                          executor;
+    private final ConcurrentMap<RunnerListKey, RunnerList> runnerListMapping;
+    private final ConcurrentMap<Long, RunQueueTask>        tasks;
+    private final int                                      defMemSize;
+    private final String                                   baseApiUrl;
+    private final int                                      appLifetime;
+    private final long                                     maxTimeInQueueMillis;
 
     private boolean started;
 
@@ -347,7 +351,57 @@ public class RunQueue {
         if (started) {
             throw new IllegalStateException("Already started");
         }
+        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/runners.json");
+        if (regConf != null) {
+            try {
+                final RunnerRegistration[] registrations = JsonHelper.fromJson(regConf, RunnerRegistration[].class, null);
+                final List<RemoteRunner> runners = new ArrayList<>(registrations.length);
+                for (RunnerRegistration registration : registrations) {
+                    final ServiceDescriptor serviceDescriptor = registration.getRunnerServiceDescriptor();
+                    for (RunnerDescriptor runnerDescriptor : registration.getRunnerDescriptors()) {
+                        runners.add(new RemoteRunner(serviceDescriptor.getHref(), runnerDescriptor, serviceDescriptor.getLinks()));
+                    }
+                }
+                registerRunners(null, null, runners);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            } finally {
+                try {
+                    regConf.close();
+                } catch (IOException ignored) {
+                }
+            }
+
+        }
         started = true;
+    }
+
+    // For local registration of Runners on startup. Need it to avoid sending any HTTP requests during starting servlet container.
+    // This class MUST provide all required information about each Runner.
+    public final static class RunnerRegistration {
+        // info about remote runner service (rest service that is frontend for runners)
+        private ServiceDescriptor      runnerServiceDescriptor;
+        // set of runners that must be available
+        private List<RunnerDescriptor> runnerDescriptors;
+
+        public ServiceDescriptor getRunnerServiceDescriptor() {
+            return runnerServiceDescriptor;
+        }
+
+        public void setRunnerServiceDescriptor(ServiceDescriptor runnerServiceDescriptor) {
+            this.runnerServiceDescriptor = runnerServiceDescriptor;
+        }
+
+        public List<RunnerDescriptor> getRunnerDescriptors() {
+            if (runnerDescriptors == null) {
+                return Collections.emptyList();
+            }
+            return runnerDescriptors;
+        }
+
+        public void setRunnerDescriptors(List<RunnerDescriptor> runnerDescriptors) {
+            this.runnerDescriptors = runnerDescriptors;
+        }
     }
 
     protected synchronized void checkStarted() {
@@ -375,23 +429,31 @@ public class RunQueue {
 
     public boolean registerRunnerService(RunnerServiceRegistration registration) throws RemoteException, IOException, RunnerException {
         checkStarted();
+        String workspace = null;
+        String project = null;
         final RunnerServiceAccessCriteria accessCriteria = registration.getRunnerServiceAccessCriteria();
-        final RunnerListKey key = accessCriteria != null
-                                  ? new RunnerListKey(accessCriteria.getProject(), accessCriteria.getWorkspace())
-                                  : new RunnerListKey(null, null);
-        RemoteRunnerList runnerList = runnerListMapping.get(key);
-        if (runnerList == null) {
-            final RemoteRunnerList newRunnerList = new RemoteRunnerList(runnerSelector);
-            runnerList = runnerListMapping.putIfAbsent(key, newRunnerList);
-            if (runnerList == null) {
-                runnerList = newRunnerList;
-            }
+        if (accessCriteria != null) {
+            workspace = accessCriteria.getWorkspace();
+            project = accessCriteria.getProject();
         }
 
         final RemoteRunnerFactory factory = new RemoteRunnerFactory(registration.getRunnerServiceLocation().getUrl());
         final List<RemoteRunner> toAdd = new ArrayList<>();
         for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
             toAdd.add(factory.createRemoteRunner(runnerDescriptor));
+        }
+        return registerRunners(workspace, project, toAdd);
+    }
+
+    private boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {
+        final RunnerListKey key = new RunnerListKey(project, workspace);
+        RunnerList runnerList = runnerListMapping.get(key);
+        if (runnerList == null) {
+            final RunnerList newRunnerList = new RunnerList(runnerSelector);
+            runnerList = runnerListMapping.putIfAbsent(key, newRunnerList);
+            if (runnerList == null) {
+                runnerList = newRunnerList;
+            }
         }
         return runnerList.addRunners(toAdd);
     }
@@ -403,10 +465,13 @@ public class RunQueue {
         for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
             toRemove.add(factory.createRemoteRunner(runnerDescriptor));
         }
+        return unregisterRunners(toRemove);
+    }
 
+    private boolean unregisterRunners(List<RemoteRunner> toRemove) {
         boolean modified = false;
-        for (Iterator<RemoteRunnerList> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
-            final RemoteRunnerList runnerList = i.next();
+        for (Iterator<RunnerList> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
+            final RunnerList runnerList = i.next();
             if (runnerList.removeRunners(toRemove)) {
                 modified |= true;
                 if (runnerList.size() == 0) {
@@ -430,7 +495,7 @@ public class RunQueue {
     private RemoteRunner getRunner(RunRequest request) throws RunnerException {
         final String project = request.getProject();
         final String workspace = request.getWorkspace();
-        RemoteRunnerList runnerList = runnerListMapping.get(new RunnerListKey(project, workspace));
+        RunnerList runnerList = runnerListMapping.get(new RunnerListKey(project, workspace));
         if (runnerList == null) {
             if (project != null || workspace != null) {
                 if (project != null && workspace != null) {
@@ -499,11 +564,11 @@ public class RunQueue {
     }
 
 
-    private static class RemoteRunnerList {
+    private static class RunnerList {
         final Collection<RemoteRunner> runners;
         final RunnerSelectionStrategy  runnerSelector;
 
-        RemoteRunnerList(RunnerSelectionStrategy runnerSelector) {
+        RunnerList(RunnerSelectionStrategy runnerSelector) {
             this.runnerSelector = runnerSelector;
             runners = new LinkedHashSet<>();
         }

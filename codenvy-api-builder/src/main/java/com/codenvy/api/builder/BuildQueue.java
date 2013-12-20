@@ -32,9 +32,11 @@ import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
+import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
+import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.inject.ConfigurationParameter;
@@ -49,8 +51,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -153,10 +157,23 @@ public class BuildQueue {
      */
     public boolean registerBuilderService(BuilderServiceRegistration registration) throws IOException, RemoteException, BuilderException {
         checkStarted();
+        String workspace = null;
+        String project = null;
         final BuilderServiceAccessCriteria accessCriteria = registration.getBuilderServiceAccessCriteria();
-        final BuilderListKey key = accessCriteria != null
-                                   ? new BuilderListKey(accessCriteria.getProject(), accessCriteria.getWorkspace())
-                                   : new BuilderListKey(null, null);
+        if (accessCriteria != null) {
+            workspace = accessCriteria.getWorkspace();
+            project = accessCriteria.getProject();
+        }
+        final RemoteBuilderFactory factory = new RemoteBuilderFactory(registration.getBuilderServiceLocation().getUrl());
+        final List<RemoteBuilder> toAdd = new ArrayList<>();
+        for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
+            toAdd.add(factory.createRemoteBuilder(builderDescriptor));
+        }
+        return registerBuilders(workspace, project, toAdd);
+    }
+
+    private boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
+        final BuilderListKey key = new BuilderListKey(project, workspace);
         BuilderList builderList = builderListMapping.get(key);
         if (builderList == null) {
             final BuilderList newBuilderList = new BuilderList(builderSelector);
@@ -164,12 +181,6 @@ public class BuildQueue {
             if (builderList == null) {
                 builderList = newBuilderList;
             }
-        }
-
-        final RemoteBuilderFactory factory = new RemoteBuilderFactory(registration.getBuilderServiceLocation().getUrl());
-        final List<RemoteBuilder> toAdd = new ArrayList<>();
-        for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
-            toAdd.add(factory.createRemoteBuilder(builderDescriptor));
         }
         return builderList.addBuilders(toAdd);
     }
@@ -194,14 +205,17 @@ public class BuildQueue {
         for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
             toRemove.add(factory.createRemoteBuilder(builderDescriptor));
         }
+        return unregisterBuilders(toRemove);
+    }
 
+    private boolean unregisterBuilders(List<RemoteBuilder> toRemove) {
         boolean modified = false;
-        for (Iterator<BuilderList> iterator = builderListMapping.values().iterator(); iterator.hasNext(); ) {
-            final BuilderList builderList = iterator.next();
+        for (Iterator<BuilderList> i = builderListMapping.values().iterator(); i.hasNext(); ) {
+            final BuilderList builderList = i.next();
             if (builderList.removeBuilders(toRemove)) {
                 modified |= true;
                 if (builderList.size() == 0) {
-                    iterator.remove();
+                    i.remove();
                 }
             }
         }
@@ -428,7 +442,56 @@ public class BuildQueue {
         if (started) {
             throw new IllegalStateException("Already started");
         }
+        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builders.json");
+        if (regConf != null) {
+            try {
+                final BuilderRegistration[] registrations = JsonHelper.fromJson(regConf, BuilderRegistration[].class, null);
+                final List<RemoteBuilder> builders = new ArrayList<>(registrations.length);
+                for (BuilderRegistration registration : registrations) {
+                    final ServiceDescriptor serviceDescriptor = registration.getBuilderServiceDescriptor();
+                    for (BuilderDescriptor builderDescriptor : registration.getBuilderDescriptors()) {
+                        builders.add(new RemoteBuilder(serviceDescriptor.getHref(), builderDescriptor, serviceDescriptor.getLinks()));
+                    }
+                }
+                registerBuilders(null, null, builders);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            } finally {
+                try {
+                    regConf.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
         started = true;
+    }
+
+    // For local registration of Builders on startup. Need it to avoid sending any HTTP requests during starting servlet container.
+    // This class MUST provide all required information about each Builder.
+    public final static class BuilderRegistration {
+        // info about remote builder service (rest service that is frontend for builders)
+        private ServiceDescriptor       builderServiceDescriptor;
+        // set of builders that must be available
+        private List<BuilderDescriptor> builderDescriptors;
+
+        public ServiceDescriptor getBuilderServiceDescriptor() {
+            return builderServiceDescriptor;
+        }
+
+        public void setBuilderServiceDescriptor(ServiceDescriptor builderServiceDescriptor) {
+            this.builderServiceDescriptor = builderServiceDescriptor;
+        }
+
+        public List<BuilderDescriptor> getBuilderDescriptors() {
+            if (builderDescriptors == null) {
+                return Collections.emptyList();
+            }
+            return builderDescriptors;
+        }
+
+        public void setBuilderDescriptors(List<BuilderDescriptor> builderDescriptors) {
+            this.builderDescriptors = builderDescriptors;
+        }
     }
 
     protected synchronized void checkStarted() {

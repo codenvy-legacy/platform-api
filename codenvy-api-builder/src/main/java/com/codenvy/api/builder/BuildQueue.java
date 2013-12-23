@@ -237,6 +237,7 @@ public class BuildQueue implements Lifecycle {
         if (buildOptions != null) {
             request.setOptions(buildOptions.getOptions());
             request.setTargets(buildOptions.getTargets());
+            request.setDeployJarWithDependencies(buildOptions.isDeployJarWithDependencies());
         }
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));

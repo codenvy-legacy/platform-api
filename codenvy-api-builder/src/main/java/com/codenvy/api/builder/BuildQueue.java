@@ -39,7 +39,6 @@ import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,13 +100,9 @@ public class BuildQueue {
     private boolean started;
 
     @Inject
-    public BuildQueue(@Named(MAX_TIME_IN_QUEUE) ConfigurationParameter maxTimeInQueue,
-                      @Named(BUILD_TIMEOUT) ConfigurationParameter timeout,
+    public BuildQueue(@Named(MAX_TIME_IN_QUEUE) int maxTimeInQueue,
+                      @Named(BUILD_TIMEOUT) int timeout,
                       BuilderSelectionStrategy builderSelector) {
-        this(maxTimeInQueue.asInt(), timeout.asInt(), builderSelector);
-    }
-
-    public BuildQueue(int maxTimeInQueue, int timeout, BuilderSelectionStrategy builderSelector) {
         this.timeout = timeout;
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.builderSelector = builderSelector;

@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.inject.ConfigurationParameter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,11 +51,7 @@ public class ResourceAllocators {
     private final Semaphore memSemaphore;
 
     @Inject
-    public ResourceAllocators(@Named(TOTAL_APPS_MEM_SIZE) ConfigurationParameter memSize) {
-        this(memSize.asInt());
-    }
-
-    public ResourceAllocators(int memSize) {
+    public ResourceAllocators(@Named(TOTAL_APPS_MEM_SIZE) int memSize) {
         if (memSize <= 0) {
             throw new IllegalArgumentException(String.format("Invalid mem size %d", memSize));
         }

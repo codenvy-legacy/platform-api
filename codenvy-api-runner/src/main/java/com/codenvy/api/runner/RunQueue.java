@@ -40,7 +40,6 @@ import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.inject.ConfigurationParameter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,15 +108,6 @@ public class RunQueue {
 
     private boolean started;
 
-    @Inject
-    public RunQueue(@Named(BASE_API_URL) ConfigurationParameter baseApiUrl,
-                    @Named(DEFAULT_MEMORY_SIZE) ConfigurationParameter defMemSize,
-                    @Named(MAX_TIME_IN_QUEUE) ConfigurationParameter maxTimeInQueue,
-                    @Named(APPLICATION_LIFETIME) ConfigurationParameter appLifetime,
-                    RunnerSelectionStrategy runnerSelector) {
-        this(baseApiUrl.asString(), defMemSize.asInt(), maxTimeInQueue.asInt(), appLifetime.asInt(), runnerSelector);
-    }
-
     /**
      * @param baseApiUrl
      *         api url
@@ -128,7 +118,12 @@ public class RunQueue {
      * @param appLifetime
      *         application life time in seconds. After this time the application may be terminated.
      */
-    public RunQueue(String baseApiUrl, int defMemSize, int maxTimeInQueue, int appLifetime, RunnerSelectionStrategy runnerSelector) {
+    @Inject
+    public RunQueue(@Named(BASE_API_URL) String baseApiUrl,
+                    @Named(DEFAULT_MEMORY_SIZE) int defMemSize,
+                    @Named(MAX_TIME_IN_QUEUE) int maxTimeInQueue,
+                    @Named(APPLICATION_LIFETIME) int appLifetime,
+                    RunnerSelectionStrategy runnerSelector) {
         this.baseApiUrl = baseApiUrl;
         this.defMemSize = defMemSize;
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);

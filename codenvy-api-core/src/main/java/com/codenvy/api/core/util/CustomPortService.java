@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.core.util;
 
-import com.codenvy.inject.ConfigurationParameter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,8 +65,8 @@ public class CustomPortService {
     private final Pair<Integer, Integer>          range;
 
     @Inject
-    public CustomPortService(@Named(MIN_PORT) ConfigurationParameter minPort, @Named(MAX_PORT) ConfigurationParameter maxPort) {
-        this(Pair.of(minPort.asInt(), maxPort.asInt()));
+    public CustomPortService(@Named(MIN_PORT) int minPort, @Named(MAX_PORT) int maxPort) {
+        this(Pair.of(minPort, maxPort));
     }
 
     public CustomPortService(Pair<Integer, Integer> range) {

@@ -45,7 +45,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * executor.submit(ThreadLocalPropagateContext.wrap(myRunnable)); // wrap Runnable and submit it to executor
  * </pre>
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class ThreadLocalPropagateContext {
 

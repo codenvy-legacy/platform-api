@@ -30,6 +30,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Setups current UserState and the beginning of request and resets it at the end.
@@ -87,6 +89,11 @@ public class UserStateFilter implements Filter {
         }
 
         @Override
+        public Set<String> getRoles() {
+            return Collections.emptySet();
+        }
+
+        @Override
         public boolean isMemberOf(String role) {
             return false;
         }
@@ -102,6 +109,12 @@ public class UserStateFilter implements Filter {
         @Override
         public String getName() {
             return principal.getName();
+        }
+
+        @Override
+        public Set<String> getRoles() {
+            // TODO: get roles
+            return Collections.emptySet();
         }
 
         @Override

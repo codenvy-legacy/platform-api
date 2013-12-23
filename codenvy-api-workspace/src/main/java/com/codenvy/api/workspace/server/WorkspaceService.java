@@ -25,7 +25,6 @@ import com.codenvy.api.project.server.PersistentProjectDescription;
 import com.codenvy.api.project.server.ProjectDescriptionFactory;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
-import com.codenvy.api.vfs.server.RequestContext;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
@@ -50,8 +49,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.ext.ContextResolver;
-import javax.ws.rs.ext.Providers;
+import javax.ws.rs.core.UriInfo;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,7 +64,7 @@ public class WorkspaceService extends Service {
     @Inject
     private ProjectDescriptionFactory projectDescriptionFactory;
     @Context
-    private Providers                 providers;
+    private UriInfo                   uriInfo;
 
     @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_PROJECT)
     @GET
@@ -141,12 +139,7 @@ public class WorkspaceService extends Service {
     @Path("vfs")
     @Produces(MediaType.APPLICATION_JSON)
     public VirtualFileSystem getVirtualFileSystem() throws VirtualFileSystemException {
-        RequestContext context = null;
-        final ContextResolver<RequestContext> contextResolver = providers.getContextResolver(RequestContext.class, null);
-        if (contextResolver != null) {
-            context = contextResolver.getContext(RequestContext.class);
-        }
         final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
-        return registry.getProvider(vfsId).newInstance(context, listeners);
+        return registry.getProvider(vfsId).newInstance(uriInfo.getBaseUri(), listeners);
     }
 }

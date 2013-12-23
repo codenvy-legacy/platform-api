@@ -23,10 +23,12 @@ import com.codenvy.api.vfs.server.observation.EventListenerList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+
 /**
  * Produce instance of VirtualFileSystem.
  *
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class VirtualFileSystemProvider {
     private static final Logger LOG = LoggerFactory.getLogger(VirtualFileSystemProvider.class);
@@ -43,15 +45,14 @@ public abstract class VirtualFileSystemProvider {
     /**
      * Create instance of VirtualFileSystem.
      *
-     * @param requestContext
-     *         request context
+     * @param baseUri
+     *         base URI. Virtual filesystem uses it to provide correct links for set of operation with its items
      * @param listeners
      *         listeners VirtualFileSystem may notify listeners about changes of its items
      * @return instance of VirtualFileSystem
      * @throws VirtualFileSystemException
      */
-    public abstract VirtualFileSystem newInstance(RequestContext requestContext, EventListenerList listeners)
-            throws VirtualFileSystemException;
+    public abstract VirtualFileSystem newInstance(URI baseUri, EventListenerList listeners) throws VirtualFileSystemException;
 
     /**
      * Get mount point of virtual filesystem.

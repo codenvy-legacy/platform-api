@@ -19,7 +19,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.search.LuceneSearcherProvider;
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.RequestContext;
 import com.codenvy.api.vfs.server.search.Searcher;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
@@ -32,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     private static final Logger LOG = LoggerFactory.getLogger(MemoryFileSystemProvider.class);
 
@@ -56,10 +55,10 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     }
 
     @Override
-    public VirtualFileSystem newInstance(RequestContext requestContext, EventListenerList listeners) throws VirtualFileSystemException {
+    public VirtualFileSystem newInstance(URI baseUri, EventListenerList listeners) throws VirtualFileSystemException {
         final MemoryMountPoint memoryMountPoint = (MemoryMountPoint)getMountPoint(true);
         return new MemoryFileSystem(
-                requestContext != null ? requestContext.getUriInfo().getBaseUri() : URI.create(""),
+                baseUri == null ? URI.create("") : baseUri,
                 listeners,
                 getWorkspaceId(),
                 memoryMountPoint.getUserContext(),

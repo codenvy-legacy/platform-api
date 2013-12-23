@@ -75,7 +75,6 @@
         <maven.snapshots.repo.url>https://maven.codenvycorp.com/content/repositories/codenvy-private-snapshots/</maven.snapshots.repo.url>
         <mockito.version>1.9.5</mockito.version>
         <mockitong.version>0.3</mockitong.version>
-        <org.exoplatform.core.version>2.4.9-GA</org.exoplatform.core.version>
         <reflections.version>0.9.9-RC1</reflections.version>
         <servlet-api.version>3.0.1</servlet-api.version>
         <slf4j.version>1.7.5</slf4j.version>

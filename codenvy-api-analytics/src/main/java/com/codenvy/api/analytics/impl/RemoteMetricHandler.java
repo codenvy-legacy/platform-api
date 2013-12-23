@@ -20,10 +20,7 @@ package com.codenvy.api.analytics.impl;
 
 import com.codenvy.api.analytics.AnalyticsService;
 import com.codenvy.api.analytics.MetricHandler;
-import com.codenvy.api.analytics.dto.Constants;
-import com.codenvy.api.analytics.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.dto.*;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
@@ -79,12 +76,14 @@ public class RemoteMetricHandler implements MetricHandler {
         }
     }
 
-    public MetricValueDTO getValue(String metricName, Map<String, String> executionContext, ServiceContext serviceContext)
+    public MetricValueDTO getValue(String metricName, Map<String, String> executionContext,
+                                   ServiceContext serviceContext)
             throws MetricNotFoundException {
         URI redirectURI = getUriBuilder(serviceContext, "getValue").build(metricName, "name");
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
-            return request(MetricValueDTO.class, redirectURI.toString(), "GET", null, pairs.toArray(new Pair[pairs.size()]));
+            return request(MetricValueDTO.class, redirectURI.toString(), "GET", null,
+                           pairs.toArray(new Pair[pairs.size()]));
         } catch (IOException | RemoteException e) {
             throw new MetricNotFoundException();
         }
@@ -107,6 +106,16 @@ public class RemoteMetricHandler implements MetricHandler {
             MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, redirectURI.toString(), "GET", null);
             updateLinks(serviceContext, metricInfoListDTO);
             return metricInfoListDTO;
+        } catch (IOException | RemoteException e) {
+            throw new RuntimeException("Can't get generate metric info list!");
+        }
+    }
+
+    @Override
+    public MetricRolesAllowedListDTO getRolesAllowed(String metricName, ServiceContext serviceContext) {
+        URI redirectURI = getUriBuilder(serviceContext, "getRolesAllowed").build();
+        try {
+            return request(MetricRolesAllowedListDTO.class, redirectURI.toString(), "GET", null);
         } catch (IOException | RemoteException e) {
             throw new RuntimeException("Can't get generate metric info list!");
         }
@@ -146,7 +155,8 @@ public class RemoteMetricHandler implements MetricHandler {
             sb.append('?');
             for (int i = 0, l = parameters.length; i < l; i++) {
                 String name = URLEncoder.encode(parameters[i].first, "UTF-8");
-                String value = parameters[i].second == null ? null : URLEncoder.encode(String.valueOf(parameters[i].second), "UTF-8");
+                String value = parameters[i].second == null ? null : URLEncoder
+                        .encode(String.valueOf(parameters[i].second), "UTF-8");
                 if (i > 0) {
                     sb.append('&');
                 }
@@ -161,7 +171,8 @@ public class RemoteMetricHandler implements MetricHandler {
         final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
         conn.setConnectTimeout(30 * 1000);
         conn.setConnectTimeout(30 * 1000);
-        conn.addRequestProperty("Authorization", "Basic " + new String(new Base64().encode((login + ":" + pass).getBytes())));
+        conn.addRequestProperty("Authorization",
+                                "Basic " + new String(new Base64().encode((login + ":" + pass).getBytes())));
         try {
             conn.setRequestMethod(method);
             if (body != null) {
@@ -182,7 +193,8 @@ public class RemoteMetricHandler implements MetricHandler {
                 final String str = IoUtil.readAndCloseQuietly(in);
                 final String contentType = conn.getContentType();
                 if (contentType.startsWith("application/json")) {
-                    final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
+                    final ServiceError serviceError =
+                            DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
                     if (serviceError.getMessage() != null) {
                         // Error is in format what we can understand.
                         throw new RemoteException(serviceError);
@@ -190,7 +202,8 @@ public class RemoteMetricHandler implements MetricHandler {
                 }
                 // Can't parse content as json or content has format other we expect for error.
                 throw new IOException(
-                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", url, method, responseCode, str));
+                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", url, method,
+                                      responseCode, str));
             }
             final String contentType = conn.getContentType();
             if (!contentType.startsWith("application/json")) {

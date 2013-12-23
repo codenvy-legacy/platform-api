@@ -20,6 +20,7 @@ package com.codenvy.api.analytics;
 
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
+import com.codenvy.api.analytics.dto.MetricRolesAllowedListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.ServiceContext;
@@ -27,18 +28,21 @@ import com.codenvy.api.core.rest.ServiceContext;
 import java.util.Map;
 
 /**
- * Defines methods to interact with analytic system metrics to get needed metric values or info. In order to proper instantiate an
+ * Defines methods to interact with analytic system metrics to get needed metric values or info. In order to proper
+ * instantiate an
  * implementation, it must either have default constructor or
  * constructor with single parameter {@link java.util.Properties}.
  *
  * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
 public interface MetricHandler {
-    public MetricValueDTO getValue(String metricName, Map<String, String> metricContext, ServiceContext serviceContext) throws
-                                                                                                                        MetricNotFoundException;
+    public MetricValueDTO getValue(String metricName,
+                                   Map<String, String> metricContext,
+                                   ServiceContext serviceContext) throws MetricNotFoundException;
 
-    public MetricInfoDTO getInfo(String metricName, ServiceContext serviceContext) throws
-                                                                                   MetricNotFoundException;
+    public MetricInfoDTO getInfo(String metricName, ServiceContext serviceContext) throws MetricNotFoundException;
 
     public MetricInfoListDTO getAllInfo(ServiceContext serviceContext);
+
+    public MetricRolesAllowedListDTO getRolesAllowed(String metricName, ServiceContext serviceContext);
 }

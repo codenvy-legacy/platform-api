@@ -19,24 +19,14 @@
 package com.codenvy.api.analytics;
 
 
-import com.codenvy.api.analytics.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.dto.*;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 
 import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,10 +46,16 @@ public class AnalyticsService extends Service {
     @GET
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getValue(@PathParam("name") String metricName, @QueryParam("page") String page, @QueryParam("per_page") String perPage,
-                             @Context UriInfo uriInfo) {
+    public Response getValue(@PathParam("name") String metricName,
+                             @QueryParam("page") String page,
+                             @QueryParam("per_page") String perPage,
+                             @Context UriInfo uriInfo,
+                             @Context SecurityContext securityContext) {
         try {
-            MetricValueDTO value = metricHandler.getValue(metricName, extractContext(uriInfo), getServiceContext());
+            validateRoles(metricName, securityContext);
+
+            Map<String, String> metricContext = extractContext(uriInfo, page, perPage);
+            MetricValueDTO value = metricHandler.getValue(metricName, metricContext, getServiceContext());
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (MetricNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -72,8 +68,7 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo/{name}")
-    public Response getInfo(@PathParam("name") String metricName, @QueryParam("page") String page, @QueryParam("per_page") String perPage,
-                            @Context UriInfo uriInfo) {
+    public Response getInfo(@PathParam("name") String metricName, @Context UriInfo uriInfo) {
         try {
             MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, getServiceContext());
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
@@ -88,7 +83,7 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo")
-    public Response getAllInfo(@Context UriInfo uriInfo, @QueryParam("page") String page, @QueryParam("per_page") String perPage) {
+    public Response getAllInfo(@Context UriInfo uriInfo) {
         try {
             MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(getServiceContext());
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
@@ -98,7 +93,7 @@ public class AnalyticsService extends Service {
     }
 
     /** Extract the execution context from passed query parameters. */
-    private Map<String, String> extractContext(UriInfo info) {
+    private Map<String, String> extractContext(UriInfo info, String page, String perPage) {
         MultivaluedMap<String, String> parameters = info.getQueryParameters();
         Map<String, String> context = new HashMap<>(parameters.size());
 
@@ -106,7 +101,27 @@ public class AnalyticsService extends Service {
             context.put(key.toUpperCase(), parameters.getFirst(key));
         }
 
+        if (page != null) {
+            context.put("PAGE", page);
+            context.put("PER_PAGE", perPage);
+        }
 
         return context;
+    }
+
+    /**
+     * Checks if user is allowed to perform request.
+     *
+     * @throws IllegalStateException
+     */
+    private void validateRoles(String metricName, SecurityContext securityContext) {
+        MetricRolesAllowedListDTO rolesAllowed = metricHandler.getRolesAllowed(metricName, getServiceContext());
+        for (MetricRolesAllowedDTO dto : rolesAllowed.getRolesAllowed()) {
+            if (securityContext.isUserInRole(dto.getRolesAllowed())) {
+                return;
+            }
+        }
+
+        throw new IllegalStateException("User is not allowed to get the value of " + metricName);
     }
 }

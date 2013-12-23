@@ -19,17 +19,12 @@
 package com.codenvy.api.analytics.impl;
 
 import com.codenvy.api.analytics.MetricHandler;
-import com.codenvy.api.analytics.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.dto.*;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.dto.server.DtoFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Simple dummy extension to avoid huge operations. Instead default values returned.
@@ -52,6 +47,18 @@ public class DummyMetricHandler implements MetricHandler {
     @Override
     public MetricInfoListDTO getAllInfo(ServiceContext serviceContext) {
         return createDummyMetricInfoListDTO();
+    }
+
+    @Override
+    public MetricRolesAllowedListDTO getRolesAllowed(String metricName, ServiceContext serviceContext) {
+        return createDummyMetricRolesAllowedListDto();
+    }
+
+    private MetricRolesAllowedListDTO createDummyMetricRolesAllowedListDto() {
+        MetricRolesAllowedListDTO allowedRoles = DtoFactory.getInstance().createDto(MetricRolesAllowedListDTO.class);
+        allowedRoles.setRolesAllowed(Collections.<MetricRolesAllowedDTO>emptyList());
+
+        return allowedRoles;
     }
 
     private MetricInfoDTO createDummyMetricInfoDto(String metricName) {

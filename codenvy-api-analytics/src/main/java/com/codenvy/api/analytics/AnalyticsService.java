@@ -52,7 +52,8 @@ public class AnalyticsService extends Service {
                              @Context UriInfo uriInfo,
                              @Context SecurityContext securityContext) {
         try {
-            validateRoles(metricName, securityContext);
+            // TODO DAHSB-243
+            // validateRoles(metricName, securityContext);
 
             Map<String, String> metricContext = extractContext(uriInfo, page, perPage);
             MetricValueDTO value = metricHandler.getValue(metricName, metricContext, getServiceContext());

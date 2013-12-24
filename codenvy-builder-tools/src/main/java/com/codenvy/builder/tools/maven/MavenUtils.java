@@ -26,6 +26,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -86,6 +87,23 @@ public class MavenUtils {
     public static MavenProjectModel readModel(Reader reader) throws IOException {
         try {
             return toMavenProjectModel(pomReader.read(reader, true));
+        } catch (XmlPullParserException e) {
+            throw new IOException(e);
+        }
+    }
+
+    /**
+     * Read description of maven project.
+     *
+     * @param stream
+     *         {@link java.io.InputStream} to read content of pom.xml file.
+     * @return description of maven project
+     * @throws IOException
+     *         if an i/o error occurs
+     */
+    public static MavenProjectModel readModel(InputStream stream) throws IOException {
+        try {
+            return toMavenProjectModel(pomReader.read(stream, true));
         } catch (XmlPullParserException e) {
             throw new IOException(e);
         }

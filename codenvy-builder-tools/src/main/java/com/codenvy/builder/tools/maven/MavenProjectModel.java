@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * Contains information about the Maven POM.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class MavenProjectModel {
     private String                groupId;

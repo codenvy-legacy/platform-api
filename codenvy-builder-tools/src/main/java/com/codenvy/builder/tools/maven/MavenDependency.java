@@ -20,7 +20,7 @@ package com.codenvy.builder.tools.maven;
 /**
  * Contains information about a dependency of the project.
  *
- * @author <a href="mailto:azatsarynnyy@codenvy.com">Artem Zatsarynnyy</a>
+ * @author Artem Zatsarynnyy
  */
 public class MavenDependency {
     private String groupId;

@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.core.user;
 
-import com.codenvy.api.core.concurrent.ThreadLocalPropagateContext;
+import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 
 import java.util.HashMap;
 import java.util.HashSet;

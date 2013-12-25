@@ -37,7 +37,6 @@
         <module>codenvy-api-vfs</module>
         <module>codenvy-api-workspace</module>
         <module>codenvy-api-factory</module>
-        <module>codenvy-builder-tools</module>
         <module>codenvy-api-builder</module>
         <module>codenvy-api-runner</module>
         <module>codenvy-api-analytics</module>
@@ -49,7 +48,6 @@
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
     </scm>
     <properties>
-        <ant.version>1.9.1</ant.version>
         <codenvy.commons.version>0.12.0-SNAPSHOT</codenvy.commons.version>
         <codenvy.organization.version>0.10.0-SNAPSHOT</codenvy.organization.version>
         <commons-codec.version>1.6</commons-codec.version>

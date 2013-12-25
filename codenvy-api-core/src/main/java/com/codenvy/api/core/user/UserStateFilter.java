@@ -17,9 +17,11 @@
  */
 package com.codenvy.api.core.user;
 
+import org.everrest.core.tools.WebApplicationDeclaredRoles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Singleton;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -30,20 +32,24 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.security.Principal;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
  * Setups current UserState and the beginning of request and resets it at the end.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
+@Singleton
 public class UserStateFilter implements Filter {
     private static final String USER_STATE_SESSION_ATTRIBUTE_NAME = UserState.class.getName();
     private static final Logger LOG                               = LoggerFactory.getLogger(UserStateFilter.class);
 
+    private WebApplicationDeclaredRoles webApplicationRoles;
+
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
+        webApplicationRoles = new WebApplicationDeclaredRoles(filterConfig.getServletContext());
     }
 
     @Override
@@ -67,15 +73,20 @@ public class UserStateFilter implements Filter {
     private UserState getUserState(HttpServletRequest httpRequest) {
         final HttpSession session = httpRequest.getSession();
         UserState state = (UserState)session.getAttribute(USER_STATE_SESSION_ATTRIBUTE_NAME);
-        if (state == null) {
+        final Principal principal = httpRequest.getUserPrincipal();
+        if (state == null || (principal != null && state.getUser() instanceof AnonymousUser)) {
             final User user;
-            // TODO: Use ClientPrincipal stored in HttpSession from 'cloud-ide' project.
-            final Principal principal = httpRequest.getUserPrincipal();
             if (principal == null) {
                 // user is not authenticated
                 user = new AnonymousUser();
             } else {
-                user = new AuthenticatedUser(principal);
+                Set<String> userRoles = new LinkedHashSet<>();
+                for (String role : webApplicationRoles.getDeclaredRoles()) {
+                    if (httpRequest.isUserInRole(role)) {
+                        userRoles.add(role);
+                    }
+                }
+                user = new AuthenticatedUser(principal, userRoles);
             }
             session.setAttribute(USER_STATE_SESSION_ATTRIBUTE_NAME, state = new UserState(user));
         }
@@ -89,38 +100,28 @@ public class UserStateFilter implements Filter {
         }
 
         @Override
-        public Set<String> getRoles() {
-            return Collections.emptySet();
-        }
-
-        @Override
         public boolean isMemberOf(String role) {
             return false;
         }
     }
 
     private static class AuthenticatedUser implements User {
-        final Principal principal;
+        final String name;
+        final Set<String> roles;
 
-        AuthenticatedUser(Principal principal) {
-            this.principal = principal;
+        AuthenticatedUser(Principal principal, Set<String> roles) {
+            this.roles = roles;
+            this.name = principal.getName();
         }
 
         @Override
         public String getName() {
-            return principal.getName();
-        }
-
-        @Override
-        public Set<String> getRoles() {
-            // TODO: get roles
-            return Collections.emptySet();
+            return name;
         }
 
         @Override
         public boolean isMemberOf(String role) {
-            // TODO: check roles from principal
-            return true;
+            return roles.contains(role);
         }
     }
 }

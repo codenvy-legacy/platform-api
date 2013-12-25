@@ -46,11 +46,6 @@ public class UserImpl implements User {
     }
 
     @Override
-    public Set<String> getRoles() {
-        return roles;
-    }
-
-    @Override
     public boolean isMemberOf(String role) {
         return roles.contains(role);
     }

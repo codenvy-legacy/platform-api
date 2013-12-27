@@ -104,12 +104,6 @@
             <version>${everrest.version}</version>
         </dependency>
         <dependency>
-            <!-- TODO: remove -->
-            <groupId>org.exoplatform.core</groupId>
-            <artifactId>exo.core.component.security.core</artifactId>
-            <version>${org.exoplatform.core.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>

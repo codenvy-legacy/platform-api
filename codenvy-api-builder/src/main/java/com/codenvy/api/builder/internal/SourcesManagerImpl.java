@@ -21,6 +21,7 @@ import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
+import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.ZipUtils;
 import com.google.common.hash.Hashing;
 
@@ -56,7 +57,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Eugene Voevodin
  */
 public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
-    private static final Logger   LOG                        = LoggerFactory.getLogger(SourcesManagerImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SourcesManagerImpl.class);
+
     /**
      * Time of files life estimating settings.
      * For example: if ESTIMATE_OF_FILE_LIFE_UNIT is TimeUnit.DAYS
@@ -70,16 +72,18 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private static final long     TASK_EXECUTION_PERIOD      = 2;
 
     private final java.io.File                        directory;
-    private final ScheduledExecutorService            checkAndDeleteFilesScheduler;
     private final ConcurrentMap<String, Future<Void>> tasks;
-    private final AtomicReference<String> projectKeyHolder = new AtomicReference<>();
+    private final AtomicReference<String>             projectKeyHolder;
 
     public SourcesManagerImpl(java.io.File directory) {
         this.directory = directory;
         tasks = new ConcurrentHashMap<>();
-        checkAndDeleteFilesScheduler = Executors.newSingleThreadScheduledExecutor();
-        checkAndDeleteFilesScheduler
-                .scheduleAtFixedRate(createSchedulerTask(), TASK_EXECUTION_PERIOD, TASK_EXECUTION_PERIOD,
+        projectKeyHolder = new AtomicReference<>();
+        ScheduledExecutorService executor =
+                Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getClass().getSimpleName() + "_FileCleaner", true));
+        executor.scheduleAtFixedRate(createSchedulerTask(),
+                                     TASK_EXECUTION_PERIOD,
+                                     TASK_EXECUTION_PERIOD,
                                      TASK_EXECUTION_PERIOD_UNIT);
     }
 
@@ -90,7 +94,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     }
 
     @Override
-    public void getSources(String workspace, String project,final String sourcesUrl, File workDir) throws IOException {
+    public void getSources(String workspace, String project, final String sourcesUrl, File workDir) throws IOException {
         // Directory for sources. Keep sources to avoid download whole project before build.
         // This directory is not permanent and may be removed at any time.
         final java.io.File srcDir = new java.io.File(directory, workspace + java.io.File.separatorChar + project);

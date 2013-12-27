@@ -17,10 +17,6 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.LifecycleException;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
@@ -35,6 +31,8 @@ import com.codenvy.commons.lang.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -49,28 +47,36 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public abstract class Runner implements Lifecycle {
+/**
+ * @author andrew00x
+ * @author Eugene Voevodin
+ */
+public abstract class Runner {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
-    public static final String DEPLOY_DIRECTORY   = "runner.deploy_directory";
-    public static final String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
+    public static final String DEPLOY_DIRECTORY   = "runner.internal.deploy_directory";
+    public static final String CLEANUP_DELAY_TIME = "runner.internal.clean_delay_time";
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
-
-    private java.io.File deployDirectory;
 
     private final ExecutorService               executor;
     private final Map<Long, RunnerProcessEntry> processes;
     private final Map<Long, List<Disposer>>     applicationDisposers;
     private final Object                        applicationDisposersLock;
     private final AtomicInteger                 runningAppsCounter;
+    private final java.io.File                  deployDirectoryRoot;
     private final DownloadPlugin                downloadPlugin;
+    private final ResourceAllocators            allocators;
+    private final int                           cleanupDelay;
 
-    private int     cleanupDelay;
-    private boolean started;
 
-    public Runner() {
+    private java.io.File deployDirectory;
+    private boolean      started;
+
+    public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators) {
+        this.deployDirectoryRoot = deployDirectoryRoot;
+        this.cleanupDelay = cleanupDelay;
+        this.allocators = allocators;
         processes = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
         applicationDisposers = new HashMap<>();
@@ -92,23 +98,15 @@ public abstract class Runner implements Lifecycle {
         return executor;
     }
 
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
-    }
-
-    @Override
+    @PostConstruct
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        final java.io.File path = myConfiguration.getFile(DEPLOY_DIRECTORY, new java.io.File(System.getProperty("java.io.tmpdir")));
-        deployDirectory = new java.io.File(path, getName());
+        deployDirectory = new java.io.File(deployDirectoryRoot, getName());
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
-        cleanupDelay = myConfiguration.getInt(CLEANUP_DELAY_TIME, 900); // 15 minutes
         started = true;
     }
 
@@ -118,7 +116,7 @@ public abstract class Runner implements Lifecycle {
         }
     }
 
-    @Override
+    @PreDestroy
     public synchronized void stop() {
         checkStarted();
         executor.shutdownNow();
@@ -187,9 +185,8 @@ public abstract class Runner implements Lifecycle {
         processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
-        final ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
-                                                                    .newMemoryAllocator(mem)
-                                                                    .allocate();
+        final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem)
+                                                            .allocate();
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -296,7 +293,7 @@ public abstract class Runner implements Lifecycle {
         private final Long                id;
         private final String              runner;
         private final RunnerConfiguration configuration;
-        private final Callback callback;
+        private final Callback            callback;
 
         private ApplicationProcess realProcess;
         private long               startTime;

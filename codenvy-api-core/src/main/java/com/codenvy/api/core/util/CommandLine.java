@@ -127,7 +127,7 @@ public class CommandLine {
 
     /** Create shell command. */
     public String[] toShellCommand() {
-        return ShellFactory.getInstance().getShell().createShellCommand(this);
+        return ShellFactory.getShell().createShellCommand(this);
     }
 
     @Override

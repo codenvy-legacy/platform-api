@@ -15,27 +15,19 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core;
+package com.codenvy.api.builder.internal;
 
-/**
- * Abstraction to manage component's lifecycle.
- *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- */
-public interface Lifecycle {
-    /**
-     * Prepares instance for usage. This method should be invoked only once.
-     *
-     * @throws LifecycleException
-     *         if any error occurs when try starting instance
-     */
-    void start();
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
-    /**
-     * Terminates instance. This method should be invoked only once.
-     *
-     * @throws LifecycleException
-     *         if any error occurs when try terminating instance
-     */
-    void stop();
+/** @author andrew00x */
+@DynaModule
+public class BuilderModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        // Initialize empty set of Builders.
+        Multibinder.newSetBinder(binder(), Builder.class);
+        bind(BuilderRegistryPlugin.class);
+    }
 }

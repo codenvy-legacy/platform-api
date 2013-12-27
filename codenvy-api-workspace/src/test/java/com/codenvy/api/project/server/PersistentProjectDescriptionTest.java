@@ -17,6 +17,9 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.user.User;
+import com.codenvy.api.core.user.UserImpl;
+import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -34,9 +37,6 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.RuntimeDelegateImpl;
-import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.services.security.Identity;
-import org.exoplatform.services.security.MembershipEntry;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -45,8 +45,8 @@ import javax.ws.rs.ext.RuntimeDelegate;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -60,9 +60,8 @@ public class PersistentProjectDescriptionTest {
     public void setUp() throws Exception {
         RuntimeDelegate rd = new RuntimeDelegateImpl();
         RuntimeDelegate.setInstance(rd);
-        ConversationState user =
-                new ConversationState(new Identity("john", new HashSet<MembershipEntry>(), new HashSet<>(Arrays.asList("developer"))));
-        ConversationState.setCurrent(user);
+        User user = new UserImpl("john", Arrays.asList("developer"));
+        UserState.set(new UserState(user));
         EnvironmentContext env = EnvironmentContext.getCurrent();
         env.setVariable(EnvironmentContext.WORKSPACE_ID, "test_workspace");
         env.setVariable(EnvironmentContext.WORKSPACE_NAME, "test_workspace");
@@ -73,7 +72,9 @@ public class PersistentProjectDescriptionTest {
         vfs = new MemoryFileSystem(URI.create(""), new EventListenerList(), "test_workspace", userContext, mountPoint, null);
         ProjectTypeRegistry typeRegistry = new ProjectTypeRegistry();
         typeRegistry.registerProjectType(new ProjectType("test_type", "test type"));
-        factory = new ProjectDescriptionFactory(typeRegistry, new ProjectTypeDescriptionRegistry(typeRegistry));
+        factory = new ProjectDescriptionFactory(typeRegistry,
+                                                new ProjectTypeDescriptionRegistry(typeRegistry),
+                                                Collections.<ValueProviderFactory>emptySet());
         List<Property> properties = new ArrayList<>();
         properties.add(DtoFactory.getInstance().createDto(Property.class)
                                  .withName("test_property")

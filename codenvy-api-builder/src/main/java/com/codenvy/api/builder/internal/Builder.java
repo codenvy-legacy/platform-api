@@ -20,14 +20,9 @@ package com.codenvy.api.builder.internal;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.LifecycleException;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
-import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.ProcessUtil;
 import com.codenvy.api.core.util.StreamPump;
 import com.codenvy.api.core.util.Watchdog;
@@ -37,6 +32,8 @@ import com.codenvy.commons.lang.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -62,28 +59,25 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author andrew00x
  */
-public abstract class Builder implements Lifecycle {
+public abstract class Builder {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
 
-    /**
-     * Name of configuration parameter that points to the directory where all builds stored. Is such parameter is not specified then
-     * 'java.io.tmpdir' used.
-     */
-    public static final String REPOSITORY              = "builder.build_repository";
+    /** Name of configuration parameter that points to the directory where all builds stored. */
+    public static final String REPOSITORY              = "builder.internal.build_repository";
     /**
      * Name of configuration parameter that sets the number of build workers. In other words it set the number of build
-     * process that can be run at the same time. If this parameter is not set then the number of available processors
+     * process that can be run at the same time. If this parameter is set to -1 then the number of available processors
      * used, e.g. {@code Runtime.getRuntime().availableProcessors();}
      */
-    public static final String NUMBER_OF_WORKERS       = "builder.workers_number";
+    public static final String NUMBER_OF_WORKERS       = "builder.internal.workers_number";
     /**
-     * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build (by default 3600
-     * seconds or 1 hour). After this time the results of build may be removed.
+     * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build. After this time the
+     * results of build may be removed.
      */
-    public static final String CLEAN_RESULT_DELAY_TIME = "builder.clean_result_delay_time";
+    public static final String CLEAN_RESULT_DELAY_TIME = "builder.internal.clean_result_delay_time";
     /**
-     * Name of parameter that set the max size of build queue (by default 100). The number of build task in queue may not be greater than
-     * provided by this parameter.
+     * Name of parameter that set the max size of build queue. The number of build task in queue may not be greater than provided by this
+     * parameter.
      */
     public static final String INTERNAL_QUEUE_SIZE     = "builder.internal_queue_size";
 
@@ -92,19 +86,25 @@ public abstract class Builder implements Lifecycle {
     private final ConcurrentMap<Long, BuildTaskEntry>   tasks;
     private final ConcurrentLinkedQueue<BuildTaskEntry> tasksFIFO;
     private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
+    private final java.io.File                          rootDirectory;
     private final Set<BuildListener>                    buildListeners;
+    private final int                                   cleanBuildResultDelay;
+    private final int                                   queueSize;
+    private final int                                   numberOfWorkers;
 
-    private int     queueSize;
-    private int     cleanBuildResultDelay;
-    private boolean started;
-
+    private boolean                  started;
     private ScheduledExecutorService cleaner;
-    private ThreadPoolExecutor       executor;
-    private java.io.File             repository;
-    private java.io.File             builds;
-    private SourcesManager           sourcesManager;
 
-    public Builder() {
+    private ThreadPoolExecutor executor;
+    private java.io.File       repository;
+    private java.io.File       builds;
+    private SourcesManager     sourcesManager;
+
+    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
+        this.rootDirectory = rootDirectory;
+        this.numberOfWorkers = numberOfWorkers;
+        this.queueSize = queueSize;
+        this.cleanBuildResultDelay = cleanBuildResultDelay;
         buildListeners = new LinkedHashSet<>();
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
@@ -157,42 +157,29 @@ public abstract class Builder implements Lifecycle {
         }
     }
 
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
-    }
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
+    @PostConstruct
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        final java.io.File path = myConfiguration.getFile(REPOSITORY, new java.io.File(System.getProperty("java.io.tmpdir")));
-        repository = new java.io.File(path, getName());
+        repository = new java.io.File(rootDirectory, getName());
         if (!(repository.exists() || repository.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", repository.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", repository.getAbsolutePath()));
         }
         final java.io.File sources = new java.io.File(repository, "sources");
         if (!(sources.exists() || sources.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", sources.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", sources.getAbsolutePath()));
         }
         builds = new java.io.File(repository, "builds");
         if (!(builds.exists() || builds.mkdirs())) {
-            throw new LifecycleException(String.format("Unable create directory %s", builds.getAbsolutePath()));
+            throw new IllegalStateException(String.format("Unable create directory %s", builds.getAbsolutePath()));
         }
         sourcesManager = new SourcesManagerImpl(sources);
-        int workerNumber = myConfiguration.getInt(NUMBER_OF_WORKERS, Runtime.getRuntime().availableProcessors());
-        queueSize = myConfiguration.getInt(INTERNAL_QUEUE_SIZE, 100);
-        cleanBuildResultDelay = myConfiguration.getInt(CLEAN_RESULT_DELAY_TIME, 3600);
-        executor = new MyThreadPoolExecutor(workerNumber, queueSize);
+        executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers, queueSize);
         cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
         cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.SECONDS);
-        synchronized (buildListeners) {
-            for (BuildListener listener : ComponentLoader.all(BuildListener.class)) {
-                buildListeners.add(listener);
-            }
-        }
         started = true;
     }
 
@@ -207,7 +194,7 @@ public abstract class Builder implements Lifecycle {
      * <p/>
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
-    @Override
+    @PreDestroy
     public synchronized void stop() {
         checkStarted();
         executor.shutdown();

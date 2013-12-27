@@ -29,12 +29,15 @@ public interface SourcesManager {
     /**
      * Get build sources. Sources are copied to the directory <code>workDir</code>.
      *
-     * @workspace workspace
-     * @project project
-     * @sourcesUrl sources url
-     * @workDir directory where sources will be copied
+     * @param workspace
+     *         workspace
+     * @param project
+     *         project
+     * @param sourcesUrl
+     *         sources url
+     * @param workDir
+     *         directory where sources will be copied
      */
-
     void getSources(String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
 
     java.io.File getDirectory();

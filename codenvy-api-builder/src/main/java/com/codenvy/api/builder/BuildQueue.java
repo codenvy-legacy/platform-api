@@ -438,7 +438,7 @@ public class BuildQueue {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builders.json");
+        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("codenvy/builders.json");
         if (regConf != null) {
             try {
                 final BuilderRegistration[] registrations = JsonHelper.fromJson(regConf, BuilderRegistration[].class, null);

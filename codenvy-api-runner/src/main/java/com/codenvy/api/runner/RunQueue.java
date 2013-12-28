@@ -346,7 +346,7 @@ public class RunQueue {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/runners.json");
+        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("codenvy/runners.json");
         if (regConf != null) {
             try {
                 final RunnerRegistration[] registrations = JsonHelper.fromJson(regConf, RunnerRegistration[].class, null);

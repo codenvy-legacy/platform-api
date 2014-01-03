@@ -37,6 +37,7 @@ import java.io.*;
 import java.security.Principal;
 import java.util.*;
 
+import static com.codenvy.api.factory.AdvancedFactoryUrlValidator.validate;
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
 
@@ -46,8 +47,6 @@ public class FactoryService {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
     @Inject
     private FactoryStore                factoryStore;
-    @Inject
-    private AdvancedFactoryUrlValidator factoryUrlValidator;
     @Inject
     private UserManager                 userManager;
 
@@ -116,12 +115,9 @@ public class FactoryService {
             // check that vcs value is correct (only git is supported for now)
             if (factoryUrl.getVcs() == null) {
                 factoryUrl.setVcs("git");
-            } else if (!"git".equals(factoryUrl.getVcs())) {
-                throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
-                                              "Parameter vcs has illegal value. Only \"git\" is supported for now.");
             }
 
-            factoryUrlValidator.validate(factoryUrl);
+            validate(factoryUrl);
 
             factoryUrl.setUserid(user.getId());
 

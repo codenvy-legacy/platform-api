@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 /**
  * Process manager for *nix like system.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 class UnixProcessManager extends ProcessManager {
     /*
@@ -43,16 +43,26 @@ class UnixProcessManager extends ProcessManager {
 
     private static final CLibrary C_LIBRARY;
 
+    private static final Field PID_FIELD;
+
     static {
-        CLibrary tmp = null;
+        CLibrary lib = null;
+        Field pidField = null;
         if (SystemInfo.isUnix()) {
             try {
-                tmp = ((CLibrary)Native.loadLibrary("c", CLibrary.class));
+                lib = ((CLibrary)Native.loadLibrary("c", CLibrary.class));
             } catch (Exception e) {
                 LOG.error("Cannot load native library", e);
             }
+            try {
+                pidField = Thread.currentThread().getContextClassLoader().loadClass("java.lang.UNIXProcess").getDeclaredField("pid");
+                pidField.setAccessible(true);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
         }
-        C_LIBRARY = tmp;
+        C_LIBRARY = lib;
+        PID_FIELD = pidField;
     }
 
     private static interface CLibrary extends Library {
@@ -74,7 +84,7 @@ class UnixProcessManager extends ProcessManager {
         if (C_LIBRARY != null) {
             killTree(getPid(process));
         } else {
-            throw new IllegalStateException("Cannot kill process. Not unix system?");
+            throw new IllegalStateException("Can't kill process. Not unix system?");
         }
     }
 
@@ -95,7 +105,7 @@ class UnixProcessManager extends ProcessManager {
         LOG.debug("kill {}", pid);
         if (r != 0) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("kill for {} returns {}, strerror '{}'", new Object[]{pid, r, C_LIBRARY.strerror(r)});
+                LOG.debug("kill for {} returns {}, strerror '{}'", pid, r, C_LIBRARY.strerror(r));
             }
         }
     }
@@ -151,7 +161,7 @@ class UnixProcessManager extends ProcessManager {
         }
 
         if (error.length() > 0) {
-            throw new IllegalStateException("cannot get child processes: " + error.toString());
+            throw new IllegalStateException("can't get child processes: " + error.toString());
         }
         final int size = children.size();
         final int[] result = new int[size];
@@ -173,48 +183,26 @@ class UnixProcessManager extends ProcessManager {
         }
         if (SystemInfo.isMacOS()) {
             final String cmd = "kill -0 " + pid;
-            final StringBuilder error = new StringBuilder();
-            final LineConsumer stdout = new LineConsumer() {
-                @Override
-                public void writeLine(String line) throws IOException {
-                }
-
-                @Override
-                public void close() throws IOException {
-                }
-            };
-
-            final LineConsumer stderr = new LineConsumer() {
-                @Override
-                public void writeLine(String line) throws IOException {
-                    if (error.length() > 0) {
-                        error.append('\n');
-                    }
-                    error.append(line);
-                }
-
-                @Override
-                public void close() throws IOException {
-                }
-            };
-            try {
-                ProcessUtil.process(Runtime.getRuntime().exec(cmd), stdout, stderr);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
+            final int i = system(cmd);
+            if (i != 0) {
+                final String msg = C_LIBRARY.strerror(i);
+                return msg != null && !msg.contains("No such process");
             }
-            return !(error.length() > 0 && error.toString().contains("No such process"));
+            return true;
         }
         return new java.io.File("/proc/" + pid).exists();
     }
 
     @Override
     public int getPid(Process process) {
-        try {
-            Field f = process.getClass().getDeclaredField("pid");
-            f.setAccessible(true);
-            return ((Number)f.get(process)).intValue();
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot get process pid. Not unix system?", e);
+        if (PID_FIELD != null) {
+            try {
+                return ((Number)PID_FIELD.get(process)).intValue();
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Can't get process' pid. Not unix system?", e);
+            }
+        } else {
+            throw new IllegalStateException("Can't get process' pid. Not unix system?");
         }
     }
 

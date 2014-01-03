@@ -25,7 +25,7 @@ import java.io.InputStreamReader;
 /**
  * Helpers to manage system processes.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class ProcessUtil {
     private static final ProcessManager PROCESS_MANAGER = ProcessManager.newInstance();

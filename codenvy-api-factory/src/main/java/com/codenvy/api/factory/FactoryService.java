@@ -115,9 +115,6 @@ public class FactoryService {
             // check that vcs value is correct (only git is supported for now)
             if (factoryUrl.getVcs() == null) {
                 factoryUrl.setVcs("git");
-            } else if (!"git".equals(factoryUrl.getVcs())) {
-                throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
-                                              "Parameter vcs has illegal value. Only \"git\" is supported for now.");
             }
 
             validate(factoryUrl);

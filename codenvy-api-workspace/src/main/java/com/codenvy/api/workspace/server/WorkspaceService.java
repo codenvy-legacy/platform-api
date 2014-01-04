@@ -54,7 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** @author andrew00x */
-@Path("{ws-name}/workspace")
+@Path("workspace/{ws-name}")
 public class WorkspaceService extends Service {
     @Inject
     private VirtualFileSystemRegistry registry;

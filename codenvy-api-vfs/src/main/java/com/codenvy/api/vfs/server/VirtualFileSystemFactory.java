@@ -41,7 +41,7 @@ import java.util.List;
  *
  * @author andrew00x
  */
-@Path("{ws-name}/vfs")
+@Path("vfs/{ws-name}")
 public class VirtualFileSystemFactory {
     @Inject
     private VirtualFileSystemRegistry registry;

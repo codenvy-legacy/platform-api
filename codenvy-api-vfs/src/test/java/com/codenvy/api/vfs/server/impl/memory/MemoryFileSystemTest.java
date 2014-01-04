@@ -69,7 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public abstract class MemoryFileSystemTest extends TestCase {
     protected static EventListenerList eventListenerList;
 
@@ -84,7 +84,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
 
     protected static final String MY_WORKSPACE_ID       = "my-ws";
     protected final        String BASE_URI              = "http://localhost/service";
-    protected final        String SERVICE_URI           = BASE_URI + "/my-ws/vfs/v2/";
+    protected final        String SERVICE_URI           = BASE_URI + "/vfs/my-ws/v2/";
     protected final        String DEFAULT_CONTENT       = "__TEST__";
     protected final        byte[] DEFAULT_CONTENT_BYTES = DEFAULT_CONTENT.getBytes();
 

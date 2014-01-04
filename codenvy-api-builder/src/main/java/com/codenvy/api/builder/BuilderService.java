@@ -52,7 +52,7 @@ import javax.ws.rs.core.MediaType;
  * @author andrew00x
  * @author Eugene Voevodin
  */
-@Path("{ws-name}/builder")
+@Path("builder/{ws-name}")
 @Description("Builder API")
 public final class BuilderService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(BuilderService.class);

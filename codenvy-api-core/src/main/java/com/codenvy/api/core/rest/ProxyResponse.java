@@ -24,7 +24,7 @@ import java.io.OutputStream;
  * Proxies response from remote server to the client. It helps to avoid download response from remote server and resend info to the client.
  * Instead implementation of this interface may pump information from the remote server directly to the client.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface ProxyResponse {
     void setStatus(int status);

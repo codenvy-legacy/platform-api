@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * User state holder.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class UserState {
     private static final ThreadLocal<UserState> userStateHolder = new ThreadLocal<>();

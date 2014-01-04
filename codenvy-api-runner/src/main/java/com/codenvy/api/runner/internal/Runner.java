@@ -112,7 +112,7 @@ public abstract class Runner {
 
     protected synchronized void checkStarted() {
         if (!started) {
-            throw new IllegalArgumentException("Lifecycle instance is not started yet.");
+            throw new IllegalStateException("Is not started yet.");
         }
     }
 

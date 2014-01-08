@@ -181,8 +181,10 @@ public class SlaveRunnerService extends Service {
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())
                          .withStatus(status)
+                         .withStartTime(process.getStartTime())
+                         .withStopTime(process.getStopTime())
                          .withLinks(links)
-                         .withPort(process.getConfiguration().getPort())
+                         .withDebugHost(process.getConfiguration().getDebugHost())
                          .withDebugPort(process.getConfiguration().getDebugPort());
     }
 }

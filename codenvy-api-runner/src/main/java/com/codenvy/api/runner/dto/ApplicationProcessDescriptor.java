@@ -27,7 +27,7 @@ import java.util.List;
  * Describes one application process. Typically instance of this class should provide set of links to make possible to get more info about
  * application. Set of links is depends to status of process.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface ApplicationProcessDescriptor {
@@ -49,17 +49,11 @@ public interface ApplicationProcessDescriptor {
 
     void setStartTime(long startTime);
 
-    String getUrl();
+    long getStopTime();
 
-    void setUrl(String url);
+    ApplicationProcessDescriptor withStopTime(long stopTime);
 
-    ApplicationProcessDescriptor withUrl(String url);
-
-    int getPort();
-
-    void setPort(int port);
-
-    ApplicationProcessDescriptor withPort(int port);
+    void setStopTime(long stopTime);
 
     int getDebugPort();
 

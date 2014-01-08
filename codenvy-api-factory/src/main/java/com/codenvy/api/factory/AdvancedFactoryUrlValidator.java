@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory;
 
+import java.util.regex.Pattern;
+
 /** Validate {@code AdvancedFactoryUrl} */
 public class AdvancedFactoryUrlValidator {
     /**
@@ -40,7 +42,14 @@ public class AdvancedFactoryUrlValidator {
         if (factoryUrl.getVcsurl() == null || factoryUrl.getVcsurl().isEmpty()) {
             throw new FactoryUrlException("Vcsurl is null or empty.");
         }
+
+        if (factoryUrl.getProjectattributes() != null && factoryUrl.getProjectattributes().get("pname") != null
+            && !isProjectNameValid(factoryUrl.getProjectattributes().get("pname"))) {
+            throw new FactoryUrlException("Project name must contain only Latin letters, digits or these following special characters -._.");
+        }
     }
 
-
+    public static boolean isProjectNameValid(String pname) {
+        return Pattern.compile("^[^_.-\\\\\\W][-._a-zA-Z0-9]*$").matcher(pname).matches();
+    }
 }

@@ -21,9 +21,9 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
+import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
-import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.RequestBodyDescriptor;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.dto.server.DtoFactory;
@@ -72,18 +72,7 @@ public abstract class Service {
     }
 
     public ServiceContext getServiceContext() {
-        final Class serviceClass = getClass();
-        return new ServiceContext() {
-            @Override
-            public UriBuilder getServiceUriBuilder() {
-                return uriInfo.getBaseUriBuilder().path(serviceClass);
-            }
-
-            @Override
-            public UriBuilder getBaseUriBuilder() {
-                return uriInfo.getBaseUriBuilder();
-            }
-        };
+        return new ServiceContextImpl(uriInfo.getBaseUriBuilder(), getClass());
     }
 
     //
@@ -258,5 +247,25 @@ public abstract class Service {
             return ParameterType.Number;
         }
         return ParameterType.Object;
+    }
+
+    private static class ServiceContextImpl implements ServiceContext {
+        final UriBuilder uriBuilder;
+        final Class      serviceClass;
+
+        ServiceContextImpl(UriBuilder uriBuilder, Class serviceClass) {
+            this.uriBuilder = uriBuilder;
+            this.serviceClass = serviceClass;
+        }
+
+        @Override
+        public UriBuilder getServiceUriBuilder() {
+            return uriBuilder.clone().path(serviceClass);
+        }
+
+        @Override
+        public UriBuilder getBaseUriBuilder() {
+            return uriBuilder.clone();
+        }
     }
 }

@@ -25,6 +25,12 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.Constants;
+import com.codenvy.dto.server.DtoFactory;
+
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -45,8 +51,10 @@ import javax.ws.rs.core.MediaType;
 @Path("{ws-name}/runner")
 @Description("Runner API")
 public class RunnerService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
+
     @Inject
-    private RunQueue runner;
+    private RunQueue runQueue;
 
     @GenerateLink(rel = Constants.LINK_REL_RUN)
     @Path("run")
@@ -55,21 +63,21 @@ public class RunnerService extends Service {
     public ApplicationProcessDescriptor run(@PathParam("ws-name") String workspace,
                                             @Required @Description("project name") @QueryParam("project") String project) throws Exception {
         final ServiceContext serviceContext = getServiceContext();
-        return runner.run(workspace, project, serviceContext).getDescriptor(serviceContext);
+        return runQueue.run(workspace, project, serviceContext).getDescriptor(serviceContext);
     }
 
     @GET
     @Path("status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor getStatus(@PathParam("id") Long id) throws Exception {
-        return runner.getTask(id).getDescriptor(getServiceContext());
+        return runQueue.getTask(id).getDescriptor(getServiceContext());
     }
 
     @POST
     @Path("stop/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor stop(@PathParam("id") Long id) throws Exception {
-        final RunQueueTask task = runner.getTask(id);
+        final RunQueueTask task = runQueue.getTask(id);
         task.stop();
         return task.getDescriptor(getServiceContext());
     }
@@ -79,6 +87,26 @@ public class RunnerService extends Service {
     public void getLogs(@PathParam("id") Long id,
                         @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
-        runner.getTask(id).readLogs(new HttpServletProxyResponse(httpServletResponse));
+        runQueue.getTask(id).readLogs(new HttpServletProxyResponse(httpServletResponse));
+    }
+
+    @POST
+    @Path("webhook/{id}")
+    public void webhook(@PathParam("id") Long id, @QueryParam("event") String event) {
+        final ChannelBroadcastMessage message = new ChannelBroadcastMessage();
+        try {
+            final ApplicationProcessDescriptor processDescriptor = runQueue.getTask(id).getDescriptor(getServiceContext());
+            message.setChannel("runner:status:" + id);
+            message.setType(ChannelBroadcastMessage.Type.NONE);
+            message.setBody(DtoFactory.getInstance().toJson(processDescriptor));
+        } catch (Exception e) {
+            message.setType(ChannelBroadcastMessage.Type.ERROR);
+            message.setBody(e.getMessage());
+        }
+        try {
+            WSConnectionContext.sendMessage(message);
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
     }
 }

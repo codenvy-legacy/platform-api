@@ -21,9 +21,10 @@ import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.config.SingletonConfiguration;
-import com.codenvy.api.core.rest.DownloadPlugin;
-import com.codenvy.api.core.rest.RemoteContent;
-import com.codenvy.api.core.util.CustomPortService;
+import com.codenvy.api.core.rest.HttpJsonHelper;
+import com.codenvy.api.core.util.DownloadPlugin;
+import com.codenvy.api.core.util.HttpDownloadPlugin;
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
 import com.codenvy.api.runner.RunnerException;
@@ -52,23 +53,19 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Runner implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
-    public static final  String DEPLOY_DIRECTORY   = "runner.deploy_directory";
-    public static final  String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
-
-    private static final String MIN_PORT           = "runner.min_port";
-    private static final String MAX_PORT           = "runner.max_port";
+    public static final String DEPLOY_DIRECTORY   = "runner.deploy_directory";
+    public static final String CLEANUP_DELAY_TIME = "runner.clean_delay_time";
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
     private java.io.File deployDirectory;
 
-    protected final CustomPortService portService;
-
-    private final ExecutorService                executor;
-    private final Map<Long, CachedRunnerProcess> processes;
-    private final Map<Long, List<Disposer>>      applicationDisposers;
-    private final Object                         applicationDisposersLock;
-    private final AtomicInteger                  runningAppsCounter;
+    private final ExecutorService               executor;
+    private final Map<Long, RunnerProcessEntry> processes;
+    private final Map<Long, List<Disposer>>     applicationDisposers;
+    private final Object                        applicationDisposersLock;
+    private final AtomicInteger                 runningAppsCounter;
+    private final DownloadPlugin                downloadPlugin;
 
     private int     cleanupDelay;
     private boolean started;
@@ -76,10 +73,10 @@ public abstract class Runner implements Lifecycle {
     public Runner() {
         processes = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
-        portService = new CustomPortService();
         applicationDisposers = new HashMap<>();
         applicationDisposersLock = new Object();
         runningAppsCounter = new AtomicInteger(0);
+        downloadPlugin = new HttpDownloadPlugin();
     }
 
     public abstract String getName();
@@ -111,7 +108,6 @@ public abstract class Runner implements Lifecycle {
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
-        portService.setRange(myConfiguration.getInt(MIN_PORT, 49152), myConfiguration.getInt(MAX_PORT, 65535));
         cleanupDelay = myConfiguration.getInt(CLEANUP_DELAY_TIME, 900); // 15 minutes
         started = true;
     }
@@ -169,7 +165,7 @@ public abstract class Runner implements Lifecycle {
 
     public RunnerProcess getProcess(Long id) throws RunnerException {
         checkStarted();
-        final CachedRunnerProcess wrapper = processes.get(id);
+        final RunnerProcessEntry wrapper = processes.get(id);
         if (wrapper == null) {
             throw new NoSuchRunnerTaskException(id);
         }
@@ -181,30 +177,34 @@ public abstract class Runner implements Lifecycle {
         // TODO: cleanup
         final java.io.File downloadDir = Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
-        final RemoteContent remoteContent = RemoteContent.of(downloadDir, request.getDeploymentSourcesUrl());
         final Long id = processIdSequence.getAndIncrement();
-        final RunnerProcessImpl process = new RunnerProcessImpl(id, getName(), runnerCfg);
+        final String webHookUrl = request.getWebHookUrl();
+        final RunnerProcessImpl process = new RunnerProcessImpl(id,
+                                                                getName(),
+                                                                runnerCfg,
+                                                                webHookUrl == null ? null : new WebHookCallback(webHookUrl));
         purgeExpiredProcesses();
-        processes.put(id, new CachedRunnerProcess(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
+        processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
-        final ResourceAllocators.ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
-                                                                                       .newMemoryAllocator(mem)
-                                                                                       .allocate();
+        final ResourceAllocator memoryAllocator = ResourceAllocators.getInstance()
+                                                                    .newMemoryAllocator(mem)
+                                                                    .allocate();
         executor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    final ApplicationProcess realProcess = newApplicationProcess(downloadApplication(remoteContent), runnerCfg);
+                    final ApplicationProcess realProcess =
+                            newApplicationProcess(downloadApplication(downloadDir, request.getDeploymentSourcesUrl()), runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
                     watcher.start(process);
                     runningAppsCounter.incrementAndGet();
-                    LOG.info("Started {}", process); // TODO: debug
+                    LOG.debug("Started {}", process);
                     realProcess.waitFor();
                     process.stopped();
-                    LOG.info("Stopped {}", process); // TODO: debug
-                } catch (RunnerException e) {
+                    LOG.debug("Stopped {}", process);
+                } catch (Throwable e) {
                     process.setError(e);
                 } finally {
                     watcher.stop();
@@ -216,10 +216,10 @@ public abstract class Runner implements Lifecycle {
         return process;
     }
 
-    protected DeploymentSources downloadApplication(RemoteContent sources) throws RunnerException {
+    protected DeploymentSources downloadApplication(java.io.File downloadTo, String url) throws RunnerException {
         final IOException[] errorHolder = new IOException[1];
         final DeploymentSources[] resultHolder = new DeploymentSources[1];
-        sources.download(new DownloadPlugin.Callback() {
+        downloadPlugin.download(url, downloadTo, new DownloadPlugin.Callback() {
             @Override
             public void done(java.io.File downloaded) {
                 resultHolder[0] = new DeploymentSources(downloaded);
@@ -249,8 +249,8 @@ public abstract class Runner implements Lifecycle {
     }
 
     private void purgeExpiredProcesses() {
-        for (Iterator<CachedRunnerProcess> i = processes.values().iterator(); i.hasNext(); ) {
-            final CachedRunnerProcess next = i.next();
+        for (Iterator<RunnerProcessEntry> i = processes.values().iterator(); i.hasNext(); ) {
+            final RunnerProcessEntry next = i.next();
             if (next.isExpired()) {
                 try {
                     if (next.process.isRunning()) {
@@ -292,22 +292,24 @@ public abstract class Runner implements Lifecycle {
         return processes.size();
     }
 
-    private static class RunnerProcessImpl implements RunnerProcess {
+    private class RunnerProcessImpl implements RunnerProcess {
         private final Long                id;
         private final String              runner;
         private final RunnerConfiguration configuration;
+        private final Callback callback;
 
         private ApplicationProcess realProcess;
         private long               startTime;
         private long               stopTime;
         private Throwable          error;
 
-        RunnerProcessImpl(Long id, String runner, RunnerConfiguration configuration) {
+        RunnerProcessImpl(Long id, String runner, RunnerConfiguration configuration, Callback callback) {
             this.id = id;
             this.runner = runner;
             this.configuration = configuration;
-            this.startTime = -1;
-            this.stopTime = -1;
+            this.callback = callback;
+            startTime = -1;
+            stopTime = -1;
         }
 
         @Override
@@ -328,10 +330,28 @@ public abstract class Runner implements Lifecycle {
         synchronized void started(ApplicationProcess realProcess) {
             this.realProcess = realProcess;
             startTime = System.currentTimeMillis();
+            if (callback != null) {
+                // NOTE: important to do it in separate thread!
+                getExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.started(RunnerProcessImpl.this);
+                    }
+                });
+            }
         }
 
         synchronized void stopped() {
             stopTime = System.currentTimeMillis();
+            if (callback != null) {
+                // NOTE: important to do it in separate thread!
+                getExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.stopped(RunnerProcessImpl.this);
+                    }
+                });
+            }
         }
 
         @Override
@@ -365,8 +385,17 @@ public abstract class Runner implements Lifecycle {
             return configuration;
         }
 
-        synchronized void setError(Throwable error) {
+        synchronized void setError(final Throwable error) {
             this.error = error;
+            if (callback != null) {
+                // NOTE: important to do it in separate thread!
+                getExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.error(RunnerProcessImpl.this, error);
+                    }
+                });
+            }
         }
 
         @Override
@@ -389,17 +418,52 @@ public abstract class Runner implements Lifecycle {
         }
     }
 
-    private static class CachedRunnerProcess {
+    private static class RunnerProcessEntry {
         final RunnerProcessImpl process;
         final long              expirationTime;
 
-        CachedRunnerProcess(RunnerProcessImpl process, long expirationTime) {
+        RunnerProcessEntry(RunnerProcessImpl process, long expirationTime) {
             this.process = process;
             this.expirationTime = expirationTime;
         }
 
         boolean isExpired() {
             return expirationTime < System.currentTimeMillis();
+        }
+    }
+
+    private static class WebHookCallback implements RunnerProcess.Callback {
+        final String url;
+
+        WebHookCallback(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public void started(RunnerProcess process) {
+            try {
+                HttpJsonHelper.post(null, url, null, Pair.of("event", "started"));
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void stopped(RunnerProcess process) {
+            try {
+                HttpJsonHelper.post(null, url, null, Pair.of("event", "stopped"));
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void error(RunnerProcess process, Throwable t) {
+            try {
+                HttpJsonHelper.post(null, url, null, Pair.of("event", "error"));
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
         }
     }
 }

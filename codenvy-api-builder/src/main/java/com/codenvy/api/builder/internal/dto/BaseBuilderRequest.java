@@ -31,16 +31,16 @@ import java.util.Map;
 public interface BaseBuilderRequest {
 
     /**
-     * Location of source code for build. It is required to have {@link com.codenvy.api.core.rest.DownloadPlugin} which supports such type
+     * Location of source code for build. It is required to have {@link com.codenvy.api.core.util.DownloadPlugin} which supports such type
      * of URL.
      *
-     * @see com.codenvy.api.core.rest.DownloadPlugin#download(String, java.io.File, com.codenvy.api.core.rest.DownloadPlugin.Callback)
+     * @see com.codenvy.api.core.util.DownloadPlugin#download(String, java.io.File, com.codenvy.api.core.util.DownloadPlugin.Callback)
      */
     String getSourcesUrl();
 
-    BaseBuilderRequest withSourcesUrl(String sourcesUrl);
+    BaseBuilderRequest withSourcesUrl(String url);
 
-    void setSourcesUrl(String sourcesUrl);
+    void setSourcesUrl(String url);
 
     /**
      * Name of which should be used for build. Client should use method {@link com.codenvy.api.builder.internal.SlaveBuilderService#availableBuilders()}
@@ -95,4 +95,11 @@ public interface BaseBuilderRequest {
     BaseBuilderRequest withProject(String project);
 
     void setProject(String project);
+
+    /** URL that will be notified when build is done: successfully, failed or cancelled. */
+    String getWebHookUrl();
+
+    BaseBuilderRequest withWebHookUrl(String url);
+
+    void setWebHookUrl(String url);
 }

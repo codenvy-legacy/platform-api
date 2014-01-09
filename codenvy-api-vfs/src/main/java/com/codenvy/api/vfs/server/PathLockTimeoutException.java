@@ -15,26 +15,18 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.util;
+package com.codenvy.api.vfs.server;
 
-import org.exoplatform.commons.utils.MimeTypeResolver;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 
 /**
- * Resolves media type from file name extension.
+ * Thrown if timeout is reached while try to get lock.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
-public enum MediaTypes {
-    INSTANCE;
-
-    final MimeTypeResolver resolver;
-
-    private MediaTypes() {
-        resolver = new MimeTypeResolver();
-        resolver.setDefaultMimeType("text/plain");
-    }
-
-    public String getMediaType(String filename) {
-        return resolver.getMimeType(filename);
+@SuppressWarnings("serial")
+public final class PathLockTimeoutException extends VirtualFileSystemRuntimeException {
+    public PathLockTimeoutException(String message) {
+        super(message);
     }
 }

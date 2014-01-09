@@ -171,9 +171,16 @@ public class SlaveRunnerService extends Service {
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
         }
+
+        for (Link link : process.getConfiguration().getLinks()) {
+            links.add(link);
+        }
+
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())
                          .withStatus(status)
-                         .withLinks(links);
+                         .withLinks(links)
+                         .withPort(process.getConfiguration().getPort())
+                         .withDebugPort(process.getConfiguration().getDebugPort());
     }
 }

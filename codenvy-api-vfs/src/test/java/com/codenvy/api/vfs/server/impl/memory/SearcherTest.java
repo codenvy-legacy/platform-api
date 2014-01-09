@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.search.LuceneSearcher;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.Item;
@@ -97,21 +98,21 @@ public class SearcherTest extends MemoryFileSystemTest {
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/x-www-form-urlencoded"));
         for (Pair<String[], String> pair : queryToResult) {
-            ContainerResponse response = launcher.service("POST", requestPath, BASE_URI, h, pair.b.getBytes(), writer, null);
+            ContainerResponse response = launcher.service("POST", requestPath, BASE_URI, h, pair.second.getBytes(), writer, null);
             //log.info(new String(writer.getBody()));
             assertEquals("Error: " + response.getEntity(), 200, response.getStatus());
             List<Item> result = ((ItemList)response.getEntity()).getItems();
             assertEquals(String.format(
-                    "Expected %d but found %d for query %s", pair.a.length, result.size(), pair.b),
-                         pair.a.length,
+                    "Expected %d but found %d for query %s", pair.first.length, result.size(), pair.second),
+                         pair.first.length,
                          result.size());
             List<String> resultPaths = new ArrayList<>(result.size());
             for (Item item : result) {
                 resultPaths.add(item.getPath());
             }
             List<String> copy = new ArrayList<>(resultPaths);
-            copy.removeAll(Arrays.asList(pair.a));
-            assertTrue(String.format("Expected result is %s but found %s", Arrays.toString(pair.a), resultPaths), copy.isEmpty());
+            copy.removeAll(Arrays.asList(pair.first));
+            assertTrue(String.format("Expected result is %s but found %s", Arrays.toString(pair.first), resultPaths), copy.isEmpty());
             writer.reset();
         }
     }
@@ -147,7 +148,7 @@ public class SearcherTest extends MemoryFileSystemTest {
         TopDocs topDocs = luceneSearcher.search(new PrefixQuery(new Term("path", searchTestPath)), 10);
         assertEquals(3, topDocs.totalHits);
         searcher.releaseLuceneSearcher(luceneSearcher);
-        mountPoint.getVirtualFile(searchTestPath).createFile("new_file", null, new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
+        mountPoint.getVirtualFile(searchTestPath).createFile("new_file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
 
         luceneSearcher = searcher.getLuceneSearcher();
         topDocs = luceneSearcher.search(new PrefixQuery(new Term("path", searchTestPath)), 10);
@@ -161,7 +162,7 @@ public class SearcherTest extends MemoryFileSystemTest {
                 new QueryParser(Version.LUCENE_29, "text", new SimpleAnalyzer()).parse("updated"), 10);
         assertEquals(0, topDocs.totalHits);
         searcher.releaseLuceneSearcher(luceneSearcher);
-        mountPoint.getVirtualFile(file2).updateContent(null, new ByteArrayInputStream("updated content".getBytes()), null);
+        mountPoint.getVirtualFile(file2).updateContent("text/plain", new ByteArrayInputStream("updated content".getBytes()), null);
 
         luceneSearcher = searcher.getLuceneSearcher();
         topDocs = luceneSearcher.search(new QueryParser(Version.LUCENE_29, "text", new SimpleAnalyzer()).parse("updated"), 10);

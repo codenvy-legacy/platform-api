@@ -22,8 +22,11 @@ import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public class MavenProjectModelFactory {
@@ -38,15 +41,15 @@ public class MavenProjectModelFactory {
      * Get description of maven project.
      *
      * @param sources
-     *         maven project directory. NOte: Must contains pom.xml file.
+     *         maven project directory. Note: Must contains pom.xml file.
      * @return description of maven project
      */
     public MavenProjectModel getMavenProjectModel(java.io.File sources) {
-        final java.io.File pom = new java.io.File(sources, "pom.xml");
-        if (pom.exists()) {
+        final Path pom = sources.toPath().resolve("pom.xml");
+        if (Files.isReadable(pom)) {
             final MavenXpp3Reader pomReader = new MavenXpp3Reader();
-            try {
-                final Model model = pomReader.read(new FileReader(new java.io.File(sources, "pom.xml")), true);
+            try (Reader reader = Files.newBufferedReader(pom,Charset.forName("UTF-8"))) {
+                final Model model = pomReader.read(reader, true);
                 final Parent parent = model.getParent();
                 MavenProjectModel myParent = null;
                 if (parent != null) {

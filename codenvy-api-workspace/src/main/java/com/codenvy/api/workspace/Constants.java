@@ -17,13 +17,13 @@
  */
 package com.codenvy.api.workspace;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class Constants {
     // rels for known workspace links
-    public static final String LINK_REL_GET_PROJECTS              = "get projects";
-    public static final String LINK_REL_GET_PROJECT               = "get project";
-    public static final String LINK_REL_CREATE_PROJECT            = "create project";
-    public static final String LINK_REL_GET_ATTRIBUTES_OF_PROJECT = "get attributes of project";
+    public static final String LINK_REL_GET_PROJECTS   = "get projects";
+    public static final String LINK_REL_GET_PROJECT    = "get project";
+    public static final String LINK_REL_CREATE_PROJECT = "create project";
+    public static final String LINK_REL_UPDATE_PROJECT = "update project";
 
     private Constants() {
     }

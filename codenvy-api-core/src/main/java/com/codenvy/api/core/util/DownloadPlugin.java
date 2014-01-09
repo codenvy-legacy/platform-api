@@ -15,13 +15,12 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest;
+package com.codenvy.api.core.util;
 
 import java.io.IOException;
 
 /**
- * Downloads remote file. To make implementations of this interface accessible need to add FQN of such class in file
- * <pre>META-INF/services/com.codenvy.api.DownloadPlugin</pre>.
+ * Downloads remote file.
  *
  * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
  */
@@ -36,16 +35,24 @@ public interface DownloadPlugin {
          */
         void done(java.io.File downloaded);
 
+        /**
+         * Notified when error occurs.
+         *
+         * @param e
+         *         error
+         */
         void error(IOException e);
     }
 
     /**
      * Download file from specified location to local directory {@code downloadTo}
      *
+     * @param downloadUrl
+     *         download URL
      * @param downloadTo
      *         local directory for download
      * @param callback
-     *         notified when download is done
+     *         notified when download is done or an error occurs
      */
     void download(String downloadUrl, java.io.File downloadTo, Callback callback);
 }

@@ -39,14 +39,20 @@ public final class ProcessUtil {
             inputReader = new BufferedReader(new InputStreamReader(inputStream));
             errorReader = new BufferedReader(new InputStreamReader(errorStream));
             String line;
-            while ((line = inputReader.readLine()) != null) {
-                stdout.writeLine(line);
+            try {
+                while ((line = inputReader.readLine()) != null) {
+                    stdout.writeLine(line);
+                }
+            } finally {
+                stdout.close();
             }
-            stdout.close();
-            while ((line = errorReader.readLine()) != null) {
-                stderr.writeLine(line);
+            try {
+                while ((line = errorReader.readLine()) != null) {
+                    stderr.writeLine(line);
+                }
+            } finally {
+                stderr.close();
             }
-            stderr.close();
         } finally {
             if (inputReader != null) {
                 try {

@@ -117,8 +117,7 @@ public final class BuildQueueTask implements Cancellable {
     }
 
     /**
-     * Cancel this task. If task already started then we ask remote slave-builder to stop it otherwise just remote this task from the
-     * BuildQueue.
+     * Cancel this task.
      *
      * @throws RemoteException
      *         if an error occurs when ask remote slave-builder interrupt build process

@@ -69,6 +69,7 @@ public final class ContentStreamWriter implements MessageBodyWriter<ContentStrea
         if (mimeType != null) {
             httpHeaders.putSingle(HttpHeaders.CONTENT_TYPE, mimeType);
         }
+        httpHeaders.putSingle("Content-Disposition", "attachment; filename=\"" + t.getFileName() + '"');
         Date lastModificationDate = t.getLastModificationDate();
         if (lastModificationDate != null) {
             httpHeaders.putSingle(HttpHeaders.LAST_MODIFIED, t.getLastModificationDate());

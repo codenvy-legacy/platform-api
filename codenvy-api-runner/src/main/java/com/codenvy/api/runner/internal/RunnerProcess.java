@@ -22,6 +22,14 @@ import com.codenvy.api.runner.RunnerException;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 public interface RunnerProcess extends Cancellable {
+    interface Callback {
+        void started(RunnerProcess process);
+
+        void stopped(RunnerProcess process);
+
+        void error(RunnerProcess process, Throwable t);
+    }
+
     /**
      * Get unique id of this process.
      *

@@ -55,6 +55,12 @@ public interface ApplicationProcessDescriptor {
 
     ApplicationProcessDescriptor withUrl(String url);
 
+    int getPort();
+
+    void setPort(int port);
+
+    ApplicationProcessDescriptor withPort(int port);
+
     int getDebugPort();
 
     void setDebugPort(int port);

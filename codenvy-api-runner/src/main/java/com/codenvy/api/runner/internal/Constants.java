@@ -20,10 +20,10 @@ package com.codenvy.api.runner.internal;
 /** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 public class Constants {
     // properties of project which are interesting for runner
-    public static final String RUNNER_NAME                        = "runner_name";
-    public static final String RUNNER_MEMORY_SIZE                 = "runner_${runner}_memsize";
-    public static final String RUNNER_DEBUG_MODE                  = "runner_${runner}_debugmode";
-    public static final String RUNNER_OPTIONS                     = "runner_${runner}_options";
+    public static final String RUNNER_NAME                        = "runner.name";
+    public static final String RUNNER_MEMORY_SIZE                 = "runner.${runner}.memsize";
+    public static final String RUNNER_DEBUG_MODE                  = "runner.${runner}.debugmode";
+    public static final String RUNNER_OPTIONS                     = "runner.${runner}.options";
     // rels for known runner links
     public static final String LINK_REL_REGISTER_RUNNER_SERVICE   = "register runner service";
     public static final String LINK_REL_UNREGISTER_RUNNER_SERVICE = "unregister runner service";

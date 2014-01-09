@@ -21,12 +21,12 @@ import com.codenvy.api.builder.internal.BuildListener;
 import com.codenvy.api.builder.internal.BuildLogger;
 import com.codenvy.api.builder.internal.BuildResult;
 import com.codenvy.api.builder.internal.BuildTask;
-import com.codenvy.api.builder.internal.BuildTaskConfiguration;
 import com.codenvy.api.builder.internal.Builder;
+import com.codenvy.api.builder.internal.BuilderConfiguration;
 import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.DelegateBuildLogger;
+import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.core.rest.RemoteContent;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
@@ -35,9 +35,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class BuilderTest {
 
     // Simple test for main Builder components. Don't run any real build processes.
@@ -61,17 +62,29 @@ public class BuilderTest {
         }
 
         @Override
-        protected CommandLine createCommandLine(BuildTaskConfiguration config) {
+        protected CommandLine createCommandLine(BuilderConfiguration config) {
             return new CommandLine("echo", "test"); // display line of text
         }
 
         @Override
-        protected BuildLogger createBuildLogger(BuildTaskConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
+        protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
             return logger = new MyDelegateBuildLogger(super.createBuildLogger(buildConfiguration, logFile));
         }
 
         @Override
-        protected void downloadSources(RemoteContent sources) {
+        public SourcesManager getSourcesManager() {
+            return new SourcesManager() {
+
+                @Override
+                public void getSources(String workspace, String project, String sourcesUrl, File workDir) throws IOException {
+                    // Don't need for current set of tests.
+                }
+
+                @Override
+                public java.io.File getDirectory() {
+                    return getSourcesDirectory();
+                }
+            };
         }
     }
 

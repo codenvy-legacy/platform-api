@@ -19,6 +19,7 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
+import com.codenvy.api.vfs.server.Path;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -27,7 +28,6 @@ import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
-import com.codenvy.api.vfs.server.util.PathUtil;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import java.util.HashMap;
@@ -46,7 +46,7 @@ public class MemoryMountPoint implements MountPoint {
     private final SearcherProvider             searcherProvider;
     private final VirtualFileSystemUserContext userContext;
 
-    MemoryMountPoint(SearcherProvider searcherProvider, VirtualFileSystemUserContext userContext) {
+    public MemoryMountPoint(SearcherProvider searcherProvider, VirtualFileSystemUserContext userContext) {
         this.searcherProvider = searcherProvider;
         this.userContext = userContext;
         entries = new HashMap<>();
@@ -84,7 +84,8 @@ public class MemoryMountPoint implements MountPoint {
             path = path.substring(1);
         }
         VirtualFile virtualFile = getRoot();
-        String[] elements = PathUtil.parse(path);
+        final Path internalPath = Path.fromString(path);
+        final String[] elements = internalPath.elements();
         for (int i = 0, length = elements.length; virtualFile != null && i < length; i++) {
             String name = elements[i];
             if (virtualFile.isFolder()) {

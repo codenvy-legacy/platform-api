@@ -17,19 +17,14 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.builder.BuildStatus;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.core.Lifecycle;
 import com.codenvy.api.core.LifecycleException;
 import com.codenvy.api.core.config.Configuration;
 import com.codenvy.api.core.config.SingletonConfiguration;
-import com.codenvy.api.core.rest.DownloadPlugin;
-import com.codenvy.api.core.rest.FileAdapter;
-import com.codenvy.api.core.rest.RemoteContent;
-import com.codenvy.api.core.rest.ServiceContext;
-import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.api.core.util.ComponentLoader;
@@ -38,16 +33,11 @@ import com.codenvy.api.core.util.StreamPump;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
-import com.codenvy.commons.lang.ZipUtils;
-import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,6 +48,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -69,7 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Super-class for all implementation of Builder.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class Builder implements Lifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
@@ -98,10 +89,10 @@ public abstract class Builder implements Lifecycle {
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
-    private final ConcurrentMap<Long, CachedBuildTask>   tasks;
-    private final ConcurrentLinkedQueue<CachedBuildTask> tasksFIFO;
-    private final ConcurrentLinkedQueue<java.io.File>    cleanerQueue;
-    private final Set<BuildListener>                     buildListeners;
+    private final ConcurrentMap<Long, BuildTaskEntry>   tasks;
+    private final ConcurrentLinkedQueue<BuildTaskEntry> tasksFIFO;
+    private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
+    private final Set<BuildListener>                    buildListeners;
 
     private int     queueSize;
     private int     cleanBuildResultDelay;
@@ -110,6 +101,8 @@ public abstract class Builder implements Lifecycle {
     private ScheduledExecutorService cleaner;
     private ThreadPoolExecutor       executor;
     private java.io.File             repository;
+    private java.io.File             builds;
+    private SourcesManager           sourcesManager;
 
     public Builder() {
         buildListeners = new LinkedHashSet<>();
@@ -150,9 +143,13 @@ public abstract class Builder implements Lifecycle {
      */
     protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws BuilderException;
 
-    protected abstract CommandLine createCommandLine(BuildTaskConfiguration config) throws BuilderException;
+    protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws BuilderException;
 
-    protected BuildLogger createBuildLogger(BuildTaskConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
+    public ExecutorService getExecutor() {
+        return executor;
+    }
+
+    protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
         try {
             return new DefaultBuildLogger(logFile, "text/plain");
         } catch (IOException e) {
@@ -176,6 +173,15 @@ public abstract class Builder implements Lifecycle {
         if (!(repository.exists() || repository.mkdirs())) {
             throw new LifecycleException(String.format("Unable create directory %s", repository.getAbsolutePath()));
         }
+        final java.io.File sources = new java.io.File(repository, "sources");
+        if (!(sources.exists() || sources.mkdirs())) {
+            throw new LifecycleException(String.format("Unable create directory %s", sources.getAbsolutePath()));
+        }
+        builds = new java.io.File(repository, "builds");
+        if (!(builds.exists() || builds.mkdirs())) {
+            throw new LifecycleException(String.format("Unable create directory %s", builds.getAbsolutePath()));
+        }
+        sourcesManager = new SourcesManagerImpl(sources);
         int workerNumber = myConfiguration.getInt(NUMBER_OF_WORKERS, Runtime.getRuntime().availableProcessors());
         queueSize = myConfiguration.getInt(INTERNAL_QUEUE_SIZE, 100);
         cleanBuildResultDelay = myConfiguration.getInt(CLEAN_RESULT_DELAY_TIME, 3600);
@@ -243,6 +249,21 @@ public abstract class Builder implements Lifecycle {
         return repository;
     }
 
+    public java.io.File getBuildDirectory() {
+        checkStarted();
+        return builds;
+    }
+
+    public SourcesManager getSourcesManager() {
+        checkStarted();
+        return sourcesManager;
+    }
+
+    public java.io.File getSourcesDirectory() {
+        checkStarted();
+        return getSourcesManager().getDirectory();
+    }
+
     /**
      * Add new BuildListener.
      *
@@ -280,6 +301,10 @@ public abstract class Builder implements Lifecycle {
         }
     }
 
+    public BuilderConfigurationFactory getBuilderConfigurationFactory() {
+        return new DefaultBuilderConfigurationFactory(this);
+    }
+
     /**
      * Starts new build process.
      *
@@ -291,16 +316,12 @@ public abstract class Builder implements Lifecycle {
      */
     public BuildTask perform(BuildRequest request) throws BuilderException {
         checkStarted();
-        final BuildTaskConfiguration buildConfiguration;
-        try {
-            buildConfiguration = BuildTaskConfiguration.newBuildConfiguration(this, request);
-        } catch (IOException e) {
-            throw new BuilderException(e);
-        }
-        final java.io.File srcDir = buildConfiguration.getSources().getDirectory().getIoFile();
-        final java.io.File logFile = new java.io.File(srcDir.getParentFile(), srcDir.getName() + ".log");
-        final BuildLogger logger = createBuildLogger(buildConfiguration, logFile);
-        return execute(buildConfiguration, null, logger);
+        final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
+        final java.io.File workDir = configuration.getWorkDir();
+        final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
+        final BuildLogger logger = createBuildLogger(configuration, logFile);
+        final String webHookUrl = request.getWebHookUrl();
+        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
     }
 
     /**
@@ -314,25 +335,22 @@ public abstract class Builder implements Lifecycle {
      */
     public BuildTask perform(DependencyRequest request) throws BuilderException {
         checkStarted();
-        final BuildTaskConfiguration buildConfiguration;
-        try {
-            buildConfiguration = BuildTaskConfiguration.newDependencyAnalysisConfiguration(this, request);
-        } catch (IOException e) {
-            throw new BuilderException(e);
-        }
-        final java.io.File srcDir = buildConfiguration.getSources().getDirectory().getIoFile();
-        final java.io.File logFile = new java.io.File(srcDir.getParentFile(), srcDir.getName() + ".log");
-        final BuildLogger logger = createBuildLogger(buildConfiguration, logFile);
-        return execute(buildConfiguration, null, logger);
+        final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
+        final java.io.File workDir = configuration.getWorkDir();
+        final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
+        final BuildLogger logger = createBuildLogger(configuration, logFile);
+        final String webHookUrl = request.getWebHookUrl();
+        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
     }
 
-    protected BuildTask execute(BuildTaskConfiguration config, BuildTask.Callback callback, BuildLogger logger) throws BuilderException {
-        final CommandLine commandLine = createCommandLine(config);
-        final Callable<Boolean> callable = createTaskFor(commandLine, config.getSources(), logger, config.getRequest().getTimeout());
+    protected BuildTask execute(BuilderConfiguration configuration, BuildTask.Callback callback, BuildLogger logger)
+            throws BuilderException {
+        final CommandLine commandLine = createCommandLine(configuration);
+        final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
         final FutureBuildTask task =
-                new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), config, logger, callback);
+                new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), configuration, logger, callback);
         final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
-        final CachedBuildTask cachedTask = new CachedBuildTask(task, expirationTime);
+        final BuildTaskEntry cachedTask = new BuildTaskEntry(task, expirationTime);
         purgeExpiredTasks();
         tasks.put(task.getId(), cachedTask);
         tasksFIFO.offer(cachedTask);
@@ -341,19 +359,20 @@ public abstract class Builder implements Lifecycle {
     }
 
     protected Callable<Boolean> createTaskFor(final CommandLine commandLine,
-                                              final RemoteContent sources,
                                               final BuildLogger logger,
-                                              final long timeout) {
+                                              final long timeout,
+                                              final BuilderConfiguration configuration) {
         return new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-                downloadSources(sources);
+                BaseBuilderRequest request = configuration.getRequest();
+                getSourcesManager()
+                        .getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
                 StreamPump output = null;
                 Watchdog watcher = null;
                 int result = -1;
                 try {
-                    final java.io.File srcDir = sources.getDirectory().getIoFile();
-                    final Process process = Runtime.getRuntime().exec(commandLine.toShellCommand(), null, srcDir);
+                    final Process process = Runtime.getRuntime().exec(commandLine.toShellCommand(), null, configuration.getWorkDir());
                     if (timeout > 0) {
                         watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", timeout, TimeUnit.SECONDS);
                         watcher.start(new CancellableProcessWrapper(process));
@@ -382,43 +401,6 @@ public abstract class Builder implements Lifecycle {
         };
     }
 
-    /**
-     * Downloads remote sources.
-     *
-     * @param sources
-     *         remote sources
-     * @throws BuilderException
-     *         if an error occurs when try to download source
-     */
-    protected void downloadSources(RemoteContent sources) throws BuilderException {
-        final IOException[] errorHolder = new IOException[1];
-        sources.download(new DownloadPlugin.Callback() {
-            @Override
-            public void done(java.io.File downloaded) {
-                try {
-                    if (ZipUtils.isZipFile(downloaded)) {
-                        ZipUtils.unzip(downloaded, downloaded.getParentFile());
-                        if (!downloaded.delete()) {
-                            LOG.warn("Failed delete {}", downloaded);
-                        }
-                    }
-                } catch (IOException e) {
-                    LOG.error(e.getMessage(), e);
-                    errorHolder[0] = e;
-                }
-            }
-
-            @Override
-            public void error(IOException e) {
-                LOG.error(e.getMessage(), e);
-                errorHolder[0] = e;
-            }
-        });
-        if (errorHolder[0] != null) {
-            throw new BuilderException(errorHolder[0]);
-        }
-    }
-
     public int getNumberOfWorkers() {
         checkStarted();
         return executor.getCorePoolSize();
@@ -442,8 +424,8 @@ public abstract class Builder implements Lifecycle {
     /** Removes expired tasks. */
     private void purgeExpiredTasks() {
         int num = 0;
-        for (Iterator<CachedBuildTask> i = tasksFIFO.iterator(); i.hasNext(); ) {
-            final CachedBuildTask next = i.next();
+        for (Iterator<BuildTaskEntry> i = tasksFIFO.iterator(); i.hasNext(); ) {
+            final BuildTaskEntry next = i.next();
             if (!next.isExpired()) {
                 // Don't need to check other tasks if find first one that is not expired yet.
                 break;
@@ -479,9 +461,9 @@ public abstract class Builder implements Lifecycle {
      *         build task
      */
     protected void cleanup(BuildTask task) {
-        final java.io.File sources = task.getSources().getDirectory().getIoFile();
-        if (sources != null && sources.exists()) {
-            cleanerQueue.offer(sources);
+        final java.io.File workDir = task.getConfiguration().getWorkDir();
+        if (workDir != null && workDir.exists()) {
+            cleanerQueue.offer(workDir);
         }
         final java.io.File log = task.getBuildLogger().getFile();
         if (log != null && log.exists()) {
@@ -494,14 +476,16 @@ public abstract class Builder implements Lifecycle {
             LOG.error("Skip cleanup of the task {}. Unable get task result.", task);
         }
         if (result != null) {
-            List<FileAdapter> artifacts = result.getResultUnits();
+            List<java.io.File> artifacts = result.getResults();
             if (!artifacts.isEmpty()) {
-                for (FileAdapter artifact : artifacts) {
-                    cleanerQueue.offer(artifact.getIoFile());
+                for (java.io.File artifact : artifacts) {
+                    if (artifact.exists()) {
+                        cleanerQueue.offer(artifact);
+                    }
                 }
             }
             if (result.hasBuildReport()) {
-                java.io.File report = result.getBuildReport().getIoFile();
+                java.io.File report = result.getBuildReport();
                 if (report != null && report.exists()) {
                     cleanerQueue.offer(report);
                 }
@@ -525,7 +509,7 @@ public abstract class Builder implements Lifecycle {
      */
     public final BuildTask getBuildTask(Long id) throws NoSuchBuildTaskException {
         checkStarted();
-        final CachedBuildTask e = tasks.get(id);
+        final BuildTaskEntry e = tasks.get(id);
         if (e == null) {
             throw new NoSuchBuildTaskException(id);
         }
@@ -533,12 +517,12 @@ public abstract class Builder implements Lifecycle {
     }
 
     protected class FutureBuildTask extends FutureTask<Boolean> implements BuildTask {
-        private final Long                   id;
-        private final CommandLine            commandLine;
-        private final String                 builder;
-        private final BuildTaskConfiguration configuration;
-        private final BuildLogger            buildLogger;
-        private final Callback               callback;
+        private final Long                 id;
+        private final CommandLine          commandLine;
+        private final String               builder;
+        private final BuilderConfiguration configuration;
+        private final BuildLogger          buildLogger;
+        private final Callback             callback;
 
         private BuildResult result;
         private long        startTime;
@@ -547,7 +531,7 @@ public abstract class Builder implements Lifecycle {
                                   Long id,
                                   CommandLine commandLine,
                                   String builder,
-                                  BuildTaskConfiguration configuration,
+                                  BuilderConfiguration configuration,
                                   BuildLogger buildLogger,
                                   Callback callback) {
             super(callable);
@@ -575,11 +559,6 @@ public abstract class Builder implements Lifecycle {
         }
 
         @Override
-        public RemoteContent getSources() {
-            return configuration.getSources();
-        }
-
-        @Override
         public BuildLogger getBuildLogger() {
             return buildLogger;
         }
@@ -592,7 +571,13 @@ public abstract class Builder implements Lifecycle {
         @Override
         protected void done() {
             if (callback != null) {
-                callback.done(this);
+                // NOTE: important to do it in separate thread!
+                getExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.done(FutureBuildTask.this);
+                    }
+                });
             }
         }
 
@@ -628,85 +613,7 @@ public abstract class Builder implements Lifecycle {
         }
 
         @Override
-        public BuildTaskDescriptor getDescriptor(ServiceContext restfulRequestContext) throws BuilderException {
-            final String builder = getBuilder();
-            final Long taskId = getId();
-            final BuildResult result = getResult();
-            final BuildStatus status = isDone()
-                                       ? (isCancelled() ? BuildStatus.CANCELLED
-                                                        : (result.isSuccessful() ? BuildStatus.SUCCESSFUL : BuildStatus.FAILED))
-                                       : (isStarted() ? BuildStatus.IN_PROGRESS : BuildStatus.IN_QUEUE);
-            final List<Link> links = new ArrayList<>();
-            final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
-            links.add(DtoFactory.getInstance().createDto(Link.class)
-                                .withRel(Constants.LINK_REL_GET_STATUS)
-                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getStatus")
-                                                            .build(builder, taskId).toString())
-                                .withMethod("GET")
-                                .withProduces(MediaType.APPLICATION_JSON));
-
-            if (status == BuildStatus.IN_QUEUE || status == BuildStatus.IN_PROGRESS) {
-                links.add(DtoFactory.getInstance().createDto(Link.class)
-                                    .withRel(Constants.LINK_REL_CANCEL)
-                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "cancel")
-                                                                .build(builder, taskId).toString())
-                                    .withMethod("POST")
-                                    .withProduces(MediaType.APPLICATION_JSON));
-            }
-
-            if (status != BuildStatus.IN_QUEUE) {
-                links.add(DtoFactory.getInstance().createDto(Link.class)
-                                    .withRel(Constants.LINK_REL_VIEW_LOG)
-                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getLogs")
-                                                                .build(builder, taskId).toString())
-                                    .withMethod("GET")
-                                    .withProduces(getBuildLogger().getContentType()));
-                links.add(DtoFactory.getInstance().createDto(Link.class)
-                                    .withRel(Constants.LINK_REL_BROWSE)
-                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/")
-                                                                .build(builder, taskId).toString())
-                                    .withMethod("GET")
-                                    .withProduces(MediaType.TEXT_HTML));
-            }
-
-            if (status == BuildStatus.SUCCESSFUL) {
-                for (FileAdapter ru : result.getResultUnits()) {
-                    links.add(DtoFactory.getInstance().createDto(Link.class)
-                                        .withRel(Constants.LINK_REL_DOWNLOAD_RESULT)
-                                        .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "download")
-                                                                    .queryParam("path", ru.getHref()).build(builder, taskId).toString())
-                                        .withMethod("GET").withProduces(ru.getContentType()));
-                }
-            }
-
-            if ((status == BuildStatus.SUCCESSFUL || status == BuildStatus.FAILED) && result.hasBuildReport()) {
-                final FileAdapter br = result.getBuildReport();
-                if (br.isDirectory()) {
-                    links.add(DtoFactory.getInstance().createDto(Link.class)
-                                        .withRel(Constants.LINK_REL_VIEW_REPORT)
-                                        .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse")
-                                                                    .queryParam("path", br.getHref()).build(builder, taskId).toString())
-                                        .withMethod("GET")
-                                        .withProduces(MediaType.TEXT_HTML));
-                } else {
-                    links.add(DtoFactory.getInstance().createDto(Link.class)
-                                        .withRel(Constants.LINK_REL_VIEW_REPORT)
-                                        .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "view")
-                                                                    .queryParam("path", br.getHref()).build(builder, taskId).toString())
-                                        .withMethod("GET")
-                                        .withProduces(br.getContentType()));
-                }
-            }
-
-            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
-                             .withTaskId(taskId)
-                             .withStatus(status)
-                             .withLinks(links)
-                             .withStartTime(getStartTime());
-        }
-
-        @Override
-        public BuildTaskConfiguration getConfiguration() {
+        public BuilderConfiguration getConfiguration() {
             return configuration;
         }
 
@@ -729,7 +636,7 @@ public abstract class Builder implements Lifecycle {
             return "FutureBuildTask{" +
                    "id=" + id +
                    ", builder='" + builder + '\'' +
-                   ", sources=" + configuration.getSources().getDirectory() +
+                   ", workDir=" + configuration.getWorkDir() +
                    '}';
         }
     }
@@ -801,12 +708,12 @@ public abstract class Builder implements Lifecycle {
         }
     }
 
-    private static final class CachedBuildTask {
+    private static final class BuildTaskEntry {
         private final long            expirationTime;
         private final int             hash;
         private final FutureBuildTask task;
 
-        private CachedBuildTask(FutureBuildTask task, long expirationTime) {
+        private BuildTaskEntry(FutureBuildTask task, long expirationTime) {
             this.task = task;
             this.expirationTime = expirationTime;
             this.hash = 7 * 31 + task.getId().hashCode();
@@ -817,8 +724,8 @@ public abstract class Builder implements Lifecycle {
             if (this == o) {
                 return true;
             }
-            if (o instanceof CachedBuildTask) {
-                return task.getId().equals(((CachedBuildTask)o).task.getId());
+            if (o instanceof BuildTaskEntry) {
+                return task.getId().equals(((BuildTaskEntry)o).task.getId());
             }
             return false;
         }
@@ -834,9 +741,26 @@ public abstract class Builder implements Lifecycle {
 
         @Override
         public String toString() {
-            return "CachedBuildTask{" +
+            return "BuildTaskEntry{" +
                    "task=" + task +
                    '}';
+        }
+    }
+
+    private static class WebHookCallback implements BuildTask.Callback {
+        final String url;
+
+        WebHookCallback(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public void done(BuildTask task) {
+            try {
+                HttpJsonHelper.post(null, url, null);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
         }
     }
 }

@@ -17,9 +17,12 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.util.ContentTypeGuesser;
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
+import com.codenvy.api.vfs.server.Path;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -33,9 +36,7 @@ import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
-import com.codenvy.api.vfs.server.util.MediaTypes;
 import com.codenvy.api.vfs.server.util.NotClosableInputStream;
-import com.codenvy.api.vfs.server.util.PathUtil;
 import com.codenvy.api.vfs.server.util.ZipContent;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
@@ -48,12 +49,17 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.InputSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -245,7 +251,7 @@ public class MemoryVirtualFile implements VirtualFile {
         checkExist();
         String mediaType = getPropertyValue("vfs:mimeType");
         if (mediaType == null) {
-            mediaType = isFile() ? MediaTypes.INSTANCE.getMediaType(getName()) : Folder.FOLDER_MIME_TYPE;
+            mediaType = isFile() ? ContentTypeGuesser.guessContentType(new File(getName())) : Folder.FOLDER_MIME_TYPE;
         }
         return mediaType;
     }
@@ -275,6 +281,11 @@ public class MemoryVirtualFile implements VirtualFile {
             path.append(seg);
         }
         return path.toString();
+    }
+
+    @Override
+    public Path getVirtualFilePath() throws VirtualFileSystemException {
+        return Path.fromString(getPath());
     }
 
     public VirtualFile updateACL(List<AccessControlEntry> acl, boolean override, String lockToken) throws VirtualFileSystemException {
@@ -422,6 +433,44 @@ public class MemoryVirtualFile implements VirtualFile {
     public void accept(VirtualFileVisitor visitor) throws VirtualFileSystemException {
         checkExist();
         visitor.visit(this);
+    }
+
+    @Override
+    public LazyIterator<Pair<String, String>> countMd5Sums() throws VirtualFileSystemException {
+        checkExist();
+        if (isFile()) {
+            return LazyIterator.emptyIterator();
+        }
+
+        final List<Pair<String, String>> hashes = new ArrayList<>();
+        final int trimPathLength = getPath().length() + 1;
+        final HashFunction hashFunction = Hashing.md5();
+        accept(new VirtualFileVisitor() {
+            @Override
+            public void visit(final VirtualFile virtualFile) throws VirtualFileSystemException {
+                if (virtualFile.isFile()) {
+                    final InputStream stream = virtualFile.getContent().getStream();
+                    try {
+                        final String hexHash = ByteStreams.hash(new InputSupplier<InputStream>() {
+                            @Override
+                            public InputStream getInput() throws IOException {
+                                return stream;
+                            }
+                        }, hashFunction).toString();
+
+                        hashes.add(Pair.of(hexHash, virtualFile.getPath().substring(trimPathLength)));
+                    } catch (IOException e) {
+                        throw new VirtualFileSystemException(e);
+                    }
+                } else {
+                    final LazyIterator<VirtualFile> children = virtualFile.getChildren(VirtualFileFilter.ALL);
+                    while (children.hasNext()) {
+                        children.next().accept(this);
+                    }
+                }
+            }
+        });
+        return LazyIterator.fromList(hashes);
     }
 
     @Override
@@ -807,14 +856,14 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public ContentStream zip() throws IOException, VirtualFileSystemException {
+    public ContentStream zip(VirtualFileFilter filter) throws IOException, VirtualFileSystemException {
         checkExist();
         if (!isFolder()) {
             throw new VirtualFileSystemException(String.format("Unable export to zip. Item '%s' is not a folder. ", getPath()));
         }
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ZipOutputStream zipOut = new ZipOutputStream(out);
-        if (isProject()) {
+        if (isProject() && getChild(".project") == null) {
             zipOut.putNextEntry(new ZipEntry(".project"));
             zipOut.write(JsonHelper.toJson(getProperties(PropertyFilter.ALL_FILTER)).getBytes());
         }
@@ -822,7 +871,7 @@ public class MemoryVirtualFile implements VirtualFile {
         q.add(this);
         final int rootZipPathLength = isRoot() ? 1 : (getPath().length() + 1);
         while (!q.isEmpty()) {
-            final LazyIterator<VirtualFile> children = q.pop().getChildren(VirtualFileFilter.ALL);
+            final LazyIterator<VirtualFile> children = q.pop().getChildren(filter);
             while (children.hasNext()) {
                 VirtualFile current = children.next();
                 final String zipEntryName = current.getPath().substring(rootZipPathLength);
@@ -864,17 +913,17 @@ public class MemoryVirtualFile implements VirtualFile {
             ZipEntry zipEntry;
             while ((zipEntry = zip.getNextEntry()) != null) {
                 VirtualFile current = this;
-                final String[] relPath = PathUtil.parse(zipEntry.getName());
-                final String name = relPath[relPath.length - 1];
-                if (relPath.length > 1) {
+                final Path relPath = Path.fromString(zipEntry.getName());
+                final String name = relPath.getName();
+                if (relPath.length() > 1) {
                     // create all required parent directories
-                    for (int i = 0, stop = relPath.length - 1; i < stop; i++) {
-                        MemoryVirtualFile folder = newFolder((MemoryVirtualFile)current, relPath[i]);
+                    for (int i = 0, stop = relPath.length() - 1; i < stop; i++) {
+                        MemoryVirtualFile folder = newFolder((MemoryVirtualFile)current, relPath.element(i));
                         if (((MemoryVirtualFile)current).addChild(folder)) {
                             current = folder;
                             mountPoint.putItem(folder);
                         } else {
-                            current = current.getChild(relPath[i]);
+                            current = current.getChild(relPath.element(i));
                         }
                     }
                 }
@@ -929,7 +978,7 @@ public class MemoryVirtualFile implements VirtualFile {
                         mediaType = file.getPropertyValue("vfs:mimeType");
                         file.updateContent(mediaType, noCloseZip, null);
                     } else {
-                        mediaType = MediaTypes.INSTANCE.getMediaType(name);
+                        mediaType = ContentTypeGuesser.guessContentType(new File(name));
                         file = newFile((MemoryVirtualFile)current, name, noCloseZip, mediaType);
                         ((MemoryVirtualFile)current).addChild(file);
                         mountPoint.putItem((MemoryVirtualFile)file);
@@ -1065,13 +1114,11 @@ public class MemoryVirtualFile implements VirtualFile {
         MemoryVirtualFile newFolder = null;
         MemoryVirtualFile current = this;
         if (name.indexOf('/') > 0) {
-            String[] elements = PathUtil.parse(name);
-            for (String element : elements) {
+            final Path internPath = Path.fromString(name);
+            for (String element : internPath.elements()) {
                 MemoryVirtualFile folder = newFolder(current, element);
                 if (current.addChild(folder)) {
-                    if (newFolder == null) {
-                        newFolder = folder;
-                    }
+                    newFolder = folder;
                     current = folder;
                 } else {
                     current = (MemoryVirtualFile)current.getChild(element);

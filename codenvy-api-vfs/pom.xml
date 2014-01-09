@@ -23,7 +23,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.3.3-SNAPSHOT</version>
+        <version>0.5.1-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-vfs</artifactId>
     <packaging>jar</packaging>
@@ -66,7 +66,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.1</version>
+            <version>${google.gson.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-fileupload</groupId>
@@ -96,7 +96,18 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>2.9.4</version>
+            <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.everrest</groupId>
+            <artifactId>everrest-core</artifactId>
+            <version>${everrest.version}</version>
+        </dependency>
+        <dependency>
+            <!-- TODO: remove -->
+            <groupId>org.exoplatform.core</groupId>
+            <artifactId>exo.core.component.security.core</artifactId>
+            <version>${org.exoplatform.core.version}</version>
         </dependency>
         <dependency>
             <groupId>org.everrest</groupId>

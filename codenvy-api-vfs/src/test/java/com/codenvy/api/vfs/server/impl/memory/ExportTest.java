@@ -149,6 +149,7 @@ public class ExportTest extends MemoryFileSystemTest {
             zip.closeEntry();
             assertTrue("Not found " + name + " entry in zip. ", expected.remove(name));
         }
+        zip.close();
         assertTrue(expected.isEmpty());
     }
 }

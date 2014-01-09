@@ -50,6 +50,6 @@ public class AdvancedFactoryUrlValidator {
     }
 
     public static boolean isProjectNameValid(String pname) {
-        return Pattern.compile("^[^_.-\\\\\\W][-._a-zA-Z0-9]*$").matcher(pname).matches();
+        return Pattern.compile("^[\\\w\\\d]+[\\\w\\\d_.-]*$").matcher(pname).matches();
     }
 }

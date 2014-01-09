@@ -17,30 +17,24 @@
  */
 package com.codenvy.api.vfs.server;
 
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Request;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.ext.Providers;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Set;
 
 /**
- * Summarize JAX-RS request information to pass it to {@link VirtualFileSystemProvider}.
+ * Helps register {@link VirtualFileSystem}s on startup.
  *
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
- * @see UriInfo
- * @see Request
- * @see HttpHeaders
- * @see SecurityContext
- * @see Providers
+ * @author andrew00x
  */
-public interface RequestContext {
-    UriInfo getUriInfo();
-
-    Request getRequest();
-
-    HttpHeaders getHeaders();
-
-    SecurityContext getSecurityContext();
-
-    Providers getProviders();
+@Singleton
+public final class VirtualFileSystemRegistryPlugin {
+    @Inject
+    public VirtualFileSystemRegistryPlugin(VirtualFileSystemRegistry registry, Set<VirtualFileSystemProvider> providers)
+            throws VirtualFileSystemException {
+        for (VirtualFileSystemProvider provider : providers) {
+            registry.registerProvider(provider.getWorkspaceId(), provider);
+        }
+    }
 }

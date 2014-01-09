@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
+import javax.inject.Singleton;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -25,8 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Stores available builders.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
+@Singleton
 public class BuilderRegistry {
     private final Map<String, Builder> builders;
 
@@ -38,11 +40,11 @@ public class BuilderRegistry {
      * Add {@code Builder}. Uses {@code String} returned by method {@code Builder.getName()} as builder's identifier. If {@code Builder}
      * with the same name already registered it is replaced by new one.
      *
-     * @param myBuilder
+     * @param builder
      *         Builder
      */
-    public void add(Builder myBuilder) {
-        builders.put(myBuilder.getName(), myBuilder);
+    public void add(Builder builder) {
+        builders.put(builder.getName(), builder);
     }
 
     /**

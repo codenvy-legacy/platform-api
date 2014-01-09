@@ -17,8 +17,10 @@
  */
 package com.codenvy.api.factory;
 
+import java.util.regex.Pattern;
+
 /** Validate {@code AdvancedFactoryUrl} */
-public interface AdvancedFactoryUrlValidator {
+public class AdvancedFactoryUrlValidator {
     /**
      * Validate factory url
      *
@@ -27,5 +29,27 @@ public interface AdvancedFactoryUrlValidator {
      * @throws FactoryUrlException
      *         - if object is not invalid
      */
-    void validate(AdvancedFactoryUrl factoryUrl) throws FactoryUrlException;
+    public static void validate(AdvancedFactoryUrl factoryUrl) throws FactoryUrlException {
+
+        // check mandatory parameters
+        if (!"1.1".equals(factoryUrl.getV())) {
+            throw new FactoryUrlException("Version has illegal value. Version must be equal to '1.1'");
+        }
+        // check that vcs value is correct (only git is supported for now)
+        if (!"git".equals(factoryUrl.getVcs())) {
+            throw new FactoryUrlException("Parameter vcs has illegal value. Only \"git\" is supported for now.");
+        }
+        if (factoryUrl.getVcsurl() == null || factoryUrl.getVcsurl().isEmpty()) {
+            throw new FactoryUrlException("Vcsurl is null or empty.");
+        }
+
+        if (factoryUrl.getProjectattributes() != null && factoryUrl.getProjectattributes().get("pname") != null
+            && !isProjectNameValid(factoryUrl.getProjectattributes().get("pname"))) {
+            throw new FactoryUrlException("Project name must contain only Latin letters, digits or these following special characters -._.");
+        }
+    }
+
+    public static boolean isProjectNameValid(String pname) {
+        return Pattern.compile("^[\\\\\\w\\\\\\d]+[\\\\\\w\\\\\\d_.-]*$").matcher(pname).matches();
+    }
 }

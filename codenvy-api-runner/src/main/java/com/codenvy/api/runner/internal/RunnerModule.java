@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -17,11 +17,17 @@
  */
 package com.codenvy.api.runner.internal;
 
-/**
- * Helps to register Runner in runner registry.
- *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
- */
-public interface RunnerRegistrationPlugin {
-    void registerTo(RunnerRegistry registry);
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
+
+/** @author andrew00x */
+@DynaModule
+public class RunnerModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        // Initialize empty set of Runners.
+        Multibinder.newSetBinder(binder(), Runner.class);
+        bind(RunnerRegistryPlugin.class);
+    }
 }

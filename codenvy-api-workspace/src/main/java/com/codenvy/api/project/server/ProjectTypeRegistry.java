@@ -19,6 +19,7 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.ProjectType;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ProjectTypeRegistry {
     private final Map<String, ProjectType> types;
 
+    @Inject
     public ProjectTypeRegistry() {
         types = new ConcurrentHashMap<>();
     }

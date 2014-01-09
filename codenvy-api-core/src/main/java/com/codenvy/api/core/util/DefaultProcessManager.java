@@ -20,7 +20,7 @@ package com.codenvy.api.core.util;
 /**
  * Typically may be in use for windows systems only. For *nix like system UnixProcessManager is in use.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 class DefaultProcessManager extends ProcessManager {
     /*

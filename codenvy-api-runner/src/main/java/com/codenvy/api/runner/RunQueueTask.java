@@ -138,18 +138,15 @@ public final class RunQueueTask implements Cancellable {
         for (Link link : links) {
             if (Constants.LINK_REL_GET_STATUS.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(
-                        serviceUriBuilder.clone().path(RunnerService.class, "getStatus").build(request.getWorkspace(), id).toString());
+                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "getStatus").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_STOP.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(
-                        serviceUriBuilder.clone().path(RunnerService.class, "stop").build(request.getWorkspace(), id).toString());
+                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "stop").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_VIEW_LOG.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(
-                        serviceUriBuilder.clone().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
+                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else {
                 rewritten.add(DtoFactory.getInstance().clone(link));

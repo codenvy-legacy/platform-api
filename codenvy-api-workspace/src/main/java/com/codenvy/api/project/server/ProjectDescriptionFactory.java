@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectType;
@@ -25,12 +24,14 @@ import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** @author andrew00x */
 @Singleton
@@ -39,13 +40,15 @@ public class ProjectDescriptionFactory {
     private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
     private final Map<String, ValueProviderFactory> valueProviderFactories;
 
-    public ProjectDescriptionFactory(ProjectTypeRegistry projectTypeRegistry, ProjectTypeDescriptionRegistry typeDescriptionRegistry) {
+    @Inject
+    public ProjectDescriptionFactory(ProjectTypeRegistry projectTypeRegistry,
+                                     ProjectTypeDescriptionRegistry typeDescriptionRegistry,
+                                     Set<ValueProviderFactory> valueProviderFactories) {
         this.projectTypeRegistry = projectTypeRegistry;
         this.typeDescriptionRegistry = typeDescriptionRegistry;
-        // TODO: rework with IoC
-        valueProviderFactories = new HashMap<>();
-        for (ValueProviderFactory valueProviderFactory : ComponentLoader.all(ValueProviderFactory.class)) {
-            valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
+        this.valueProviderFactories = new HashMap<>();
+        for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
+            this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
         }
     }
 

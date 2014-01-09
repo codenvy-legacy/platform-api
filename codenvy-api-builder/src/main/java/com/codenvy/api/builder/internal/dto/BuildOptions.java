@@ -48,4 +48,8 @@ public interface BuildOptions {
     BuildOptions withOptions(Map<String, String> options);
 
     void setOptions(Map<String, String> options);
+
+    boolean isDeployJarWithDependencies();
+
+    void setDeployJarWithDependencies(boolean deployJarWithDependencies);
 }

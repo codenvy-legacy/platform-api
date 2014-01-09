@@ -19,6 +19,9 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import junit.framework.TestCase;
 
+import com.codenvy.api.core.user.User;
+import com.codenvy.api.core.user.UserImpl;
+import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.URLHandlerFactorySetup;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -53,9 +56,6 @@ import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
-import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.services.security.Identity;
-import org.exoplatform.services.security.MembershipEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,12 +65,11 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public abstract class MemoryFileSystemTest extends TestCase {
     protected static EventListenerList eventListenerList;
 
@@ -85,7 +84,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
 
     protected static final String MY_WORKSPACE_ID       = "my-ws";
     protected final        String BASE_URI              = "http://localhost/service";
-    protected final        String SERVICE_URI           = BASE_URI + "/my-ws/vfs/v2/";
+    protected final        String SERVICE_URI           = BASE_URI + "/vfs/my-ws/v2/";
     protected final        String DEFAULT_CONTENT       = "__TEST__";
     protected final        byte[] DEFAULT_CONTENT_BYTES = DEFAULT_CONTENT.getBytes();
 
@@ -118,9 +117,8 @@ public abstract class MemoryFileSystemTest extends TestCase {
         deployer.publish(new VirtualFileSystemApplication());
 
         // RUNTIME VARIABLES
-        ConversationState user =
-                new ConversationState(new Identity("john", new HashSet<MembershipEntry>(), new HashSet<>(Arrays.asList("developer"))));
-        ConversationState.setCurrent(user);
+        User user = new UserImpl("john", Arrays.asList("developer"));
+        UserState.set(new UserState(user));
         EnvironmentContext env = EnvironmentContext.getCurrent();
         env.setVariable(EnvironmentContext.WORKSPACE_ID, MY_WORKSPACE_ID);
         env.setVariable(EnvironmentContext.WORKSPACE_NAME, MY_WORKSPACE_ID);

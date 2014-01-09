@@ -22,6 +22,7 @@ import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.codenvy.api.project.shared.ProjectTypeDescriptionExtension;
 import com.codenvy.api.project.shared.ProjectTypeExtension;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ public class ProjectTypeDescriptionRegistry {
     private final ProjectTypeRegistry                 projectTypeRegistry;
     private final Map<String, ProjectTypeDescription> descriptions;
 
+    @Inject
     public ProjectTypeDescriptionRegistry(ProjectTypeRegistry projectTypeRegistry) {
         this.projectTypeRegistry = projectTypeRegistry;
         descriptions = new ConcurrentHashMap<>();

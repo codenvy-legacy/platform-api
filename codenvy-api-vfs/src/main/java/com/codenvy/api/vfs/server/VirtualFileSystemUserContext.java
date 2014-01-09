@@ -17,10 +17,9 @@
  */
 package com.codenvy.api.vfs.server;
 
+import com.codenvy.api.core.user.User;
+import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
-
-import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.services.security.Identity;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,7 +28,7 @@ import java.util.Set;
 /**
  * Gives access to the current user context, e.g. uses HttpServletRequest to get info about Principal.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class VirtualFileSystemUserContext {
 
@@ -46,20 +45,20 @@ public abstract class VirtualFileSystemUserContext {
 
     private static class DefaultVirtualFileSystemUserContext extends VirtualFileSystemUserContext {
         public VirtualFileSystemUser getVirtualFileSystemUser() {
-            final ConversationState cs = ConversationState.getCurrent();
+            final UserState userState = UserState.get();
 
-            if (cs == null) {
+            if (userState == null) {
                 return new VirtualFileSystemUser(VirtualFileSystemInfo.ANONYMOUS_PRINCIPAL, Collections.<String>emptySet());
             }
-            final Identity identity = cs.getIdentity();
+            final User user = userState.getUser();
             final Set<String> groups = new HashSet<>(2);
-            if (identity.getRoles().contains("developer")) {
+            if (user.isMemberOf("developer")) {
                 groups.add("workspace/developer");
             }
-            if (identity.getRoles().contains("admin")) {
+            if (user.isMemberOf("admin")) {
                 groups.add("workspace/admin");
             }
-            return new VirtualFileSystemUser(identity.getUserId(), groups);
+            return new VirtualFileSystemUser(user.getName(), groups);
         }
     }
 }

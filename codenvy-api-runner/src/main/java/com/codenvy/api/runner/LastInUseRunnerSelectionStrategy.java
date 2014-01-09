@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.runner;
 
+import javax.inject.Singleton;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -24,8 +25,9 @@ import java.util.List;
 /**
  * Implementation of RunnerSelectionStrategy that selects most recent used runner.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
+@Singleton
 public class LastInUseRunnerSelectionStrategy implements RunnerSelectionStrategy, Comparator<RemoteRunner> {
     @Override
     public RemoteRunner select(List<RemoteRunner> remoteRunners) {

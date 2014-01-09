@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.runner.internal;
 
+import javax.inject.Singleton;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -25,8 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Stores available runners.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
+@Singleton
 public class RunnerRegistry {
     private final Map<String, Runner> runners;
 
@@ -38,11 +40,11 @@ public class RunnerRegistry {
      * Add {@code Runner}. Uses {@code String} returned by method {@code Runner.getName()} as runner's identifier. If {@code Runner}
      * with the same name already registered it is replaced by new one.
      *
-     * @param myRunner
+     * @param runner
      *         Runner
      */
-    public void add(Runner myRunner) {
-        runners.put(myRunner.getName(), myRunner);
+    public void add(Runner runner) {
+        runners.put(runner.getName(), runner);
     }
 
     /**

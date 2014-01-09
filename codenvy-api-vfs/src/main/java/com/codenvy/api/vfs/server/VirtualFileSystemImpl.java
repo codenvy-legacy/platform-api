@@ -82,7 +82,7 @@ import java.util.Set;
 /**
  * Base implementation of VirtualFileSystem.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     private static final Logger LOG = LoggerFactory.getLogger(VirtualFileSystemImpl.class);

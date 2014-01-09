@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Describes resource.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface Link {

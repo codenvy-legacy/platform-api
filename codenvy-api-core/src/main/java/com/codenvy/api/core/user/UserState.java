@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.core.user;
 
-import com.codenvy.api.core.concurrent.ThreadLocalPropagateContext;
+import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * User state holder.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class UserState {
     private static final ThreadLocal<UserState> userStateHolder = new ThreadLocal<>();

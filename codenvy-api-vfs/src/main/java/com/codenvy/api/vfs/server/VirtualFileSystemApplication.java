@@ -18,11 +18,9 @@
 package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.ConstraintExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.GitUrlResolveExceptionMapper;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentExceptionMapper;
 import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistExceptionMapper;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.LocalPathResolveExceptionMapper;
 import com.codenvy.api.vfs.server.exceptions.LockExceptionMapper;
 import com.codenvy.api.vfs.server.exceptions.NotSupportedExceptionMapper;
 import com.codenvy.api.vfs.server.exceptions.PermissionDeniedExceptionMapper;
@@ -32,18 +30,17 @@ import javax.ws.rs.core.Application;
 import java.util.HashSet;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class VirtualFileSystemApplication extends Application {
     private final Set<Object> singletons;
 
     private final Set<Class<?>> classes;
 
     public VirtualFileSystemApplication() {
-        classes = new HashSet<>(3);
+        classes = new HashSet<>(2);
         classes.add(VirtualFileSystemFactory.class);
-        classes.add(RequestContextResolver.class);
         classes.add(NoCacheJsonWriter.class);
-        singletons = new HashSet<>(11);
+        singletons = new HashSet<>(9);
         singletons.add(new ContentStreamWriter());
         singletons.add(new ConstraintExceptionMapper());
         singletons.add(new InvalidArgumentExceptionMapper());
@@ -52,8 +49,6 @@ public class VirtualFileSystemApplication extends Application {
         singletons.add(new ItemAlreadyExistExceptionMapper());
         singletons.add(new NotSupportedExceptionMapper());
         singletons.add(new PermissionDeniedExceptionMapper());
-        singletons.add(new LocalPathResolveExceptionMapper());
-        singletons.add(new GitUrlResolveExceptionMapper());
         singletons.add(new VirtualFileSystemRuntimeExceptionMapper());
     }
 

@@ -20,16 +20,12 @@ package com.codenvy.api.runner;
 import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
-import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
@@ -48,6 +44,11 @@ import com.codenvy.dto.server.DtoFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,8 +68,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-public class RunQueue implements Lifecycle {
+/**
+ * @author andrew00x
+ * @author Eugene Voevodin
+ */
+@Singleton
+public class RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(RunQueue.class);
 
     /**
@@ -78,20 +83,14 @@ public class RunQueue implements Lifecycle {
      * <i>http://codenvy.com/api/my_workspace/builder</i> and workspace API at URL: <i>http://codenvy.com/api/my_workspace/workspace</i>
      */
     public static final String BASE_API_URL         = "runner.queue.base_api_url";
-    /**
-     * Name of configuration parameter that set default memory size for application in megabytes. 128 is default value if this property is
-     * not set.
-     */
+    /** Name of configuration parameter that set default memory size for application in megabytes. */
     public static final String DEFAULT_MEMORY_SIZE  = "runner.default_app_mem_size";
     /**
      * Name of configuration parameter that sets max time (in seconds) which request may be in this queue. After this time the request may
-     * be removed from the queue. Default value is 600 seconds (10 minutes).
+     * be removed from the queue.
      */
     public static final String MAX_TIME_IN_QUEUE    = "runner.queue.max_time_in_queue";
-    /**
-     * Name of configuration parameter that sets lifetime (in seconds) of application. After this time the application may be terminated.
-     * Default value is 900 seconds (15 minutes).
-     */
+    /** Name of configuration parameter that sets lifetime (in seconds) of application. After this time the application may be terminated. */
     public static final String APPLICATION_LIFETIME = "runner.queue.app_lifetime";
 
     /** Pause in milliseconds for checking the result of build process. */
@@ -102,25 +101,34 @@ public class RunQueue implements Lifecycle {
     private final ExecutorService                          executor;
     private final ConcurrentMap<RunnerListKey, RunnerList> runnerListMapping;
     private final ConcurrentMap<Long, RunQueueTask>        tasks;
+    private final int                                      defMemSize;
+    private final String                                   baseApiUrl;
+    private final int                                      appLifetime;
+    private final long                                     maxTimeInQueueMillis;
 
-    private String  baseApiUrl;
-    /**
-     * Default size of memory for application. This value used is there is nothing specified in properties of project.
-     *
-     * @see #DEFAULT_MEMORY_SIZE
-     */
-    private int     defMemSize;
-    /**
-     * Max time for request to be in queue in milliseconds.
-     *
-     * @see #MAX_TIME_IN_QUEUE
-     */
-    private long    maxTimeInQueueMillis;
-    private long    appLifetime;
     private boolean started;
 
-    public RunQueue() {
-        runnerSelector = ComponentLoader.one(RunnerSelectionStrategy.class);
+    /**
+     * @param baseApiUrl
+     *         api url
+     * @param defMemSize
+     *         default size of memory for application. This value used is there is nothing specified in properties of project
+     * @param maxTimeInQueue
+     *         Max time for request to be in queue in seconds
+     * @param appLifetime
+     *         application life time in seconds. After this time the application may be terminated.
+     */
+    @Inject
+    public RunQueue(@Named(BASE_API_URL) String baseApiUrl,
+                    @Named(DEFAULT_MEMORY_SIZE) int defMemSize,
+                    @Named(MAX_TIME_IN_QUEUE) int maxTimeInQueue,
+                    @Named(APPLICATION_LIFETIME) int appLifetime,
+                    RunnerSelectionStrategy runnerSelector) {
+        this.baseApiUrl = baseApiUrl;
+        this.defMemSize = defMemSize;
+        this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
+        this.appLifetime = appLifetime;
+        this.runnerSelector = runnerSelector;
         tasks = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("RunQueue-", true));
         runnerListMapping = new ConcurrentHashMap<>();
@@ -130,7 +138,8 @@ public class RunQueue implements Lifecycle {
             throws IOException, RemoteException, RunnerException {
         checkStarted();
         // TODO: check do we need build the project
-        final UriBuilder baseUriBuilder = baseApiUrl == null ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
+        final UriBuilder baseUriBuilder =
+                baseApiUrl == null || baseApiUrl.isEmpty() ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, baseUriBuilder.clone());
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class).withWorkspace(workspace).withProject(project);
         addRequestParameters(descriptor, request);
@@ -276,9 +285,9 @@ public class RunQueue implements Lifecycle {
             return false;
         } else {
             try {
-                // create copy of link when pass it outside!!
-                final BuildTaskDescriptor result =
-                        HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(cancelLink));
+                final BuildTaskDescriptor result = HttpJsonHelper.request(BuildTaskDescriptor.class,
+                                                                          // create copy of link when pass it outside!!
+                                                                          DtoFactory.getInstance().clone(cancelLink));
                 LOG.debug("Build cancellation result {}", result);
                 return result != null && result.getStatus() == BuildStatus.CANCELLED;
             } catch (Exception e) {
@@ -332,22 +341,12 @@ public class RunQueue implements Lifecycle {
         return task;
     }
 
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
-    }
-
-    @Override
+    @PostConstruct
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        baseApiUrl = myConfiguration.get(BASE_API_URL);
-        defMemSize = myConfiguration.getInt(DEFAULT_MEMORY_SIZE, 128);
-        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(myConfiguration.getInt(MAX_TIME_IN_QUEUE, 600));
-        appLifetime = myConfiguration.getInt(APPLICATION_LIFETIME, 900);
-        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/runners.json");
+        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("codenvy/runners.json");
         if (regConf != null) {
             try {
                 final RunnerRegistration[] registrations = JsonHelper.fromJson(regConf, RunnerRegistration[].class, null);
@@ -402,11 +401,11 @@ public class RunQueue implements Lifecycle {
 
     protected synchronized void checkStarted() {
         if (!started) {
-            throw new IllegalArgumentException("Lifecycle instance is not started yet.");
+            throw new IllegalStateException("Is not started yet.");
         }
     }
 
-    @Override
+    @PreDestroy
     public synchronized void stop() {
         checkStarted();
         executor.shutdown();

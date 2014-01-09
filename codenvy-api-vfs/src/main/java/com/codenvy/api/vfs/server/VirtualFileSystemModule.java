@@ -2,8 +2,8 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
- *  All Rights Reserved.
+ * [2012] - [2013] Codenvy, S.A.
+ * All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
@@ -15,25 +15,19 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core;
+package com.codenvy.api.vfs.server;
 
-/**
- * Exception which may be throwing by {code Lifecycle}.
- *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see Lifecycle
- */
-@SuppressWarnings("serial")
-public final class LifecycleException extends RuntimeException {
-    public LifecycleException(String message) {
-        super(message);
-    }
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
-    public LifecycleException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public LifecycleException(Throwable cause) {
-        super(cause);
+/** @author andrew00x */
+@DynaModule
+public class VirtualFileSystemModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        // Initialize empty set of VirtualFileSystemProvider.
+        Multibinder.newSetBinder(binder(), VirtualFileSystemProvider.class);
+        bind(VirtualFileSystemRegistryPlugin.class);
     }
 }

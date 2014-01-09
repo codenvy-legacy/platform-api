@@ -32,7 +32,7 @@ import java.util.List;
 /** @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a> */
 public class GetAvailableFileSystemsTest extends MemoryFileSystemTest {
     public void testAvailableFS() throws Exception {
-        String path = BASE_URI + "/my-ws/vfs";
+        String path = BASE_URI + "/vfs/my-ws";
         ByteArrayContainerResponseWriter wr = new ByteArrayContainerResponseWriter();
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, wr, null);
         //log.info(new String(wr.getBody()));

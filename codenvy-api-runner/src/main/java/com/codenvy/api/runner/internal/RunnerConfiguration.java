@@ -29,48 +29,41 @@ import java.util.Map;
 /**
  * Runner configuration for particular run process.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class RunnerConfiguration {
     private final int        memory;
-    /** Application port. */
-    private final int        port;
-    private final int        debugPort;
     private final List<Link> links;
     private final RunRequest request;
 
-    public RunnerConfiguration(int memory, int port, int debugPort, RunRequest request) {
+    private String  debugHost;
+    private int     debugPort;
+    private boolean debugSuspend;
+
+    public RunnerConfiguration(int memory, RunRequest request) {
         this.memory = memory;
-        this.port = port;
-        this.debugPort = debugPort;
         this.request = request;
-        this.links = null;
+        this.links = new ArrayList<>(2);
+        this.debugPort = -1;
     }
 
-    public RunnerConfiguration(int memory, int port, int debugPort, List<Link> links, RunRequest request) {
+    public RunnerConfiguration(int memory, RunRequest request, List<Link> links) {
         this.memory = memory;
-        this.port = port;
-        this.debugPort = debugPort;
         this.request = request;
         this.links = new ArrayList<>(links);
+        this.debugPort = -1;
     }
 
     public int getMemory() {
         return memory;
     }
 
-    public int getPort() {
-        return port;
-    }
-
-    public int getDebugPort() {
-        return debugPort;
-    }
-
+    /**
+     * Get application links. List of links is modifiable.
+     *
+     * @return application links
+     */
     public List<Link> getLinks() {
-        if (links == null) {
-            return new ArrayList<>(0);
-        }
         return links;
     }
 
@@ -82,13 +75,39 @@ public class RunnerConfiguration {
         return DtoFactory.getInstance().clone(request);
     }
 
+    public String getDebugHost() {
+        return debugHost;
+    }
+
+    public void setDebugHost(String debugHost) {
+        this.debugHost = debugHost;
+    }
+
+    public int getDebugPort() {
+        return debugPort;
+    }
+
+    public void setDebugPort(int debugPort) {
+        this.debugPort = debugPort;
+    }
+
+    public boolean isDebugSuspend() {
+        return debugSuspend;
+    }
+
+    public void setDebugSuspend(boolean debugSuspend) {
+        this.debugSuspend = debugSuspend;
+    }
+
     @Override
     public String toString() {
         return "RunnerConfiguration{" +
                "memory=" + memory +
-               ", port=" + port +
-               ", debugPort=" + debugPort +
+               ", links=" + links +
                ", request=" + request +
+               ", debugHost='" + debugHost + '\'' +
+               ", debugPort=" + debugPort +
+               ", debugSuspend=" + debugSuspend +
                '}';
     }
 }

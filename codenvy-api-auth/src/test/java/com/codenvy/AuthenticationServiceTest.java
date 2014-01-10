@@ -15,12 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.cloudide.auth.server;
+package com.codenvy;
 
 
 import com.codenvy.api.auth.AuthenticationService;
-import com.codenvy.api.auth.sso.client.AuthorizedPrincipal;
-import com.codenvy.api.auth.sso.server.RolesExtractor;
 import com.codenvy.api.auth.sso.server.SsoClientManager;
 import com.codenvy.api.auth.sso.server.TicketManager;
 import com.codenvy.api.auth.sso.server.TokenGenerator;
@@ -31,12 +29,11 @@ import org.everrest.assured.EverrestJetty;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
-import org.testng.annotations.*;
-
-import java.security.Principal;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
 
 import static com.jayway.restassured.RestAssured.given;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
@@ -53,15 +50,12 @@ public class AuthenticationServiceTest {
     SsoClientManager      clientManager;
     @Mock
     TokenGenerator        uniqueTokenGenerator;
-    @Mock
-    RolesExtractor        rolesExtractor;
     @InjectMocks
     AuthenticationService authenticationService;
 
     @BeforeMethod
     public void init() {
         when(uniqueTokenGenerator.generate(12)).thenReturn("0123456789012");
-        when(rolesExtractor.extractRoles(any(Principal.class))).thenReturn(new AuthorizedPrincipal("user"));
     }
 
     @Test(enabled = false)

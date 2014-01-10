@@ -22,7 +22,16 @@ import com.codenvy.api.auth.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
 
-/** Authentication using username and password */
+/** Authentication using username and password.
+ *
+ * @author Sergii Kabashniuk
+ */
 public interface AuthenticationHandler {
+    /**
+     * Authenticate user.
+     *
+     * @return - user principal if authentication is done, throw an {@link com.codenvy.api.auth.AuthenticationException} otherwise.
+     * @throws AuthenticationException
+     */
     Principal authenticate(String username, String password, HttpServletRequest req) throws AuthenticationException;
 }

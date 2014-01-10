@@ -76,11 +76,11 @@ public class AuthenticationService {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
         }
 
-        Principal principal = handler.authenticate(credentials.getUsername(), credentials.getPassword(), httpServletRequest);
-
-        if (principal == null) {
-            throw new AuthenticationException(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        if (credentials == null) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
         }
+
+        Principal principal = handler.authenticate(credentials.getUsername(), credentials.getPassword(), httpServletRequest);
 
         Response.ResponseBuilder response = Response.ok();
 
@@ -102,7 +102,7 @@ public class AuthenticationService {
                 CookieTools.clearCookies(response, tokenAccessCookie.getValue(), httpServletRequest.isSecure());
             }
         }
-        // If we obtained principal  - authentication is done.
+
         final AccessTicket ticket = new AccessTicket(uniqueTokenGenerator.generate(12), principal);
         ticketManager.putAccessTicket(ticket);
 
@@ -130,20 +130,15 @@ public class AuthenticationService {
                 clientManager.logout(accessTicket);
                 // DO NOT REMOVE! This log will be used in statistic analyzing
                 LOG.info("EVENT#user-sso-logged-out# USER#{}#", userPrincipal.getName());
-                response.header("Set-Cookie",
-                                new NewCookie("token-access-key", accessTicket.getAccessToken(), "/api/internal/sso/server", null,
-                                              null, 0, httpServletRequest.isSecure()) + ";HttpOnly");
-                response.header("Set-Cookie",
-                                new NewCookie("session-access-key", accessTicket.getAccessToken(), "/", null, null, 0,
-                                              httpServletRequest.isSecure()) +
-                                ";HttpOnly");
+
+                CookieTools.clearCookies(response, accessTicket.getAccessToken(), httpServletRequest.isSecure());
             } else {
                 LOG.error("AccessTicket not found. Not able to do SSO logout. ");
+                response = Response.status(Response.Status.NOT_FOUND);
             }
         } else {
+            LOG.error("Token not found in request.");
             response = Response.status(Response.Status.BAD_REQUEST);
-            // Cookie not found so we cannot make SSO logout.
-            LOG.error("Token not found in request");
         }
 
         response.cookie(new NewCookie("logged_in", "true", "/", null, null, 0, httpServletRequest.isSecure()));

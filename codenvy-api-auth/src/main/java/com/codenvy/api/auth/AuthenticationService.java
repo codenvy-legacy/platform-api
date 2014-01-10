@@ -17,8 +17,7 @@
  */
 package com.codenvy.api.auth;
 
-import com.codenvy.cloudide.auth.server.handler.JaasAuthenticationHandler;
-import com.codenvy.cloudide.auth.server.ticket.*;
+import com.codenvy.api.auth.sso.server.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,22 +35,23 @@ import java.util.concurrent.TimeUnit;
  * Public rest service to access user specific information.
  *
  * @author Sergii Kabashniuk
+ * @author Alexander Garagatyi
  */
 @Path("auth")
 public class AuthenticationService {
-    private static final Logger LOG                   = LoggerFactory.getLogger(AuthenticationService.class);
-    private final static URI    REDIRECT_AFTER_LOGOUT = URI.create("/site/login");
-    private final static long   TICKET_LIFE_TIME      = TimeUnit.MILLISECONDS.toSeconds(AccessTicketInvalidator.TICKET_LIFE_TIME);
+    public final static  long   TICKET_LIFE_TIME_SECONDS = TimeUnit.DAYS.toSeconds(3);
+    private static final Logger LOG                      = LoggerFactory.getLogger(AuthenticationService.class);
+    private final static URI    REDIRECT_AFTER_LOGOUT    = URI.create("/site/login");
     @Inject
-    protected JaasAuthenticationHandler handler;
+    protected AuthenticationHandler handler;
     @Inject
-    protected TicketManager             ticketManager;
+    protected TicketManager         ticketManager;
     @Inject
-    protected SsoClientManager          clientManager;
+    protected SsoClientManager      clientManager;
     @Inject
-    protected TokenGenerator            uniqueTokenGenerator;
+    protected TokenGenerator        uniqueTokenGenerator;
     @Inject
-    protected RolesExtractor            rolesExtractor;
+    protected RolesExtractor        rolesExtractor;
 
     /**
      * Get token to be able to call secure api methods.

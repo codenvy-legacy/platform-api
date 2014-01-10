@@ -34,7 +34,8 @@ public class AdvancedFactoryValidatorTest {
                 {"0untitled"},
                 {"UU"},
                 {"untitled-proj12"},
-                {"untitled.pro....111"}
+                {"untitled.pro....111"},
+                {"SampleStruts"}
         };
     }
 

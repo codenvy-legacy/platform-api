@@ -21,6 +21,9 @@ import java.util.regex.Pattern;
 
 /** Validate {@code AdvancedFactoryUrl} */
 public class AdvancedFactoryUrlValidator {
+
+    private static final Pattern PROJECT_NAME_VALIDATOR = Pattern.compile("^[\\\\\\w\\\\\\d]+[\\\\\\w\\\\\\d_.-]*$");
+
     /**
      * Validate factory url
      *
@@ -50,6 +53,6 @@ public class AdvancedFactoryUrlValidator {
     }
 
     public static boolean isProjectNameValid(String pname) {
-        return Pattern.compile("^[\\\\\\w\\\\\\d]+[\\\\\\w\\\\\\d_.-]*$").matcher(pname).matches();
+        return PROJECT_NAME_VALIDATOR.matcher(pname).matches();
     }
 }

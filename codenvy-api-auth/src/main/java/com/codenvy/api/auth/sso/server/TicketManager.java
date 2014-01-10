@@ -54,32 +54,4 @@ public interface TicketManager {
      * @return set of access tickets
      */
     Set<AccessTicket> getAccessTickets();
-
-    /**
-     * Execute task with lock of write methods
-     *
-     * @param task
-     *         - task to execute
-     * @return - future result
-     */
-    <V> V executeTaskDuringWriteLock(TickedManagerTask<V> task);
-
-    /**
-     * Execute task with lock of read methods
-     *
-     * @param task
-     *         - task to execute
-     * @return - future result
-     */
-    <V> V executeTaskDuringReadLock(TickedManagerTask<V> task);
-
-    /**
-     * External task what can be executed during read or readWrite lock inside TickedManager
-     *
-     * @param <V>
-     *         - future result of execution
-     */
-    public interface TickedManagerTask<V> {
-        V call();
-    }
 }

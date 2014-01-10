@@ -50,8 +50,8 @@ public class AuthenticationService {
     protected SsoClientManager      clientManager;
     @Inject
     protected TokenGenerator        uniqueTokenGenerator;
-    @Inject
-    protected RolesExtractor        rolesExtractor;
+//    @Inject
+//    protected RolesExtractor        rolesExtractor;
 
     /**
      * Get token to be able to call secure api methods.
@@ -105,7 +105,7 @@ public class AuthenticationService {
             }
         }
         // If we obtained principal  - authentication is done.
-        final AccessTicket ticket = new AccessTicket(uniqueTokenGenerator.generate(12), rolesExtractor.extractRoles(principal));
+        final AccessTicket ticket = new AccessTicket(uniqueTokenGenerator.generate(12), principal);
         ticketManager.putAccessTicket(ticket);
 
         CookieTools.setCookies(response, ticket.getAccessToken(), httpServletRequest.isSecure(), false);

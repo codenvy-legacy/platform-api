@@ -18,35 +18,37 @@
 package com.codenvy.api.auth.sso.server;
 
 
-import com.codenvy.api.auth.sso.client.AuthorizedPrincipal;
-
-import java.io.*;
-import java.util.*;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Random alphanumeric sequence that provide access to codenvy services.
  * Can be saved in the cookie in browser or provides some other way (i.e. query, header).
  */
 public final class AccessTicket implements Externalizable {
-    // TODO replace AuthorizedPrincipal, registered clients and access Token with ClientPrincipal
-    private final Set<String>         registeredClients;
-    private       AuthorizedPrincipal principal;
-
+    private final Set<String> registeredClients;
+    private       Principal   principal;
     /** Time of ticket creation in milliseconds. */
-    private long   creationTime;
+    private       long        creationTime;
     /** Value of access cookie associated with this access key. */
-    private String accessToken;
+    private       String      accessToken;
 
     //used for externalization.
     public AccessTicket() {
         this.registeredClients = new HashSet<>();
     }
 
-    public AccessTicket(String accessToken, AuthorizedPrincipal principal) {
+    public AccessTicket(String accessToken, Principal principal) {
         this(accessToken, principal, System.currentTimeMillis());
     }
 
-    public AccessTicket(String accessToken, AuthorizedPrincipal principal, long creationTime) {
+    public AccessTicket(String accessToken, Principal principal, long creationTime) {
 
         if (accessToken == null) {
             throw new IllegalArgumentException("Invalid access token: " + accessToken);
@@ -59,7 +61,6 @@ public final class AccessTicket implements Externalizable {
         }
         this.accessToken = accessToken;
         this.principal = principal;
-        this.principal.setToken(accessToken);
         this.creationTime = creationTime;
         this.registeredClients = new HashSet<>();
     }
@@ -68,37 +69,13 @@ public final class AccessTicket implements Externalizable {
         return accessToken;
     }
 
-    public AuthorizedPrincipal getPrincipal() {
+    public Principal getPrincipal() {
         return principal;
     }
 
     /** Get time of token creation. */
     public long getCreationTime() {
         return creationTime;
-    }
-
-    /**
-     * Register SSO client for this token.
-     *
-     * @param clientUrl
-     *         - Indicate that SSO server knows about registration of the current user in given client url.
-     */
-    public synchronized void registerClientUrl(String clientUrl) {
-        registeredClients.add(clientUrl);
-    }
-
-    /**
-     * Unregister SSO client for this token.
-     *
-     * @param clientUrl
-     *         - given client url to unregister
-     */
-    public synchronized void unRegisterClientUrl(String clientUrl) {
-        registeredClients.add(clientUrl);
-    }
-
-    public void setPrincipal(AuthorizedPrincipal principal) {
-        this.principal = principal;
     }
 
     /** Get copy of the set of registered clients for this token. */
@@ -153,7 +130,7 @@ public final class AccessTicket implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        principal = (AuthorizedPrincipal)in.readObject();
+        principal = (Principal)in.readObject();
         creationTime = in.readLong();
         accessToken = in.readUTF();
     }

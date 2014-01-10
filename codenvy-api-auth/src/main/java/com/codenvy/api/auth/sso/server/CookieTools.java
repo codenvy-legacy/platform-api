@@ -38,11 +38,13 @@ public class CookieTools {
 
     public static void setCookies(Response.ResponseBuilder builder, String token, boolean secure, boolean isAnonymous) {
         builder.header("Set-Cookie",
-                       new NewCookie("token-access-key", token, ACCESS_COOKIE_PATH, null, null, (int)AuthenticationService.TICKET_LIFE_TIME_SECONDS, secure) +
+                       new NewCookie("token-access-key", token, ACCESS_COOKIE_PATH, null, null,
+                                     (int)AuthenticationService.TICKET_LIFE_TIME_SECONDS, secure) +
                        ";HttpOnly");
         builder.header("Set-Cookie", new NewCookie("session-access-key", token, "/", null, null, -1, secure) + ";HttpOnly");
         if (!isAnonymous) {
-            builder.cookie(new NewCookie("logged_in", "true", "/", null, null, (int)AuthenticationService.TICKET_LIFE_TIME_SECONDS, secure));
+            builder.cookie(
+                    new NewCookie("logged_in", "true", "/", null, null, (int)AuthenticationService.TICKET_LIFE_TIME_SECONDS, secure));
         }
     }
 }

@@ -50,8 +50,6 @@ public class AuthenticationService {
     protected SsoClientManager      clientManager;
     @Inject
     protected TokenGenerator        uniqueTokenGenerator;
-//    @Inject
-//    protected RolesExtractor        rolesExtractor;
 
     /**
      * Get token to be able to call secure api methods.

@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.core.user;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public interface User {
     /** Get user name. */
     String getName();

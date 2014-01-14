@@ -19,6 +19,7 @@ package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
+import javax.inject.Singleton;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,9 +28,10 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Registry for virtual file system providers.
  *
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see VirtualFileSystemFactory
  */
+@Singleton
 public class VirtualFileSystemRegistry {
     private final ConcurrentMap<String, VirtualFileSystemProvider> providers = new ConcurrentHashMap<>();
 

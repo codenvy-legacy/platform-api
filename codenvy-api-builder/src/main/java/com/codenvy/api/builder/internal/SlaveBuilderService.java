@@ -54,7 +54,7 @@ import java.util.Set;
 /**
  * RESTful interface for Builder.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @Path("internal/builder")
 public final class SlaveBuilderService extends Service {

@@ -22,14 +22,16 @@ import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.commons.env.EnvironmentContext;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.ext.ContextResolver;
-import javax.ws.rs.ext.Providers;
+import javax.ws.rs.core.UriInfo;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -37,42 +39,40 @@ import java.util.List;
 /**
  * Provides access to virtual file systems which have registered providers in VirtualFileSystemRegistry.
  *
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
-@Path("{ws-name}/vfs")
+@Path("vfs/{ws-name}")
 public class VirtualFileSystemFactory {
     @Inject
     private VirtualFileSystemRegistry registry;
-
     @Inject
-    private EventListenerList listeners;
-
+    @Nullable
+    private EventListenerList         listeners;
     @Inject
-    private RequestValidator requestValidator;
-
+    @Nullable
+    private RequestValidator          requestValidator;
     @Context
-    private Providers providers;
-
+    private HttpServletRequest        request;
     @Context
-    private javax.servlet.http.HttpServletRequest request;
+    private UriInfo                   uriInfo;
 
     @Path("v2")
     public VirtualFileSystem getFileSystem() throws VirtualFileSystemException {
         validateRequest();
         final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
         VirtualFileSystemProvider provider = registry.getProvider(vfsId);
-        return provider.newInstance(getContext(), listeners);
+        return provider.newInstance(uriInfo.getBaseUri(), listeners);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Collection<VirtualFileSystemInfo> getAvailableFileSystems() throws VirtualFileSystemException {
         validateRequest();
-        Collection<VirtualFileSystemProvider> vfsProviders = registry.getRegisteredProviders();
-        List<VirtualFileSystemInfo> result = new ArrayList<>(vfsProviders.size());
-        RequestContext context = getContext();
+        final Collection<VirtualFileSystemProvider> vfsProviders = registry.getRegisteredProviders();
+        final List<VirtualFileSystemInfo> result = new ArrayList<>(vfsProviders.size());
+        final URI baseUri = uriInfo.getBaseUri();
         for (VirtualFileSystemProvider p : vfsProviders) {
-            VirtualFileSystem fs = p.newInstance(context, listeners);
+            VirtualFileSystem fs = p.newInstance(baseUri, listeners);
             result.add(fs.getInfo());
         }
         return result;
@@ -82,13 +82,5 @@ public class VirtualFileSystemFactory {
         if (requestValidator != null) {
             requestValidator.validate(request);
         }
-    }
-
-    protected RequestContext getContext() {
-        ContextResolver<RequestContext> contextResolver = providers.getContextResolver(RequestContext.class, null);
-        if (contextResolver != null) {
-            return contextResolver.getContext(RequestContext.class);
-        }
-        return null;
     }
 }

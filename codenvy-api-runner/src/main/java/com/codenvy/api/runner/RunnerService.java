@@ -46,9 +46,9 @@ import javax.ws.rs.core.MediaType;
 /**
  * RESTful API for RunQueue.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
-@Path("{ws-name}/runner")
+@Path("runner/{ws-name}")
 @Description("Runner API")
 public class RunnerService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);

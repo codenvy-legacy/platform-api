@@ -20,6 +20,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.project.shared.ValueProvider;
 import com.codenvy.api.vfs.shared.dto.Project;
 
+import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import java.util.List;
  *
  * @author andrew00x
  */
+@Singleton
 public final class DownloadZipValueProviderFactory implements ValueProviderFactory {
     @Override
     public String getName() {

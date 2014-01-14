@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder;
 
+import javax.inject.Singleton;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -24,8 +25,9 @@ import java.util.List;
 /**
  * Implementation of BuilderSelectionStrategy that selects most recent used builder.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
+@Singleton
 public class LastInUseBuilderSelectionStrategy implements BuilderSelectionStrategy, Comparator<RemoteBuilder> {
     @Override
     public RemoteBuilder select(List<RemoteBuilder> remoteBuilders) {

@@ -17,11 +17,12 @@
  */
 package com.codenvy.api.core.util;
 
-import com.codenvy.api.core.config.SingletonConfiguration;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
@@ -47,32 +48,28 @@ import java.util.concurrent.ConcurrentMap;
  * <p/>
  * Note: It is important to release port when it is not needed any more, otherwise it will be not possible to reuse ports.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see #MIN_PORT
  * @see #MAX_PORT
  */
-//@javax.inject.Singleton
+@Singleton
 public class CustomPortService {
-    /** Name of configuration parameter that sets min port number. Default value is 49152. */
+    /** Name of configuration parameter that sets min port number. */
     public static final String MIN_PORT = "sys.resources.min_port";
-    /** Name of configuration parameter that sets max port number. Default value is 65535. */
+    /** Name of configuration parameter that sets max port number. */
     public static final String MAX_PORT = "sys.resources.max_port";
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomPortService.class);
 
-    private static class CustomPortServiceHolder {
-        static final CustomPortService INSTANCE = new CustomPortService(Pair.of(SingletonConfiguration.get().getInt(MIN_PORT, 49152),
-                                                                                SingletonConfiguration.get().getInt(MAX_PORT, 65535)));
-    }
-
-    public static CustomPortService getInstance() {
-        return CustomPortServiceHolder.INSTANCE;
-    }
-
     private final ConcurrentMap<Integer, Boolean> portsInUse;
     private final Pair<Integer, Integer>          range;
 
-    private CustomPortService(Pair<Integer, Integer> range) {
+    @Inject
+    public CustomPortService(@Named(MIN_PORT) int minPort, @Named(MAX_PORT) int maxPort) {
+        this(Pair.of(minPort, maxPort));
+    }
+
+    public CustomPortService(Pair<Integer, Integer> range) {
         if (range.first < 0 || range.second > 65535) {
             throw new IllegalArgumentException(String.format("Invalid port range: [%d:%d]", range.first, range.second));
         }

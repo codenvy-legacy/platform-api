@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.core.util;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 abstract class ProcessManager {
     static ProcessManager newInstance() {
         if (SystemInfo.isUnix()) {

@@ -46,6 +46,10 @@ public class BuilderTest {
     public static class MyBuilder extends Builder {
         MyDelegateBuildLogger logger;
 
+        public MyBuilder(File root, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
+            super(root, numberOfWorkers, queueSize, cleanBuildResultDelay);
+        }
+
         @Override
         public String getName() {
             return "my";
@@ -117,7 +121,7 @@ public class BuilderTest {
     @BeforeTest
     public void setUp() throws Exception {
         repo = createRepository();
-        builder = new MyBuilder();
+        builder = new MyBuilder(repo, Runtime.getRuntime().availableProcessors(), 100, 3600);
         builder.start();
     }
 
@@ -127,9 +131,7 @@ public class BuilderTest {
     }
 
     static java.io.File createRepository() throws Exception {
-        java.io.File root = new java.io.File(
-                new java.io.File(Thread.currentThread().getContextClassLoader().getResource(".").toURI()).getParentFile(),
-                "repo");
+        java.io.File root = new java.io.File(System.getProperty("workDir"), "repo");
         if (!(root.exists() || root.mkdirs())) {
             Assert.fail("Unable create test directory");
         }

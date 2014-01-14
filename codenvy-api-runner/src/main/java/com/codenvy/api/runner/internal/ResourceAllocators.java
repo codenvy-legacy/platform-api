@@ -17,11 +17,12 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.config.SingletonConfiguration;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -39,25 +40,18 @@ import java.util.concurrent.Semaphore;
  *
  * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
  */
-//@javax.inject.Singleton
+@Singleton
 public class ResourceAllocators {
     /** Name of configuration parameter that sets amount of memory (in megabytes) for running application. */
     public static final String TOTAL_APPS_MEM_SIZE = "runner.total_apps_mem_size_mb";
 
     private static final Logger LOG = LoggerFactory.getLogger(ResourceAllocators.class);
 
-    private static class ResourceAllocatorsHolder {
-        static final ResourceAllocators INSTANCE = new ResourceAllocators(SingletonConfiguration.get().getInt(TOTAL_APPS_MEM_SIZE, -1));
-    }
-
-    public static ResourceAllocators getInstance() {
-        return ResourceAllocatorsHolder.INSTANCE;
-    }
-
     private final int       memSize;
     private final Semaphore memSemaphore;
 
-    private ResourceAllocators(int memSize) {
+    @Inject
+    public ResourceAllocators(@Named(TOTAL_APPS_MEM_SIZE) int memSize) {
         if (memSize <= 0) {
             throw new IllegalArgumentException(String.format("Invalid mem size %d", memSize));
         }

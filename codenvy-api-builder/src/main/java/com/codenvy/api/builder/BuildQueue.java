@@ -29,14 +29,10 @@ import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
-import com.codenvy.api.core.Lifecycle;
-import com.codenvy.api.core.config.Configuration;
-import com.codenvy.api.core.config.SingletonConfiguration;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
-import com.codenvy.api.core.util.ComponentLoader;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
@@ -47,6 +43,11 @@ import com.codenvy.dto.server.DtoFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,17 +74,17 @@ import java.util.concurrent.TimeUnit;
  *
  * @author andrew00x
  * @author Eugene Voevodin
- * @see Configuration
  */
-public class BuildQueue implements Lifecycle {
+@Singleton
+public class BuildQueue {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
     /**
      * Name of configuration parameter that sets max time (in seconds) which request may be in this queue. After this time the results of
-     * build may be removed. Default value is 600 seconds (10 minutes).
+     * build may be removed.
      */
     public static final String MAX_TIME_IN_QUEUE = "builder.queue.max_time_in_queue";
-    /** Name of configuration parameter that provides build timeout is seconds (by default 300). After this time build may be terminated. */
+    /** Name of configuration parameter that provides build timeout is seconds. After this time build may be terminated. */
     public static final String BUILD_TIMEOUT     = "builder.queue.build_timeout";
 
     private static final long CHECK_AVAILABLE_BUILDER_DELAY = 2000;
@@ -92,15 +93,19 @@ public class BuildQueue implements Lifecycle {
     private final ExecutorService                            executor;
     private final ConcurrentMap<Long, BuildQueueTask>        tasks;
     private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
-
+    private final int                                        timeout;
     /** Max time for request to be in queue in milliseconds. */
-    private long    maxTimeInQueueMillis;
-    /** Build timeout in seconds. */
-    private long    timeout;
+    private final long                                       maxTimeInQueueMillis;
+
     private boolean started;
 
-    public BuildQueue() {
-        builderSelector = ComponentLoader.one(BuilderSelectionStrategy.class);
+    @Inject
+    public BuildQueue(@Named(MAX_TIME_IN_QUEUE) int maxTimeInQueue,
+                      @Named(BUILD_TIMEOUT) int timeout,
+                      BuilderSelectionStrategy builderSelector) {
+        this.timeout = timeout;
+        this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
+        this.builderSelector = builderSelector;
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("BuildQueue-", true));
         tasks = new ConcurrentHashMap<>();
         builderListMapping = new ConcurrentHashMap<>();
@@ -237,6 +242,7 @@ public class BuildQueue implements Lifecycle {
         if (buildOptions != null) {
             request.setOptions(buildOptions.getOptions());
             request.setTargets(buildOptions.getTargets());
+            request.setDeployJarWithDependencies(buildOptions.isDeployJarWithDependencies());
         }
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
@@ -350,9 +356,7 @@ public class BuildQueue implements Lifecycle {
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException {
-        final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder().replacePath(
-                "/ide/rest"); //TODO: temporary add this until we not move all services to the API war
-
+        final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
         final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
                                                 .path(WorkspaceService.class, "getProject")
                                                 .build(workspace).toString();
@@ -429,17 +433,12 @@ public class BuildQueue implements Lifecycle {
         return task;
     }
 
-    @Override
+    @PostConstruct
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final Configuration myConfiguration = getConfiguration();
-        LOG.debug("{}", myConfiguration);
-        maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(myConfiguration.getInt(MAX_TIME_IN_QUEUE, 600));
-        timeout = myConfiguration.getInt(BUILD_TIMEOUT, 300);
-        final InputStream regConf =
-                Thread.currentThread().getContextClassLoader().getResourceAsStream("conf/builders.json");
+        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("codenvy/builders.json");
         if (regConf != null) {
             try {
                 final BuilderRegistration[] registrations = JsonHelper.fromJson(regConf, BuilderRegistration[].class, null);
@@ -493,15 +492,11 @@ public class BuildQueue implements Lifecycle {
 
     protected synchronized void checkStarted() {
         if (!started) {
-            throw new IllegalArgumentException("Lifecycle instance is not started yet.");
+            throw new IllegalStateException("Is not started yet.");
         }
     }
 
-    protected Configuration getConfiguration() {
-        return SingletonConfiguration.get();
-    }
-
-    @Override
+    @PreDestroy
     public synchronized void stop() {
         checkStarted();
         executor.shutdown();

@@ -23,7 +23,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.6.1-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-core</artifactId>
     <packaging>jar</packaging>
@@ -32,6 +32,11 @@
         <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>com.codenvy.commons</groupId>
+            <artifactId>codenvy-commons-inject</artifactId>
+            <version>${codenvy.commons.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-json</artifactId>

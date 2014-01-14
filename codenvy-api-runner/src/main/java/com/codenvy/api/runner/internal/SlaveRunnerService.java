@@ -63,6 +63,9 @@ public class SlaveRunnerService extends Service {
     @Inject
     private RunnerRegistry runners;
 
+    @Inject
+    private ResourceAllocators allocators;
+
     /** Get list of available Runners which can be accessible over this SlaveRunnerService. */
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)
     @GET
@@ -128,7 +131,6 @@ public class SlaveRunnerService extends Service {
                                       @Description("Name of the runner")
                                       @QueryParam("runner") String runner) throws Exception {
         final Runner myRunner = getRunner(runner);
-        final ResourceAllocators allocators = ResourceAllocators.getInstance();
         return DtoFactory.getInstance().createDto(RunnerState.class)
                          .withName(myRunner.getName())
                          .withRunningAppsNum(myRunner.getRunningAppsNum())
@@ -179,8 +181,10 @@ public class SlaveRunnerService extends Service {
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())
                          .withStatus(status)
+                         .withStartTime(process.getStartTime())
+                         .withStopTime(process.getStopTime())
                          .withLinks(links)
-                         .withPort(process.getConfiguration().getPort())
+                         .withDebugHost(process.getConfiguration().getDebugHost())
                          .withDebugPort(process.getConfiguration().getDebugPort());
     }
 }

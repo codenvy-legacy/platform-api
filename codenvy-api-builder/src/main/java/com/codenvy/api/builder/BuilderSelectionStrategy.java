@@ -24,10 +24,8 @@ import java.util.List;
  * find the 'best' slave-builder for processing incoming build request. If more then one slave-builder available then BuildQueue collects
  * them (their front-ends which are represented by RemoteBuilder) and passes to implementation of this interface. This implementation
  * should select the 'best' one.
- * <p/>
- * FQN of implementation of this interface must be placed in file META-INF/services/com.codenvy.api.builder.BuilderSelectionStrategy
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface BuilderSelectionStrategy {
     RemoteBuilder select(List<RemoteBuilder> remoteBuilders);

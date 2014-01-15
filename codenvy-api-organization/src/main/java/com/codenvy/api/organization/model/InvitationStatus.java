@@ -15,11 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization;
 
+package com.codenvy.api.organization.model;
 
-import javax.ws.rs.Path;
-
-@Path("/workspace")
-public class WorkspaceService {
+/** Enum to keep all available {@link Invitation} statuses in one place. */
+public enum InvitationStatus {
+    ACTIVE,
+    INACTIVE
 }

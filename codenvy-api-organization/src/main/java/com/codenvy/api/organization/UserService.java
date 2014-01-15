@@ -17,5 +17,9 @@
  */
 package com.codenvy.api.organization;
 
+
+import javax.ws.rs.Path;
+
+@Path("/user")
 public class UserService {
 }

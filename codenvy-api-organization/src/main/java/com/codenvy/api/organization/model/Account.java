@@ -27,12 +27,12 @@ import java.util.*;
  * information associated with workspaces it owns and their members. It may also determine workspace members'
  * behaviour.
  * This is how account interacts with the other organization service entities: <ul> <li>Account must have single owner
- * represented by {@link User}.</li> <li>Account can have zero or more {@link Workspace}.</li> </ul>
+ * represented by {@link User_old}.</li> <li>Account can have zero or more {@link Workspace}.</li> </ul>
  */
 public class Account extends AbstractOrganizationUnit {
     /**
      * Account owner identifier. In terms of organization service an owner of an account is a user. To getById more
-     * information about user identifiers check {@link  User#id}.
+     * information about user identifiers check {@link  User_old#id}.
      */
     private ItemReference owner;
 

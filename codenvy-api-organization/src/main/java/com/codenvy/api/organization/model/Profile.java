@@ -27,10 +27,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * POJO representation of profile entity contained in {@link User} . Each user always has
+ * POJO representation of profile entity contained in {@link User_old} . Each user always has
  * only one profile. Profile is usually used as a container of user related attributes.
  */
-public class Profile implements Externalizable {
+public class Profile extends AbstractOrganizationUnit {
     /** Map containing attributes */
     private Map<String, String> attributes = new LinkedHashMap<>();
 

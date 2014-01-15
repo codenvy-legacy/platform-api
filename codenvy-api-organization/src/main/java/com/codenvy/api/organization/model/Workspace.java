@@ -27,7 +27,7 @@ import java.util.*;
  * POJO representation of workspace entity used in organization service. Basically used to group all users in one
  * place.
  * This is how a account interacts with the organization service entities: <ul> <li>Workspace must have an owner
- * represented by {@link Account}.</li> <li>Workspace can have zero or more members represented by {@link User}.</li>
+ * represented by {@link Account}.</li> <li>Workspace can have zero or more members represented by {@link User_old}.</li>
  * </ul>
  */
 public class Workspace extends AbstractOrganizationUnit {
@@ -44,7 +44,7 @@ public class Workspace extends AbstractOrganizationUnit {
      * user.
      * This variable is a set of identifiers of users who are the members of current workspace. To getById more
      * information
-     * about user identifiers check {@link User#id}
+     * about user identifiers check {@link User_old#id}
      */
     private Map<String, Member> members = new HashMap<>();
 

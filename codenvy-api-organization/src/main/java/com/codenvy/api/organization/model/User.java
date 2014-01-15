@@ -41,80 +41,61 @@ public class User extends AbstractOrganizationUnit {
      */
     private Set<String> aliases = new LinkedHashSet<>();
 
+    /** User email */
+    private String email;
+
     /** User password */
     private String password;
 
-    /** User profile */
-    private Profile profile = new Profile();
+    /** User profile ID */
+    private String profileId;
 
-
-    /**
-     * Any user can be a member of arbitrary set of workspaces. The set of identifiers (names) of those workspaces is
-     * represented by this variable. In context of organization service workspace identifiers (names) are case
-     * insensitive. <p> To getById more information about workspaces check {@link Workspace} </p> As a user can be a
-     * member
-     * of arbitrary set of workspaces one can assign the user a set of role associated with specific workspace. The
-     * variable contains user role associations.
-     */
-    private Map<String, Membership> memberships = new HashMap<>();
-
-    /**
-     * Any user can be an owner of arbitrary set of accounts. The set of identifiers (names) of those accounts is
-     * represented by this variable. In context of organization service workspace identifiers (names) are case
-     * insensitive. <p> To getById more information about accounts check {@link Account} </p>
-     */
-    private Map<String, ItemReference> accounts = new HashMap<>();
 
     public User() {
     }
 
-    public User(String alias) {
-        addAlias(alias);
+    public User(String email) {
+        this.email = email;
     }
 
-    public User(String alias, String password) {
-        addAlias(alias);
+    public User(String email, String password) {
+        this.email = email;
         this.password = password;
     }
 
     public User(User source) {
         this.id = source.getId();
+        this.email = source.getEmail();
         this.password = source.getPassword();
         Set<Link> newLinks = new HashSet<>();
         for (Link one : source.getLinks())
             newLinks.add(new Link(one.getType(), one.getHref(), one.getRel()));
         this.links = newLinks;
 
-        for (ItemReference account : source.getAccounts()) {
-            accounts.put(account.getId(), new ItemReference(account));
-        }
 
         Set<String> aliases = new HashSet<>();
         for (String alias : source.getAliases())
             aliases.add(alias);
         this.aliases = aliases;
-
-        for (Membership membership : source.getMemberships()) {
-            Set<Role> newRoles = new LinkedHashSet<>();
-            for (Role role : membership.getRoles()) {
-                newRoles.add(new Role(role.getName(), role.getDescription()));
-            }
-
-            Membership newMembership = new Membership();
-            newMembership.setRoles(newRoles);
-            newMembership.setWorkspace(new ItemReference(membership.getWorkspace()));
-
-            this.memberships.put(newMembership.getWorkspace().getId(), newMembership);
-        }
-
-        Map<String, String> attributes = new HashMap<>(source.getProfile().getAttributes());
-
-        Profile newProfile = new Profile();
-        newProfile.setAttributes(attributes);
-        this.profile = newProfile;
+        this.profileId = source.getProfileId();
         this.temporary = source.isTemporary();
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getProfileId() {
+        return profileId;
+    }
+
+    public void setProfileId(String profileId) {
+        this.profileId = profileId;
+    }
 
     public Set<String> getAliases() {
         return Collections.unmodifiableSet(aliases);
@@ -132,84 +113,6 @@ public class User extends AbstractOrganizationUnit {
         this.password = password;
     }
 
-    public Profile getProfile() {
-        return profile;
-    }
-
-    public void setProfile(Profile profile) {
-        this.profile = profile;
-    }
-
-    public Set<Membership> getMemberships() {
-        return Collections.unmodifiableSet(new LinkedHashSet<>(memberships.values()));
-    }
-
-    public boolean containsMembership(String workspaceId) {
-        return memberships.containsKey(workspaceId);
-    }
-
-    public void setMemberships(Set<Membership> memberships) {
-        HashMap<String, Membership> membershipMap = new HashMap<>();
-        for (Membership membership : memberships) {
-            membershipMap.put(membership.getWorkspace().getId(), membership);
-        }
-        this.memberships = membershipMap;
-    }
-
-    public Set<ItemReference> getAccounts() {
-        return Collections.unmodifiableSet(new LinkedHashSet<>(accounts.values()));
-    }
-
-    public boolean containsAccount(String accountId) {
-        return accounts.containsKey(accountId);
-    }
-
-    public void setAccounts(Set<ItemReference> accounts) {
-        HashMap<String, ItemReference> accountsMap = new HashMap<>();
-        for (ItemReference accountReference : accounts) {
-            accountsMap.put(accountReference.getId(), accountReference);
-        }
-        this.accounts = accountsMap;
-    }
-
-    //==============================================================
-
-    public Membership getMembership(String workspaceId) {
-        return memberships.get(workspaceId);
-    }
-
-    public void addMembership(Membership membership) {
-        memberships.put(membership.getWorkspace().getId(), membership);
-    }
-
-    public void removeMembership(Membership membership) {
-        memberships.remove(membership.getWorkspace().getId());
-    }
-
-    public void addMembership(String workspaceId) {
-        addMembership(new Membership(workspaceId));
-    }
-
-    public void removeMembership(String workspaceId) {
-        memberships.remove(workspaceId);
-    }
-
-    public void addMembershipRole(String roleName, String workspaceId) {
-        getMembership(workspaceId).addRole(roleName);
-    }
-
-    public void removeMembershipRole(String roleName, String workspaceId) {
-        getMembership(workspaceId).removeRole(roleName);
-    }
-
-    public void addMembershipRole(Role role, String workspaceId) {
-        getMembership(workspaceId).addRole(role);
-    }
-
-    public void removeMembershipRole(Role role, String workspaceId) {
-        getMembership(workspaceId).removeRole(role);
-    }
-
     public void addAlias(String alias) {
         aliases.add(toLowerCase(alias));
     }
@@ -221,26 +124,6 @@ public class User extends AbstractOrganizationUnit {
         aliases.remove(toLowerCase(alias));
     }
 
-    @Deprecated
-    public void addAccount(String accountId) {
-        accounts.put(accountId, new ItemReference(accountId));
-    }
-
-    public void removeAccount(String accountId) {
-        accounts.remove(accountId);
-    }
-
-    public void addAccount(ItemReference accountReference) {
-        accounts.put(accountReference.getId(), accountReference);
-    }
-
-    public void removeAccount(ItemReference accountReference) {
-        accounts.remove(accountReference.getId());
-    }
-
-    //==============================================================
-
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -249,11 +132,8 @@ public class User extends AbstractOrganizationUnit {
         User user = (User)o;
 
         if (temporary != user.temporary) return false;
-        if (accounts != null ? !accounts.equals(user.accounts) : user.accounts != null) return false;
         if (aliases != null ? !aliases.equals(user.aliases) : user.aliases != null) return false;
-        if (memberships != null ? !memberships.equals(user.memberships) : user.memberships != null) return false;
         if (password != null ? !password.equals(user.password) : user.password != null) return false;
-        if (profile != null ? !profile.equals(user.profile) : user.profile != null) return false;
 
         return true;
     }
@@ -262,10 +142,7 @@ public class User extends AbstractOrganizationUnit {
     public int hashCode() {
         int result = aliases != null ? aliases.hashCode() : 0;
         result = 31 * result + (password != null ? password.hashCode() : 0);
-        result = 31 * result + (profile != null ? profile.hashCode() : 0);
         result = 31 * result + (temporary ? 1 : 0);
-        result = 31 * result + (memberships != null ? memberships.hashCode() : 0);
-        result = 31 * result + (accounts != null ? accounts.hashCode() : 0);
         return result;
     }
 
@@ -274,10 +151,7 @@ public class User extends AbstractOrganizationUnit {
         return "User{" +
                "aliases=" + aliases +
                ", password='" + password + '\'' +
-               ", profile=" + profile +
                ", temporary=" + temporary +
-               ", memberships=" + memberships +
-               ", accounts=" + accounts +
                '}';
     }
 
@@ -291,20 +165,6 @@ public class User extends AbstractOrganizationUnit {
         password = (String)in.readObject();
         Profile profile = new Profile();
         profile.readExternal(in);
-        this.profile = profile;
-        int membershipsSize = in.readInt();
-        for (int i = 0; i < membershipsSize; ++i) {
-            Membership membership = new Membership();
-            membership.readExternal(in);
-            memberships.put(membership.getWorkspace().getId(), membership);
-        }
-
-        int accountsSize = in.readInt();
-        for (int i = 0; i < accountsSize; ++i) {
-            ItemReference acc = new ItemReference();
-            acc.readExternal(in);
-            accounts.put(acc.getId(), acc);
-        }
     }
 
     @Override
@@ -315,15 +175,5 @@ public class User extends AbstractOrganizationUnit {
             out.writeUTF(one);
         }
         out.writeObject(password);
-        profile.writeExternal(out);
-        out.writeInt(memberships.size());
-        for (Membership one : memberships.values()) {
-            one.writeExternal(out);
-        }
-        out.writeInt(accounts.size());
-        for (ItemReference one : accounts.values()) {
-            one.writeExternal(out);
-        }
-
     }
 }

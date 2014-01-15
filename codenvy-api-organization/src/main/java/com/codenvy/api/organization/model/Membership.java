@@ -26,7 +26,7 @@ import java.util.*;
 
 
 /**
- * POJO representation of membership entity contained in {@link User} . Each user may have
+ * POJO representation of membership entity contained in {@link User_old} . Each user may have
  * several membreships.
  */
 public class Membership implements Externalizable {

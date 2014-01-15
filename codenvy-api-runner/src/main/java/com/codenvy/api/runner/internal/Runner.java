@@ -119,7 +119,15 @@ public abstract class Runner {
     @PreDestroy
     public synchronized void stop() {
         checkStarted();
-        executor.shutdownNow();
+        for (RunnerProcessEntry processEntry : processes.values()) {
+            try {
+                if (processEntry.process.isRunning()) {
+                    processEntry.process.cancel();
+                }
+            } catch (Throwable t) {
+                LOG.error(t.getMessage(), t);
+            }
+        }
         List<Disposer> allDisposers = new ArrayList<>();
         synchronized (applicationDisposersLock) {
             for (List<Disposer> disposerList : applicationDisposers.values()) {
@@ -153,6 +161,7 @@ public abstract class Runner {
                 }
             }
         }
+        executor.shutdownNow();
         processes.clear();
         started = false;
     }

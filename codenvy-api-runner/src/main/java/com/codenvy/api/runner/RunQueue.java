@@ -313,7 +313,8 @@ public class RunQueue {
             // 1. not started, may be because too long build process
             // 2. running longer then expect
             if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
-                || ((sendTime = task.getSendToRemoteRunnerTime()) > 0 && (sendTime + task.getRequest().getLifetime()) < timestamp)) {
+                || ((sendTime = task.getSendToRemoteRunnerTime()) > 0
+                    && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getLifetime())) < timestamp)) {
                 try {
                     task.cancel();
                 } catch (Exception e) {

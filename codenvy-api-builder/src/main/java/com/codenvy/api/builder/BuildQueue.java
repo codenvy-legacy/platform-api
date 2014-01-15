@@ -404,7 +404,8 @@ public class BuildQueue {
             boolean waiting;
             long sendTime;
             if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
-                || ((sendTime = task.getSendToRemoteBuilderTime()) > 0 && (sendTime + task.getRequest().getTimeout()) < timestamp)) {
+                || ((sendTime = task.getSendToRemoteBuilderTime()) > 0
+                    && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getTimeout())) < timestamp)) {
                 try {
                     task.cancel();
                 } catch (Exception e) {

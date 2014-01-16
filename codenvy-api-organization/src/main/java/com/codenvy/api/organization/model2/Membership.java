@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,10 +15,8 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-
 package com.codenvy.api.organization.model2;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -27,34 +25,16 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface Workspace {
-    String getId();
+public interface Membership {
+    String getUserId();
 
-    void setId(String id);
+    void setUserId(String id);
 
-    Workspace withId(String id);
+    Member withUserId(String id);
 
-    String getName();
+    List<String> getRoles();
 
-    void setName(String name);
+    void setRoles(List<String> roles);
 
-    Workspace withName(String name);
-
-    String getOwner();
-
-    void setOwner(String owner);
-
-    Workspace withOwner(String owner);
-
-    List<Attribute> getAttributes();
-
-    void setAttributes(List<Attribute> attributes);
-
-    Workspace withAttributes(List<Attribute> attributes);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    Workspace withLinks(List<Link> links);
+    Member withRoles(List<String> roles);
 }

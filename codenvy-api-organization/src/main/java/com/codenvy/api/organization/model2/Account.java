@@ -21,7 +21,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author andrew00x
@@ -34,17 +33,17 @@ public interface Account {
 
     Account withOwner(String owner);
 
-    Map<String, String> getAttributes();
+    List<Attribute> getAttributes();
 
-    void setAttributes(Map<String, String> attributes);
+    void setAttributes(List<Attribute> attributes);
 
-    Account withAttributes(Map<String, String> attributes);
+    Account withAttributes(List<Attribute> attributes);
 
     List<String> getWorkspaces();
 
-    void setWorkspaces(List<String> workspaceIds);
+    void setWorkspaces(List<String> workspaces);
 
-    Account withWorkspaces(List<String> workspaceIds);
+    Account withWorkspaces(List<String> workspaces);
 
     String getName();
 

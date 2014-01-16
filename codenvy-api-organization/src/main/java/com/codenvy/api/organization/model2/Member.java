@@ -19,28 +19,32 @@
 package com.codenvy.api.organization.model2;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.organization.model.Role;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author andrew00x
  */
 @DTO
 public interface Member {
-    Set<Role> getRoles();
+    List<String> getRoles();
 
-    void setRoles(Set<Role> roles);
+    void setRoles(List<String> roles);
 
-    Member withRoles(Set<Role> roles);
+    Member withRoles(List<String> roles);
 
     String getUserId();
 
     void setUserId(String id);
 
     Member withUserId(String id);
+
+    String getWorkspaceId();
+
+    void setWorkspaceId(String id);
+
+    Member withWorkspaceId(String id);
 
     List<Link> getLinks();
 

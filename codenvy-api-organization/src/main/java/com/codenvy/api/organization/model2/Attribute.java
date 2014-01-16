@@ -24,16 +24,22 @@ import com.codenvy.dto.shared.DTO;
  * @author andrew00x
  */
 @DTO
-public interface Role {
+public interface Attribute {
     String getName();
 
     void setName(String name);
 
-    Role withName(String name);
+    Attribute withName(String name);
+
+    String getValue();
+
+    void setValue(String value);
+
+    Attribute withValue(String value);
 
     String getDescription();
 
     void setDescription(String description);
 
-    Role withDescription(String description);
+    Attribute withDescription(String description);
 }

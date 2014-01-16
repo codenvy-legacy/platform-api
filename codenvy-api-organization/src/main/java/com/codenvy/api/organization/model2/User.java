@@ -21,7 +21,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author andrew00x
@@ -34,11 +33,11 @@ public interface User {
 
     User whitId(String id);
 
-    Set<String> getAliases();
+    List<String> getAliases();
 
-    void setAliases(Set<String> aliases);
+    void setAliases(List<String> aliases);
 
-    User whitAliases(Set<String> aliases);
+    User whitAliases(List<String> aliases);
 
     String getEmail();
 

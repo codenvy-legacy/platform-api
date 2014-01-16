@@ -22,7 +22,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author andrew00x
@@ -36,11 +35,11 @@ public interface Workspace {
 
     Workspace withOwner(String owner);
 
-    Map<String, String> getAttributes();
+    List<Attribute> getAttributes();
 
-    void setAttributes(Map<String, String> attributes);
+    void setAttributes(List<Attribute> attributes);
 
-    Workspace withAttributes(Map<String, String> attributes);
+    Workspace withAttributes(List<Attribute> attributes);
 
     String getName();
 

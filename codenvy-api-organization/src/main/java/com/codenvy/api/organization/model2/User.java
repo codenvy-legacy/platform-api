@@ -31,13 +31,13 @@ public interface User {
 
     void setId(String id);
 
-    User whitId(String id);
+    User withId(String id);
 
     List<String> getAliases();
 
     void setAliases(List<String> aliases);
 
-    User whitAliases(List<String> aliases);
+    User withAliases(List<String> aliases);
 
     String getEmail();
 

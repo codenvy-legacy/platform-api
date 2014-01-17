@@ -28,6 +28,13 @@ import java.util.List;
  */
 @DTO
 public interface Profile {
+
+    void setId(String id);
+
+    String getId();
+
+    Profile withId(String id);
+
     String getUserId();
 
     void setUserId(String id);

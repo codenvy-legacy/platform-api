@@ -40,12 +40,6 @@ public interface Workspace {
 
     Workspace withName(String name);
 
-    String getOwner();
-
-    void setOwner(String owner);
-
-    Workspace withOwner(String owner);
-
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);

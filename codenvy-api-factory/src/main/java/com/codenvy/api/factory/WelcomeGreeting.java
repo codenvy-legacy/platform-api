@@ -4,15 +4,15 @@ package com.codenvy.api.factory;
 public class WelcomeGreeting {
 
     private String title;
-    private String iconUrl;
+    private String iconurl;
     private String content;
 
     public WelcomeGreeting() {
     }
 
-    public WelcomeGreeting(String title, String iconUrl, String content) {
+    public WelcomeGreeting(String title, String iconurl, String content) {
         this.title = title;
-        this.iconUrl = iconUrl;
+        this.iconurl = iconurl;
         this.content = content;
     }
 
@@ -24,12 +24,12 @@ public class WelcomeGreeting {
         this.title = title;
     }
 
-    public String getIconUrl() {
-        return iconUrl;
+    public String getIconurl() {
+        return iconurl;
     }
 
-    public void setIconUrl(String iconUrl) {
-        this.iconUrl = iconUrl;
+    public void setIconurl(String iconurl) {
+        this.iconurl = iconurl;
     }
 
     public String getContent() {
@@ -48,7 +48,7 @@ public class WelcomeGreeting {
         WelcomeGreeting that = (WelcomeGreeting)o;
 
         if (content != null ? !content.equals(that.content) : that.content != null) return false;
-        if (iconUrl != null ? !iconUrl.equals(that.iconUrl) : that.iconUrl != null) return false;
+        if (iconurl != null ? !iconurl.equals(that.iconurl) : that.iconurl != null) return false;
         if (title != null ? !title.equals(that.title) : that.title != null) return false;
 
         return true;
@@ -57,7 +57,7 @@ public class WelcomeGreeting {
     @Override
     public int hashCode() {
         int result = title != null ? title.hashCode() : 0;
-        result = 31 * result + (iconUrl != null ? iconUrl.hashCode() : 0);
+        result = 31 * result + (iconurl != null ? iconurl.hashCode() : 0);
         result = 31 * result + (content != null ? content.hashCode() : 0);
         return result;
     }

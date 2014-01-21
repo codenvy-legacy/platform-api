@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
  * 
  * NOTICE:  All information contained herein is, and remains
@@ -15,18 +15,19 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.server;
+package com.codenvy.api.core.rest.annotations;
 
-/** @author andrew00x */
-public class Constants {
-    // rels for known project links
-    public static final String LINK_REL_GET_PROJECTS   = "get projects";
-    public static final String LINK_REL_GET_PROJECT    = "get project";
-    public static final String LINK_REL_CREATE_PROJECT = "create project";
-    public static final String LINK_REL_UPDATE_PROJECT = "update project";
+import javax.ws.rs.HttpMethod;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-    public static final String LINK_REL_PROJECT_TYPES = "project types";
-
-    private Constants() {
-    }
+/**
+ * @author andrew00x
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@HttpMethod("OPTIONS")
+public @interface OPTIONS {
 }

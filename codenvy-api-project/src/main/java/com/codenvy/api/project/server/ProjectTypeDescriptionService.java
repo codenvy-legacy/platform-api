@@ -18,6 +18,8 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.annotations.Description;
+import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
@@ -38,11 +40,12 @@ import java.util.List;
  *
  * @author gazarenkov
  */
-@Path("projectdescription") // TODO: nice name in url pattern
+@Path("project-description")
 public class ProjectTypeDescriptionService extends Service {
     @Inject
     private ProjectTypeDescriptionRegistry registry;
 
+    @GenerateLink(rel = Constants.LINK_REL_PROJECT_TYPES)
     @GET
     @Path("descriptions")
     @Produces(MediaType.APPLICATION_JSON)
@@ -55,7 +58,8 @@ public class ProjectTypeDescriptionService extends Service {
             descriptor.setProjectTypeName(projectType.getName());
             final List<AttributeDescriptor> attributeDescriptors = new ArrayList<>();
             for (AttributeDescription attributeDescription : typeDescription.getAttributeDescriptions()) {
-                attributeDescriptors.add(DtoFactory.getInstance().createDto(AttributeDescriptor.class).withName(attributeDescription.getName()));
+                attributeDescriptors.add(DtoFactory.getInstance().createDto(AttributeDescriptor.class)
+                                                   .withName(attributeDescription.getName()));
             }
             descriptor.setAttributeDescriptors(attributeDescriptors);
             types.add(descriptor);

@@ -92,7 +92,7 @@ public class RemoteServiceDescriptor {
             synchronized (this) {
                 myServiceDescriptor = serviceDescriptor;
                 if (myServiceDescriptor == null) {
-                    myServiceDescriptor = serviceDescriptor = HttpJsonHelper.get(ServiceDescriptor.class, baseUrl);
+                    myServiceDescriptor = serviceDescriptor = HttpJsonHelper.options(ServiceDescriptor.class, baseUrl);
                 }
             }
         }

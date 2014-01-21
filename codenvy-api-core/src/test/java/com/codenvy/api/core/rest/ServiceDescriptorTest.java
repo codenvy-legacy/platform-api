@@ -160,7 +160,7 @@ public class ServiceDescriptorTest {
 
     private ServiceDescriptor getDescriptor() throws Exception {
         String path = SERVICE_URI;
-        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, null, null);
+        ContainerResponse response = launcher.service("OPTIONS", path, BASE_URI, null, null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         return (ServiceDescriptor)response.getEntity();
     }

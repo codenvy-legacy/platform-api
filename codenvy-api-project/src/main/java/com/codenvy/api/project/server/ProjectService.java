@@ -66,7 +66,7 @@ public class ProjectService extends Service {
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECT)
     @GET
-    @Path("project")
+    @Path("description")
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor getProject(@Required @Description("project name") @QueryParam("name") String name)
             throws VirtualFileSystemException {
@@ -80,7 +80,7 @@ public class ProjectService extends Service {
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
-    @Path("projects")
+    @Path("list")
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("unchecked")
     public List<ProjectReference> getProjects(@PathParam("ws-name") String workspace) throws VirtualFileSystemException {
@@ -99,7 +99,7 @@ public class ProjectService extends Service {
 
     @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
     @POST
-    @Path("project/create")
+    @Path("create")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor createProject(@Required @Description("project name") @QueryParam("name") String name,
@@ -116,7 +116,7 @@ public class ProjectService extends Service {
 
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PROJECT)
     @POST
-    @Path("project/update")
+    @Path("update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor updateProject(@Required @Description("project name") @QueryParam("name") String name,

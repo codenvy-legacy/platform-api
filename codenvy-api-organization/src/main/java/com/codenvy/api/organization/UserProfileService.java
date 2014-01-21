@@ -18,8 +18,77 @@
 package com.codenvy.api.organization;
 
 
-import javax.ws.rs.Path;
+import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.organization.dao.UserProfileDao;
+import com.codenvy.api.organization.exception.OrganizationServiceException;
+import com.codenvy.api.organization.shared.dto.Profile;
 
+import javax.annotation.security.RolesAllowed;
+import javax.inject.Inject;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+/**
+ * User profile API service
+ *
+ * @author Eugene Voevodin
+ */
 @Path("/profile")
-public class UserProfileService {
+public class UserProfileService extends Service {
+
+    private final UserProfileDao profileDao;
+
+    @Inject
+    public UserProfileService(UserProfileDao profileDao) {
+        this.profileDao = profileDao;
+    }
+
+    @GET
+    @RolesAllowed("user")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Profile getCurrent() throws OrganizationServiceException {
+        //TODO
+        String profileId = "gag";
+        Profile profile = profileDao.getById(profileId);
+        return profile;
+    }
+
+    @POST
+    @RolesAllowed("user")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Profile updateCurrent(Profile newProfile) throws OrganizationServiceException {
+        //TODO
+        String profileId = "gag";
+        newProfile.setId(profileId);
+        profileDao.update(newProfile);
+        return profileDao.getById(profileId);
+    }
+
+    @GET
+    @Path("{id}")
+    @RolesAllowed({"system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public Profile getById(@PathParam("id") String profileId) throws OrganizationServiceException {
+        //TODO
+        Profile profile = profileDao.getById(profileId);
+        return profile;
+    }
+
+    @POST
+    @Path("{id}")
+    @RolesAllowed({"system/admin", "system/manager"})
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Profile updateById(@PathParam("id") String profileId, Profile newProfile) throws OrganizationServiceException {
+        //TODO
+        newProfile.setId(profileId);
+        profileDao.update(newProfile);
+        return profileDao.getById(profileId);
+    }
 }

@@ -35,7 +35,7 @@
         <module>codenvy-dto-maven-plugin</module>
         <module>codenvy-api-core</module>
         <module>codenvy-api-vfs</module>
-        <module>codenvy-api-workspace</module>
+        <module>codenvy-api-project</module>
         <module>codenvy-api-factory</module>
         <module>codenvy-api-builder</module>
         <module>codenvy-api-runner</module>

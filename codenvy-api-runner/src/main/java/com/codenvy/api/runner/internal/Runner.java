@@ -182,7 +182,6 @@ public abstract class Runner {
     public RunnerProcess execute(final RunRequest request) throws IOException, RunnerException {
         checkStarted();
         // TODO: cleanup
-        final java.io.File downloadDir = Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final Long id = processIdSequence.getAndIncrement();
         final String webHookUrl = request.getWebHookUrl();
@@ -201,7 +200,7 @@ public abstract class Runner {
             public void run() {
                 try {
                     final ApplicationProcess realProcess =
-                            newApplicationProcess(downloadApplication(downloadDir, request.getDeploymentSourcesUrl()), runnerCfg);
+                            newApplicationProcess(downloadApplication(request.getDeploymentSourcesUrl()), runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
                     watcher.start(process);
@@ -222,10 +221,21 @@ public abstract class Runner {
         return process;
     }
 
-    protected DeploymentSources downloadApplication(java.io.File downloadTo, String url) throws RunnerException {
+    private static final DeploymentSources NO_SOURCES = new DeploymentSources(null);
+
+    protected DeploymentSources downloadApplication(String url) throws RunnerException {
+        if (url == null) {
+            return NO_SOURCES;
+        }
         final IOException[] errorHolder = new IOException[1];
         final DeploymentSources[] resultHolder = new DeploymentSources[1];
-        downloadPlugin.download(url, downloadTo, new DownloadPlugin.Callback() {
+        final java.io.File downloadDir;
+        try {
+            downloadDir = Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        }
+        downloadPlugin.download(url, downloadDir, new DownloadPlugin.Callback() {
             @Override
             public void done(java.io.File downloaded) {
                 resultHolder[0] = new DeploymentSources(downloaded);

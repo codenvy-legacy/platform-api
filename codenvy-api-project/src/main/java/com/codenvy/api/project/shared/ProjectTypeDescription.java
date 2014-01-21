@@ -69,6 +69,7 @@ public class ProjectTypeDescription {
     // Probably temporary solution for adding common attributes that are applicable for any type of project.
     protected void addCommonAttributes() {
         setAttributeDescription(new AttributeDescription("zipball_sources_url"));
+        setAttributeDescription(new AttributeDescription("dockerfile_url"));
     }
 
     /**

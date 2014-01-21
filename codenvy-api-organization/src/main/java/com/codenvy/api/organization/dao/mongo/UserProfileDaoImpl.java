@@ -19,13 +19,16 @@ package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.organization.dao.UserProfileDao;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
+import com.codenvy.api.organization.shared.dto.Attribute;
 import com.codenvy.api.organization.shared.dto.Profile;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
+import com.codenvy.dto.server.DtoFactory;
+import com.mongodb.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * User Profile DAO implementation based on MongoDB storage.
@@ -47,21 +50,63 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     @Override
     public void create(Profile profile) throws OrganizationServiceException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        collection.save(profileToDBObject(profile));
     }
 
     @Override
     public void update(Profile profile) throws OrganizationServiceException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        DBObject query = new BasicDBObject();
+        query.put("_id", profile.getId());
+        collection.update(query, profileToDBObject(profile));
     }
 
     @Override
     public void remove(String id) throws OrganizationServiceException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        DBObject query = new BasicDBObject();
+        query.put("_id", id);
+        collection.remove(query);
     }
 
     @Override
     public Profile getById(String id) throws OrganizationServiceException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        DBObject query = new BasicDBObject();
+        query.put("_id", id);
+        DBObject res = collection.findOne(query);
+        if (res == null) {
+            throw new OrganizationServiceException(404, "Specified user does not exists.");
+        }
+
+        List<Attribute> attributes = new ArrayList<>();
+        BasicDBList dbList = (BasicDBList)res.get("attributes");
+        for (Object one : dbList) {
+            BasicDBObject obj = (BasicDBObject)one;
+            attributes.add(DtoFactory.getInstance().createDto(Attribute.class).withName((String)obj.get("name"))
+                                     .withValue((String)obj.get("value"))
+                                     .withDescription((String)obj.get("description")));
+        }
+        return
+                DtoFactory.getInstance().createDto(Profile.class).withId(id)
+                                                                 .withUserId((String)res.get("userid"))
+                                                                 .withAttributes(attributes);
+
+    }
+
+    private DBObject profileToDBObject (Profile profile) {
+        BasicDBObjectBuilder profileDatabuilder = new BasicDBObjectBuilder();
+
+        //Prepare attributes list
+        List<BasicDBObject> attrs = new ArrayList<>();
+        for (Attribute attribute : profile.getAttributes()) {
+            BasicDBObject one = new BasicDBObject();
+            one.put("name", attribute.getName());
+            one.put("value", attribute.getValue());
+            one.put("description", attribute.getDescription());
+            attrs.add(one);
+        }
+
+        profileDatabuilder.add("_id", profile.getId());
+        profileDatabuilder.add("userid", profile.getUserId());
+        profileDatabuilder.add("attributes", attrs);
+        return profileDatabuilder.get();
     }
 }

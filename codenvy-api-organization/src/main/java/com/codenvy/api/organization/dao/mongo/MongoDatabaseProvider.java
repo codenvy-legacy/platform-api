@@ -55,26 +55,24 @@ public class MongoDatabaseProvider implements Provider<DB>{
     @Named(DB_PASSWORD)
     String password;
 
-    private static volatile DB db;
+    private volatile DB db;
 
     @Override
     public DB get() {
-        DB instance = db;
-        if (instance == null) {
+        if (db == null) {
             synchronized (this) {
                 try {
-                    instance = db;
-                    if (instance == null) {
+                    if (db == null) {
                         MongoClient mongoClient = new MongoClient(dbUrl);
-                        instance = db = mongoClient.getDB(dbName);
+                        db = mongoClient.getDB(dbName);
                         if (!db.authenticate(username, password.toCharArray()))
-                           throw new RuntimeException("Incorrect MongoDB credentials: authentication failed.");
+                            throw new RuntimeException("Incorrect MongoDB credentials: authentication failed.");
                     }
                 } catch (UnknownHostException e) {
                     throw new RuntimeException("Can't connect to MongoDB.");
                 }
             }
         }
-        return instance;
+        return db;
     }
 }

@@ -48,6 +48,11 @@ from Codenvy S.A..
             <version>${javax.ws.rs.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>2.11.3</version><!-- FIXME -->
+        </dependency>
     </dependencies>
     <build>
         <plugins>

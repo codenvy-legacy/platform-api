@@ -20,50 +20,29 @@ package com.codenvy.api.organization.dao.impl;
 import com.codenvy.api.organization.dao.UserProfileDao;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
 import com.codenvy.api.organization.shared.dto.Profile;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.UnknownHostException;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Provider;
 
 /**
  * User Profile DAO implementation based on MongoDB storage.
  *
  */
 
-public class UserProfileDaoImpl implements UserProfileDao {
+public class UserProfileDaoImpl implements UserProfileDao    {
 
-    DBCollection factories;
 
-    public MongoDBFactoryStore(String host, int port, String dbName, String collectionName, String username,
-                               String password) {
-        MongoClient mongoClient;
-        DB db;
-        if (dbName == null || dbName.isEmpty() || collectionName == null || collectionName.isEmpty()) {
-            throw new RuntimeException("Parameters 'database' and 'collection' can't be null or empty.");
-        }
+    protected static final  String DB_COLLECTION = "organization.storage.db.collection.profile";
 
-        try {
-            mongoClient = new MongoClient(host, port);
-            db = mongoClient.getDB(dbName);
+    DBCollection collection;
 
-            if (username != null && password != null) {
-                if (!db.authenticate(username, password.toCharArray()))
-                    throw new RuntimeException("Wrong MongoDB credentians, authentication failed.");
-
-            }
-            factories = db.getCollection(collectionName);
-
-        } catch (UnknownHostException e) {
-            throw new RuntimeException("Can't connect to MongoDB.");
-        }
+    @Inject
+    public UserProfileDaoImpl(Provider<DB> mongoProvider, @Named(DB_COLLECTION)String collectionName) {
+        collection = mongoProvider.get().getCollection(collectionName);
     }
-
-    public MongoDBFactoryStore(MongoDbConfiguration dbConf) {
-        this(dbConf.getHost(), dbConf.getPort(), dbConf.getDatabase(), dbConf.getCollectionname(), dbConf.getUsername(),
-             dbConf.getPassword());
-    }
-
 
     @Override
     public void create(Profile profile) throws OrganizationServiceException {

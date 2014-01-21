@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.model2;
+package com.codenvy.api.organization.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;

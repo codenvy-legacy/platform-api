@@ -20,12 +20,12 @@ package com.codenvy.api.organization.dao;
 
 
 import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.model.User_old;
+import com.codenvy.api.organization.dto.User_old;
 
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.organization.model.User_old} data. The implementation is not required to
- * be responsible for persistent layer data model integrity. It simply transfers data from one layer to another, so if
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.organization.dto.User_old} data. The implementation is not required to
+ * be responsible for persistent layer data dto integrity. It simply transfers data from one layer to another, so if
  * you're going to call any of implemented methods it is considered that all needed verifications are already done. <p>
  * <strong>Note:</strong> This particularly does not mean that method call will not make any inconsistency, but this
  * mean that such kind of inconsistencies are expected by design and may be treated further. </p>

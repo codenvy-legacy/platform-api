@@ -19,7 +19,7 @@ package com.codenvy.api.organization.dao;
 
 
 import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.model.Profile;
+import com.codenvy.api.organization.shared.dto.Profile;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Profile} data.

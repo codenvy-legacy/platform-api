@@ -1,16 +1,16 @@
 package com.codenvy.api.factory;
 
 /** Welcome message for organizations. */
-public class WelcomeGreeting {
+public class WelcomeConfiguration {
 
     private String title;
     private String iconurl;
     private String content;
 
-    public WelcomeGreeting() {
+    public WelcomeConfiguration() {
     }
 
-    public WelcomeGreeting(String title, String iconurl, String content) {
+    public WelcomeConfiguration(String title, String iconurl, String content) {
         this.title = title;
         this.iconurl = iconurl;
         this.content = content;
@@ -45,7 +45,7 @@ public class WelcomeGreeting {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        WelcomeGreeting that = (WelcomeGreeting)o;
+        WelcomeConfiguration that = (WelcomeConfiguration)o;
 
         if (content != null ? !content.equals(that.content) : that.content != null) return false;
         if (iconurl != null ? !iconurl.equals(that.iconurl) : that.iconurl != null) return false;

@@ -32,7 +32,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     private long      validsince = System.currentTimeMillis();
     private long      created    = System.currentTimeMillis();
     private Set<Link> links      = new HashSet<Link>();
-    private Map<String, WelcomeGreeting> welcome = new HashMap<>();
+    private WelcomePage welcome;
 
     public AdvancedFactoryUrl() {
         super();
@@ -147,11 +147,11 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         this.created = created;
     }
 
-    public Map<String, WelcomeGreeting> getWelcome() {
+    public WelcomePage getWelcome() {
         return welcome;
     }
 
-    public void setWelcome(Map<String, WelcomeGreeting> welcome) {
+    public void setWelcome(WelcomePage welcome) {
         this.welcome = welcome;
     }
 

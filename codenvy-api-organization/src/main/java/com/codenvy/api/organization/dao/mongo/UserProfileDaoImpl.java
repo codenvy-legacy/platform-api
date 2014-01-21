@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.dao.impl;
+package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.organization.dao.UserProfileDao;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
@@ -25,23 +25,24 @@ import com.mongodb.DBCollection;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.inject.Provider;
+import javax.inject.Singleton;
 
 /**
  * User Profile DAO implementation based on MongoDB storage.
  *
  */
 
+@Singleton
 public class UserProfileDaoImpl implements UserProfileDao    {
 
 
-    protected static final  String DB_COLLECTION = "organization.storage.db.collection.profile";
+    protected static final  String DB_COLLECTION = "organization.storage.db.profile.collection";
 
     DBCollection collection;
 
     @Inject
-    public UserProfileDaoImpl(Provider<DB> mongoProvider, @Named(DB_COLLECTION)String collectionName) {
-        collection = mongoProvider.get().getCollection(collectionName);
+    public UserProfileDaoImpl(DB db, @Named(DB_COLLECTION)String collectionName) {
+        collection = db.getCollection(collectionName);
     }
 
     @Override

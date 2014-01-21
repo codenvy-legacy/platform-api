@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.dao.impl;
+package com.codenvy.api.organization.dao.mongo;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
@@ -27,6 +27,7 @@ import javax.inject.Singleton;
 import java.net.UnknownHostException;
 
 /**
+ * Provides single instance of database to all consumers.
  *
  */
 
@@ -54,27 +55,26 @@ public class MongoDatabaseProvider implements Provider<DB>{
     @Named(DB_PASSWORD)
     String password;
 
-    private DB db;
+    private static volatile DB db;
 
     @Override
     public DB get() {
-
-        if (db != null) {
-            return db;
-        } else {
-            MongoClient mongoClient;
-            try {
-                mongoClient = new MongoClient(dbUrl);
-                db = mongoClient.getDB(dbName);
-
-                if (username != null && password != null) {
-                    if (!db.authenticate(username, password.toCharArray()))
-                        throw new RuntimeException("Wrong MongoDB credentians, authentication failed.");
+        DB instance = db;
+        if (instance == null) {
+            synchronized (this) {
+                try {
+                    instance = db;
+                    if (instance == null) {
+                        MongoClient mongoClient = new MongoClient(dbUrl);
+                        instance = db = mongoClient.getDB(dbName);
+                        if (!db.authenticate(username, password.toCharArray()))
+                           throw new RuntimeException("Incorrect MongoDB credentials: authentication failed.");
+                    }
+                } catch (UnknownHostException e) {
+                    throw new RuntimeException("Can't connect to MongoDB.");
                 }
-            } catch (UnknownHostException e) {
-                throw new RuntimeException("Can't connect to MongoDB.");
             }
-            return db;
         }
+        return instance;
     }
 }

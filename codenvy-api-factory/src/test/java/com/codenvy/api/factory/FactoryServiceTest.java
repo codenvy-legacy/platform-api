@@ -207,7 +207,7 @@ public class FactoryServiceTest {
                 .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
                 .multiPart("image", path.toFile(), "image/tiff")//
                 .expect().statusCode(400)
-                .body(equalTo("image/tiff is unsupported media type."))
+                .body(equalTo("Image media type 'image/tiff' is unsupported."))
                 .when().post("/private" + SERVICE_PATH);
     }
 

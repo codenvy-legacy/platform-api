@@ -39,13 +39,13 @@ public interface Profile {
 
     void setUserId(String id);
 
-    Member withUserId(String id);
+    Profile withUserId(String id);
 
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);
 
-    Workspace withAttributes(List<Attribute> attributes);
+    Profile withAttributes(List<Attribute> attributes);
 
     List<Link> getLinks();
 

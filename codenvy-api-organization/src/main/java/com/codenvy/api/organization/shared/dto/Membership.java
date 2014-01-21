@@ -30,11 +30,11 @@ public interface Membership {
 
     void setUserId(String id);
 
-    Member withUserId(String id);
+    Membership withUserId(String id);
 
     List<String> getRoles();
 
     void setRoles(List<String> roles);
 
-    Member withRoles(List<String> roles);
+    Membership withRoles(List<String> roles);
 }

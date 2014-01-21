@@ -2,31 +2,31 @@ package com.codenvy.api.factory;
 
 /** Welcome page for organizations. */
 public class WelcomePage {
-    private WelcomeConfiguration authenticate;
-    private WelcomeConfiguration nonauthenticate;
+    private WelcomeConfiguration authenticated;
+    private WelcomeConfiguration nonauthenticated;
 
     public WelcomePage() {
     }
 
-    public WelcomePage(WelcomeConfiguration authenticate, WelcomeConfiguration nonauthenticate) {
-        this.authenticate = authenticate;
-        this.nonauthenticate = nonauthenticate;
+    public WelcomePage(WelcomeConfiguration authenticated, WelcomeConfiguration nonauthenticated) {
+        this.authenticated = authenticated;
+        this.nonauthenticated = nonauthenticated;
     }
 
-    public WelcomeConfiguration getAuthenticate() {
-        return authenticate;
+    public WelcomeConfiguration getAuthenticated() {
+        return authenticated;
     }
 
-    public void setAuthenticate(WelcomeConfiguration authenticate) {
-        this.authenticate = authenticate;
+    public void setAuthenticated(WelcomeConfiguration authenticated) {
+        this.authenticated = authenticated;
     }
 
-    public WelcomeConfiguration getNonauthenticate() {
-        return nonauthenticate;
+    public WelcomeConfiguration getNonauthenticated() {
+        return nonauthenticated;
     }
 
-    public void setNonauthenticate(WelcomeConfiguration nonauthenticate) {
-        this.nonauthenticate = nonauthenticate;
+    public void setNonauthenticated(WelcomeConfiguration nonauthenticated) {
+        this.nonauthenticated = nonauthenticated;
     }
 
     @Override
@@ -36,16 +36,16 @@ public class WelcomePage {
 
         WelcomePage that = (WelcomePage)o;
 
-        if (authenticate != null ? !authenticate.equals(that.authenticate) : that.authenticate != null) return false;
-        if (nonauthenticate != null ? !nonauthenticate.equals(that.nonauthenticate) : that.nonauthenticate != null) return false;
+        if (authenticated != null ? !authenticated.equals(that.authenticated) : that.authenticated != null) return false;
+        if (nonauthenticated != null ? !nonauthenticated.equals(that.nonauthenticated) : that.nonauthenticated != null) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = authenticate != null ? authenticate.hashCode() : 0;
-        result = 31 * result + (nonauthenticate != null ? nonauthenticate.hashCode() : 0);
+        int result = authenticated != null ? authenticated.hashCode() : 0;
+        result = 31 * result + (nonauthenticated != null ? nonauthenticated.hashCode() : 0);
         return result;
     }
 }

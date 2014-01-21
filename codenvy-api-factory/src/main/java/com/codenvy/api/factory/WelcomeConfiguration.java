@@ -1,6 +1,6 @@
 package com.codenvy.api.factory;
 
-/** Welcome message for organizations. */
+/** Configuration for welcome message. */
 public class WelcomeConfiguration {
 
     private String title;

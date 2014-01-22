@@ -48,8 +48,8 @@
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
     </scm>
     <properties>
-        <codenvy.commons.version>0.12.1-SNAPSHOT</codenvy.commons.version>
-        <codenvy.organization.version>0.10.1-SNAPSHOT</codenvy.organization.version>
+        <codenvy.commons.version>0.12.1</codenvy.commons.version>
+        <codenvy.organization.version>0.10.1</codenvy.organization.version>
         <commons-codec.version>1.6</commons-codec.version>
         <commons-fileupload.version>1.2.1</commons-fileupload.version>
         <commons-io.version>2.1</commons-io.version>

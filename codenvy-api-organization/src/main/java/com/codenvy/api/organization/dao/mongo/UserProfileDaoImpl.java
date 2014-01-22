@@ -19,6 +19,7 @@ package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.organization.dao.UserDao;
 import com.codenvy.api.organization.dao.UserProfileDao;
+import com.codenvy.api.organization.exception.ItemNotFoundException;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
 import com.codenvy.api.organization.shared.dto.Attribute;
 import com.codenvy.api.organization.shared.dto.Profile;
@@ -64,7 +65,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
         query.put("_id", profile.getId());
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new OrganizationServiceException(404, "Specified user profile does not exists.");
+            throw new ItemNotFoundException("Specified user profile does not exists.");
         }
         validateOnUpdate(profile);
         collection.update(query, profileToDBObject(profile));
@@ -83,7 +84,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
         query.put("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new OrganizationServiceException(404, "Specified user profile does not exists.");
+           throw new  ItemNotFoundException("Specified user profile does not exists.");
         }
 
         List<Attribute> attributes = new ArrayList<>();

@@ -23,55 +23,31 @@ package com.codenvy.api.organization.exception;
  * matches the issue.
  */
 public class OrganizationServiceException extends Exception {
+
     /**
-     * Response status if any exception occurs,
-     * <br>
-     * Default value: 400
+     * @param message
+     *         the detail message
      */
-    int responseStatus;
-
-    public OrganizationServiceException() {
-        this(400);
-    }
-
-    public OrganizationServiceException(String message, Throwable cause) {
-        this(400, message, cause);
-    }
-
     public OrganizationServiceException(String message) {
-        this(400, message);
-    }
-
-    public OrganizationServiceException(Throwable cause) {
-        this(400, cause);
-    }
-
-    public OrganizationServiceException(int responseStatus) {
-        super();
-        this.responseStatus = responseStatus;
-    }
-
-    public OrganizationServiceException(int responseStatus, String message, Throwable cause) {
-        super(message, cause);
-        this.responseStatus = responseStatus;
-    }
-
-    public OrganizationServiceException(int responseStatus, String message) {
         super(message);
-        this.responseStatus = responseStatus;
     }
 
-    public OrganizationServiceException(int responseStatus, Throwable cause) {
+    /**
+     * @param message
+     *         the detail message
+     * @param cause
+     *         the cause
+     */
+    public OrganizationServiceException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    /**
+     * @param cause
+     *         the cause
+     */
+    public OrganizationServiceException(Throwable cause) {
         super(cause);
-        this.responseStatus = responseStatus;
-    }
-
-    public int getResponseStatus() {
-        return responseStatus;
-    }
-
-    public void setResponseStatus(int responseStatus) {
-        this.responseStatus = responseStatus;
     }
 
 }

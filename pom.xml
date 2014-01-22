@@ -27,7 +27,7 @@
     </parent>
     <groupId>com.codenvy.platform-api</groupId>
     <artifactId>codenvy-platform-api-parent</artifactId>
-    <version>0.6.1</version>
+    <version>0.6.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Codenvy Platform API :: Parent</name>
     <modules>
@@ -44,7 +44,7 @@
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>
         <developerConnection>scm:git:git@github.com:codenvy/platform-api.git</developerConnection>
-        <tag>0.6.1</tag>
+        <tag>HEAD</tag>
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
     </scm>
     <properties>

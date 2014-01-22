@@ -73,8 +73,8 @@ public class ProjectTypeDescription {
     }
 
     /**
-     * Get descriptions of all attributes defined for the project type. Modifications to the returned {@code List} will not affect the
-     * internal state.
+     * Get descriptions of all attributes that are defined for the project type. Modifications to the returned {@code List} will not affect
+     * the internal state.
      *
      * @return descriptions of attributes
      * @see Attribute

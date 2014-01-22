@@ -46,4 +46,11 @@ public class AttributeTest {
         Assert.assertEquals(attrA.getValue(), "updated");
         Assert.assertEquals(attrA.getValues(), Arrays.asList("updated"));
     }
+
+    @Test
+    public void updateValue() {
+        Attribute attrA = new Attribute("a", Arrays.asList("value1", "value2"));
+        attrA.getValues().clear();
+        Assert.assertEquals(attrA.getValues(), Arrays.asList("value1", "value2"));
+    }
 }

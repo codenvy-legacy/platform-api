@@ -1,6 +1,9 @@
 package com.codenvy.api.factory;
 
-/** Configuration for welcome message. */
+/**
+ * Welcome message configuration. Contains title, link for icon url, and link for content page e.g. HTML or something else.
+ * This configuration will be processed when user apply factory link. And shows in right side of IDE
+ */
 public class WelcomeConfiguration {
 
     private String title;

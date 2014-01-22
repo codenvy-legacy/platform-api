@@ -1,6 +1,10 @@
 package com.codenvy.api.factory;
 
-/** Welcome page for organizations. */
+/**
+ * Welcome page which user can specified to show when factory accepted.
+ * To show custom information applied only for this factory url.
+ * Contains two configuration for authenticated users and non authenticated.
+ */
 public class WelcomePage {
     private WelcomeConfiguration authenticated;
     private WelcomeConfiguration nonauthenticated;

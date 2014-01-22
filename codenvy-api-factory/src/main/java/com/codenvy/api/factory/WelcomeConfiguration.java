@@ -5,15 +5,15 @@ public class WelcomeConfiguration {
 
     private String title;
     private String iconurl;
-    private String content;
+    private String contenturl;
 
     public WelcomeConfiguration() {
     }
 
-    public WelcomeConfiguration(String title, String iconurl, String content) {
+    public WelcomeConfiguration(String title, String iconurl, String contenturl) {
         this.title = title;
         this.iconurl = iconurl;
-        this.content = content;
+        this.contenturl = contenturl;
     }
 
     public String getTitle() {
@@ -32,12 +32,12 @@ public class WelcomeConfiguration {
         this.iconurl = iconurl;
     }
 
-    public String getContent() {
-        return content;
+    public String getContenturl() {
+        return contenturl;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setContenturl(String contenturl) {
+        this.contenturl = contenturl;
     }
 
     @Override
@@ -47,7 +47,7 @@ public class WelcomeConfiguration {
 
         WelcomeConfiguration that = (WelcomeConfiguration)o;
 
-        if (content != null ? !content.equals(that.content) : that.content != null) return false;
+        if (contenturl != null ? !contenturl.equals(that.contenturl) : that.contenturl != null) return false;
         if (iconurl != null ? !iconurl.equals(that.iconurl) : that.iconurl != null) return false;
         if (title != null ? !title.equals(that.title) : that.title != null) return false;
 
@@ -58,7 +58,7 @@ public class WelcomeConfiguration {
     public int hashCode() {
         int result = title != null ? title.hashCode() : 0;
         result = 31 * result + (iconurl != null ? iconurl.hashCode() : 0);
-        result = 31 * result + (content != null ? content.hashCode() : 0);
+        result = 31 * result + (contenturl != null ? contenturl.hashCode() : 0);
         return result;
     }
 }

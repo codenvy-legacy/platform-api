@@ -32,20 +32,23 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
     private long      validsince = System.currentTimeMillis();
     private long      created    = System.currentTimeMillis();
     private Set<Link> links      = new HashSet<Link>();
+    private WelcomePage welcome;
 
     public AdvancedFactoryUrl() {
         super();
     }
 
     public AdvancedFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile,
-                              boolean vcsInfo, String orgid, String affiliateid, String vcsBranch, Map<String, String> projectAttributes, List<Variable> variables) {
+                              boolean vcsInfo, String orgid, String affiliateid, String vcsBranch, Map<String, String> projectAttributes,
+                              List<Variable> variables) {
         super(version, vcs, vcsUrl, commitId, action, openFile, vcsInfo, orgid, affiliateid, vcsBranch, projectAttributes, variables);
     }
 
     public AdvancedFactoryUrl(AdvancedFactoryUrl originFactory, Set<Link> links) {
         super(originFactory.getV(), originFactory.getVcs(), originFactory.getVcsurl(),
               originFactory.getCommitid(), originFactory.getAction(), originFactory.getOpenfile(), originFactory.getVcsinfo(),
-              originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getVcsbranch(), originFactory.getProjectattributes(), originFactory.getVariables());
+              originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getVcsbranch(), originFactory.getProjectattributes(),
+              originFactory.getVariables());
 
         id = originFactory.getId();
         style = originFactory.getStyle();
@@ -56,6 +59,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         validuntil = originFactory.validuntil;
         validsince = originFactory.validsince;
         created = originFactory.created;
+        welcome = originFactory.welcome;
 
         setLinks(links);
     }
@@ -143,6 +147,14 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         this.created = created;
     }
 
+    public WelcomePage getWelcome() {
+        return welcome;
+    }
+
+    public void setWelcome(WelcomePage welcome) {
+        this.welcome = welcome;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -161,6 +173,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         if (links != null ? !links.equals(that.links) : that.links != null) return false;
         if (style != null ? !style.equals(that.style) : that.style != null) return false;
         if (userid != null ? !userid.equals(that.userid) : that.userid != null) return false;
+        if (welcome != null ? !welcome.equals(that.welcome) : that.welcome != null) return false;
 
         return true;
     }
@@ -178,6 +191,7 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         result = 31 * result + (int)(validsince ^ (validsince >>> 32));
         result = 31 * result + (int)(created ^ (created >>> 32));
         result = 31 * result + (links != null ? links.hashCode() : 0);
+        result = 31 * result + (welcome != null ? welcome.hashCode() : 0);
         return result;
     }
 }

@@ -29,15 +29,6 @@ public abstract class BaseLdapDao {
     /** Users subtree name */
     public static final String USERS_SUBTREE_NAME = "users";
 
-    /** Accounts subtree name */
-    public static final String ACCOUNTS_SUBTREE_NAME = "accounts";
-
-    /** Workspaces subtree name */
-    public static final String WORKSPACES_SUBTREE_NAME = "workspaces";
-
-    /** Workspaces subtree name */
-    public static final String INVITATIONS_SUBTREE_NAME = "invitations";
-
     /**
      * Is used to separate key from value in attributes and role name from role description in roles in LDAP records. Escaped with
      * "/&lt;/&gt;" if met in any key or value. Hence '/' character is escaped to with "//".
@@ -46,45 +37,6 @@ public abstract class BaseLdapDao {
 
     /** Cloud IDE organization service user LDAP objectClass representation. */
     protected static final String USER = "cloudIdeUser";
-
-    /** Cloud IDE organization service account LDAP objectClass representation. */
-    protected static final String ACCOUNT = "cloudIdeAccount";
-
-    /** Cloud IDE organization service workspace LDAP objectClass representation. */
-    protected static final String WORKSPACE = "cloudIdeWorkspace";
-
-    /** Cloud IDE organization service invitation LDAP objectClass representation. */
-    protected static final String INVITATION = "cloudIdeInvitation";
-
-    /** Cloud IDE organization service invitation status LDAP attribute representation. */
-    protected static final String INVITATION_STATUS = "cloudIdeInvitationStatus";
-
-    /** Cloud IDE organization service user memberships LDAP attribute representation. */
-    protected static final String MEMBERSHIPS = "cloudIdeMemberships";
-
-    /** Cloud IDE organization service workspace members LDAP attribute representation. */
-    protected static final String MEMBERS = "cloudIdeMembers";
-
-    /** Cloud IDE organization service entities attributes LDAP representation. There are user profile attributes and account attributes. */
-    protected static final String ATTRIBUTES = "cloudIdeAttributes";
-
-    /** Cloud IDE organization service entity owner property LDAP attribute name. Can be account owner or workspace owner. */
-    protected static final String OWNER = "cloudIdeEntityOwner";
-
-    /** Cloud IDE organization service workspaces list LDAP attribute name. */
-    protected static final String WORKSPACES = "cloudIdeWorkspaces";
-
-    /** Cloud IDE organization service entity name LDAP attribute name. */
-    protected static final String NAME = "cloudIdeName";
-
-    /** Cloud IDE organization service sender LDAP attribute name. */
-    protected static final String SENDER = "cloudIdeSender";
-
-    /** Cloud IDE organization service recipient LDAP attribute name. */
-    protected static final String RECIPIENT = "cloudIdeRecipient";
-
-    /** Cloud IDE organization service accounts list LDAP attribute name. */
-    protected static final String ACCOUNTS = "cloudIdeAccounts";
 
     /** Cloud IDE organization service aliases list LDAP attribute name. */
     protected static final String ALIASES = "cloudIdeAliases";
@@ -95,14 +47,9 @@ public abstract class BaseLdapDao {
     /** LDAP organizationalUnit objectClass name */
     protected static final String ORGANIZATIONAL_UNIT = "organizationalUnit";
 
-    /** LDAP objectClass attribute name */
-    protected static final String OBJECT_CLASS = "objectClass";
-
     /** LDAP organization unit attribute */
     protected static final String OU = "ou";
 
-    /** LDAP description attribute */
-    protected static final String DESCRIPTION = "description";
 
     /** LDAP service instance */
     protected LdapService ldapService;

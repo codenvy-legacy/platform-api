@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
+import com.codenvy.api.organization.dao.UserDao;
 import com.codenvy.api.organization.dao.UserProfileDao;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
 import com.codenvy.api.organization.shared.dto.Attribute;
@@ -39,17 +40,21 @@ import java.util.List;
 public class UserProfileDaoImpl implements UserProfileDao    {
 
 
-    protected static final  String DB_COLLECTION = "organization.storage.db.profile.collection";
+    protected static final String DB_COLLECTION = "organization.storage.db.profile.collection";
 
     DBCollection collection;
 
+    UserDao userDao;
+
     @Inject
-    public UserProfileDaoImpl(DB db, @Named(DB_COLLECTION)String collectionName) {
+    public UserProfileDaoImpl(UserDao userDao, DB db, @Named(DB_COLLECTION) String collectionName) {
         collection = db.getCollection(collectionName);
+        this.userDao = userDao;
     }
 
     @Override
     public void create(Profile profile) throws OrganizationServiceException {
+        validateOnUpdate(profile);
         collection.save(profileToDBObject(profile));
     }
 
@@ -57,6 +62,11 @@ public class UserProfileDaoImpl implements UserProfileDao    {
     public void update(Profile profile) throws OrganizationServiceException {
         DBObject query = new BasicDBObject();
         query.put("_id", profile.getId());
+        DBObject res = collection.findOne(query);
+        if (res == null) {
+            throw new OrganizationServiceException(404, "Specified user profile does not exists.");
+        }
+        validateOnUpdate(profile);
         collection.update(query, profileToDBObject(profile));
     }
 
@@ -73,7 +83,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
         query.put("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new OrganizationServiceException(404, "Specified user does not exists.");
+            throw new OrganizationServiceException(404, "Specified user profile does not exists.");
         }
 
         List<Attribute> attributes = new ArrayList<>();
@@ -91,6 +101,20 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     }
 
+    /**
+     * Ensure that user linked to this profile is already exists.
+     * @param profile
+     * @throws OrganizationServiceException
+     */
+    private void validateOnUpdate(Profile profile) throws OrganizationServiceException{
+        userDao.getById(profile.getUserId());
+    }
+
+    /**
+     * Convert Profile to Database ready-to-use object,
+     * @param profile
+     * @return
+     */
     private DBObject profileToDBObject (Profile profile) {
         BasicDBObjectBuilder profileDatabuilder = new BasicDBObjectBuilder();
 

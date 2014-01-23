@@ -55,7 +55,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     @Override
     public void create(Profile profile) throws OrganizationServiceException {
-        validateOnUpdate(profile);
+        validateProfileUserExists(profile.getUserId());
         collection.save(profileToDBObject(profile));
     }
 
@@ -67,7 +67,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
         if (res == null) {
             throw new ItemNotFoundException("Specified user profile does not exists.");
         }
-        validateOnUpdate(profile);
+        validateProfileUserExists(profile.getUserId());
         collection.update(query, profileToDBObject(profile));
     }
 
@@ -102,19 +102,20 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     }
 
+
     /**
      * Ensure that user linked to this profile is already exists.
-     * @param profile
+     * @param userId
      * @throws OrganizationServiceException
      */
-    private void validateOnUpdate(Profile profile) throws OrganizationServiceException{
-        userDao.getById(profile.getUserId());
+    private void validateProfileUserExists(String userId) throws OrganizationServiceException{
+        userDao.getById(userId);
     }
 
     /**
      * Convert Profile to Database ready-to-use object,
      * @param profile
-     * @return
+     * @return DBObject
      */
     private DBObject profileToDBObject (Profile profile) {
         BasicDBObjectBuilder profileDatabuilder = new BasicDBObjectBuilder();

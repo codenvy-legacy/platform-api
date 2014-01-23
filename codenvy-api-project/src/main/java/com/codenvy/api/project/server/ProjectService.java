@@ -107,7 +107,7 @@ public class ProjectService extends Service {
             throws VirtualFileSystemException {
         final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
-        final Project project = fileSystem.createProject(root.getId(), name, null, null);
+        final Project project = fileSystem.createProject(root.getId(), name, descriptor.getProjectTypeId(), null);
         final PersistentProjectDescription description = projectDescriptionFactory.getDescription(project);
         description.update(descriptor);
         description.store(project, fileSystem);

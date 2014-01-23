@@ -27,7 +27,7 @@
     </parent>
     <artifactId>codenvy-api-project</artifactId>
     <packaging>jar</packaging>
-    <name>Codenvy API Workspace</name>
+    <name>Codenvy API Project</name>
     <properties>
         <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
     </properties>

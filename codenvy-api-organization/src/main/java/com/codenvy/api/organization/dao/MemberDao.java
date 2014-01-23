@@ -36,6 +36,7 @@ public interface MemberDao {
     /**
      * Adds a new Member to persistent layer.
      * @param member
+     *              - POJO representation of workspace member
      * @throws OrganizationServiceException
      */
 
@@ -45,6 +46,7 @@ public interface MemberDao {
     /**
      * Updates member in persistent layer.
      * @param member
+     *            - POJO representation of workspace member
      * @throws OrganizationServiceException
      */
     void update (Member member) throws OrganizationServiceException;
@@ -52,8 +54,8 @@ public interface MemberDao {
     /**
      * Gets a list of all members of the given workspace.
      *
-     * @param wsId
-     * @return
+     * @param wsId workspace to search in
+     * @return list of workspace members
      * @throws OrganizationServiceException
      */
 
@@ -63,8 +65,8 @@ public interface MemberDao {
     /**
      * Gets a list of all relationships of the given user and workspaces.
      *
-     * @param userId
-     * @return
+     * @param userId  user to get relationships
+     * @return  list of user relations
      * @throws OrganizationServiceException
      */
 
@@ -73,8 +75,8 @@ public interface MemberDao {
     /**
      * Removes a given member from specified workspace.
      *
-     * @param wsId
-     * @param userId
+     * @param wsId  workspace id to remove member from
+     * @param userId user id to remove
      */
 
     void removeWorkspaceMember(String wsId, String userId);

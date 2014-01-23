@@ -36,7 +36,7 @@ public interface UserDao {
      *
      * @param user
      *         - POJO representation of user entity
-     * @throws com.codenvy.organization.exception.OrganizationServiceException
+     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
      *         if any issue occurred during performing an operation
      */
     void create(User user) throws OrganizationServiceException;
@@ -46,7 +46,7 @@ public interface UserDao {
      *
      * @param user
      *         - POJO representation of user entity
-     * @throws com.codenvy.organization.exception.OrganizationServiceException
+     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
      *         if any issue occurred during performing an operation
      */
     void update(User user) throws OrganizationServiceException;
@@ -56,7 +56,7 @@ public interface UserDao {
      *
      * @param id
      *         - user identifier
-     * @throws com.codenvy.organization.exception.OrganizationServiceException
+     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
      *         if any issue occurred during performing an operation
      */
     void removeById(String id) throws OrganizationServiceException;
@@ -67,7 +67,7 @@ public interface UserDao {
      * @param alias
      *         - user name or alias
      * @return user POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.organization.exception.OrganizationServiceException
+     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
      *         if any issue occurred during performing an operation
      */
     User getByAlias(String alias) throws OrganizationServiceException;
@@ -78,7 +78,7 @@ public interface UserDao {
      * @param id
      *         - user name or identifier
      * @return user POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.organization.exception.OrganizationServiceException
+     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
      *         if any issue occurred during performing an operation
      */
     User getById(String id) throws OrganizationServiceException;

@@ -243,6 +243,7 @@ public class UserService extends Service {
             memberDao.removeWorkspaceMember(member.getWorkspaceId(), member.getUserId());
         }
         userDao.removeById(id);
+        //todo delete profile maybe ?
         return Response.noContent().build();
     }
 }

@@ -40,6 +40,12 @@ public interface Workspace {
 
     Workspace withName(String name);
 
+    void setTemporary(boolean temporary);
+
+    boolean isTemporary();
+
+    Workspace withTemporary(boolean temporary);
+
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);

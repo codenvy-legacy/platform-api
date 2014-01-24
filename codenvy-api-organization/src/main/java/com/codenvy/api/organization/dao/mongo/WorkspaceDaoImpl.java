@@ -19,6 +19,7 @@ package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.organization.dao.UserDao;
 import com.codenvy.api.organization.dao.WorkspaceDao;
+import com.codenvy.api.organization.dao.util.NamingValidator;
 import com.codenvy.api.organization.exception.ItemAlreadyExistException;
 import com.codenvy.api.organization.exception.ItemNotFoundException;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
@@ -51,6 +52,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
 
     @Override
     public void create(Workspace workspace) throws OrganizationServiceException {
+        NamingValidator.validate(workspace.getName());
         validateWorkspaceNameAvailable(workspace);
         collection.save(workspaceToDBObject(workspace));
     }
@@ -63,6 +65,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
         if (res == null) {
             throw new ItemNotFoundException("Specified workspace does not exists.");
         }
+        NamingValidator.validate(workspace.getName());
         validateWorkspaceNameAvailable(workspace);
         collection.update(query, workspaceToDBObject(workspace));
     }

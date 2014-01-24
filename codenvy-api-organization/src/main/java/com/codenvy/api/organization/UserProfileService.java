@@ -143,6 +143,4 @@ public class UserProfileService extends Service {
         profile.setLinks(links);
         return profile;
     }
-
-
 }

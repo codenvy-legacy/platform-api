@@ -18,8 +18,97 @@
 package com.codenvy.api.organization;
 
 
-import javax.ws.rs.Path;
+import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.organization.shared.dto.Account;
 
+import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import java.util.List;
+
+/**
+ * Account API
+ *
+ * @author Eugene Voevodin
+ */
 @Path("/account")
 public class AccountService {
+
+    @POST
+    @GenerateLink(rel = "create")
+    @RolesAllowed("user")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response create(Account newAccount) {
+        Account account = null;
+        return Response.status(Response.Status.CREATED).entity(account).build();
+    }
+
+    @GET
+    @Path("{id}")
+    @GenerateLink(rel = "get by id")
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public Account getById(@PathParam("id") String id) {
+        Account account = null;
+        return account;
+    }
+
+    @GET
+    @GenerateLink(rel = "get by name")
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public Account getByName(@QueryParam("name") String name) {
+        Account account = null;
+        return account;
+    }
+
+    @GET
+    @Path("all")
+    @GenerateLink(rel = "all of current user")
+    @RolesAllowed("user")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Account> getAll(@Context SecurityContext securityContext) {
+        List<Account> accounts = null;
+        return accounts;
+    }
+
+    @GET
+    @Path("find")
+    @GenerateLink(rel = "all by user id")
+    @RolesAllowed({"system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Account> getSpecificUserAccounts(@QueryParam("userid") String userId) {
+        List<Account> accounts = null;
+        return accounts;
+    }
+
+    @POST
+    @Path("{id}")
+    @GenerateLink(rel = "update")
+    @RolesAllowed("user")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Account update(@PathParam("id") String id, Account newAccount) {
+        Account account = null;
+        return account;
+    }
+
+    @DELETE
+    @Path("{id}")
+    @GenerateLink(rel = "remove")
+    @RolesAllowed("system/admin")
+    public Response remove(@PathParam("id") String id) {
+        return Response.noContent().build();
+    }
 }

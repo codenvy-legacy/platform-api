@@ -18,13 +18,19 @@
 package com.codenvy.api.organization;
 
 
+import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.organization.dao.MemberDao;
 import com.codenvy.api.organization.dao.UserDao;
 import com.codenvy.api.organization.dao.WorkspaceDao;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
+import com.codenvy.api.organization.shared.dto.Attribute;
 import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Workspace;
+import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.dto.server.DtoFactory;
+import com.sun.corba.se.spi.orbutil.threadpool.Work;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -40,6 +46,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -48,8 +56,9 @@ import java.util.List;
  * @author Eugene Voevodin
  */
 @Path("/workspace")
-public class WorkspaceService {
+public class WorkspaceService extends Service {
 
+    private static final int ID_LENGTH = 16;
     private final WorkspaceDao workspaceDao;
     private final UserDao      userDao;
     private final MemberDao    memberDao;
@@ -65,9 +74,46 @@ public class WorkspaceService {
     @GenerateLink(rel = "create")
     @RolesAllowed({"user", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create() throws OrganizationServiceException {
-        //TODO
-        Workspace workspace = null;
+    public Response create(@Context SecurityContext securityContext, @QueryParam("temporary") Boolean isTemporary, Workspace newWorkspace)
+            throws OrganizationServiceException {
+
+        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), ID_LENGTH);
+        newWorkspace.setId(wsId);
+        workspaceDao.create(newWorkspace);
+        Workspace workspace = workspaceDao.getById(wsId);
+        workspace.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                        .withName("temporary")
+                                                        .withValue(String.valueOf(isTemporary))
+                                                        .withDescription("Is workspace temporary")));
+        final List<Link> links = new ArrayList<>();
+        //todo add link to projects
+        if (securityContext.isUserInRole("user")) {
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withMethod("GET")
+                                .withProduces(MediaType.APPLICATION_JSON)
+                                .withRel("get all workspaces where current user is member")
+                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getAll").build()
+                                                  .toString()));
+        }
+        if (securityContext.isUserInRole("system/admin")) {
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withMethod("GET")
+                                .withRel("get by id")
+                                .withProduces(MediaType.APPLICATION_JSON)
+                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getById")
+                                                  .build(wsId).toString()));
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withMethod("GET")
+                                .withRel("get by name")
+                                .withProduces(MediaType.APPLICATION_JSON)
+                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getByName")
+                                                  .queryParam("name", workspace.getName()).build().toString()));
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withMethod("DELETE")
+                                .withRel("remove")
+                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "removeById")
+                                                  .build(wsId).toString()));
+        }
         return Response.status(Response.Status.CREATED).entity(workspace).build();
     }
 
@@ -76,9 +122,9 @@ public class WorkspaceService {
     @GenerateLink(rel = "workspace by id")
     @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Workspace getById(@PathParam("id") String id) {
-        //TODO
-        Workspace workspace = null;
+    public Workspace getById(@PathParam("id") String id) throws OrganizationServiceException {
+        Workspace workspace = workspaceDao.getById(id);
+        //todo add links
         return workspace;
     }
 
@@ -109,7 +155,7 @@ public class WorkspaceService {
     @GenerateLink(rel = "all workspaces of current user")
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
-    public List<Workspace> getCurrentUserWorkspaces(@Context SecurityContext securityContext) {
+    public List<Workspace> getAll(@Context SecurityContext securityContext) {
         //TODO
         List<Workspace> list = null;
         return list;
@@ -120,7 +166,7 @@ public class WorkspaceService {
     @GenerateLink(rel = "specific user workspaces")
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Workspace> getSpecificUserWorkspaces(@QueryParam("userid") String userid) {
+    public List<Workspace> getAllById(@QueryParam("userid") String userid) {
         //TODO
         List<Workspace> list = null;
         return list;

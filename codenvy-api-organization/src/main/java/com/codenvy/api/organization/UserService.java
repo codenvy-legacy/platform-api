@@ -147,7 +147,7 @@ public class UserService extends Service {
     }
 
     @GET
-    @GenerateLink(rel = "self")
+    @GenerateLink(rel = "current")
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public User getCurrent(@Context SecurityContext securityContext) throws OrganizationServiceException {
@@ -157,11 +157,28 @@ public class UserService extends Service {
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withConsumes(MediaType.APPLICATION_JSON)
                             .withMethod("POST")
-                            .withRel("update password")
+                            .withRel("change password")
                             .withHref(
                                     getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "updatePassword").build()
                                             .toString()));
-        //todo add link to workspaces and accounts
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("profile")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "getCurrent")
+                                              .build().toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("workspaces")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getAll")
+                                              .build().toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("accounts")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(AccountService.class, "getAll")
+                                              .build().toString()));
         user.setLinks(links);
         return user;
     }
@@ -181,7 +198,7 @@ public class UserService extends Service {
 
     @GET
     @Path("{id}")
-    @GenerateLink(rel = "user by id")
+    @GenerateLink(rel = "get by id")
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public User getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws OrganizationServiceException {
@@ -194,6 +211,24 @@ public class UserService extends Service {
                             .withRel("user by email")
                             .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "getByEmail")
                                               .queryParam("email", principal.getName()).build().toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("profile")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "getById")
+                                              .build(user.getProfileId()).toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("workspaces")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getAllById")
+                                              .build(user.getId()).toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("accounts")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(AccountService.class, "getAllById")
+                                              .build(user.getId()).toString()));
         if (securityContext.isUserInRole("system/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")
@@ -201,7 +236,6 @@ public class UserService extends Service {
                                 .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "removeById")
                                                   .build(user.getId()).toString()));
         }
-        //todo add links to workspaces and accounts
         user.setLinks(links);
         return user;
     }
@@ -221,6 +255,24 @@ public class UserService extends Service {
                             .withRel("user by id")
                             .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "getById")
                                               .build(user.getId()).toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("profile")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "getById")
+                                              .build(user.getProfileId()).toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("workspaces")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getAllById")
+                                              .build(user.getId()).toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withRel("accounts")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(AccountService.class, "getAllById")
+                                              .build(user.getId()).toString()));
         if (securityContext.isUserInRole("system/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")
@@ -228,7 +280,6 @@ public class UserService extends Service {
                                 .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "removeById")
                                                   .build(user.getId()).toString()));
         }
-        //todo add links to workspaces and accounts
         user.setLinks(links);
         return user;
     }
@@ -242,8 +293,8 @@ public class UserService extends Service {
         for (Member member : members) {
             memberDao.removeWorkspaceMember(member.getWorkspaceId(), member.getUserId());
         }
+        profileDao.remove(id);
         userDao.removeById(id);
-        //todo delete profile maybe ?
         return Response.noContent().build();
     }
 }

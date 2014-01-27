@@ -18,6 +18,7 @@
 package com.codenvy.api.user;
 
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -66,7 +67,7 @@ public class UserProfileService extends Service {
     @RolesAllowed("user")
     @GenerateLink(rel = "current profile")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getCurrent(@Context SecurityContext securityContext) throws OrganizationServiceException {
+    public Profile getCurrent(@Context SecurityContext securityContext) throws ApiException {
         Principal principal = securityContext.getUserPrincipal();
         User current = userDao.getByAlias(principal.getName());
         Profile profile = profileDao.getById(current.getProfileId());
@@ -89,7 +90,7 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updateCurrent(@Context SecurityContext securityContext,
                                  @Required @Description("new user profile to update") Profile newProfile)
-            throws OrganizationServiceException {
+            throws ApiException {
         Principal principal = securityContext.getUserPrincipal();
         User user = userDao.getByAlias(principal.getName());
         newProfile.setUserId(user.getId());
@@ -113,7 +114,7 @@ public class UserProfileService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getById(@PathParam("id") String profileId) throws OrganizationServiceException {
+    public Profile getById(@PathParam("id") String profileId) throws ApiException {
         Profile profile = profileDao.getById(profileId);
         final List<Link> links = new ArrayList<>(1);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -134,7 +135,7 @@ public class UserProfileService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updateById(@PathParam("id") String profileId, @Required @Description("new user profile to update") Profile newProfile)
-            throws OrganizationServiceException {
+            throws ApiException {
         Profile profile = profileDao.getById(profileId);
         final List<Link> links = new ArrayList<>(1);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();

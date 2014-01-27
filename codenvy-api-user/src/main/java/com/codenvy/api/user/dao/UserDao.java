@@ -19,13 +19,13 @@
 package com.codenvy.api.user.dao;
 
 
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.User;
+import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.user.shared.dto.User;
 
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.organization.shared.dto.User} data. The implementation is not required to
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.user.shared.dto.User} data. The implementation is not required to
  * be responsible for persistent layer data dto integrity. It simply transfers data from one layer to another, so if
  * you're going to call any of implemented methods it is considered that all needed verifications are already done. <p>
  * <strong>Note:</strong> This particularly does not mean that method call will not make any inconsistency, but this
@@ -37,30 +37,30 @@ public interface UserDao {
      *
      * @param user
      *         - POJO representation of user entity
-     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    void create(User user) throws OrganizationServiceException;
+    void create(User user) throws UserException;
 
     /**
      * Updates already present in persistent layer user.
      *
      * @param user
      *         - POJO representation of user entity
-     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    void update(User user) throws OrganizationServiceException;
+    void update(User user) throws UserException;
 
     /**
      * Removes user from persistent layer by his identifierUs
      *
      * @param id
      *         - user identifier
-     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    void removeById(String id) throws OrganizationServiceException;
+    void removeById(String id) throws UserException;
 
     /**
      * Gets user from persistent layer by any of his aliases
@@ -68,10 +68,10 @@ public interface UserDao {
      * @param alias
      *         - user name or alias
      * @return user POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    User getByAlias(String alias) throws OrganizationServiceException;
+    User getByAlias(String alias) throws UserException;
 
     /**
      * Gets user from persistent layer by his identifier
@@ -79,8 +79,8 @@ public interface UserDao {
      * @param id
      *         - user name or identifier
      * @return user POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.organization.exception.OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    User getById(String id) throws OrganizationServiceException;
+    User getById(String id) throws UserException;
 }

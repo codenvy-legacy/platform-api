@@ -2,8 +2,8 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- * [2012] - [2013] Codenvy, S.A.
- * All Rights Reserved.
+ *  [2012] - [2013] Codenvy, S.A.
+ *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
@@ -15,21 +15,30 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.exception;
+package com.codenvy.api.user.exception;
+
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
- * Thrown if  item name does not valid.
  *
  */
-@SuppressWarnings("serial")
-public class ItemNamingException extends OrganizationServiceException {
-    /**
-     * @param message
-     *         the message
-     */
-    public ItemNamingException(String message) {
+public class UserException extends ApiException {
+
+
+    public UserException(ServiceError serviceError) {
+        super(serviceError);
+    }
+
+    public UserException(String message) {
         super(message);
     }
 
+    public UserException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
+    public UserException(Throwable cause) {
+        super(cause);
+    }
 }

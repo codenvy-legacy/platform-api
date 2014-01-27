@@ -18,6 +18,7 @@
 package com.codenvy.api.user.dao;
 
 
+import com.codenvy.api.user.exception.UserException;
 import com.codenvy.api.user.shared.dto.Profile;
 
 /**
@@ -31,30 +32,30 @@ public interface UserProfileDao {
      *
      * @param profile
      *         - POJO representation of profile entity
-     * @throws OrganizationServiceException
+     * @throws com.codenvy.api.user.exception.UserException
      *         if any issue occurred during performing an operation
      */
-    void create(Profile profile) throws OrganizationServiceException;
+    void create(Profile profile) throws UserException;
 
     /**
      * Updates already present in persistent layer profile.
      *
      * @param profile
      *         - POJO representation of profile entity
-     * @throws OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    void update(Profile profile) throws OrganizationServiceException;
+    void update(Profile profile) throws UserException;
 
     /**
      * Removes profile from persistent layer.
      *
      * @param id
      *         - profile identifier
-     * @throws OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    void remove(String id) throws OrganizationServiceException;
+    void remove(String id) throws UserException;
 
     /**
      * Gets profile from persistent layer.
@@ -62,9 +63,9 @@ public interface UserProfileDao {
      * @param id
      *         - profile identifier
      * @return profile POJO, or <code>null</code> if nothing is found
-     * @throws OrganizationServiceException
+     * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    Profile getById(String id) throws OrganizationServiceException;
+    Profile getById(String id) throws UserException;
 
 }

@@ -18,6 +18,7 @@
 package com.codenvy.api.user;
 
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -25,7 +26,7 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.dao.UserDao;
 import com.codenvy.api.user.dao.UserProfileDao;
-import com.codenvy.api.user.exception.UserServiceException;
+import com.codenvy.api.user.exception.UserException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
@@ -79,7 +80,7 @@ public class UserService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @QueryParam("token") String token,
                            @Required @Description("is user temporary") @QueryParam("temporary") Boolean isTemporary)
-            throws UserServiceException {
+            throws ApiException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = DtoFactory.getInstance().createDto(User.class);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -147,7 +148,7 @@ public class UserService extends Service {
     @GenerateLink(rel = "current")
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public User getCurrent(@Context SecurityContext securityContext) throws UserServiceException {
+    public User getCurrent(@Context SecurityContext securityContext) throws ApiException {
         final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         final List<Link> links = new ArrayList<>(1);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -187,7 +188,7 @@ public class UserService extends Service {
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response updatePassword(@Context SecurityContext securityContext, @Required @Description("new password") String password)
-            throws UserServiceException {
+            throws ApiException {
         final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         user.setPassword(password);
         userDao.update(user);
@@ -199,7 +200,7 @@ public class UserService extends Service {
     @GenerateLink(rel = "get by id")
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public User getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws UserServiceException {
+    public User getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws ApiException {
         final User user = userDao.getById(id);
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -246,7 +247,7 @@ public class UserService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public User getByEmail(@Context SecurityContext securityContext, @Required @Description("user email") @QueryParam("email") String email)
-            throws UserServiceException {
+            throws ApiException {
         final User user = userDao.getByAlias(email);
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -290,7 +291,7 @@ public class UserService extends Service {
     @Path("{id}")
     @GenerateLink(rel = "remove")
     @RolesAllowed("system/admin")
-    public Response removeById(@PathParam("id") String id) throws UserServiceException {
+    public Response removeById(@PathParam("id") String id) throws ApiException {
         List<Member> members = memberDao.getUserRelationships(id);
         for (Member member : members) {
             memberDao.removeWorkspaceMember(member.getWorkspaceId(), member.getUserId());

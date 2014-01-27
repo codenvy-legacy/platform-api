@@ -18,6 +18,7 @@
 package com.codenvy.api.organization;
 
 
+import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.organization.shared.dto.Account;
 
@@ -37,12 +38,13 @@ import javax.ws.rs.core.SecurityContext;
 import java.util.List;
 
 /**
+ * TODO
  * Account API
  *
  * @author Eugene Voevodin
  */
 @Path("/account")
-public class AccountService {
+public class AccountService extends Service {
 
     @POST
     @GenerateLink(rel = "create")

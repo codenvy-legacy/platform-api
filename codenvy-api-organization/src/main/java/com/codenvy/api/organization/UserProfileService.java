@@ -70,13 +70,13 @@ public class UserProfileService extends Service {
         User current = userDao.getByAlias(principal.getName());
         Profile profile = profileDao.getById(current.getProfileId());
         final List<Link> links = new ArrayList<>(1);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withProduces(MediaType.APPLICATION_JSON)
                             .withConsumes(MediaType.APPLICATION_JSON)
                             .withMethod("POST")
                             .withRel("update current")
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "updateCurrent")
-                                              .build().toString()));
+                            .withHref(uriBuilder.clone().path(getClass(), "updateCurrent").build().toString()));
         profile.setLinks(links);
         return profile;
     }
@@ -100,7 +100,7 @@ public class UserProfileService extends Service {
                             .withConsumes(MediaType.APPLICATION_JSON)
                             .withMethod("GET")
                             .withRel("get current")
-                            .withHref(uriBuilder.clone().path(UserProfileService.class, "getCurrent").build().toString()));
+                            .withHref(uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
         profile.setLinks(links);
         return profile;
     }
@@ -119,7 +119,7 @@ public class UserProfileService extends Service {
                             .withConsumes(MediaType.APPLICATION_JSON)
                             .withMethod("POST")
                             .withRel("update by id")
-                            .withHref(uriBuilder.clone().path(UserProfileService.class, "updateById").build(profileId).toString()));
+                            .withHref(uriBuilder.clone().path(getClass(), "updateById").build(profileId).toString()));
         profile.setLinks(links);
         return profile;
     }
@@ -139,7 +139,7 @@ public class UserProfileService extends Service {
                             .withProduces(MediaType.APPLICATION_JSON)
                             .withMethod("GET")
                             .withRel("get by id")
-                            .withHref(uriBuilder.clone().path(UserProfileService.class, "getById").build(profileId).toString()));
+                            .withHref(uriBuilder.clone().path(getClass(), "getById").build(profileId).toString()));
         profile.setLinks(links);
         return profile;
     }

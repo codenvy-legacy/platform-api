@@ -46,6 +46,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,8 +80,9 @@ public class UserService extends Service {
     public Response create(@Context SecurityContext securityContext, @QueryParam("token") String token,
                            @QueryParam("temporary") Boolean isTemporary)
             throws OrganizationServiceException {
-        Principal principal = securityContext.getUserPrincipal();
-        User user = DtoFactory.getInstance().createDto(User.class);
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = DtoFactory.getInstance().createDto(User.class);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         String userId = NameGenerator.generate(User.class.getSimpleName(), ID_LENGTH);
         user.setId(userId);
         user.setAliases(Arrays.asList(principal.getName()));
@@ -104,20 +106,18 @@ public class UserService extends Service {
                                 .withProduces(MediaType.APPLICATION_JSON)
                                 .withMethod("GET")
                                 .withRel("self")
-                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "getCurrent").build()
-                                                  .toString()));
+                                .withHref(uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withConsumes(MediaType.APPLICATION_JSON)
                                 .withMethod("POST")
                                 .withRel("update password")
-                                .withHref(
-                                        getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "updatePassword").build()
-                                                .toString()));
+                                .withHref(uriBuilder.clone().path(getClass(), "updatePassword").build().toString()));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withProduces(MediaType.APPLICATION_JSON)
                                 .withMethod("GET")
                                 .withRel("profile")
-                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "getCurrent")
+                                .withHref(getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
+                                                  .path(UserProfileService.class, "getCurrent")
                                                   .build().toString()));
         }
         if (securityContext.isUserInRole("system/manager") || securityContext.isUserInRole("system/admin")) {
@@ -125,22 +125,19 @@ public class UserService extends Service {
                                 .withMethod("GET")
                                 .withProduces(MediaType.APPLICATION_JSON)
                                 .withRel("user by id")
-                                .withHref(
-                                        getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "getById").build(userId)
-                                                .toString()));
+                                .withHref(uriBuilder.clone().path(getClass(), "getById").build(userId).toString()));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("GET")
                                 .withProduces(MediaType.APPLICATION_JSON)
                                 .withRel("user by email")
-                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "getByEmail")
-                                                  .queryParam("email", principal.getName()).build().toString()));
+                                .withHref(uriBuilder.clone().path(getClass(), "getByEmail").queryParam("email", principal.getName()).build()
+                                                    .toString()));
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")
                                 .withRel("remove by id")
-                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "removeById")
-                                                  .build(userId).toString()));
+                                .withHref(uriBuilder.clone().path(getClass(), "removeById").build(userId).toString()));
         }
         user.setLinks(links);
         return Response.status(Response.Status.CREATED).entity(user).build();
@@ -151,33 +148,34 @@ public class UserService extends Service {
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public User getCurrent(@Context SecurityContext securityContext) throws OrganizationServiceException {
-        Principal principal = securityContext.getUserPrincipal();
-        User user = userDao.getByAlias(principal.getName());
+        final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         final List<Link> links = new ArrayList<>(1);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withConsumes(MediaType.APPLICATION_JSON)
                             .withMethod("POST")
                             .withRel("change password")
-                            .withHref(
-                                    getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "updatePassword").build()
-                                            .toString()));
+                            .withHref(uriBuilder.clone().path(getClass(), "updatePassword").build().toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("profile")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "getCurrent")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
+                                              .path(UserProfileService.class, "getCurrent")
                                               .build().toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("workspaces")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getAll")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
+                                              .path(WorkspaceService.class, "getAll")
                                               .build().toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("accounts")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(AccountService.class, "getAll")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
+                                              .path(AccountService.class, "getAll")
                                               .build().toString()));
         user.setLinks(links);
         return user;
@@ -189,8 +187,7 @@ public class UserService extends Service {
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response updatePassword(@Context SecurityContext securityContext, String password) throws OrganizationServiceException {
-        Principal principal = securityContext.getUserPrincipal();
-        User user = userDao.getByAlias(principal.getName());
+        final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         user.setPassword(password);
         userDao.update(user);
         return Response.noContent().build();
@@ -202,39 +199,41 @@ public class UserService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public User getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws OrganizationServiceException {
-        Principal principal = securityContext.getUserPrincipal();
-        User user = userDao.getById(id);
+        final User user = userDao.getById(id);
         final List<Link> links = new ArrayList<>();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withProduces(MediaType.APPLICATION_JSON)
                             .withRel("user by email")
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "getByEmail")
-                                              .queryParam("email", principal.getName()).build().toString()));
+                            .withHref(uriBuilder.clone().path(getClass(), "getByEmail")
+                                                .queryParam("email", securityContext.getUserPrincipal().getName()).build().toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("profile")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "getById")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
+                                              .path(UserProfileService.class, "getById")
                                               .build(user.getProfileId()).toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("workspaces")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getAllById")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
+                                              .path(WorkspaceService.class, "getAllById")
                                               .build(user.getId()).toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("accounts")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(AccountService.class, "getAllById")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
+                                              .path(AccountService.class, "getAllById")
                                               .build(user.getId()).toString()));
         if (securityContext.isUserInRole("system/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")
                                 .withRel("remove by id")
-                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "removeById")
-                                                  .build(user.getId()).toString()));
+                                .withHref(uriBuilder.clone().path(getClass(), "removeById").build(user.getId()).toString()));
         }
         user.setLinks(links);
         return user;
@@ -247,38 +246,40 @@ public class UserService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public User getByEmail(@Context SecurityContext securityContext, @QueryParam("email") String email)
             throws OrganizationServiceException {
-        User user = userDao.getByAlias(email);
+        final User user = userDao.getByAlias(email);
         final List<Link> links = new ArrayList<>();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withProduces(MediaType.APPLICATION_JSON)
                             .withRel("user by id")
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "getById")
-                                              .build(user.getId()).toString()));
+                            .withHref(uriBuilder.clone().path(getClass(), "getById").build(user.getId()).toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("profile")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserProfileService.class, "getById")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
+                                              .path(UserProfileService.class, "getById")
                                               .build(user.getProfileId()).toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("workspaces")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(WorkspaceService.class, "getAllById")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
+                                              .path(WorkspaceService.class, "getAllById")
                                               .build(user.getId()).toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("accounts")
                             .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getServiceUriBuilder().clone().path(AccountService.class, "getAllById")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
+                                              .path(AccountService.class, "getAllById")
                                               .build(user.getId()).toString()));
         if (securityContext.isUserInRole("system/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")
                                 .withRel("remove by id")
-                                .withHref(getServiceContext().getServiceUriBuilder().clone().path(UserService.class, "removeById")
-                                                  .build(user.getId()).toString()));
+                                .withHref(uriBuilder.clone().path(getClass(), "removeById").build(user.getId()).toString()));
         }
         user.setLinks(links);
         return user;

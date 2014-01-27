@@ -132,6 +132,7 @@ public class CustomPortService {
         if (port != -1) {
             portsInUse.remove(port);
         }
+        LOG.debug("Release port {}", port);
     }
 
     private int doAcquire(int min, int max) {
@@ -142,7 +143,7 @@ public class CustomPortService {
                 try {
                     ss = new ServerSocket(port);
                     ds = new DatagramSocket(port);
-                    LOG.debug("Connect on port {}", port);
+                    LOG.debug("Acquire port {}", port);
                     return port;
                 } catch (IOException ignored) {
                     portsInUse.remove(port);

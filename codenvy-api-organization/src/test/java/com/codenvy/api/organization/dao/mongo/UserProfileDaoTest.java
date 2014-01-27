@@ -20,11 +20,11 @@ package com.codenvy.api.organization.dao.mongo;
 import de.bwaldvogel.mongo.MongoServer;
 import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
 
-import com.codenvy.api.organization.dao.UserProfileDao;
+import com.codenvy.api.user.dao.UserProfileDao;
 import com.codenvy.api.organization.dao.ldap.UserDaoImpl;
-import com.codenvy.api.organization.exception.ItemNotFoundException;
-import com.codenvy.api.organization.shared.dto.Attribute;
-import com.codenvy.api.organization.shared.dto.Profile;
+import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.shared.dto.Attribute;
+import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 
@@ -137,12 +137,12 @@ public class UserProfileDaoTest {
                                  .withDescription("description3"));
         Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID).withUserId(USER_ID)
                                     .withAttributes(attributes);
-        Mockito.when(userDao.getById(USER_ID)).thenThrow(ItemNotFoundException.class);
+        Mockito.when(userDao.getById(USER_ID)).thenThrow(UserException.class);
 
         try {
            profileDao.create(profile);
            fail("User described in profile is not found, but profile is created.");
-        } catch (ItemNotFoundException e) {
+        } catch (UserException e) {
             // OK
         }
     }
@@ -163,7 +163,7 @@ public class UserProfileDaoTest {
         try {
             profileDao.update(profile);
             fail("Update of non-existing profile prohibited.");
-        } catch (ItemNotFoundException e) {
+        } catch (UserException e) {
             // OK
         }
     }
@@ -180,12 +180,12 @@ public class UserProfileDaoTest {
                                  .withDescription("description3"));
         Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID).withUserId(USER_ID)
                                     .withAttributes(attributes);
-        Mockito.when(userDao.getById(USER_ID)).thenThrow(ItemNotFoundException.class);
+        Mockito.when(userDao.getById(USER_ID)).thenThrow(UserException.class);
 
         try {
             profileDao.update(profile);
             fail("User described in profile is not found, but profile is updated.");
-        } catch (ItemNotFoundException e) {
+        } catch (UserException e) {
             // OK
         }
     }

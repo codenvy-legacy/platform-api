@@ -18,7 +18,7 @@
 
 package com.codenvy.api.organization.dao.util;
 
-import com.codenvy.api.organization.exception.ItemNamingException;
+import com.codenvy.api.organization.dao.exception.ItemNamingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

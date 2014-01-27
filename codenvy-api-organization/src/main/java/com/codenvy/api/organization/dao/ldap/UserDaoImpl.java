@@ -17,9 +17,9 @@
  */
 package com.codenvy.api.organization.dao.ldap;
 
-import com.codenvy.api.organization.dao.UserDao;
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.User;
+import com.codenvy.api.user.dao.UserDao;
+import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
@@ -66,37 +66,37 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public void create(User user) throws OrganizationServiceException {
+    public void create(User user) throws UserException {
         try {
             String userDN =
                     LdapService.OU + "=" + user.getId() + "," + LdapService.OU + "=" + LdapService.USERS_SUBTREE_NAME;
             BasicAttributes attributes = userPropertiesToLdapAttributes(user);
             ldapService.createLdapEntry(userDN, attributes);
         } catch (NamingException e) {
-            throw new OrganizationServiceException("Error trying to create " + User.class.getSimpleName() + ":"
+            throw new UserException("Error trying to create " + User.class.getSimpleName() + ":"
                                                    + user.getId(), e);
         }
 
     }
 
     @Override
-    public void update(User user) throws OrganizationServiceException {
+    public void update(User user) throws UserException {
         //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
-    public void removeById(String id) throws OrganizationServiceException {
+    public void removeById(String id) throws UserException {
         try {
             ldapService.removeEntryByName(
                     LdapService.OU + "=" + id + "," + LdapService.OU + "=" + LdapService.USERS_SUBTREE_NAME);
         } catch (NamingException e) {
-            throw new OrganizationServiceException("Error trying to remove " + User.class.getSimpleName() + ":" + id,
+            throw new UserException("Error trying to remove " + User.class.getSimpleName() + ":" + id,
                                                    e);
         }
     }
 
     @Override
-    public User getByAlias(String alias) throws OrganizationServiceException {
+    public User getByAlias(String alias) throws UserException {
         try {
             User user = null;
             Attributes userLdapAttributes =
@@ -108,13 +108,13 @@ public class UserDaoImpl implements UserDao {
             }
             return user;
         } catch (NamingException e) {
-            throw new OrganizationServiceException("Error trying to obtain " + User.class.getSimpleName() + ":" + alias,
+            throw new UserException("Error trying to obtain " + User.class.getSimpleName() + ":" + alias,
                                                    e);
         }
     }
 
     @Override
-    public User getById(String id) throws OrganizationServiceException {
+    public User getById(String id) throws UserException {
         try {
             User user = null;
             Attributes userLdapAttributes = getLdapEntryAttributes(LdapService.OU + "=" + id, USER,
@@ -126,7 +126,7 @@ public class UserDaoImpl implements UserDao {
             }
             return user;
         } catch (NamingException e) {
-            throw new OrganizationServiceException("Error trying to obtain " + User.class.getSimpleName() + ":" + id,
+            throw new UserException("Error trying to obtain " + User.class.getSimpleName() + ":" + id,
                                                    e);
         }
     }

@@ -18,7 +18,6 @@
 package com.codenvy.api.user;
 
 
-import com.codenvy.api.account.AccountService;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -32,7 +31,6 @@ import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.api.workspace.WorkspaceService;
 import com.codenvy.api.user.dao.MemberDao;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -168,20 +166,20 @@ public class UserService extends Service {
                             .withHref(getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
                                               .path(UserProfileService.class, "getCurrent")
                                               .build().toString()));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withMethod("GET")
-                            .withRel("workspaces")
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
-                                              .path(WorkspaceService.class, "getAll")
-                                              .build().toString()));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withMethod("GET")
-                            .withRel("accounts")
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
-                                              .path(AccountService.class, "getAll")
-                                              .build().toString()));
+//        links.add(DtoFactory.getInstance().createDto(Link.class)
+//                            .withMethod("GET")
+//                            .withRel("workspaces")
+//                            .withProduces(MediaType.APPLICATION_JSON)
+//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
+//                                              .path(WorkspaceService.class, "getAll")
+//                                              .build().toString()));
+//        links.add(DtoFactory.getInstance().createDto(Link.class)
+//                            .withMethod("GET")
+//                            .withRel("accounts")
+//                            .withProduces(MediaType.APPLICATION_JSON)
+//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
+//                                              .path(AccountService.class, "getAll")
+//                                              .build().toString()));
         user.setLinks(links);
         return user;
     }
@@ -221,20 +219,20 @@ public class UserService extends Service {
                             .withHref(getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
                                               .path(UserProfileService.class, "getById")
                                               .build(user.getProfileId()).toString()));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withMethod("GET")
-                            .withRel("workspaces")
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
-                                              .path(WorkspaceService.class, "getAllById")
-                                              .build(user.getId()).toString()));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withMethod("GET")
-                            .withRel("accounts")
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
-                                              .path(AccountService.class, "getAllById")
-                                              .build(user.getId()).toString()));
+//        links.add(DtoFactory.getInstance().createDto(Link.class)
+//                            .withMethod("GET")
+//                            .withRel("workspaces")
+//                            .withProduces(MediaType.APPLICATION_JSON)
+//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
+//                                              .path(WorkspaceService.class, "getAllById")
+//                                              .build(user.getId()).toString()));
+//        links.add(DtoFactory.getInstance().createDto(Link.class)
+//                            .withMethod("GET")
+//                            .withRel("accounts")
+//                            .withProduces(MediaType.APPLICATION_JSON)
+//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
+//                                              .path(AccountService.class, "getAllById")
+//                                              .build(user.getId()).toString()));
         if (securityContext.isUserInRole("system/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")
@@ -267,20 +265,20 @@ public class UserService extends Service {
                             .withHref(getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
                                               .path(UserProfileService.class, "getById")
                                               .build(user.getProfileId()).toString()));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withMethod("GET")
-                            .withRel("workspaces")
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
-                                              .path(WorkspaceService.class, "getAllById")
-                                              .build(user.getId()).toString()));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withMethod("GET")
-                            .withRel("accounts")
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
-                                              .path(AccountService.class, "getAllById")
-                                              .build(user.getId()).toString()));
+//        links.add(DtoFactory.getInstance().createDto(Link.class)
+//                            .withMethod("GET")
+//                            .withRel("workspaces")
+//                            .withProduces(MediaType.APPLICATION_JSON)
+//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
+//                                              .path(WorkspaceService.class, "getAllById")
+//                                              .build(user.getId()).toString()));
+//        links.add(DtoFactory.getInstance().createDto(Link.class)
+//                            .withMethod("GET")
+//                            .withRel("accounts")
+//                            .withProduces(MediaType.APPLICATION_JSON)
+//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
+//                                              .path(AccountService.class, "getAllById")
+//                                              .build(user.getId()).toString()));
         if (securityContext.isUserInRole("system/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")

@@ -96,7 +96,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
         }
         return
                 DtoFactory.getInstance().createDto(Workspace.class).withId(id)
-                          .withName((String)res.get("name"))
+                          .withName((String)res.get("name")).withTemporary((boolean)res.get("temporary"))
                           .withAttributes(attributes);
 
     }
@@ -119,7 +119,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
         }
         return
                 DtoFactory.getInstance().createDto(Workspace.class).withId((String)res.get("_id"))
-                          .withName(name)
+                          .withName(name).withTemporary((boolean)res.get("temporary"))
                           .withAttributes(attributes);
     }
 
@@ -143,6 +143,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
 
         workspaceDatabuilder.add("_id", workspace.getId());
         workspaceDatabuilder.add("name", workspace.getName());
+        workspaceDatabuilder.add("temporary", workspace.isTemporary());
         workspaceDatabuilder.add("attributes", attrs);
         return workspaceDatabuilder.get();
     }

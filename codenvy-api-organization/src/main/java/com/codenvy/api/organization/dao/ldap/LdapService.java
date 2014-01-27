@@ -41,6 +41,16 @@ public class LdapService {
     /** Logger */
     private static final Logger LOG = LoggerFactory.getLogger(LdapService.class);
 
+    /** LDAP organizationalUnit objectClass name */
+    protected static final String ORGANIZATIONAL_UNIT = "organizationalUnit";
+
+    /** LDAP organization unit attribute */
+    protected static final String OU = "ou";
+
+    /** Users subtree name */
+    public static final String USERS_SUBTREE_NAME = "users";
+
+
     private Map<String, String> env = new HashMap<>();
 
     /**
@@ -72,19 +82,19 @@ public class LdapService {
         try {
             ctx = getLdapContext();
 
-            searchCtx = ctx.search(getUrl(), "(" + BaseLdapDao.OU + "=" + BaseLdapDao.USERS_SUBTREE_NAME + ")", null);
+            searchCtx = ctx.search(getUrl(), "(" + OU + "=" + USERS_SUBTREE_NAME + ")", null);
             if (!searchCtx.hasMore()) {
                 BasicAttribute oc = new BasicAttribute("objectClass");
-                oc.add(BaseLdapDao.ORGANIZATIONAL_UNIT);
+                oc.add(ORGANIZATIONAL_UNIT);
 
                 BasicAttributes attributes = new BasicAttributes();
                 attributes.put(oc);
-                attributes.put(BaseLdapDao.OU, BaseLdapDao.USERS_SUBTREE_NAME);
+                attributes.put(OU, USERS_SUBTREE_NAME);
 
-                createCtx = ctx.createSubcontext(BaseLdapDao.OU + "=" + BaseLdapDao.USERS_SUBTREE_NAME, attributes);
+                createCtx = ctx.createSubcontext(OU + "=" + USERS_SUBTREE_NAME, attributes);
 
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("LDAP server {} entries sub tree initialized", BaseLdapDao.USERS_SUBTREE_NAME);
+                    LOG.debug("LDAP server {} entries sub tree initialized", USERS_SUBTREE_NAME);
                 }
             }
         } finally {

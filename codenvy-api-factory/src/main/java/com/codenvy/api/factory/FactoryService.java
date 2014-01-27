@@ -37,7 +37,6 @@ import java.io.*;
 import java.security.Principal;
 import java.util.*;
 
-import static com.codenvy.api.factory.AdvancedFactoryUrlValidator.validate;
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
 
@@ -45,10 +44,15 @@ import static javax.ws.rs.core.Response.Status;
 @Path("/factory")
 public class FactoryService {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
+
     @Inject
-    private FactoryStore                factoryStore;
+    private FactoryStore factoryStore;
+
     @Inject
-    private UserManager                 userManager;
+    private UserManager userManager;
+
+    @Inject
+    private FactoryUrlValidator validator;
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
@@ -117,7 +121,7 @@ public class FactoryService {
                 factoryUrl.setVcs("git");
             }
 
-            validate(factoryUrl);
+            validator.validateUrl(factoryUrl);
 
             factoryUrl.setUserid(user.getId());
 
@@ -187,7 +191,7 @@ public class FactoryService {
      * @param imageId
      *         - image id.
      * @return - image information if ids are correct. If imageId is not set, random image of factory will be returned. But if factory has
-     *         no images, exception will be thrown.
+     * no images, exception will be thrown.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist
      *         - with response code 404 if imgId is not set in request and there is no default image for factory with given id

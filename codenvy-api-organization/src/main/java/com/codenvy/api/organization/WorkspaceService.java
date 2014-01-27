@@ -19,7 +19,9 @@ package com.codenvy.api.organization;
 
 
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.organization.dao.MemberDao;
 import com.codenvy.api.organization.dao.UserDao;
@@ -28,6 +30,7 @@ import com.codenvy.api.organization.exception.OrganizationServiceException;
 import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.User;
 import com.codenvy.api.organization.shared.dto.Workspace;
+import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -47,10 +50,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * TODO add links to projects when projects service will be merged in
  * Workspace API
  *
  * @author Eugene Voevodin
@@ -74,7 +77,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = "create")
     @RolesAllowed({"user", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext, Workspace newWorkspace)
+    public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
             throws OrganizationServiceException {
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), ID_LENGTH);
         newWorkspace.setId(wsId);
@@ -82,6 +85,12 @@ public class WorkspaceService extends Service {
         Workspace workspace = workspaceDao.getById(wsId);
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withRel("list of projects")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
+                                              .path(ProjectService.class, "getProjects").build(wsId).toString()));
         if (securityContext.isUserInRole("user")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("GET")
@@ -124,6 +133,12 @@ public class WorkspaceService extends Service {
                             .withRel("get by email")
                             .withHref(uriBuilder.clone().path(getClass(), "getByEmail").queryParam("name", workspace.getName()).build()
                                                 .toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withRel("list of projects")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
+                                              .path(ProjectService.class, "getProjects").build(id).toString()));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("workspace/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("POST")
@@ -158,7 +173,8 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = "workspace by name")
     @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Workspace getByName(@Context SecurityContext securityContext, @QueryParam("name") String name)
+    public Workspace getByName(@Context SecurityContext securityContext,
+                               @Required @Description("workspace name") @QueryParam("name") String name)
             throws OrganizationServiceException {
         Workspace workspace = workspaceDao.getByName(name);
         final List<Link> links = new ArrayList<>();
@@ -168,6 +184,12 @@ public class WorkspaceService extends Service {
                             .withProduces(MediaType.APPLICATION_JSON)
                             .withRel("get by id")
                             .withHref(uriBuilder.clone().path(getClass(), "getByEmail").build(workspace.getId()).toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withRel("list of projects")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
+                                              .path(ProjectService.class, "getProjects").build(workspace.getId()).toString()));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("workspace/admin")) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("POST")
@@ -203,7 +225,8 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"system/admin", "workspace/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Workspace updateById(@Context SecurityContext securityContext, @PathParam("id") String id, Workspace newWorkspace)
+    public Workspace updateById(@Context SecurityContext securityContext, @PathParam("id") String id,
+                                @Required @Description("new workspace") Workspace newWorkspace)
             throws OrganizationServiceException {
         newWorkspace.setId(id);
         workspaceDao.update(newWorkspace);
@@ -214,6 +237,12 @@ public class WorkspaceService extends Service {
                             .withRel("remove")
                             .withHref(uriBuilder.clone().path(getClass(), "remove")
                                                 .build(id).toString()));
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withMethod("GET")
+                            .withProduces(MediaType.APPLICATION_JSON)
+                            .withRel("list of projects")
+                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
+                                              .path(ProjectService.class, "getProjects").build(newWorkspace.getId()).toString()));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("GET")
                             .withRel("get by name")
@@ -246,15 +275,15 @@ public class WorkspaceService extends Service {
         final User current = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         final List<Workspace> workspaces = new ArrayList<>();
         final List<Link> links = new ArrayList<>(1);
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withMethod("POST")
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withRel("create")
-                            .withHref(uriBuilder.clone().path(getClass(), "create").build().toString()));
         for (Member member : memberDao.getUserRelationships(current.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
-            workspace.setLinks(links);
+            Link projects = DtoFactory.getInstance().createDto(Link.class)
+                                      .withProduces(MediaType.APPLICATION_JSON)
+                                      .withMethod("GET")
+                                      .withRel("workspace projects")
+                                      .withHref(getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
+                                                        .path(ProjectService.class, "getProjects").build(workspace.getId()).toString());
+            workspace.setLinks(Arrays.asList(projects));
             workspaces.add(workspace);
         }
         return workspaces;
@@ -265,21 +294,27 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = "specific user workspaces")
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Workspace> getAllById(@QueryParam("userid") String userid) throws OrganizationServiceException {
+    public List<Workspace> getAllById(@Required @Description("user id to find workspaces") @QueryParam("userid") String userid)
+            throws OrganizationServiceException {
         final List<Workspace> workspaces = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         for (Member member : memberDao.getUserRelationships(userid)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
-            final List<Link> links = new ArrayList<>(1);
+            final List<Link> links = new ArrayList<>(2);
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("GET")
                                 .withRel("user by id")
                                 .withProduces(MediaType.APPLICATION_JSON)
                                 .withHref(uriBuilder.clone().path(UserService.class).path(UserService.class, "getById").build(userid)
                                                     .toString()));
+            links.add(DtoFactory.getInstance().createDto(Link.class)
+                                .withMethod("GET")
+                                .withProduces(MediaType.APPLICATION_JSON)
+                                .withRel("list of projects")
+                                .withHref(getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
+                                                  .path(ProjectService.class, "getProjects").build(workspace.getId()).toString()));
             workspace.setLinks(links);
             workspaces.add(workspace);
-
         }
         return workspaces;
     }

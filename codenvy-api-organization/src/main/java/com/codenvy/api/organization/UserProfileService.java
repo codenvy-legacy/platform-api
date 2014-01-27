@@ -19,7 +19,9 @@ package com.codenvy.api.organization;
 
 
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.organization.dao.UserDao;
 import com.codenvy.api.organization.dao.UserProfileDao;
@@ -86,7 +88,9 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update current")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateCurrent(@Context SecurityContext securityContext, Profile newProfile) throws OrganizationServiceException {
+    public Profile updateCurrent(@Context SecurityContext securityContext,
+                                 @Required @Description("new user profile to update") Profile newProfile)
+            throws OrganizationServiceException {
         Principal principal = securityContext.getUserPrincipal();
         User user = userDao.getByAlias(principal.getName());
         newProfile.setUserId(user.getId());
@@ -130,7 +134,7 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateById(@PathParam("id") String profileId, Profile newProfile)
+    public Profile updateById(@PathParam("id") String profileId, @Required @Description("new user profile to update") Profile newProfile)
             throws OrganizationServiceException {
         Profile profile = profileDao.getById(profileId);
         final List<Link> links = new ArrayList<>(1);

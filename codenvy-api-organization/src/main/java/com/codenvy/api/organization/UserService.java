@@ -19,7 +19,9 @@ package com.codenvy.api.organization;
 
 
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.organization.dao.MemberDao;
 import com.codenvy.api.organization.dao.UserDao;
@@ -78,7 +80,7 @@ public class UserService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @QueryParam("token") String token,
-                           @QueryParam("temporary") Boolean isTemporary)
+                           @Required @Description("is user temporary") @QueryParam("temporary") Boolean isTemporary)
             throws OrganizationServiceException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = DtoFactory.getInstance().createDto(User.class);
@@ -186,7 +188,8 @@ public class UserService extends Service {
     @GenerateLink(rel = "update password")
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response updatePassword(@Context SecurityContext securityContext, String password) throws OrganizationServiceException {
+    public Response updatePassword(@Context SecurityContext securityContext, @Required @Description("new password") String password)
+            throws OrganizationServiceException {
         final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         user.setPassword(password);
         userDao.update(user);
@@ -244,7 +247,7 @@ public class UserService extends Service {
     @GenerateLink(rel = "user by email")
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public User getByEmail(@Context SecurityContext securityContext, @QueryParam("email") String email)
+    public User getByEmail(@Context SecurityContext securityContext, @Required @Description("user email") @QueryParam("email") String email)
             throws OrganizationServiceException {
         final User user = userDao.getByAlias(email);
         final List<Link> links = new ArrayList<>();

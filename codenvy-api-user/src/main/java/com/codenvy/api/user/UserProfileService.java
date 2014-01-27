@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization;
+package com.codenvy.api.user;
 
 
 import com.codenvy.api.core.rest.Service;
@@ -23,11 +23,10 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.organization.dao.UserDao;
-import com.codenvy.api.organization.dao.UserProfileDao;
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Profile;
-import com.codenvy.api.organization.shared.dto.User;
+import com.codenvy.api.user.dao.UserDao;
+import com.codenvy.api.user.dao.UserProfileDao;
+import com.codenvy.api.user.shared.dto.Profile;
+import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;

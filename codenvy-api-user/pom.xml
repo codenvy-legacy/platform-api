@@ -10,6 +10,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>codenvy-api-user</artifactId>
-
+    <dependencies>
+        <dependency>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-api-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>

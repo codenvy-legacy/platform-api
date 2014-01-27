@@ -15,12 +15,12 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization;
+package com.codenvy.api.account;
 
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
-import com.codenvy.api.organization.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.Account;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;

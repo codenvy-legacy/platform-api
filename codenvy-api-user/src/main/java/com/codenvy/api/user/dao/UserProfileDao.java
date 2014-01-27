@@ -15,11 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.dao;
+package com.codenvy.api.user.dao;
 
 
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Profile;
+import com.codenvy.api.user.shared.dto.Profile;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Profile} data.

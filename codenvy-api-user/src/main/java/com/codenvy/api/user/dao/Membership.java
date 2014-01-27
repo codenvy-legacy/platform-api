@@ -15,9 +15,8 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.shared.dto;
+package com.codenvy.api.user.dao;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -26,40 +25,16 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface User {
-    String getId();
+public interface Membership {
+    String getUserId();
 
-    void setId(String id);
+    void setUserId(String id);
 
-    User withId(String id);
+    Membership withUserId(String id);
 
-    List<String> getAliases();
+    List<String> getRoles();
 
-    void setAliases(List<String> aliases);
+    void setRoles(List<String> roles);
 
-    User withAliases(List<String> aliases);
-
-    String getEmail();
-
-    void setEmail(String email);
-
-    User withEmail(String email);
-
-    String getPassword();
-
-    void setPassword(String password);
-
-    User withPassword(String password);
-
-    String getProfileId();
-
-    void setProfileId(String profileId);
-
-    User withProfileId(String profileId);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    User withLinks(List<Link> links);
+    Membership withRoles(List<String> roles);
 }

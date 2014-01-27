@@ -16,19 +16,19 @@
  * from Codenvy S.A..
  */
 
-package com.codenvy.api.organization.exception;
+package com.codenvy.api.user.exception;
 
 /**
  * Base exception in the hierarchy of organization service exceptions. It is thrown if no other specific exception type
  * matches the issue.
  */
-public class OrganizationServiceException extends Exception {
+public class UserServiceException extends Exception {
 
     /**
      * @param message
      *         the detail message
      */
-    public OrganizationServiceException(String message) {
+    public UserServiceException(String message) {
         super(message);
     }
 
@@ -38,7 +38,7 @@ public class OrganizationServiceException extends Exception {
      * @param cause
      *         the cause
      */
-    public OrganizationServiceException(String message, Throwable cause) {
+    public UserServiceException(String message, Throwable cause) {
         super(message, cause);
     }
 
@@ -46,7 +46,7 @@ public class OrganizationServiceException extends Exception {
      * @param cause
      *         the cause
      */
-    public OrganizationServiceException(Throwable cause) {
+    public UserServiceException(Throwable cause) {
         super(cause);
     }
 

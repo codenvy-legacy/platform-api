@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,8 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-
-package com.codenvy.api.organization.shared.dto;
+package com.codenvy.api.user.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
@@ -27,29 +26,40 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface Profile {
+public interface User {
+    String getId();
 
     void setId(String id);
 
-    String getId();
+    User withId(String id);
 
-    Profile withId(String id);
+    List<String> getAliases();
 
-    String getUserId();
+    void setAliases(List<String> aliases);
 
-    void setUserId(String id);
+    User withAliases(List<String> aliases);
 
-    Profile withUserId(String id);
+    String getEmail();
 
-    List<Attribute> getAttributes();
+    void setEmail(String email);
 
-    void setAttributes(List<Attribute> attributes);
+    User withEmail(String email);
 
-    Profile withAttributes(List<Attribute> attributes);
+    String getPassword();
+
+    void setPassword(String password);
+
+    User withPassword(String password);
+
+    String getProfileId();
+
+    void setProfileId(String profileId);
+
+    User withProfileId(String profileId);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    Profile withLinks(List<Link> links);
+    User withLinks(List<Link> links);
 }

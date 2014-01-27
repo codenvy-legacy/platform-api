@@ -16,11 +16,12 @@
  * from Codenvy S.A..
  */
 
-package com.codenvy.api.organization.dao;
+package com.codenvy.api.user.dao;
 
 
 import com.codenvy.api.organization.exception.OrganizationServiceException;
 import com.codenvy.api.organization.shared.dto.User;
+import com.codenvy.api.user.shared.dto.User;
 
 
 /**

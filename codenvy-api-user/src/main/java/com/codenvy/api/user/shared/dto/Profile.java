@@ -15,7 +15,8 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.shared.dto;
+
+package com.codenvy.api.user.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
@@ -26,40 +27,29 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface Account {
-    String getOwner();
+public interface Profile {
 
-    void setOwner(String owner);
+    void setId(String id);
 
-    Account withOwner(String owner);
+    String getId();
+
+    Profile withId(String id);
+
+    String getUserId();
+
+    void setUserId(String id);
+
+    Profile withUserId(String id);
 
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);
 
-    Account withAttributes(List<Attribute> attributes);
-
-    List<String> getWorkspaces();
-
-    void setWorkspaces(List<String> workspaces);
-
-    Account withWorkspaces(List<String> workspaces);
-
-    String getName();
-
-    void setName(String name);
-
-    Account withName(String name);
-
-    String getId();
-
-    void setId(String id);
-
-    Account withId(String id);
+    Profile withAttributes(List<Attribute> attributes);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    Account withLinks(List<Link> links);
+    Profile withLinks(List<Link> links);
 }

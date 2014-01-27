@@ -15,16 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.workspace.dao;
+package com.codenvy.api.user.dao;
 
 
 import com.codenvy.api.workspace.exception.MemberException;
-import com.codenvy.api.workspace.shared.dto.Member;
+import com.codenvy.api.user.shared.dto.Member;
 
 import java.util.List;
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.workspace.shared.dto.Member} data.
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.user.shared.dto.Member} data.
  * The implementation is not required
  * to be responsible for persistent layer data dto consistency. It simply transfers data from one layer to another,
  * so

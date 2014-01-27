@@ -18,6 +18,7 @@
 package com.codenvy.api.user;
 
 
+import com.codenvy.api.account.AccountService;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -28,8 +29,11 @@ import com.codenvy.api.user.dao.UserDao;
 import com.codenvy.api.user.dao.UserProfileDao;
 import com.codenvy.api.user.exception.UserException;
 import com.codenvy.api.user.shared.dto.Attribute;
+import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.workspace.WorkspaceService;
+import com.codenvy.api.user.dao.MemberDao;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.inject.Inject;

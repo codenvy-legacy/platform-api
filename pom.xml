@@ -40,7 +40,7 @@
         <module>codenvy-api-builder</module>
         <module>codenvy-api-runner</module>
         <module>codenvy-api-analytics</module>
-        <module>codenvy-api-organization</module>
+        <!-- module>codenvy-api-organization</module-->
         <module>codenvy-api-user</module>
         <module>codenvy-api-workspace</module>
         <module>codenvy-api-account</module>

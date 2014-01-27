@@ -28,8 +28,9 @@ import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.UserService;
 import com.codenvy.api.user.dao.UserDao;
 import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.api.workspace.dao.MemberDao;
-import com.codenvy.api.workspace.shared.dto.Member;
+import com.codenvy.api.user.dao.MemberDao;
+import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -346,8 +347,11 @@ public class WorkspaceService extends Service {
     @RolesAllowed("workspace/admin")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Member addMember(@PathParam("id") String wsId, Member newMember) throws ApiException {
+    public Member addMember(@PathParam("id") String wsId, Membership membership) throws ApiException {
+        Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);
+        newMember.setRoles(membership.getRoles());
+        newMember.setUserId(membership.getUserId());
         memberDao.create(newMember);
         final List<Link> links = new ArrayList<>(3);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();

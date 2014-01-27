@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.user.dao;
+package com.codenvy.api.workspace.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 

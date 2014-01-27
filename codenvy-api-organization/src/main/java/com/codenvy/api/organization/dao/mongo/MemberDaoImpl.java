@@ -17,11 +17,14 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
-import com.codenvy.api.organization.dao.MemberDao;
-import com.codenvy.api.organization.dao.UserDao;
-import com.codenvy.api.organization.dao.WorkspaceDao;
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Member;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.user.dao.MemberDao;
+import com.codenvy.api.user.dao.UserDao;
+import com.codenvy.api.user.exception.MemberException;
+import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.workspace.dao.WorkspaceDao;
+import com.codenvy.api.workspace.exception.WorkspaceException;
 import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 
@@ -45,20 +48,21 @@ public class MemberDaoImpl implements MemberDao {
     WorkspaceDao workspaceDao;
 
     @Inject
-    public MemberDaoImpl(UserDao userDao, WorkspaceDao workspaceDao,  DB db, @Named(DB_COLLECTION) String collectionName) {
+    public MemberDaoImpl(UserDao userDao, WorkspaceDao workspaceDao, DB db,
+                         @Named(DB_COLLECTION) String collectionName) {
         collection = db.getCollection(collectionName);
         this.userDao = userDao;
         this.workspaceDao = workspaceDao;
     }
 
     @Override
-    public void create(Member member) throws OrganizationServiceException {
+    public void create(Member member) throws MemberException {
         validateSubjectsExists(member.getUserId(), member.getWorkspaceId());
         collection.save(memberToDBObject(member));
     }
 
     @Override
-    public void update(Member member) throws OrganizationServiceException {
+    public void update(Member member) throws MemberException {
         validateSubjectsExists(member.getUserId(), member.getWorkspaceId());
         DBObject query = new BasicDBObject();
         query.put("workspaceid", member.getWorkspaceId());
@@ -67,7 +71,7 @@ public class MemberDaoImpl implements MemberDao {
     }
 
     @Override
-    public List<Member> getWorkspaceMembers(String wsId) throws OrganizationServiceException {
+    public List<Member> getWorkspaceMembers(String wsId) throws MemberException {
         List<Member> result = new ArrayList<>();
         DBObject query = new BasicDBObject();
         query.put("workspaceid", wsId);
@@ -85,7 +89,7 @@ public class MemberDaoImpl implements MemberDao {
     }
 
     @Override
-    public List<Member> getUserRelationships(String userId) throws OrganizationServiceException {
+    public List<Member> getUserRelationships(String userId) throws MemberException {
         List<Member> result = new ArrayList<>();
         DBObject query = new BasicDBObject();
         query.put("userid", userId);
@@ -136,8 +140,12 @@ public class MemberDaoImpl implements MemberDao {
 
 
 
-    void validateSubjectsExists(String userId, String workspaceId) throws OrganizationServiceException{
-       userDao.getById(userId);
-       workspaceDao.getById(workspaceId);
+    void validateSubjectsExists(String userId, String workspaceId) throws MemberException{
+        try {
+           userDao.getById(userId);
+           workspaceDao.getById(workspaceId);
+        } catch (UserException | WorkspaceException e) {
+            throw  new MemberException(e.getMessage(), e);
+        }
     }
 }

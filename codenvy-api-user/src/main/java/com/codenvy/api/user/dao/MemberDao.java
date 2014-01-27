@@ -18,7 +18,7 @@
 package com.codenvy.api.user.dao;
 
 
-import com.codenvy.api.workspace.exception.MemberException;
+import com.codenvy.api.user.exception.MemberException;
 import com.codenvy.api.user.shared.dto.Member;
 
 import java.util.List;
@@ -39,7 +39,7 @@ public interface MemberDao {
      *
      * @param member
      *         - POJO representation of workspace member
-     * @throws com.codenvy.api.workspace.exception.MemberException
+     * @throws MemberException
      */
 
     void create(Member member) throws MemberException;
@@ -50,7 +50,7 @@ public interface MemberDao {
      *
      * @param member
      *         - POJO representation of workspace member
-     * @throws com.codenvy.api.workspace.exception.MemberException
+     * @throws MemberException
      */
     void update(Member member) throws MemberException;
 
@@ -60,7 +60,7 @@ public interface MemberDao {
      * @param wsId
      *         workspace to search in
      * @return list of workspace members
-     * @throws com.codenvy.api.workspace.exception.MemberException
+     * @throws MemberException
      */
 
     List<Member> getWorkspaceMembers(String wsId) throws MemberException;
@@ -72,7 +72,7 @@ public interface MemberDao {
      * @param userId
      *         user to get relationships
      * @return list of user relations
-     * @throws com.codenvy.api.workspace.exception.MemberException
+     * @throws MemberException
      */
 
     public List<Member> getUserRelationships(String userId) throws MemberException;

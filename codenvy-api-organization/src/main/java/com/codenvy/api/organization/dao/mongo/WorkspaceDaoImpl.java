@@ -17,14 +17,12 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
-import com.codenvy.api.organization.dao.UserDao;
-import com.codenvy.api.organization.dao.WorkspaceDao;
+import com.codenvy.api.user.dao.UserDao;
 import com.codenvy.api.organization.dao.util.NamingValidator;
-import com.codenvy.api.organization.exception.ItemAlreadyExistException;
-import com.codenvy.api.organization.exception.ItemNotFoundException;
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Attribute;
-import com.codenvy.api.organization.shared.dto.Workspace;
+import com.codenvy.api.workspace.dao.WorkspaceDao;
+import com.codenvy.api.workspace.exception.WorkspaceException;
+import com.codenvy.api.workspace.shared.dto.Attribute;
+import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 
@@ -51,19 +49,19 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
     }
 
     @Override
-    public void create(Workspace workspace) throws OrganizationServiceException {
+    public void create(Workspace workspace) throws WorkspaceException {
         NamingValidator.validate(workspace.getName());
         validateWorkspaceNameAvailable(workspace);
         collection.save(workspaceToDBObject(workspace));
     }
 
     @Override
-    public void update(Workspace workspace) throws OrganizationServiceException {
+    public void update(Workspace workspace) throws WorkspaceException {
         DBObject query = new BasicDBObject();
         query.put("_id", workspace.getId());
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new ItemNotFoundException("Specified workspace does not exists.");
+            throw new WorkspaceException("Specified workspace does not exists.");
         }
         NamingValidator.validate(workspace.getName());
         validateWorkspaceNameAvailable(workspace);
@@ -71,19 +69,19 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
     }
 
     @Override
-    public void remove(String id) throws OrganizationServiceException {
+    public void remove(String id) throws WorkspaceException {
         DBObject query = new BasicDBObject();
         query.put("_id", id);
         collection.remove(query);
     }
 
     @Override
-    public Workspace getById(String id) throws OrganizationServiceException {
+    public Workspace getById(String id) throws WorkspaceException {
         DBObject query = new BasicDBObject();
         query.put("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new  ItemNotFoundException("Specified workspace does not exists.");
+            throw new  WorkspaceException("Specified workspace does not exists.");
         }
 
         List<Attribute> attributes = new ArrayList<>();
@@ -102,12 +100,12 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
     }
 
     @Override
-    public Workspace getByName(String name) throws OrganizationServiceException {
+    public Workspace getByName(String name) throws WorkspaceException {
         DBObject query = new BasicDBObject();
         query.put("name", name);
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new  ItemNotFoundException("Workspace with such name does not exists.");
+            throw new  WorkspaceException("Workspace with such name does not exists.");
         }
         List<Attribute> attributes = new ArrayList<>();
         BasicDBList dbList = (BasicDBList)res.get("attributes");
@@ -152,14 +150,14 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
     /**
      * Ensure that user given workspace name not already occupied.
      * @param workspace
-     * @throws OrganizationServiceException
+     * @throws WorkspaceException
      */
-    private void validateWorkspaceNameAvailable(Workspace workspace) throws OrganizationServiceException{
+    private void validateWorkspaceNameAvailable(Workspace workspace) throws WorkspaceException{
         DBObject query = new BasicDBObject();
         query.put("name", workspace.getName());
         DBObject res = collection.findOne(query);
         if (res != null) {
-            throw new ItemAlreadyExistException("Workspace with such name already exists.");
+            throw new WorkspaceException("Workspace with such name already exists.");
         }
 
     }

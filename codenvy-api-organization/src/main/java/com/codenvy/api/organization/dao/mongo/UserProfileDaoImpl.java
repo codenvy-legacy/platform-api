@@ -17,12 +17,11 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
-import com.codenvy.api.organization.dao.UserDao;
-import com.codenvy.api.organization.dao.UserProfileDao;
-import com.codenvy.api.organization.exception.ItemNotFoundException;
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Attribute;
-import com.codenvy.api.organization.shared.dto.Profile;
+import com.codenvy.api.user.dao.UserDao;
+import com.codenvy.api.user.dao.UserProfileDao;
+import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.shared.dto.Attribute;
+import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 
@@ -54,37 +53,37 @@ public class UserProfileDaoImpl implements UserProfileDao    {
     }
 
     @Override
-    public void create(Profile profile) throws OrganizationServiceException {
+    public void create(Profile profile) throws UserException {
         validateProfileUserExists(profile.getUserId());
         collection.save(profileToDBObject(profile));
     }
 
     @Override
-    public void update(Profile profile) throws OrganizationServiceException {
+    public void update(Profile profile) throws UserException {
         DBObject query = new BasicDBObject();
         query.put("_id", profile.getId());
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new ItemNotFoundException("Specified user profile does not exists.");
+            throw new UserException("Specified user profile does not exists.");
         }
         validateProfileUserExists(profile.getUserId());
         collection.update(query, profileToDBObject(profile));
     }
 
     @Override
-    public void remove(String id) throws OrganizationServiceException {
+    public void remove(String id) throws UserException {
         DBObject query = new BasicDBObject();
         query.put("_id", id);
         collection.remove(query);
     }
 
     @Override
-    public Profile getById(String id) throws OrganizationServiceException {
+    public Profile getById(String id) throws UserException {
         DBObject query = new BasicDBObject();
         query.put("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
-           throw new  ItemNotFoundException("Specified user profile does not exists.");
+           throw new  UserException("Specified user profile does not exists.");
         }
 
         List<Attribute> attributes = new ArrayList<>();
@@ -106,9 +105,9 @@ public class UserProfileDaoImpl implements UserProfileDao    {
     /**
      * Ensure that user linked to this profile is already exists.
      * @param userId
-     * @throws OrganizationServiceException
+     * @throws UserException
      */
-    private void validateProfileUserExists(String userId) throws OrganizationServiceException{
+    private void validateProfileUserExists(String userId) throws UserException{
         userDao.getById(userId);
     }
 

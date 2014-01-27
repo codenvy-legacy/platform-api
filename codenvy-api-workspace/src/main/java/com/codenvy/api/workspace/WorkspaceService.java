@@ -15,24 +15,22 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization;
+package com.codenvy.api.workspace;
 
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.organization.dao.MemberDao;
-import com.codenvy.api.organization.dao.UserDao;
-import com.codenvy.api.organization.dao.WorkspaceDao;
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Member;
-import com.codenvy.api.organization.shared.dto.User;
-import com.codenvy.api.organization.shared.dto.Workspace;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.workspace.dao.MemberDao;
+import com.codenvy.api.workspace.shared.dto.Member;
+import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.api.workspace.dao.WorkspaceDao;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -78,7 +76,7 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"user", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
-            throws OrganizationServiceException {
+            throws ApiException {
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), ID_LENGTH);
         newWorkspace.setId(wsId);
         workspaceDao.create(newWorkspace);
@@ -123,7 +121,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = "workspace by id")
     @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws OrganizationServiceException {
+    public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws ApiException {
         Workspace workspace = workspaceDao.getById(id);
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -175,7 +173,7 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getByName(@Context SecurityContext securityContext,
                                @Required @Description("workspace name") @QueryParam("name") String name)
-            throws OrganizationServiceException {
+            throws ApiException {
         Workspace workspace = workspaceDao.getByName(name);
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -227,7 +225,7 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace updateById(@Context SecurityContext securityContext, @PathParam("id") String id,
                                 @Required @Description("new workspace") Workspace newWorkspace)
-            throws OrganizationServiceException {
+            throws ApiException {
         newWorkspace.setId(id);
         workspaceDao.update(newWorkspace);
         final ArrayList<Link> links = new ArrayList<>();
@@ -271,7 +269,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = "all workspaces of current user")
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
-    public List<Workspace> getAll(@Context SecurityContext securityContext) throws OrganizationServiceException {
+    public List<Workspace> getAll(@Context SecurityContext securityContext) throws ApiException {
         final User current = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         final List<Workspace> workspaces = new ArrayList<>();
         final List<Link> links = new ArrayList<>(1);
@@ -295,7 +293,7 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<Workspace> getAllById(@Required @Description("user id to find workspaces") @QueryParam("userid") String userid)
-            throws OrganizationServiceException {
+            throws ApiException {
         final List<Workspace> workspaces = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         for (Member member : memberDao.getUserRelationships(userid)) {
@@ -324,7 +322,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = "workspace members")
     @RolesAllowed("workspace/admin")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Member> getMembers(@PathParam("id") String wsId) throws OrganizationServiceException {
+    public List<Member> getMembers(@PathParam("id") String wsId) throws ApiException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final List<Link> links = new ArrayList<>(1);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -345,9 +343,9 @@ public class WorkspaceService extends Service {
     @RolesAllowed("workspace/admin")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Member addMember(@PathParam("id") String wsId, Member newMemeber) throws OrganizationServiceException {
-        newMemeber.setWorkspaceId(wsId);
-        memberDao.create(newMemeber);
+    public Member addMember(@PathParam("id") String wsId, Member newMember) throws ApiException {
+        newMember.setWorkspaceId(wsId);
+        memberDao.create(newMember);
         final List<Link> links = new ArrayList<>(3);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -363,9 +361,9 @@ public class WorkspaceService extends Service {
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withMethod("DELETE")
                             .withRel("remove member")
-                            .withHref(uriBuilder.clone().path(getClass(), "removeMemberById").build(newMemeber.getUserId()).toString()));
-        newMemeber.setLinks(links);
-        return newMemeber;
+                            .withHref(uriBuilder.clone().path(getClass(), "removeMemberById").build(newMember.getUserId()).toString()));
+        newMember.setLinks(links);
+        return newMember;
     }
 
     @DELETE
@@ -381,7 +379,7 @@ public class WorkspaceService extends Service {
     @Path("{id}")
     @GenerateLink(rel = "remove by id")
     @RolesAllowed({"system/admin", "workspace/admin"})
-    public Response removeById(@PathParam("id") String wsId) throws OrganizationServiceException {
+    public Response removeById(@PathParam("id") String wsId) throws ApiException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
             memberDao.removeWorkspaceMember(wsId, member.getUserId());

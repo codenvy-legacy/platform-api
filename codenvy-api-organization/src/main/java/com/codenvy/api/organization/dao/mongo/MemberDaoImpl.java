@@ -20,11 +20,8 @@ package com.codenvy.api.organization.dao.mongo;
 import com.codenvy.api.organization.dao.MemberDao;
 import com.codenvy.api.organization.dao.UserDao;
 import com.codenvy.api.organization.dao.WorkspaceDao;
-import com.codenvy.api.organization.exception.ItemNotFoundException;
 import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Attribute;
 import com.codenvy.api.organization.shared.dto.Member;
-import com.codenvy.api.organization.shared.dto.Workspace;
 import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 

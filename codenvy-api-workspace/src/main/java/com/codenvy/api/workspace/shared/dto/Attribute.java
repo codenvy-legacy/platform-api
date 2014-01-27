@@ -16,39 +16,30 @@
  * from Codenvy S.A..
  */
 
-package com.codenvy.api.organization.shared.dto;
+package com.codenvy.api.workspace.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
-
-import java.util.List;
 
 /**
  * @author andrew00x
  */
 @DTO
-public interface Member {
-    List<String> getRoles();
+public interface Attribute {
+    String getName();
 
-    void setRoles(List<String> roles);
+    void setName(String name);
 
-    Member withRoles(List<String> roles);
+    Attribute withName(String name);
 
-    String getUserId();
+    String getValue();
 
-    void setUserId(String id);
+    void setValue(String value);
 
-    Member withUserId(String id);
+    Attribute withValue(String value);
 
-    String getWorkspaceId();
+    String getDescription();
 
-    void setWorkspaceId(String id);
+    void setDescription(String description);
 
-    Member withWorkspaceId(String id);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    Member withLinks(List<Link> links);
+    Attribute withDescription(String description);
 }

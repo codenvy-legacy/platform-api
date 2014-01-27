@@ -15,15 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.dao;
+package com.codenvy.api.workspace.dao;
 
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Member;
+
+import com.codenvy.api.workspace.exception.MemberException;
+import com.codenvy.api.workspace.shared.dto.Member;
 
 import java.util.List;
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.organization.shared.dto.Member} data.
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.workspace.shared.dto.Member} data.
  * The implementation is not required
  * to be responsible for persistent layer data dto consistency. It simply transfers data from one layer to another,
  * so
@@ -35,48 +36,54 @@ public interface MemberDao {
 
     /**
      * Adds a new Member to persistent layer.
+     *
      * @param member
-     *              - POJO representation of workspace member
-     * @throws OrganizationServiceException
+     *         - POJO representation of workspace member
+     * @throws com.codenvy.api.workspace.exception.MemberException
      */
 
-    void create (Member member) throws OrganizationServiceException;
+    void create(Member member) throws MemberException;
 
 
     /**
      * Updates member in persistent layer.
+     *
      * @param member
-     *            - POJO representation of workspace member
-     * @throws OrganizationServiceException
+     *         - POJO representation of workspace member
+     * @throws com.codenvy.api.workspace.exception.MemberException
      */
-    void update (Member member) throws OrganizationServiceException;
+    void update(Member member) throws MemberException;
 
     /**
      * Gets a list of all members of the given workspace.
      *
-     * @param wsId workspace to search in
+     * @param wsId
+     *         workspace to search in
      * @return list of workspace members
-     * @throws OrganizationServiceException
+     * @throws com.codenvy.api.workspace.exception.MemberException
      */
 
-    List<Member> getWorkspaceMembers(String wsId) throws OrganizationServiceException;
+    List<Member> getWorkspaceMembers(String wsId) throws MemberException;
 
 
     /**
      * Gets a list of all relationships of the given user and workspaces.
      *
-     * @param userId  user to get relationships
-     * @return  list of user relations
-     * @throws OrganizationServiceException
+     * @param userId
+     *         user to get relationships
+     * @return list of user relations
+     * @throws com.codenvy.api.workspace.exception.MemberException
      */
 
-    public List<Member> getUserRelationships(String userId) throws OrganizationServiceException;
+    public List<Member> getUserRelationships(String userId) throws MemberException;
 
     /**
      * Removes a given member from specified workspace.
      *
-     * @param wsId  workspace id to remove member from
-     * @param userId user id to remove
+     * @param wsId
+     *         workspace id to remove member from
+     * @param userId
+     *         user id to remove
      */
 
     void removeWorkspaceMember(String wsId, String userId);

@@ -16,14 +16,15 @@
  * from Codenvy S.A..
  */
 
-package com.codenvy.api.organization.dao;
+package com.codenvy.api.workspace.dao;
 
-import com.codenvy.api.organization.exception.OrganizationServiceException;
-import com.codenvy.api.organization.shared.dto.Workspace;
+import com.codenvy.api.workspace.exception.WorkspaceException;
+import com.codenvy.api.workspace.shared.dto.Workspace;
 
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link Workspace} data. The implementation is not
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.workspace.shared.dto.Workspace} data. The
+ * implementation is not
  * required
  * to be responsible for persistent layer data dto consistency. It simply transfers data from one layer to another,
  * so
@@ -37,30 +38,30 @@ public interface WorkspaceDao {
      *
      * @param workspace
      *         - POJO representation of workspace entity
-     * @throws OrganizationServiceException
+     * @throws com.codenvy.api.workspace.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
-    void create(Workspace workspace) throws OrganizationServiceException;
+    void create(Workspace workspace) throws WorkspaceException;
 
     /**
      * Updates already present in persistent layer workspace.
      *
      * @param workspace
      *         - POJO representation of workspace entity
-     * @throws OrganizationServiceException
+     * @throws com.codenvy.api.workspace.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
-    void update(Workspace workspace) throws OrganizationServiceException;
+    void update(Workspace workspace) throws WorkspaceException;
 
     /**
      * Removes workspace from persistent layer.
      *
      * @param id
      *         - workspace identifier
-     * @throws OrganizationServiceException
+     * @throws com.codenvy.api.workspace.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
-    void remove(String id) throws OrganizationServiceException;
+    void remove(String id) throws WorkspaceException;
 
     /**
      * Gets workspace from persistent layer.
@@ -68,10 +69,10 @@ public interface WorkspaceDao {
      * @param id
      *         - workspace identifier
      * @return workspace POJO, or <code>null</code> if nothing is found
-     * @throws OrganizationServiceException
+     * @throws com.codenvy.api.workspace.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
-    Workspace getById(String id) throws OrganizationServiceException;
+    Workspace getById(String id) throws WorkspaceException;
 
     /**
      * Gets workspace from persistent layer.
@@ -79,8 +80,8 @@ public interface WorkspaceDao {
      * @param name
      *         - workspace identifier
      * @return workspace POJO, or <code>null</code> if nothing is found
-     * @throws OrganizationServiceException
+     * @throws com.codenvy.api.workspace.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
-    Workspace getByName(String name) throws OrganizationServiceException;
+    Workspace getByName(String name) throws WorkspaceException;
 }

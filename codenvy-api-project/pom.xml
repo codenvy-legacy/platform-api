@@ -25,9 +25,9 @@
         <groupId>com.codenvy.platform-api</groupId>
         <version>0.7.0-SNAPSHOT</version>
     </parent>
-    <artifactId>codenvy-api-workspace</artifactId>
+    <artifactId>codenvy-api-project</artifactId>
     <packaging>jar</packaging>
-    <name>Codenvy API Workspace</name>
+    <name>Codenvy API Project</name>
     <properties>
         <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
     </properties>
@@ -66,6 +66,17 @@
         </dependency>
     </dependencies>
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${generated.sources.directory}</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>com.codenvy.platform-api</groupId>
@@ -82,7 +93,7 @@
                 <dependencies>
                     <dependency>
                         <groupId>com.codenvy.platform-api</groupId>
-                        <artifactId>codenvy-api-workspace</artifactId>
+                        <artifactId>codenvy-api-project</artifactId>
                         <version>${project.version}</version>
                     </dependency>
                 </dependencies>

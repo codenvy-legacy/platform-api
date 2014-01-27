@@ -27,6 +27,7 @@ import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServiceLocation;
@@ -36,7 +37,6 @@ import com.codenvy.api.runner.internal.dto.DebugMode;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerState;
-import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
@@ -137,23 +137,36 @@ public class RunQueue {
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException, RunnerException {
         checkStarted();
-        // TODO: check do we need build the project
         final UriBuilder baseUriBuilder =
                 baseApiUrl == null || baseApiUrl.isEmpty() ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, baseUriBuilder.clone());
-        final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class).withWorkspace(workspace).withProject(project);
+        final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
+                                             .withWorkspace(workspace)
+                                             .withProject(project)
+                                             .withProjectDescriptor(descriptor);
         addRequestParameters(descriptor, request);
-        final String builderUrl = baseUriBuilder.clone().path(BuilderService.class).build(workspace).toString();
-        final RemoteServiceDescriptor builderService = new RemoteServiceDescriptor(builderUrl);
-        final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
-        if (buildLink == null) {
-            throw new RunnerException("Unable get URL for starting build of the application");
+        final Callable<RemoteRunnerProcess> callable;
+        if (descriptor.getAttributes().get(com.codenvy.api.builder.internal.Constants.BUILDER_NAME) != null) {
+            LOG.debug("Need build project first");
+            final String builderUrl = baseUriBuilder.clone().path(BuilderService.class).build(workspace).toString();
+            final RemoteServiceDescriptor builderService = new RemoteServiceDescriptor(builderUrl);
+            final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
+            if (buildLink == null) {
+                throw new RunnerException("Unable get URL for starting build of the application");
+            }
+            // schedule build
+            final BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
+                                                                               buildLink,
+                                                                               Pair.of("project", project));
+            callable = createTaskFor(buildDescriptor, request);
+        } else {
+            final List<String> list = descriptor.getAttributes().get("zipball_sources_url");
+            if (!(list == null || list.isEmpty())) {
+                request.setDeploymentSourcesUrl(list.get(0));
+            }
+            callable = createTaskFor(null, request);
         }
-        // schedule build
-        final BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
-                                                                           buildLink,
-                                                                           Pair.of("project", project));
-        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(createTaskFor(buildDescriptor, request));
+        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(callable);
         final RunQueueTask task = new RunQueueTask(request, future);
         request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(RunnerService.class, "webhook").build(workspace,
                                                                                                                task.getId()).toString());
@@ -181,7 +194,7 @@ public class RunQueue {
                     request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(entry.getValue().get(0)));
                 }
             }
-            if (runMemSize.equals(entry.getKey())) {
+            else if (runMemSize.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setMemorySize(Integer.parseInt(entry.getValue().get(0)));
                 }
@@ -210,8 +223,8 @@ public class RunQueue {
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, UriBuilder baseUriBuilder)
             throws IOException, RemoteException {
-        final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
-                                                .path(WorkspaceService.class, "getProject")
+        final String projectUrl = baseUriBuilder.path(ProjectService.class)
+                                                .path(ProjectService.class, "getProject")
                                                 .build(workspace).toString();
         return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
     }

@@ -94,6 +94,12 @@ public class ProjectDescriptionFactory {
                 }
             }
         }
+        for (Attribute attribute : typeDescriptionRegistry.getPredefinedAttributes(projectType)) {
+            if (!attributes.containsKey(attribute.getName())) {
+                attributes.put(attribute.getName(), attribute);
+            }
+        }
+
         return new ArrayList<>(attributes.values());
     }
 }

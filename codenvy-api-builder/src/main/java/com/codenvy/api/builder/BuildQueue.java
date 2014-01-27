@@ -34,8 +34,8 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
@@ -357,8 +357,8 @@ public class BuildQueue {
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException {
         final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
-        final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
-                                                .path(WorkspaceService.class, "getProject")
+        final String projectUrl = baseUriBuilder.path(ProjectService.class)
+                                                .path(ProjectService.class, "getProject")
                                                 .build(workspace).toString();
         return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
     }

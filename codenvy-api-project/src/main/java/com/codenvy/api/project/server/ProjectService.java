@@ -15,14 +15,12 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.workspace.server;
+package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.project.server.PersistentProjectDescription;
-import com.codenvy.api.project.server.ProjectDescriptionFactory;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
@@ -54,8 +52,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** @author andrew00x */
-@Path("workspace/{ws-name}")
-public class WorkspaceService extends Service {
+@Path("project/{ws-name}")
+public class ProjectService extends Service {
     @Inject
     private VirtualFileSystemRegistry registry;
     @Inject
@@ -66,9 +64,9 @@ public class WorkspaceService extends Service {
     @Context
     private UriInfo                   uriInfo;
 
-    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_PROJECT)
+    @GenerateLink(rel = Constants.LINK_REL_GET_PROJECT)
     @GET
-    @Path("project")
+    @Path("description")
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor getProject(@Required @Description("project name") @QueryParam("name") String name)
             throws VirtualFileSystemException {
@@ -80,9 +78,9 @@ public class WorkspaceService extends Service {
         throw new ItemNotFoundException(String.format("Project '%s' does not exists in workspace. ", name));
     }
 
-    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_GET_PROJECTS)
+    @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
-    @Path("projects")
+    @Path("list")
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("unchecked")
     public List<ProjectReference> getProjects(@PathParam("ws-name") String workspace) throws VirtualFileSystemException {
@@ -99,9 +97,9 @@ public class WorkspaceService extends Service {
         return result;
     }
 
-    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_CREATE_PROJECT)
+    @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
     @POST
-    @Path("project/create")
+    @Path("create")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor createProject(@Required @Description("project name") @QueryParam("name") String name,
@@ -109,16 +107,16 @@ public class WorkspaceService extends Service {
             throws VirtualFileSystemException {
         final VirtualFileSystem fileSystem = getVirtualFileSystem();
         final Folder root = fileSystem.getInfo().getRoot();
-        final Project project = fileSystem.createProject(root.getId(), name, null, null);
+        final Project project = fileSystem.createProject(root.getId(), name, descriptor.getProjectTypeId(), null);
         final PersistentProjectDescription description = projectDescriptionFactory.getDescription(project);
         description.update(descriptor);
         description.store(project, fileSystem);
         return description.getDescriptor();
     }
 
-    @GenerateLink(rel = com.codenvy.api.workspace.Constants.LINK_REL_UPDATE_PROJECT)
+    @GenerateLink(rel = Constants.LINK_REL_UPDATE_PROJECT)
     @POST
-    @Path("project/update")
+    @Path("update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor updateProject(@Required @Description("project name") @QueryParam("name") String name,

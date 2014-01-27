@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.runner.internal.dto;
 
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.Map;
@@ -24,7 +25,7 @@ import java.util.Map;
 /**
  * Run application request.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface RunRequest {
@@ -34,6 +35,12 @@ public interface RunRequest {
     void setDeploymentSourcesUrl(String url);
 
     RunRequest withDeploymentSourcesUrl(String url);
+
+    ProjectDescriptor getProjectDescriptor();
+
+    void setProjectDescriptor(ProjectDescriptor project);
+
+    RunRequest withProjectDescriptor(ProjectDescriptor project);
 
     /** Name of {@link com.codenvy.api.runner.internal.Runner} which should be used for running this application. */
     String getRunner();

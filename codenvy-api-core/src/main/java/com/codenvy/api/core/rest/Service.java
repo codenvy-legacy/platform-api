@@ -19,6 +19,7 @@ package com.codenvy.api.core.rest;
 
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.annotations.OPTIONS;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
 import com.codenvy.api.core.rest.shared.ParameterType;
@@ -34,7 +35,9 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.HEAD;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.HttpMethod;
 import javax.ws.rs.MatrixParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -59,13 +62,13 @@ import java.util.SortedSet;
 /**
  * Base class for all API services.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class Service {
     @Context
     protected UriInfo uriInfo;
 
-    @GET
+    @OPTIONS
     @Produces(MediaType.APPLICATION_JSON)
     public final ServiceDescriptor getServiceDescriptor() {
         return generateServiceDescriptor(uriInfo, getClass());
@@ -113,16 +116,10 @@ public abstract class Service {
 
     private static Link generateLinkForMethod(UriInfo uriInfo, String linkRel, Method method, Object... pathParameters) {
         String httpMethod = null;
-        if (getAnnotation(method, GET.class) != null) {
-            httpMethod = "GET";
-        } else if (getAnnotation(method, POST.class) != null) {
-            httpMethod = "POST";
-        } else if (getAnnotation(method, PUT.class) != null) {
-            httpMethod = "PUT";
-        } else if (getAnnotation(method, DELETE.class) != null) {
-            httpMethod = "DELETE";
+        final HttpMethod httpMethodAnnotation = getMetaAnnotation(method, HttpMethod.class);
+        if (httpMethodAnnotation != null) {
+            httpMethod = httpMethodAnnotation.value();
         }
-
         if (httpMethod == null) {
             throw new IllegalArgumentException(
                     String.format("Method '%s' has not any HTTP method annotation and may not be used to produce link.", method.getName()));
@@ -225,6 +222,36 @@ public abstract class Service {
                 }
                 if (inherited != null) {
                     annotation = inherited.getAnnotation(annotationClass);
+                }
+            }
+        }
+        return annotation;
+    }
+
+    private static <T extends Annotation> T getMetaAnnotation(Method method, Class<T> metaAnnotationClass) {
+        T annotation = null;
+        for (Annotation a : method.getAnnotations()) {
+            annotation = a.annotationType().getAnnotation(metaAnnotationClass);
+            if (annotation != null) {
+                break;
+            }
+        }
+        if (annotation == null) {
+            for (Class<?> c = method.getDeclaringClass().getSuperclass();
+                 annotation == null && c != null && c != Object.class;
+                 c = c.getSuperclass()) {
+                Method inherited = null;
+                try {
+                    inherited = c.getMethod(method.getName(), method.getParameterTypes());
+                } catch (NoSuchMethodException ignored) {
+                }
+                if (inherited != null) {
+                    for (Annotation a : inherited.getAnnotations()) {
+                        annotation = a.annotationType().getAnnotation(metaAnnotationClass);
+                        if (annotation != null) {
+                            break;
+                        }
+                    }
                 }
             }
         }

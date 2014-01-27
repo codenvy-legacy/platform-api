@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,29 +15,18 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal;
-
-import com.codenvy.commons.lang.ZipUtils;
-
-import java.io.IOException;
+package com.codenvy.api.project.server;
 
 /** @author andrew00x */
-public class DeploymentSources {
-    private final java.io.File file;
+public class Constants {
+    // rels for known project links
+    public static final String LINK_REL_GET_PROJECTS   = "get projects";
+    public static final String LINK_REL_GET_PROJECT    = "get project";
+    public static final String LINK_REL_CREATE_PROJECT = "create project";
+    public static final String LINK_REL_UPDATE_PROJECT = "update project";
 
-    public DeploymentSources(java.io.File file) {
-        this.file = file;
-    }
+    public static final String LINK_REL_PROJECT_TYPES = "project types";
 
-    public java.io.File getFile() {
-        return file;
-    }
-
-    public boolean isArchive() {
-        try {
-            return file != null && ZipUtils.isZipFile(file);
-        } catch (IOException e) {
-            return false;
-        }
+    private Constants() {
     }
 }

@@ -84,7 +84,7 @@ public class Attribute {
      * @return current value of attribute
      */
     public final String getValue() {
-        final List<String> values = getValues();
+        final List<String> values = valueProvider.getValues();
         return !(values == null || values.isEmpty()) ? values.get(0) : null;
     }
 
@@ -94,7 +94,7 @@ public class Attribute {
      * @return current value of attribute
      */
     public final List<String> getValues() {
-        return valueProvider.getValues();
+        return new ArrayList<>(valueProvider.getValues());
     }
 
     /**

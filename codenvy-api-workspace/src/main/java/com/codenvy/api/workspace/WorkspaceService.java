@@ -150,7 +150,6 @@ public class WorkspaceService extends Service {
                                                 @Required @Description("user id to find workspaces") @QueryParam("userid") String userid)
             throws ApiException {
         final List<Workspace> workspaces = new ArrayList<>();
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         for (Member member : memberDao.getUserRelationships(userid)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
             workspace.setLinks(generateLinks(workspace, securityContext));
@@ -186,14 +185,6 @@ public class WorkspaceService extends Service {
         newMember.setRoles(membership.getRoles());
         newMember.setUserId(membership.getUserId());
         memberDao.create(newMember);
-        final List<Link> links = new ArrayList<>(3);
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(createLink("GET", "get by id", null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getById").build(wsId).toString()));
-        links.add(createLink("GET", "members", null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getMembers").build(wsId).toString()));
-        links.add(createLink("DELETE", "remove member", null, null,
-                             uriBuilder.clone().path(getClass(), "removeMemberById").build(newMember.getUserId()).toString()));
         newMember.setLinks(generateLinks(workspaceDao.getById(wsId), securityContext));
         return newMember;
     }

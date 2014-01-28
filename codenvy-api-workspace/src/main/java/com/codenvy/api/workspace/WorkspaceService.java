@@ -84,7 +84,6 @@ public class WorkspaceService extends Service {
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), ID_LENGTH);
         newWorkspace.setId(wsId);
         workspaceDao.create(newWorkspace);
-        Workspace workspace = workspaceDao.getById(wsId);
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -110,14 +109,15 @@ public class WorkspaceService extends Service {
                                 .withMethod("GET")
                                 .withRel("get by name")
                                 .withProduces(MediaType.APPLICATION_JSON)
-                                .withHref(uriBuilder.clone().path(getClass(), "getByName").queryParam("name", workspace.getName()).build()
+                                .withHref(uriBuilder.clone().path(getClass(), "getByName").queryParam("name", newWorkspace.getName()).build()
                                                     .toString()));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withMethod("DELETE")
                                 .withRel("remove")
                                 .withHref(uriBuilder.clone().path(getClass(), "removeById").build(wsId).toString()));
         }
-        return Response.status(Response.Status.CREATED).entity(workspace).build();
+        newWorkspace.setLinks(links);
+        return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }
 
     @GET

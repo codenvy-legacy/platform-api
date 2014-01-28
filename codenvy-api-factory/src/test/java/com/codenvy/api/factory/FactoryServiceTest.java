@@ -56,10 +56,10 @@ public class FactoryServiceTest {
     private FactoryStore factoryStore;
 
     @Mock
-    private AdvancedFactoryUrlValidator factoryUrlValidator;
+    private UserManager userManager;
 
     @Mock
-    private UserManager userManager;
+    private FactoryUrlValidator validator;
 
     @InjectMocks
     private FactoryService factoryService;

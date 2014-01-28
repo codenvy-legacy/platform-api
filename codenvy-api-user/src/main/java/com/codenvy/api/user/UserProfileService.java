@@ -127,14 +127,22 @@ public class UserProfileService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_PROFILE, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "updateCurrent").build().toString()));
+                                 uriBuilder.clone().path(getClass(), "updateCurrent").build().toString())
+                                 .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
+                                                                      .withDescription("update profile")
+                                                                      .withRequired(true)
+                                                                      .withType(ParameterType.Object))));
         }
 
         if (isUserInAnyRole(securityContext, "system/admin", "system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(profile.getId()).toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE__USER_PROFILE_BY_ID, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "updateById").build(profile.getId()).toString()));
+                                 uriBuilder.clone().path(getClass(), "updateById").build(profile.getId()).toString())
+                                 .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
+                                                                      .withDescription("update profile")
+                                                                      .withRequired(true)
+                                                                      .withType(ParameterType.Object))));
         }
 
         profile.setLinks(links);

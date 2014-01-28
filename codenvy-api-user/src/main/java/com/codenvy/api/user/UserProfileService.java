@@ -74,7 +74,7 @@ public class UserProfileService extends Service {
         Principal principal = securityContext.getUserPrincipal();
         User current = userDao.getByAlias(principal.getName());
         Profile profile = profileDao.getById(current.getProfileId());
-        profile.setLinks(generateLinks(profile, securityContext));
+        injectLinks(profile, securityContext);
         return profile;
     }
 
@@ -91,7 +91,7 @@ public class UserProfileService extends Service {
         newProfile.setUserId(user.getId());
         newProfile.setId(user.getProfileId());
         profileDao.update(newProfile);
-        newProfile.setLinks(generateLinks(newProfile, securityContext));
+        injectLinks(newProfile, securityContext);
         return newProfile;
     }
 
@@ -102,7 +102,7 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext) throws ApiException {
         Profile profile = profileDao.getById(profileId);
-        profile.setLinks(generateLinks(profile, securityContext));
+        injectLinks(profile, securityContext);
         return profile;
     }
 
@@ -115,12 +115,12 @@ public class UserProfileService extends Service {
     public Profile updateById(@PathParam("id") String profileId, @Required @Description("new user profile to update") Profile newProfile, @Context SecurityContext securityContext)
             throws ApiException {
         profileDao.update(newProfile);
-        newProfile.setLinks(generateLinks(newProfile, securityContext));
+        injectLinks(newProfile, securityContext);
         return newProfile;
     }
 
 
-    private List<Link> generateLinks(Profile profile, SecurityContext securityContext) {
+    private void injectLinks(Profile profile, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
@@ -137,7 +137,7 @@ public class UserProfileService extends Service {
                                  uriBuilder.clone().path(getClass(), "updateById").build(profile.getId()).toString()));
         }
 
-        return links;
+        profile.setLinks(links);
     }
 
 

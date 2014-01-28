@@ -26,19 +26,18 @@ import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.inject.Singleton;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -47,7 +46,11 @@ import java.util.Map;
  * @author <a href="mailto:abazko@codenvy.com">Anatoliy Bazko</a>
  */
 @Path("analytics")
+@Singleton
 public class AnalyticsService extends Service {
+
+    private static final Logger  LOG                      = LoggerFactory.getLogger(AnalyticsService.class);
+    private static final Pattern ADMIN_ROLE_EMAIL_PATTERN = Pattern.compile("@codenvy[.]com$");
 
     @Inject
     private MetricHandler metricHandler;
@@ -56,14 +59,27 @@ public class AnalyticsService extends Service {
     @GET
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getValue(@PathParam("name") String metricName, @QueryParam("page") String page, @QueryParam("per_page") String perPage,
-                             @Context UriInfo uriInfo) {
+    @RolesAllowed(value = {"user"})
+    public Response getValue(@PathParam("name") String metricName,
+                             @QueryParam("page") String page,
+                             @QueryParam("per_page") String perPage,
+                             @Context UriInfo uriInfo,
+                             @Context SecurityContext securityContext) {
         try {
-            MetricValueDTO value = metricHandler.getValue(metricName, extractContext(uriInfo), getServiceContext());
+            Map<String, String> metricContext = extractContext(uriInfo, page, perPage);
+
+            String user = securityContext.getUserPrincipal().getName();
+            if (user != null && !isAdmin(user)) {
+                metricContext.put("USER", user);
+            }
+
+            MetricValueDTO value = metricHandler.getValue(metricName, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (MetricNotFoundException e) {
+            LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.NOT_FOUND).build();
         } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
@@ -72,10 +88,9 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo/{name}")
-    public Response getInfo(@PathParam("name") String metricName, @QueryParam("page") String page, @QueryParam("per_page") String perPage,
-                            @Context UriInfo uriInfo) {
+    public Response getInfo(@PathParam("name") String metricName, @Context UriInfo uriInfo) {
         try {
-            MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, getServiceContext());
+            MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
         } catch (MetricNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -88,17 +103,18 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo")
-    public Response getAllInfo(@Context UriInfo uriInfo, @QueryParam("page") String page, @QueryParam("per_page") String perPage) {
+    public Response getAllInfo(@Context UriInfo uriInfo) {
         try {
-            MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(getServiceContext());
+            MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
         } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
 
     /** Extract the execution context from passed query parameters. */
-    private Map<String, String> extractContext(UriInfo info) {
+    private Map<String, String> extractContext(UriInfo info, String page, String perPage) {
         MultivaluedMap<String, String> parameters = info.getQueryParameters();
         Map<String, String> context = new HashMap<>(parameters.size());
 
@@ -106,7 +122,16 @@ public class AnalyticsService extends Service {
             context.put(key.toUpperCase(), parameters.getFirst(key));
         }
 
+        if (page != null) {
+            context.put("PAGE", page);
+            context.put("PER_PAGE", perPage);
+        }
 
         return context;
+    }
+
+    private boolean isAdmin(String email) {
+        Matcher matcher = ADMIN_ROLE_EMAIL_PATTERN.matcher(email);
+        return matcher.find();
     }
 }

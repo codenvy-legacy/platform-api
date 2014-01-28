@@ -19,6 +19,8 @@ package com.codenvy.api.organization.dao.mongo;
 
 
 import com.codenvy.api.organization.dao.ldap.UserDaoImpl;
+import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.workspace.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.workspace.dao.WorkspaceDao;
@@ -27,6 +29,7 @@ import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -105,6 +108,21 @@ public class WorkspaceDaoTest extends BaseDaoTest {
                           .withTemporary((boolean)res.get("temporary"));
 
         assertEquals(workspace, result);
+    }
+
+    @Test
+    public void mustNotSaveWorkspaceIfSameNameExist() throws Exception {
+        DBObject obj = new BasicDBObject("_id", WORKSPACE_ID).append("name", WORKSPACE_NAME);
+        collection.insert(obj);
+
+        Workspace workspace = DtoFactory.getInstance().createDto(Workspace.class).withId(WORKSPACE_ID).withName(
+                WORKSPACE_NAME).withTemporary(true);
+        try {
+            workspaceDao.create(workspace);
+            fail("Workspace with same name exists, but another is created.");
+        } catch (WorkspaceException e) {
+            // OK
+        }
     }
 
 

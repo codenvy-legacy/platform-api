@@ -48,16 +48,10 @@ import static org.testng.Assert.fail;
  *
  */
 @Listeners(value = {MockitoTestNGListener.class})
-public class UserProfileDaoTest {
+public class UserProfileDaoTest extends BaseDaoTest {
     @Mock
     private UserDaoImpl userDao;
-
-    private static final String DB_NAME   = "test1";
     private static final String COLL_NAME = "profile";
-
-    private DBCollection collection;
-    private MongoClient client;
-    private MongoServer server;
     UserProfileDao profileDao;
 
     private static final String       PROFILE_ID = "profile123abc456def";
@@ -67,21 +61,13 @@ public class UserProfileDaoTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        server = new MongoServer(new MemoryBackend());
-
-        // bind on a random local port
-        InetSocketAddress serverAddress = server.bind();
-
-        client = new MongoClient(new ServerAddress(serverAddress));
-        DB db = client.getDB(DB_NAME);
-        collection = db.getCollection(COLL_NAME);
+        super.setUp(COLL_NAME);
         profileDao = new UserProfileDaoImpl(userDao, db, COLL_NAME);
     }
 
     @AfterMethod
     public void tearDown() throws Exception {
-        client.close();
-        server.shutdownNow();
+        super.tearDown();
     }
 
     @Test
@@ -101,10 +87,8 @@ public class UserProfileDaoTest {
         profileDao.create(profile);
 
 
-        DBObject query = new BasicDBObject();
-        query.put("_id", PROFILE_ID);
+        DBObject query = new BasicDBObject("_id", PROFILE_ID);
         DBObject res = collection.findOne(query);
-
         if (res == null) {
             fail("Specified user profile does not exists.");
         }
@@ -198,8 +182,7 @@ public class UserProfileDaoTest {
 
         profileDao.remove(PROFILE_ID);
 
-        DBObject query = new BasicDBObject();
-        query.put("_id", PROFILE_ID);
+        DBObject query = new BasicDBObject("_id", PROFILE_ID);
         assertNull(collection.findOne(query));
     }
 }

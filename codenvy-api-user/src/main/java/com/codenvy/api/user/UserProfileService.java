@@ -96,7 +96,6 @@ public class UserProfileService extends Service {
         newProfile.setUserId(user.getId());
         newProfile.setId(user.getProfileId());
         profileDao.update(newProfile);
-        Profile profile = profileDao.getById(newProfile.getId());
         final List<Link> links = new ArrayList<>(1);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -105,8 +104,8 @@ public class UserProfileService extends Service {
                             .withMethod("GET")
                             .withRel("get current")
                             .withHref(uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
-        profile.setLinks(links);
-        return profile;
+        newProfile.setLinks(links);
+        return newProfile;
     }
 
     @GET

@@ -60,8 +60,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     @Override
     public void update(Profile profile) throws UserException {
-        DBObject query = new BasicDBObject();
-        query.put("_id", profile.getId());
+        DBObject query = new BasicDBObject("_id", profile.getId());
         DBObject res = collection.findOne(query);
         if (res == null) {
             throw new UserException("Specified user profile does not exists.");
@@ -72,15 +71,13 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     @Override
     public void remove(String id) throws UserException {
-        DBObject query = new BasicDBObject();
-        query.put("_id", id);
+        DBObject query = new BasicDBObject("_id", id);
         collection.remove(query);
     }
 
     @Override
     public Profile getById(String id) throws UserException {
-        DBObject query = new BasicDBObject();
-        query.put("_id", id);
+        DBObject query = new BasicDBObject("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
            throw new  UserException("Specified user profile does not exists.");
@@ -129,9 +126,9 @@ public class UserProfileDaoImpl implements UserProfileDao    {
             attrs.add(one);
         }
 
-        profileDatabuilder.add("_id", profile.getId());
-        profileDatabuilder.add("userid", profile.getUserId());
-        profileDatabuilder.add("attributes", attrs);
+        profileDatabuilder.add("_id", profile.getId())
+                          .add("userid", profile.getUserId())
+                          .add("attributes", attrs);
         return profileDatabuilder.get();
     }
 }

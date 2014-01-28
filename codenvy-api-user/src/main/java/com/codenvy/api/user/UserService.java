@@ -26,7 +26,6 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.dao.UserDao;
 import com.codenvy.api.user.dao.UserProfileDao;
-import com.codenvy.api.user.exception.UserException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;

@@ -62,8 +62,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
 
     @Override
     public void update(Workspace workspace) throws WorkspaceException {
-        DBObject query = new BasicDBObject();
-        query.put("_id", workspace.getId());
+        DBObject query = new BasicDBObject("_id", workspace.getId());
         DBObject res = collection.findOne(query);
         if (res == null) {
             throw new WorkspaceException("Specified workspace does not exists.");
@@ -79,15 +78,13 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
 
     @Override
     public void remove(String id) throws WorkspaceException {
-        DBObject query = new BasicDBObject();
-        query.put("_id", id);
+        DBObject query = new BasicDBObject("_id", id);
         collection.remove(query);
     }
 
     @Override
     public Workspace getById(String id) throws WorkspaceException {
-        DBObject query = new BasicDBObject();
-        query.put("_id", id);
+        DBObject query = new BasicDBObject("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
             throw new  WorkspaceException("Specified workspace does not exists.");
@@ -110,8 +107,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
 
     @Override
     public Workspace getByName(String name) throws WorkspaceException {
-        DBObject query = new BasicDBObject();
-        query.put("name", name);
+        DBObject query = new BasicDBObject("name", name);
         DBObject res = collection.findOne(query);
         if (res == null) {
             throw new  WorkspaceException("Workspace with such name does not exists.");
@@ -148,10 +144,10 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
             attrs.add(one);
         }
 
-        workspaceDatabuilder.add("_id", workspace.getId());
-        workspaceDatabuilder.add("name", workspace.getName());
-        workspaceDatabuilder.add("temporary", workspace.isTemporary());
-        workspaceDatabuilder.add("attributes", attrs);
+        workspaceDatabuilder.add("_id", workspace.getId())
+                            .add("name", workspace.getName())
+                            .add("temporary", workspace.isTemporary())
+                            .add("attributes", attrs);
         return workspaceDatabuilder.get();
     }
 
@@ -162,8 +158,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
      * @throws WorkspaceException
      */
     private void validateWorkspaceNameAvailable(Workspace workspace) throws WorkspaceException{
-        DBObject query = new BasicDBObject();
-        query.put("name", workspace.getName());
+        DBObject query = new BasicDBObject("name", workspace.getName());
         DBObject res = collection.findOne(query);
         if (res != null) {
             throw new WorkspaceException("Workspace with such name already exists.");

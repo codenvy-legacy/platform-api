@@ -36,6 +36,7 @@ import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.api.workspace.dao.WorkspaceDao;
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -84,7 +85,7 @@ public class WorkspaceService extends Service {
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         workspaceDao.create(newWorkspace);
-        newWorkspace.setLinks(generateLinks(newWorkspace, securityContext));
+        injectLinks(newWorkspace, securityContext);
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }
 
@@ -95,7 +96,7 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws ApiException {
         Workspace workspace = workspaceDao.getById(id);
-        workspace.setLinks(generateLinks(workspace, securityContext));
+        injectLinks(workspace, securityContext);
         return workspace;
     }
 
@@ -106,7 +107,7 @@ public class WorkspaceService extends Service {
     public Workspace getByName(@Context SecurityContext securityContext,
                                @Required @Description("workspace name") @QueryParam("name") String name) throws ApiException {
         Workspace workspace = workspaceDao.getByName(name);
-        workspace.setLinks(generateLinks(workspace, securityContext));
+        injectLinks(workspace, securityContext);
         return workspace;
     }
 
@@ -121,7 +122,7 @@ public class WorkspaceService extends Service {
             throws ApiException {
         workspaceToUpdate.setId(id);
         workspaceDao.update(workspaceToUpdate);
-        workspaceToUpdate.setLinks(generateLinks(workspaceToUpdate, securityContext));
+        injectLinks(workspaceToUpdate, securityContext);
         return workspaceToUpdate;
     }
 
@@ -130,12 +131,12 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES)
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
-    public List<Workspace> getAllOfCurrenUser(@Context SecurityContext securityContext) throws ApiException {
+    public List<Workspace> getWorkspacesOfCurrentUser(@Context SecurityContext securityContext) throws ApiException {
         final User current = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         final List<Workspace> workspaces = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(current.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
-            workspace.setLinks(generateLinks(workspace, securityContext));
+            injectLinks(workspace, securityContext);
             workspaces.add(workspace);
         }
         return workspaces;
@@ -146,13 +147,14 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Workspace> getAllOfConcreteUser(@Context SecurityContext securityContext,
-                                                @Required @Description("user id to find workspaces") @QueryParam("userid") String userid)
+    public List<Workspace> getWorkspacesOfConcreteUser(@Context SecurityContext securityContext,
+                                                       @Required @Description("user id to find workspaces") @QueryParam(
+                                                               "userid") String userid)
             throws ApiException {
         final List<Workspace> workspaces = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(userid)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
-            workspace.setLinks(generateLinks(workspace, securityContext));
+            injectLinks(workspace, securityContext);
             workspaces.add(workspace);
         }
         return workspaces;
@@ -165,9 +167,13 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public List<Member> getMembers(@Context SecurityContext securityContext, @PathParam("id") String wsId) throws ApiException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
-        final List<Link> links = generateLinks(workspaceDao.getById(wsId), securityContext);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        Link self = createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,
+                               uriBuilder.clone().path(getClass(), "getMembers").build(wsId).toString());
         for (Member member : members) {
-            member.setLinks(links);
+            Link remove = createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, null, null,
+                                     uriBuilder.clone().path(getClass(), "removeMemberById").build(wsId, member.getUserId()).toString());
+            member.setLinks(Arrays.asList(self, remove));
         }
         return members;
     }
@@ -185,7 +191,13 @@ public class WorkspaceService extends Service {
         newMember.setRoles(membership.getRoles());
         newMember.setUserId(membership.getUserId());
         memberDao.create(newMember);
-        newMember.setLinks(generateLinks(workspaceDao.getById(wsId), securityContext));
+        final List<Link> links = new ArrayList<>(2);//injectLinks(workspaceDao.getById(wsId), securityContext);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,
+                             uriBuilder.clone().path(getClass(), "getMembers").build(wsId).toString()));
+        links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, null, null,
+                             uriBuilder.clone().path(getClass(), "removeMemberById").build(wsId, newMember.getUserId()).toString()));
+        newMember.setLinks(links);
         return newMember;
     }
 
@@ -193,25 +205,23 @@ public class WorkspaceService extends Service {
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER)
     @RolesAllowed("workspace/admin")
-    public Response removeMemberById(@PathParam("id") String wsId, @PathParam("userid") String userId) {
+    public void removeMemberById(@PathParam("id") String wsId, @PathParam("userid") String userId) {
         memberDao.removeWorkspaceMember(wsId, userId);
-        return Response.noContent().build();
     }
 
     @DELETE
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE)
     @RolesAllowed({"system/admin", "workspace/admin"})
-    public Response remove(@PathParam("id") String wsId) throws ApiException {
+    public void remove(@PathParam("id") String wsId) throws ApiException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
             memberDao.removeWorkspaceMember(wsId, member.getUserId());
         }
         workspaceDao.remove(wsId);
-        return Response.noContent().build();
     }
 
-    private List<Link> generateLinks(Workspace workspace, SecurityContext securityContext) {
+    private void injectLinks(Workspace workspace, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
@@ -249,7 +259,7 @@ public class WorkspaceService extends Service {
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
         }
-        return links;
+        workspace.setLinks(links);
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {

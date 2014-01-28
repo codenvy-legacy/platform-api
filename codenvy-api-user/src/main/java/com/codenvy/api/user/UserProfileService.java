@@ -23,7 +23,9 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.user.dao.UserDao;
 import com.codenvy.api.user.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.Profile;
@@ -44,6 +46,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -71,15 +74,7 @@ public class UserProfileService extends Service {
         Principal principal = securityContext.getUserPrincipal();
         User current = userDao.getByAlias(principal.getName());
         Profile profile = profileDao.getById(current.getProfileId());
-        final List<Link> links = new ArrayList<>(1);
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withConsumes(MediaType.APPLICATION_JSON)
-                            .withMethod("POST")
-                            .withRel("update current")
-                            .withHref(uriBuilder.clone().path(getClass(), "updateCurrent").build().toString()));
-        profile.setLinks(links);
+        profile.setLinks(generateLinks(profile, securityContext));
         return profile;
     }
 
@@ -96,15 +91,7 @@ public class UserProfileService extends Service {
         newProfile.setUserId(user.getId());
         newProfile.setId(user.getProfileId());
         profileDao.update(newProfile);
-        final List<Link> links = new ArrayList<>(1);
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withConsumes(MediaType.APPLICATION_JSON)
-                            .withMethod("GET")
-                            .withRel("get current")
-                            .withHref(uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
-        newProfile.setLinks(links);
+        newProfile.setLinks(generateLinks(newProfile, securityContext));
         return newProfile;
     }
 
@@ -113,17 +100,9 @@ public class UserProfileService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getById(@PathParam("id") String profileId) throws ApiException {
+    public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext) throws ApiException {
         Profile profile = profileDao.getById(profileId);
-        final List<Link> links = new ArrayList<>(1);
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withConsumes(MediaType.APPLICATION_JSON)
-                            .withMethod("POST")
-                            .withRel("update by id")
-                            .withHref(uriBuilder.clone().path(getClass(), "updateById").build(profileId).toString()));
-        profile.setLinks(links);
+        profile.setLinks(generateLinks(profile, securityContext));
         return profile;
     }
 
@@ -133,17 +112,49 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateById(@PathParam("id") String profileId, @Required @Description("new user profile to update") Profile newProfile)
+    public Profile updateById(@PathParam("id") String profileId, @Required @Description("new user profile to update") Profile newProfile, @Context SecurityContext securityContext)
             throws ApiException {
-        Profile profile = profileDao.getById(profileId);
-        final List<Link> links = new ArrayList<>(1);
+        profileDao.update(newProfile);
+        newProfile.setLinks(generateLinks(newProfile, securityContext));
+        return newProfile;
+    }
+
+
+    private List<Link> generateLinks(Profile profile, SecurityContext securityContext) {
+        final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(DtoFactory.getInstance().createDto(Link.class)
-                            .withProduces(MediaType.APPLICATION_JSON)
-                            .withMethod("GET")
-                            .withRel("get by id")
-                            .withHref(uriBuilder.clone().path(getClass(), "getById").build(profileId).toString()));
-        profile.setLinks(links);
-        return profile;
+        if (securityContext.isUserInRole("user")) {
+            links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_PROFILE, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "updateCurrent").build().toString()));
+        }
+
+        if (isUserInAnyRole(securityContext, "system/admin", "system/manager")) {
+            links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getById").build(profile.getId()).toString()));
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE__USER_PROFILE_BY_ID, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "updateById").build(profile.getId()).toString()));
+        }
+
+        return links;
+    }
+
+
+    private Link createLink(String method, String rel, String consumes, String produces, String href) {
+        return DtoFactory.getInstance().createDto(Link.class)
+                         .withMethod(method)
+                         .withRel(rel)
+                         .withProduces(produces)
+                         .withConsumes(consumes)
+                         .withHref(href);
+    }
+
+    private boolean isUserInAnyRole(SecurityContext securityContext, String... roles) {
+        boolean isUserInAnyRole = false;
+        for (String role : roles) {
+            isUserInAnyRole |= securityContext.isUserInRole(role);
+        }
+        return isUserInAnyRole;
     }
 }

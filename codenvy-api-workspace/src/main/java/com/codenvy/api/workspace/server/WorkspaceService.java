@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.workspace;
+package com.codenvy.api.workspace.server;
 
 
 import com.codenvy.api.core.ApiException;
@@ -35,8 +35,7 @@ import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.api.workspace.dao.WorkspaceDao;
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
+import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;

@@ -20,8 +20,7 @@ package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.organization.dao.ldap.UserDaoImpl;
 import com.codenvy.api.workspace.shared.dto.Attribute;
-import com.codenvy.api.user.shared.dto.Profile;
-import com.codenvy.api.workspace.dao.WorkspaceDao;
+import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
@@ -33,7 +32,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 

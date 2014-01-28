@@ -16,9 +16,9 @@
  * from Codenvy S.A..
  */
 
-package com.codenvy.api.workspace.dao;
+package com.codenvy.api.workspace.server.dao;
 
-import com.codenvy.api.workspace.exception.WorkspaceException;
+import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 
 
@@ -38,7 +38,7 @@ public interface WorkspaceDao {
      *
      * @param workspace
      *         - POJO representation of workspace entity
-     * @throws com.codenvy.api.workspace.exception.WorkspaceException
+     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
     void create(Workspace workspace) throws WorkspaceException;
@@ -48,7 +48,7 @@ public interface WorkspaceDao {
      *
      * @param workspace
      *         - POJO representation of workspace entity
-     * @throws com.codenvy.api.workspace.exception.WorkspaceException
+     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
     void update(Workspace workspace) throws WorkspaceException;
@@ -58,7 +58,7 @@ public interface WorkspaceDao {
      *
      * @param id
      *         - workspace identifier
-     * @throws com.codenvy.api.workspace.exception.WorkspaceException
+     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
     void remove(String id) throws WorkspaceException;
@@ -69,7 +69,7 @@ public interface WorkspaceDao {
      * @param id
      *         - workspace identifier
      * @return workspace POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.workspace.exception.WorkspaceException
+     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
     Workspace getById(String id) throws WorkspaceException;
@@ -80,7 +80,7 @@ public interface WorkspaceDao {
      * @param name
      *         - workspace identifier
      * @return workspace POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.workspace.exception.WorkspaceException
+     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
      *         if any issue occurred during performing an operation
      */
     Workspace getByName(String name) throws WorkspaceException;

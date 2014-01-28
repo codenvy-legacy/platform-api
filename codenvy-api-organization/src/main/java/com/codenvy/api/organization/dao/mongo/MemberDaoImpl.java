@@ -17,14 +17,13 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.user.dao.MemberDao;
 import com.codenvy.api.user.dao.UserDao;
 import com.codenvy.api.user.exception.MemberException;
 import com.codenvy.api.user.exception.UserException;
 import com.codenvy.api.user.shared.dto.Member;
-import com.codenvy.api.workspace.dao.WorkspaceDao;
-import com.codenvy.api.workspace.exception.WorkspaceException;
+import com.codenvy.api.workspace.server.dao.WorkspaceDao;
+import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 

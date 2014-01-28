@@ -73,8 +73,7 @@ public class MemberDaoImpl implements MemberDao {
     @Override
     public List<Member> getWorkspaceMembers(String wsId) throws MemberException {
         List<Member> result = new ArrayList<>();
-        DBObject query = new BasicDBObject();
-        query.put("workspaceid", wsId);
+        DBObject query = new BasicDBObject("workspaceid", wsId);
         for (DBObject one : collection.find(query)) {
             List<String> roles = new ArrayList<>();
             BasicDBList dbRoles = (BasicDBList)one.get("roles");
@@ -91,8 +90,7 @@ public class MemberDaoImpl implements MemberDao {
     @Override
     public List<Member> getUserRelationships(String userId) throws MemberException {
         List<Member> result = new ArrayList<>();
-        DBObject query = new BasicDBObject();
-        query.put("userid", userId);
+        DBObject query = new BasicDBObject("userid", userId);
         for (DBObject one : collection.find(query)) {
             List<String> roles = new ArrayList<>();
             BasicDBList dbRoles = (BasicDBList)one.get("roles");
@@ -132,9 +130,9 @@ public class MemberDaoImpl implements MemberDao {
             roles.add(one);
         }
 
-        memberDatabuilder.add("userid", member.getUserId());
-        memberDatabuilder.add("workspaceid", member.getWorkspaceId());
-        memberDatabuilder.add("roles", roles);
+        memberDatabuilder.add("userid", member.getUserId())
+                         .add("workspaceid", member.getWorkspaceId())
+                         .add("roles", roles);
         return memberDatabuilder.get();
     }
 

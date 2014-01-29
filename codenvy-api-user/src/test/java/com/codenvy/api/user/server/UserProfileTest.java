@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.user.server;
 
+import sun.security.acl.PrincipalImpl;
+
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
@@ -25,6 +27,7 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.core.ApplicationContext;
 import org.everrest.core.impl.*;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
@@ -37,9 +40,13 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
+
+import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import java.security.Principal;
 import java.util.*;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
@@ -72,6 +79,13 @@ public class UserProfileTest {
     @Mock
     private UriInfo uriInfo;
 
+
+    @Mock
+    private EnvironmentContext environmentContext;
+
+    @Mock
+    private SecurityContext securityContext;
+
     @InjectMocks
     private UserProfileService userProfileService;
 
@@ -103,25 +117,28 @@ public class UserProfileTest {
     }
 
 
+    @BeforeMethod
+    public void before() {
+        when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
+        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("Yoda"));
+    }
+
     @Test
     public void shouldBeAbleToUpdateProfile(ITestContext context) throws Exception {
         // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class);
         profile.setAttributes(Collections.EMPTY_LIST);
-
-
         when(userDao.getByAlias(anyString())).thenReturn(user);
         when(user.getId()).thenReturn(USER_ID);
         when(user.getProfileId()).thenReturn(PROFILE_ID);
-
         String path = SERVICE_PATH + "/";
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
 
         Map<String, List<String>> headers = new HashMap<>();
         List<String> value = new ArrayList<>();
         value.add("application/json");
-        headers.put("Content-Type" , value);
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), writer, null);
+        headers.put("Content-Type", value);
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), writer, environmentContext);
 
         assertEquals(response.getStatus(), 200);
         verify(userProfileDao, times(1)).update(any(Profile.class));

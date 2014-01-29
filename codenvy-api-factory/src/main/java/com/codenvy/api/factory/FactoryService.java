@@ -18,8 +18,10 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.organization.client.AccountManager;
 import com.codenvy.organization.client.UserManager;
 import com.codenvy.organization.exception.OrganizationServiceException;
+import com.codenvy.organization.model.Account;
 import com.codenvy.organization.model.User;
 
 import org.everrest.core.impl.provider.json.*;
@@ -50,6 +52,9 @@ public class FactoryService {
 
     @Inject
     private UserManager userManager;
+
+    @Inject
+    private AccountManager accountManager;
 
     @Inject
     private FactoryUrlValidator validator;
@@ -122,6 +127,14 @@ public class FactoryService {
             }
 
             validator.validateUrl(factoryUrl);
+
+            if (factoryUrl.getWelcome() != null) {
+                String orgid = factoryUrl.getOrgid();
+                Account account = accountManager.getAccountById(orgid);
+                if (!account.getOwner().getId().equals(user.getId())) {
+                    throw new FactoryUrlException("You are not authorized to use this orgid.");
+                }
+            }
 
             factoryUrl.setUserid(user.getId());
 

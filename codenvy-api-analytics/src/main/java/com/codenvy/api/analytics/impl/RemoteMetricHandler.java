@@ -54,26 +54,26 @@ import java.util.Properties;
  */
 public class RemoteMetricHandler implements MetricHandler {
 
-    private static final String BASE_NAME    = RemoteMetricHandler.class.getName();
-    private static final String REDIRECT_URL = BASE_NAME + ".redirect-url";
+    private static final String BASE_NAME = RemoteMetricHandler.class.getName();
+    private static final String PROXY_URL = BASE_NAME + ".proxy-url";
 
-    private String redirectUrl;
+    private String proxyUrl;
 
     public RemoteMetricHandler(Properties properties) {
-        this.redirectUrl = properties.getProperty(REDIRECT_URL);
-        if (this.redirectUrl == null) {
-            throw new IllegalArgumentException("Not defined mandatory property " + REDIRECT_URL);
+        this.proxyUrl = properties.getProperty(PROXY_URL);
+        if (this.proxyUrl == null) {
+            throw new IllegalArgumentException("Not defined mandatory property " + PROXY_URL);
         }
     }
 
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> executionContext,
                                    UriInfo uriInfo) throws MetricNotFoundException {
-        String redirectURL = getRedirectURL("getValue");
+        String proxyUrl = getProxyURL("getValue");
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class,
-                           redirectURL,
+                           proxyUrl,
                            "GET",
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
@@ -83,9 +83,9 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
-        String redirectURL = getRedirectURL("getInfo") + "/" + metricName;
+        String proxyUrl = getProxyURL("getInfo") + "/" + metricName;
         try {
-            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, redirectURL, "GET", null);
+            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (IOException | RemoteException e) {
@@ -94,9 +94,9 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     public MetricInfoListDTO getAllInfo(UriInfo uriInfo) {
-        String redirectURL = getRedirectURL("getAllInfo");
+        String proxyUrl = getProxyURL("getAllInfo");
         try {
-            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, redirectURL, "GET", null);
+            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
         } catch (IOException | RemoteException e) {
@@ -122,19 +122,19 @@ public class RemoteMetricHandler implements MetricHandler {
         return pairs;
     }
 
-    private String getRedirectURL(String methodName) {
-        return redirectUrl + "/" + methodName;
+    private String getProxyURL(String methodName) {
+        return proxyUrl + "/" + methodName;
     }
 
     private <DTO> DTO request(Class<DTO> dtoInterface,
-                              String redirectURL,
+                              String proxyUrl,
                               String method,
                               Object body,
                               Pair<String, ?>... parameters) throws IOException, RemoteException {
 
         if (parameters != null && parameters.length > 0) {
             final StringBuilder sb = new StringBuilder();
-            sb.append(redirectURL);
+            sb.append(proxyUrl);
             sb.append('?');
             for (int i = 0, l = parameters.length; i < l; i++) {
                 String name = URLEncoder.encode(parameters[i].first, "UTF-8");
@@ -149,9 +149,9 @@ public class RemoteMetricHandler implements MetricHandler {
                     sb.append(value);
                 }
             }
-            redirectURL = sb.toString();
+            proxyUrl = sb.toString();
         }
-        final HttpURLConnection conn = (HttpURLConnection)new URL(redirectURL).openConnection();
+        final HttpURLConnection conn = (HttpURLConnection)new URL(proxyUrl).openConnection();
         conn.setConnectTimeout(30 * 1000);
         try {
             conn.setRequestMethod(method);
@@ -182,7 +182,7 @@ public class RemoteMetricHandler implements MetricHandler {
                 }
                 // Can't parse content as json or content has format other we expect for error.
                 throw new IOException(
-                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", redirectURL,
+                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", proxyUrl,
                                       method,
                                       responseCode, str));
             }

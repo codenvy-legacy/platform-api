@@ -33,7 +33,6 @@ import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.RuntimeDelegateImpl;
@@ -62,9 +61,6 @@ public class PersistentProjectDescriptionTest {
         RuntimeDelegate.setInstance(rd);
         User user = new UserImpl("john", Arrays.asList("developer"));
         UserState.set(new UserState(user));
-        EnvironmentContext env = EnvironmentContext.getCurrent();
-        env.setVariable(EnvironmentContext.WORKSPACE_ID, "test_workspace");
-        env.setVariable(EnvironmentContext.WORKSPACE_NAME, "test_workspace");
 
         VirtualFileSystemUserContext userContext = VirtualFileSystemUserContext.newInstance();
         MemoryMountPoint mountPoint = new MemoryMountPoint(null, userContext);

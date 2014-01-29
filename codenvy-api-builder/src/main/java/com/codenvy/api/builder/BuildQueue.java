@@ -221,7 +221,7 @@ public class BuildQueue {
      * Schedule new build.
      *
      * @param workspace
-     *         name of workspace to which project belongs
+     *         id of workspace to which project belongs
      * @param project
      *         name of project
      * @param serviceContext
@@ -271,7 +271,7 @@ public class BuildQueue {
      * Schedule new dependencies analyze.
      *
      * @param workspace
-     *         name of workspace to which project belongs
+     *         id of workspace to which project belongs
      * @param project
      *         name of project
      * @param type

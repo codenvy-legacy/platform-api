@@ -39,7 +39,6 @@ import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.RequestHandler;
@@ -119,9 +118,6 @@ public abstract class MemoryFileSystemTest extends TestCase {
         // RUNTIME VARIABLES
         User user = new UserImpl("john", Arrays.asList("developer"));
         UserState.set(new UserState(user));
-        EnvironmentContext env = EnvironmentContext.getCurrent();
-        env.setVariable(EnvironmentContext.WORKSPACE_ID, MY_WORKSPACE_ID);
-        env.setVariable(EnvironmentContext.WORKSPACE_NAME, MY_WORKSPACE_ID);
     }
 
     /** @see junit.framework.TestCase#tearDown() */

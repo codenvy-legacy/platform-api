@@ -32,7 +32,6 @@ import com.codenvy.api.vfs.shared.ItemType;
 import com.codenvy.api.vfs.shared.dto.Folder;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Project;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.Nullable;
@@ -52,7 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** @author andrew00x */
-@Path("project/{ws-name}")
+@Path("project/{ws-id}")
 public class ProjectService extends Service {
     @Inject
     private VirtualFileSystemRegistry registry;
@@ -68,9 +67,10 @@ public class ProjectService extends Service {
     @GET
     @Path("description")
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor getProject(@Required @Description("project name") @QueryParam("name") String name)
+    public ProjectDescriptor getProject(@PathParam("ws-id") String workspace,
+                                        @Required @Description("project name") @QueryParam("name") String name)
             throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem();
+        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
         final Item item = fileSystem.getItemByPath(name, null, false);
         if (ItemType.PROJECT == item.getItemType()) {
             return projectDescriptionFactory.getDescription((Project)item).getDescriptor();
@@ -83,8 +83,8 @@ public class ProjectService extends Service {
     @Path("list")
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("unchecked")
-    public List<ProjectReference> getProjects(@PathParam("ws-name") String workspace) throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem();
+    public List<ProjectReference> getProjects(@PathParam("ws-id") String workspace) throws VirtualFileSystemException {
+        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
         final Folder root = fileSystem.getInfo().getRoot();
         final List<Item> projects = fileSystem.getChildren(root.getId(), -1, 0, "project", true).getItems();
         final List<ProjectReference> result = new ArrayList<>();
@@ -102,10 +102,11 @@ public class ProjectService extends Service {
     @Path("create")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor createProject(@Required @Description("project name") @QueryParam("name") String name,
+    public ProjectDescriptor createProject(@PathParam("ws-id") String workspace,
+                                           @Required @Description("project name") @QueryParam("name") String name,
                                            @Description("descriptor of project") ProjectDescriptor descriptor)
             throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem();
+        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
         final Folder root = fileSystem.getInfo().getRoot();
         final Project project = fileSystem.createProject(root.getId(), name, descriptor.getProjectTypeId(), null);
         final PersistentProjectDescription description = projectDescriptionFactory.getDescription(project);
@@ -119,10 +120,11 @@ public class ProjectService extends Service {
     @Path("update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor updateProject(@Required @Description("project name") @QueryParam("name") String name,
+    public ProjectDescriptor updateProject(@PathParam("ws-id") String workspace,
+                                           @Required @Description("project name") @QueryParam("name") String name,
                                            @Description("descriptor of project") ProjectDescriptor descriptor)
             throws VirtualFileSystemException {
-        final VirtualFileSystem fileSystem = getVirtualFileSystem();
+        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
         final Item item = fileSystem.getItemByPath(name, null, false);
         if (ItemType.PROJECT == item.getItemType()) {
             final Project project = (Project)item;
@@ -136,8 +138,8 @@ public class ProjectService extends Service {
 
     @Path("vfs")
     @Produces(MediaType.APPLICATION_JSON)
-    public VirtualFileSystem getVirtualFileSystem() throws VirtualFileSystemException {
-        final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
-        return registry.getProvider(vfsId).newInstance(uriInfo.getBaseUri(), listeners);
+    public VirtualFileSystem getVirtualFileSystem(@PathParam("ws-id") String workspace) throws VirtualFileSystemException {
+        //final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
+        return registry.getProvider(workspace).newInstance(uriInfo.getBaseUri(), listeners);
     }
 }

@@ -52,7 +52,7 @@ import javax.ws.rs.core.MediaType;
  * @author andrew00x
  * @author Eugene Voevodin
  */
-@Path("builder/{ws-name}")
+@Path("builder/{ws-id}")
 @Description("Builder API")
 public final class BuilderService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(BuilderService.class);
@@ -64,7 +64,7 @@ public final class BuilderService extends Service {
     @POST
     @Path("build")
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor build(@PathParam("ws-name") String workspace,
+    public BuildTaskDescriptor build(@PathParam("ws-id") String workspace,
                                      @Required @Description("project name") @QueryParam("project") String project,
                                      @Description("build options") BuildOptions options) throws Exception {
         return buildQueue.scheduleBuild(workspace, project, getServiceContext(), options).getDescriptor(getServiceContext());
@@ -75,7 +75,7 @@ public final class BuilderService extends Service {
     @Path("dependencies")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor dependencies(@PathParam("ws-name") String workspace,
+    public BuildTaskDescriptor dependencies(@PathParam("ws-id") String workspace,
                                             @Required @Description("project name") @QueryParam("project") String project,
                                             @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
             throws Exception {

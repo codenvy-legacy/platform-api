@@ -20,13 +20,13 @@ package com.codenvy.api.vfs.server;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
-import com.codenvy.commons.env.EnvironmentContext;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -41,7 +41,7 @@ import java.util.List;
  *
  * @author andrew00x
  */
-@Path("vfs/{ws-name}")
+@Path("vfs/{ws-id}")
 public class VirtualFileSystemFactory {
     @Inject
     private VirtualFileSystemRegistry registry;
@@ -55,11 +55,13 @@ public class VirtualFileSystemFactory {
     private HttpServletRequest        request;
     @Context
     private UriInfo                   uriInfo;
+    @PathParam("ws-id")
+    private String                    vfsId;
 
     @Path("v2")
     public VirtualFileSystem getFileSystem() throws VirtualFileSystemException {
         validateRequest();
-        final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
+        //final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
         VirtualFileSystemProvider provider = registry.getProvider(vfsId);
         return provider.newInstance(uriInfo.getBaseUri(), listeners);
     }

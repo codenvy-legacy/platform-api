@@ -17,10 +17,10 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
-import com.codenvy.api.user.dao.MemberDao;
-import com.codenvy.api.user.dao.UserDao;
-import com.codenvy.api.user.exception.MemberException;
-import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.server.dao.MemberDao;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.exception.MemberException;
+import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.server.exception.WorkspaceException;

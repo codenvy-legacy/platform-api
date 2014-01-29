@@ -17,9 +17,9 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
-import com.codenvy.api.user.dao.UserDao;
-import com.codenvy.api.user.dao.UserProfileDao;
-import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.dao.UserProfileDao;
+import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.dto.server.DtoFactory;

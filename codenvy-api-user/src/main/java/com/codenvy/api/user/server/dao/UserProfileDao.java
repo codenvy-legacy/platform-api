@@ -15,10 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.user.dao;
+package com.codenvy.api.user.server.dao;
 
 
-import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.Profile;
 
 /**
@@ -32,7 +32,7 @@ public interface UserProfileDao {
      *
      * @param profile
      *         - POJO representation of profile entity
-     * @throws com.codenvy.api.user.exception.UserException
+     * @throws com.codenvy.api.user.server.exception.UserException
      *         if any issue occurred during performing an operation
      */
     void create(Profile profile) throws UserException;

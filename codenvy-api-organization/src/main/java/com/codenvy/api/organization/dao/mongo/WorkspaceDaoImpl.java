@@ -18,7 +18,7 @@
 package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.organization.dao.exception.ItemNamingException;
-import com.codenvy.api.user.dao.UserDao;
+import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.organization.dao.util.NamingValidator;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.server.exception.WorkspaceException;

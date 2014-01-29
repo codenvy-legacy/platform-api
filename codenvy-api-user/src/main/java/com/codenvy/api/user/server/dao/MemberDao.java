@@ -15,10 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.user.dao;
+package com.codenvy.api.user.server.dao;
 
 
-import com.codenvy.api.user.exception.MemberException;
+import com.codenvy.api.user.server.exception.MemberException;
 import com.codenvy.api.user.shared.dto.Member;
 
 import java.util.List;

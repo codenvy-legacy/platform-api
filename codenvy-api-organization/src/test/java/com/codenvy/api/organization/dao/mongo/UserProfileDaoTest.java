@@ -17,12 +17,9 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
-import de.bwaldvogel.mongo.MongoServer;
-import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
-
-import com.codenvy.api.user.dao.UserProfileDao;
+import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.organization.dao.ldap.UserDaoImpl;
-import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.dto.server.DtoFactory;
@@ -36,7 +33,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 

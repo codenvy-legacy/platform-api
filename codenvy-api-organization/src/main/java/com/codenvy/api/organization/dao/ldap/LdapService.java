@@ -18,7 +18,7 @@
 
 package com.codenvy.api.organization.dao.ldap;
 
-import com.codenvy.api.user.dao.UserDao;
+import com.codenvy.api.user.server.dao.UserDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

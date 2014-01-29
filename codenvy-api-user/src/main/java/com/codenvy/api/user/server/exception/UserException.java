@@ -15,21 +15,30 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.user;
+package com.codenvy.api.user.server.exception;
+
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
  *
  */
-public class Constants {
+public class UserException extends ApiException {
 
 
-    public static final String LINK_REL_GET_CURRENT_USER_PROFILE  = "current user profile";
-    public static final String LINK_REL_UPDATE_CURRENT_USER_PROFILE = "update current user profile";
+    public UserException(ServiceError serviceError) {
+        super(serviceError);
+    }
 
-    public static final String LINK_REL_GET_USER_PROFILE_BY_ID          = "user profile by id";
-    public static final String LINK_REL_UPDATE__USER_PROFILE_BY_ID       = "update user profile by id";
+    public UserException(String message) {
+        super(message);
+    }
 
-    private Constants() throws IllegalAccessException {
-        throw new IllegalAccessException();
+    public UserException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public UserException(Throwable cause) {
+        super(cause);
     }
 }

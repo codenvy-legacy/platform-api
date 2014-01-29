@@ -19,8 +19,7 @@ package com.codenvy.api.organization.dao.mongo;
 
 
 import com.codenvy.api.organization.dao.ldap.UserDaoImpl;
-import com.codenvy.api.user.exception.UserException;
-import com.codenvy.api.workspace.exception.WorkspaceException;
+import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.Workspace;
@@ -28,7 +27,6 @@ import com.codenvy.dto.server.DtoFactory;
 import com.mongodb.*;
 
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;

@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.organization.dao.ldap;
 
-import com.codenvy.api.user.dao.UserDao;
-import com.codenvy.api.user.exception.UserException;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 

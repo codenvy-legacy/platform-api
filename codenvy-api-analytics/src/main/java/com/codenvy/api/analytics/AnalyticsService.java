@@ -34,9 +34,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
@@ -66,10 +64,10 @@ public class AnalyticsService extends Service {
                              @Context UriInfo uriInfo,
                              @Context SecurityContext securityContext) {
         try {
-            Map<String, String> metricContext = extractContext(uriInfo, page, perPage);
-        
+            Map<String, String> metricContext = Utils.extractContext(uriInfo, page, perPage);
+
             String user = securityContext.getUserPrincipal().getName();
-            if (user != null && !isAdmin(user)) {
+            if (!Utils.isAdmin(user)) {
                 metricContext.put("USER", user);
             }
 
@@ -111,27 +109,5 @@ public class AnalyticsService extends Service {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
-    }
-
-    /** Extract the execution context from passed query parameters. */
-    private Map<String, String> extractContext(UriInfo info, String page, String perPage) {
-        MultivaluedMap<String, String> parameters = info.getQueryParameters();
-        Map<String, String> context = new HashMap<>(parameters.size());
-
-        for (String key : parameters.keySet()) {
-            context.put(key.toUpperCase(), parameters.getFirst(key));
-        }
-
-        if (page != null) {
-            context.put("PAGE", page);
-            context.put("PER_PAGE", perPage);
-        }
-
-        return context;
-    }
-
-    private boolean isAdmin(String email) {
-        Matcher matcher = ADMIN_ROLE_EMAIL_PATTERN.matcher(email);
-        return matcher.find();
     }
 }

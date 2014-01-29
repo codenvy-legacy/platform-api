@@ -129,7 +129,7 @@ public class WorkspaceService extends Service {
     @Path("all")
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES)
     @RolesAllowed("user")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     public List<Workspace> getWorkspacesOfCurrentUser(@Context SecurityContext securityContext) throws ApiException {
         final User current = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         final List<Workspace> workspaces = new ArrayList<>();

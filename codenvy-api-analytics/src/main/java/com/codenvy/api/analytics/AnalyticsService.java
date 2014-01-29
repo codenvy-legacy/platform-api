@@ -67,7 +67,7 @@ public class AnalyticsService extends Service {
                              @Context SecurityContext securityContext) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo, page, perPage);
-
+        
             String user = securityContext.getUserPrincipal().getName();
             if (user != null && !isAdmin(user)) {
                 metricContext.put("USER", user);

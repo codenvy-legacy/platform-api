@@ -32,9 +32,6 @@ import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
@@ -43,7 +40,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -57,46 +53,27 @@ import java.util.Properties;
  * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
 public class RemoteMetricHandler implements MetricHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(AnalyticsService.class);
 
-    private static final String BASE_NAME = RemoteMetricHandler.class.getName();
-    private static final String LOGIN     = BASE_NAME + ".login";
-    private static final String PASS      = BASE_NAME + ".pass";
-    private static final String HOST      = BASE_NAME + ".host";
-    private static final String PORT      = BASE_NAME + ".port";
+    private static final String BASE_NAME    = RemoteMetricHandler.class.getName();
+    private static final String REDIRECT_URL = BASE_NAME + ".redirect-url";
 
-    private String login;
-    private String pass;
-    private String host;
-    private String port;
+    private String redirectUrl;
 
     public RemoteMetricHandler(Properties properties) {
-        this.login = properties.getProperty(LOGIN);
-        if (this.login == null) {
-            throw new IllegalArgumentException("Not defined mandatory property " + LOGIN);
-        }
-        this.pass = properties.getProperty(PASS);
-        if (this.pass == null) {
-            throw new IllegalArgumentException("Not defined mandatory property " + PASS);
-        }
-        this.host = properties.getProperty(HOST);
-        if (this.host == null) {
-            throw new IllegalArgumentException("Not defined mandatory property " + HOST);
-        }
-        this.port = properties.getProperty(PORT);
-        if (this.port == null) {
-            throw new IllegalArgumentException("Not defined mandatory property " + PORT);
+        this.redirectUrl = properties.getProperty(REDIRECT_URL);
+        if (this.redirectUrl == null) {
+            throw new IllegalArgumentException("Not defined mandatory property " + REDIRECT_URL);
         }
     }
 
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> executionContext,
                                    UriInfo uriInfo) throws MetricNotFoundException {
-        URI redirectURI = getUriBuilder(uriInfo, "getValue").build(metricName, "name");
+        String redirectURL = getRedirectURL("getValue");
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class,
-                           redirectURI.toString(),
+                           redirectURL,
                            "GET",
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
@@ -106,9 +83,9 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
-        URI redirectURI = getUriBuilder(uriInfo, "getInfo").build(metricName, "name");
+        String redirectURL = getRedirectURL("getInfo") + "/" + metricName;
         try {
-            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, redirectURI.toString(), "GET", null);
+            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, redirectURL, "GET", null);
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (IOException | RemoteException e) {
@@ -117,9 +94,9 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     public MetricInfoListDTO getAllInfo(UriInfo uriInfo) {
-        URI redirectURI = getUriBuilder(uriInfo, "getAllInfo").build();
+        String redirectURL = getRedirectURL("getAllInfo");
         try {
-            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, redirectURI.toString(), "GET", null);
+            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, redirectURL, "GET", null);
             updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
         } catch (IOException | RemoteException e) {
@@ -145,24 +122,19 @@ public class RemoteMetricHandler implements MetricHandler {
         return pairs;
     }
 
-    private UriBuilder getUriBuilder(UriInfo uriInfo, String methodName) {
-        return uriInfo.getBaseUriBuilder()
-                      .clone()
-                      .host(host)
-                      .port(new Integer(port))
-                      .scheme("http")
-                      .path("analytics")
-                      .path(getMethod(methodName));
+    private String getRedirectURL(String methodName) {
+        return redirectUrl + "/" + methodName;
     }
 
     private <DTO> DTO request(Class<DTO> dtoInterface,
-                              String url,
+                              String redirectURL,
                               String method,
                               Object body,
                               Pair<String, ?>... parameters) throws IOException, RemoteException {
+
         if (parameters != null && parameters.length > 0) {
             final StringBuilder sb = new StringBuilder();
-            sb.append(url);
+            sb.append(redirectURL);
             sb.append('?');
             for (int i = 0, l = parameters.length; i < l; i++) {
                 String name = URLEncoder.encode(parameters[i].first, "UTF-8");
@@ -177,11 +149,10 @@ public class RemoteMetricHandler implements MetricHandler {
                     sb.append(value);
                 }
             }
-            url = sb.toString();
+            redirectURL = sb.toString();
         }
-        final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
+        final HttpURLConnection conn = (HttpURLConnection)new URL(redirectURL).openConnection();
         conn.setConnectTimeout(30 * 1000);
-//        conn.addRequestProperty("Authorization", "Basic " + new Base64().encode((login + ":" + pass).getBytes()));
         try {
             conn.setRequestMethod(method);
             if (body != null) {
@@ -211,7 +182,8 @@ public class RemoteMetricHandler implements MetricHandler {
                 }
                 // Can't parse content as json or content has format other we expect for error.
                 throw new IOException(
-                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", url, method,
+                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", redirectURL,
+                                      method,
                                       responseCode, str));
             }
             final String contentType = conn.getContentType();

@@ -229,7 +229,7 @@ public class WorkspaceService extends Service {
                                                     .path(ProjectService.class, "getProjects")
                                                     .build(workspace.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getAllOfCurrentUser").build().toString()));
+                                 uriBuilder.clone().path(getClass(), "getWorkspacesOfCurrentUser").build().toString()));
         }
         if (securityContext.isUserInRole("workspace/admin")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,

@@ -110,17 +110,13 @@ public class UserProfileTest {
                                                                providers, dependencies, new EverrestConfiguration());
          ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
          launcher = new ResourceLauncher(requestHandler);
+
+         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
+         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("Yoda"));
     }
 
     @AfterMethod
     public void tearDown() throws Exception {
-    }
-
-
-    @BeforeMethod
-    public void before() {
-        when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
-        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("Yoda"));
     }
 
     @Test
@@ -133,6 +129,8 @@ public class UserProfileTest {
         when(user.getProfileId()).thenReturn(PROFILE_ID);
         String path = SERVICE_PATH + "/";
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
+
+        when(securityContext.isUserInRole("user")).thenReturn(true);
 
         Map<String, List<String>> headers = new HashMap<>();
         List<String> value = new ArrayList<>();

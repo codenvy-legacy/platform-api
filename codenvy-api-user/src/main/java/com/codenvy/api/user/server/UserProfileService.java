@@ -28,6 +28,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
+import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
@@ -45,9 +46,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * User profile API
@@ -85,15 +84,25 @@ public class UserProfileService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updateCurrent(@Context SecurityContext securityContext,
-                                 @Required @Description("new user profile to update") Profile newProfile)
+                                 @Required @Description("updates for profile") List<Attribute> updates)
             throws ApiException {
         Principal principal = securityContext.getUserPrincipal();
         User user = userDao.getByAlias(principal.getName());
-        newProfile.setUserId(user.getId());
-        newProfile.setId(user.getProfileId());
-        profileDao.update(newProfile);
-        injectLinks(newProfile, securityContext);
-        return newProfile;
+        Profile profile = profileDao.getById(user.getProfileId());
+        Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
+        for (Attribute attribute : updates) {
+            m.put(attribute.getName(), attribute);
+        }
+        for (Iterator<Attribute> i = profile.getAttributes().iterator(); i.hasNext(); ) {
+            Attribute attribute = i.next();
+            if (m.containsKey(attribute.getName())){
+                i.remove();
+            }
+        }
+        profile.getAttributes().addAll(updates);
+        profileDao.update(profile);
+        injectLinks(profile, securityContext);
+        return profile;
     }
 
     @GET
@@ -113,12 +122,15 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateById(@PathParam("id") String profileId, @Required @Description("new user profile to update") Profile newProfile,
+    public Profile updateById(@PathParam("id") String profileId, @Required @Description("profile to update") Profile profileToUpdate,
                               @Context SecurityContext securityContext)
             throws ApiException {
-        profileDao.update(newProfile);
-        injectLinks(newProfile, securityContext);
-        return newProfile;
+        Profile existed = profileDao.getById(profileId);
+        profileToUpdate.setId(existed.getId());
+        profileToUpdate.setUserId(existed.getUserId());
+        profileDao.update(profileToUpdate);
+        injectLinks(profileToUpdate, securityContext);
+        return profileToUpdate;
     }
 
 

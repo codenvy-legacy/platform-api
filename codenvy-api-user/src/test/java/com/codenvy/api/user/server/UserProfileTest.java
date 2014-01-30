@@ -19,6 +19,7 @@ package com.codenvy.api.user.server;
 
 import sun.security.acl.PrincipalImpl;
 
+import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
@@ -30,20 +31,21 @@ import com.codenvy.dto.server.DtoFactory;
 import org.everrest.core.impl.*;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
+
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 import static javax.ws.rs.core.Response.Status;
-import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
@@ -51,9 +53,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.*;
 
-/**
- * Tests cases for  {@link UserProfileService}.
- */
+/** Tests cases for  {@link UserProfileService}. */
 @Listeners(value = {MockitoTestNGListener.class})
 public class UserProfileTest {
 
@@ -114,16 +114,18 @@ public class UserProfileTest {
         when(userDao.getByAlias(anyString())).thenReturn(user);
         when(user.getProfileId()).thenReturn(PROFILE_ID);
         when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
-        prepareSecurityContext("user");
 
-        ContainerResponse response =
-                launcher.service("GET", SERVICE_PATH, BASE_URI, null, JsonHelper.toJson(profile).getBytes(), null,
-                                 environmentContext);
+        String[] s = getRoles(UserProfileService.class, "getCurrent");
+        for (String one : s) {
+            prepareSecurityContext(one);
+            ContainerResponse response =
+                    launcher.service("GET", SERVICE_PATH, BASE_URI, null, JsonHelper.toJson(profile).getBytes(), null,
+                                     environmentContext);
 
-        assertEquals(Status.OK.getStatusCode(), response.getStatus());
-        Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
-                       Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
+            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            Profile responseProfile = (Profile)response.getEntity();
+            verifyLinksRel(responseProfile.getLinks(), getRels(one));
+        }
     }
 
 
@@ -136,17 +138,19 @@ public class UserProfileTest {
         when(user.getProfileId()).thenReturn(PROFILE_ID);
         when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
 
-        prepareSecurityContext("system/admin");
+        String[] s = getRoles(UserProfileService.class, "getById");
+        for (String one : s) {
+            prepareSecurityContext(one);
 
-        ContainerResponse response =
-                launcher.service("GET", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, null,
-                                 JsonHelper.toJson(profile).getBytes(), null,
-                                 environmentContext);
+            ContainerResponse response =
+                    launcher.service("GET", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, null,
+                                     JsonHelper.toJson(profile).getBytes(), null,
+                                     environmentContext);
 
-        assertEquals(Status.OK.getStatusCode(), response.getStatus());
-        Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
-                       Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
+            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            Profile responseProfile = (Profile)response.getEntity();
+            verifyLinksRel(responseProfile.getLinks(), getRels(one));
+        }
     }
 
 
@@ -156,43 +160,50 @@ public class UserProfileTest {
         Profile profile = DtoFactory.getInstance().createDto(Profile.class);
 
         when(userDao.getByAlias(anyString())).thenReturn(user);
-        prepareSecurityContext("user");
-
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        ContainerResponse response =
-                launcher.service("POST", SERVICE_PATH, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), null,
-                                 environmentContext);
 
-        assertEquals(Status.OK.getStatusCode(), response.getStatus());
-        verify(userProfileDao, times(1)).update(any(Profile.class));
-        Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
-                       Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
+        String[] s = getRoles(UserProfileService.class, "updateCurrent");
+        for (String one : s) {
+            prepareSecurityContext(one);
+            ContainerResponse response =
+                    launcher.service("POST", SERVICE_PATH, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(),
+                                     null,
+                                     environmentContext);
+
+            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            verify(userProfileDao, times(1)).update(any(Profile.class));
+            Profile responseProfile = (Profile)response.getEntity();
+            verifyLinksRel(responseProfile.getLinks(), getRels(one));
+        }
     }
 
     @Test
     public void shouldBeAbleToUpdateProfileByID() throws Exception {
         // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
-        prepareSecurityContext("system/admin");
+
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 
-        ContainerResponse response =
-                launcher.service("POST", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), null,
-                                 environmentContext);
+        String[] s = getRoles(UserProfileService.class, "updateById");
+        for (String one : s) {
+            prepareSecurityContext(one);
+            ContainerResponse response =
+                    launcher.service("POST", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, headers,
+                                     JsonHelper.toJson(profile).getBytes(), null,
+                                     environmentContext);
 
-        assertEquals(Status.OK.getStatusCode(), response.getStatus());
-        verify(userProfileDao, times(1)).update(any(Profile.class));
-        Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
-                       Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
+            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            Profile responseProfile = (Profile)response.getEntity();
+            verifyLinksRel(responseProfile.getLinks(), getRels(one));
+        }
+        verify(userProfileDao, times(s.length)).update(any(Profile.class));
     }
 
 
-    protected void verifyLinksRel(List<Link> links, String... rels) {
-        assertEquals(links.size(), rels.length);
+    protected void verifyLinksRel(List<Link> links, List<String> rels) {
+        assertEquals(links.size(), rels.size());
         for (String rel : rels) {
             boolean linkPresent = false;
             for (Link link : links) {
@@ -204,8 +215,41 @@ public class UserProfileTest {
         }
     }
 
-    protected void prepareSecurityContext(String role) {
-        when(securityContext.isUserInRole(role)).thenReturn(true);
-        when(securityContext.isUserInRole(not(Matchers.eq(role)))).thenReturn(false);
+    private String[] getRoles(Class<? extends Service> clazz, String methodName) {
+        for (Method one : clazz.getMethods()) {
+            if (one.getName().equals(methodName)) {
+                if (one.isAnnotationPresent(RolesAllowed.class)) {
+                    return one.getAnnotation(RolesAllowed.class).value();
+                } else {
+                    return new String[0];
+                }
+            }
+        }
+        throw new IllegalArgumentException(
+                String.format("Class %s does not have method with name %s", clazz.getName(), methodName));
+    }
+
+    private List<String> getRels(String role) {
+        List<String> result = new ArrayList<>();
+        result.add(Constants.LINK_REL_GET_CURRENT_USER_PROFILE);
+        result.add(Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
+        switch (role) {
+            case "system/admin":
+            case "system/manager":
+                result.add(Constants.LINK_REL_GET_USER_PROFILE_BY_ID);
+                result.add(Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
+                break;
+
+            default:
+                break;
+        }
+        return result;
+    }
+
+    protected void prepareSecurityContext(String... roles) {
+        when(securityContext.isUserInRole(anyString())).thenReturn(false);
+        when(securityContext.isUserInRole("user")).thenReturn(true);
+        for (String role : roles)
+            when(securityContext.isUserInRole(role)).thenReturn(true);
     }
 }

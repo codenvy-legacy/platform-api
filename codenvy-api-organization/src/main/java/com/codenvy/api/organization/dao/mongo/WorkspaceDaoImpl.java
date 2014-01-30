@@ -87,7 +87,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
         DBObject query = new BasicDBObject("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new  WorkspaceException("Specified workspace does not exists.");
+            return null;
         }
 
         List<Attribute> attributes = new ArrayList<>();
@@ -110,7 +110,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
         DBObject query = new BasicDBObject("name", name);
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new  WorkspaceException("Workspace with such name does not exists.");
+            return null;
         }
         List<Attribute> attributes = new ArrayList<>();
         BasicDBList dbList = (BasicDBList)res.get("attributes");

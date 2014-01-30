@@ -80,7 +80,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
         DBObject query = new BasicDBObject("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
-           throw new  UserException("Specified user profile does not exists.");
+           return null;
         }
 
         List<Attribute> attributes = new ArrayList<>();

@@ -70,6 +70,7 @@ import static org.testng.Assert.fail;
  * Tests for Workspace service
  *
  * @author Eugene Voevodin
+ * @see com.codenvy.api.workspace.server.WorkspaceService
  */
 @Listeners(value = {MockitoTestNGListener.class})
 public class WorkspaceServiceTest {

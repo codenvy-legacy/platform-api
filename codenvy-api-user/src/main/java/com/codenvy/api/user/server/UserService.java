@@ -119,12 +119,11 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PASSWORD)
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response updatePassword(@Context SecurityContext securityContext, @Required @Description("new password") String password)
+    public void updatePassword(@Context SecurityContext securityContext, @Required @Description("new password") String password)
             throws ApiException {
         final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
         user.setPassword(password);
         userDao.update(user);
-        return Response.noContent().build();
     }
 
     @GET

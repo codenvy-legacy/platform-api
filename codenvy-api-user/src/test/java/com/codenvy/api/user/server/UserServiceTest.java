@@ -26,6 +26,7 @@ import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.*;
@@ -57,7 +58,11 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
 
 /**
+ * Tests for User Service
  *
+ * @author Eugene Veovodin
+ * @author Max Shaposhnik
+ * @see com.codenvy.api.user.server.UserService
  */
 @Listeners(value = {MockitoTestNGListener.class})
 public class UserServiceTest {
@@ -66,7 +71,7 @@ public class UserServiceTest {
     private final   String SERVICE_PATH = BASE_URI + "/user";
 
     private final String USER_ID    = "user123abc456def";
-    private final String USER_EMAIL    = "user@text.com";
+    private final String USER_EMAIL = "user@text.com";
     private final String PROFILE_ID = "profile123abc456def";
 
     @Mock
@@ -113,7 +118,6 @@ public class UserServiceTest {
     @AfterMethod
     public void tearDown() throws Exception {
     }
-
 
 
     @Test
@@ -169,11 +173,41 @@ public class UserServiceTest {
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
         prepareSecurityContext("system/admin");
 
-        ContainerResponse response = launcher.service("GET", SERVICE_PATH + "?email=" + USER_EMAIL, BASE_URI, null, null, null, environmentContext);
+        ContainerResponse response =
+                launcher.service("GET", SERVICE_PATH + "?email=" + USER_EMAIL, BASE_URI, null, null, null, environmentContext);
         assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         verify(userDao, times(1)).getByAlias(USER_EMAIL);
-        verifyLinksRel(((User)response.getEntity()).getLinks(),Constants.LINK_REL_GET_USER_BY_ID,
+        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_USER_BY_ID,
                        Constants.LINK_REL_GET_USER_BY_EMAIL, Constants.LINK_REL_REMOVE_USER_BY_ID);
+    }
+
+    @Test
+    public void shouldBeAbleToUpdateUserPassword() throws Exception {
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
+        String newPassword = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        prepareSecurityContext("user");
+        when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
+
+        ContainerResponse response =
+                launcher.service("POST", SERVICE_PATH + "/password", BASE_URI, headers, JsonHelper.toJson(newPassword).getBytes(), null,
+                                 environmentContext);
+
+        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
+        verify(userDao, times(1)).getByAlias(USER_EMAIL);
+        verify(userDao, times(1)).update(any(User.class));
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveUser() throws Exception {
+        prepareSecurityContext("system/admin");
+
+        ContainerResponse response =
+                launcher.service("DELETE", SERVICE_PATH + "/" + USER_ID, BASE_URI, null, null, null, environmentContext);
+
+        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
+        verify(userDao, times(1)).removeById(USER_ID);
     }
 
 

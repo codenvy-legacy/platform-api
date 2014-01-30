@@ -191,7 +191,7 @@ public class WorkspaceService extends Service {
         newMember.setRoles(membership.getRoles());
         newMember.setUserId(membership.getUserId());
         memberDao.create(newMember);
-        final List<Link> links = new ArrayList<>(2);//injectLinks(workspaceDao.getById(wsId), securityContext);
+        final List<Link> links = new ArrayList<>(2);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMembers").build(wsId).toString()));

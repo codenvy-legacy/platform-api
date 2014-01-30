@@ -23,22 +23,35 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
+import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.*;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
 
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
@@ -52,6 +65,8 @@ public class UserServiceTest {
     protected final String BASE_URI     = "http://localhost/service";
     private final   String SERVICE_PATH = BASE_URI + "/user";
 
+    private final String USER_ID    = "user123abc456def";
+    private final String USER_EMAIL    = "user@text.com";
     private final String PROFILE_ID = "profile123abc456def";
 
     @Mock
@@ -62,9 +77,6 @@ public class UserServiceTest {
 
     @Mock
     private MemberDao memberDao;
-
-    @Mock
-    private User user;
 
     @Mock
     private UriInfo uriInfo;
@@ -95,7 +107,7 @@ public class UserServiceTest {
         launcher = new ResourceLauncher(requestHandler);
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
-        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("Yoda"));
+        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(USER_EMAIL));
     }
 
     @AfterMethod
@@ -103,6 +115,66 @@ public class UserServiceTest {
     }
 
 
+
+    @Test
+    public void shouldBeAbleToCreateNewUser() throws Exception {
+        prepareSecurityContext("user");
+        ContainerResponse response =
+                launcher.service("POST", SERVICE_PATH + "/create", BASE_URI, null, null, null,
+                                 environmentContext);
+
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        verify(userDao, times(1)).create(any(User.class));
+        verify(userProfileDao, times(1)).create(any(Profile.class));
+        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_CURRENT_USER,
+                       Constants.LINK_REL_UPDATE_PASSWORD);
+    }
+
+
+    @Test
+    public void shouldBeAbleToGetCurrentUser() throws Exception {
+
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
+
+        when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
+        prepareSecurityContext("user");
+
+        ContainerResponse response = launcher.service("GET", SERVICE_PATH, BASE_URI, null, null, null, environmentContext);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        verify(userDao, times(1)).getByAlias(USER_EMAIL);
+        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_CURRENT_USER,
+                       Constants.LINK_REL_UPDATE_PASSWORD);
+    }
+
+    @Test
+    public void shouldBeAbleToGetCurrentUserByID() throws Exception {
+
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
+
+        when(userDao.getById(USER_ID)).thenReturn(user);
+        prepareSecurityContext("system/admin");
+
+        ContainerResponse response = launcher.service("GET", SERVICE_PATH + "/" + USER_ID, BASE_URI, null, null, null, environmentContext);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        verify(userDao, times(1)).getById(USER_ID);
+        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_USER_BY_ID,
+                       Constants.LINK_REL_GET_USER_BY_EMAIL, Constants.LINK_REL_REMOVE_USER_BY_ID);
+    }
+
+    @Test
+    public void shouldBeAbleToGetUserByEmail() throws Exception {
+
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
+
+        when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
+        prepareSecurityContext("system/admin");
+
+        ContainerResponse response = launcher.service("GET", SERVICE_PATH + "?email=" + USER_EMAIL, BASE_URI, null, null, null, environmentContext);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        verify(userDao, times(1)).getByAlias(USER_EMAIL);
+        verifyLinksRel(((User)response.getEntity()).getLinks(),Constants.LINK_REL_GET_USER_BY_ID,
+                       Constants.LINK_REL_GET_USER_BY_EMAIL, Constants.LINK_REL_REMOVE_USER_BY_ID);
+    }
 
 
     protected void verifyLinksRel(List<Link> links, String... rels) {
@@ -116,5 +188,10 @@ public class UserServiceTest {
                 fail(String.format("Given links do not contain link with rel = %s", rel));
             }
         }
+    }
+
+    protected void prepareSecurityContext(String role) {
+        when(securityContext.isUserInRole(role)).thenReturn(true);
+        when(securityContext.isUserInRole(not(Matchers.eq(role)))).thenReturn(false);
     }
 }

@@ -78,7 +78,6 @@ public class UserService extends Service {
     @Path("create")
     @GenerateLink(rel = Constants.LINK_REL_CREATE_USER)
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @QueryParam("token") String token,
                            @Required @Description("is user temporary") @QueryParam("temporary") Boolean isTemporary)
             throws ApiException {
@@ -95,7 +94,7 @@ public class UserService extends Service {
             profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
                                                           .withName("temporary")
                                                           .withValue(String.valueOf(isTemporary))
-                                                          .withDescription("Is workspace temporary")));
+                                                          .withDescription("Indicates is this user is temporary")));
             profileDao.create(profile);
         } catch (ApiException e) {
             userDao.removeById(userId);

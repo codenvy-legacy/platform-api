@@ -37,13 +37,12 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
-
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import java.util.*;
 
+import static javax.ws.rs.core.Response.Status;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -121,7 +120,7 @@ public class UserProfileTest {
                 launcher.service("GET", SERVICE_PATH, BASE_URI, null, JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(Status.OK.getStatusCode(), response.getStatus());
         Profile responseProfile = (Profile)response.getEntity();
         verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
                        Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
@@ -144,7 +143,7 @@ public class UserProfileTest {
                                  JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(Status.OK.getStatusCode(), response.getStatus());
         Profile responseProfile = (Profile)response.getEntity();
         verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
                        Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
@@ -165,7 +164,7 @@ public class UserProfileTest {
                 launcher.service("POST", SERVICE_PATH, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(Status.OK.getStatusCode(), response.getStatus());
         verify(userProfileDao, times(1)).update(any(Profile.class));
         Profile responseProfile = (Profile)response.getEntity();
         verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
@@ -184,7 +183,7 @@ public class UserProfileTest {
                 launcher.service("POST", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(Status.OK.getStatusCode(), response.getStatus());
         verify(userProfileDao, times(1)).update(any(Profile.class));
         Profile responseProfile = (Profile)response.getEntity();
         verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID,

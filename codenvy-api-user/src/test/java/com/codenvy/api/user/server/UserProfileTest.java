@@ -28,7 +28,6 @@ import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.*;
-import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
 import org.mockito.Matchers;
@@ -39,6 +38,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
@@ -50,8 +50,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.fail;
+import static org.testng.Assert.*;
 
 /**
  * Tests cases for  {@link UserProfileService}.
@@ -101,7 +100,7 @@ public class UserProfileTest {
         launcher = new ResourceLauncher(requestHandler);
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
-        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("Yoda"));
+        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("user@testuser.com"));
     }
 
     @AfterMethod
@@ -118,15 +117,14 @@ public class UserProfileTest {
         when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
         prepareSecurityContext("user");
 
-        String path = SERVICE_PATH + "/";
-        ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         ContainerResponse response =
-                launcher.service("GET", path, BASE_URI, null, JsonHelper.toJson(profile).getBytes(), writer,
+                launcher.service("GET", SERVICE_PATH, BASE_URI, null, JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(response.getStatus(), 200);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE, Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
+                       Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
     }
 
 
@@ -141,15 +139,15 @@ public class UserProfileTest {
 
         prepareSecurityContext("system/admin");
 
-        String path = SERVICE_PATH + "/" + PROFILE_ID;
-        ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         ContainerResponse response =
-                launcher.service("GET", path, BASE_URI, null, JsonHelper.toJson(profile).getBytes(), writer,
+                launcher.service("GET", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, null,
+                                 JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(response.getStatus(), 200);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID, Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
+                       Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
     }
 
 
@@ -161,19 +159,17 @@ public class UserProfileTest {
         when(userDao.getByAlias(anyString())).thenReturn(user);
         prepareSecurityContext("user");
 
-        String path = SERVICE_PATH + "/";
-        ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
         ContainerResponse response =
-                launcher.service("POST", path, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), writer,
+                launcher.service("POST", SERVICE_PATH, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(response.getStatus(), 200);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         verify(userProfileDao, times(1)).update(any(Profile.class));
         Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE, Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
+                       Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
     }
 
     @Test
@@ -181,19 +177,18 @@ public class UserProfileTest {
         // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
         prepareSecurityContext("system/admin");
-        String path = SERVICE_PATH + "/" + PROFILE_ID;
-        ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
+
         ContainerResponse response =
-                launcher.service("POST", path, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), writer,
+                launcher.service("POST", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(), null,
                                  environmentContext);
 
-        assertEquals(response.getStatus(), 200);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         verify(userProfileDao, times(1)).update(any(Profile.class));
         Profile responseProfile = (Profile)response.getEntity();
-        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID, Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
+                       Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
     }
 
 

@@ -19,6 +19,7 @@ package com.codenvy.api.user.server;
 
 import sun.security.acl.PrincipalImpl;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
@@ -36,7 +37,11 @@ import org.testng.annotations.Listeners;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import java.util.List;
+
 import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.fail;
 
 /**
  *
@@ -95,5 +100,21 @@ public class UserServiceTest {
 
     @AfterMethod
     public void tearDown() throws Exception {
+    }
+
+
+
+
+    protected void verifyLinksRel(List<Link> links, String... rels) {
+        assertEquals(links.size(), rels.length);
+        for (String rel : rels) {
+            boolean linkPresent = false;
+            for (Link link : links) {
+                linkPresent |= link.getRel().equals(rel);
+            }
+            if (!linkPresent) {
+                fail(String.format("Given links do not contain link with rel = %s", rel));
+            }
+        }
     }
 }

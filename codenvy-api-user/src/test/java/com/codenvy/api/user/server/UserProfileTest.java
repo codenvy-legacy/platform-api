@@ -126,7 +126,7 @@ public class UserProfileTest {
 
         assertEquals(response.getStatus(), 200);
         Profile responseProfile = (Profile)response.getEntity();
-        validateLinks(responseProfile);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE, Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
     }
 
 
@@ -140,7 +140,6 @@ public class UserProfileTest {
         when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
 
         prepareSecurityContext("system/admin");
-        prepareSecurityContext("system/manager");
 
         String path = SERVICE_PATH + "/" + PROFILE_ID;
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -150,7 +149,7 @@ public class UserProfileTest {
 
         assertEquals(response.getStatus(), 200);
         Profile responseProfile = (Profile)response.getEntity();
-        validateLinks(responseProfile);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID, Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
     }
 
 
@@ -174,7 +173,7 @@ public class UserProfileTest {
         assertEquals(response.getStatus(), 200);
         verify(userProfileDao, times(1)).update(any(Profile.class));
         Profile responseProfile = (Profile)response.getEntity();
-        validateLinks(responseProfile);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_CURRENT_USER_PROFILE, Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
     }
 
     @Test
@@ -194,14 +193,20 @@ public class UserProfileTest {
         assertEquals(response.getStatus(), 200);
         verify(userProfileDao, times(1)).update(any(Profile.class));
         Profile responseProfile = (Profile)response.getEntity();
-        validateLinks(responseProfile);
+        verifyLinksRel(responseProfile.getLinks(), Constants.LINK_REL_GET_USER_PROFILE_BY_ID, Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID);
     }
 
 
-    protected void validateLinks(Profile profile) throws Exception {
-        List<Link> links = profile.getLinks();
-        if (links.size() == 0) {
-            fail("Links not found. ");
+    protected void verifyLinksRel(List<Link> links, String... rels) {
+        assertEquals(links.size(), rels.length);
+        for (String rel : rels) {
+            boolean linkPresent = false;
+            for (Link link : links) {
+                linkPresent |= link.getRel().equals(rel);
+            }
+            if (!linkPresent) {
+                fail(String.format("Given links do not contain link with rel = %s", rel));
+            }
         }
     }
 

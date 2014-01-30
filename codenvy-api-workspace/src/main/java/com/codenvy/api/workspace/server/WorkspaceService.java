@@ -183,7 +183,8 @@ public class WorkspaceService extends Service {
     @RolesAllowed("workspace/admin")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Member addMember(@Context SecurityContext securityContext, @PathParam("id") String wsId, Membership membership)
+    public Member addMember(@Context SecurityContext securityContext, @PathParam("id") String wsId,
+                            @Description("describes new workspace member") @Required Membership membership)
             throws ApiException {
         Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);

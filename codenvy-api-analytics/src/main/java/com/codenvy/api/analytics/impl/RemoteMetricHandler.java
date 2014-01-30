@@ -209,7 +209,12 @@ public class RemoteMetricHandler implements MetricHandler {
 
         final Link statusLink = DtoFactory.getInstance().createDto(Link.class);
         statusLink.setRel(Constants.LINK_REL_GET_METRIC_VALUE);
-        statusLink.setHref(servicePathBuilder.clone().path(getMethod("getValue")).build(metricName, "name").toString());
+        statusLink.setHref(servicePathBuilder
+                                   .clone()
+                                   .path("analytics")
+                                   .path(getMethod("getValue"))
+                                   .build(metricName, "name")
+                                   .toString());
         statusLink.setMethod("GET");
         statusLink.setProduces(MediaType.APPLICATION_JSON);
         links.add(statusLink);

@@ -19,7 +19,7 @@ package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.exception.MemberException;
+import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
@@ -55,13 +55,13 @@ public class MemberDaoImpl implements MemberDao {
     }
 
     @Override
-    public void create(Member member) throws MemberException {
+    public void create(Member member) throws MembershipException {
         validateSubjectsExists(member.getUserId(), member.getWorkspaceId());
         collection.save(memberToDBObject(member));
     }
 
     @Override
-    public void update(Member member) throws MemberException {
+    public void update(Member member) throws MembershipException {
         validateSubjectsExists(member.getUserId(), member.getWorkspaceId());
         DBObject query = new BasicDBObject();
         query.put("workspaceid", member.getWorkspaceId());
@@ -70,7 +70,7 @@ public class MemberDaoImpl implements MemberDao {
     }
 
     @Override
-    public List<Member> getWorkspaceMembers(String wsId) throws MemberException {
+    public List<Member> getWorkspaceMembers(String wsId) throws MembershipException {
         List<Member> result = new ArrayList<>();
         DBObject query = new BasicDBObject("workspaceid", wsId);
         for (DBObject one : collection.find(query)) {
@@ -87,7 +87,7 @@ public class MemberDaoImpl implements MemberDao {
     }
 
     @Override
-    public List<Member> getUserRelationships(String userId) throws MemberException {
+    public List<Member> getUserRelationships(String userId) throws MembershipException {
         List<Member> result = new ArrayList<>();
         DBObject query = new BasicDBObject("userid", userId);
         for (DBObject one : collection.find(query)) {
@@ -137,12 +137,12 @@ public class MemberDaoImpl implements MemberDao {
 
 
 
-    void validateSubjectsExists(String userId, String workspaceId) throws MemberException{
+    void validateSubjectsExists(String userId, String workspaceId) throws MembershipException {
         try {
            userDao.getById(userId);
            workspaceDao.getById(workspaceId);
         } catch (UserException | WorkspaceException e) {
-            throw  new MemberException(e.getMessage(), e);
+            throw  new MembershipException(e.getMessage(), e);
         }
     }
 }

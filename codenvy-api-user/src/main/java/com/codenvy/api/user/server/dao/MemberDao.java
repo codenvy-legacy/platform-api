@@ -18,7 +18,7 @@
 package com.codenvy.api.user.server.dao;
 
 
-import com.codenvy.api.user.server.exception.MemberException;
+import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.shared.dto.Member;
 
 import java.util.List;
@@ -39,10 +39,10 @@ public interface MemberDao {
      *
      * @param member
      *         - POJO representation of workspace member
-     * @throws MemberException
+     * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    void create(Member member) throws MemberException;
+    void create(Member member) throws MembershipException;
 
 
     /**
@@ -50,9 +50,9 @@ public interface MemberDao {
      *
      * @param member
      *         - POJO representation of workspace member
-     * @throws MemberException
+     * @throws com.codenvy.api.user.server.exception.MembershipException
      */
-    void update(Member member) throws MemberException;
+    void update(Member member) throws MembershipException;
 
     /**
      * Gets a list of all members of the given workspace.
@@ -60,10 +60,10 @@ public interface MemberDao {
      * @param wsId
      *         workspace to search in
      * @return list of workspace members
-     * @throws MemberException
+     * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    List<Member> getWorkspaceMembers(String wsId) throws MemberException;
+    List<Member> getWorkspaceMembers(String wsId) throws MembershipException;
 
 
     /**
@@ -72,10 +72,10 @@ public interface MemberDao {
      * @param userId
      *         user to get relationships
      * @return list of user relations
-     * @throws MemberException
+     * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    public List<Member> getUserRelationships(String userId) throws MemberException;
+    public List<Member> getUserRelationships(String userId) throws MembershipException;
 
     /**
      * Removes a given member from specified workspace.

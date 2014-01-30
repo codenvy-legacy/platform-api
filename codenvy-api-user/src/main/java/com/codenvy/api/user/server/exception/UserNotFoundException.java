@@ -17,28 +17,11 @@
  */
 package com.codenvy.api.user.server.exception;
 
-import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.rest.shared.dto.ServiceError;
-
 /**
- * @author Eugene Voevodin
+ * @author andrew00x
  */
-public class MemberException extends ApiException {
-
-
-    public MemberException(ServiceError serviceError) {
-        super(serviceError);
-    }
-
-    public MemberException(String message) {
-        super(message);
-    }
-
-    public MemberException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public MemberException(Throwable cause) {
-        super(cause);
+public class UserNotFoundException extends UserException {
+    public UserNotFoundException(String identifier) {
+        super(String.format("User %s doesn't exist.", identifier));
     }
 }

@@ -18,12 +18,11 @@
 package com.codenvy.api.user.server.dao;
 
 
-import com.codenvy.api.user.server.exception.UserException;
+import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Profile;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Profile} data.
- *
  */
 public interface UserProfileDao {
 
@@ -32,30 +31,30 @@ public interface UserProfileDao {
      *
      * @param profile
      *         - POJO representation of profile entity
-     * @throws com.codenvy.api.user.server.exception.UserException
+     * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    void create(Profile profile) throws UserException;
+    void create(Profile profile) throws UserProfileException;
 
     /**
      * Updates already present in persistent layer profile.
      *
      * @param profile
      *         - POJO representation of profile entity
-     * @throws UserException
+     * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    void update(Profile profile) throws UserException;
+    void update(Profile profile) throws UserProfileException;
 
     /**
      * Removes profile from persistent layer.
      *
      * @param id
      *         - profile identifier
-     * @throws UserException
+     * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    void remove(String id) throws UserException;
+    void remove(String id) throws UserProfileException;
 
     /**
      * Gets profile from persistent layer.
@@ -63,9 +62,9 @@ public interface UserProfileDao {
      * @param id
      *         - profile identifier
      * @return profile POJO, or <code>null</code> if nothing is found
-     * @throws UserException
+     * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    Profile getById(String id) throws UserException;
+    Profile getById(String id) throws UserProfileException;
 
 }

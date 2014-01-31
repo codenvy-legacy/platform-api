@@ -31,6 +31,7 @@ import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.server.exception.UserException;
+import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.User;
@@ -52,6 +53,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -112,7 +114,11 @@ public class UserService extends Service {
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public User getCurrent(@Context SecurityContext securityContext) throws UserException {
-        final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
+        if (user == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return user;
@@ -125,7 +131,11 @@ public class UserService extends Service {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public void updatePassword(@Context SecurityContext securityContext, @FormParam("password") String password)
             throws UserException {
-        final User user = userDao.getByAlias(securityContext.getUserPrincipal().getName());
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
+        if (user == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         user.setPassword(password);
         userDao.update(user);
     }
@@ -137,6 +147,9 @@ public class UserService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public User getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws UserException {
         final User user = userDao.getById(id);
+        if (user == null) {
+            throw new UserNotFoundException(id);
+        }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return user;
@@ -150,6 +163,9 @@ public class UserService extends Service {
     public User getByEmail(@Context SecurityContext securityContext, @Required @Description("user email") @QueryParam("email") String email)
             throws UserException {
         final User user = userDao.getByAlias(email);
+        if (user == null) {
+            throw new UserNotFoundException(email);
+        }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return user;
@@ -160,11 +176,15 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_USER_BY_ID)
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws UserException, MembershipException, UserProfileException {
+        final User user = userDao.getById(id);
+        if (user == null) {
+            throw new UserNotFoundException(id);
+        }
         List<Member> members = memberDao.getUserRelationships(id);
         for (Member member : members) {
             memberDao.removeMember(member);
         }
-        profileDao.remove(id);
+        profileDao.remove(user.getProfileId());
         userDao.removeById(id);
     }
 

@@ -124,63 +124,79 @@ public class UserServiceTest {
 
     //@Test
     public void shouldBeAbleToCreateNewUser() throws Exception {
-        prepareSecurityContext("user");
-        ContainerResponse response =
-                launcher.service("POST", SERVICE_PATH + "/create", BASE_URI, null, null, null,
-                                 environmentContext);
+        String[] s = getRoles(UserService.class, "create");
+        for (String role : s) {
 
-        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        verify(userDao, times(1)).create(any(User.class));
-        verify(userProfileDao, times(1)).create(any(Profile.class));
-        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_CURRENT_USER,
-                       Constants.LINK_REL_UPDATE_PASSWORD);
+            prepareSecurityContext(role);
+            ContainerResponse response =
+                    launcher.service("POST", SERVICE_PATH + "/create", BASE_URI, null, null, null,
+                                     environmentContext);
+
+            assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+            verify(userDao, times(1)).create(any(User.class));
+            verify(userProfileDao, times(1)).create(any(Profile.class));
+            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
+        }
     }
 
 
     @Test
     public void shouldBeAbleToGetCurrentUser() throws Exception {
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
-
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL)
+                              .withProfileId(PROFILE_ID);
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
-        prepareSecurityContext("user");
 
-        ContainerResponse response = launcher.service("GET", SERVICE_PATH, BASE_URI, null, null, null, environmentContext);
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        verify(userDao, times(1)).getByAlias(USER_EMAIL);
-        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_CURRENT_USER,
-                       Constants.LINK_REL_UPDATE_PASSWORD);
+        String[] s = getRoles(UserService.class, "getCurrent");
+        for (String role : s) {
+            prepareSecurityContext(role);
+
+            ContainerResponse response =
+                    launcher.service("GET", SERVICE_PATH, BASE_URI, null, null, null, environmentContext);
+            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+            verify(userDao, times(1)).getByAlias(USER_EMAIL);
+            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
+        }
     }
 
     @Test
-    public void shouldBeAbleToGetCurrentUserByID() throws Exception {
+    public void shouldBeAbleToGetUserByID() throws Exception {
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL)
+                              .withProfileId(PROFILE_ID);
 
         when(userDao.getById(USER_ID)).thenReturn(user);
-        prepareSecurityContext("system/admin");
+        String[] s = getRoles(UserService.class, "getById");
+        for (String role : s) {
+            prepareSecurityContext(role);
 
-        ContainerResponse response = launcher.service("GET", SERVICE_PATH + "/" + USER_ID, BASE_URI, null, null, null, environmentContext);
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        verify(userDao, times(1)).getById(USER_ID);
-        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_USER_BY_ID,
-                       Constants.LINK_REL_GET_USER_BY_EMAIL, Constants.LINK_REL_REMOVE_USER_BY_ID);
+            ContainerResponse response =
+                    launcher.service("GET", SERVICE_PATH + "/" + USER_ID, BASE_URI, null, null, null,
+                                     environmentContext);
+            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
+        }
+        verify(userDao, times(s.length)).getById(USER_ID);
     }
 
     @Test
     public void shouldBeAbleToGetUserByEmail() throws Exception {
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
-
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL)
+                              .withProfileId(PROFILE_ID);
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
-        prepareSecurityContext("system/admin");
+        when(userDao.getById(USER_ID)).thenReturn(user);
+        String[] s = getRoles(UserService.class, "getByEmail");
+        for (String role : s) {
+            prepareSecurityContext(role);
 
-        ContainerResponse response =
-                launcher.service("GET", SERVICE_PATH + "?email=" + USER_EMAIL, BASE_URI, null, null, null, environmentContext);
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        verify(userDao, times(1)).getByAlias(USER_EMAIL);
-        verifyLinksRel(((User)response.getEntity()).getLinks(), Constants.LINK_REL_GET_USER_BY_ID,
-                       Constants.LINK_REL_GET_USER_BY_EMAIL, Constants.LINK_REL_REMOVE_USER_BY_ID);
+            ContainerResponse response =
+                    launcher.service("GET", SERVICE_PATH + "?email=" + USER_EMAIL, BASE_URI, null, null, null,
+                                     environmentContext);
+            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
+        }
+        verify(userDao, times(s.length)).getByAlias(USER_EMAIL);
     }
 
     @Test

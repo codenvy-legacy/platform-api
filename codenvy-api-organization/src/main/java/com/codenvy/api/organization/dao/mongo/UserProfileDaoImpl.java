@@ -19,7 +19,10 @@ package com.codenvy.api.organization.dao.mongo;
 
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
+import com.codenvy.api.user.server.exception.ProfileNotFoundException;
 import com.codenvy.api.user.server.exception.UserException;
+import com.codenvy.api.user.server.exception.UserNotFoundException;
+import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.dto.server.DtoFactory;
@@ -53,30 +56,30 @@ public class UserProfileDaoImpl implements UserProfileDao    {
     }
 
     @Override
-    public void create(Profile profile) throws UserException {
+    public void create(Profile profile) throws UserProfileException {
         validateProfileUserExists(profile.getUserId());
         collection.save(profileToDBObject(profile));
     }
 
     @Override
-    public void update(Profile profile) throws UserException {
+    public void update(Profile profile) throws UserProfileException {
         DBObject query = new BasicDBObject("_id", profile.getId());
         DBObject res = collection.findOne(query);
         if (res == null) {
-            throw new UserException("Specified user profile does not exists.");
+            throw new ProfileNotFoundException(profile.getId());
         }
         validateProfileUserExists(profile.getUserId());
         collection.update(query, profileToDBObject(profile));
     }
 
     @Override
-    public void remove(String id) throws UserException {
+    public void remove(String id) throws UserProfileException {
         DBObject query = new BasicDBObject("_id", id);
         collection.remove(query);
     }
 
     @Override
-    public Profile getById(String id) throws UserException {
+    public Profile getById(String id) throws UserProfileException {
         DBObject query = new BasicDBObject("_id", id);
         DBObject res = collection.findOne(query);
         if (res == null) {
@@ -104,9 +107,11 @@ public class UserProfileDaoImpl implements UserProfileDao    {
      * @param userId
      * @throws UserException
      */
-    private void validateProfileUserExists(String userId) throws UserException{
-        userDao.getById(userId);
+    private void validateProfileUserExists(String userId) throws UserException {
+            if (userDao.getById(userId) == null)
+                throw new UserNotFoundException(userId);
     }
+
 
     /**
      * Convert Profile to Database ready-to-use object,

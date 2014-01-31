@@ -122,7 +122,7 @@ public class UserProfileTest {
                     launcher.service("GET", SERVICE_PATH, BASE_URI, null, JsonHelper.toJson(profile).getBytes(), null,
                                      environmentContext);
 
-            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            assertEquals(response.getStatus(), Status.OK.getStatusCode());
             Profile responseProfile = (Profile)response.getEntity();
             verifyLinksRel(responseProfile.getLinks(), getRels(one));
         }

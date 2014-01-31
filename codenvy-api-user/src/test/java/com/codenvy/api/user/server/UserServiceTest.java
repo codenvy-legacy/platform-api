@@ -113,6 +113,8 @@ public class UserServiceTest {
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(USER_EMAIL));
+        when(userDao.getById(USER_ID))
+                .thenReturn(DtoFactory.getInstance().createDto(User.class).withId(USER_ID));
     }
 
     @AfterMethod

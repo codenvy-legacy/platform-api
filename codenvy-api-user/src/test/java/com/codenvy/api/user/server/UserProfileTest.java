@@ -23,6 +23,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
+import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.json.JsonHelper;
@@ -100,6 +101,8 @@ public class UserProfileTest {
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("user@testuser.com"));
+        when(userDao.getByAlias(anyString())).thenReturn(user);
+        when(user.getProfileId()).thenReturn(PROFILE_ID);
     }
 
     @AfterMethod
@@ -110,9 +113,6 @@ public class UserProfileTest {
     public void shouldBeAbleToGETCurrentProfile() throws Exception {
         // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-
-        when(userDao.getByAlias(anyString())).thenReturn(user);
-        when(user.getProfileId()).thenReturn(PROFILE_ID);
         when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
 
         String[] s = getRoles(UserProfileService.class, "getCurrent");
@@ -131,11 +131,7 @@ public class UserProfileTest {
 
     @Test
     public void shouldBeAbleToGETProfileById() throws Exception {
-        // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
-
-        when(userDao.getByAlias(anyString())).thenReturn(user);
-        when(user.getProfileId()).thenReturn(PROFILE_ID);
         when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
 
         String[] s = getRoles(UserProfileService.class, "getById");
@@ -147,7 +143,7 @@ public class UserProfileTest {
                                      JsonHelper.toJson(profile).getBytes(), null,
                                      environmentContext);
 
-            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            assertEquals(response.getStatus(), Status.OK.getStatusCode());
             Profile responseProfile = (Profile)response.getEntity();
             verifyLinksRel(responseProfile.getLinks(), getRels(one));
         }
@@ -157,23 +153,27 @@ public class UserProfileTest {
     @Test
     public void shouldBeAbleToUpdateCurrentProfile() throws Exception {
         // given
-        Profile profile = DtoFactory.getInstance().createDto(Profile.class);
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
+        when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
 
-        when(userDao.getByAlias(anyString())).thenReturn(user);
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 
+        List<Attribute> attributeList = Arrays.asList(
+                DtoFactory.getInstance().createDto(Attribute.class).withName("testname").withValue("testValue")
+                          .withDescription("testDescription"));
         String[] s = getRoles(UserProfileService.class, "updateCurrent");
         for (String one : s) {
             prepareSecurityContext(one);
             ContainerResponse response =
-                    launcher.service("POST", SERVICE_PATH, BASE_URI, headers, JsonHelper.toJson(profile).getBytes(),
+                    launcher.service("POST", SERVICE_PATH, BASE_URI, headers, JsonHelper.toJson(attributeList).getBytes(),
                                      null,
                                      environmentContext);
 
-            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            assertEquals(response.getStatus(), Status.OK.getStatusCode());
             verify(userProfileDao, times(1)).update(any(Profile.class));
             Profile responseProfile = (Profile)response.getEntity();
+            //assertEquals(responseProfile.getAttributes(), attributeList);
             verifyLinksRel(responseProfile.getLinks(), getRels(one));
         }
     }
@@ -182,20 +182,26 @@ public class UserProfileTest {
     public void shouldBeAbleToUpdateProfileByID() throws Exception {
         // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
-
+        when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
+        when(userDao.getById(anyString())).thenReturn(user);
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
+
+        List<Attribute> attributeList = Arrays.asList(
+                DtoFactory.getInstance().createDto(Attribute.class).withName("testname").withValue("testValue")
+                          .withDescription("testDescription"));
 
         String[] s = getRoles(UserProfileService.class, "updateById");
         for (String one : s) {
             prepareSecurityContext(one);
             ContainerResponse response =
                     launcher.service("POST", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, headers,
-                                     JsonHelper.toJson(profile).getBytes(), null,
+                                     JsonHelper.toJson(attributeList).getBytes(), null,
                                      environmentContext);
 
-            assertEquals(Status.OK.getStatusCode(), response.getStatus());
+            assertEquals(response.getStatus(), Status.OK.getStatusCode());
             Profile responseProfile = (Profile)response.getEntity();
+            //assertEquals(responseProfile.getAttributes(), attributeList);
             verifyLinksRel(responseProfile.getLinks(), getRels(one));
         }
         verify(userProfileDao, times(s.length)).update(any(Profile.class));

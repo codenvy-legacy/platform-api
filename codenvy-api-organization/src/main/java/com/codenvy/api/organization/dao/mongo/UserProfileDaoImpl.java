@@ -57,7 +57,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     @Override
     public void create(Profile profile) throws UserProfileException {
-        validateProfileUserExists(profile.getUserId());
+//        validateProfileUserExists(profile.getUserId());
         collection.save(profileToDBObject(profile));
     }
 
@@ -68,7 +68,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
         if (res == null) {
             throw new ProfileNotFoundException(profile.getId());
         }
-        validateProfileUserExists(profile.getUserId());
+//        validateProfileUserExists(profile.getUserId());
         collection.update(query, profileToDBObject(profile));
     }
 
@@ -102,15 +102,15 @@ public class UserProfileDaoImpl implements UserProfileDao    {
     }
 
 
-    /**
-     * Ensure that user linked to this profile is already exists.
-     * @param userId
-     * @throws UserException
-     */
-    private void validateProfileUserExists(String userId) throws UserException {
-            if (userDao.getById(userId) == null)
-                throw new UserNotFoundException(userId);
-    }
+//    /**
+//     * Ensure that user linked to this profile is already exists.
+//     * @param userId
+//     * @throws UserException
+//     */
+//    private void validateProfileUserExists(String userId) throws UserException {
+//            if (userDao.getById(userId) == null)
+//                throw new UserNotFoundException(userId);
+//    }
 
 
     /**

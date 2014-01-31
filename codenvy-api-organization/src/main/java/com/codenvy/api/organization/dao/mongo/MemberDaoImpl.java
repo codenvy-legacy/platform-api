@@ -104,7 +104,7 @@ public class MemberDaoImpl implements MemberDao {
     }
 
     @Override
-    public void removeMember(Member  member) {
+    public void remove(Member member) {
         DBObject query = new BasicDBObject();
         query.put("workspaceid", member.getWorkspaceId());
         query.put("userid", member.getUserId());

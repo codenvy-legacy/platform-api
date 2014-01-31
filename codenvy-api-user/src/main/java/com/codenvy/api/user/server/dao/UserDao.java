@@ -52,14 +52,14 @@ public interface UserDao {
     void update(User user) throws UserException;
 
     /**
-     * Removes user from persistent layer by his identifierUs
+     * Removes user from persistent layer by his identifier.
      *
      * @param id
      *         - user identifier
      * @throws UserException
      *         if any issue occurred during performing an operation
      */
-    void removeById(String id) throws UserException;
+    void remove(String id) throws UserException;
 
     /**
      * Gets user from persistent layer by any of his aliases

@@ -291,7 +291,7 @@ public class WorkspaceServiceTest {
             ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/members/" + USER_ID, null, null);
             assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
         }
-        verify(memberDao, times(roles.length)).removeMember(any(Member.class));
+        verify(memberDao, times(roles.length)).remove(any(Member.class));
     }
 
     @Test
@@ -299,12 +299,13 @@ public class WorkspaceServiceTest {
         when(memberDao.getWorkspaceMembers(WS_ID)).thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
                                                                                       .withWorkspaceId(WS_ID)
                                                                                       .withUserId(USER_ID)));
+        when(workspaceDao.getById(WS_ID)).thenReturn(workspace);
         String[] roles = getRoles(WorkspaceService.class, "remove");
         for (String role : roles) {
             ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID, null, null);
             assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
         }
-        verify(memberDao, times(roles.length)).removeMember(any(Member.class));
+        verify(memberDao, times(roles.length)).remove(any(Member.class));
         verify(workspaceDao, times(roles.length)).remove(WS_ID);
     }
 

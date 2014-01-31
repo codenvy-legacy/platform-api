@@ -85,7 +85,7 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public void removeById(String id) throws UserException {
+    public void remove(String id) throws UserException {
         try {
             ldapService.removeEntryByName(
                     LdapService.OU + "=" + id + "," + LdapService.OU + "=" + LdapService.USERS_SUBTREE_NAME);

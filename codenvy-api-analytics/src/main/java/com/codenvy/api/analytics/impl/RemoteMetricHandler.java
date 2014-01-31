@@ -32,6 +32,7 @@ import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
@@ -66,10 +67,11 @@ public class RemoteMetricHandler implements MetricHandler {
         }
     }
 
+    @Override
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> executionContext,
                                    UriInfo uriInfo) throws MetricNotFoundException {
-        String proxyUrl = getProxyURL("getValue");
+        String proxyUrl = getProxyURL("getValue", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class,
@@ -82,8 +84,9 @@ public class RemoteMetricHandler implements MetricHandler {
         }
     }
 
+    @Override
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
-        String proxyUrl = getProxyURL("getInfo") + "/" + metricName;
+        String proxyUrl = getProxyURL("getInfo", metricName);
         try {
             MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoDTO);
@@ -93,8 +96,9 @@ public class RemoteMetricHandler implements MetricHandler {
         }
     }
 
+    @Override
     public MetricInfoListDTO getAllInfo(UriInfo uriInfo) {
-        String proxyUrl = getProxyURL("getAllInfo");
+        String proxyUrl = getProxyURL("getAllInfo", "");
         try {
             MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoListDTO);
@@ -122,8 +126,9 @@ public class RemoteMetricHandler implements MetricHandler {
         return pairs;
     }
 
-    private String getProxyURL(String methodName) {
-        return proxyUrl + "/" + methodName;
+    private String getProxyURL(String methodName, String metricName) {
+        String path = getMethod(methodName).getAnnotation(Path.class).value();
+        return proxyUrl + "/" + path.replace("{name}", metricName);
     }
 
     private <DTO> DTO request(Class<DTO> dtoInterface,
@@ -204,7 +209,12 @@ public class RemoteMetricHandler implements MetricHandler {
 
         final Link statusLink = DtoFactory.getInstance().createDto(Link.class);
         statusLink.setRel(Constants.LINK_REL_GET_METRIC_VALUE);
-        statusLink.setHref(servicePathBuilder.clone().path(getMethod("getValue")).build(metricName, "name").toString());
+        statusLink.setHref(servicePathBuilder
+                                   .clone()
+                                   .path("analytics")
+                                   .path(getMethod("getValue"))
+                                   .build(metricName, "name")
+                                   .toString());
         statusLink.setMethod("GET");
         statusLink.setProduces(MediaType.APPLICATION_JSON);
         links.add(statusLink);

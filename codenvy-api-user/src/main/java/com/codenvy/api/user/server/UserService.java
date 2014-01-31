@@ -182,10 +182,10 @@ public class UserService extends Service {
         }
         List<Member> members = memberDao.getUserRelationships(id);
         for (Member member : members) {
-            memberDao.removeMember(member);
+            memberDao.remove(member);
         }
         profileDao.remove(user.getProfileId());
-        userDao.removeById(id);
+        userDao.remove(id);
     }
 
     private void injectLinks(User user, SecurityContext securityContext) {

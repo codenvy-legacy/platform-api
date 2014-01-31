@@ -285,7 +285,7 @@ public class WorkspaceServiceTest {
                                  environmentContext);
 
         assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
-        verify(memberDao, times(1)).removeMember(any(Member.class));
+        verify(memberDao, times(1)).remove(any(Member.class));
     }
 
     @Test
@@ -298,7 +298,7 @@ public class WorkspaceServiceTest {
                 launcher.service("DELETE", SERVICE_PATH + "/" + WS_ID, BASE_URI, null, null, null, environmentContext);
 
         assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
-        verify(memberDao, times(1)).removeMember(any(Member.class));
+        verify(memberDao, times(1)).remove(any(Member.class));
         verify(workspaceDao, times(1)).remove(WS_ID);
     }
 

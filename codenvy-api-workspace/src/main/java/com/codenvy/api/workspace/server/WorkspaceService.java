@@ -209,7 +209,7 @@ public class WorkspaceService extends Service {
         Member member = DtoFactory.getInstance().createDto(Member.class);
         member.setUserId(userId);
         member.setWorkspaceId(wsId);
-        memberDao.removeMember(member);
+        memberDao.remove(member);
     }
 
     @DELETE
@@ -219,7 +219,7 @@ public class WorkspaceService extends Service {
     public void remove(@PathParam("id") String wsId) throws ApiException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
-            memberDao.removeMember(member);
+            memberDao.remove(member);
         }
         workspaceDao.remove(wsId);
     }

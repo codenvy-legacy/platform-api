@@ -84,5 +84,5 @@ public interface MemberDao {
      *         member to remove
      */
 
-    void removeMember(Member member);
+    void remove(Member member);
 }

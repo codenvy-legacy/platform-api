@@ -28,14 +28,17 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.workspace.server.exception.WorkspaceNotFoundException;
 import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
+import com.sun.java.swing.plaf.windows.resources.windows_pt_BR;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -52,6 +55,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -95,6 +99,9 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws ApiException {
         Workspace workspace = workspaceDao.getById(id);
+        if (workspace == null) {
+            throw new WorkspaceNotFoundException(id);
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -106,6 +113,9 @@ public class WorkspaceService extends Service {
     public Workspace getByName(@Context SecurityContext securityContext,
                                @Required @Description("workspace name") @QueryParam("name") String name) throws ApiException {
         Workspace workspace = workspaceDao.getByName(name);
+        if (workspace == null) {
+            throw new WorkspaceNotFoundException(name);
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -131,7 +141,11 @@ public class WorkspaceService extends Service {
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Workspace> getWorkspacesOfCurrentUser(@Context SecurityContext securityContext) throws ApiException {
-        final User current = userDao.getByAlias(securityContext.getUserPrincipal().getName());
+        final Principal principal = securityContext.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        if (current == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         final List<Workspace> workspaces = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(current.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
@@ -150,6 +164,9 @@ public class WorkspaceService extends Service {
                                                        @Required @Description("user id to find workspaces") @QueryParam(
                                                                "userid") String userid)
             throws ApiException {
+        if (userDao.getById(userid) == null) {
+            throw new UserNotFoundException(userid);
+        }
         final List<Workspace> workspaces = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(userid)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
@@ -217,6 +234,9 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE)
     @RolesAllowed({"system/admin", "workspace/admin"})
     public void remove(@PathParam("id") String wsId) throws ApiException {
+        if (workspaceDao.getById(wsId) == null) {
+            throw new WorkspaceNotFoundException(wsId);
+        }
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
             memberDao.remove(member);

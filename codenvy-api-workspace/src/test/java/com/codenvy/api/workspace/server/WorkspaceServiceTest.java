@@ -180,7 +180,7 @@ public class WorkspaceServiceTest {
                                                 .withName("ws2")
                                                 .withAttributes(Collections.EMPTY_LIST);
 
-        String[] roles = getRoles(WorkspaceService.class, "updateById");
+        String[] roles = getRoles(WorkspaceService.class, "update");
         for (String role : roles) {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID, MediaType.APPLICATION_JSON, workspaceToUpdate);

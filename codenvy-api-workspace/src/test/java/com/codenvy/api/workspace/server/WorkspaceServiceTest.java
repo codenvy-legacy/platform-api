@@ -181,6 +181,7 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToUpdateWorkspaceById() throws Exception {
+        when(workspaceDao.getById(WS_ID)).thenReturn(workspace);
         Workspace workspaceToUpdate = DtoFactory.getInstance().createDto(Workspace.class)
                                                 .withName("ws2")
                                                 .withAttributes(Collections.EMPTY_LIST);
@@ -286,7 +287,7 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToRemoveWorkspaceMember() throws Exception {
-        String[] roles = getRoles(WorkspaceService.class, "removeMemberById");
+        String[] roles = getRoles(WorkspaceService.class, "removeMember");
         for (String role : roles) {
             ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/members/" + USER_ID, null, null);
             assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());

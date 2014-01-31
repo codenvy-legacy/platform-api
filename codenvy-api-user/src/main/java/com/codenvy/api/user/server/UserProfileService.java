@@ -145,8 +145,8 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateById(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
-                              @Context SecurityContext securityContext)
+    public Profile update(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
+                          @Context SecurityContext securityContext)
             throws UserProfileException {
         Profile profile = profileDao.getById(profileId);
         if (profile == null) {
@@ -188,7 +188,7 @@ public class UserProfileService extends Service {
                                  uriBuilder.clone().path(getClass(), "getById").build(profile.getId()).toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID, MediaType.APPLICATION_JSON,
                                  MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "updateById").build(profile.getId()).toString())
+                                 uriBuilder.clone().path(getClass(), "update").build(profile.getId()).toString())
                               .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
                                                                       .withDescription("update profile")
                                                                       .withRequired(true)

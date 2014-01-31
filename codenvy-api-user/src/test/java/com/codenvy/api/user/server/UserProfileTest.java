@@ -191,7 +191,7 @@ public class UserProfileTest {
                 DtoFactory.getInstance().createDto(Attribute.class).withName("testname").withValue("testValue")
                           .withDescription("testDescription"));
 
-        String[] s = getRoles(UserProfileService.class, "updateById");
+        String[] s = getRoles(UserProfileService.class, "update");
         for (String one : s) {
             prepareSecurityContext(one);
             ContainerResponse response =

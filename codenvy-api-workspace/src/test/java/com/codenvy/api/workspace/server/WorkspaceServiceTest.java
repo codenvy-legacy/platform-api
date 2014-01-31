@@ -175,6 +175,7 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToUpdateWorkspaceById() throws Exception {
+        when(workspaceDao.getById(WS_ID)).thenReturn(workspace);
         Workspace workspaceToUpdate = DtoFactory.getInstance().createDto(Workspace.class)
                                                 .withName("ws2")
                                                 .withAttributes(Collections.EMPTY_LIST);

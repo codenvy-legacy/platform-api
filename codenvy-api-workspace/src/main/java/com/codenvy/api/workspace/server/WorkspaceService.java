@@ -18,7 +18,6 @@
 package com.codenvy.api.workspace.server;
 
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -27,18 +26,23 @@ import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.server.ProjectService;
-import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.exception.UserNotFoundException;
-import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.user.server.dao.MemberDao;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.exception.MembershipException;
+import com.codenvy.api.user.server.exception.UserException;
+import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.workspace.server.dao.WorkspaceDao;
+import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.server.exception.WorkspaceNotFoundException;
 import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.sun.java.swing.plaf.windows.resources.windows_pt_BR;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -69,6 +73,7 @@ import java.util.List;
  */
 @Path("/workspace")
 public class WorkspaceService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceService.class);
 
     private final WorkspaceDao workspaceDao;
     private final UserDao      userDao;
@@ -86,7 +91,7 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"user", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
-            throws ApiException {
+            throws WorkspaceException {
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         workspaceDao.create(newWorkspace);
@@ -99,7 +104,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_ID)
     @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws ApiException {
+    public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws WorkspaceException {
         Workspace workspace = workspaceDao.getById(id);
         if (workspace == null) {
             throw new WorkspaceNotFoundException(id);
@@ -113,7 +118,7 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getByName(@Context SecurityContext securityContext,
-                               @Required @Description("workspace name") @QueryParam("name") String name) throws ApiException {
+                               @Required @Description("workspace name") @QueryParam("name") String name) throws WorkspaceException {
         Workspace workspace = workspaceDao.getByName(name);
         if (workspace == null) {
             throw new WorkspaceNotFoundException(name);
@@ -128,9 +133,11 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"system/admin", "workspace/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Workspace updateById(@Context SecurityContext securityContext, @PathParam("id") String id,
-                                @Required @Description("workspace to update") Workspace workspaceToUpdate)
-            throws ApiException {
+    public Workspace update(@Context SecurityContext securityContext, @PathParam("id") String id,
+                            @Required @Description("workspace to update") Workspace workspaceToUpdate) throws WorkspaceException {
+        if (workspaceDao.getById(id) == null) {
+            throw new WorkspaceNotFoundException(id);
+        }
         workspaceToUpdate.setId(id);
         workspaceDao.update(workspaceToUpdate);
         injectLinks(workspaceToUpdate, securityContext);
@@ -142,15 +149,21 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Workspace> getWorkspacesOfCurrentUser(@Context SecurityContext securityContext) throws ApiException {
+    public List<Workspace> getWorkspacesOfCurrentUser(@Context SecurityContext securityContext)
+            throws WorkspaceException, UserException, MembershipException {
         final Principal principal = securityContext.getUserPrincipal();
-        final User current = userDao.getByAlias(principal.getName());
-        if (current == null) {
+        final User user = userDao.getByAlias(principal.getName());
+        if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
         final List<Workspace> workspaces = new ArrayList<>();
-        for (Member member : memberDao.getUserRelationships(current.getId())) {
+        for (Member member : memberDao.getUserRelationships(user.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
+            if (workspace == null) {
+                LOG.error(String.format("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(),
+                                        principal.getName()));
+                continue;
+            }
             injectLinks(workspace, securityContext);
             workspaces.add(workspace);
         }
@@ -163,15 +176,19 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<Workspace> getWorkspacesOfConcreteUser(@Context SecurityContext securityContext,
-                                                       @Required @Description("user id to find workspaces") @QueryParam(
-                                                               "userid") String userid)
-            throws ApiException {
-        if (userDao.getById(userid) == null) {
-            throw new UserNotFoundException(userid);
+                                                       @Required @Description("user id to find workspaces")
+                                                       @QueryParam("userid") String userId)
+            throws WorkspaceException, UserException, MembershipException {
+        if (userDao.getById(userId) == null) {
+            throw new UserNotFoundException(userId);
         }
         final List<Workspace> workspaces = new ArrayList<>();
-        for (Member member : memberDao.getUserRelationships(userid)) {
+        for (Member member : memberDao.getUserRelationships(userId)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
+            if (workspace == null) {
+                LOG.error(String.format("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(), userId));
+                continue;
+            }
             injectLinks(workspace, securityContext);
             workspaces.add(workspace);
         }
@@ -183,14 +200,14 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_MEMBERS)
     @RolesAllowed("workspace/admin")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Member> getMembers(@Context SecurityContext securityContext, @PathParam("id") String wsId) throws ApiException {
+    public List<Member> getMembers(@PathParam("id") String wsId) throws WorkspaceException, MembershipException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         Link self = createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,
                                uriBuilder.clone().path(getClass(), "getMembers").build(wsId).toString());
         for (Member member : members) {
             Link remove = createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, null, null,
-                                     uriBuilder.clone().path(getClass(), "removeMemberById").build(wsId, member.getUserId()).toString());
+                                     uriBuilder.clone().path(getClass(), "removeMember").build(wsId, member.getUserId()).toString());
             member.setLinks(Arrays.asList(self, remove));
         }
         return members;
@@ -202,9 +219,8 @@ public class WorkspaceService extends Service {
     @RolesAllowed("workspace/admin")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Member addMember(@Context SecurityContext securityContext, @PathParam("id") String wsId,
-                            @Description("describes new workspace member") @Required Membership membership)
-            throws ApiException {
+    public Member addMember(@PathParam("id") String wsId,
+                            @Description("describes new workspace member") @Required Membership membership) throws MembershipException {
         Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);
         newMember.setRoles(membership.getRoles());
@@ -215,7 +231,7 @@ public class WorkspaceService extends Service {
         links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMembers").build(wsId).toString()));
         links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, null, null,
-                             uriBuilder.clone().path(getClass(), "removeMemberById").build(wsId, newMember.getUserId()).toString()));
+                             uriBuilder.clone().path(getClass(), "removeMember").build(wsId, newMember.getUserId()).toString()));
         newMember.setLinks(links);
         return newMember;
     }
@@ -224,7 +240,7 @@ public class WorkspaceService extends Service {
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER)
     @RolesAllowed("workspace/admin")
-    public void removeMemberById(@PathParam("id") String wsId, @PathParam("userid") String userId) {
+    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId) {
         Member member = DtoFactory.getInstance().createDto(Member.class);
         member.setUserId(userId);
         member.setWorkspaceId(wsId);
@@ -235,7 +251,7 @@ public class WorkspaceService extends Service {
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE)
     @RolesAllowed({"system/admin", "workspace/admin"})
-    public void remove(@PathParam("id") String wsId) throws ApiException {
+    public void remove(@PathParam("id") String wsId) throws WorkspaceException, MembershipException {
         if (workspaceDao.getById(wsId) == null) {
             throw new WorkspaceNotFoundException(wsId);
         }
@@ -252,8 +268,8 @@ public class WorkspaceService extends Service {
         if (securityContext.isUserInRole("user")) {
             links.add(createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null, MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
-                                                    .path(ProjectService.class, "getProjects")
-                                                    .build(workspace.getId()).toString()));
+                                         .path(ProjectService.class, "getProjects")
+                                         .build(workspace.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getWorkspacesOfCurrentUser").build().toString()));
         }
@@ -278,7 +294,7 @@ public class WorkspaceService extends Service {
             links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE, null, null,
                                  uriBuilder.clone().path(getClass(), "remove").build(workspace.getId()).toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "updateById").build(workspace.getId()).toString())
+                                 uriBuilder.clone().path(getClass(), "update").build(workspace.getId()).toString())
                               .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
                                                                       .withDescription("workspace to update")
                                                                       .withRequired(true)

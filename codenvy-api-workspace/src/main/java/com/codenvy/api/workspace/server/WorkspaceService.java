@@ -268,8 +268,8 @@ public class WorkspaceService extends Service {
         if (securityContext.isUserInRole("user")) {
             links.add(createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null, MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
-                                         .path(ProjectService.class, "getProjects")
-                                         .build(workspace.getId()).toString()));
+                                                    .path(ProjectService.class, "getProjects")
+                                                    .build(workspace.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getWorkspacesOfCurrentUser").build().toString()));
         }
@@ -283,14 +283,15 @@ public class WorkspaceService extends Service {
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
         }
-        if (isUserInAnyRole(securityContext, Arrays.asList("workspace/admin", "workspace/developer", "system/admin", "system/manager"))) {
+        if (securityContext.isUserInRole("workspace/admin") || securityContext.isUserInRole("workspace/developer") ||
+            securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", workspace.getName()).build()
                                            .toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_NAME, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString()));
         }
-        if (isUserInAnyRole(securityContext, Arrays.asList("workspace/admin", "system/admin"))) {
+        if (securityContext.isUserInRole("workspace/admin") || securityContext.isUserInRole("system/admin")) {
             links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE, null, null,
                                  uriBuilder.clone().path(getClass(), "remove").build(workspace.getId()).toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
@@ -310,13 +311,5 @@ public class WorkspaceService extends Service {
                          .withProduces(produces)
                          .withConsumes(consumes)
                          .withHref(href);
-    }
-
-    private boolean isUserInAnyRole(SecurityContext securityContext, List<String> roles) {
-        for (String role : roles) {
-            if (securityContext.isUserInRole(role))
-                return true;
-        }
-        return false;
     }
 }

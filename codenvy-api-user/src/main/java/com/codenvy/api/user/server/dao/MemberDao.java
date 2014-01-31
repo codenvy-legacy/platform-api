@@ -80,11 +80,9 @@ public interface MemberDao {
     /**
      * Removes a given member from specified workspace.
      *
-     * @param wsId
-     *         workspace id to remove member from
-     * @param userId
-     *         user id to remove
+     * @param member
+     *         member to remove
      */
 
-    void removeWorkspaceMember(String wsId, String userId);
+    void removeMember(Member member);
 }

@@ -28,14 +28,17 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.workspace.server.exception.WorkspaceNotFoundException;
 import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
+import com.sun.java.swing.plaf.windows.resources.windows_pt_BR;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -95,6 +98,9 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws ApiException {
         Workspace workspace = workspaceDao.getById(id);
+        if (workspace == null) {
+            throw new WorkspaceNotFoundException(id);
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -106,6 +112,9 @@ public class WorkspaceService extends Service {
     public Workspace getByName(@Context SecurityContext securityContext,
                                @Required @Description("workspace name") @QueryParam("name") String name) throws ApiException {
         Workspace workspace = workspaceDao.getByName(name);
+        if (workspace == null) {
+            throw new WorkspaceNotFoundException(name);
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -150,6 +159,9 @@ public class WorkspaceService extends Service {
                                                        @Required @Description("user id to find workspaces") @QueryParam(
                                                                "userid") String userid)
             throws ApiException {
+        if (userDao.getById(userid) == null) {
+            throw new UserNotFoundException(userid);
+        }
         final List<Workspace> workspaces = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(userid)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());

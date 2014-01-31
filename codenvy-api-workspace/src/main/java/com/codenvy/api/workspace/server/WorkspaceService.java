@@ -55,9 +55,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
+import java.lang.reflect.Array;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -265,14 +267,14 @@ public class WorkspaceService extends Service {
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
         }
-        if (isUserInAnyRole(securityContext, "workspace/admin", "workspace/developer", "system/admin", "system/manager")) {
+        if (isUserInAnyRole(securityContext, Arrays.asList("workspace/admin", "workspace/developer", "system/admin", "system/manager"))) {
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", workspace.getName()).build()
                                            .toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_NAME, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString()));
         }
-        if (isUserInAnyRole(securityContext, "workspace/admin", "system/admin")) {
+        if (isUserInAnyRole(securityContext, Arrays.asList("workspace/admin", "system/admin"))) {
             links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE, null, null,
                                  uriBuilder.clone().path(getClass(), "remove").build(workspace.getId()).toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
@@ -294,11 +296,11 @@ public class WorkspaceService extends Service {
                          .withHref(href);
     }
 
-    private boolean isUserInAnyRole(SecurityContext securityContext, String... roles) {
-        boolean isUserInAnyRole = false;
+    private boolean isUserInAnyRole(SecurityContext securityContext, List<String> roles) {
         for (String role : roles) {
-            isUserInAnyRole |= securityContext.isUserInRole(role);
+            if (securityContext.isUserInRole(role))
+                return true;
         }
-        return isUserInAnyRole;
+        return false;
     }
 }

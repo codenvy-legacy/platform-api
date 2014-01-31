@@ -207,20 +207,6 @@ public class UserService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_EMAIL, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByEmail").queryParam("email", user.getEmail()).build()
                                            .toString()));
-//        links.add(DtoFactory.getInstance().createDto(Link.class)
-//                            .withMethod("GET")
-//                            .withRel("workspaces")
-//                            .withProduces(MediaType.APPLICATION_JSON)
-//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(WorkspaceService.class)
-//                                              .path(WorkspaceService.class, "getAllById")
-//                                              .build(user.getId()).toString()));
-//        links.add(DtoFactory.getInstance().createDto(Link.class)
-//                            .withMethod("GET")
-//                            .withRel("accounts")
-//                            .withProduces(MediaType.APPLICATION_JSON)
-//                            .withHref(getServiceContext().getBaseUriBuilder().clone().path(AccountService.class)
-//                                              .path(AccountService.class, "getAllById")
-//                                              .build(user.getId()).toString()));
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_USER_BY_ID, null, null,

@@ -19,6 +19,7 @@ package com.codenvy.api.user.server;
 
 import sun.security.acl.PrincipalImpl;
 
+import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -40,17 +41,17 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Method;
+import java.util.*;
 
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -213,8 +214,8 @@ public class UserServiceTest {
     }
 
 
-    protected void verifyLinksRel(List<Link> links, String... rels) {
-        assertEquals(links.size(), rels.length);
+    protected void verifyLinksRel(List<Link> links, List<String> rels) {
+        assertEquals(links.size(), rels.size());
         for (String rel : rels) {
             boolean linkPresent = false;
             for (Link link : links) {
@@ -226,8 +227,46 @@ public class UserServiceTest {
         }
     }
 
-    protected void prepareSecurityContext(String role) {
-        when(securityContext.isUserInRole(role)).thenReturn(true);
-        when(securityContext.isUserInRole(not(Matchers.eq(role)))).thenReturn(false);
+    private String[] getRoles(Class<? extends Service> clazz, String methodName) {
+        for (Method one : clazz.getMethods()) {
+            if (one.getName().equals(methodName)) {
+                if (one.isAnnotationPresent(RolesAllowed.class)) {
+                    return one.getAnnotation(RolesAllowed.class).value();
+                } else {
+                    return new String[0];
+                }
+            }
+        }
+        throw new IllegalArgumentException(
+                String.format("Class %s does not have method with name %s", clazz.getName(), methodName));
+    }
+
+    private List<String> getRels(String role) {
+        List<String> result = new ArrayList<>();
+        result.add(Constants.LINK_REL_GET_CURRENT_USER);
+        result.add(Constants.LINK_REL_UPDATE_PASSWORD);
+        switch (role) {
+            case "system/admin":
+                result.add(Constants.LINK_REL_GET_USER_BY_ID);
+                result.add(Constants.LINK_REL_GET_USER_BY_EMAIL);
+                result.add(Constants.LINK_REL_REMOVE_USER_BY_ID);
+                break;
+
+            case "system/manager":
+                result.add(Constants.LINK_REL_GET_USER_BY_ID);
+                result.add(Constants.LINK_REL_GET_USER_BY_EMAIL);
+                break;
+
+            default:
+                break;
+        }
+        return result;
+    }
+
+    protected void prepareSecurityContext(String... roles) {
+        when(securityContext.isUserInRole(anyString())).thenReturn(false);
+        when(securityContext.isUserInRole("user")).thenReturn(true);
+        for (String role : roles)
+            when(securityContext.isUserInRole(role)).thenReturn(true);
     }
 }

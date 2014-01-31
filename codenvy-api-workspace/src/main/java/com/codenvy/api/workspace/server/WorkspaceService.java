@@ -206,7 +206,10 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER)
     @RolesAllowed("workspace/admin")
     public void removeMemberById(@PathParam("id") String wsId, @PathParam("userid") String userId) {
-        memberDao.removeWorkspaceMember(wsId, userId);
+        Member member = DtoFactory.getInstance().createDto(Member.class);
+        member.setUserId(userId);
+        member.setWorkspaceId(wsId);
+        memberDao.removeMember(member);
     }
 
     @DELETE
@@ -216,7 +219,7 @@ public class WorkspaceService extends Service {
     public void remove(@PathParam("id") String wsId) throws ApiException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
-            memberDao.removeWorkspaceMember(wsId, member.getUserId());
+            memberDao.removeMember(member);
         }
         workspaceDao.remove(wsId);
     }

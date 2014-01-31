@@ -299,6 +299,7 @@ public class WorkspaceServiceTest {
         when(memberDao.getWorkspaceMembers(WS_ID)).thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
                                                                                       .withWorkspaceId(WS_ID)
                                                                                       .withUserId(USER_ID)));
+        when(workspaceDao.getById(WS_ID)).thenReturn(workspace);
         String[] roles = getRoles(WorkspaceService.class, "remove");
         for (String role : roles) {
             ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID, null, null);

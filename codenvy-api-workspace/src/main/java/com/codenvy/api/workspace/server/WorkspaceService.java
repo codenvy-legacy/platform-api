@@ -55,6 +55,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -140,7 +141,11 @@ public class WorkspaceService extends Service {
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Workspace> getWorkspacesOfCurrentUser(@Context SecurityContext securityContext) throws ApiException {
-        final User current = userDao.getByAlias(securityContext.getUserPrincipal().getName());
+        final Principal principal = securityContext.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        if (current == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         final List<Workspace> workspaces = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(current.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
@@ -229,6 +234,9 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE)
     @RolesAllowed({"system/admin", "workspace/admin"})
     public void remove(@PathParam("id") String wsId) throws ApiException {
+        if (workspaceDao.getById(wsId) == null) {
+            throw new WorkspaceNotFoundException(wsId);
+        }
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
             memberDao.removeMember(member);

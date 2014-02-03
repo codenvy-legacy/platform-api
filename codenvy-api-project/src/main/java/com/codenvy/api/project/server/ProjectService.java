@@ -21,6 +21,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
@@ -141,5 +142,15 @@ public class ProjectService extends Service {
     public VirtualFileSystem getVirtualFileSystem(@PathParam("ws-id") String workspace) throws VirtualFileSystemException {
         //final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
         return registry.getProvider(workspace).newInstance(uriInfo.getBaseUri(), listeners);
+    }
+
+    @Path("import")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ProjectDescriptor importSource(@PathParam("ws-id") String workspace,
+                                          @Required @Description("project name") @QueryParam("projectName") String projectName,
+                                          @Required @Description("type of import source plugin e.g zip, git") @QueryParam("type") String type,
+                                          @Required @Description("URI to the source") @QueryParam("location") String location) throws RuntimeException, VirtualFileSystemException {
+
+        throw new UnsupportedOperationException("not implement exception");
     }
 }

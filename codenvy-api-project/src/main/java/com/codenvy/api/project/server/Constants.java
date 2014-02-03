@@ -27,6 +27,9 @@ public class Constants {
 
     public static final String LINK_REL_PROJECT_TYPES = "project types";
 
+    public static final String LINK_REL_CREATE_PROJECT_FROM_TEMPLATE = "create project from template";
+    public static final String LINK_REL_PROJECT_TEMPLATES            = "get project templates";
+
     private Constants() {
     }
 }

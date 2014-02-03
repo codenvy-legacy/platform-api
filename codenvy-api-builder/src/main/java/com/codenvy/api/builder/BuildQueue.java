@@ -34,8 +34,8 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
@@ -221,7 +221,7 @@ public class BuildQueue {
      * Schedule new build.
      *
      * @param workspace
-     *         name of workspace to which project belongs
+     *         id of workspace to which project belongs
      * @param project
      *         name of project
      * @param serviceContext
@@ -271,7 +271,7 @@ public class BuildQueue {
      * Schedule new dependencies analyze.
      *
      * @param workspace
-     *         name of workspace to which project belongs
+     *         id of workspace to which project belongs
      * @param project
      *         name of project
      * @param type
@@ -357,8 +357,8 @@ public class BuildQueue {
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException {
         final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
-        final String projectUrl = baseUriBuilder.path(WorkspaceService.class)
-                                                .path(WorkspaceService.class, "getProject")
+        final String projectUrl = baseUriBuilder.path(ProjectService.class)
+                                                .path(ProjectService.class, "getProject")
                                                 .build(workspace).toString();
         return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
     }
@@ -404,7 +404,8 @@ public class BuildQueue {
             boolean waiting;
             long sendTime;
             if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
-                || ((sendTime = task.getSendToRemoteBuilderTime()) > 0 && (sendTime + task.getRequest().getTimeout()) < timestamp)) {
+                || ((sendTime = task.getSendToRemoteBuilderTime()) > 0
+                    && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getTimeout())) < timestamp)) {
                 try {
                     task.cancel();
                 } catch (Exception e) {

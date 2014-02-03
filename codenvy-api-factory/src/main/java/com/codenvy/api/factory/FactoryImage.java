@@ -17,9 +17,7 @@
  */
 package com.codenvy.api.factory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Arrays;
 
 /** Class to hold image information such as data, name, media type */
@@ -50,15 +48,18 @@ public class FactoryImage {
     }
 
     public void setMediaType(String mediaType) throws IOException {
-        switch (mediaType) {
-            case "image/jpeg":
-            case "image/png":
-            case "image/gif":
-                this.mediaType = mediaType;
-                break;
-            default:
-                throw new IOException(mediaType + " is unsupported media type.");
+        if (mediaType != null) {
+            switch (mediaType) {
+                case "image/jpeg":
+                case "image/png":
+                case "image/gif":
+                    this.mediaType = mediaType;
+                    return;
+                default:
+                    throw new IOException("Image media type '" + mediaType + "' is unsupported.");
+            }
         }
+        throw new IOException("Image media type 'null' is unsupported.");
     }
 
     public String getName() {

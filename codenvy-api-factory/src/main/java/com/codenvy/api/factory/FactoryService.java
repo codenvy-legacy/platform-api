@@ -18,8 +18,10 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.organization.client.AccountManager;
 import com.codenvy.organization.client.UserManager;
 import com.codenvy.organization.exception.OrganizationServiceException;
+import com.codenvy.organization.model.Account;
 import com.codenvy.organization.model.User;
 
 import org.everrest.core.impl.provider.json.*;
@@ -37,7 +39,6 @@ import java.io.*;
 import java.security.Principal;
 import java.util.*;
 
-import static com.codenvy.api.factory.AdvancedFactoryUrlValidator.validate;
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
 
@@ -45,10 +46,18 @@ import static javax.ws.rs.core.Response.Status;
 @Path("/factory")
 public class FactoryService {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
+
     @Inject
-    private FactoryStore                factoryStore;
+    private FactoryStore factoryStore;
+
     @Inject
-    private UserManager                 userManager;
+    private UserManager userManager;
+
+    @Inject
+    private AccountManager accountManager;
+
+    @Inject
+    private FactoryUrlValidator validator;
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
@@ -117,7 +126,15 @@ public class FactoryService {
                 factoryUrl.setVcs("git");
             }
 
-            validate(factoryUrl);
+            validator.validateUrl(factoryUrl);
+
+            if (factoryUrl.getWelcome() != null) {
+                String orgid = factoryUrl.getOrgid();
+                Account account = accountManager.getAccountById(orgid);
+                if (!account.getOwner().getId().equals(user.getId())) {
+                    throw new FactoryUrlException("You are not authorized to use this orgid.");
+                }
+            }
 
             factoryUrl.setUserid(user.getId());
 
@@ -187,7 +204,7 @@ public class FactoryService {
      * @param imageId
      *         - image id.
      * @return - image information if ids are correct. If imageId is not set, random image of factory will be returned. But if factory has
-     *         no images, exception will be thrown.
+     * no images, exception will be thrown.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist
      *         - with response code 404 if imgId is not set in request and there is no default image for factory with given id

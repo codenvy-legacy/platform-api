@@ -38,7 +38,7 @@ import java.util.Properties;
 public class MetricHandlerBootstrap implements ServletContextListener {
     public static final  String METRIC_HANDLER_NAME     = MetricHandler.class.getName();
     public static final  String CODENVY_LOCAL_CONF_DIR  = "codenvy.local.conf.dir";
-    public static final  String ANALYTICS_CONF_FILENAME = "analytics.conf";
+    public static final  String ANALYTICS_CONF_FILENAME = "old/analytics.conf";
     private static final Logger LOG                     = LoggerFactory.getLogger(MetricHandlerBootstrap.class);
 
     public void contextDestroyed(ServletContextEvent sce) {

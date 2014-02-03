@@ -23,9 +23,9 @@ import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.ws.rs.core.UriInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,18 +39,18 @@ import java.util.Random;
 public class DummyMetricHandler implements MetricHandler {
 
     @Override
-    public MetricValueDTO getValue(String metricName, Map<String, String> metricContext, ServiceContext serviceContext)
+    public MetricValueDTO getValue(String metricName, Map<String, String> metricContext, UriInfo uriInfo)
             throws MetricNotFoundException {
         return createDummyMetricValueDTO(metricName);
     }
 
     @Override
-    public MetricInfoDTO getInfo(String metricName, ServiceContext serviceContext) throws MetricNotFoundException {
+    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
         return createDummyMetricInfoDto(metricName);
     }
 
     @Override
-    public MetricInfoListDTO getAllInfo(ServiceContext serviceContext) {
+    public MetricInfoListDTO getAllInfo(UriInfo uriInfo) {
         return createDummyMetricInfoListDTO();
     }
 

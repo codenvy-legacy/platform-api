@@ -193,7 +193,7 @@ public class UserService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_PROFILE, null, MediaType.APPLICATION_JSON,
-                                 getServiceContext().getServiceUriBuilder().path(UserProfileService.class)
+                                 getServiceContext().getBaseUriBuilder().path(UserProfileService.class)
                                                     .path(UserProfileService.class, "getCurrent").build().toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
@@ -208,7 +208,7 @@ public class UserService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(user.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
-                                 getServiceContext().getServiceUriBuilder().path(UserProfileService.class, "getById")
+                                 getServiceContext().getBaseUriBuilder().path(UserProfileService.class, "getById")
                                                     .build(user.getProfileId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_EMAIL, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByEmail").queryParam("email", user.getEmail()).build()

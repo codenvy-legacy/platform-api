@@ -30,6 +30,6 @@ public interface ProjectTemplateExtension {
 
     ProjectType getProjectType();
 
-    List<ProjectTemplateDescriptor> getTemplateDescriptors();
+    List<ProjectTemplateDescription> getTemplateDescriptions();
 
 }

@@ -21,6 +21,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 import com.codenvy.api.vfs.server.MountPoint;
@@ -29,6 +30,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -41,6 +43,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -65,11 +68,16 @@ public class ProjectTemplateService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor create(@PathParam("ws-id") String workspace,
                                     @Required @Description("project name") @QueryParam("name") String name,
+                                    @Required @Description("project type id") @QueryParam("projectTypeId") String projectTypeId,
                                     @Required @Description("template description id") @QueryParam("templateId") String templateId) throws VirtualFileSystemException,
                                                                                                                IOException {
-        ProjectTemplateDescriptor templateDescriptor = templateRegistry.getTemplateDescriptor(templateId);
-        ProjectDescriptor project = projectService.importSource(workspace, name, "zip",templateDescriptor.getTemplateLocation());
-        return project;
+        List<ProjectTemplateDescription> descriptions = templateRegistry.getTemplateDescriptors(projectTypeId);
+        for (ProjectTemplateDescription descriptor : descriptions)
+        {
+            if (descriptor.getId().equals(templateId));
+            return projectService.importSource(workspace, name, "zip", descriptor.getLocation());
+        }
+        return null;
     }
 
 
@@ -81,7 +89,16 @@ public class ProjectTemplateService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProjectTemplateDescriptor> getTemplates(@Required @Description("project type id") @QueryParam("projectTypeId") String id) {
-        return templateRegistry.getTemplateDescriptors(id);
+        List<ProjectTemplateDescription> descriptors = templateRegistry.getTemplateDescriptors(id);
+        List<ProjectTemplateDescriptor> result = new ArrayList<>();
+        for (ProjectTemplateDescription description : descriptors) {
+            result.add(DtoFactory.getInstance().createDto(ProjectTemplateDescriptor.class)
+                                 .withProjectTypeId(id)
+                                 .withProjectTypeId(description.getId())
+                                 .withTemplateLocation(description.getLocation())
+                                 .withTemplateTitle(description.getDescription()));
+        }
+        return result;
     }
 
 

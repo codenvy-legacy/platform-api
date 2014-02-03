@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.ProjectTemplateDescription;
+import com.codenvy.api.project.shared.ProjectTemplateExtension;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 
 import javax.inject.Inject;
@@ -32,24 +34,22 @@ import java.util.concurrent.ConcurrentHashMap;
 @Singleton
 public class ProjectTemplateRegistry {
 
-    private final Map<String, List<ProjectTemplateDescriptor>> descriptors;
+    private final Map<String, List<ProjectTemplateDescription>> descriptions;
 
     @Inject
     public ProjectTemplateRegistry() {
-        this.descriptors = new ConcurrentHashMap<>();
+        this.descriptions = new ConcurrentHashMap<>();
     }
 
-    public void register(ProjectTemplateDescriptor descriptor) {
-        if (descriptors.get(descriptor.getProjectTypeId()) != null)
-            descriptors.get(descriptor.getProjectTypeId()).add(descriptor);
+    public void register(ProjectTemplateExtension extension) {
+        if (descriptions.get(extension.getProjectType().getId()) != null)
+            descriptions.get(extension.getProjectType().getId()).addAll(extension.getTemplateDescriptions());
         else {
-            List<ProjectTemplateDescriptor> list = new ArrayList<>();
-            list.add(descriptor);
-            descriptors.put(descriptor.getProjectTypeId(), list);
+            descriptions.put(extension.getProjectType().getId(), extension.getTemplateDescriptions());
         }
     }
 
-    public List<ProjectTemplateDescriptor> getTemplateDescriptors(String projectTypeId) {
-        return descriptors.get(projectTypeId);
+    public List<ProjectTemplateDescription> getTemplateDescriptors(String projectTypeId) {
+        return descriptions.get(projectTypeId);
     }
 }

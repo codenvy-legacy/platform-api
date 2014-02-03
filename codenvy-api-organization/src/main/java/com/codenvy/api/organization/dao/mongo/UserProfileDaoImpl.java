@@ -20,8 +20,6 @@ package com.codenvy.api.organization.dao.mongo;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.server.exception.ProfileNotFoundException;
-import com.codenvy.api.user.server.exception.UserException;
-import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
@@ -57,8 +55,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     @Override
     public void create(Profile profile) throws UserProfileException {
-//        validateProfileUserExists(profile.getUserId());
-        collection.save(profileToDBObject(profile));
+        collection.save(toDBObject(profile));
     }
 
     @Override
@@ -68,8 +65,7 @@ public class UserProfileDaoImpl implements UserProfileDao    {
         if (res == null) {
             throw new ProfileNotFoundException(profile.getId());
         }
-//        validateProfileUserExists(profile.getUserId());
-        collection.update(query, profileToDBObject(profile));
+        collection.update(query, toDBObject(profile));
     }
 
     @Override
@@ -101,24 +97,12 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     }
 
-
-//    /**
-//     * Ensure that user linked to this profile is already exists.
-//     * @param userId
-//     * @throws UserException
-//     */
-//    private void validateProfileUserExists(String userId) throws UserException {
-//            if (userDao.getById(userId) == null)
-//                throw new UserNotFoundException(userId);
-//    }
-
-
     /**
      * Convert Profile to Database ready-to-use object,
      * @param profile
      * @return DBObject
      */
-    private DBObject profileToDBObject (Profile profile) {
+    private DBObject toDBObject(Profile profile) {
         BasicDBObjectBuilder profileDatabuilder = new BasicDBObjectBuilder();
 
         //Prepare attributes list

@@ -57,7 +57,7 @@ public class MemberDaoImpl implements MemberDao {
     @Override
     public void create(Member member) throws MembershipException {
         validateSubjectsExists(member.getUserId(), member.getWorkspaceId());
-        collection.save(memberToDBObject(member));
+        collection.save(toDBObject(member));
     }
 
     @Override
@@ -66,7 +66,7 @@ public class MemberDaoImpl implements MemberDao {
         DBObject query = new BasicDBObject();
         query.put("workspaceid", member.getWorkspaceId());
         query.put("userid", member.getUserId());
-        collection.update(query, memberToDBObject(member));
+        collection.update(query, toDBObject(member));
     }
 
     @Override
@@ -117,7 +117,7 @@ public class MemberDaoImpl implements MemberDao {
      * @param member
      * @return DBObject
      */
-    private DBObject memberToDBObject (Member member) {
+    private DBObject toDBObject(Member member) {
         BasicDBObjectBuilder memberDatabuilder = new BasicDBObjectBuilder();
 
         //Prepare attributes list

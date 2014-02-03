@@ -57,7 +57,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
             throw new WorkspaceException(e.getMessage());
         }
         validateWorkspaceNameAvailable(workspace);
-        collection.save(workspaceToDBObject(workspace));
+        collection.save(toDBObject(workspace));
     }
 
     @Override
@@ -73,7 +73,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
             throw new WorkspaceException(e.getMessage());
         }
         validateWorkspaceNameAvailable(workspace);
-        collection.update(query, workspaceToDBObject(workspace));
+        collection.update(query, toDBObject(workspace));
     }
 
     @Override
@@ -131,7 +131,7 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
      * @param workspace
      * @return DBObject
      */
-    private DBObject workspaceToDBObject (Workspace workspace) {
+    private DBObject toDBObject(Workspace workspace) {
         BasicDBObjectBuilder workspaceDatabuilder = new BasicDBObjectBuilder();
 
         //Prepare attributes list

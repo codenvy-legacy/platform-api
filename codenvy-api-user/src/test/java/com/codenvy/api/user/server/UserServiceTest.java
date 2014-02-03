@@ -209,7 +209,7 @@ public class UserServiceTest {
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
 
         ContainerResponse response =
-                launcher.service("POST", SERVICE_PATH + "/password", BASE_URI, headers, ("password="+newPassword).getBytes(), null,
+                launcher.service("POST", SERVICE_PATH + "/password", BASE_URI, headers, ("password=" + newPassword).getBytes(), null,
                                  environmentContext);
 
         assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
@@ -260,16 +260,14 @@ public class UserServiceTest {
         List<String> result = new ArrayList<>();
         result.add(Constants.LINK_REL_GET_CURRENT_USER);
         result.add(Constants.LINK_REL_UPDATE_PASSWORD);
+        result.add(Constants.LINK_REL_GET_CURRENT_USER_PROFILE);
         switch (role) {
             case "system/admin":
-                result.add(Constants.LINK_REL_GET_USER_BY_ID);
-                result.add(Constants.LINK_REL_GET_USER_BY_EMAIL);
                 result.add(Constants.LINK_REL_REMOVE_USER_BY_ID);
-                break;
-
             case "system/manager":
                 result.add(Constants.LINK_REL_GET_USER_BY_ID);
                 result.add(Constants.LINK_REL_GET_USER_BY_EMAIL);
+                result.add(Constants.LINK_REL_GET_USER_PROFILE_BY_ID);
                 break;
 
             default:

@@ -19,9 +19,7 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-/**
- * @author Vitaly Parfonov
- */
+/** @author Vitaly Parfonov */
 @DTO
 public interface ProjectTemplateDescriptor {
 
@@ -54,6 +52,8 @@ public interface ProjectTemplateDescriptor {
 
     /** Set description of project template. */
     void setTemplateDescription(String description);
+
+    ProjectTemplateDescriptor withTemplateDescription(String description);
 
     String getTemplateLocation();
 

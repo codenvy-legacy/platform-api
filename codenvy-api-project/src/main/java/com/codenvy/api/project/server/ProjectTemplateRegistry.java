@@ -19,18 +19,14 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectTemplateExtension;
-import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * @author Vitaly Parfonov
- */
+/** @author Vitaly Parfonov */
 @Singleton
 public class ProjectTemplateRegistry {
 
@@ -42,14 +38,14 @@ public class ProjectTemplateRegistry {
     }
 
     public void register(ProjectTemplateExtension extension) {
-        if (descriptions.get(extension.getProjectType().getId()) != null)
+        if (descriptions.get(extension.getProjectType().getId()) != null) {
             descriptions.get(extension.getProjectType().getId()).addAll(extension.getTemplateDescriptions());
-        else {
+        } else {
             descriptions.put(extension.getProjectType().getId(), extension.getTemplateDescriptions());
         }
     }
 
-    public List<ProjectTemplateDescription> getTemplateDescriptors(String projectTypeId) {
+    public List<ProjectTemplateDescription> getTemplateDescriptions(String projectTypeId) {
         return descriptions.get(projectTypeId);
     }
 }

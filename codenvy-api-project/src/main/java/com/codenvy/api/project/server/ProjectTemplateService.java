@@ -24,11 +24,7 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
-import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -42,24 +38,19 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author Vitaly Parfonov
- */
+/** @author Vitaly Parfonov */
 @Path("project-template/{ws-id}")
 public class ProjectTemplateService extends Service {
 
     @Inject
-    private ProjectService projectService;
-
+    private ProjectService            projectService;
     @Inject
     private VirtualFileSystemRegistry vfsRegistry;
-
     @Inject
-    private ProjectTemplateRegistry templateRegistry;
+    private ProjectTemplateRegistry   templateRegistry;
 
     @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT_FROM_TEMPLATE)
     @POST
@@ -69,19 +60,15 @@ public class ProjectTemplateService extends Service {
     public ProjectDescriptor create(@PathParam("ws-id") String workspace,
                                     @Required @Description("project name") @QueryParam("name") String name,
                                     @Required @Description("project type id") @QueryParam("projectTypeId") String projectTypeId,
-                                    @Required @Description("template description id") @QueryParam("templateId") String templateId) throws VirtualFileSystemException,
-                                                                                                               IOException {
-        List<ProjectTemplateDescription> descriptions = templateRegistry.getTemplateDescriptors(projectTypeId);
-        for (ProjectTemplateDescription descriptor : descriptions)
-        {
-            if (descriptor.getId().equals(templateId));
-            return projectService.importSource(workspace, name, "zip", descriptor.getLocation());
+                                    @Required @Description("template description id") @QueryParam("templateId") String templateId)
+            throws VirtualFileSystemException, IOException {
+        List<ProjectTemplateDescription> descriptions = templateRegistry.getTemplateDescriptions(projectTypeId);
+        for (ProjectTemplateDescription description : descriptions) {
+            if (description.getId().equals(templateId)) ;
+            return projectService.importSource(workspace, name, "zip", description.getLocation());
         }
         return null;
     }
-
-
-
 
     @GenerateLink(rel = Constants.LINK_REL_PROJECT_TEMPLATES)
     @GET
@@ -89,17 +76,17 @@ public class ProjectTemplateService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProjectTemplateDescriptor> getTemplates(@Required @Description("project type id") @QueryParam("projectTypeId") String id) {
-        List<ProjectTemplateDescription> descriptors = templateRegistry.getTemplateDescriptors(id);
+        List<ProjectTemplateDescription> descriptions = templateRegistry.getTemplateDescriptions(id);
         List<ProjectTemplateDescriptor> result = new ArrayList<>();
-        for (ProjectTemplateDescription description : descriptors) {
+        for (ProjectTemplateDescription description : descriptions) {
             result.add(DtoFactory.getInstance().createDto(ProjectTemplateDescriptor.class)
                                  .withProjectTypeId(id)
-                                 .withProjectTypeId(description.getId())
-                                 .withTemplateLocation(description.getLocation())
-                                 .withTemplateTitle(description.getDescription()));
+                                 .withTemplateId(description.getId())
+                                 .withTemplateTitle(description.getTitle())
+                                 .withTemplateDescription(description.getDescription())
+                                 .withTemplateLocation(description.getLocation()));
         }
         return result;
     }
-
 
 }

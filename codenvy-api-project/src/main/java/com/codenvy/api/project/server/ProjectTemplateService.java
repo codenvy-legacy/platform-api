@@ -21,10 +21,11 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.project.server.exceptions.SourceImporterNotFoundException;
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
-import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -47,8 +48,7 @@ public class ProjectTemplateService extends Service {
 
     @Inject
     private ProjectService            projectService;
-    @Inject
-    private VirtualFileSystemRegistry vfsRegistry;
+
     @Inject
     private ProjectTemplateRegistry   templateRegistry;
 
@@ -61,11 +61,16 @@ public class ProjectTemplateService extends Service {
                                     @Required @Description("project name") @QueryParam("name") String name,
                                     @Required @Description("project type id") @QueryParam("projectTypeId") String projectTypeId,
                                     @Required @Description("template description id") @QueryParam("templateId") String templateId)
-            throws VirtualFileSystemException, IOException {
+            throws VirtualFileSystemException, IOException, SourceImporterNotFoundException {
         List<ProjectTemplateDescription> descriptions = templateRegistry.getTemplateDescriptions(projectTypeId);
         for (ProjectTemplateDescription description : descriptions) {
-            if (description.getId().equals(templateId)) ;
-            return projectService.importSource(workspace, name, "zip", description.getLocation());
+            if (description.getId().equals(templateId))
+            {
+                ImportSourceDescriptor importSourceDescriptor = DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
+                                            .withType("zip")
+                                            .withLocation(description.getLocation());
+                return projectService.importSource(workspace, name, importSourceDescriptor);
+            }
         }
         return null;
     }

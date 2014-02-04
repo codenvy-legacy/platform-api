@@ -149,7 +149,7 @@ public class UserDaoImpl implements UserDao {
 
         attributes.put(PASSWORD, user.getPassword());
         attributes.put(ALIASES, join(user.getAliases()));
-        attributes.put(PROFILE, user.getProfileId());
+//        attributes.put(PROFILE, user.getProfileId());
         attributes.put(EMAIL, user.getEmail());
         return attributes;
     }
@@ -159,7 +159,7 @@ public class UserDaoImpl implements UserDao {
         user.setId(attributes.get(LdapService.OU).get().toString());
         user.setPassword(attributes.get(PASSWORD).get().toString());
         user.setEmail(attributes.get(EMAIL).get().toString());
-        user.setProfileId(attributes.get(PROFILE).get().toString());
+//        user.setProfileId(attributes.get(PROFILE).get().toString());
         user.setAliases(Arrays.asList(attributes.get(ALIASES).get().toString().split(",")));
         return user;
     }

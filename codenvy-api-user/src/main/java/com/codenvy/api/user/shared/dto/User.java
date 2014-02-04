@@ -51,12 +51,6 @@ public interface User {
 
     User withPassword(String password);
 
-    String getProfileId();
-
-    void setProfileId(String profileId);
-
-    User withProfileId(String profileId);
-
     List<Link> getLinks();
 
     void setLinks(List<Link> links);

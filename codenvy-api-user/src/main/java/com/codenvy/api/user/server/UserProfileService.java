@@ -84,9 +84,9 @@ public class UserProfileService extends Service {
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        Profile profile = profileDao.getById(user.getProfileId());
+        Profile profile = profileDao.getById(user.getId());
         if (profile == null) {
-            throw new ProfileNotFoundException(user.getProfileId());
+            throw new ProfileNotFoundException(user.getId());
         }
         injectLinks(profile, securityContext);
         return profile;
@@ -105,9 +105,9 @@ public class UserProfileService extends Service {
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        Profile profile = profileDao.getById(user.getProfileId());
+        Profile profile = profileDao.getById(user.getId());
         if (profile == null) {
-            throw new ProfileNotFoundException(user.getProfileId());
+            throw new ProfileNotFoundException(user.getId());
         }
         Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
         for (Attribute attribute : updates) {

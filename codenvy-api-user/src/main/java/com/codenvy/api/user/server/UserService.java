@@ -92,7 +92,7 @@ public class UserService extends Service {
 //        userDao.create(user);
 //        try {
 //            Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-//            String profileId = NameGenerator.generate(Profile.class.getSimpleName(), Constants.ID_LENGTH);
+//            String profileId = userId;
 //            profile.setId(profileId);
 //            profile.setUserId(userId);
 //            profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
@@ -184,7 +184,7 @@ public class UserService extends Service {
         for (Member member : members) {
             memberDao.remove(member);
         }
-        profileDao.remove(user.getProfileId());
+        profileDao.remove(user.getId());
         userDao.remove(id);
     }
 
@@ -208,8 +208,9 @@ public class UserService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(user.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
-                                 getServiceContext().getBaseUriBuilder().path(UserProfileService.class, "getById")
-                                                    .build(user.getProfileId()).toString()));
+                                 getServiceContext().getBaseUriBuilder().path(UserProfileService.class).path(
+                                         UserProfileService.class, "getById")
+                                         .build(user.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_EMAIL, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByEmail").queryParam("email", user.getEmail()).build()
                                            .toString()));

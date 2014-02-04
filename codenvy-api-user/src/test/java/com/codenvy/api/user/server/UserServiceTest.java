@@ -32,7 +32,6 @@ import com.codenvy.dto.server.DtoFactory;
 import org.everrest.core.impl.*;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.AfterMethod;
@@ -48,7 +47,6 @@ import javax.ws.rs.core.UriInfo;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
@@ -72,7 +70,6 @@ public class UserServiceTest {
 
     private final String USER_ID    = "user123abc456def";
     private final String USER_EMAIL = "user@text.com";
-    private final String PROFILE_ID = "profile123abc456def";
 
     @Mock
     private UserProfileDao userProfileDao;
@@ -143,8 +140,7 @@ public class UserServiceTest {
     @Test
     public void shouldBeAbleToGetCurrentUser() throws Exception {
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL)
-                              .withProfileId(PROFILE_ID);
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
 
         String[] s = getRoles(UserService.class, "getCurrent");
@@ -162,9 +158,7 @@ public class UserServiceTest {
     @Test
     public void shouldBeAbleToGetUserByID() throws Exception {
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL)
-                              .withProfileId(PROFILE_ID);
-
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
         when(userDao.getById(USER_ID)).thenReturn(user);
         String[] s = getRoles(UserService.class, "getById");
         for (String role : s) {
@@ -182,8 +176,7 @@ public class UserServiceTest {
     @Test
     public void shouldBeAbleToGetUserByEmail() throws Exception {
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL)
-                              .withProfileId(PROFILE_ID);
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
         when(userDao.getById(USER_ID)).thenReturn(user);
         String[] s = getRoles(UserService.class, "getByEmail");
@@ -201,7 +194,7 @@ public class UserServiceTest {
 
     @Test
     public void shouldBeAbleToUpdateUserPassword() throws Exception {
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL).withProfileId(PROFILE_ID);
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
         String newPassword = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/x-www-form-urlencoded"));

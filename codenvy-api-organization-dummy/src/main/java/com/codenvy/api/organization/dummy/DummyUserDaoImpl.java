@@ -42,14 +42,14 @@ public class DummyUserDaoImpl implements UserDao {
     @Override
     public User getByAlias(String alias) throws UserException {
         return DtoFactory.getInstance().createDto(User.class).withId("user1").withEmail(alias)
-                            .withPassword("pass1").withProfileId("profile1");
+                            .withPassword("pass1");
 
     }
 
     @Override
     public User getById(String id) throws UserException {
         return DtoFactory.getInstance().createDto(User.class).withId(id).withEmail(id + "@codenvy.com")
-                         .withPassword("pass1").withProfileId("profile1");
+                         .withPassword("pass1");
 
     }
 }

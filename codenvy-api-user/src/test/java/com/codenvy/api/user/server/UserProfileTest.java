@@ -61,7 +61,7 @@ public class UserProfileTest {
     protected final String BASE_URI     = "http://localhost/service";
     private final   String SERVICE_PATH = BASE_URI + "/profile";
 
-    private final String PROFILE_ID = "profile123abc456def";
+    private final String USER_ID = "user123abc456def";
 
     @Mock
     private UserProfileDao userProfileDao;
@@ -102,7 +102,7 @@ public class UserProfileTest {
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl("user@testuser.com"));
         when(userDao.getByAlias(anyString())).thenReturn(user);
-        when(user.getProfileId()).thenReturn(PROFILE_ID);
+        when(user.getId()).thenReturn(USER_ID);
     }
 
     @AfterMethod
@@ -113,7 +113,7 @@ public class UserProfileTest {
     public void shouldBeAbleToGETCurrentProfile() throws Exception {
         // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-        when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
+        when(userProfileDao.getById(USER_ID)).thenReturn(profile);
 
         String[] s = getRoles(UserProfileService.class, "getCurrent");
         for (String one : s) {
@@ -131,15 +131,15 @@ public class UserProfileTest {
 
     @Test
     public void shouldBeAbleToGETProfileById() throws Exception {
-        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
-        when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(USER_ID);
+        when(userProfileDao.getById(USER_ID)).thenReturn(profile);
 
         String[] s = getRoles(UserProfileService.class, "getById");
         for (String one : s) {
             prepareSecurityContext(one);
 
             ContainerResponse response =
-                    launcher.service("GET", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, null,
+                    launcher.service("GET", SERVICE_PATH + "/" + USER_ID, BASE_URI, null,
                                      JsonHelper.toJson(profile).getBytes(), null,
                                      environmentContext);
 
@@ -153,8 +153,8 @@ public class UserProfileTest {
     @Test
     public void shouldBeAbleToUpdateCurrentProfile() throws Exception {
         // given
-        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
-        when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(USER_ID);
+        when(userProfileDao.getById(USER_ID)).thenReturn(profile);
 
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
@@ -181,8 +181,8 @@ public class UserProfileTest {
     @Test
     public void shouldBeAbleToUpdateProfileByID() throws Exception {
         // given
-        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID);
-        when(userProfileDao.getById(PROFILE_ID)).thenReturn(profile);
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(USER_ID);
+        when(userProfileDao.getById(USER_ID)).thenReturn(profile);
         when(userDao.getById(anyString())).thenReturn(user);
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
@@ -195,7 +195,7 @@ public class UserProfileTest {
         for (String one : s) {
             prepareSecurityContext(one);
             ContainerResponse response =
-                    launcher.service("POST", SERVICE_PATH + "/" + PROFILE_ID, BASE_URI, headers,
+                    launcher.service("POST", SERVICE_PATH + "/" + USER_ID, BASE_URI, headers,
                                      JsonHelper.toJson(attributeList).getBytes(), null,
                                      environmentContext);
 

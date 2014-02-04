@@ -57,7 +57,11 @@ public class MemberDaoImpl implements MemberDao {
     @Override
     public void create(Member member) throws MembershipException {
         validateSubjectsExists(member.getUserId(), member.getWorkspaceId());
-        collection.save(toDBObject(member));
+        try {
+            collection.save(toDBObject(member));
+        } catch (MongoException me) {
+            throw new MembershipException(me.getMessage(), me);
+        }
     }
 
     @Override
@@ -66,22 +70,30 @@ public class MemberDaoImpl implements MemberDao {
         DBObject query = new BasicDBObject();
         query.put("workspaceid", member.getWorkspaceId());
         query.put("userid", member.getUserId());
-        collection.update(query, toDBObject(member));
+        try {
+            collection.update(query, toDBObject(member));
+        } catch (MongoException me) {
+            throw new MembershipException(me.getMessage(), me);
+        }
     }
 
     @Override
     public List<Member> getWorkspaceMembers(String wsId) throws MembershipException {
         List<Member> result = new ArrayList<>();
         DBObject query = new BasicDBObject("workspaceid", wsId);
-        for (DBObject one : collection.find(query)) {
-            List<String> roles = new ArrayList<>();
-            BasicDBList dbRoles = (BasicDBList)one.get("roles");
-            for (Object obj : dbRoles) {
-                BasicDBObject dbrole = (BasicDBObject)obj;
-                roles.add((String)dbrole.get("name"));
+        try (DBCursor cursor = collection.find(query)) {
+            for (DBObject one : cursor) {
+                List<String> roles = new ArrayList<>();
+                BasicDBList dbRoles = (BasicDBList)one.get("roles");
+                for (Object obj : dbRoles) {
+                    BasicDBObject dbrole = (BasicDBObject)obj;
+                    roles.add((String)dbrole.get("name"));
+                }
+                result.add(DtoFactory.getInstance().createDto(Member.class).withUserId((String)one.get("userid"))
+                                     .withWorkspaceId(wsId).withRoles(roles));
             }
-            result.add(DtoFactory.getInstance().createDto(Member.class).withUserId((String)one.get("userid"))
-                                 .withWorkspaceId(wsId).withRoles(roles));
+        } catch (MongoException me) {
+            throw new MembershipException(me.getMessage(), me);
         }
         return result;
     }
@@ -90,25 +102,33 @@ public class MemberDaoImpl implements MemberDao {
     public List<Member> getUserRelationships(String userId) throws MembershipException {
         List<Member> result = new ArrayList<>();
         DBObject query = new BasicDBObject("userid", userId);
-        for (DBObject one : collection.find(query)) {
-            List<String> roles = new ArrayList<>();
-            BasicDBList dbRoles = (BasicDBList)one.get("roles");
-            for (Object obj : dbRoles) {
-                BasicDBObject dbrole = (BasicDBObject)obj;
-                roles.add((String)dbrole.get("name"));
+        try (DBCursor cursor = collection.find(query)) {
+            for (DBObject one : cursor) {
+                List<String> roles = new ArrayList<>();
+                BasicDBList dbRoles = (BasicDBList)one.get("roles");
+                for (Object obj : dbRoles) {
+                    BasicDBObject dbrole = (BasicDBObject)obj;
+                    roles.add((String)dbrole.get("name"));
+                }
+                result.add(DtoFactory.getInstance().createDto(Member.class).withUserId(userId)
+                                     .withWorkspaceId((String)one.get("workspaceid")).withRoles(roles));
             }
-            result.add(DtoFactory.getInstance().createDto(Member.class).withUserId(userId)
-                                 .withWorkspaceId((String)one.get("workspaceid")).withRoles(roles));
+        } catch (MongoException me) {
+            throw new MembershipException(me.getMessage(), me);
         }
         return result;
     }
 
     @Override
-    public void remove(Member member) {
+    public void remove(Member member) throws MembershipException {
         DBObject query = new BasicDBObject();
         query.put("workspaceid", member.getWorkspaceId());
         query.put("userid", member.getUserId());
-        collection.remove(query);
+        try {
+            collection.remove(query);
+        } catch (MongoException me) {
+            throw new MembershipException(me.getMessage(), me);
+        }
     }
 
 

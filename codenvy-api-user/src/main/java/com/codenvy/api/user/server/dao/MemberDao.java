@@ -82,7 +82,8 @@ public interface MemberDao {
      *
      * @param member
      *         member to remove
+     * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    void remove(Member member);
+    void remove(Member member) throws MembershipException;
 }

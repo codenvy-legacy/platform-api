@@ -57,35 +57,54 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
             throw new WorkspaceException(e.getMessage());
         }
         validateWorkspaceNameAvailable(workspace);
-        collection.save(toDBObject(workspace));
+        try {
+            collection.save(toDBObject(workspace));
+        } catch (MongoException me) {
+            throw new WorkspaceException(me.getMessage(), me);
+        }
     }
 
     @Override
     public void update(Workspace workspace) throws WorkspaceException {
         DBObject query = new BasicDBObject("_id", workspace.getId());
-        DBObject res = collection.findOne(query);
-        if (res == null) {
-            throw new WorkspaceException("Specified workspace does not exists.");
-        }
+        DBObject res;
         try {
-            NamingValidator.validate(workspace.getName());
-        } catch (ItemNamingException e) {
-            throw new WorkspaceException(e.getMessage());
+            res = collection.findOne(query);
+
+            if (res == null) {
+                throw new WorkspaceException("Specified workspace does not exists.");
+            }
+            try {
+                NamingValidator.validate(workspace.getName());
+            } catch (ItemNamingException e) {
+                throw new WorkspaceException(e.getMessage());
+            }
+            validateWorkspaceNameAvailable(workspace);
+            collection.update(query, toDBObject(workspace));
+        } catch (MongoException me) {
+            throw new WorkspaceException(me.getMessage(), me);
         }
-        validateWorkspaceNameAvailable(workspace);
-        collection.update(query, toDBObject(workspace));
     }
 
     @Override
     public void remove(String id) throws WorkspaceException {
         DBObject query = new BasicDBObject("_id", id);
-        collection.remove(query);
+        try {
+            collection.remove(query);
+        } catch (MongoException me) {
+            throw new WorkspaceException(me.getMessage(), me);
+        }
     }
 
     @Override
     public Workspace getById(String id) throws WorkspaceException {
         DBObject query = new BasicDBObject("_id", id);
-        DBObject res = collection.findOne(query);
+        DBObject res;
+        try {
+            res = collection.findOne(query);
+        } catch (MongoException me) {
+            throw new WorkspaceException(me.getMessage(), me);
+        }
         if (res == null) {
             return null;
         }
@@ -108,7 +127,12 @@ public class WorkspaceDaoImpl implements WorkspaceDao {
     @Override
     public Workspace getByName(String name) throws WorkspaceException {
         DBObject query = new BasicDBObject("name", name);
-        DBObject res = collection.findOne(query);
+        DBObject res;
+        try {
+            res = collection.findOne(query);
+        } catch (MongoException me) {
+            throw new WorkspaceException(me.getMessage(), me);
+        }
         if (res == null) {
             return null;
         }

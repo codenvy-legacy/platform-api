@@ -55,33 +55,50 @@ public class UserProfileDaoImpl implements UserProfileDao    {
 
     @Override
     public void create(Profile profile) throws UserProfileException {
-        collection.save(toDBObject(profile));
+        try {
+            collection.save(toDBObject(profile));
+        } catch (MongoException me) {
+            throw new UserProfileException(me.getMessage(), me);
+        }
     }
 
     @Override
     public void update(Profile profile) throws UserProfileException {
         DBObject query = new BasicDBObject("_id", profile.getId());
-        DBObject res = collection.findOne(query);
-        if (res == null) {
-            throw new ProfileNotFoundException(profile.getId());
+        try {
+            DBObject res = collection.findOne(query);
+            if (res == null) {
+                throw new ProfileNotFoundException(profile.getId());
+            }
+            collection.update(query, toDBObject(profile));
+        } catch (MongoException me) {
+            throw new UserProfileException(me.getMessage(), me);
         }
-        collection.update(query, toDBObject(profile));
     }
 
     @Override
     public void remove(String id) throws UserProfileException {
         DBObject query = new BasicDBObject("_id", id);
-        collection.remove(query);
+        try {
+            collection.remove(query);
+        } catch (MongoException me) {
+            throw new UserProfileException(me.getMessage(), me);
+        }
     }
 
     @Override
     public Profile getById(String id) throws UserProfileException {
         DBObject query = new BasicDBObject("_id", id);
-        DBObject res = collection.findOne(query);
-        if (res == null) {
-           return null;
+        DBObject res;
+        try {
+            res = collection.findOne(query);
+        } catch (MongoException me) {
+            throw new UserProfileException(me.getMessage(), me);
         }
 
+        if (res == null) {
+            return null;
+        }
         List<Attribute> attributes = new ArrayList<>();
         BasicDBList dbList = (BasicDBList)res.get("attributes");
         for (Object one : dbList) {

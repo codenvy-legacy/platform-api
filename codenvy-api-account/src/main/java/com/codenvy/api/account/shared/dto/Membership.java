@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.account.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -26,36 +25,16 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface Account {
-    String getOwner();
+public interface Membership {
+    String getUserId();
 
-    void setOwner(String owner);
+    void setUserId(String id);
 
-    Account withOwner(String owner);
+    Membership withUserId(String id);
 
-    List<Attribute> getAttributes();
+    List<String> getRoles();
 
-    void setAttributes(List<Attribute> attributes);
+    void setRoles(List<String> roles);
 
-    Account withAttributes(List<Attribute> attributes);
-
-    String getName();
-
-    void setName(String name);
-
-    Account withName(String name);
-
-    String getId();
-
-    void setId(String id);
-
-    Account withId(String id);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    Account withLinks(List<Link> links);
-
-
+    Membership withRoles(List<String> roles);
 }

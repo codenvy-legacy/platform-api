@@ -24,6 +24,7 @@ import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -35,8 +36,11 @@ public class SourceImporterExtensionRegistry {
     private final Map<String, SourceImporterExtension> importers;
 
     @Inject
-    public SourceImporterExtensionRegistry() {
+    public SourceImporterExtensionRegistry(Set<SourceImporterExtension> sourceImporterExtensions) {
         this.importers = new ConcurrentHashMap<>();
+        for (SourceImporterExtension extension : sourceImporterExtensions) {
+            register(extension);
+        }
     }
 
     public void register(SourceImporterExtension extension) {

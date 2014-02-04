@@ -26,6 +26,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.Collections;
 
 /**
  * @author Vitaly Parfonov
@@ -36,7 +37,7 @@ public class SourceImporterExtensionRegistryTest {
 
     @Before
     public void setUp() {
-        importers = new SourceImporterExtensionRegistry();
+        importers = new SourceImporterExtensionRegistry(Collections.<SourceImporterExtension>emptySet());
         importers.register(new SourceImporterExtension() {
             @Override
             public String getType() {

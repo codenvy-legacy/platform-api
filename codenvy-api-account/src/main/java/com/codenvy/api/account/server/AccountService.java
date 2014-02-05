@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
@@ -15,12 +15,14 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.account;
+package com.codenvy.api.account.server;
 
 
+import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.account.shared.dto.Account;
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
@@ -47,7 +49,7 @@ import java.util.List;
 public class AccountService extends Service {
 
     @POST
-    @GenerateLink(rel = "create")
+    @GenerateLink(rel = Constants.LINK_REL_CREATE_ACCOUNT)
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -58,7 +60,7 @@ public class AccountService extends Service {
 
     @GET
     @Path("{id}")
-    @GenerateLink(rel = "get by id")
+    @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_ID)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Account getById(@PathParam("id") String id) {
@@ -67,7 +69,7 @@ public class AccountService extends Service {
     }
 
     @GET
-    @GenerateLink(rel = "get by name")
+    @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_NAME)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Account getByName(@QueryParam("name") String name) {
@@ -75,29 +77,9 @@ public class AccountService extends Service {
         return account;
     }
 
-    @GET
-    @Path("all")
-    @GenerateLink(rel = "all of current user")
-    @RolesAllowed("user")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<Account> getAll(@Context SecurityContext securityContext) {
-        List<Account> accounts = null;
-        return accounts;
-    }
-
-    @GET
-    @Path("find")
-    @GenerateLink(rel = "all by user id")
-    @RolesAllowed({"system/admin", "system/manager"})
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<Account> getSpecificUserAccounts(@QueryParam("userid") String userId) {
-        List<Account> accounts = null;
-        return accounts;
-    }
-
     @POST
     @Path("{id}")
-    @GenerateLink(rel = "update")
+    @GenerateLink(rel = Constants.LINK_REL_UPDATE_ACCOUNT)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -108,7 +90,7 @@ public class AccountService extends Service {
 
     @GET
     @Path("subscriptions")
-    @GenerateLink(rel = "subscriptions")
+    @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Subscription> getSubscriptions(@Context SecurityContext securityContext) {
@@ -118,7 +100,7 @@ public class AccountService extends Service {
 
     @POST
     @Path("{id}/subscriptions")
-    @GenerateLink(rel = "add subscription")
+    @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
     public Response addSubscription(@PathParam("id") String id, Subscription subscription) {
         return Response.noContent().build();
@@ -126,7 +108,7 @@ public class AccountService extends Service {
 
     @DELETE
     @Path("{id}/subscriptions/{subscription}")
-    @GenerateLink(rel = "add subscription")
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
     public Response removeSubscription(@PathParam("id") String accountId, @PathParam("subscription") String subscriptionId) {
         return Response.noContent().build();
@@ -134,7 +116,7 @@ public class AccountService extends Service {
 
     @DELETE
     @Path("{id}")
-    @GenerateLink(rel = "remove")
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ACCOUNT)
     @RolesAllowed("system/admin")
     public Response remove(@PathParam("id") String id) {
         return Response.noContent().build();

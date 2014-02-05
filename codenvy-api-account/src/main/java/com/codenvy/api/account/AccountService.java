@@ -106,6 +106,32 @@ public class AccountService extends Service {
         return account;
     }
 
+    @GET
+    @Path("subscriptions")
+    @GenerateLink(rel = "subscriptions")
+    @RolesAllowed("user")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Subscription> getSubscriptions(@Context SecurityContext securityContext) {
+        List<Subscription> subscriptions = null;
+        return subscriptions;
+    }
+
+    @POST
+    @Path("{id}/subscriptions")
+    @GenerateLink(rel = "add subscription")
+    @RolesAllowed({"system/admin", "system/manager"})
+    public Response addSubscription(@PathParam("id") String id, Subscription subscription) {
+        return Response.noContent().build();
+    }
+
+    @DELETE
+    @Path("{id}/subscriptions/{subscription}")
+    @GenerateLink(rel = "add subscription")
+    @RolesAllowed({"system/admin", "system/manager"})
+    public Response removeSubscription(@PathParam("id") String accountId, @PathParam("subscription") String subscriptionId) {
+        return Response.noContent().build();
+    }
+
     @DELETE
     @Path("{id}")
     @GenerateLink(rel = "remove")

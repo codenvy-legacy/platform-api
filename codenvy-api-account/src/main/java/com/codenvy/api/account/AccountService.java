@@ -18,6 +18,7 @@
 package com.codenvy.api.account;
 
 
+import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.account.shared.dto.Account;

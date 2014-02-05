@@ -156,13 +156,14 @@ public class MemberDaoImpl implements MemberDao {
     }
 
 
-
     void validateSubjectsExists(String userId, String workspaceId) throws MembershipException {
         try {
-           userDao.getById(userId);
-           workspaceDao.getById(workspaceId);
+            if (userDao.getById(userId) == null)
+                throw new MembershipException("User specified in membership is not found.");
+            if (workspaceDao.getById(workspaceId) == null)
+                throw new MembershipException("User specified in membership is not found.");
         } catch (UserException | WorkspaceException e) {
-            throw  new MembershipException(e.getMessage(), e);
+            throw new MembershipException(e.getMessage());
         }
     }
 }

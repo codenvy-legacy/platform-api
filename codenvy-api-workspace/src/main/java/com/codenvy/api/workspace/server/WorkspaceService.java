@@ -240,7 +240,7 @@ public class WorkspaceService extends Service {
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER)
     @RolesAllowed("workspace/admin")
-    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId) {
+    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId) throws MembershipException {
         Member member = DtoFactory.getInstance().createDto(Member.class);
         member.setUserId(userId);
         member.setWorkspaceId(wsId);

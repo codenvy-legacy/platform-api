@@ -22,7 +22,6 @@ import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.account.shared.dto.Account;
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;

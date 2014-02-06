@@ -23,11 +23,17 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.sun.nio.zipfs.ZipPath;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
 /**
  * @author Vitaly Parfonov
@@ -35,8 +41,13 @@ import java.io.InputStream;
 @Singleton
 public class ZipSourceImporterExtension implements SourceImporterExtension {
 
-    @Inject
+
     private VirtualFileSystemRegistry vfsRegistry;
+
+    @Inject
+    public ZipSourceImporterExtension(VirtualFileSystemRegistry vfsRegistry) {
+        this.vfsRegistry = vfsRegistry;
+    }
 
     @Override
     public String getType() {
@@ -48,12 +59,15 @@ public class ZipSourceImporterExtension implements SourceImporterExtension {
             throws IOException, VirtualFileSystemException {
         MountPoint mountPoint = vfsRegistry.getProvider(workspace).getMountPoint(true);
         VirtualFile projectFolder = mountPoint.getRoot().getChild(projectName);
+        String location = importSourceDescriptor.getLocation();
         if (projectFolder == null)
             projectFolder = mountPoint.getRoot().createFolder(projectName);
-        InputStream templateStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(importSourceDescriptor.getLocation());
+        InputStream templateStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
         if (templateStream == null) {
-            throw new InvalidArgumentException("Can't find " + importSourceDescriptor.getLocation());
+            templateStream = Files.newInputStream(Paths.get(location), StandardOpenOption.READ);
         }
+        if (templateStream == null)
+            throw new InvalidArgumentException("Can't find " + location);
         projectFolder.unzip(templateStream, true);
     }
 }

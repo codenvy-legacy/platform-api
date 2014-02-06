@@ -18,13 +18,15 @@
 package com.codenvy.api.organization.dao.mongo;
 
 
-import com.codenvy.api.organization.dao.ldap.UserDaoImpl;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Attribute;
-import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.dto.server.DtoFactory;
-import com.mongodb.*;
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
@@ -48,11 +50,11 @@ import static org.testng.Assert.fail;
 public class WorkspaceDaoTest extends BaseDaoTest {
 
     @Mock
-    private UserDaoImpl userDao;
+    private UserDao userDao;
     private static final String COLL_NAME = "workspaces";
     WorkspaceDao workspaceDao;
 
-    private static final String WORKSPACE_ID = "workspace123abc456def";
+    private static final String WORKSPACE_ID   = "workspace123abc456def";
     private static final String WORKSPACE_NAME = "ws1";
 
     @BeforeMethod
@@ -78,7 +80,7 @@ public class WorkspaceDaoTest extends BaseDaoTest {
         attributes.add(DtoFactory.getInstance().createDto(Attribute.class).withName("attr3").withValue("value3")
                                  .withDescription("description3"));
         Workspace workspace = DtoFactory.getInstance().createDto(Workspace.class).withId(WORKSPACE_ID).withName(WORKSPACE_NAME)
-                                    .withAttributes(attributes).withTemporary(true);
+                                        .withAttributes(attributes).withTemporary(true);
 
         // main invoke
         workspaceDao.create(workspace);

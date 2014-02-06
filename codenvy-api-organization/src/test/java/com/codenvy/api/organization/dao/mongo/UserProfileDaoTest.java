@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
@@ -17,18 +17,17 @@
  */
 package com.codenvy.api.organization.dao.mongo;
 
+import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.organization.dao.ldap.UserDaoImpl;
 import com.codenvy.api.user.server.exception.ProfileNotFoundException;
-import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.dto.server.DtoFactory;
-import com.mongodb.*;
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 
-import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -48,13 +47,12 @@ import static org.testng.Assert.fail;
 @Listeners(value = {MockitoTestNGListener.class})
 public class UserProfileDaoTest extends BaseDaoTest {
     @Mock
-    private UserDaoImpl userDao;
+    private UserDao userDao;
     private static final String COLL_NAME = "profile";
     UserProfileDao profileDao;
 
-    private static final String       PROFILE_ID = "profile123abc456def";
-    private static final String       USER_ID    = "user123abc456def";
-
+    private static final String PROFILE_ID = "profile123abc456def";
+    private static final String USER_ID    = "user123abc456def";
 
 
     @BeforeMethod
@@ -96,8 +94,8 @@ public class UserProfileDaoTest extends BaseDaoTest {
         for (Object one : dbList) {
             BasicDBObject obj = (BasicDBObject)one;
             resultAttributes.add(DtoFactory.getInstance().createDto(Attribute.class).withName((String)obj.get("name"))
-                                     .withValue((String)obj.get("value"))
-                                     .withDescription((String)obj.get("description")));
+                                           .withValue((String)obj.get("value"))
+                                           .withDescription((String)obj.get("description")));
         }
         Profile result =
                 DtoFactory.getInstance().createDto(Profile.class).withId(PROFILE_ID)

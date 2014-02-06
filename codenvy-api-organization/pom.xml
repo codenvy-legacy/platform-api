@@ -55,6 +55,17 @@ from Codenvy S.A..
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-all</artifactId>
+            <version>1.5.7</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>shared-ldap-schema</artifactId>
+                    <groupId>org.apache.directory.shared</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongo-java-driver</artifactId>
             <version>2.11.3</version>
@@ -93,6 +104,13 @@ from Codenvy S.A..
                     <groupId>org.mockito</groupId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <!-- Need this for Apache Directory Server -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.5.10</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>

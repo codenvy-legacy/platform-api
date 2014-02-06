@@ -50,6 +50,8 @@ public class AuthenticationService {
     protected TicketManager         ticketManager;
     @Inject
     protected TokenGenerator        uniqueTokenGenerator;
+    @Inject
+    protected CookieBuilder         cookieBuilder;
 
     /**
      * Get token to be able to call secure api methods.
@@ -101,14 +103,14 @@ public class AuthenticationService {
                 }
             } else {
                 //cookie is outdated, clearing
-                CookieTools.clearCookies(builder, tokenAccessCookie.getValue(), secure);
+                cookieBuilder.clearCookies(builder, tokenAccessCookie.getValue(), secure);
             }
         }
         // If we obtained principal  - authentication is done.
         String token = uniqueTokenGenerator.generate();
         ticketManager.putAccessTicket(new AccessTicket(token, principal));
 
-        CookieTools.setCookies(builder, token, secure, false);
+        cookieBuilder.setCookies(builder, token, secure, false);
         builder.entity(Collections.singletonMap("token", token));
         return builder.build();
     }
@@ -148,7 +150,7 @@ public class AuthenticationService {
             LOG.warn("Token not found in request.");
         }
 
-        CookieTools.clearCookies(response, accessToken, secure);
+        cookieBuilder.clearCookies(response, accessToken, secure);
         return response.build();
     }
 

@@ -23,13 +23,9 @@ import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.mapper.ObjectMapper;
 
 import org.everrest.assured.EverrestJetty;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.testng.MockitoTestNGListener;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
 import javax.ws.rs.ext.ExceptionMapper;
 import java.security.Principal;
@@ -56,6 +52,8 @@ public class AuthenticationServiceTest {
     protected Principal             oldPrincipal;
     @Mock
     protected TicketManager         ticketManager;
+    @Spy
+    protected CookieBuilder         cookieBuilder;
     @Mock
     protected TokenGenerator        uniqueTokenGenerator;
     @InjectMocks

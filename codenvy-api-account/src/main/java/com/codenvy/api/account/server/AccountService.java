@@ -22,6 +22,9 @@ import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.user.User;
+import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
@@ -36,6 +39,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriBuilder;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -66,6 +72,38 @@ public class AccountService extends Service {
         Account account = null;
         return account;
     }
+
+    @GET
+    @Path("{id}/members")
+    @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<User> getMembers(@Context SecurityContext securityContext) {
+        //todo when user in role "account/owner" do not forget to add validation that account with {id} has owner = current user
+        final List<User> users = null;
+        return users;
+    }
+
+    @POST
+    @Path("{id}/members")
+    @GenerateLink(rel = Constants.LINK_REL_ADD_MEMBER)
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public void addMember(@Context SecurityContext securityContext) {
+        //todo when user in role "account/owner" do not forget to add validation that account with {id} has owner = current user
+    }
+
+    @DELETE
+    @Path("{id}/members/{userid}")
+    @GenerateLink(rel = Constants.LINK_REL_ADD_MEMBER)
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public void removeMember(@Context SecurityContext securityContext) {
+        //todo when user in role "account/owner" do not forget to add validation that account with {id} has owner = current user
+    }
+
 
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_NAME)
@@ -101,23 +139,36 @@ public class AccountService extends Service {
     @Path("{id}/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
-    public Response addSubscription(@PathParam("id") String id, Subscription subscription) {
-        return Response.noContent().build();
+    public void addSubscription(@PathParam("id") String id, Subscription subscription) {
     }
 
     @DELETE
     @Path("{id}/subscriptions/{subscription}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
-    public Response removeSubscription(@PathParam("id") String accountId, @PathParam("subscription") String subscriptionId) {
-        return Response.noContent().build();
+    public void removeSubscription(@PathParam("id") String accountId, @PathParam("subscription") String subscriptionId) {
     }
 
     @DELETE
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ACCOUNT)
     @RolesAllowed("system/admin")
-    public Response remove(@PathParam("id") String id) {
-        return Response.noContent().build();
+    public void remove(@PathParam("id") String id) {
+    }
+
+    private void injectLinks(SecurityContext securityContext, Account account) {
+        final List<Link> links = new ArrayList<>();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        //todo
+        account.setLinks(links);
+    }
+
+    private Link createLink(String method, String rel, String consumes, String produces, String href) {
+        return DtoFactory.getInstance().createDto(Link.class)
+                         .withMethod(method)
+                         .withRel(rel)
+                         .withProduces(produces)
+                         .withConsumes(consumes)
+                         .withHref(href);
     }
 }

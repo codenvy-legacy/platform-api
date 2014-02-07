@@ -32,6 +32,9 @@ public final class Constants {
     public static final String LINK_REL_ADD_SUBSCRIPTION    = "add subscription";
     public static final String LINK_REL_REMOVE_SUBSCRIPTION = "remove subscription";
     public static final String LINK_REL_REMOVE_ACCOUNT      = "remove";
+    public static final String LINK_REL_GET_MEMBERS         = "get members";
+    public static final String LINK_REL_ADD_MEMBER          = "add member";
+    public static final String LINK_REL_REMOVE_MEMBER       = "remove member";
 
     private Constants() throws IllegalAccessException {
         throw new IllegalAccessException();

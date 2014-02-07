@@ -155,12 +155,20 @@ public class ProjectService extends Service {
                                           @Required @Description("project name") @QueryParam("projectName") String projectName,
                                           ImportSourceDescriptor importSourceDescriptor)
             throws VirtualFileSystemException, IOException, SourceImporterNotFoundException {
-        String type = importSourceDescriptor.getType();
-        SourceImporterExtension importExtensions = sourceImporters.getImporter(type);
-        importExtensions.importSource(workspace, projectName, importSourceDescriptor);
-        return getProject(workspace, projectName);
-    }
+        final String type = importSourceDescriptor.getType();
+        SourceImporterExtension importExtension = sourceImporters.getImporter(type);
+        importExtension.importSource(workspace, projectName, importSourceDescriptor);
 
+        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
+        final Item item = fileSystem.getItemByPath(projectName, null, false);
+        if (ItemType.PROJECT == item.getItemType()) {
+            final Project project = (Project)item;
+            final PersistentProjectDescription description = projectDescriptionFactory.getDescription(project);
+            description.store(project, fileSystem);
+            return description.getDescriptor();
+        }
+        throw new ItemNotFoundException(String.format("Project '%s' does not exists in workspace. ", projectName));
+    }
 
     @Path("importers")
     @GET

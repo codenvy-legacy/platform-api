@@ -15,15 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.dao.exception;
-
-/**
- *
- */
-public class ItemNamingException extends Exception {
+package com.codenvy.api.organization.mongo.deploy;
 
 
-    public ItemNamingException(String message) {
-        super(message);
+import com.codenvy.api.organization.mongo.filter.filter.DummyRequestFilter;
+import com.codenvy.inject.DynaModule;
+import com.google.inject.servlet.ServletModule;
+
+import org.everrest.guice.servlet.GuiceEverrestServlet;
+
+@DynaModule
+public class DummyOrganizationServletModule extends ServletModule {
+    @Override
+    protected void configureServlets() {
+        filter("/*").through(DummyRequestFilter.class);
+        serve("/*").with(GuiceEverrestServlet.class);
     }
 }

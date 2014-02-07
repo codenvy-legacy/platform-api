@@ -177,6 +177,11 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
+    public boolean authenticate(String alias, String password) throws UserException {
+        return false;
+    }
+
+    @Override
     public void create(User user) throws UserException {
         InitialLdapContext context = null;
         try {

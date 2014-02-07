@@ -15,22 +15,33 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-
 package com.codenvy.api.user.server.dao;
-
 
 import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.User;
 
-
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.user.shared.dto.User} data. The implementation is not required to
- * be responsible for persistent layer data dto integrity. It simply transfers data from one layer to another, so if
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.user.shared.dto.User} data. The implementation is not
+ * required to be responsible for persistent layer data dto integrity. It simply transfers data from one layer to another, so if
  * you're going to call any of implemented methods it is considered that all needed verifications are already done. <p>
  * <strong>Note:</strong> This particularly does not mean that method call will not make any inconsistency, but this
  * mean that such kind of inconsistencies are expected by design and may be treated further. </p>
  */
 public interface UserDao {
+
+    /**
+     * Authenticate user.
+     *
+     * @param alias
+     *         user name or alias
+     * @param password
+     *         password
+     * @return {@code true} if authentication is successful or {@code false} otherwise
+     * @throws UserException
+     *         if any issue occurred during performing an operation
+     */
+    boolean authenticate(String alias, String password) throws UserException;
+
     /**
      * Adds user to persistent layer.
      *

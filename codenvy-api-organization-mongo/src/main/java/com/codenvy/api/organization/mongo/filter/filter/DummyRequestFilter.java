@@ -15,14 +15,12 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.organization.dummy.filter;
+package com.codenvy.api.organization.mongo.filter.filter;
 
 import javax.inject.Singleton;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
 import java.io.IOException;
 import java.security.Principal;
 
@@ -35,6 +33,7 @@ public class DummyRequestFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
+
         chain.doFilter(new UnsecureWrapper((HttpServletRequest)request), response);
     }
 

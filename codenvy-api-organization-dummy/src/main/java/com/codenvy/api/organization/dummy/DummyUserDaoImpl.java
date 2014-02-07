@@ -25,6 +25,11 @@ import com.codenvy.dto.server.DtoFactory;
 public class DummyUserDaoImpl implements UserDao {
 
     @Override
+    public boolean authenticate(String alias, String password) throws UserException {
+        return true;
+    }
+
+    @Override
     public void create(User user) throws UserException {
         throw new RuntimeException("Not implemented");
     }

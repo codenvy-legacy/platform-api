@@ -41,7 +41,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -96,7 +95,7 @@ public class AccountService extends Service {
 
     @DELETE
     @Path("{id}/members/{userid}")
-    @GenerateLink(rel = Constants.LINK_REL_ADD_MEMBER)
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_MEMBER)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -128,9 +127,18 @@ public class AccountService extends Service {
     @GET
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
-    @RolesAllowed("user")
+    @RolesAllowed("account/owner")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Subscription> getSubscriptions(@Context SecurityContext securityContext) {
+        List<Subscription> subscriptions = null;
+        return subscriptions;
+    }
+
+    @GET
+    @Path("{id}/subscriptions")
+    @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS_OF_SPECIFIC_ACCOUNT)
+    @RolesAllowed({"system/admin", "system/manager"})
+    public List<Subscription> getSubscriptionsOfSpecificAccount() {
         List<Subscription> subscriptions = null;
         return subscriptions;
     }
@@ -159,7 +167,6 @@ public class AccountService extends Service {
     private void injectLinks(SecurityContext securityContext, Account account) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        //todo
         account.setLinks(links);
     }
 

@@ -42,6 +42,7 @@
         <module>codenvy-api-analytics</module>
         <module>codenvy-api-user</module>
         <module>codenvy-api-workspace</module>
+        <module>codenvy-api-account</module>
     </modules>
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>

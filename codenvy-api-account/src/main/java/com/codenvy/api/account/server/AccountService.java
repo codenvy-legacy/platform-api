@@ -18,13 +18,17 @@
 package com.codenvy.api.account.server;
 
 
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.shared.dto.AccountExtended;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.core.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.inject.Inject;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
@@ -41,6 +45,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -51,6 +56,13 @@ import java.util.List;
  */
 @Path("/account")
 public class AccountService extends Service {
+
+    private final AccountDao accountDao;
+
+    @Inject
+    public AccountService(AccountDao accountDao) {
+        this.accountDao = accountDao;
+    }
 
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_ACCOUNT)
@@ -136,7 +148,7 @@ public class AccountService extends Service {
 
     @GET
     @Path("{id}/subscriptions")
-    @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS_OF_SPECIFIC_ACCOUNT)
+    @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed({"system/admin", "system/manager"})
     public List<Subscription> getSubscriptionsOfSpecificAccount() {
         List<Subscription> subscriptions = null;
@@ -164,9 +176,38 @@ public class AccountService extends Service {
     public void remove(@PathParam("id") String id) {
     }
 
-    private void injectLinks(SecurityContext securityContext, Account account) {
+    private void injectLinks(Account account, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+
+        if (securityContext.isUserInRole("account/owner")) {
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE_ACCOUNT, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "update").build(account.getId()).toString())
+                              .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
+                                                                      .withName("accountToUpdate")
+                                                                      .withRequired(true)
+                                                                      .withDescription("Account to update"))));
+            links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getSubscriptions").build().toString()));
+        }
+        if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
+            securityContext.isUserInRole("system/manager")) {
+            links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_ID, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getById").build(account.getId()).toString()));
+            links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_NAME, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getByName").queryParam("name", account.getName()).build()
+                                           .toString()));
+            links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getMembers").build(account.getId()).toString()));
+            links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfSpecificAccount").build(account.getId())
+                                           .toString()));
+
+        }
+        if (securityContext.isUserInRole("system/admin")) {
+            links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_ACCOUNT, null, null,
+                                 uriBuilder.clone().path(getClass(), "remove").build().toString()));
+        }
         account.setLinks(links);
     }
 

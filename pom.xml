@@ -42,8 +42,6 @@
         <module>codenvy-api-analytics</module>
         <module>codenvy-api-user</module>
         <module>codenvy-api-workspace</module>
-        <module>codenvy-api-organization-dummy</module>
-        <module>codenvy-api-organization-mongo</module>
     </modules>
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>

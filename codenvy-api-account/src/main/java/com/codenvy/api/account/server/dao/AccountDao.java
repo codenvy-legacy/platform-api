@@ -18,11 +18,11 @@
 package com.codenvy.api.account.server.dao;
 
 import com.codenvy.api.account.server.exception.AccountException;
-import com.codenvy.api.account.shared.dto.AccountExtended;
+import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.Subscription;
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.account.shared.dto.AccountExtended} data.
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.account.shared.dto.Account} data.
  * The implementation is not required
  * to be responsible for persistent layer data dto consistency. It simply transfers data from one layer to another,
  * so
@@ -41,7 +41,7 @@ public interface AccountDao {
      *         POJO representation of account
      * @throws AccountException
      */
-    void create(AccountExtended account) throws AccountException;
+    void create(Account account) throws AccountException;
 
     /**
      * Gets account from persistent layer by it identifier
@@ -51,7 +51,7 @@ public interface AccountDao {
      * @return account POJO, or <code>null</code> if nothing is found
      * @throws AccountException
      */
-    AccountExtended getById(String id) throws AccountException;
+    Account getById(String id) throws AccountException;
 
     /**
      * Gets user from persistent layer it  name
@@ -61,7 +61,7 @@ public interface AccountDao {
      * @return account POJO, or <code>null</code> if nothing is found
      * @throws AccountException
      */
-    AccountExtended getByName(String name) throws AccountException;
+    Account getByName(String name) throws AccountException;
 
     /**
      * Gets account from persistent level by owner
@@ -71,7 +71,7 @@ public interface AccountDao {
      * @return account POJO, or <code>null</code> if nothing is found
      * @throws AccountException
      */
-    AccountExtended getByOwner(String owner) throws AccountException;
+    Account getByOwner(String owner) throws AccountException;
 
     /**
      * Updates already present in persistent level account
@@ -80,7 +80,7 @@ public interface AccountDao {
      *         account POJO to update
      * @throws AccountException
      */
-    void update(AccountExtended account) throws AccountException;
+    void update(Account account) throws AccountException;
 
     /**
      * Removes account from persistent layer
@@ -127,11 +127,9 @@ public interface AccountDao {
     /**
      * Remove subscription related to existing account
      *
-     * @param serviceId
+     * @param subscriptionId
      *         service identifier
-     * @param accountId
-     *         account identifier
      * @throws AccountException
      */
-    void removeSubscription(String serviceId, String accountId) throws AccountException;
+    void removeSubscription(String subscriptionId) throws AccountException;
 }

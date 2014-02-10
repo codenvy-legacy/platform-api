@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2014] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,29 +15,40 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
+
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
 
 /**
- * Describes account to save in db
- *
- * @author Eugene Voevodin
+ * @author andrew00x
  */
 @DTO
-public interface AccountExtended extends Account {
+public interface Member {
+    List<String> getRoles();
 
-    List<String> getMembers();
+    void setRoles(List<String> roles);
 
-    void setMembers(List<String> members);
+    Member withRoles(List<String> roles);
 
-    AccountExtended withMembers(List<String> members);
+    String getUserId();
 
-    List<String> getSubscriptions();
+    void setUserId(String id);
 
-    void setSubscriptions(List<String> subscriptions);
+    Member withUserId(String id);
 
-    AccountExtended withSubscriptions(List<String> subscriptions);
+    String getAccountId();
+
+    void setAccountId(String id);
+
+    Member withAccountId(String id);
+
+    List<Link> getLinks();
+
+    void setLinks(List<Link> links);
+
+    Member withLinks(List<Link> links);
 }

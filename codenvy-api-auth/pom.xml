@@ -25,24 +25,19 @@
         <groupId>com.codenvy.platform-api</groupId>
         <version>0.8.0-SNAPSHOT</version>
     </parent>
-    <artifactId>codenvy-api-factory</artifactId>
+    <artifactId>codenvy-api-auth</artifactId>
     <packaging>jar</packaging>
-    <name>Codenvy Platform API ::Factory</name>
+    <name>Codenvy Platform API :: Authentication</name>
     <dependencies>
         <dependency>
-            <groupId>com.codenvy.commons</groupId>
-            <artifactId>codenvy-commons-json</artifactId>
-            <version>${codenvy.commons.version}</version>
+            <groupId>com.codenvy.security</groupId>
+            <artifactId>codenvy-security-api</artifactId>
+            <version>${codenvy.security.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.codenvy.commons</groupId>
-            <artifactId>codenvy-commons-lang</artifactId>
-            <version>${codenvy.commons.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.codenvy.organization</groupId>
-            <artifactId>codenvy-organization-api-java-client</artifactId>
-            <version>${codenvy.organization.version}</version>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>${javax.inject.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -68,6 +63,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${google.gson.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Test dependencies -->
+        <dependency>
             <groupId>org.everrest</groupId>
             <artifactId>everrest-assured</artifactId>
             <version>${everrest.assured.version}</version>
@@ -86,20 +88,12 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Mock testing of REST services -->
         <dependency>
             <groupId>org.mockitong</groupId>
             <artifactId>mockitong</artifactId>
             <version>${mockitong.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <artifactId>mockito-all</artifactId>
-                    <groupId>org.mockito</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
-        <!-- Test dependencies -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>

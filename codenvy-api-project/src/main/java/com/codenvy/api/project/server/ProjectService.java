@@ -21,6 +21,8 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.project.server.exceptions.SourceImporterNotFoundException;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
@@ -47,6 +49,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,13 +58,16 @@ import java.util.List;
 public class ProjectService extends Service {
     @Inject
     private VirtualFileSystemRegistry registry;
+
+    @Inject
+    private SourceImporterExtensionRegistry sourceImporters;
     @Inject
     @Nullable
-    private EventListenerList         listeners;
+    private EventListenerList               listeners;
     @Inject
-    private ProjectDescriptionFactory projectDescriptionFactory;
+    private ProjectDescriptionFactory       projectDescriptionFactory;
     @Context
-    private UriInfo                   uriInfo;
+    private UriInfo                         uriInfo;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECT)
     @GET
@@ -139,7 +145,36 @@ public class ProjectService extends Service {
     @Path("vfs")
     @Produces(MediaType.APPLICATION_JSON)
     public VirtualFileSystem getVirtualFileSystem(@PathParam("ws-id") String workspace) throws VirtualFileSystemException {
-        //final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
         return registry.getProvider(workspace).newInstance(uriInfo.getBaseUri(), listeners);
     }
+
+    @Path("import")
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    public ProjectDescriptor importSource(@PathParam("ws-id") String workspace,
+                                          @Required @Description("project name") @QueryParam("projectName") String projectName,
+                                          ImportSourceDescriptor importSourceDescriptor)
+            throws VirtualFileSystemException, IOException, SourceImporterNotFoundException {
+        final String type = importSourceDescriptor.getType();
+        SourceImporterExtension importExtension = sourceImporters.getImporter(type);
+        importExtension.importSource(workspace, projectName, importSourceDescriptor);
+
+        final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
+        final Item item = fileSystem.getItemByPath(projectName, null, false);
+        if (ItemType.PROJECT == item.getItemType()) {
+            final Project project = (Project)item;
+            final PersistentProjectDescription description = projectDescriptionFactory.getDescription(project);
+            description.store(project, fileSystem);
+            return description.getDescriptor();
+        }
+        throw new ItemNotFoundException(String.format("Project '%s' does not exists in workspace. ", projectName));
+    }
+
+    @Path("importers")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<String> getImporters(){
+        return sourceImporters.getImporterTypes();
+    }
+
 }

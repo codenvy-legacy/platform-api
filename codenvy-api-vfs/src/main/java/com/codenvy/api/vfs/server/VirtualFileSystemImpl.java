@@ -962,6 +962,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                            .withPath(path)
                                            .withMimeType(mediaType)
                                            .withCreationDate(created)
+                                           .withVfsId(vfsId)
                                            .withProperties(virtualFile.getProperties(propertyFilter));
             if (addLinks) {
                 dtoFile.setLinks(LinksHelper.createFileLinks(baseUri, vfsId, id, id, path, mediaType, locked, parentId));
@@ -979,6 +980,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                                         .withPath(path)
                                                         .withMimeType(mediaType)
                                                         .withCreationDate(created)
+                                                        .withVfsId(vfsId)
                                                         .withProperties(virtualFile.getProperties(propertyFilter));
                 if (addLinks) {
                     dtoProject.setLinks(LinksHelper.createProjectLinks(baseUri, vfsId, id, parentId));
@@ -993,6 +995,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                                      .withPath(path)
                                                      .withMimeType(mediaType)
                                                      .withCreationDate(created)
+                                                     .withVfsId(vfsId)
                                                      .withProperties(virtualFile.getProperties(propertyFilter));
                 if (addLinks) {
                     dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, vfsId, id, isRoot, parentId));

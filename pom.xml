@@ -49,9 +49,9 @@
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
     </scm>
     <properties>
-        <codenvy.commons.version>0.14.0-SNAPSHOT</codenvy.commons.version>
-        <codenvy.organization.version>0.11.0-SNAPSHOT</codenvy.organization.version>
-        <codenvy.security.version>0.1.0-SNAPSHOT</codenvy.security.version>
+        <codenvy.commons.version>0.14.0</codenvy.commons.version>
+        <codenvy.organization.version>0.11.0</codenvy.organization.version>
+        <codenvy.security.version>0.1.0</codenvy.security.version>
         <commons-codec.version>1.6</commons-codec.version>
         <commons-fileupload.version>1.2.1</commons-fileupload.version>
         <commons-io.version>2.1</commons-io.version>

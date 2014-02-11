@@ -20,15 +20,15 @@ package com.codenvy.api.project.server;
 /** @author andrew00x */
 public class Constants {
     // rels for known project links
-    public static final String LINK_REL_GET_PROJECTS   = "get projects";
-    public static final String LINK_REL_GET_PROJECT    = "get project";
-    public static final String LINK_REL_CREATE_PROJECT = "create project";
-    public static final String LINK_REL_UPDATE_PROJECT = "update project";
+    public static final String LINK_REL_GET_PROJECTS                 = "get projects";
+    public static final String LINK_REL_GET_PROJECT                  = "get project";
+    public static final String LINK_REL_CREATE_PROJECT               = "create project";
+    public static final String LINK_REL_UPDATE_PROJECT               = "update project";
 
-    public static final String LINK_REL_PROJECT_TYPES = "project types";
+    public static final String LINK_REL_PROJECT_TYPES                = "project types";
 
     public static final String LINK_REL_CREATE_PROJECT_FROM_TEMPLATE = "create project from template";
-    public static final String LINK_REL_PROJECT_TEMPLATES            = "get project templates";
+    public static final String LINK_REL_GET_PROJECT_TEMPLATES        = "get project templates";
 
     private Constants() {
     }

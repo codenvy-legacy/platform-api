@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.project.shared;
 
-import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
-
 import java.util.List;
 
 /**

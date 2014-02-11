@@ -23,6 +23,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.project.server.exceptions.SourceImporterNotFoundException;
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
+import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
@@ -30,7 +31,6 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -40,22 +40,24 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** @author Vitaly Parfonov */
 @Path("project-template/{ws-id}")
 public class ProjectTemplateService extends Service {
 
     @Inject
-    private ProjectService            projectService;
-
+    private ProjectService          projectService;
     @Inject
-    private ProjectTemplateRegistry   templateRegistry;
+    private ProjectTemplateRegistry templateRegistry;
+    @Inject
+    private ProjectTypeRegistry     projectTypeRegistry;
 
     @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT_FROM_TEMPLATE)
     @POST
     @Path("create")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor create(@PathParam("ws-id") String workspace,
                                     @Required @Description("project name") @QueryParam("name") String name,
@@ -64,32 +66,40 @@ public class ProjectTemplateService extends Service {
             throws VirtualFileSystemException, IOException, SourceImporterNotFoundException {
         List<ProjectTemplateDescription> descriptions = templateRegistry.getTemplateDescriptions(projectTypeId);
         for (ProjectTemplateDescription description : descriptions) {
-            if (description.getId().equals(templateId))
-            {
+            if (description.getId().equals(templateId)) {
                 ImportSourceDescriptor importSourceDescriptor = DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
-                                            .withType("zip")
-                                            .withLocation(description.getLocation());
+                                                                          .withType("zip")
+                                                                          .withLocation(description.getLocation());
                 return projectService.importSource(workspace, name, importSourceDescriptor);
             }
         }
         return null;
     }
 
-    @GenerateLink(rel = Constants.LINK_REL_PROJECT_TEMPLATES)
+    @GenerateLink(rel = Constants.LINK_REL_GET_PROJECT_TEMPLATES)
     @GET
     @Path("get")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectTemplateDescriptor> getTemplates(@Required @Description("project type id") @QueryParam("projectTypeId") String id) {
-        List<ProjectTemplateDescription> descriptions = templateRegistry.getTemplateDescriptions(id);
+    public List<ProjectTemplateDescriptor> getTemplates(@Description("project type id") @QueryParam("projectTypeId") String projectTypeId) {
+        Map<String, List<ProjectTemplateDescription>> templatesMap = new HashMap<>();
+        if (projectTypeId != null) {
+            templatesMap.put(projectTypeId, templateRegistry.getTemplateDescriptions(projectTypeId));
+        } else {
+            for (ProjectType type : projectTypeRegistry.getRegisteredTypes()) {
+                templatesMap.put(type.getId(), templateRegistry.getTemplateDescriptions(type.getId()));
+            }
+        }
+
         List<ProjectTemplateDescriptor> result = new ArrayList<>();
-        for (ProjectTemplateDescription description : descriptions) {
-            result.add(DtoFactory.getInstance().createDto(ProjectTemplateDescriptor.class)
-                                 .withProjectTypeId(id)
-                                 .withTemplateId(description.getId())
-                                 .withTemplateTitle(description.getTitle())
-                                 .withTemplateDescription(description.getDescription())
-                                 .withTemplateLocation(description.getLocation()));
+        for (Map.Entry<String, List<ProjectTemplateDescription>> entry : templatesMap.entrySet()) {
+            for (ProjectTemplateDescription description : entry.getValue()) {
+                result.add(DtoFactory.getInstance().createDto(ProjectTemplateDescriptor.class)
+                                     .withProjectTypeId(entry.getKey())
+                                     .withTemplateId(description.getId())
+                                     .withTemplateTitle(description.getTitle())
+                                     .withTemplateDescription(description.getDescription())
+                                     .withTemplateLocation(description.getLocation()));
+            }
         }
         return result;
     }

@@ -19,7 +19,10 @@ package com.codenvy.api.account.server.dao;
 
 import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+
+import java.util.List;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.account.shared.dto.Account} data.
@@ -132,4 +135,22 @@ public interface AccountDao {
      * @throws AccountException
      */
     void removeSubscription(String subscriptionId) throws AccountException;
+
+    /**
+     * Gets list of existing in persistent layer subscriptions related to given account
+     *
+     * @param accountId
+     *         account id
+     * @return list of subscriptions
+     */
+    List<Subscription> getSubscriptions(String accountId);
+
+    /**
+     * Gets list of existing in persistent layer members related to given account
+     *
+     * @param accountId
+     *         account id
+     * @return list of members
+     */
+    List<Member> getMembers(String accountId);
 }

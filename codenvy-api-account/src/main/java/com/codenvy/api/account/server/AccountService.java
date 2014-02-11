@@ -60,7 +60,6 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * TODO
  * Account API
  *
  * @author Eugene Voevodin
@@ -173,7 +172,8 @@ public class AccountService extends Service {
         if (userDao.getById(userId) == null) {
             throw new UserNotFoundException(userId);
         }
-        accountDao.addMember(accountId, userId);
+        Member newMember = DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId).withUserId(userId);
+        accountDao.addMember(newMember  );
     }
 
     @GET

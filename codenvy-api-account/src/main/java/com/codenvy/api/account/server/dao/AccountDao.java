@@ -97,13 +97,11 @@ public interface AccountDao {
     /**
      * Adds new member to already present in persistent level account
      *
-     * @param accountId
-     *         account identifier
-     * @param userId
-     *         user identifier
+     * @param member
+     *         new member
      * @throws AccountException
      */
-    void addMember(String accountId, String userId) throws AccountException;
+    void addMember(Member member) throws AccountException;
 
     /**
      * Removes member from existing account

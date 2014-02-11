@@ -20,21 +20,9 @@ package com.codenvy.api.account.server.exception;
 /**
  * @author Eugene Voevodin
  */
-public class AccountNotFoundException extends AccountException {
+public class AccountIllegalAccessException extends AccountException {
 
-    private AccountNotFoundException(String message) {
-        super(message);
-    }
-
-    public static AccountNotFoundException doesNotExistWithId(String id) {
-        return new AccountNotFoundException(String.format("Account with identifier %s doesn't exist!", id));
-    }
-
-    public static AccountNotFoundException doesNotExistWithName(String name) {
-        return new AccountNotFoundException(String.format("Account with name %s doesn't exist!", name));
-    }
-
-    public static AccountNotFoundException doesNotExistWithOwner(String owner) {
-        return new AccountNotFoundException(String.format("Account which owner is %s doesn't exist!", owner));
+    public AccountIllegalAccessException(String identifier) {
+        super(String.format("Access to account %s denied", identifier));
     }
 }

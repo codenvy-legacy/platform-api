@@ -132,9 +132,11 @@ public interface AccountDao {
      *
      * @param serviceId
      *         service identifier
+     * @param accountId
+     *         account identifier
      * @throws AccountException
      */
-    void removeSubscription(String serviceId) throws AccountException;
+    void removeSubscription(String accountId, String serviceId) throws AccountException;
 
     /**
      * Gets list of existing in persistent layer subscriptions related to given account

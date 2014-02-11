@@ -130,11 +130,11 @@ public interface AccountDao {
     /**
      * Remove subscription related to existing account
      *
-     * @param subscriptionId
+     * @param serviceId
      *         service identifier
      * @throws AccountException
      */
-    void removeSubscription(String subscriptionId) throws AccountException;
+    void removeSubscription(String serviceId) throws AccountException;
 
     /**
      * Gets list of existing in persistent layer subscriptions related to given account
@@ -143,7 +143,7 @@ public interface AccountDao {
      *         account id
      * @return list of subscriptions
      */
-    List<Subscription> getSubscriptions(String accountId);
+    List<Subscription> getSubscriptions(String accountId) throws AccountException;
 
     /**
      * Gets list of existing in persistent layer members related to given account
@@ -152,5 +152,5 @@ public interface AccountDao {
      *         account id
      * @return list of members
      */
-    List<Member> getMembers(String accountId);
+    List<Member> getMembers(String accountId) throws AccountException;
 }

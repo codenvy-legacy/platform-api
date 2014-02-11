@@ -23,6 +23,7 @@ import com.codenvy.api.account.server.exception.AccountIllegalAccessException;
 import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.server.exception.AccountNotFoundException;
 import com.codenvy.api.account.server.exception.ServiceNotFoundException;
+import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -37,9 +38,6 @@ import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -69,7 +67,6 @@ import java.util.List;
  */
 @Path("/account")
 public class AccountService extends Service {
-    private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
 
     private final AccountDao accountDao;
     private final UserDao    userDao;
@@ -142,21 +139,12 @@ public class AccountService extends Service {
     public Account getByName(@Context SecurityContext securityContext,
                              @Required @Description("Account name to search") @QueryParam("name") String name)
             throws AccountException, UserException {
-        Account account = accountDao.getByName(name);
+        final Account account = accountDao.getByName(name);
         if (account == null) {
             throw AccountNotFoundException.doesNotExistWithName(name);
         }
         injectLinks(account, securityContext);
         return account;
-    }
-
-    @GET
-    @Path("members")
-    @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
-    @RolesAllowed({"account/owner"})
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<User> getMembers(@Context SecurityContext securityContext) throws UserException, AccountException {
-        return null;
     }
 
     @POST
@@ -188,6 +176,46 @@ public class AccountService extends Service {
         accountDao.addMember(accountId, userId);
     }
 
+    @GET
+    @Path("members")
+    @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
+    @RolesAllowed({"account/owner"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Member> getMembersOfCurrentAccount(@Context SecurityContext securityContext) throws UserException, AccountException {
+        final Principal principal = securityContext.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        if (current == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
+        final Account account = accountDao.getByOwner(current.getId());
+        if (account == null) {
+            throw AccountNotFoundException.doesNotExistWithOwner(current.getId());
+        }
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final List<Member> members = accountDao.getMembers(account.getId());
+        //injecting links
+        for (Member member : members) {
+            member.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
+                                                     uriBuilder.clone().path(getClass(), "removeMember")
+                                                               .build(account.getId(), member.getUserId()).toString())));
+        }
+        return accountDao.getMembers(account.getId());
+    }
+
+    @GET
+    @Path("{id}/members")
+    @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
+    @RolesAllowed({"system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Member> getMembersOfSpecificAccount(@PathParam("id") String id) throws AccountException, UserException {
+        if (accountDao.getById(id) == null) {
+            throw AccountNotFoundException.doesNotExistWithId(id);
+        }
+        final List<Member> members = accountDao.getMembers(id);
+        //todo inject links
+        return members;
+    }
+
     @DELETE
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_MEMBER)
@@ -196,10 +224,10 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public void removeMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
                              @PathParam("userid") String userid) throws AccountException, UserException {
-        final Account account = accountDao.getById(accountId);
-        if (account == null) {
+        if (accountDao.getById(accountId) == null) {
             throw AccountNotFoundException.doesNotExistWithId(accountId);
         }
+        //todo check user!?
         accountDao.removeMember(accountId, userid);
     }
 
@@ -225,23 +253,29 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed("account/owner")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfCurrentAccount(@Context SecurityContext securityContext) throws UserException {
+    public List<Subscription> getSubscriptionsOfCurrentAccount(@Context SecurityContext securityContext)
+            throws UserException, AccountException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        List<Subscription> subscriptions = null;
-        return subscriptions;
+        final Account account = accountDao.getByOwner(current.getId());
+        if (account == null) {
+            throw AccountNotFoundException.doesNotExistWithOwner(current.getId());
+        }
+        return accountDao.getSubscriptions(account.getId());
     }
 
     @GET
     @Path("{id}/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed({"system/admin", "system/manager"})
-    public List<Subscription> getSubscriptionsOfSpecificAccount(@PathParam("id") String id) {
-        List<Subscription> subscriptions = null;
-        return subscriptions;
+    public List<Subscription> getSubscriptionsOfSpecificAccount(@PathParam("id") String id) throws AccountException {
+        if (accountDao.getById(id) == null) {
+            throw AccountNotFoundException.doesNotExistWithId(id);
+        }
+        return accountDao.getSubscriptions(id);
     }
 
     @POST
@@ -249,8 +283,7 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
     public void addSubscription(@PathParam("id") String id, Subscription subscription) throws AccountException {
-        final Account account = accountDao.getById(id);
-        if (account == null) {
+        if (accountDao.getById(id) == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }
         if (registry.get(subscription.getServiceId()) == null) {
@@ -273,37 +306,10 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ACCOUNT)
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws AccountException {
-        final Account account = accountDao.getById(id);
-        if (account == null) {
+        if (accountDao.getById(id) == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }
         accountDao.remove(id);
-    }
-
-    @GET
-    @Path("{id}/members")
-    @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
-    @RolesAllowed({"system/admin", "system/manager"})
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<User> getMembersOfSpecificAccount(@PathParam("id") String id) throws AccountException, UserException {
-//        final Account account = accountDao.getById(id);
-//        if (account == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(id);
-//        }
-//        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-//        final List<User> members = new ArrayList<>(memberIdentifiers.size());
-//        for (String userid : memberIdentifiers) {
-//            User member = userDao.getById(userid);
-//            if (member == null) {
-//                LOG.error(String.format("User with id %s is account member, but he doesn't exist!", userid));
-//                continue;
-//            }
-//            member.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
-//                                                     uriBuilder.clone().path(getClass(), "removeMember").build(account.getId(), userid)
-//                                                               .toString())));
-//            members.add(member);
-//        }
-        return null;
     }
 
     private void injectLinks(Account account, SecurityContext securityContext) {
@@ -320,7 +326,7 @@ public class AccountService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentAccount").build().toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getMembers").build().toString()));
+                                 uriBuilder.clone().path(getClass(), "getMembersOfCurrentAccount").build().toString()));
         }
         if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
             securityContext.isUserInRole("system/manager")) {

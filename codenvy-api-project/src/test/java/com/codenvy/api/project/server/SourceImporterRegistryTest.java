@@ -17,13 +17,11 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.server.exceptions.SourceImporterNotFoundException;
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
-import org.junit.Test;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,22 +29,21 @@ import java.util.Collections;
 /**
  * @author Vitaly Parfonov
  */
-public class SourceImporterExtensionRegistryTest {
+public class SourceImporterRegistryTest {
 
-    private SourceImporterExtensionRegistry importers;
+    private SourceImporterRegistry importers;
 
     @Before
     public void setUp() {
-        importers = new SourceImporterExtensionRegistry(Collections.<SourceImporterExtension>emptySet());
-        importers.register(new SourceImporterExtension() {
+        importers = new SourceImporterRegistry(Collections.<SourceImporter>emptySet());
+        importers.register(new SourceImporter() {
             @Override
             public String getType() {
                 return "my_importer";
             }
 
             @Override
-            public void importSource(String workspace, String projectName, ImportSourceDescriptor importSourceDescriptor)
-                    throws IOException, VirtualFileSystemException {
+            public void importSource(String workspace, String projectName, String location) throws IOException, VirtualFileSystemException {
             }
         });
     }
@@ -55,16 +52,14 @@ public class SourceImporterExtensionRegistryTest {
     public void testRegister() throws Exception {
         Assert.assertNotNull(importers.getImporterTypes());
         Assert.assertEquals(importers.getImporterTypes().size(), 1);
-        importers.register(new SourceImporterExtension() {
+        importers.register(new SourceImporter() {
             @Override
             public String getType() {
                 return "new_importer";
             }
 
             @Override
-            public void importSource(String workspace, String projectName, ImportSourceDescriptor importSourceDescriptor)
-                    throws IOException, VirtualFileSystemException {
-
+            public void importSource(String workspace, String projectName, String location) throws IOException, VirtualFileSystemException {
             }
         });
     }
@@ -76,7 +71,7 @@ public class SourceImporterExtensionRegistryTest {
         Assert.assertEquals(importers.getImporter("my_importer").getType(), "my_importer");
     }
 
-    @Test(expected=SourceImporterNotFoundException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testGetImportNotExist() throws Exception {
         Assert.assertNotNull(importers.getImporterTypes());
         importers.getImporter("not_exist");

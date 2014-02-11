@@ -20,13 +20,11 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.user.User;
 import com.codenvy.api.core.user.UserImpl;
 import com.codenvy.api.core.user.UserState;
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.commons.lang.NameGenerator;
-import com.codenvy.dto.server.DtoFactory;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,29 +35,26 @@ import java.util.Arrays;
 /**
  * @author Vitaly Parfonov
  */
-public class ZipSourceImporterExtensionTest {
+public class ZipSourceImporterTest {
 
     private static final String MY_WORKSPACE_ID = "ws";
-    private SourceImporterExtension   importer;
-    private MemoryFileSystemProvider  fileSystemProvider;
+    private SourceImporter           importer;
+    private MemoryFileSystemProvider fileSystemProvider;
     protected static VirtualFileSystemRegistry virtualFileSystemRegistry = new VirtualFileSystemRegistry();
 
     @Before
     public void setUp() throws VirtualFileSystemException {
         fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID);
         virtualFileSystemRegistry.registerProvider(MY_WORKSPACE_ID, fileSystemProvider);
-        importer = new ZipSourceImporterExtension(virtualFileSystemRegistry);
+        importer = new ZipSourceImporter(virtualFileSystemRegistry);
         User user = new UserImpl("john", Arrays.asList("developer"));
         UserState.set(new UserState(user));
     }
 
-
     @Test
     public void testImportSource() throws Exception {
-        ImportSourceDescriptor zip = DtoFactory.getInstance().createDto(ImportSourceDescriptor.class).withType("zip").withLocation(
-                "Simple_spring.zip");
         String name = NameGenerator.generate("", 10);
-        importer.importSource(MY_WORKSPACE_ID, name, zip);
+        importer.importSource(MY_WORKSPACE_ID, name, "Simple_spring.zip");
         VirtualFile project = fileSystemProvider.getMountPoint(true).getVirtualFile(name);
         Assert.assertTrue(project.isProject());
         Assert.assertNotNull(project.getChild("pom.xml"));

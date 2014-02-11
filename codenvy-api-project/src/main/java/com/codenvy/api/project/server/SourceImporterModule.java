@@ -15,17 +15,18 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.server;
 
-import java.util.List;
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
-/**
- * ProjectTypeExtension
- *
- * @author gazarenkov
- */
-public interface ProjectTypeExtension {
-    ProjectType getProjectType();
-
-    List<Attribute> getPredefinedAttributes();
+/** @author Artem Zatsarynnyy */
+@DynaModule
+public class SourceImporterModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        Multibinder<SourceImporter> multiBinder = Multibinder.newSetBinder(binder(), SourceImporter.class);
+        multiBinder.addBinding().to(ZipSourceImporter.class);
+    }
 }

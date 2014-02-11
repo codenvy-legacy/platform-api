@@ -17,35 +17,43 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.ProjectTemplateDescription;
-import com.codenvy.api.project.shared.ProjectTemplateExtension;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** @author Vitaly Parfonov */
+/**
+ * @author Vitaly Parfonov
+ */
 @Singleton
-public class ProjectTemplateRegistry {
+public class SourceImporterRegistry {
 
-    private final Map<String, List<ProjectTemplateDescription>> descriptions;
+    private final Map<String, SourceImporter> importers;
 
     @Inject
-    public ProjectTemplateRegistry() {
-        this.descriptions = new ConcurrentHashMap<>();
-    }
-
-    public void register(ProjectTemplateExtension extension) {
-        if (descriptions.get(extension.getProjectType().getId()) != null) {
-            descriptions.get(extension.getProjectType().getId()).addAll(extension.getTemplateDescriptions());
-        } else {
-            descriptions.put(extension.getProjectType().getId(), extension.getTemplateDescriptions());
+    public SourceImporterRegistry(Set<SourceImporter> importers) {
+        this.importers = new ConcurrentHashMap<>();
+        for (SourceImporter importer : importers) {
+            register(importer);
         }
     }
 
-    public List<ProjectTemplateDescription> getTemplateDescriptions(String projectTypeId) {
-        return descriptions.get(projectTypeId);
+    public void register(SourceImporter importer) {
+        importers.put(importer.getType(), importer);
+    }
+
+    public SourceImporter getImporter(String type) {
+        final SourceImporter importer = importers.get(type);
+        if (importer == null) {
+            throw new IllegalArgumentException(String.format("%s source importer not registered in the system", type));
+        }
+        return importer;
+    }
+
+    public List<String> getImporterTypes() {
+        return new ArrayList<>(importers.keySet());
     }
 }

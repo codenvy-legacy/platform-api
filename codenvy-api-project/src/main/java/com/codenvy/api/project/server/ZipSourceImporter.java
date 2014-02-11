@@ -17,21 +17,16 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.sun.nio.zipfs.ZipPath;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
@@ -39,13 +34,12 @@ import java.nio.file.StandardOpenOption;
  * @author Vitaly Parfonov
  */
 @Singleton
-public class ZipSourceImporterExtension implements SourceImporterExtension {
+public class ZipSourceImporter implements SourceImporter {
 
-
-    private VirtualFileSystemRegistry vfsRegistry;
+    private final VirtualFileSystemRegistry vfsRegistry;
 
     @Inject
-    public ZipSourceImporterExtension(VirtualFileSystemRegistry vfsRegistry) {
+    public ZipSourceImporter(VirtualFileSystemRegistry vfsRegistry) {
         this.vfsRegistry = vfsRegistry;
     }
 
@@ -55,19 +49,23 @@ public class ZipSourceImporterExtension implements SourceImporterExtension {
     }
 
     @Override
-    public void importSource(String workspace, String projectName, ImportSourceDescriptor importSourceDescriptor)
-            throws IOException, VirtualFileSystemException {
+    public void importSource(String workspace, String projectName, String location) throws IOException, VirtualFileSystemException {
         MountPoint mountPoint = vfsRegistry.getProvider(workspace).getMountPoint(true);
         VirtualFile projectFolder = mountPoint.getRoot().getChild(projectName);
-        String location = importSourceDescriptor.getLocation();
-        if (projectFolder == null)
+        if (projectFolder == null) {
             projectFolder = mountPoint.getRoot().createFolder(projectName);
-        InputStream templateStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
-        if (templateStream == null) {
-            templateStream = Files.newInputStream(Paths.get(location), StandardOpenOption.READ);
         }
-        if (templateStream == null)
-            throw new InvalidArgumentException("Can't find " + location);
-        projectFolder.unzip(templateStream, true);
+        InputStream zip = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
+        if (zip == null) {
+            zip = Files.newInputStream(Paths.get(location), StandardOpenOption.READ);
+        }
+        if (zip == null) {
+            throw new IOException(String.format("Can't find %s", location));
+        }
+        try {
+            projectFolder.unzip(zip, true);
+        } finally {
+            zip.close();
+        }
     }
 }

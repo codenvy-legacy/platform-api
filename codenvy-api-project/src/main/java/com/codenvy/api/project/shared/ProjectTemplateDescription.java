@@ -24,25 +24,25 @@ package com.codenvy.api.project.shared;
  */
 public class ProjectTemplateDescription {
 
-    private final String id;
+    private final String importerType;
     private final String title;
     private final String description;
     private final String location;
 
-    public ProjectTemplateDescription(String id, String title, String description, String location) {
-        this.id = id;
+    public ProjectTemplateDescription(String importerType, String title, String description, String location) {
+        this.importerType = importerType;
         this.title = title;
         this.description = description;
         this.location = location;
     }
 
-    /** @return project template ID supposed to be unique within IDE */
-    public String getId() {
-        return id;
+    /** Get type of "importer" that can recognize sources template sources located at specified {@code location}. */
+    public String getImporterType() {
+        return importerType;
     }
 
-    /** @return project temple title */
-    public String getTitle() {
+    /** @return project template display name */
+    public String getDisplayName() {
         return title;
     }
 
@@ -59,7 +59,7 @@ public class ProjectTemplateDescription {
     @Override
     public String toString() {
         return "ProjectTemplateDescription{" +
-               "id='" + id + '\'' +
+               "importerType='" + importerType + '\'' +
                ", title='" + title + '\'' +
                ", description='" + description + '\'' +
                ", location='" + location + '\'' +

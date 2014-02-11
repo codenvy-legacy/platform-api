@@ -17,8 +17,10 @@
  */
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -53,4 +55,10 @@ public interface Subscription {
     void setProperties(Map<String, String> properties);
 
     Subscription withProperties(Map<String, String> properties);
+
+    void setLinks(List<Link> links);
+
+    List<Link> getLinks();
+
+    Subscription withLinks(List<Link> links);
 }

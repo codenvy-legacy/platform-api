@@ -211,8 +211,13 @@ public class AccountService extends Service {
         if (accountDao.getById(id) == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Member> members = accountDao.getMembers(id);
-        //todo inject links
+        for (Member member : members) {
+            member.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
+                                                     uriBuilder.clone().path(getClass(), "removeMember")
+                                                               .build(id, member.getUserId()).toString())));
+        }
         return members;
     }
 
@@ -227,7 +232,6 @@ public class AccountService extends Service {
         if (accountDao.getById(accountId) == null) {
             throw AccountNotFoundException.doesNotExistWithId(accountId);
         }
-        //todo check user!?
         accountDao.removeMember(accountId, userid);
     }
 
@@ -239,12 +243,16 @@ public class AccountService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     public Account update(@PathParam("id") String id, @Required @Description("Account to update") Account accountToUpdate)
             throws AccountException {
-        Account actual = accountDao.getById(id);
+        final Account actual = accountDao.getById(id);
         if (actual == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }
+        if (!actual.getOwner().equals(accountToUpdate.getOwner()) && accountDao.getByOwner(accountToUpdate.getOwner()) != null) {
+            throw new AccountException(String.format("Account which owner is %s already exists!", accountToUpdate.getOwner()));
+        }
         accountToUpdate.setId(id);
-        //todo append attributes
+        accountDao.update(accountToUpdate);
+        //todo append attributes!?
         return actual;
     }
 
@@ -264,7 +272,14 @@ public class AccountService extends Service {
         if (account == null) {
             throw AccountNotFoundException.doesNotExistWithOwner(current.getId());
         }
-        return accountDao.getSubscriptions(account.getId());
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final List<Subscription> subscriptions = accountDao.getSubscriptions(account.getId());
+        for (Subscription subscription : subscriptions) {
+            subscription.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
+                                                           uriBuilder.clone().path(getClass(), "removeSubscription")
+                                                                     .build(account.getId(), subscription.getServiceId()).toString())));
+        }
+        return subscriptions;
     }
 
     @GET
@@ -275,7 +290,14 @@ public class AccountService extends Service {
         if (accountDao.getById(id) == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }
-        return accountDao.getSubscriptions(id);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final List<Subscription> subscriptions = accountDao.getSubscriptions(id);
+        for (Subscription subscription : subscriptions) {
+            subscription.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
+                                                           uriBuilder.clone().path(getClass(), "removeSubscription")
+                                                                     .build(id, subscription.getServiceId()).toString())));
+        }
+        return subscriptions;
     }
 
     @POST
@@ -293,12 +315,12 @@ public class AccountService extends Service {
     }
 
     @DELETE
-    @Path("subscriptions/{subscription}")
+    @Path("{id}/subscriptions/{subscription}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
-    public void removeSubscription(@PathParam("subscription") String subscriptionId)
+    public void removeSubscription(@PathParam("subscription") String subscriptionId, @PathParam("id") String accountId)
             throws AccountException {
-        accountDao.removeSubscription(subscriptionId);
+        accountDao.removeSubscription(accountId, subscriptionId);
     }
 
     @DELETE

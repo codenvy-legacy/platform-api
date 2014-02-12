@@ -17,15 +17,15 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.user.User;
-import com.codenvy.api.core.user.UserImpl;
-import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.commons.user.User;
+import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.junit.Assert;
@@ -49,8 +49,8 @@ public class ZipSourceImporterExtensionTest {
         fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID);
         virtualFileSystemRegistry.registerProvider(MY_WORKSPACE_ID, fileSystemProvider);
         importer = new ZipSourceImporterExtension(virtualFileSystemRegistry);
-        User user = new UserImpl("john", Arrays.asList("developer"));
-        UserState.set(new UserState(user));
+        User user = new UserImpl("john", null, Arrays.asList("developer"));
+        EnvironmentContext.getCurrent().setUser(user);
     }
 
 

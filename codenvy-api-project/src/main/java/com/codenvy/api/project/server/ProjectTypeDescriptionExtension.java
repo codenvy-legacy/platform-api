@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -17,12 +17,18 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.ValueProvider;
-import com.codenvy.api.vfs.server.VirtualFileSystem;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.shared.dto.Project;
+import com.codenvy.api.project.shared.AttributeDescription;
+import com.codenvy.api.project.shared.ProjectType;
 
-/** @author andrew00x */
-public interface PersistentValueProvider  extends ValueProvider {
-    void store(Project project, VirtualFileSystem vfs) throws VirtualFileSystemException;
+import java.util.List;
+
+/**
+ * ProjectDescriptionExtension
+ *
+ * @author gazarenkov
+ */
+public interface ProjectTypeDescriptionExtension {
+    List<ProjectType> getProjectTypes();
+
+    List<AttributeDescription> getAttributeDescriptions();
 }

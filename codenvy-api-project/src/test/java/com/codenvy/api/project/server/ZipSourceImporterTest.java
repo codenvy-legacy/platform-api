@@ -37,29 +37,26 @@ import java.util.Arrays;
 /**
  * @author Vitaly Parfonov
  */
-public class ZipSourceImporterExtensionTest {
+public class ZipSourceImporterTest {
 
     private static final String MY_WORKSPACE_ID = "ws";
-    private SourceImporterExtension   importer;
-    private MemoryFileSystemProvider  fileSystemProvider;
+    private SourceImporter           importer;
+    private MemoryFileSystemProvider fileSystemProvider;
     protected static VirtualFileSystemRegistry virtualFileSystemRegistry = new VirtualFileSystemRegistry();
 
     @Before
     public void setUp() throws VirtualFileSystemException {
         fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID);
         virtualFileSystemRegistry.registerProvider(MY_WORKSPACE_ID, fileSystemProvider);
-        importer = new ZipSourceImporterExtension(virtualFileSystemRegistry);
+        importer = new ZipSourceImporter(virtualFileSystemRegistry);
         User user = new UserImpl("john", null, Arrays.asList("developer"));
         EnvironmentContext.getCurrent().setUser(user);
     }
 
-
     @Test
     public void testImportSource() throws Exception {
-        ImportSourceDescriptor zip = DtoFactory.getInstance().createDto(ImportSourceDescriptor.class).withType("zip").withLocation(
-                "Simple_spring.zip");
         String name = NameGenerator.generate("", 10);
-        importer.importSource(MY_WORKSPACE_ID, name, zip);
+        importer.importSource(MY_WORKSPACE_ID, name, "Simple_spring.zip");
         VirtualFile project = fileSystemProvider.getMountPoint(true).getVirtualFile(name);
         Assert.assertTrue(project.isProject());
         Assert.assertNotNull(project.getChild("pom.xml"));

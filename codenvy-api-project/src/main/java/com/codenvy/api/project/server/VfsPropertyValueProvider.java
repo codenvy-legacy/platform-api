@@ -18,17 +18,11 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.DefaultValueProvider;
-import com.codenvy.api.vfs.server.VirtualFileSystem;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.shared.dto.Project;
-import com.codenvy.api.vfs.shared.dto.Property;
-import com.codenvy.dto.server.DtoFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /** @author andrew00x */
-public class VfsPropertyValueProvider extends DefaultValueProvider implements PersistentValueProvider {
+public class VfsPropertyValueProvider extends DefaultValueProvider {
     private final String propertyName;
 
     public VfsPropertyValueProvider(String propertyName, List<String> values) {
@@ -50,10 +44,7 @@ public class VfsPropertyValueProvider extends DefaultValueProvider implements Pe
         this.propertyName = propertyName;
     }
 
-    @Override
-    public void store(Project project, VirtualFileSystem vfs) throws VirtualFileSystemException {
-        final List<Property> properties = new ArrayList<>(1);
-        properties.add(DtoFactory.getInstance().createDto(Property.class).withName(propertyName).withValue(getValues()));
-        vfs.updateItem(project.getId(), properties, null);
+    public String getPropertyName() {
+        return propertyName;
     }
 }

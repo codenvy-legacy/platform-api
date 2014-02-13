@@ -21,7 +21,6 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.project.server.exceptions.SourceImporterNotFoundException;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
@@ -60,14 +59,14 @@ public class ProjectService extends Service {
     private VirtualFileSystemRegistry registry;
 
     @Inject
-    private SourceImporterExtensionRegistry sourceImporters;
+    private SourceImporterRegistry    sourceImporters;
     @Inject
     @Nullable
-    private EventListenerList               listeners;
+    private EventListenerList         listeners;
     @Inject
-    private ProjectDescriptionFactory       projectDescriptionFactory;
+    private ProjectDescriptionFactory projectDescriptionFactory;
     @Context
-    private UriInfo                         uriInfo;
+    private UriInfo                   uriInfo;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECT)
     @GET
@@ -148,24 +147,20 @@ public class ProjectService extends Service {
         return registry.getProvider(workspace).newInstance(uriInfo.getBaseUri(), listeners);
     }
 
+    @GenerateLink(rel = Constants.LINK_REL_IMPORT_PROJECT)
     @Path("import")
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor importSource(@PathParam("ws-id") String workspace,
                                           @Required @Description("project name") @QueryParam("projectName") String projectName,
                                           ImportSourceDescriptor importSourceDescriptor)
-            throws VirtualFileSystemException, IOException, SourceImporterNotFoundException {
-        final String type = importSourceDescriptor.getType();
-        SourceImporterExtension importExtension = sourceImporters.getImporter(type);
-        importExtension.importSource(workspace, projectName, importSourceDescriptor);
-
+            throws VirtualFileSystemException, IOException {
+        sourceImporters.getImporter(importSourceDescriptor.getType())
+                       .importSource(workspace, projectName, importSourceDescriptor.getLocation());
         final VirtualFileSystem fileSystem = getVirtualFileSystem(workspace);
         final Item item = fileSystem.getItemByPath(projectName, null, false);
         if (ItemType.PROJECT == item.getItemType()) {
-            final Project project = (Project)item;
-            final PersistentProjectDescription description = projectDescriptionFactory.getDescription(project);
-            description.store(project, fileSystem);
-            return description.getDescriptor();
+            return projectDescriptionFactory.getDescription((Project)item).getDescriptor();
         }
         throw new ItemNotFoundException(String.format("Project '%s' does not exists in workspace. ", projectName));
     }
@@ -176,5 +171,4 @@ public class ProjectService extends Service {
     public List<String> getImporters(){
         return sourceImporters.getImporterTypes();
     }
-
 }

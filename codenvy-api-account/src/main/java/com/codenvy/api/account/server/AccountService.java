@@ -19,10 +19,12 @@ package com.codenvy.api.account.server;
 
 
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.exception.AccountAlreadyExistsException;
 import com.codenvy.api.account.server.exception.AccountIllegalAccessException;
 import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.server.exception.AccountNotFoundException;
 import com.codenvy.api.account.server.exception.ServiceNotFoundException;
+import com.codenvy.api.account.server.exception.SubscriptionNotFoundException;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
@@ -86,14 +88,20 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("New account") Account newAccount)
             throws AccountException, UserException {
-        String accountId = NameGenerator.generate(Account.class.getSimpleName(), Constants.ID_LENGTH);
-        newAccount.setId(accountId);
         final Principal principal = securityContext.getUserPrincipal();
-        //account should have owner
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
+        if (accountDao.getByOwner(current.getId()) != null) {
+            throw AccountAlreadyExistsException.existsWithOwner(current.getId());
+        }
+        if (accountDao.getByName(newAccount.getName()) != null) {
+            throw AccountAlreadyExistsException.existsWithName(newAccount.getName());
+        }
+        String accountId = NameGenerator.generate(Account.class.getSimpleName(), Constants.ID_LENGTH);
+        newAccount.setId(accountId);
+        //account should have owner
         accountDao.create(newAccount);
         injectLinks(newAccount, securityContext);
         return Response.status(Response.Status.CREATED).entity(newAccount).build();
@@ -132,6 +140,7 @@ public class AccountService extends Service {
     }
 
     @GET
+    @Path("find")
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_NAME)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
@@ -259,7 +268,10 @@ public class AccountService extends Service {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }
         if (!actual.getOwner().equals(accountToUpdate.getOwner()) && accountDao.getByOwner(accountToUpdate.getOwner()) != null) {
-            throw new AccountException(String.format("Account which owner is %s already exists!", accountToUpdate.getOwner()));
+            throw AccountAlreadyExistsException.existsWithOwner(accountToUpdate.getOwner());
+        }
+        if (!actual.getName().equals(accountToUpdate.getName()) && accountDao.getByName(accountToUpdate.getName()) != null) {
+            throw AccountAlreadyExistsException.existsWithName(accountToUpdate.getName());
         }
         accountToUpdate.setId(id);
         accountDao.update(accountToUpdate);
@@ -290,6 +302,7 @@ public class AccountService extends Service {
     @Path("{id}/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed({"system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
     public List<Subscription> getSubscriptionsOfSpecificAccount(@PathParam("id") String id) throws AccountException {
         if (accountDao.getById(id) == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
@@ -312,19 +325,38 @@ public class AccountService extends Service {
         if (accountDao.getById(id) == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }
-        if (registry.get(subscription.getServiceId()) == null) {
+        SubscriptionService service = registry.get(subscription.getServiceId());
+        if (service == null) {
             throw new ServiceNotFoundException(subscription.getServiceId());
         }
         accountDao.addSubscription(subscription, id);
+        service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
     }
 
     @DELETE
     @Path("{id}/subscriptions/{serviceid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
-    public void removeSubscription(@PathParam("serviceid") String subscriptionId, @PathParam("id") String accountId)
+    public void removeSubscription(@PathParam("serviceid") String serviceId, @PathParam("id") String accountId)
             throws AccountException {
-        accountDao.removeSubscription(accountId, subscriptionId);
+        SubscriptionService service = registry.get(serviceId);
+        if (service == null) {
+            throw new ServiceNotFoundException(serviceId);
+        }
+        List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
+        Subscription needed = null;
+        for (Subscription subscription : subscriptions) {
+            if (subscription.getServiceId().equals(serviceId)) {
+                needed = subscription;
+                break;
+            }
+        }
+        if (needed != null) {
+            accountDao.removeSubscription(accountId, serviceId);
+            service.notifyHandlers(new SubscriptionEvent(needed, SubscriptionEvent.EventType.REMOVE));
+        } else {
+            throw new SubscriptionNotFoundException(serviceId);
+        }
     }
 
     @DELETE
@@ -342,6 +374,8 @@ public class AccountService extends Service {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("account/owner")) {
+            links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_ACCOUNT, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_ACCOUNT, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "update").build(account.getId()).toString())
                               .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
@@ -353,8 +387,7 @@ public class AccountService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembersOfCurrentAccount").build().toString()));
         }
-        if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
-            securityContext.isUserInRole("system/manager")) {
+        if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(account.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_NAME, null, MediaType.APPLICATION_JSON,

@@ -29,13 +29,12 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 
 /**
@@ -47,8 +46,7 @@ import java.util.regex.Pattern;
 @Singleton
 public class AnalyticsService extends Service {
 
-    private static final Logger  LOG                      = LoggerFactory.getLogger(AnalyticsService.class);
-    private static final Pattern ADMIN_ROLE_EMAIL_PATTERN = Pattern.compile("@codenvy[.]com$");
+    private static final Logger LOG = LoggerFactory.getLogger(AnalyticsService.class);
 
     @Inject
     private MetricHandler metricHandler;
@@ -57,13 +55,17 @@ public class AnalyticsService extends Service {
     @GET
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed(value = {"user"})
     public Response getValue(@PathParam("name") String metricName,
                              @QueryParam("page") String page,
                              @QueryParam("per_page") String perPage,
                              @Context UriInfo uriInfo,
                              @Context SecurityContext securityContext) {
         try {
+            MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
+            if (!isRolesAllowed(metricInfoDTO, securityContext)) {
+                return Response.status(Response.Status.UNAUTHORIZED).build();
+            }
+
             Map<String, String> metricContext = Utils.extractContext(uriInfo, page, perPage);
 
             String user = securityContext.getUserPrincipal().getName();
@@ -86,9 +88,15 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo/{name}")
-    public Response getInfo(@PathParam("name") String metricName, @Context UriInfo uriInfo) {
+    public Response getInfo(@PathParam("name") String metricName,
+                            @Context UriInfo uriInfo,
+                            @Context SecurityContext securityContext) {
         try {
             MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
+            if (!isRolesAllowed(metricInfoDTO, securityContext)) {
+                return Response.status(Response.Status.UNAUTHORIZED).build();
+            }
+
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
         } catch (MetricNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -101,13 +109,32 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo")
-    public Response getAllInfo(@Context UriInfo uriInfo) {
+    public Response getAllInfo(@Context UriInfo uriInfo,
+                               @Context SecurityContext securityContext) {
         try {
             MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(uriInfo);
+
+            Iterator<MetricInfoDTO> iterator = metricInfoListDTO.getMetrics().iterator();
+            while (iterator.hasNext()) {
+                if (!isRolesAllowed(iterator.next(), securityContext)) {
+                    iterator.remove();
+                }
+            }
+
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
+    }
+
+    private boolean isRolesAllowed(MetricInfoDTO metricInfoDTO, SecurityContext securityContext) {
+        for (String role : metricInfoDTO.getRolesAllowed()) {
+            if (securityContext.isUserInRole(role)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -44,5 +44,9 @@ public interface MetricInfoDTO {
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
+
+    List<String> getRolesAllowed();
+
+    void setRolesAllowed(List<String> rolesAllowed);
 }
 

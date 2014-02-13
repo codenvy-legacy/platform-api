@@ -17,14 +17,18 @@
  */
 package com.codenvy.api.account;
 
+import javassist.compiler.MemberCodeGen;
 import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.AccountService;
 import com.codenvy.api.account.server.Constants;
+import com.codenvy.api.account.server.SubscriptionEvent;
 import com.codenvy.api.account.server.SubscriptionService;
 import com.codenvy.api.account.server.SubscriptionServiceRegistry;
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -65,6 +69,7 @@ import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -72,7 +77,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
 
 /**
- * TODO
  * Tests for Account Service
  *
  * @author Eugene Voevodin
@@ -254,6 +258,94 @@ public class AccountServiceTest {
                 makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(accountDao, times(1)).addSubscription(any(Subscription.class), eq(ACCOUNT_ID));
+        verify(serviceRegistry, times(1)).get(SERVICE_ID);
+        verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldBeAbleToRemoveSubscription() throws Exception {
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(accountDao.getSubscriptions(ACCOUNT_ID)).thenReturn(Arrays.asList(
+                DtoFactory.getInstance().createDto(Subscription.class).withStartDate("22-12-13").withEndDate("22-01-13")
+                          .withServiceId(SERVICE_ID).withProperties(Collections.EMPTY_MAP)));
+
+        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/" + SERVICE_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(serviceRegistry, times(1)).get(SERVICE_ID);
+        verify(accountDao, times(1)).removeSubscription(ACCOUNT_ID, SERVICE_ID);
+        verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldBeAbleToGetMembersOfCurrentAccount() throws Exception {
+        when(accountDao.getByOwner(USER_ID)).thenReturn(account);
+        when(accountDao.getMembers(account.getId()))
+                .thenReturn(Arrays.asList(
+                        DtoFactory.getInstance().createDto(Member.class).withRoles(Collections.EMPTY_LIST).withUserId(USER_ID)
+                                  .withAccountId(account.getId())));
+
+        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/members", null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        verify(accountDao, times(1)).getMembers(account.getId());
+        List<Member> members = (List<Member>)response.getEntity();
+        assertEquals(members.size(), 1);
+        Member member = members.get(0);
+        assertEquals(member.getLinks().size(), 1);
+        Link removeMember = members.get(0).getLinks().get(0);
+        assertEquals(removeMember, DtoFactory.getInstance().createDto(Link.class)
+                                             .withRel(Constants.LINK_REL_REMOVE_MEMBER)
+                                             .withHref(SERVICE_PATH + "/" + member.getAccountId() + "/members/" + member.getUserId())
+                                             .withMethod("DELETE"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldBeAbleToGetMembersOfSpecificAccount() throws Exception {
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
+        when(accountDao.getMembers(account.getId()))
+                .thenReturn(Arrays.asList(
+                        DtoFactory.getInstance().createDto(Member.class).withRoles(Collections.EMPTY_LIST).withUserId(USER_ID)
+                                  .withAccountId(account.getId())));
+
+        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + account.getId() + "/members", null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        verify(accountDao, times(1)).getMembers(account.getId());
+        List<Member> members = (List<Member>)response.getEntity();
+        assertEquals(members.size(), 1);
+        Member member = members.get(0);
+        assertEquals(member.getLinks().size(), 1);
+        Link removeMember = members.get(0).getLinks().get(0);
+        assertEquals(removeMember, DtoFactory.getInstance().createDto(Link.class)
+                                             .withRel(Constants.LINK_REL_REMOVE_MEMBER)
+                                             .withHref(SERVICE_PATH + "/" + member.getAccountId() + "/members/" + member.getUserId())
+                                             .withMethod("DELETE"));
+    }
+
+    @Test
+    public void shouldBeAbleToAddMember() throws Exception {
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
+
+        ContainerResponse response =
+                makeRequest("POST", SERVICE_PATH + "/" + account.getId() + "/members?userid=" + USER_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(accountDao, times(1)).addMember(any(Member.class));
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveMember() throws Exception {
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
+
+        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(accountDao, times(1)).removeMember(ACCOUNT_ID, USER_ID);
     }
 
     protected void verifyLinksRel(List<Link> links, List<String> rels) {

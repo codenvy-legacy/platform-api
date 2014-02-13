@@ -69,16 +69,15 @@ import java.util.List;
 @Path("/account")
 public class AccountService extends Service {
 
-    private final AccountDao accountDao;
-    private final UserDao    userDao;
+    private final AccountDao                  accountDao;
+    private final UserDao                     userDao;
+    private final SubscriptionServiceRegistry registry;
 
     @Inject
-    private SubscriptionServiceRegistry registry;
-
-    @Inject
-    public AccountService(AccountDao accountDao, UserDao userDao) {
+    public AccountService(AccountDao accountDao, UserDao userDao, SubscriptionServiceRegistry registry) {
         this.accountDao = accountDao;
         this.userDao = userDao;
+        this.registry = registry;
     }
 
     @POST
@@ -86,7 +85,7 @@ public class AccountService extends Service {
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext, @Required @Description("New account") Account newAccount)
+    public Response create(@Context SecurityContext securityContext, @Required @Description("Account to create") Account newAccount)
             throws AccountException, UserException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
@@ -162,7 +161,7 @@ public class AccountService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public void addMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
-                          @Required @Description("New account member") @QueryParam("userid") String userId)
+                          @Required @Description("User id to be a new account member") @QueryParam("userid") String userId)
             throws UserException, AccountException {
         final Account account = accountDao.getById(accountId);
         if (account == null) {
@@ -208,7 +207,7 @@ public class AccountService extends Service {
                                                      uriBuilder.clone().path(getClass(), "removeMember")
                                                                .build(account.getId(), member.getUserId()).toString())));
         }
-        return accountDao.getMembers(account.getId());
+        return members;
     }
 
     @GET

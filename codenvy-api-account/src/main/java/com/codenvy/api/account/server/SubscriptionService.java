@@ -30,7 +30,7 @@ public abstract class SubscriptionService {
 
     private final List<SubscriptionHandler> handlers;
     private final String                    serviceId;
-    private       String                    displayName;
+    private final String                    displayName;
 
 
     public SubscriptionService(String serviceId, String displayName) {

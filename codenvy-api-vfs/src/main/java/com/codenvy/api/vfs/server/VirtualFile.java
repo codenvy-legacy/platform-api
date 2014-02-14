@@ -27,6 +27,7 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +35,7 @@ import java.util.Set;
 /**
  * Item of Virtual Filesystem.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface VirtualFile extends Comparable<VirtualFile> {
     /**
@@ -128,15 +129,15 @@ public interface VirtualFile extends Comparable<VirtualFile> {
     /**
      * Get child by name. If this VirtualFile is not folder this method returns <code>null</code>.
      *
-     * @param name
-     *         child item name
+     * @param path
+     *         child item path
      * @return child
      * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
      *         if current user has not read permission to the child
      * @throws VirtualFileSystemException
      *         if other error occurs
      */
-    VirtualFile getChild(String name) throws VirtualFileSystemException;
+    VirtualFile getChild(String path) throws VirtualFileSystemException;
 
     /**
      * Get content of the file.
@@ -163,10 +164,21 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      * @throws com.codenvy.api.vfs.server.exceptions.LockException
      *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does not matched
      * @throws VirtualFileSystemException
-     *         if this VirtualFile denotes folder of project or other error occurs
+     *         if this VirtualFile denotes folder or other error occurs
      * @see #isFile()
      */
     VirtualFile updateContent(String mediaType, InputStream content, String lockToken) throws VirtualFileSystemException;
+
+    /**
+     * Opens {@code OutputStream} for this file.
+     *
+     * @return OutputStream for this file
+     * @throws IOException
+     *         if i/o error occurs
+     * @throws VirtualFileSystemException
+     *         if this VirtualFile denotes folder or other error occurs
+     */
+    OutputStream openOutputStream() throws IOException, VirtualFileSystemException;
 
     /**
      * Get media type of the VirtualFile. This method should not return <code>null</code>.
@@ -175,6 +187,14 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      *         if an error occurs
      */
     String getMediaType() throws VirtualFileSystemException;
+
+    /**
+     * Set media type of the VirtualFile.
+     *
+     * @throws VirtualFileSystemException
+     *         if an error occurs
+     */
+    void setMediaType(String mediaType) throws VirtualFileSystemException;
 
     /**
      * Get creation time in long format or <code>-1</code> if creation time is unknown.
@@ -467,9 +487,9 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      * @param name
      *         name
      * @param mediaType
-     *         media type of content
+     *         media type of content, may be {@code null}
      * @param content
-     *         content
+     *         content. In case of {@code null} empty file's created.
      * @return newly create VirtualFile
      * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
      *         if user has not write permission for this VirtualFile

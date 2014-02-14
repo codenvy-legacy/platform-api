@@ -62,6 +62,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -83,7 +84,7 @@ import java.util.zip.ZipOutputStream;
  * <p/>
  * NOTE: This implementation is not thread safe.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class MemoryVirtualFile implements VirtualFile {
     private static final Logger                       LOG          = LoggerFactory.getLogger(MemoryVirtualFile.class);
@@ -254,6 +255,16 @@ public class MemoryVirtualFile implements VirtualFile {
             mediaType = isFile() ? ContentTypeGuesser.guessContentType(new File(getName())) : Folder.FOLDER_MIME_TYPE;
         }
         return mediaType;
+    }
+
+    @Override
+    public void setMediaType(String mediaType) throws VirtualFileSystemException {
+        checkExist();
+        if (mediaType == null) {
+            properties.remove("vfs:mimeType");
+        } else {
+            properties.put("vfs:mimeType", Arrays.asList(mediaType));
+        }
     }
 
     public String getPath() throws VirtualFileSystemException {
@@ -516,9 +527,17 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public VirtualFile getChild(String name) throws VirtualFileSystemException {
+    public VirtualFile getChild(String path) throws VirtualFileSystemException {
         checkExist();
-        final VirtualFile child = children.get(name);
+        String[] elements = Path.fromString(path).elements();
+        VirtualFile child = children.get(elements[0]);
+        if (child != null && elements.length > 1) {
+            for (int i = 1, l = elements.length; i < l && child != null; i++) {
+                if (child.isFolder()) {
+                    child = child.getChild(elements[i]);
+                }
+            }
+        }
         if (child != null) {
             if (((MemoryVirtualFile)child).hasPermission(BasicPermissions.READ, false)) {
                 return child;
@@ -566,7 +585,7 @@ public class MemoryVirtualFile implements VirtualFile {
         try {
             this.content = readContent(content);
         } catch (IOException e) {
-            throw new VirtualFileSystemException(String.format("Unable set content of '%s'. ", getPath() + e.getMessage()));
+            throw new VirtualFileSystemException(String.format("Unable set content of '%s'. %s", getPath(), e.getMessage()));
         }
         properties.put("vfs:mimeType", Arrays.asList(mediaType));
         SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
@@ -579,6 +598,34 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         lastModificationDate = System.currentTimeMillis();
         return this;
+    }
+
+    @Override
+    public OutputStream openOutputStream() throws IOException, VirtualFileSystemException {
+        return new ByteArrayOutputStream() {
+            private boolean closed;
+
+            @Override
+            public void close() throws IOException {
+                if (closed) {
+                    return;
+                }
+                try {
+                    MemoryVirtualFile.this.content = toByteArray();
+                    SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
+                    if (searcherProvider != null) {
+                        try {
+                            searcherProvider.getSearcher(mountPoint, true).update(MemoryVirtualFile.this);
+                        } catch (VirtualFileSystemException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                } finally {
+                    closed = true;
+                    lastModificationDate = System.currentTimeMillis();
+                }
+            }
+        };
     }
 
     @Override

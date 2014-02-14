@@ -170,9 +170,6 @@ public class AccountService extends Service {
         final Principal principal = securityContext.getUserPrincipal();
         if (securityContext.isUserInRole("account/owner")) {
             User owner = userDao.getByAlias(principal.getName());
-            if (owner == null) {
-                throw new UserNotFoundException(principal.getName());
-            }
             if (!account.getOwner().equals(owner.getId())) {
                 throw new AccountIllegalAccessException(account.getId());
             }
@@ -244,9 +241,6 @@ public class AccountService extends Service {
         if (securityContext.isUserInRole("account/owner")) {
             final Principal principal = securityContext.getUserPrincipal();
             final User current = userDao.getByAlias(principal.getName());
-            if (current == null) {
-                throw new UserNotFoundException(principal.getName());
-            }
             if (!account.getOwner().equals(current.getId())) {
                 throw new AccountIllegalAccessException(current.getId());
             }

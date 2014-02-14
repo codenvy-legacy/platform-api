@@ -69,6 +69,14 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withDescription(String description);
 
+    /** Get modification date of project. */
+    long getModificationDate();
+
+    /** Set modification date of project. */
+    void setModificationDate(long date);
+
+    ProjectDescriptor withModificationDate(long date);
+
     /** Get attributes of project. */
     Map<String, List<String>> getAttributes();
 

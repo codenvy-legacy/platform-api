@@ -23,11 +23,11 @@
     <parent>
         <artifactId>maven-parent-pom</artifactId>
         <groupId>com.codenvy</groupId>
-        <version>3.0.1</version>
+        <version>3.1.1</version>
     </parent>
     <groupId>com.codenvy.platform-api</groupId>
     <artifactId>codenvy-platform-api-parent</artifactId>
-    <version>0.6.3-SNAPSHOT</version>
+    <version>0.8.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Codenvy Platform API :: Parent</name>
     <modules>
@@ -35,11 +35,12 @@
         <module>codenvy-dto-maven-plugin</module>
         <module>codenvy-api-core</module>
         <module>codenvy-api-vfs</module>
-        <module>codenvy-api-workspace</module>
+        <module>codenvy-api-project</module>
         <module>codenvy-api-factory</module>
         <module>codenvy-api-builder</module>
         <module>codenvy-api-runner</module>
         <module>codenvy-api-analytics</module>
+        <module>codenvy-api-auth</module>
     </modules>
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>
@@ -48,13 +49,14 @@
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
     </scm>
     <properties>
-        <codenvy.commons.version>0.12.2</codenvy.commons.version>
-        <codenvy.organization.version>0.10.2</codenvy.organization.version>
+        <codenvy.commons.version>0.14.0</codenvy.commons.version>
+        <codenvy.organization.version>0.11.0</codenvy.organization.version>
+        <codenvy.security.version>0.1.0</codenvy.security.version>
         <commons-codec.version>1.6</commons-codec.version>
         <commons-fileupload.version>1.2.1</commons-fileupload.version>
         <commons-io.version>2.1</commons-io.version>
         <everrest.assured.version>0.15</everrest.assured.version>
-        <everrest.version>1.1.8</everrest.version>
+        <everrest.version>1.1.9</everrest.version>
         <google.gson.version>2.1</google.gson.version>
         <guava.version>12.0.1</guava.version>
         <hamcrest.version>1.2.1</hamcrest.version>

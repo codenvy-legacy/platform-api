@@ -21,7 +21,7 @@ import com.codenvy.commons.lang.ZipUtils;
 
 import java.io.IOException;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class DeploymentSources {
     private final java.io.File file;
 
@@ -35,7 +35,7 @@ public class DeploymentSources {
 
     public boolean isArchive() {
         try {
-            return ZipUtils.isZipFile(file);
+            return file != null && ZipUtils.isZipFile(file);
         } catch (IOException e) {
             return false;
         }

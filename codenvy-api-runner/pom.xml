@@ -23,7 +23,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.6.3-SNAPSHOT</version>
+        <version>0.8.2-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-runner</artifactId>
     <packaging>jar</packaging>
@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-workspace</artifactId>
+            <artifactId>codenvy-api-project</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -109,6 +109,11 @@
                     </dependency>
                     <dependency>
                         <groupId>com.codenvy.platform-api</groupId>
+                        <artifactId>codenvy-api-project</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.codenvy.platform-api</groupId>
                         <artifactId>codenvy-api-runner</artifactId>
                         <version>${project.version}</version>
                     </dependency>
@@ -138,7 +143,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.8</version>
                 <executions>
                     <execution>
                         <id>add-resource</id>

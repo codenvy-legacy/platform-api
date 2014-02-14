@@ -48,7 +48,7 @@ import javax.ws.rs.core.MediaType;
  *
  * @author andrew00x
  */
-@Path("runner/{ws-name}")
+@Path("runner/{ws-id}")
 @Description("Runner API")
 public class RunnerService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
@@ -60,7 +60,7 @@ public class RunnerService extends Service {
     @Path("run")
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    public ApplicationProcessDescriptor run(@PathParam("ws-name") String workspace,
+    public ApplicationProcessDescriptor run(@PathParam("ws-id") String workspace,
                                             @Required @Description("project name") @QueryParam("project") String project) throws Exception {
         final ServiceContext serviceContext = getServiceContext();
         return runQueue.run(workspace, project, serviceContext).getDescriptor(serviceContext);

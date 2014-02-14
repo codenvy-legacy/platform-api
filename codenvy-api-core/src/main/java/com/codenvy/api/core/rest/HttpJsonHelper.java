@@ -198,6 +198,27 @@ public class HttpJsonHelper {
         return request(dtoInterface, url, "POST", body, parameters);
     }
 
+    /**
+     * Sends OPTIONS request to specified {@code url}.
+     *
+     * @param dtoInterface
+     *         type of expected response. If server returns some content we try parse it and restore object of the specified type from it.
+     *         Specified interface must be annotated with &#064DTO.
+     * @param url
+     *         URL to send request
+     * @param parameters
+     *         additional query parameters.
+     * @return instance of {@code dtoInterface} which represents JSON response from the server
+     * @throws RemoteException
+     *         if server returns error response in supported JSON format, see {@link ServiceError}
+     * @throws IOException
+     *         if any other error occurs
+     * @see com.codenvy.dto.shared.DTO
+     */
+    public static <DTO> DTO options(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters) throws IOException, RemoteException {
+        return request(dtoInterface, url, "OPTIONS", null, parameters);
+    }
+
     private HttpJsonHelper() {
     }
 }

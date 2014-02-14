@@ -18,7 +18,9 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.organization.client.AccountManager;
 import com.codenvy.organization.client.UserManager;
+import com.codenvy.organization.model.Account;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
@@ -56,10 +58,13 @@ public class FactoryServiceTest {
     private FactoryStore factoryStore;
 
     @Mock
-    private AdvancedFactoryUrlValidator factoryUrlValidator;
+    private UserManager userManager;
 
     @Mock
-    private UserManager userManager;
+    private AccountManager accountManager;
+
+    @Mock
+    private FactoryUrlValidator validator;
 
     @InjectMocks
     private FactoryService factoryService;
@@ -163,6 +168,64 @@ public class FactoryServiceTest {
     }
 
     @Test
+    public void shouldBeAbleToSaveFactoryWithOutImageWithOrgId(ITestContext context) throws Exception {
+        // given
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        factoryUrl.setCommitid("12345679");
+        factoryUrl.setVcs("git");
+        factoryUrl.setV("1.1");
+        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+        factoryUrl.setWelcome(new WelcomePage());
+        factoryUrl.setOrgid("orgid");
+
+        Account account = new Account(user.getId());
+
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
+        when(accountManager.getAccountById("orgid")).thenReturn(account);
+        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+
+        // when, then
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
+                        .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).when()
+                        .post("/private" + SERVICE_PATH);
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+    }
+
+    @Test
+    public void shouldRespond400OnSaveFactoryWithOrgIdNotOwnedByCurrentUser(ITestContext context) throws Exception {
+        // given
+        AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        factoryUrl.setCommitid("12345679");
+        factoryUrl.setVcs("git");
+        factoryUrl.setV("1.1");
+        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+        factoryUrl.setWelcome(new WelcomePage());
+        factoryUrl.setOrgid("orgid");
+
+        Account account = new Account("other id");
+
+        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
+        when(accountManager.getAccountById("orgid")).thenReturn(account);
+        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+
+        // when, then
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
+                        .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).when()
+                        .post("/private" + SERVICE_PATH);
+
+        // then
+        assertEquals(response.getStatusCode(), 400);
+    }
+
+    @Test
     public void shouldBeAbleToSaveFactoryWithSetImageFieldButWithOutImageContent() throws Exception {
         // given
         AdvancedFactoryUrl factoryUrl = new AdvancedFactoryUrl();
@@ -207,7 +270,7 @@ public class FactoryServiceTest {
                 .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
                 .multiPart("image", path.toFile(), "image/tiff")//
                 .expect().statusCode(400)
-                .body(equalTo("image/tiff is unsupported media type."))
+                .body(equalTo("Image media type 'image/tiff' is unsupported."))
                 .when().post("/private" + SERVICE_PATH);
     }
 

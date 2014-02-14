@@ -45,7 +45,6 @@ import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;
@@ -963,10 +962,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                            .withPath(path)
                                            .withMimeType(mediaType)
                                            .withCreationDate(created)
+                                           .withVfsId(vfsId)
                                            .withProperties(virtualFile.getProperties(propertyFilter));
             if (addLinks) {
-                dtoFile.setLinks(LinksHelper.createFileLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
-                        EnvironmentContext.WORKSPACE_NAME), id, id, path, mediaType, locked, parentId));
+                dtoFile.setLinks(LinksHelper.createFileLinks(baseUri, vfsId, id, id, path, mediaType, locked, parentId));
             }
             item = dtoFile;
         } else {
@@ -981,10 +980,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                                         .withPath(path)
                                                         .withMimeType(mediaType)
                                                         .withCreationDate(created)
+                                                        .withVfsId(vfsId)
                                                         .withProperties(virtualFile.getProperties(propertyFilter));
                 if (addLinks) {
-                    dtoProject.setLinks(LinksHelper.createProjectLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
-                            EnvironmentContext.WORKSPACE_NAME), id, parentId));
+                    dtoProject.setLinks(LinksHelper.createProjectLinks(baseUri, vfsId, id, parentId));
                 }
                 item = dtoProject;
             } else {
@@ -996,10 +995,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                                      .withPath(path)
                                                      .withMimeType(mediaType)
                                                      .withCreationDate(created)
+                                                     .withVfsId(vfsId)
                                                      .withProperties(virtualFile.getProperties(propertyFilter));
                 if (addLinks) {
-                    dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
-                            EnvironmentContext.WORKSPACE_NAME), id, isRoot, parentId));
+                    dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, vfsId, id, isRoot, parentId));
                 }
                 item = dtoFolder;
             }

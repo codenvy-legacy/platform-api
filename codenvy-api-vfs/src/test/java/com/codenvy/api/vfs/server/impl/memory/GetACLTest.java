@@ -17,13 +17,14 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import com.codenvy.api.core.user.UserImpl;
-import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.user.User;
+import com.codenvy.commons.user.UserImpl;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
@@ -79,12 +80,11 @@ public class GetACLTest extends MemoryFileSystemTest {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
         permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        UserState previous = UserState.get();
-        UserState user = new UserState(new UserImpl("admin"));
-        UserState.set(user);
+        User previousUser = EnvironmentContext.getCurrent().getUser();
+        EnvironmentContext.getCurrent().setUser(new UserImpl("admin"));
         file.updateACL(createAcl(permissions), true, null);
 
-        UserState.set(previous); // restore
+        EnvironmentContext.getCurrent().setUser(previousUser); // restore
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "acl/" + fileId;
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, writer, null);

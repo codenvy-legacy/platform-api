@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.analytics.AnalyticsService;
-
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
@@ -74,7 +72,7 @@ public class LinksHelper {
 
         // links of analytics
         links.add(new Link(MediaType.TEXT_PLAIN,
-                           baseUriBuilder.clone().path(AnalyticsService.class).path(AnalyticsService.class, "getValue")
+                           baseUriBuilder.clone().path("analytics").path("metric/FACTORY_URL_ACCEPTED_NUMBER")
                                          .queryParam("factory_url", URLEncoder.encode(createProject.getHref(), "UTF-8")).build(
                                    "FACTORY_URL_ACCEPTED_NUMBER").toString(),
                            "accepted"));

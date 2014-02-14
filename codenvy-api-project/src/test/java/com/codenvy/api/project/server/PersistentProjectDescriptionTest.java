@@ -17,9 +17,6 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.user.User;
-import com.codenvy.api.core.user.UserImpl;
-import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -34,6 +31,8 @@ import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.user.User;
+import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.RuntimeDelegateImpl;
@@ -60,11 +59,8 @@ public class PersistentProjectDescriptionTest {
     public void setUp() throws Exception {
         RuntimeDelegate rd = new RuntimeDelegateImpl();
         RuntimeDelegate.setInstance(rd);
-        User user = new UserImpl("john", Arrays.asList("developer"));
-        UserState.set(new UserState(user));
-        EnvironmentContext env = EnvironmentContext.getCurrent();
-        env.setVariable(EnvironmentContext.WORKSPACE_ID, "test_workspace");
-        env.setVariable(EnvironmentContext.WORKSPACE_NAME, "test_workspace");
+        User user = new UserImpl("john", null, Arrays.asList("developer"));
+        EnvironmentContext.getCurrent().setUser(user);
 
         VirtualFileSystemUserContext userContext = VirtualFileSystemUserContext.newInstance();
         MemoryMountPoint mountPoint = new MemoryMountPoint(null, userContext);

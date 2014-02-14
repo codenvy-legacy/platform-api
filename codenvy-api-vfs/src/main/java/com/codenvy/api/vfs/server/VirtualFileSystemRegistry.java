@@ -37,7 +37,7 @@ public class VirtualFileSystemRegistry {
 
     public void registerProvider(String vfsId, VirtualFileSystemProvider provider) throws VirtualFileSystemException {
         if (providers.putIfAbsent(id(vfsId), provider) != null) {
-            throw new VirtualFileSystemException("Virtual file system " + vfsId + " already registered. ");
+            throw new VirtualFileSystemException(String.format("Virtual file system %s already registered. ", vfsId));
         }
     }
 
@@ -49,11 +49,24 @@ public class VirtualFileSystemRegistry {
     }
 
     public VirtualFileSystemProvider getProvider(String vfsId) throws VirtualFileSystemException {
-        VirtualFileSystemProvider provider = providers.get(id(vfsId));
+        String myId = id(vfsId);
+        VirtualFileSystemProvider provider = providers.get(myId);
         if (provider == null) {
-            throw new VirtualFileSystemException("Virtual file system " + vfsId + " does not exist. ");
+            VirtualFileSystemProvider newProvider = loadProvider(vfsId);
+            if (newProvider != null) {
+                provider = providers.putIfAbsent(myId, newProvider);
+                if (provider == null) {
+                    provider = newProvider;
+                }
+            } else {
+                throw new VirtualFileSystemException(String.format("Virtual file system %s does not exist. ", vfsId));
+            }
         }
         return provider;
+    }
+
+    protected VirtualFileSystemProvider loadProvider(String vfsId) throws VirtualFileSystemException {
+        return null;
     }
 
     public Collection<VirtualFileSystemProvider> getRegisteredProviders() throws VirtualFileSystemException {

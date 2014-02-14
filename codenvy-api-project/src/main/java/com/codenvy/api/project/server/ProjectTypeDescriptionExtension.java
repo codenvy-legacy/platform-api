@@ -15,17 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.server;
+
+import com.codenvy.api.project.shared.AttributeDescription;
+import com.codenvy.api.project.shared.ProjectType;
 
 import java.util.List;
 
 /**
- * ProjectTypeExtension
+ * ProjectDescriptionExtension
  *
  * @author gazarenkov
  */
-public interface ProjectTypeExtension {
-    ProjectType getProjectType();
+public interface ProjectTypeDescriptionExtension {
+    List<ProjectType> getProjectTypes();
 
-    List<Attribute> getPredefinedAttributes();
+    List<AttributeDescription> getAttributeDescriptions();
 }

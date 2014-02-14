@@ -45,6 +45,30 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withProjectTypeName(String name);
 
+    /** Get name of workspace this project belongs to. */
+    String getWorkspace();
+
+    /** Set name of workspace this project belongs to. */
+    void setWorkspace(String workspace);
+
+    ProjectDescriptor withWorkspace(String workspace);
+
+    /** Get project visibility, e.g. private or public. */
+    String getVisibility();
+
+    /** Set project visibility, e.g. private or public. */
+    void setVisibility(String visibility);
+
+    ProjectDescriptor withVisibility(String visibility);
+
+    /** Get optional description of project. */
+    String getDescription();
+
+    /** Set optional description of project. */
+    void setDescription(String description);
+
+    ProjectDescriptor withDescription(String description);
+
     /** Get attributes of project. */
     Map<String, List<String>> getAttributes();
 

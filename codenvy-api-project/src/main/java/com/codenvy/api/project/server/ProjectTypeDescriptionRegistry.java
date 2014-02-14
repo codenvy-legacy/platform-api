@@ -18,10 +18,9 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
-import com.codenvy.api.project.shared.ProjectTypeDescriptionExtension;
-import com.codenvy.api.project.shared.ProjectTypeExtension;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -38,15 +37,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class ProjectTypeDescriptionRegistry {
-    private final ProjectTypeRegistry                 projectTypeRegistry;
-    private final Map<String, ProjectTypeDescription> descriptions;
-    private final Map<String, List<Attribute>>        predefinedAttributes;
+    private final ProjectTypeRegistry                           projectTypeRegistry;
+    private final Map<String, ProjectTypeDescription>           descriptions;
+    private final Map<String, List<Attribute>>                  predefinedAttributes;
+    private final Map<String, List<ProjectTemplateDescription>> templates;
 
     @Inject
     public ProjectTypeDescriptionRegistry(ProjectTypeRegistry projectTypeRegistry) {
         this.projectTypeRegistry = projectTypeRegistry;
         descriptions = new ConcurrentHashMap<>();
         predefinedAttributes = new ConcurrentHashMap<>();
+        templates = new ConcurrentHashMap<>();
     }
 
     public void registerProjectType(ProjectTypeExtension extension) {
@@ -57,6 +58,10 @@ public class ProjectTypeDescriptionRegistry {
         final List<Attribute> typePredefinedAttributes = extension.getPredefinedAttributes();
         if (!(typePredefinedAttributes == null || typePredefinedAttributes.isEmpty())) {
             predefinedAttributes.put(type.getId(), new ArrayList<>(typePredefinedAttributes));
+        }
+        final List<ProjectTemplateDescription> templates = extension.getTemplates();
+        if (templates != null && !templates.isEmpty()) {
+            this.templates.put(type.getId(), new ArrayList<>(templates));
         }
     }
 
@@ -70,11 +75,9 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     public ProjectTypeDescription unregisterDescription(ProjectType type) {
-        final ProjectTypeDescription typeDescription = descriptions.remove(type.getId());
-        if (typeDescription != null) {
-            predefinedAttributes.remove(type.getId());
-        }
-        return typeDescription;
+        predefinedAttributes.remove(type.getId());
+        templates.remove(type.getId());
+        return descriptions.remove(type.getId());
     }
 
     public ProjectTypeDescription getDescription(ProjectType type) {
@@ -95,5 +98,13 @@ public class ProjectTypeDescriptionRegistry {
 
     public List<ProjectTypeDescription> getDescriptions() {
         return new ArrayList<>(descriptions.values());
+    }
+
+    public List<ProjectTemplateDescription> getTemplates(ProjectType type) {
+        final List<ProjectTemplateDescription> templates = this.templates.get(type.getId());
+        if (templates != null) {
+            return Collections.unmodifiableList((templates));
+        }
+        return Collections.emptyList();
     }
 }

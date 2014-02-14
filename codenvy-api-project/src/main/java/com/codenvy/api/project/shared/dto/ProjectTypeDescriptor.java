@@ -49,4 +49,10 @@ public interface ProjectTypeDescriptor {
     void setAttributeDescriptors(List<AttributeDescriptor> attributeDescriptors);
 
     ProjectTypeDescriptor withAttributeDescriptors(List<AttributeDescriptor> attributeDescriptors);
+
+    List<ProjectTemplateDescriptor> getTemplates();
+
+    void setTemplates(List<ProjectTemplateDescriptor> templates);
+
+    ProjectTypeDescriptor withTemplates(List<ProjectTemplateDescriptor> templates);
 }

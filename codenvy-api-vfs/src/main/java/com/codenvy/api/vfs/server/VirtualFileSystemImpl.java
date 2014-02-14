@@ -45,7 +45,6 @@ import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;
@@ -648,23 +647,6 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", updated.getName(), ((Project)updated).getProjectType());
             }
         }
-
-        /*boolean jRebelPropertyUpdated = false;
-        for (Property p : properties) {
-            if (p.getName().equals("jrebel")) {
-                jRebelPropertyUpdated = true;
-                break;
-            }
-        }
-        if (jRebelPropertyUpdated) {
-            final String projectType = updated.getPropertyValue("vfs:projectType");
-            //TODO : move somewhere VFS must not be care about any project specific properties
-            boolean jRebelUsage = Boolean.parseBoolean(updated.getPropertyValue("jrebel"));
-            VirtualFileSystemUser user = userContext.getVirtualFileSystemUser();
-            LOG.info("EVENT#jrebel-usage# WS#"
-                     + EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_NAME).toString() + "# USER#"
-                     + user.getUserId() + "# PROJECT#" + updated.getName() + "# TYPE#" + projectType + "# JREBEL#" + jRebelUsage + "#");
-        }*/
         return updated;
     }
 
@@ -963,10 +945,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                            .withPath(path)
                                            .withMimeType(mediaType)
                                            .withCreationDate(created)
+                                           .withVfsId(vfsId)
                                            .withProperties(virtualFile.getProperties(propertyFilter));
             if (addLinks) {
-                dtoFile.setLinks(LinksHelper.createFileLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
-                        EnvironmentContext.WORKSPACE_NAME), id, id, path, mediaType, locked, parentId));
+                dtoFile.setLinks(LinksHelper.createFileLinks(baseUri, vfsId, id, id, path, mediaType, locked, parentId));
             }
             item = dtoFile;
         } else {
@@ -981,10 +963,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                                         .withPath(path)
                                                         .withMimeType(mediaType)
                                                         .withCreationDate(created)
+                                                        .withVfsId(vfsId)
                                                         .withProperties(virtualFile.getProperties(propertyFilter));
                 if (addLinks) {
-                    dtoProject.setLinks(LinksHelper.createProjectLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
-                            EnvironmentContext.WORKSPACE_NAME), id, parentId));
+                    dtoProject.setLinks(LinksHelper.createProjectLinks(baseUri, vfsId, id, parentId));
                 }
                 item = dtoProject;
             } else {
@@ -996,10 +978,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                                      .withPath(path)
                                                      .withMimeType(mediaType)
                                                      .withCreationDate(created)
+                                                     .withVfsId(vfsId)
                                                      .withProperties(virtualFile.getProperties(propertyFilter));
                 if (addLinks) {
-                    dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, (String)EnvironmentContext.getCurrent().getVariable(
-                            EnvironmentContext.WORKSPACE_NAME), id, isRoot, parentId));
+                    dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, vfsId, id, isRoot, parentId));
                 }
                 item = dtoFolder;
             }

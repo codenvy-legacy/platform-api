@@ -17,13 +17,11 @@
  */
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.core.user.User;
-import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.user.User;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Gives access to the current user context, e.g. uses HttpServletRequest to get info about Principal.
@@ -45,12 +43,12 @@ public abstract class VirtualFileSystemUserContext {
 
     private static class DefaultVirtualFileSystemUserContext extends VirtualFileSystemUserContext {
         public VirtualFileSystemUser getVirtualFileSystemUser() {
-            final UserState userState = UserState.get();
+            final EnvironmentContext context = EnvironmentContext.getCurrent();
 
-            if (userState == null) {
+            if (context.getUser() == null) {
                 return new VirtualFileSystemUser(VirtualFileSystemInfo.ANONYMOUS_PRINCIPAL, Collections.<String>emptySet());
             }
-            final User user = userState.getUser();
+            final User user = context.getUser();
             final Set<String> groups = new HashSet<>(2);
             if (user.isMemberOf("developer")) {
                 groups.add("workspace/developer");

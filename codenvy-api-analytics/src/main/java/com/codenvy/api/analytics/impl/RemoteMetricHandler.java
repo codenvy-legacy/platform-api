@@ -26,22 +26,21 @@ import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.RemoteException;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
+import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -55,70 +54,67 @@ import java.util.Properties;
  * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
 public class RemoteMetricHandler implements MetricHandler {
-    private String login;
-    private String pass;
-    private String host;
-    private String port;
+
+    private static final String BASE_NAME = RemoteMetricHandler.class.getName();
+    private static final String PROXY_URL = BASE_NAME + ".proxy-url";
+
+    private String proxyUrl;
 
     public RemoteMetricHandler(Properties properties) {
-        this.login = properties.getProperty("login");
-        if (this.login == null) {
-            throw new IllegalArgumentException("Not defined mandatory property 'login'");
-        }
-        this.pass = properties.getProperty("pass");
-        if (this.pass == null) {
-            throw new IllegalArgumentException("Not defined mandatory property 'pass'");
-        }
-        this.host = properties.getProperty("host");
-        if (this.host == null) {
-            throw new IllegalArgumentException("Not defined mandatory property 'host'");
-        }
-        this.port = properties.getProperty("port");
-        if (this.port == null) {
-            throw new IllegalArgumentException("Not defined mandatory property 'port'");
+        this.proxyUrl = properties.getProperty(PROXY_URL);
+        if (this.proxyUrl == null) {
+            throw new IllegalArgumentException("Not defined mandatory property " + PROXY_URL);
         }
     }
 
-    public MetricValueDTO getValue(String metricName, Map<String, String> executionContext, ServiceContext serviceContext)
-            throws MetricNotFoundException {
-        URI redirectURI = getUriBuilder(serviceContext, "getValue").build(metricName, "name");
+    @Override
+    public MetricValueDTO getValue(String metricName,
+                                   Map<String, String> executionContext,
+                                   UriInfo uriInfo) throws MetricNotFoundException {
+        String proxyUrl = getProxyURL("getValue", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
-            return request(MetricValueDTO.class, redirectURI.toString(), "GET", null, pairs.toArray(new Pair[pairs.size()]));
+            return request(MetricValueDTO.class,
+                           proxyUrl,
+                           "GET",
+                           null,
+                           pairs.toArray(new Pair[pairs.size()]));
         } catch (IOException | RemoteException e) {
             throw new MetricNotFoundException();
         }
     }
 
-    public MetricInfoDTO getInfo(String metricName, ServiceContext serviceContext) throws MetricNotFoundException {
-        URI redirectURI = getUriBuilder(serviceContext, "getInfo").build(metricName, "name");
+    @Override
+    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
+        String proxyUrl = getProxyURL("getInfo", metricName);
         try {
-            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, redirectURI.toString(), "GET", null);
-            updateLinks(serviceContext, metricInfoDTO);
+            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, proxyUrl, "GET", null);
+            updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (IOException | RemoteException e) {
             throw new MetricNotFoundException();
         }
     }
 
-    public MetricInfoListDTO getAllInfo(ServiceContext serviceContext) {
-        URI redirectURI = getUriBuilder(serviceContext, "getAllInfo").build();
+    @Override
+    public MetricInfoListDTO getAllInfo(UriInfo uriInfo) {
+        String proxyUrl = getProxyURL("getAllInfo", "");
         try {
-            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, redirectURI.toString(), "GET", null);
-            updateLinks(serviceContext, metricInfoListDTO);
+            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, proxyUrl, "GET", null);
+            updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
         } catch (IOException | RemoteException e) {
             throw new RuntimeException("Can't get generate metric info list!");
         }
     }
 
-    private void updateLinks(ServiceContext serviceContext, MetricInfoDTO metricInfoDTO) {
-        metricInfoDTO.setLinks(getLinks(metricInfoDTO.getName(), serviceContext));
+    private void updateLinks(UriInfo uriInfo, MetricInfoDTO metricInfoDTO) {
+        metricInfoDTO.setLinks(getLinks(metricInfoDTO.getName(), uriInfo));
     }
 
-    private void updateLinks(ServiceContext serviceContext, MetricInfoListDTO metricInfoListDTO) {
+    private void updateLinks(UriInfo uriInfo, MetricInfoListDTO metricInfoListDTO) {
         for (MetricInfoDTO metricInfoDTO : metricInfoListDTO.getMetrics()) {
-            updateLinks(serviceContext, metricInfoDTO);
+            updateLinks(uriInfo, metricInfoDTO);
         }
     }
 
@@ -130,23 +126,25 @@ public class RemoteMetricHandler implements MetricHandler {
         return pairs;
     }
 
-    private UriBuilder getUriBuilder(ServiceContext serviceContext, String methodName) {
-        return serviceContext.getServiceUriBuilder().clone().host(host).port(new Integer(port)).scheme("http")
-                             .path(getMethod(methodName));
+    private String getProxyURL(String methodName, String metricName) {
+        String path = getMethod(methodName).getAnnotation(Path.class).value();
+        return proxyUrl + "/" + path.replace("{name}", metricName);
     }
 
     private <DTO> DTO request(Class<DTO> dtoInterface,
-                              String url,
+                              String proxyUrl,
                               String method,
                               Object body,
                               Pair<String, ?>... parameters) throws IOException, RemoteException {
+
         if (parameters != null && parameters.length > 0) {
             final StringBuilder sb = new StringBuilder();
-            sb.append(url);
+            sb.append(proxyUrl);
             sb.append('?');
             for (int i = 0, l = parameters.length; i < l; i++) {
                 String name = URLEncoder.encode(parameters[i].first, "UTF-8");
-                String value = parameters[i].second == null ? null : URLEncoder.encode(String.valueOf(parameters[i].second), "UTF-8");
+                String value = parameters[i].second == null ? null : URLEncoder
+                        .encode(String.valueOf(parameters[i].second), "UTF-8");
                 if (i > 0) {
                     sb.append('&');
                 }
@@ -156,12 +154,10 @@ public class RemoteMetricHandler implements MetricHandler {
                     sb.append(value);
                 }
             }
-            url = sb.toString();
+            proxyUrl = sb.toString();
         }
-        final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
+        final HttpURLConnection conn = (HttpURLConnection)new URL(proxyUrl).openConnection();
         conn.setConnectTimeout(30 * 1000);
-        conn.setConnectTimeout(30 * 1000);
-        conn.addRequestProperty("Authorization", "Basic " + new String(new Base64().encode((login + ":" + pass).getBytes())));
         try {
             conn.setRequestMethod(method);
             if (body != null) {
@@ -182,7 +178,8 @@ public class RemoteMetricHandler implements MetricHandler {
                 final String str = IoUtil.readAndCloseQuietly(in);
                 final String contentType = conn.getContentType();
                 if (contentType.startsWith("application/json")) {
-                    final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
+                    final ServiceError serviceError =
+                            DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
                     if (serviceError.getMessage() != null) {
                         // Error is in format what we can understand.
                         throw new RemoteException(serviceError);
@@ -190,7 +187,9 @@ public class RemoteMetricHandler implements MetricHandler {
                 }
                 // Can't parse content as json or content has format other we expect for error.
                 throw new IOException(
-                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", url, method, responseCode, str));
+                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", proxyUrl,
+                                      method,
+                                      responseCode, str));
             }
             final String contentType = conn.getContentType();
             if (!contentType.startsWith("application/json")) {
@@ -204,13 +203,18 @@ public class RemoteMetricHandler implements MetricHandler {
         }
     }
 
-    private static List<Link> getLinks(String metricName, ServiceContext restfulRequestContext) {
-        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
+    private static List<Link> getLinks(String metricName, UriInfo uriInfo) {
+        final UriBuilder servicePathBuilder = uriInfo.getBaseUriBuilder();
         List<Link> links = new ArrayList<>();
 
         final Link statusLink = DtoFactory.getInstance().createDto(Link.class);
         statusLink.setRel(Constants.LINK_REL_GET_METRIC_VALUE);
-        statusLink.setHref(servicePathBuilder.clone().path(getMethod("getValue")).build(metricName, "name").toString());
+        statusLink.setHref(servicePathBuilder
+                                   .clone()
+                                   .path("analytics")
+                                   .path(getMethod("getValue"))
+                                   .build(metricName, "name")
+                                   .toString());
         statusLink.setMethod("GET");
         statusLink.setProduces(MediaType.APPLICATION_JSON);
         links.add(statusLink);
@@ -226,5 +230,4 @@ public class RemoteMetricHandler implements MetricHandler {
 
         throw new RuntimeException("No '" + name + "' method found in " + AnalyticsService.class + "class");
     }
-
 }

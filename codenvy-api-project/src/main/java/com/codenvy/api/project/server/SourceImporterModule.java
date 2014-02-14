@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2013] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,19 +15,18 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.user;
+package com.codenvy.api.project.server;
 
-/** @author andrew00x */
-public interface User {
-    /** Get user name. */
-    String getName();
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
-    /**
-     * Check is user in specified {@code role}.
-     *
-     * @param role
-     *         role name to check
-     * @return {@code true} if user in role and {@code false} otherwise
-     */
-    boolean isMemberOf(String role);
+/** @author Artem Zatsarynnyy */
+@DynaModule
+public class SourceImporterModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        Multibinder<SourceImporter> multiBinder = Multibinder.newSetBinder(binder(), SourceImporter.class);
+        multiBinder.addBinding().to(ZipSourceImporter.class);
+    }
 }

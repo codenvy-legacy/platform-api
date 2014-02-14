@@ -103,7 +103,9 @@ public interface BaseBuilderRequest {
 
     void setWebHookUrl(String url);
 
-    boolean isDeployJarWithDependencies();
+    boolean isIncludeDependencies();
 
-    void setDeployJarWithDependencies(boolean deployJarWithDependencies);
+    void setIncludeDependencies(boolean includeDependencies);
+
+    BaseBuilderRequest withIncludeDependencies(boolean includeDependencies);
 }

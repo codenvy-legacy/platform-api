@@ -49,7 +49,9 @@ public interface BuildOptions {
 
     void setOptions(Map<String, String> options);
 
-    boolean isDeployJarWithDependencies();
+    boolean isIncludeDependencies();
 
-    void setDeployJarWithDependencies(boolean deployJarWithDependencies);
+    void setIncludeDependencies(boolean includeDependencies);
+
+    BuildOptions withIncludeDependencies(boolean includeDependencies);
 }

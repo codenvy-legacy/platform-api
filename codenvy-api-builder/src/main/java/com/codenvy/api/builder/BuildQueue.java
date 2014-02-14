@@ -242,7 +242,7 @@ public class BuildQueue {
         if (buildOptions != null) {
             request.setOptions(buildOptions.getOptions());
             request.setTargets(buildOptions.getTargets());
-            request.setDeployJarWithDependencies(buildOptions.isDeployJarWithDependencies());
+            request.setDeployJarWithDependencies(buildOptions.isIncludeDependencies());
         }
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));

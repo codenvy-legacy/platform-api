@@ -29,6 +29,13 @@ import java.util.Map;
  */
 @DTO
 public interface BuildOptions {
+    /** Get name of builder. This parameter has preference over builder name that is configured in properties of project. */
+    String getBuilderName();
+
+    void setBuilderName(String builderName);
+
+    BuildOptions withBuilderName(String builderName);
+
     /**
      * Build targets, e.g. "clean", "compile", ... . Supported targets depend on builder implementation. Builder uses default targets if
      * this parameter is not provided by client.

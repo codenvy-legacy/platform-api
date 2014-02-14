@@ -240,6 +240,7 @@ public class BuildQueue {
                                                              .withWorkspace(workspace)
                                                              .withProject(project);
         if (buildOptions != null) {
+            request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
             request.setTargets(buildOptions.getTargets());
             request.setIncludeDependencies(buildOptions.isIncludeDependencies());
@@ -316,13 +317,15 @@ public class BuildQueue {
     }
 
     private void addRequestParameters(ProjectDescriptor descriptor, BaseBuilderRequest request) {
-        final String builder;
-        List<String> builderAttribute = descriptor.getAttributes().get(Constants.BUILDER_NAME);
-        if (builderAttribute == null || builderAttribute.isEmpty() || (builder = builderAttribute.get(0)) == null) {
-            throw new IllegalStateException(
-                    String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
+        String builder = request.getBuilder();
+        if (builder == null || builder.isEmpty()) {
+            List<String> builderAttribute = descriptor.getAttributes().get(Constants.BUILDER_NAME);
+            if (builderAttribute == null || builderAttribute.isEmpty() || (builder = builderAttribute.get(0)) == null) {
+                throw new IllegalStateException(
+                        String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
+            }
+            request.setBuilder(builder);
         }
-        request.setBuilder(builder);
         final String buildTargets = Constants.BUILDER_TARGETS.replace("${builder}", builder);
         final String buildOptions = Constants.BUILDER_OPTIONS.replace("${builder}", builder);
 

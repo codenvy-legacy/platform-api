@@ -30,11 +30,6 @@
     <name>Codenvy Platform API :: Authentication</name>
     <dependencies>
         <dependency>
-            <groupId>com.codenvy.security</groupId>
-            <artifactId>codenvy-security-api</artifactId>
-            <version>${codenvy.security.version}</version>
-        </dependency>
-        <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
             <version>${javax.inject.version}</version>

@@ -37,7 +37,6 @@ public final class Constants {
     public static final String LINK_REL_REMOVE_USER_BY_ID           = "remove user by id";
     public static final int    ID_LENGTH                            = 16;
 
-    private Constants() throws IllegalAccessException {
-        throw new IllegalAccessException();
+    private Constants() {
     }
 }

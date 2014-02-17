@@ -38,7 +38,6 @@ public final class Constants {
     public static final String LINK_REL_GET_CURRENT_ACCOUNT = "get current";
     public static final int    ID_LENGTH                    = 16;
 
-    private Constants() throws IllegalAccessException {
-        throw new IllegalAccessException();
+    private Constants() {
     }
 }

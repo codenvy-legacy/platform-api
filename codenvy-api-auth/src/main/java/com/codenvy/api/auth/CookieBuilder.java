@@ -17,9 +17,6 @@
  */
 package com.codenvy.api.auth;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 
 /**
@@ -27,37 +24,10 @@ import javax.ws.rs.core.Response;
  * <p/>
  * It allow to to set or remove such cookies:
  * <p/>
- * 1) token-access-key   - persistent cooke visible from  accessCookiePath path
- * 2) session-access-key - session cooke visible from  "/" path
- * 3) logged_in          - persistent cooke. Indicated that nonanonymous user is logged in.
- *
- * @author Sergii Kabashniuk
- * @author Alexander Garagatyi
  */
-public class CookieBuilder {
-    @Named("auth.sso.access_cookie_path")
-    @Inject
-    private String accessCookiePath;
+public interface CookieBuilder {
 
-    @Named("auth.sso.access_ticket_lifetime_seconds")
-    @Inject
-    private int ticketLifeTimeSeconds;
+    public void clearCookies(Response.ResponseBuilder builder, String token, boolean secure);
 
-    public void clearCookies(Response.ResponseBuilder builder, String token, boolean secure) {
-        if (token != null && !token.isEmpty()) {
-            builder.header("Set-Cookie", new NewCookie("token-access-key", token, accessCookiePath, null, null, 0, secure) + ";HttpOnly");
-            builder.header("Set-Cookie", new NewCookie("session-access-key", token, "/", null, null, 0, secure) + ";HttpOnly");
-        }
-        builder.cookie(new NewCookie("logged_in", "true", "/", null, null, 0, secure));
-    }
-
-    public void setCookies(Response.ResponseBuilder builder, String token, boolean secure, boolean isAnonymous) {
-        builder.header("Set-Cookie",
-                       new NewCookie("token-access-key", token, accessCookiePath, null, null, ticketLifeTimeSeconds, secure) + ";HttpOnly");
-        builder.header("Set-Cookie", new NewCookie("session-access-key", token, "/", null, null, -1, secure) + ";HttpOnly");
-        if (!isAnonymous) {
-            builder.cookie(
-                    new NewCookie("logged_in", "true", "/", null, null, ticketLifeTimeSeconds, secure));
-        }
-    }
+    public void setCookies(Response.ResponseBuilder builder, String token, boolean secure);
 }

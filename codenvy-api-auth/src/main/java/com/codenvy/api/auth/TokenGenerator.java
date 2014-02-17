@@ -18,40 +18,9 @@
 package com.codenvy.api.auth;
 
 
-import javax.inject.Singleton;
-import java.security.SecureRandom;
-import java.util.Random;
+/** Generator of tokens based used in authentication. */
 
-/**
- * Generator of tokens based on SecureRandom class.
- *
- * @author Andrey Parfonov
- * @author Sergey Kabashniuk
- */
-@Singleton
-public class TokenGenerator {
-
-    private final Random random = new SecureRandom();
-    private final char[] chars  = new char[62];
-
-    public TokenGenerator() {
-        int i = 0;
-        for (int c = 48; c <= 57; c++) {
-            chars[i++] = (char)c;
-        }
-        for (int c = 65; c <= 90; c++) {
-            chars[i++] = (char)c;
-        }
-        for (int c = 97; c <= 122; c++) {
-            chars[i++] = (char)c;
-        }
-    }
-
-    public String generate() {
-        final char[] tokenChars = new char[512];
-        for (int i = 0; i < tokenChars.length; i++) {
-            tokenChars[i] = chars[random.nextInt() & (chars.length - 1)];
-        }
-        return new String(tokenChars);
-    }
+public interface TokenGenerator {
+    /** @return - new token. */
+    public String generate();
 }

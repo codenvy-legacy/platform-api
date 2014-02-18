@@ -197,7 +197,7 @@ public class UserService extends Service {
                                                     .path(UserProfileService.class, "getCurrent").build().toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PASSWORD, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PASSWORD, MediaType.APPLICATION_FORM_URLENCODED, null,
                                  uriBuilder.clone().path(getClass(), "updatePassword").build().toString())
                               .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
                                                                       .withRequired(true)

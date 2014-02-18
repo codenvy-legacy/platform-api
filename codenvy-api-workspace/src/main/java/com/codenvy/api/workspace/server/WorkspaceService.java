@@ -18,6 +18,7 @@
 package com.codenvy.api.workspace.server;
 
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -90,6 +91,9 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
             throws WorkspaceException {
+        if (newWorkspace == null) {
+            throw new WorkspaceException("Missed workspace to create");
+        }
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         workspaceDao.create(newWorkspace);
@@ -117,6 +121,9 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getByName(@Context SecurityContext securityContext,
                                @Required @Description("workspace name") @QueryParam("name") String name) throws WorkspaceException {
+        if (name == null) {
+            throw new WorkspaceException("Missed parameter name");
+        }
         Workspace workspace = workspaceDao.getByName(name);
         if (workspace == null) {
             throw new WorkspaceNotFoundException(name);
@@ -133,6 +140,9 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace update(@Context SecurityContext securityContext, @PathParam("id") String id,
                             @Required @Description("workspace to update") Workspace workspaceToUpdate) throws WorkspaceException {
+        if (workspaceToUpdate == null) {
+            throw new WorkspaceException("Missed workspace to update");
+        }
         if (workspaceDao.getById(id) == null) {
             throw new WorkspaceNotFoundException(id);
         }
@@ -177,6 +187,9 @@ public class WorkspaceService extends Service {
                                                        @Required @Description("user id to find workspaces")
                                                        @QueryParam("userid") String userId)
             throws WorkspaceException, UserException, MembershipException {
+        if (userId == null) {
+            throw new WorkspaceException("Missed parameter userid");
+        }
         if (userDao.getById(userId) == null) {
             throw new UserNotFoundException(userId);
         }
@@ -219,6 +232,9 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Member addMember(@PathParam("id") String wsId,
                             @Description("describes new workspace member") @Required Membership membership) throws MembershipException {
+        if (membership == null) {
+            throw new MembershipException("Missed membership");
+        }
         Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);
         newMember.setRoles(membership.getRoles());

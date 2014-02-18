@@ -162,6 +162,9 @@ public class UserService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public User getByEmail(@Context SecurityContext securityContext, @Required @Description("user email") @QueryParam("email") String email)
             throws UserException {
+        if (email == null) {
+            throw new UserException("Missed parameter email");
+        }
         final User user = userDao.getByAlias(email);
         if (user == null) {
             throw new UserNotFoundException(email);

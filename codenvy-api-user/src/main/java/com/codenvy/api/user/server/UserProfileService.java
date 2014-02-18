@@ -100,6 +100,9 @@ public class UserProfileService extends Service {
     public Profile updateCurrent(@Context SecurityContext securityContext,
                                  @Required @Description("updates for profile") List<Attribute> updates)
             throws UserException, UserProfileException {
+        if (updates == null) {
+            throw new UserProfileException("Missed attributes");
+        }
         Principal principal = securityContext.getUserPrincipal();
         User user = userDao.getByAlias(principal.getName());
         if (user == null) {
@@ -148,6 +151,9 @@ public class UserProfileService extends Service {
     public Profile update(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
                           @Context SecurityContext securityContext)
             throws UserProfileException {
+        if (updates == null) {
+            throw new UserProfileException("Missed attributes to update");
+        }
         Profile profile = profileDao.getById(profileId);
         if (profile == null) {
             throw new ProfileNotFoundException(profileId);

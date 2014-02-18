@@ -87,6 +87,9 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("Account to create") Account newAccount)
             throws AccountException, UserException {
+        if (newAccount == null) {
+            throw new AccountException("Missed account to create");
+        }
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
@@ -146,6 +149,9 @@ public class AccountService extends Service {
     public Account getByName(@Context SecurityContext securityContext,
                              @Required @Description("Account name to search") @QueryParam("name") String name)
             throws AccountException, UserException {
+        if (name == null) {
+            throw new AccountException("Missed account name");
+        }
         final Account account = accountDao.getByName(name);
         if (account == null) {
             throw AccountNotFoundException.doesNotExistWithName(name);
@@ -163,6 +169,9 @@ public class AccountService extends Service {
     public void addMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
                           @Required @Description("User id to be a new account member") @QueryParam("userid") String userId)
             throws UserException, AccountException {
+        if (userId == null) {
+            throw new AccountException("Missed user id");
+        }
         final Account account = accountDao.getById(accountId);
         if (account == null) {
             throw AccountNotFoundException.doesNotExistWithId(accountId);
@@ -257,6 +266,9 @@ public class AccountService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     public Account update(@PathParam("id") String id, @Required @Description("Account to update") Account accountToUpdate)
             throws AccountException {
+        if (accountToUpdate == null) {
+            throw new AccountException("Missed account to update");
+        }
         final Account actual = accountDao.getById(id);
         if (actual == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);

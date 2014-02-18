@@ -201,6 +201,7 @@ public class UserService extends Service {
                                  uriBuilder.clone().path(getClass(), "updatePassword").build().toString())
                               .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
                                                                       .withRequired(true)
+                                                                      .withName("password")
                                                                       .withDescription("new password")
                                                                       .withType(ParameterType.String))));
         }
@@ -210,7 +211,7 @@ public class UserService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().path(UserProfileService.class).path(
                                          UserProfileService.class, "getById")
-                                         .build(user.getId()).toString()));
+                                                    .build(user.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_EMAIL, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByEmail").queryParam("email", user.getEmail()).build()
                                            .toString()));

@@ -178,6 +178,7 @@ public class AccountService extends Service {
             throw new UserNotFoundException(userId);
         }
         Member newMember = DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId).withUserId(userId);
+        newMember.setRoles(Arrays.asList("account/member"));
         accountDao.addMember(newMember);
     }
 

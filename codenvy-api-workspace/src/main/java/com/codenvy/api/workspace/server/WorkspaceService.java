@@ -277,6 +277,7 @@ public class WorkspaceService extends Service {
             links.add(createLink("POST", Constants.LINK_REL_ADD_WORKSPACE_MEMBER, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "addMember").build(workspace.getId()).toString())
                               .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
+                                                                      .withName("member")
                                                                       .withDescription("new member")
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
@@ -295,6 +296,7 @@ public class WorkspaceService extends Service {
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "update").build(workspace.getId()).toString())
                               .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
+                                                                      .withName("workspaceToUpdate")
                                                                       .withDescription("workspace to update")
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));

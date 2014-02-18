@@ -34,6 +34,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 
@@ -66,12 +67,10 @@ public class AnalyticsService extends Service {
                 return Response.status(Response.Status.UNAUTHORIZED).build();
             }
 
-            Map<String, String> metricContext = Utils.extractContext(uriInfo, page, perPage);
-
-            String user = securityContext.getUserPrincipal().getName();
-            if (!Utils.isAdmin(user)) {
-                metricContext.put("USER", user);
-            }
+            Map<String, String> metricContext = Utils.extractContext(uriInfo,
+                                                                     securityContext.getUserPrincipal(),
+                                                                     page,
+                                                                     perPage);
 
             MetricValueDTO value = metricHandler.getValue(metricName, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
@@ -129,7 +128,12 @@ public class AnalyticsService extends Service {
     }
 
     private boolean isRolesAllowed(MetricInfoDTO metricInfoDTO, SecurityContext securityContext) {
-        for (String role : metricInfoDTO.getRolesAllowed()) {
+        List<String> rolesAllowed = metricInfoDTO.getRolesAllowed();
+        if (rolesAllowed.isEmpty()) {
+            return true;
+        }
+
+        for (String role : rolesAllowed) {
             if (securityContext.isUserInRole(role)) {
                 return true;
             }

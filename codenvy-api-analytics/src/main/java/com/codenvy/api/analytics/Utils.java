@@ -73,7 +73,7 @@ public class Utils {
     /**
      * The only way to check if user belongs to codenvy's employee.
      */
-    public static boolean isAdmin(String email) {
+    public static boolean isSystemUser(String email) {
         Matcher matcher = ADMIN_ROLE_EMAIL_PATTERN.matcher(email);
         return matcher.find();
     }

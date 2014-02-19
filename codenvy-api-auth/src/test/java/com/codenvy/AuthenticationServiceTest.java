@@ -70,7 +70,8 @@ public class AuthenticationServiceTest {
     protected AuthenticationService authenticationService;
     protected String                token;
     protected String                tokenOld;
-    private ExceptionMapper exceptionMapper = new AuthenticationExceptionMapper();
+
+    private  ExceptionMapper exceptionMapper = new AuthenticationExceptionMapper();
 
     @BeforeMethod
     public void init() {

@@ -164,8 +164,6 @@ public class AccountService extends Service {
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_MEMBER)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
     public void addMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
                           @Required @Description("User id to be a new account member") @QueryParam("userid") String userId)
             throws UserException, AccountException {
@@ -240,8 +238,6 @@ public class AccountService extends Service {
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_MEMBER)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
     public void removeMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
                              @PathParam("userid") String userid) throws AccountException, UserException {
         final Account account = accountDao.getById(accountId);

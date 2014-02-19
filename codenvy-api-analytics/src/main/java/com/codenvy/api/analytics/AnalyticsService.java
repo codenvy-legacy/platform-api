@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -128,6 +129,11 @@ public class AnalyticsService extends Service {
     }
 
     private boolean isRolesAllowed(MetricInfoDTO metricInfoDTO, SecurityContext securityContext) {
+        Principal principal = securityContext.getUserPrincipal();
+        if (principal != null && Utils.isAdmin(principal.getName())) {
+            return true;
+        }
+
         List<String> rolesAllowed = metricInfoDTO.getRolesAllowed();
         if (rolesAllowed.isEmpty()) {
             return true;

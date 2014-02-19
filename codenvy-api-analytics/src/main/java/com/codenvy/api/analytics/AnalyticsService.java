@@ -29,6 +29,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
@@ -57,6 +58,7 @@ public class AnalyticsService extends Service {
     @GET
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({"user"})
     public Response getValue(@PathParam("name") String metricName,
                              @QueryParam("page") String page,
                              @QueryParam("per_page") String perPage,
@@ -84,10 +86,28 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @GenerateLink(rel = "metric value")
+    @GET
+    @Path("public-metric/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getPublicValue(@PathParam("name") String metricName,
+                                   @QueryParam("page") String page,
+                                   @QueryParam("per_page") String perPage,
+                                   @Context UriInfo uriInfo,
+                                   @Context SecurityContext securityContext) {
+
+        return getValue(metricName,
+                        page,
+                        perPage,
+                        uriInfo,
+                        securityContext);
+    }
+
     @GenerateLink(rel = "metric info")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo/{name}")
+    @RolesAllowed({"user"})
     public Response getInfo(@PathParam("name") String metricName,
                             @Context UriInfo uriInfo,
                             @Context SecurityContext securityContext) {
@@ -109,6 +129,7 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo")
+    @RolesAllowed({"user"})
     public Response getAllInfo(@Context UriInfo uriInfo,
                                @Context SecurityContext securityContext) {
         try {
@@ -130,7 +151,8 @@ public class AnalyticsService extends Service {
 
     private boolean isRolesAllowed(MetricInfoDTO metricInfoDTO, SecurityContext securityContext) {
         Principal principal = securityContext.getUserPrincipal();
-        if (principal != null && Utils.isAdmin(principal.getName())) {
+
+        if (principal != null && Utils.isSystemUser(principal.getName())) {
             return true;
         }
 

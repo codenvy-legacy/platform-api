@@ -100,6 +100,7 @@ public class UserService extends Service {
         String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
         user.setId(userId);
         user.setEmail(userEmail);
+        // TODO: password ?
         userDao.create(user);
         try {
             Profile profile = DtoFactory.getInstance().createDto(Profile.class);

@@ -74,7 +74,6 @@ public class AuthenticationServiceTest {
 
     @BeforeMethod
     public void init() {
-
         token = "t1";
         tokenOld = "t2";
         when(ticketManager.getAccessTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal));

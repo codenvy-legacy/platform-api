@@ -81,6 +81,9 @@ public class UserServiceTest {
     private MemberDao memberDao;
 
     @Mock
+    private TokenValidator tokenValidator;
+
+    @Mock
     private UriInfo uriInfo;
 
     @Mock
@@ -102,6 +105,7 @@ public class UserServiceTest {
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(MemberDao.class, memberDao);
+        dependencies.addComponent(TokenValidator.class, tokenValidator);
         resources.addResource(UserService.class, null);
         requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
                                                 providers, dependencies, new EverrestConfiguration());

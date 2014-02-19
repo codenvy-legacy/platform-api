@@ -33,8 +33,11 @@ import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.server.exception.UserProfileException;
+import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.inject.Inject;
 
@@ -69,44 +72,51 @@ public class UserService extends Service {
     private final UserDao        userDao;
     private final UserProfileDao profileDao;
     private final MemberDao      memberDao;
+    private final TokenValidator tokenValidator;
 
     @Inject
-    public UserService(UserDao userDao, UserProfileDao profileDao, MemberDao memberDao) {
+    public UserService(UserDao userDao, UserProfileDao profileDao, MemberDao memberDao, TokenValidator tokenValidator) {
         this.userDao = userDao;
         this.profileDao = profileDao;
         this.memberDao = memberDao;
+        this.tokenValidator = tokenValidator;
     }
 
     @POST
     @Path("create")
     @GenerateLink(rel = Constants.LINK_REL_CREATE_USER)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext, @QueryParam("token") String token,
+    public Response create(@Context SecurityContext securityContext, @Required @QueryParam("token") String token,
                            @Required @Description("is user temporary") @QueryParam("temporary") Boolean isTemporary)
             throws ApiException {
-        // TODO
-//        final User user = DtoFactory.getInstance().createDto(User.class);
-//        String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
-//        user.setId(userId);
-//        user.setEmail(securityContext.getUserPrincipal().getName());
-//        userDao.create(user);
-//        try {
-//            Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-//            String profileId = userId;
-//            profile.setId(profileId);
-//            profile.setUserId(userId);
-//            profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-//                                                          .withName("temporary")
-//                                                          .withValue(String.valueOf(isTemporary))
-//                                                          .withDescription("Indicates is this user is temporary")));
-//            profileDao.create(profile);
-//        } catch (ApiException e) {
-//            userDao.removeById(userId);
-//            throw e;
-//        }
-//        injectLinks(user, securityContext);
-//        return Response.status(Response.Status.CREATED).entity(user).build();
-        throw new UnsupportedOperationException("not implemented");
+        if (token == null) {
+            throw new UserException("Missed token parameter");
+        }
+        if (isTemporary == null) {
+            throw new UserException("Missed isTemporary parameter");
+        }
+        final String userEmail = tokenValidator.validateToken(token);
+        final User user = DtoFactory.getInstance().createDto(User.class);
+        String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
+        user.setId(userId);
+        user.setEmail(userEmail);
+        userDao.create(user);
+        try {
+            Profile profile = DtoFactory.getInstance().createDto(Profile.class);
+            String profileId = userId;
+            profile.setId(profileId);
+            profile.setUserId(userId);
+            profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                          .withName("temporary")
+                                                          .withValue(String.valueOf(isTemporary))
+                                                          .withDescription("Indicates is this user is temporary")));
+            profileDao.create(profile);
+        } catch (UserProfileException e) {
+            userDao.remove(userId);
+            throw e;
+        }
+        injectLinks(user, securityContext);
+        return Response.status(Response.Status.CREATED).entity(user).build();
     }
 
     @GET

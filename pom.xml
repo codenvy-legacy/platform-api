@@ -65,7 +65,9 @@
         <hamcrest.version>1.2.1</hamcrest.version>
         <javax.annotation.version>1.0</javax.annotation.version>
         <javax.inject.version>1</javax.inject.version>
+        <javax.jcr350.version>1.3.9</javax.jcr350.version>
         <javax.servlet-api.version>3.0.1</javax.servlet-api.version>
+        <javax.validation.version>1.0.0.GA</javax.validation.version>
         <javax.ws.rs.version>1.0</javax.ws.rs.version>
         <jna.version>3.5.2</jna.version>
         <junit.version>4.10</junit.version>

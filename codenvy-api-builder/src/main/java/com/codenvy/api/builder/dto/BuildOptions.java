@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
 
@@ -29,6 +29,13 @@ import java.util.Map;
  */
 @DTO
 public interface BuildOptions {
+    /** Get name of builder. This parameter has preference over builder name that is configured in properties of project. */
+    String getBuilderName();
+
+    void setBuilderName(String builderName);
+
+    BuildOptions withBuilderName(String builderName);
+
     /**
      * Build targets, e.g. "clean", "compile", ... . Supported targets depend on builder implementation. Builder uses default targets if
      * this parameter is not provided by client.
@@ -49,7 +56,9 @@ public interface BuildOptions {
 
     void setOptions(Map<String, String> options);
 
-    boolean isDeployJarWithDependencies();
+    boolean isIncludeDependencies();
 
-    void setDeployJarWithDependencies(boolean deployJarWithDependencies);
+    void setIncludeDependencies(boolean includeDependencies);
+
+    BuildOptions withIncludeDependencies(boolean includeDependencies);
 }

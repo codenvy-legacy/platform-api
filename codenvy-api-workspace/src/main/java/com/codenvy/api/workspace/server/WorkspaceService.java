@@ -18,7 +18,6 @@
 package com.codenvy.api.workspace.server;
 
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -88,6 +87,7 @@ public class WorkspaceService extends Service {
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_WORKSPACE)
     @RolesAllowed({"user", "system/admin"})
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
             throws WorkspaceException {

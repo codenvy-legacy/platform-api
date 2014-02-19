@@ -323,7 +323,12 @@ public class AccountService extends Service {
     @Path("{id}/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
-    public void addSubscription(@PathParam("id") String id, Subscription subscription) throws AccountException {
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void addSubscription(@PathParam("id") String id, @Required @Description("subscription to add") Subscription subscription)
+            throws AccountException {
+        if (subscription == null) {
+            throw new AccountException("Missed subscription");
+        }
         if (accountDao.getById(id) == null) {
             throw AccountNotFoundException.doesNotExistWithId(id);
         }

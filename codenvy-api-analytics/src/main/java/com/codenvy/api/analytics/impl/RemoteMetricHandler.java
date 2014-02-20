@@ -79,7 +79,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -91,7 +91,7 @@ public class RemoteMetricHandler implements MetricHandler {
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getMessage());
         }
     }
 

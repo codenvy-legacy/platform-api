@@ -22,8 +22,6 @@ package com.codenvy.api.analytics;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.exception.MetricNotFoundException;
-import com.codenvy.api.analytics.exception.MetricRestrictionException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 
@@ -78,12 +76,6 @@ public class AnalyticsService extends Service {
 
             MetricValueDTO value = metricHandler.getValue(metricName, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
-        } catch (MetricNotFoundException e) {
-            LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.NOT_FOUND).build();
-        } catch (MetricRestrictionException e) {
-            LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
@@ -122,12 +114,8 @@ public class AnalyticsService extends Service {
             }
 
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
-        } catch (MetricNotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        } catch (MetricRestrictionException e) {
-            LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
@@ -164,7 +152,7 @@ public class AnalyticsService extends Service {
         }
 
         List<String> rolesAllowed = metricInfoDTO.getRolesAllowed();
-        if (rolesAllowed.isEmpty() && principal == null) {
+        if (rolesAllowed.isEmpty()) {
             return true;
         }
 

@@ -19,8 +19,8 @@
 package com.codenvy.api.analytics.exception;
 
 /** To indicate that metric is not found @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a> */
-public class MetricNotFoundException extends Exception {
-    public MetricNotFoundException(String message) {
+public class MetricRestrictionException extends RuntimeException {
+    public MetricRestrictionException(String message) {
         super(message);
     }
 }

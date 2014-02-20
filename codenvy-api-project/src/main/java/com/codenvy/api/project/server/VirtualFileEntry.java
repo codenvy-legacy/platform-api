@@ -1,18 +1,33 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.Path;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 /**
  * @author andrew00x
  */
-public abstract class ProjectEntry {
+public abstract class VirtualFileEntry {
     private VirtualFile virtualFile;
 
-    public ProjectEntry(VirtualFile virtualFile) {
+    public VirtualFileEntry(VirtualFile virtualFile) {
         this.virtualFile = virtualFile;
+    }
+
+    public boolean isFile() {
+        try {
+            return virtualFile.isFile();
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
+    }
+
+    public boolean isFolder() {
+        try {
+            return virtualFile.isFolder();
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
     }
 
     public String getName() {
@@ -31,25 +46,12 @@ public abstract class ProjectEntry {
         }
     }
 
-    public ProjectFolder getParentFolder() {
+    public FolderEntry getParent() {
         try {
-            final VirtualFile vfParent = virtualFile.getParent();
-            final VirtualFile projectFile = vfParent.getChild(".codenvy/project");
-            if (projectFile != null && projectFile.isFile()) {
-                return new ProjectFolder(vfParent);
+            if (virtualFile.isRoot()) {
+                return null;
             }
-            // File has not parent folder. It locates directly in the root of project.
-            // NOTE: it doesn't mean file is locating in root folder of virtual filesystem.
-            return null;
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
-    }
-
-    public Project getProject() {
-        try {
-            final String projectName = virtualFile.getVirtualFilePath().element(0);
-            return new Project(virtualFile.getMountPoint().getRoot().getChild(projectName));
+            return new FolderEntry(virtualFile.getParent());
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }
@@ -63,15 +65,10 @@ public abstract class ProjectEntry {
         }
     }
 
-    public void move(String path) {
+    public void moveTo(String newParent) {
         try {
-            final Path internalVfsPath = Path.fromString(path);
-            if (internalVfsPath.length() <= 1) {
-                throw new IllegalArgumentException(String.format("Invalid path %s. Can't move this item outside of project.", path));
-            }
-            final MountPoint mountPoint = virtualFile.getMountPoint();
-            final VirtualFile newParent = mountPoint.getVirtualFile(internalVfsPath.getParent().toString());
-            virtualFile = virtualFile.moveTo(newParent, null);
+            final MountPoint mp = virtualFile.getMountPoint();
+            virtualFile = virtualFile.moveTo(mp.getVirtualFile(newParent), null);
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }
@@ -87,5 +84,9 @@ public abstract class ProjectEntry {
 
     public VirtualFile getVirtualFile() {
         return virtualFile;
+    }
+
+    void setVirtualFile(VirtualFile virtualFile) {
+        this.virtualFile = virtualFile;
     }
 }

@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
@@ -26,7 +25,6 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.user.User;
 import com.codenvy.commons.user.UserImpl;
-import com.codenvy.dto.server.DtoFactory;
 
 import org.junit.Assert;
 import org.junit.Before;

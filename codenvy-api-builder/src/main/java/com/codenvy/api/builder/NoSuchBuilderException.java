@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.builder;
 
 /** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
 @SuppressWarnings("serial")

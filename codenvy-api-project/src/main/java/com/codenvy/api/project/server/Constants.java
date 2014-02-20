@@ -29,6 +29,10 @@ public class Constants {
 
     public static final String LINK_REL_IMPORT_PROJECT = "create project from external sources";
 
+    public static final String CODENVY_FOLDER                     = ".codenvy";
+    public static final String CODENVY_PROJECT_FILE               = "project";
+    public static final String CODENVY_PROJECT_FILE_RELATIVE_PATH = CODENVY_FOLDER + "/" + CODENVY_PROJECT_FILE;
+
     private Constants() {
     }
 }

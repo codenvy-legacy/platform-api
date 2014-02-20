@@ -24,7 +24,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
  *
  * @author andrew00x
  */
-public class FileSystemLevelException extends RuntimeException {
+public final class FileSystemLevelException extends RuntimeException {
     public FileSystemLevelException(String message, VirtualFileSystemException cause) {
         super(message, cause);
     }

@@ -54,6 +54,11 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
         super(workspaceId);
     }
 
+    public MemoryFileSystemProvider(String workspaceId, MemoryMountPoint memoryMountPoint) {
+        super(workspaceId);
+        this.memoryMountPoint = memoryMountPoint;
+    }
+
     @Override
     public VirtualFileSystem newInstance(URI baseUri, EventListenerList listeners) throws VirtualFileSystemException {
         final MemoryMountPoint memoryMountPoint = (MemoryMountPoint)getMountPoint(true);

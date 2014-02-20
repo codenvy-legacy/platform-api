@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,16 +15,21 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.server;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@SuppressWarnings("serial")
-public final class NoSuchBuildTaskException extends BuilderException {
-    public NoSuchBuildTaskException(Long taskId) {
-        this(String.format("Invalid build task id: %d", taskId));
+/**
+ * @author andrew00x
+ */
+public class ProjectException extends RuntimeException {
+    public ProjectException(String message) {
+        super(message);
     }
 
-    public NoSuchBuildTaskException(String message) {
-        super(message);
+    public ProjectException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ProjectException(Throwable cause) {
+        super(cause);
     }
 }

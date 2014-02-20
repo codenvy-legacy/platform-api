@@ -18,9 +18,11 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.vfs.server.ContentStream;
+import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.Path;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.google.common.io.ByteStreams;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,24 +32,32 @@ import java.io.OutputStream;
 /**
  * @author andrew00x
  */
-public class ProjectFile extends ProjectEntry {
+public class FileEntry extends VirtualFileEntry {
 
-    public ProjectFile(VirtualFile virtualFile) {
+    public FileEntry(VirtualFile virtualFile) {
         super(virtualFile);
     }
 
-    public ProjectFile copy(String destPath) {
+    public FileEntry copyTo(String newParent) {
+        if (Path.fromString(newParent).isRoot()) {
+            throw new ProjectStructureConstraintException(
+                    String.format("Invalid path %s. Can't create file outside of project.", newParent));
+        }
         try {
-            final Path internalVfsPath = Path.fromString(destPath);
-            if (internalVfsPath.length() <= 1) {
-                throw new IllegalArgumentException(String.format("Invalid path %s. Can't create file outside of project.", destPath));
-            }
             final VirtualFile vf = getVirtualFile();
-            final String parentPath = internalVfsPath.getParent().toString();
-            return new ProjectFile(vf.copyTo(vf.getMountPoint().getVirtualFile(parentPath)));
+            final MountPoint mp = vf.getMountPoint();
+            return new FileEntry(vf.copyTo(mp.getVirtualFile(newParent)));
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }
+    }
+
+    public void moveTo(String newParent) {
+        if (Path.fromString(newParent).isRoot()) {
+            throw new ProjectStructureConstraintException(
+                    String.format("Invalid path %s. Can't move this item outside of project.", newParent));
+        }
+        super.moveTo(newParent);
     }
 
     public String getMediaType() {
@@ -66,7 +76,7 @@ public class ProjectFile extends ProjectEntry {
         }
     }
 
-    public InputStream getInputStream() {
+    public InputStream getInputStream() throws IOException {
         try {
             return getVirtualFile().getContent().getStream();
         } catch (VirtualFileSystemException e) {
@@ -87,19 +97,10 @@ public class ProjectFile extends ProjectEntry {
         }
         try (InputStream stream = contentStream.getStream()) {
             if (contentLength < 0) {
-                final ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                final byte[] buf = new byte[1024];
-                int off;
-                while ((off = stream.read(buf)) != -1) {
-                    bout.write(buf, 0, off);
-                }
-                return bout.toByteArray();
+                return ByteStreams.toByteArray(stream);
             }
             final byte[] b = new byte[contentLength];
-            int point, off = 0;
-            while ((point = stream.read(b, off, contentLength - off)) > 0) {
-                off += point;
-            }
+            ByteStreams.readFully(stream, b);
             return b;
         }
     }
@@ -121,6 +122,15 @@ public class ProjectFile extends ProjectEntry {
     public OutputStream openOutputStream() throws IOException {
         try {
             return getVirtualFile().openOutputStream();
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
+    }
+
+    public void rename(String newName, String newMediaType) {
+        try {
+            final VirtualFile rVf = getVirtualFile().rename(newName, newMediaType, null);
+            setVirtualFile(rVf);
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }

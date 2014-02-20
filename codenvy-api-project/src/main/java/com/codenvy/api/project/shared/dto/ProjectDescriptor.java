@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -84,4 +85,10 @@ public interface ProjectDescriptor {
     void setAttributes(Map<String, List<String>> attributes);
 
     ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
+
+    List<Link> getLinks();
+
+    ProjectDescriptor withLinks(List<Link> links);
+
+    void setLinks(List<Link> links);
 }

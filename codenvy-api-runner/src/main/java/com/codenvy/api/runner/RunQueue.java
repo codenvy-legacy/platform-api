@@ -44,6 +44,7 @@ import com.codenvy.dto.server.DtoFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -77,12 +78,19 @@ public class RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(RunQueue.class);
 
     /**
-     * Name of configuration parameter that points to the base API location. If such parameter isn't specified than use the same base
-     * URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy.com/api/my_workspace/runner</i>, in this case base
-     * URL is <i>http://codenvy.com/api/my_workspace</i> so we will try to find builder API at URL:
-     * <i>http://codenvy.com/api/my_workspace/builder</i> and workspace API at URL: <i>http://codenvy.com/api/my_workspace/workspace</i>
+     * Name of configuration parameter that points to the Project API location. If such parameter isn't specified than use the same base
+     * URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy.com/api/runner/my_workspace</i>, in this case base
+     * URL is <i>http://codenvy.com/api</i> so we will try to find builder API at URL: project API at URL:
+     * <i>http://codenvy.com/api/project/my_workspace</i>
      */
-    public static final String BASE_API_URL         = "runner.queue.base_api_url";
+    public static final String BASE_PROJECT_API_URL = "runner.queue.base_project_api_url";
+    /**
+     * Name of configuration parameter that points to the base Builder API location. If such parameter isn't specified than use the same
+     * base URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy.com/api/runner/my_workspace</i>, in this case
+     * base URL is <i>http://codenvy.com/api</i> so we will try to find builder API at URL:
+     * <i>http://codenvy.com/api/builder/my_workspace</i>.
+     */
+    public static final String BASE_BUILDER_API_URL = "runner.queue.base_builder_api_url";
     /** Name of configuration parameter that set default memory size for application in megabytes. */
     public static final String DEFAULT_MEMORY_SIZE  = "runner.default_app_mem_size";
     /**
@@ -102,15 +110,16 @@ public class RunQueue {
     private final ConcurrentMap<RunnerListKey, RunnerList> runnerListMapping;
     private final ConcurrentMap<Long, RunQueueTask>        tasks;
     private final int                                      defMemSize;
-    private final String                                   baseApiUrl;
+    private final String                                   baseProjectApiUrl;
+    private final String                                   baseBuilderApiUrl;
     private final int                                      appLifetime;
     private final long                                     maxTimeInQueueMillis;
 
     private boolean started;
 
     /**
-     * @param baseApiUrl
-     *         api url
+     * @param baseProjectApiUrl
+     *         project api url
      * @param defMemSize
      *         default size of memory for application. This value used is there is nothing specified in properties of project
      * @param maxTimeInQueue
@@ -119,12 +128,14 @@ public class RunQueue {
      *         application life time in seconds. After this time the application may be terminated.
      */
     @Inject
-    public RunQueue(@Named(BASE_API_URL) String baseApiUrl,
+    public RunQueue(@Nullable @Named(BASE_PROJECT_API_URL) String baseProjectApiUrl,
+                    @Nullable @Named(BASE_BUILDER_API_URL) String baseBuilderApiUrl,
                     @Named(DEFAULT_MEMORY_SIZE) int defMemSize,
                     @Named(MAX_TIME_IN_QUEUE) int maxTimeInQueue,
                     @Named(APPLICATION_LIFETIME) int appLifetime,
                     RunnerSelectionStrategy runnerSelector) {
-        this.baseApiUrl = baseApiUrl;
+        this.baseProjectApiUrl = baseProjectApiUrl;
+        this.baseBuilderApiUrl = baseBuilderApiUrl;
         this.defMemSize = defMemSize;
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.appLifetime = appLifetime;
@@ -137,9 +148,13 @@ public class RunQueue {
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException, RunnerException {
         checkStarted();
-        final UriBuilder baseUriBuilder =
-                baseApiUrl == null || baseApiUrl.isEmpty() ? serviceContext.getBaseUriBuilder() : UriBuilder.fromUri(baseApiUrl);
-        final ProjectDescriptor descriptor = getProjectDescription(workspace, project, baseUriBuilder.clone());
+        final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
+                                                 ? serviceContext.getBaseUriBuilder()
+                                                 : UriBuilder.fromUri(baseProjectApiUrl);
+        final String projectUrl = baseProjectUriBuilder.path(ProjectService.class)
+                                                       .path(ProjectService.class, "getProject")
+                                                       .build(workspace).toString();
+        final ProjectDescriptor descriptor = HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
                                              .withWorkspace(workspace)
                                              .withProject(project)
@@ -148,7 +163,10 @@ public class RunQueue {
         final Callable<RemoteRunnerProcess> callable;
         if (descriptor.getAttributes().get(com.codenvy.api.builder.internal.Constants.BUILDER_NAME) != null) {
             LOG.debug("Need build project first");
-            final String builderUrl = baseUriBuilder.clone().path(BuilderService.class).build(workspace).toString();
+            final UriBuilder baseBuilderUriBuilder = baseBuilderApiUrl == null || baseBuilderApiUrl.isEmpty()
+                                                     ? serviceContext.getBaseUriBuilder()
+                                                     : UriBuilder.fromUri(baseBuilderApiUrl);
+            final String builderUrl = baseBuilderUriBuilder.path(BuilderService.class).build(workspace).toString();
             final RemoteServiceDescriptor builderService = new RemoteServiceDescriptor(builderUrl);
             final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
             if (buildLink == null) {
@@ -193,8 +211,7 @@ public class RunQueue {
                 if (!entry.getValue().isEmpty()) {
                     request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(entry.getValue().get(0)));
                 }
-            }
-            else if (runMemSize.equals(entry.getKey())) {
+            } else if (runMemSize.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
                     request.setMemorySize(Integer.parseInt(entry.getValue().get(0)));
                 }
@@ -219,14 +236,6 @@ public class RunQueue {
         if (request.getMemorySize() <= 0) {
             request.setMemorySize(defMemSize);
         }
-    }
-
-    private ProjectDescriptor getProjectDescription(String workspace, String project, UriBuilder baseUriBuilder)
-            throws IOException, RemoteException {
-        final String projectUrl = baseUriBuilder.path(ProjectService.class)
-                                                .path(ProjectService.class, "getProject")
-                                                .build(workspace).toString();
-        return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
     }
 
     private Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor, final RunRequest request) {

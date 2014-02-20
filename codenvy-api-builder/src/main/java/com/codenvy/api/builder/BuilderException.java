@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.builder;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;

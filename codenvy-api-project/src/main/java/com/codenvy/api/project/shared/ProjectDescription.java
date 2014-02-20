@@ -29,34 +29,32 @@ import java.util.Map;
  * @author gazarenkov
  */
 public class ProjectDescription {
-    private ProjectType projectType;
-
-    private final Map<String, Attribute> attributes;
-
-    public ProjectDescription(ProjectType projectType, Attribute... attributes) {
-        if (projectType == null) {
-            throw new IllegalArgumentException("Project type may not be null. ");
-        }
-        this.projectType = projectType;
-        this.attributes = new LinkedHashMap<>();
-        setAttributes(attributes);
-    }
+    private ProjectType            projectType;
+    private String                 description;
+    private Map<String, Attribute> attributes;
 
     public ProjectDescription(ProjectType projectType, List<Attribute> attributes) {
-        if (projectType == null) {
-            throw new IllegalArgumentException("Project type may not be null. ");
-        }
-        this.projectType = projectType;
         this.attributes = new LinkedHashMap<>();
+        setProjectType(projectType);
         setAttributes(attributes);
     }
 
     public ProjectDescription(ProjectType projectType) {
-        if (projectType == null) {
-            throw new IllegalArgumentException("Project type may not be null. ");
-        }
-        this.projectType = projectType;
         this.attributes = new LinkedHashMap<>();
+        setProjectType(projectType);
+    }
+
+    public ProjectDescription(ProjectDescription origin) {
+        final ProjectType originProjectType = origin.getProjectType();
+        setProjectType(new ProjectType(originProjectType.getId(), originProjectType.getName()));
+        final List<Attribute> originAttributes = origin.getAttributes();
+        final List<Attribute> copyAttributes = new ArrayList<>();
+        for (Attribute attribute : originAttributes) {
+            copyAttributes.add(new Attribute(attribute));
+        }
+        this.attributes = new LinkedHashMap<>();
+        this.description = origin.getDescription();
+        setAttributes(copyAttributes);
     }
 
     /** @return Project type */
@@ -65,6 +63,9 @@ public class ProjectDescription {
     }
 
     public void setProjectType(ProjectType projectType) {
+        if (projectType == null) {
+            throw new IllegalArgumentException("Project type may not be null. ");
+        }
         this.projectType = projectType;
     }
 
@@ -103,18 +104,22 @@ public class ProjectDescription {
         return attributes.get(name) != null;
     }
 
-    /** Set single attribute. New attribute will override exited attribute with the same name. */
-    public void setAttribute(Attribute attribute) {
-        attributes.put(attribute.getName(), attribute);
+    /** Get single value of attribute with specified name. If attribute has multiple value then this method returns first value in the list. */
+    public String getAttributeValue(String name) {
+        final Attribute attribute = attributes.get(name);
+        if (attribute == null) {
+            return null;
+        }
+        return attribute.getValue();
     }
 
-    /** Set attributes. New attributes will override exited attributes with the same names. */
-    public void setAttributes(Attribute... elements) {
-        if (elements != null && elements.length > 0) {
-            for (Attribute attribute : elements) {
-                this.attributes.put(attribute.getName(), attribute);
-            }
+    /** Get values of attribute with specified name. */
+    public List<String> getAttributeValues(String name) {
+        final Attribute attribute = attributes.get(name);
+        if (attribute == null) {
+            return null;
         }
+        return attribute.getValues();
     }
 
     /** Set attributes. New attributes will override exited attributes with the same names. */
@@ -124,5 +129,19 @@ public class ProjectDescription {
                 this.attributes.put(attribute.getName(), attribute);
             }
         }
+    }
+
+    /** Set project type and attributes. New attributes will override exited attributes with the same names. */
+    public void setProjectTypeAndAttributes(ProjectType projectType, List<Attribute> list) {
+        setProjectType(projectType);
+        setAttributes(list);
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

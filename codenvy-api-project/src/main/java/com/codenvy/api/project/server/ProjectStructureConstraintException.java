@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
  * 
  * NOTICE:  All information contained herein is, and remains
@@ -15,12 +15,13 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.server;
 
-import com.codenvy.api.builder.BuilderException;
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public interface BuilderConfigurationFactory {
-    BuilderConfiguration createBuilderConfiguration(BaseBuilderRequest request) throws BuilderException;
+/**
+ * @author andrew00x
+ */
+public final class ProjectStructureConstraintException extends ProjectException {
+    public ProjectStructureConstraintException(String message) {
+        super(message);
+    }
 }

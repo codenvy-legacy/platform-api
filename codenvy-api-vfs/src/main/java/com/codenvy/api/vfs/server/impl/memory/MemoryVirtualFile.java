@@ -26,7 +26,6 @@ import com.codenvy.api.vfs.server.Path;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.VirtualFileVisitor;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
@@ -88,7 +87,6 @@ import java.util.zip.ZipOutputStream;
  */
 public class MemoryVirtualFile implements VirtualFile {
     private static final Logger                       LOG          = LoggerFactory.getLogger(MemoryVirtualFile.class);
-    private static final VirtualFileSystemUserContext USER_CONTEXT = VirtualFileSystemUserContext.newInstance();
     private static final boolean                      FILE         = false;
     private static final boolean                      FOLDER       = true;
 
@@ -107,17 +105,6 @@ public class MemoryVirtualFile implements VirtualFile {
 
     private static MemoryVirtualFile newProject(MemoryVirtualFile parent, String name, List<Property> properties) {
         return new MemoryVirtualFile(parent, ObjectIdGenerator.generateId(), name, properties);
-    }
-
-    private static byte[] readContent(InputStream content) throws IOException {
-        // Typically InputStream is ServletInputStream. Don't close it after use, lets servlet container to manage it.
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        byte[] buf = new byte[1024];
-        int r;
-        while ((r = content.read(buf)) != -1) {
-            bout.write(buf, 0, r);
-        }
-        return bout.toByteArray();
     }
 
     //
@@ -140,7 +127,7 @@ public class MemoryVirtualFile implements VirtualFile {
     // --- File ---
     private MemoryVirtualFile(MemoryVirtualFile parent, String id, String name, InputStream content, String mediaType)
             throws IOException {
-        this(parent, id, name, content == null ? null : readContent(content), mediaType);
+        this(parent, id, name, content == null ? null : ByteStreams.toByteArray(content), mediaType);
     }
 
     private MemoryVirtualFile(MemoryVirtualFile parent, String id, String name, byte[] content, String mediaType) {
@@ -583,7 +570,7 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new LockException(String.format("Unable update content of file '%s'. File is locked. ", getPath()));
         }
         try {
-            this.content = readContent(content);
+            this.content = ByteStreams.toByteArray(content);
         } catch (IOException e) {
             throw new VirtualFileSystemException(String.format("Unable set content of '%s'. %s", getPath(), e.getMessage()));
         }
@@ -1237,7 +1224,7 @@ public class MemoryVirtualFile implements VirtualFile {
 
     boolean hasPermission(BasicPermissions permission, boolean checkParent) throws VirtualFileSystemException {
         checkExist();
-        final VirtualFileSystemUser user = USER_CONTEXT.getVirtualFileSystemUser();
+        final VirtualFileSystemUser user = mountPoint.getUserContext().getVirtualFileSystemUser();
         VirtualFile current = this;
         while (current != null) {
             final Map<Principal, Set<BasicPermissions>> objectPermissions = current.getPermissions();

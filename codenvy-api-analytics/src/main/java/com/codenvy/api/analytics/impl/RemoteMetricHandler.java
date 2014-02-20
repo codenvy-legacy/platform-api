@@ -24,7 +24,6 @@ import com.codenvy.api.analytics.dto.Constants;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
@@ -70,7 +69,7 @@ public class RemoteMetricHandler implements MetricHandler {
     @Override
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> executionContext,
-                                   UriInfo uriInfo) throws MetricNotFoundException {
+                                   UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getValue", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
@@ -79,20 +78,20 @@ public class RemoteMetricHandler implements MetricHandler {
                            "GET",
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
-        } catch (IOException | RemoteException e) {
-            throw new MetricNotFoundException("Metric not found");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Override
-    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
+    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getInfo", metricName);
         try {
             MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
-        } catch (IOException | RemoteException e) {
-            throw new MetricNotFoundException("Metric not found");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -103,7 +102,7 @@ public class RemoteMetricHandler implements MetricHandler {
             MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
-        } catch (IOException | RemoteException e) {
+        } catch (Exception e) {
             throw new RuntimeException(
                     "We have received an error code from the server. For some reason, " +
                     "we are unable to generate the list of metrics.");

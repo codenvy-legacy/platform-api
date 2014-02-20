@@ -27,7 +27,6 @@ import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
@@ -178,21 +177,7 @@ public class RemoteMetricHandler implements MetricHandler {
                 if (in == null) {
                     in = conn.getInputStream();
                 }
-                final String str = IoUtil.readAndCloseQuietly(in);
-                final String contentType = conn.getContentType();
-                if (contentType.startsWith("application/json")) {
-                    final ServiceError serviceError =
-                            DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
-                    if (serviceError.getMessage() != null) {
-                        // Error is in format what we can understand.
-                        throw new RemoteException(serviceError);
-                    }
-                }
-                // Can't parse content as json or content has format other we expect for error.
-                throw new IOException(
-                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", proxyUrl,
-                                      method,
-                                      responseCode, str));
+                throw new IOException(IoUtil.readAndCloseQuietly(in));
             }
             final String contentType = conn.getContentType();
             if (!contentType.startsWith("application/json")) {

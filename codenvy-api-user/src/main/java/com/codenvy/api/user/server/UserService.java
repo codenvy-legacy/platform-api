@@ -97,10 +97,10 @@ public class UserService extends Service {
         }
         final String userEmail = tokenValidator.validateToken(token);
         final User user = DtoFactory.getInstance().createDto(User.class);
-        String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
+        String userId = NameGenerator.generate((isTemporary ? "tmp-" : "") + User.class.getSimpleName(), Constants.ID_LENGTH);
         user.setId(userId);
         user.setEmail(userEmail);
-        // TODO: password ?
+        user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
         try {
             Profile profile = DtoFactory.getInstance().createDto(Profile.class);
@@ -117,6 +117,7 @@ public class UserService extends Service {
             throw e;
         }
         injectLinks(user, securityContext);
+        user.setPassword("<none>");
         return Response.status(Response.Status.CREATED).entity(user).build();
     }
 
@@ -140,12 +141,16 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PASSWORD)
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public void updatePassword(@Context SecurityContext securityContext, @FormParam("password") String password)
+    public void updatePassword(@Context SecurityContext securityContext,
+                               @Required @Description("Password to update") @FormParam("password") String password)
             throws UserException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
+        }
+        if (password == null || password.isEmpty()) {
+            throw new UserException("Password should not be empty");
         }
         user.setPassword(password);
         userDao.update(user);

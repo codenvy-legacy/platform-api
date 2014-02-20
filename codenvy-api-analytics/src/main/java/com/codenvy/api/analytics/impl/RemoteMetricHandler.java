@@ -51,7 +51,8 @@ import java.util.Properties;
 /**
  * Implementation provides means to perform remote REST requests to receive analytics data from remote rest service.
  *
- * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
+ * @author Dmitry Kuleshov
+ * @author Anatoliy Bazko
  */
 public class RemoteMetricHandler implements MetricHandler {
 
@@ -80,7 +81,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (IOException | RemoteException e) {
-            throw new MetricNotFoundException();
+            throw new MetricNotFoundException("Metric not found");
         }
     }
 
@@ -92,7 +93,7 @@ public class RemoteMetricHandler implements MetricHandler {
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (IOException | RemoteException e) {
-            throw new MetricNotFoundException();
+            throw new MetricNotFoundException("Metric not found");
         }
     }
 
@@ -104,7 +105,9 @@ public class RemoteMetricHandler implements MetricHandler {
             updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
         } catch (IOException | RemoteException e) {
-            throw new RuntimeException("Can't get generate metric info list!");
+            throw new RuntimeException(
+                    "We have received an error code from the server. For some reason, " +
+                    "we are unable to generate the list of metrics.");
         }
     }
 

@@ -36,6 +36,7 @@ public final class Constants {
     public static final String LINK_REL_GET_USER_BY_EMAIL           = "get user by email";
     public static final String LINK_REL_REMOVE_USER_BY_ID           = "remove user by id";
     public static final int    ID_LENGTH                            = 16;
+    public static final int    PASSWORD_LENGTH                      = 10;
 
     private Constants() {
     }

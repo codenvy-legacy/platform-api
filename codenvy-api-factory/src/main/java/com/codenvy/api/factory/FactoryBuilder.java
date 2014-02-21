@@ -21,12 +21,15 @@ import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
- * to json version.
+ * to json version and vise versa
  *
  * @author Sergii Kabashniuk
  */
@@ -167,7 +170,7 @@ public class FactoryBuilder {
      *         - factory object.
      * @return - json view of given factory
      */
-    public static String buildJson(Factory factory) {
+    public static String buildEncoded(Factory factory) {
         return DtoFactory.getInstance().toJson(factory);
     }
 
@@ -183,5 +186,49 @@ public class FactoryBuilder {
         StringBuilder result = new StringBuilder();
         builder.buildNonEncoded(factory, result);
         return result.toString();
+    }
+
+    /**
+     * Build factory from query string.
+     *
+     * @param queryString
+     *         - query string from nonencoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public static Factory buildNonEncoded(String queryString) {
+        return null;
+    }
+
+    /**
+     * Build factory from query string.
+     *
+     * @param json
+     *         - json  Reader from encoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public static Factory buildEncoded(Reader json) throws IOException {
+        return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+    }
+
+    /**
+     * Build factory from query string.
+     *
+     * @param json
+     *         - json  string from encoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public static Factory buildEncoded(String json) {
+        return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+    }
+
+    /**
+     * Build factory from query string.
+     *
+     * @param json
+     *         - json  InputStream from encoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public static Factory buildEncoded(InputStream json) throws IOException {
+        return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
     }
 }

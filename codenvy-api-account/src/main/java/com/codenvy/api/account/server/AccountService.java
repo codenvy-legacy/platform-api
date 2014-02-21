@@ -38,7 +38,6 @@ import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;
@@ -69,8 +68,8 @@ import java.util.List;
 @Path("/account")
 public class AccountService extends Service {
 
-    private final AccountDao                  accountDao;
-    private final UserDao                     userDao;
+    private final AccountDao accountDao;
+    private final UserDao userDao;
     private final SubscriptionServiceRegistry registry;
 
     @Inject
@@ -174,6 +173,7 @@ public class AccountService extends Service {
         if (account == null) {
             throw AccountNotFoundException.doesNotExistWithId(accountId);
         }
+        /*
         final Principal principal = securityContext.getUserPrincipal();
         if (securityContext.isUserInRole("account/owner")) {
             User owner = userDao.getByAlias(principal.getName());
@@ -181,6 +181,7 @@ public class AccountService extends Service {
                 throw new AccountIllegalAccessException(account.getId());
             }
         }
+        */
         if (userDao.getById(userId) == null) {
             throw new UserNotFoundException(userId);
         }
@@ -209,8 +210,8 @@ public class AccountService extends Service {
         //injecting links
         for (Member member : members) {
             member.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
-                                                     uriBuilder.clone().path(getClass(), "removeMember")
-                                                               .build(account.getId(), member.getUserId()).toString())));
+                    uriBuilder.clone().path(getClass(), "removeMember")
+                            .build(account.getId(), member.getUserId()).toString())));
         }
         return members;
     }
@@ -228,8 +229,8 @@ public class AccountService extends Service {
         final List<Member> members = accountDao.getMembers(id);
         for (Member member : members) {
             member.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
-                                                     uriBuilder.clone().path(getClass(), "removeMember")
-                                                               .build(id, member.getUserId()).toString())));
+                    uriBuilder.clone().path(getClass(), "removeMember")
+                            .build(id, member.getUserId()).toString())));
         }
         return members;
     }
@@ -313,8 +314,8 @@ public class AccountService extends Service {
         final List<Subscription> subscriptions = accountDao.getSubscriptions(id);
         for (Subscription subscription : subscriptions) {
             subscription.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
-                                                           uriBuilder.clone().path(getClass(), "removeSubscription")
-                                                                     .build(id, subscription.getServiceId()).toString())));
+                    uriBuilder.clone().path(getClass(), "removeSubscription")
+                            .build(id, subscription.getServiceId()).toString())));
         }
         return subscriptions;
     }
@@ -382,44 +383,44 @@ public class AccountService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("account/owner")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_ACCOUNT, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
+                    uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_ACCOUNT, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "update").build(account.getId()).toString())
-                              .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
-                                                                      .withName("accountToUpdate")
-                                                                      .withRequired(true)
-                                                                      .withDescription("Account to update"))));
+                    uriBuilder.clone().path(getClass(), "update").build(account.getId()).toString())
+                    .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
+                            .withName("accountToUpdate")
+                            .withRequired(true)
+                            .withDescription("Account to update"))));
             links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentAccount").build().toString()));
+                    uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentAccount").build().toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getMembersOfCurrentAccount").build().toString()));
+                    uriBuilder.clone().path(getClass(), "getMembersOfCurrentAccount").build().toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_ID, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getById").build(account.getId()).toString()));
+                    uriBuilder.clone().path(getClass(), "getById").build(account.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_NAME, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getByName").queryParam("name", account.getName()).build()
-                                           .toString()));
+                    uriBuilder.clone().path(getClass(), "getByName").queryParam("name", account.getName()).build()
+                            .toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getMembersOfSpecificAccount").build(account.getId()).toString()));
+                    uriBuilder.clone().path(getClass(), "getMembersOfSpecificAccount").build(account.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfSpecificAccount").build(account.getId())
-                                           .toString()));
+                    uriBuilder.clone().path(getClass(), "getSubscriptionsOfSpecificAccount").build(account.getId())
+                            .toString()));
 
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_ACCOUNT, null, null,
-                                 uriBuilder.clone().path(getClass(), "remove").build(account.getId()).toString()));
+                    uriBuilder.clone().path(getClass(), "remove").build(account.getId()).toString()));
         }
         account.setLinks(links);
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {
         return DtoFactory.getInstance().createDto(Link.class)
-                         .withMethod(method)
-                         .withRel(rel)
-                         .withProduces(produces)
-                         .withConsumes(consumes)
-                         .withHref(href);
+                .withMethod(method)
+                .withRel(rel)
+                .withProduces(produces)
+                .withConsumes(consumes)
+                .withHref(href);
     }
 }

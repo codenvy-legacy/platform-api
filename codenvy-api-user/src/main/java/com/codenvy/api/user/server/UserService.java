@@ -37,7 +37,6 @@ import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.inject.Inject;
 
@@ -75,7 +74,8 @@ public class UserService extends Service {
     //private final TokenValidator tokenValidator;
 
     @Inject
-    public UserService(UserDao userDao, UserProfileDao profileDao, MemberDao memberDao, TokenValidator tokenValidator) {
+    public UserService(UserDao userDao, UserProfileDao profileDao, MemberDao memberDao
+        /*, TokenValidator tokenValidator*/) {
         this.userDao = userDao;
         this.profileDao = profileDao;
         this.memberDao = memberDao;

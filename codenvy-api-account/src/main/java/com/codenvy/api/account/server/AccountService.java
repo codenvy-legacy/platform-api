@@ -90,19 +90,19 @@ public class AccountService extends Service {
         if (newAccount == null) {
             throw new AccountException("Missed account to create");
         }
-        final Principal principal = securityContext.getUserPrincipal();
-        final User current = userDao.getByAlias(principal.getName());
-        if (current == null) {
-            throw new UserNotFoundException(principal.getName());
-        }
-        if (accountDao.getByOwner(current.getId()) != null) {
-            throw AccountAlreadyExistsException.existsWithOwner(current.getId());
-        }
+//        final Principal principal = securityContext.getUserPrincipal();
+//        final User current = userDao.getByAlias(principal.getName());
+//        if (current == null) {
+//            throw new UserNotFoundException(principal.getName());
+//        }
+//        if (accountDao.getByOwner(current.getId()) != null) {
+//            throw AccountAlreadyExistsException.existsWithOwner(current.getId());
+//        }
         if (accountDao.getByName(newAccount.getName()) != null) {
             throw AccountAlreadyExistsException.existsWithName(newAccount.getName());
         }
-        String accountId = NameGenerator.generate(Account.class.getSimpleName(), Constants.ID_LENGTH);
-        newAccount.setId(accountId);
+//        String accountId = NameGenerator.generate(Account.class.getSimpleName(), Constants.ID_LENGTH);
+//        newAccount.setId(accountId);
         //account should have owner
         accountDao.create(newAccount);
         injectLinks(newAccount, securityContext);

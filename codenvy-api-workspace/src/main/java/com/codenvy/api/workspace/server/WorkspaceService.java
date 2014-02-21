@@ -94,8 +94,8 @@ public class WorkspaceService extends Service {
         if (newWorkspace == null) {
             throw new WorkspaceException("Missed workspace to create");
         }
-        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
-        newWorkspace.setId(wsId);
+//        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
+//        newWorkspace.setId(wsId);
         workspaceDao.create(newWorkspace);
         injectLinks(newWorkspace, securityContext);
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();

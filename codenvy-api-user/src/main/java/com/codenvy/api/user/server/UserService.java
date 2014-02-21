@@ -72,48 +72,49 @@ public class UserService extends Service {
     private final UserDao        userDao;
     private final UserProfileDao profileDao;
     private final MemberDao      memberDao;
-    private final TokenValidator tokenValidator;
+    //private final TokenValidator tokenValidator;
 
     @Inject
     public UserService(UserDao userDao, UserProfileDao profileDao, MemberDao memberDao, TokenValidator tokenValidator) {
         this.userDao = userDao;
         this.profileDao = profileDao;
         this.memberDao = memberDao;
-        this.tokenValidator = tokenValidator;
+        //this.tokenValidator = tokenValidator;
     }
 
     @POST
     @Path("create")
     @GenerateLink(rel = Constants.LINK_REL_CREATE_USER)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext, @Required @QueryParam("token") String token,
+    public Response create(@Context SecurityContext securityContext, @Required @Description("new user") User user,
                            @Required @Description("is user temporary") @QueryParam("temporary") Boolean isTemporary)
             throws ApiException {
-        if (token == null) {
-            throw new UserException("Missed token parameter");
-        }
-        if (isTemporary == null) {
-            throw new UserException("Missed isTemporary parameter");
-        }
-        final String userEmail = tokenValidator.validateToken(token);
-        final User user = DtoFactory.getInstance().createDto(User.class);
-        String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
-        user.setId(userId);
-        user.setEmail(userEmail);
+//        if (token == null) {
+//            throw new UserException("Missed token parameter");
+//        }
+//        if (isTemporary == null) {
+//            throw new UserException("Missed isTemporary parameter");
+//        }
+        //final String userEmail = tokenValidator.validateToken(token);
+//        final User user = DtoFactory.getInstance().createDto(User.class);
+//        String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
+//        user.setId(userId);
+//        user.setEmail(userEmail);
         // TODO: password ?
         userDao.create(user);
         try {
             Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-            String profileId = userId;
+            String profileId = user.getId();
             profile.setId(profileId);
-            profile.setUserId(userId);
+            profile.setUserId(user.getId());
             profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
                                                           .withName("temporary")
                                                           .withValue(String.valueOf(isTemporary))
                                                           .withDescription("Indicates is this user is temporary")));
             profileDao.create(profile);
         } catch (UserProfileException e) {
-            userDao.remove(userId);
+            userDao.remove(user.getId());
             throw e;
         }
         injectLinks(user, securityContext);

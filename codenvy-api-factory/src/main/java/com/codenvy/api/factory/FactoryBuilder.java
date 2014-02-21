@@ -25,6 +25,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 /**
+ * Tool to easy convert Factory object to nonencoded version or
+ * to json version.
+ *
  * @author Sergii Kabashniuk
  */
 public class FactoryBuilder {
@@ -157,10 +160,24 @@ public class FactoryBuilder {
         }
     }
 
+    /**
+     * Convert factory to json
+     *
+     * @param factory
+     *         - factory object.
+     * @return - json view of given factory
+     */
     public static String buildJson(Factory factory) {
         return DtoFactory.getInstance().toJson(factory);
     }
 
+    /**
+     * Convert factory to nonencoded version.
+     *
+     * @param factory
+     *         - factory object.
+     * @return - query part of url of nonencoded version
+     */
     public static String buildNonEncoded(Factory factory) {
         FactoryBuilder builder = new FactoryBuilder();
         StringBuilder result = new StringBuilder();

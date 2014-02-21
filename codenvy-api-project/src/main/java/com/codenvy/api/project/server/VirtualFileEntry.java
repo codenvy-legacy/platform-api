@@ -65,6 +65,8 @@ public abstract class VirtualFileEntry {
         }
     }
 
+    public abstract VirtualFileEntry copyTo(String newParent);
+
     public void moveTo(String newParent) {
         try {
             final MountPoint mp = virtualFile.getMountPoint();

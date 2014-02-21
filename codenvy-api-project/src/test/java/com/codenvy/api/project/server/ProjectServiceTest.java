@@ -416,4 +416,57 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 204);
         Assert.assertNull(pm.getProject("my_ws", "my_project"));
     }
+
+    @Test
+    public void testCopyFile() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b/c");
+        ((FolderEntry)myProject.getBaseFolder().getChild("a/b")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/copy/my_project/a/b/test.txt?to=/my_project/a/b/c",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/test.txt")); // new
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/test.txt")); // old
+    }
+
+    @Test
+    public void testCopyFolder() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b/c");
+        ((FolderEntry)myProject.getBaseFolder().getChild("a/b")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/copy/my_project/a/b?to=/my_project/a/b/c",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/test.txt"));
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/b/test.txt"));
+    }
+
+    @Test
+    public void testMoveFile() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b/c");
+        ((FolderEntry)myProject.getBaseFolder().getChild("a/b")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/move/my_project/a/b/test.txt?to=/my_project/a/b/c",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/test.txt")); // new
+        Assert.assertNull(myProject.getBaseFolder().getChild("a/b/test.txt")); // old
+    }
+
+    @Test
+    public void testMoveFolder() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b/c");
+        ((FolderEntry)myProject.getBaseFolder().getChild("a/b/c")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/move/my_project/a/b/c?to=/my_project/a",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/c/test.txt"));
+        Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c/test.txt"));
+        Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c"));
+    }
 }

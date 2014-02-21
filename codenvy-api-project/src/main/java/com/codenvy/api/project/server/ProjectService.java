@@ -60,9 +60,9 @@ import java.util.Map;
 @Path("project/{ws-id}")
 public class ProjectService extends Service {
     @Inject
-    private ProjectManager      projectManager;
+    private ProjectManager         projectManager;
     @Inject
-    private ProjectTypeRegistry projectTypeRegistry;
+    private ProjectTypeRegistry    projectTypeRegistry;
     @Inject
     private SourceImporterRegistry sourceImporters;
 
@@ -186,22 +186,34 @@ public class ProjectService extends Service {
     @DELETE
     @Path("{path:.*}")
     public void delete(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
-        final VirtualFileEntry entry = projectManager.getProjectsRoot(workspace).getChild(path);
-        if (entry == null) {
-            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Invalid path %s. Path doesn't exists. ", path));
-            throw new WebApplicationException(
-                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
-        }
+        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         entry.remove();
     }
 
+    @POST
+    @Path("copy/{path:.*}")
+    public Response copy(@PathParam("ws-id") String workspace,
+                         @PathParam("path") String path,
+                         @QueryParam("to") String newParent) throws Exception {
+        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        entry.copyTo(newParent);
+        return Response.created(URI.create("")).build(); // TODO: Location
+    }
+
+    @POST
+    @Path("move/{path:.*}")
+    public Response move(@PathParam("ws-id") String workspace,
+                         @PathParam("path") String path,
+                         @QueryParam("to") String newParent) throws Exception {
+        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        entry.moveTo(newParent);
+        return Response.created(URI.create("")).build(); // TODO: Location
+    }
+
 /*
-GET	    /children/{parent:.*}
-POST	/copy/{path:.*}?to={path}
-POST	/move/{path:.*}?to={path}
 POST	/rename/{path:.*}?name={name}
 
+GET	    /children/{parent:.*}
 POST	/import/{path:.*}?name={name}
 POST	/export/{path:.*}
 GET	    /search/{path:.*}
@@ -209,17 +221,10 @@ GET	    /search/{path:.*}
 
 
     private FileEntry asFile(String workspace, String path) {
-        final FolderEntry root = projectManager.getProjectsRoot(workspace);
-        final VirtualFileEntry entry = root.getChild(path);
-        if (entry == null) {
-            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Invalid path %s. Path doesn't exists. ", path));
-            throw new WebApplicationException(
-                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
-        }
+        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (!entry.isFile()) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Invalid path %s. Item isn't a file. ", path));
+                    String.format("Item '%s' isn't a file. ", path));
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -227,21 +232,26 @@ GET	    /search/{path:.*}
     }
 
     private FolderEntry asFolder(String workspace, String path) {
-        final FolderEntry root = projectManager.getProjectsRoot(workspace);
-        final VirtualFileEntry entry = root.getChild(path);
-        if (entry == null) {
-            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Invalid parent path %s. Path doesn't exists. ", path));
-            throw new WebApplicationException(
-                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
-        }
+        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (!entry.isFolder()) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Invalid parent path %s. Item isn't a folder. ", path));
+                    String.format("Item '%s' isn't a folder. ", path));
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         return (FolderEntry)entry;
+    }
+
+    private VirtualFileEntry getVirtualFileEntry(String workspace, String path) {
+        final FolderEntry root = projectManager.getProjectsRoot(workspace);
+        final VirtualFileEntry entry = root.getChild(path);
+        if (entry == null) {
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Path '%s' doesn't exists. ", path));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
+        }
+        return entry;
     }
 
     private ProjectDescription toDescription(ProjectDescriptor descriptor) throws InvalidProjectTypeException {

@@ -6,7 +6,7 @@ import com.codenvy.dto.shared.DTO;
  * @author Sergii Kabashniuk
  */
 @DTO
-public interface FactoryV1_2 extends FactoryV1_1{
+public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return additinal git configuration
      */
@@ -20,4 +20,15 @@ public interface FactoryV1_2 extends FactoryV1_1{
     Restriction getRestriction();
 
     void setRestriction(Restriction restriction);
+
+    /**
+     * @return path to the image
+     */
+    @Deprecated
+    String getImage();
+
+    @Deprecated
+    void setImage(String image);
+
+
 }

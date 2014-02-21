@@ -21,7 +21,7 @@ public interface WelcomePage {
     /**
      * @return
      **/
-    WelcomeConfiguration getNoauthenticated();
+    WelcomeConfiguration getNonauthenticated();
 
-    void setNoauthenticated(WelcomeConfiguration nonauthenticated);
+    void setNonauthenticated(WelcomeConfiguration nonauthenticated);
 }

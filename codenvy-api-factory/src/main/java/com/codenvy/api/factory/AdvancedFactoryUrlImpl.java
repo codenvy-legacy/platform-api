@@ -33,9 +33,9 @@ public class AdvancedFactoryUrlImpl extends SimpleFactoryUrlImpl implements Adva
     private String contactmail;
     private String author;
     private String userid;
-    private Long     validuntil = TimeUnit.DAYS.toMillis(3650) + System.currentTimeMillis(); //10 * 365 = 10 years
-    private Long     validsince = System.currentTimeMillis();
-    private Long     created    = System.currentTimeMillis();
+    private long       validuntil = TimeUnit.DAYS.toMillis(3650) + System.currentTimeMillis(); //10 * 365 = 10 years
+    private long       validsince = System.currentTimeMillis();
+    private long       created    = System.currentTimeMillis();
     private List<Link> links      = Collections.emptyList();
     private WelcomePage welcome;
 
@@ -129,27 +129,27 @@ public class AdvancedFactoryUrlImpl extends SimpleFactoryUrlImpl implements Adva
         }
     }
 
-    public Long getValiduntil() {
+    public long getValiduntil() {
         return validuntil;
     }
 
-    public void setValiduntil(Long validuntil) {
+    public void setValiduntil(long validuntil) {
         this.validuntil = validuntil;
     }
 
-    public Long getValidsince() {
+    public long getValidsince() {
         return validsince;
     }
 
-    public void setValidsince(Long validsince) {
+    public void setValidsince(long validsince) {
         this.validsince = validsince;
     }
 
-    public Long getCreated() {
+    public long getCreated() {
         return created;
     }
 
-    public void setCreated(Long created) {
+    public void setCreated(long created) {
         this.created = created;
     }
 
@@ -169,16 +169,16 @@ public class AdvancedFactoryUrlImpl extends SimpleFactoryUrlImpl implements Adva
 
         AdvancedFactoryUrlImpl that = (AdvancedFactoryUrlImpl)o;
 
+        if (created != that.created) return false;
+        if (validsince != that.validsince) return false;
+        if (validuntil != that.validuntil) return false;
         if (author != null ? !author.equals(that.author) : that.author != null) return false;
         if (contactmail != null ? !contactmail.equals(that.contactmail) : that.contactmail != null) return false;
-        if (created != null ? !created.equals(that.created) : that.created != null) return false;
         if (description != null ? !description.equals(that.description) : that.description != null) return false;
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
         if (links != null ? !links.equals(that.links) : that.links != null) return false;
         if (style != null ? !style.equals(that.style) : that.style != null) return false;
         if (userid != null ? !userid.equals(that.userid) : that.userid != null) return false;
-        if (validsince != null ? !validsince.equals(that.validsince) : that.validsince != null) return false;
-        if (validuntil != null ? !validuntil.equals(that.validuntil) : that.validuntil != null) return false;
         if (welcome != null ? !welcome.equals(that.welcome) : that.welcome != null) return false;
 
         return true;
@@ -193,9 +193,9 @@ public class AdvancedFactoryUrlImpl extends SimpleFactoryUrlImpl implements Adva
         result = 31 * result + (contactmail != null ? contactmail.hashCode() : 0);
         result = 31 * result + (author != null ? author.hashCode() : 0);
         result = 31 * result + (userid != null ? userid.hashCode() : 0);
-        result = 31 * result + (validuntil != null ? validuntil.hashCode() : 0);
-        result = 31 * result + (validsince != null ? validsince.hashCode() : 0);
-        result = 31 * result + (created != null ? created.hashCode() : 0);
+        result = 31 * result + (int)(validuntil ^ (validuntil >>> 32));
+        result = 31 * result + (int)(validsince ^ (validsince >>> 32));
+        result = 31 * result + (int)(created ^ (created >>> 32));
         result = 31 * result + (links != null ? links.hashCode() : 0);
         result = 31 * result + (welcome != null ? welcome.hashCode() : 0);
         return result;

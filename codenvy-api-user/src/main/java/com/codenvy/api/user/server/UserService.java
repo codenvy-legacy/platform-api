@@ -87,13 +87,10 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_CREATE_USER)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @QueryParam("token") String token,
-                           @Required @Description("is user temporary") @QueryParam("temporary") Boolean isTemporary)
+                           @Description("is user temporary") @QueryParam("temporary") boolean isTemporary)
             throws ApiException {
         if (token == null) {
             throw new UserException("Missed token parameter");
-        }
-        if (isTemporary == null) {
-            throw new UserException("Missed isTemporary parameter");
         }
         final String userEmail = tokenValidator.validateToken(token);
         final User user = DtoFactory.getInstance().createDto(User.class);
@@ -104,8 +101,7 @@ public class UserService extends Service {
         userDao.create(user);
         try {
             Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-            String profileId = userId;
-            profile.setId(profileId);
+            profile.setId(userId);
             profile.setUserId(userId);
             profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
                                                           .withName("temporary")

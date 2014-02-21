@@ -101,19 +101,6 @@ public interface FactoryV1_0 {
     @Deprecated
     void setValiduntil(long validuntil);
 
-    /**
-     * @return Allow to use text replacement in project files after clone
-     */
-    Variable getVariable();
-
-    void setVariable(Variable variable);
-
-    /**
-     * @return welcome page configuration.
-     */
-    WelcomePage getWelcome();
-
-    void setWelcome(WelcomePage welcome);
 
 
     List<Link> getLinks();

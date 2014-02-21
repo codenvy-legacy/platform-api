@@ -6,7 +6,7 @@ import com.codenvy.dto.shared.DTO;
  * @author Sergii Kabashniuk
  */
 @DTO
-public interface FactoryV1_1 extends FactoryV1_0{
+public interface FactoryV1_1 extends FactoryV1_0 {
 
 
     void setProjectattributes(ProjectAttributes projectattributes);
@@ -32,9 +32,17 @@ public interface FactoryV1_1 extends FactoryV1_0{
     /**
      * @return Author's email provided as meta information.
      */
+    String getContactmail();
+
+    void setContactmail(String contactmail);
+
+    /**
+     * @return Author's as meta information.
+     */
     String getAuthor();
 
     void setAuthor(String author);
+
 
     /**
      * @return path of the file to open in the project.
@@ -67,9 +75,9 @@ public interface FactoryV1_1 extends FactoryV1_0{
     /**
      * @return Indicates should .git folder be removed after cloning (allow commit to origin repository)
      */
-    String getVcsinfo();
+    boolean getVcsinfo();
 
-    void setVcsinfo(String vcsinfo);
+    void setVcsinfo(boolean vcsinfo);
 
 
     /**
@@ -93,5 +101,20 @@ public interface FactoryV1_1 extends FactoryV1_0{
     long getCreated();
 
     void setCreated(long created);
+
+    /**
+     * @return Allow to use text replacement in project files after clone
+     */
+    Variable getVariable();
+
+    void setVariable(Variable variable);
+
+    /**
+     * @return welcome page configuration.
+     */
+    WelcomePage getWelcome();
+
+    void setWelcome(WelcomePage welcome);
+
 
 }

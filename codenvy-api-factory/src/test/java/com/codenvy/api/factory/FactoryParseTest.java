@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.dto.DtoServerImpls;
+import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV1_1;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -39,7 +39,8 @@ public class FactoryParseTest {
     @Test(dataProvider = "jsonprovider")
     public void shouldBeAbleToParserJsonV1_1(String json) {
 
-        FactoryV1_1 factoryV1_1 = DtoFactory.getInstance().createDtoFromJson(json, FactoryV1_1.class);
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+        System.out.println(FactoryBuilder.buildNonEncoded(factory));
     }
 
 

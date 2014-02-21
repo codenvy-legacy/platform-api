@@ -34,7 +34,7 @@ public interface Git {
      * <p/>
      * vcsbranch should be not null.
      */
-    String getConfigbranchdestmerge();
+    String getConfigbranchmerge();
 
-    void setConfigbranchdestmerge(String configbranchdestmerge);
+    void setConfigbranchmerge(String configbranchmerge);
 }

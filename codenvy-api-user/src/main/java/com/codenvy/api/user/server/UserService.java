@@ -100,7 +100,7 @@ public class UserService extends Service {
         String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
         user.setId(userId);
         user.setEmail(userEmail);
-        // TODO: password ?
+        user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
         try {
             Profile profile = DtoFactory.getInstance().createDto(Profile.class);
@@ -116,6 +116,7 @@ public class UserService extends Service {
             userDao.remove(userId);
             throw e;
         }
+        user.setPassword("<none>");
         injectLinks(user, securityContext);
         return Response.status(Response.Status.CREATED).entity(user).build();
     }
@@ -142,6 +143,9 @@ public class UserService extends Service {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public void updatePassword(@Context SecurityContext securityContext, @FormParam("password") String password)
             throws UserException {
+        if (password == null) {
+            throw new UserException("Password required");
+        }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {

@@ -127,7 +127,7 @@ public class FactoryService extends Service {
 
             factoryUrl.setUserid(context.getUser().getId());
 
-            factoryUrl.setCreated(Long.toString(System.currentTimeMillis()));
+            factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = factoryStore.getFactory(factoryId);
             factoryUrl = new AdvancedFactoryUrlImpl(factoryUrl, LinksHelper.createLinks(factoryUrl, images, uriInfo));

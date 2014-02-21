@@ -33,9 +33,9 @@ public class AdvancedFactoryUrlImpl extends SimpleFactoryUrlImpl implements Adva
     private String contactmail;
     private String author;
     private String userid;
-    private String     validuntil = String.valueOf(TimeUnit.DAYS.toMillis(3650) + System.currentTimeMillis()); //10 * 365 = 10 years
-    private String     validsince = String.valueOf(System.currentTimeMillis());
-    private String     created    = String.valueOf(System.currentTimeMillis());
+    private Long     validuntil = TimeUnit.DAYS.toMillis(3650) + System.currentTimeMillis(); //10 * 365 = 10 years
+    private Long     validsince = System.currentTimeMillis();
+    private Long     created    = System.currentTimeMillis();
     private List<Link> links      = Collections.emptyList();
     private WelcomePage welcome;
 
@@ -129,27 +129,27 @@ public class AdvancedFactoryUrlImpl extends SimpleFactoryUrlImpl implements Adva
         }
     }
 
-    public String getValiduntil() {
+    public Long getValiduntil() {
         return validuntil;
     }
 
-    public void setValiduntil(String validuntil) {
+    public void setValiduntil(Long validuntil) {
         this.validuntil = validuntil;
     }
 
-    public String getValidsince() {
+    public Long getValidsince() {
         return validsince;
     }
 
-    public void setValidsince(String validsince) {
+    public void setValidsince(Long validsince) {
         this.validsince = validsince;
     }
 
-    public String getCreated() {
+    public Long getCreated() {
         return created;
     }
 
-    public void setCreated(String created) {
+    public void setCreated(Long created) {
         this.created = created;
     }
 

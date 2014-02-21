@@ -37,17 +37,17 @@ public interface AdvancedFactoryUrl extends SimpleFactoryUrl {
 
     void setLinks(List<Link> links);
 
-    String getValiduntil();
+    Long getValiduntil();
 
-    void setValiduntil(String validuntil);
+    void setValiduntil(Long validuntil);
 
-    String getValidsince();
+    Long getValidsince();
 
-    void setValidsince(String validsince);
+    void setValidsince(Long validsince);
 
-    String getCreated();
+    Long getCreated();
 
-    void setCreated(String created);
+    void setCreated(Long created);
 
     WelcomePage getWelcome();
 

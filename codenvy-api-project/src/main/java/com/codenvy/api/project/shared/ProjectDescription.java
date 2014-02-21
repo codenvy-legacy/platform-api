@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.project.shared;
 
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;

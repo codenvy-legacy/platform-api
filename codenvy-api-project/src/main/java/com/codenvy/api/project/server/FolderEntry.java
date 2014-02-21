@@ -46,17 +46,9 @@ public class FolderEntry extends VirtualFileEntry {
         }
     };
 
-
     public FolderEntry(VirtualFile virtualFile) {
         super(virtualFile);
     }
-
-//    public Project asProject() {
-//        if (isProject(getVirtualFile())) {
-//            return new Project(this);
-//        }
-//        return null;
-//    }
 
     public FolderEntry copyTo(String newParent) {
         try {
@@ -158,7 +150,8 @@ public class FolderEntry extends VirtualFileEntry {
     }
 
     public boolean isProjectFolder() {
-        return getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH) != null;
+        final VirtualFileEntry projectFile = getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        return projectFile != null && projectFile.isFile();
     }
 
     private boolean isRoot(VirtualFile virtualFile) {

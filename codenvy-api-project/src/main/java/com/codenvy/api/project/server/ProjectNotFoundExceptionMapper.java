@@ -17,27 +17,23 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.rest.shared.dto.ServiceError;
+import com.codenvy.dto.server.DtoFactory;
+
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
 /**
  * @author andrew00x
  */
-@SuppressWarnings("serial")
-public class ProjectException extends ApiException {
-    public ProjectException(ServiceError serviceError) {
-        super(serviceError);
-    }
-
-    public ProjectException(String message) {
-        super(message);
-    }
-
-    public ProjectException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public ProjectException(Throwable cause) {
-        super(cause);
+@Provider
+public class ProjectNotFoundExceptionMapper implements ExceptionMapper<ProjectNotFoundException> {
+    @Override
+    public Response toResponse(ProjectNotFoundException exception) {
+        return Response.status(Response.Status.NOT_FOUND)
+                       .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+                       .type(MediaType.APPLICATION_JSON)
+                       .build();
     }
 }

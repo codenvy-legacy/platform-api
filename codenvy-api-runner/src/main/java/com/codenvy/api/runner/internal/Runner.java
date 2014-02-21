@@ -21,6 +21,7 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
 import com.codenvy.api.runner.RunnerException;
@@ -223,34 +224,30 @@ public abstract class Runner {
 
     private static final DeploymentSources NO_SOURCES = new DeploymentSources(null);
 
-    protected DeploymentSources downloadApplication(String url) throws RunnerException {
+    protected DeploymentSources downloadApplication(String url) throws IOException {
         if (url == null) {
             return NO_SOURCES;
         }
-        final IOException[] errorHolder = new IOException[1];
-        final DeploymentSources[] resultHolder = new DeploymentSources[1];
-        final java.io.File downloadDir;
-        try {
-            downloadDir = Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
-        } catch (IOException e) {
-            throw new RunnerException(e);
-        }
+        final ValueHolder<IOException> errorHolder = new ValueHolder<>();
+        final ValueHolder<DeploymentSources> resultHolder = new ValueHolder<>();
+        final java.io.File downloadDir = Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
         downloadPlugin.download(url, downloadDir, new DownloadPlugin.Callback() {
             @Override
             public void done(java.io.File downloaded) {
-                resultHolder[0] = new DeploymentSources(downloaded);
+                resultHolder.set(new DeploymentSources(downloaded));
             }
 
             @Override
             public void error(IOException e) {
                 LOG.error(e.getMessage(), e);
-                errorHolder[0] = e;
+                errorHolder.set(e);
             }
         });
-        if (errorHolder[0] != null) {
-            throw new RunnerException(errorHolder[0]);
+        final IOException ioError = errorHolder.get();
+        if (ioError != null) {
+            throw ioError;
         }
-        return resultHolder[0];
+        return resultHolder.get();
     }
 
     protected void registerDisposer(ApplicationProcess application, Disposer disposer) {

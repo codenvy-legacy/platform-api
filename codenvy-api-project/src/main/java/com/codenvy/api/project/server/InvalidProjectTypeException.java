@@ -17,27 +17,12 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.rest.shared.dto.ServiceError;
-
 /**
  * @author andrew00x
  */
 @SuppressWarnings("serial")
-public class ProjectException extends ApiException {
-    public ProjectException(ServiceError serviceError) {
-        super(serviceError);
-    }
-
-    public ProjectException(String message) {
-        super(message);
-    }
-
-    public ProjectException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public ProjectException(Throwable cause) {
-        super(cause);
+public final class InvalidProjectTypeException extends ProjectException {
+    public InvalidProjectTypeException(String projectType) {
+        super(String.format("Invalid project type '%s'. ", projectType));
     }
 }

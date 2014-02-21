@@ -82,6 +82,14 @@ public abstract class VirtualFileEntry {
         }
     }
 
+    public long getLastModificationDate() {
+        try {
+            return virtualFile.getLastModificationDate();
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
+    }
+
     public VirtualFile getVirtualFile() {
         return virtualFile;
     }

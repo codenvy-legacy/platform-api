@@ -76,14 +76,14 @@ public class Project {
         return modules;
     }
 
-    public Project createModule(String name, ProjectDescription projectDescription) {
+    public Project createModule(String name, ProjectDescription projectDescription) throws IOException {
         final FolderEntry projectFolder = baseFolder.createFolder(name);
         final Project module = new Project(projectFolder, manager);
         module.updateDescription(projectDescription);
         return module;
     }
 
-    public final ProjectDescription getDescription() {
+    public final ProjectDescription getDescription() throws IOException {
         // Create copy of original project descriptor.
         // Mainly do that to be independent to type of ValueProvider.
         // Caller gets description of project update some attributes or(and) type of project than caller sends description back with method
@@ -91,7 +91,7 @@ public class Project {
         return new ProjectDescription(doGetDescription());
     }
 
-    protected ProjectDescription doGetDescription() {
+    protected ProjectDescription doGetDescription() throws IOException {
         final ProjectProperties projectProperties = getProperties();
         final String projectTypeId = projectProperties.getType();
         ProjectType projectType = manager.getProjectTypeRegistry().getProjectType(projectTypeId);
@@ -129,10 +129,12 @@ public class Project {
         return projectDescription;
     }
 
-    public final void updateDescription(ProjectDescription projectDescriptionUpdate) {
+    public final void updateDescription(ProjectDescription projectDescriptionUpdate) throws IOException {
         final VirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
         ProjectDescription thisProjectDescription = null;
         if (projectFile != null) {
+            // Get existed project description.
+            // If project file doesn't exist then this project is newly created.
             thisProjectDescription = doGetDescription();
         }
         final ProjectProperties projectProperties = new ProjectProperties();
@@ -160,25 +162,16 @@ public class Project {
         setProperties(projectProperties);
     }
 
-    protected ProjectProperties getProperties() {
+    protected ProjectProperties getProperties() throws IOException {
         final FileEntry projectFile = getProjectFile();
-        InputStream inputStream = null;
-        try {
-            inputStream = projectFile.getInputStream();
+        try (InputStream inputStream = projectFile.getInputStream()) {
             return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
-        } catch (JsonParseException | IOException e) {
-            throw new ProjectException(e);
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException ignored) {
-                }
-            }
+        } catch (JsonParseException e) {
+            throw new ProjectStructureConstraintException("Unable parse project properties. " + e.getMessage());
         }
     }
 
-    protected void setProperties(ProjectProperties properties) {
+    protected void setProperties(ProjectProperties properties) throws IOException {
         VirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
         if (projectFile != null) {
             if (!projectFile.isFile()) {
@@ -186,11 +179,7 @@ public class Project {
                         String.format("Unable save project properties. Path %s/%s already exists but is not a file.",
                                       baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
             }
-            try {
-                ((FileEntry)projectFile).updateContent(JsonHelper.toJson(properties).getBytes());
-            } catch (IOException e) {
-                throw new ProjectException(e);
-            }
+            ((FileEntry)projectFile).updateContent(JsonHelper.toJson(properties).getBytes());
         } else {
             VirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
             if (codenvyDir == null) {

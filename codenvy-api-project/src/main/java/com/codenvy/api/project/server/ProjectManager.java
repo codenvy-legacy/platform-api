@@ -24,6 +24,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,13 +56,7 @@ public final class ProjectManager {
     }
 
     public List<Project> getProjects(String workspace) {
-        final VirtualFile vfsRoot;
-        try {
-            vfsRoot = registry.getProvider(workspace).getMountPoint(true).getRoot();
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
-        final FolderEntry myRoot = new FolderEntry(vfsRoot);
+        final FolderEntry myRoot = getProjectsRoot(workspace);
         final List<Project> projects = new ArrayList<>();
         for (FolderEntry f : myRoot.getChildFolders()) {
             if (f.isProjectFolder()) {
@@ -71,33 +66,31 @@ public final class ProjectManager {
         return projects;
     }
 
-    public Project getProject(String workspace, String project) {
-        final VirtualFile vfsRoot;
-        try {
-            vfsRoot = registry.getProvider(workspace).getMountPoint(true).getRoot();
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
-        final FolderEntry myRoot = new FolderEntry(vfsRoot);
-        final VirtualFileEntry child = myRoot.getChild(project);
+    public Project getProject(String workspace, String projectPath) {
+        final FolderEntry myRoot = getProjectsRoot(workspace);
+        final VirtualFileEntry child = myRoot.getChild(projectPath);
         if (child != null && child.isFolder() && ((FolderEntry)child).isProjectFolder()) {
             return new Project((FolderEntry)child, this);
         }
         return null;
     }
 
-    public Project createProject(String workspace, String name, ProjectDescription projectDescription) {
+    public Project createProject(String workspace, String name, ProjectDescription projectDescription) throws IOException {
+        final FolderEntry myRoot = getProjectsRoot(workspace);
+        final FolderEntry projectFolder = myRoot.createFolder(name);
+        final Project project = new Project(projectFolder, this);
+        project.updateDescription(projectDescription);
+        return project;
+    }
+
+    FolderEntry getProjectsRoot(String workspace) {
         final VirtualFile vfsRoot;
         try {
             vfsRoot = registry.getProvider(workspace).getMountPoint(true).getRoot();
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }
-        final FolderEntry myRoot = new FolderEntry(vfsRoot);
-        final FolderEntry projectFolder = myRoot.createFolder(name);
-        final Project project = new Project(projectFolder, this);
-        project.updateDescription(projectDescription);
-        return project;
+        return new FolderEntry(vfsRoot);
     }
 
     ProjectTypeRegistry getProjectTypeRegistry() {

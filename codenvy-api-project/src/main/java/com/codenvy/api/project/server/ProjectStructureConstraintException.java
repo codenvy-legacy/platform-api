@@ -20,7 +20,7 @@ package com.codenvy.api.project.server;
 /**
  * @author andrew00x
  */
-public final class ProjectStructureConstraintException extends ProjectException {
+public final class ProjectStructureConstraintException extends RuntimeException {
     public ProjectStructureConstraintException(String message) {
         super(message);
     }

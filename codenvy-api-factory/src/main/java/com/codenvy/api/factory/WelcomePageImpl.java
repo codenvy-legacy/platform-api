@@ -1,18 +1,21 @@
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.WelcomeConfiguration;
+import com.codenvy.api.factory.dto.WelcomePage;
+
 /**
- * Welcome page which user can specified to show when factory accepted.
- * To show custom information applied only for this factory url.
- * Contains two configuration for authenticated users and non authenticated.
+ * Implementation of {@link com.codenvy.api.factory.dto.WelcomePage}
  */
-public class WelcomePage {
+public class WelcomePageImpl implements WelcomePage {
     private WelcomeConfiguration authenticated;
     private WelcomeConfiguration nonauthenticated;
 
-    public WelcomePage() {
+    public WelcomePageImpl() {
+        this.authenticated = new WelcomeConfigurationImpl();
+        this.nonauthenticated = new WelcomeConfigurationImpl();
     }
 
-    public WelcomePage(WelcomeConfiguration authenticated, WelcomeConfiguration nonauthenticated) {
+    public WelcomePageImpl(WelcomeConfiguration authenticated, WelcomeConfiguration nonauthenticated) {
         this.authenticated = authenticated;
         this.nonauthenticated = nonauthenticated;
     }
@@ -38,7 +41,7 @@ public class WelcomePage {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        WelcomePage that = (WelcomePage)o;
+        WelcomePageImpl that = (WelcomePageImpl)o;
 
         if (authenticated != null ? !authenticated.equals(that.authenticated) : that.authenticated != null) return false;
         if (nonauthenticated != null ? !nonauthenticated.equals(that.nonauthenticated) : that.nonauthenticated != null) return false;

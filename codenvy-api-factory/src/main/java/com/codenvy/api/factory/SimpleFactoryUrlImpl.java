@@ -17,10 +17,13 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.SimpleFactoryUrl;
+import com.codenvy.api.factory.dto.Variable;
+
 import java.util.*;
 
-/** Holds factory url parameters values, used in factory v1.0 */
-public class SimpleFactoryUrl {
+/** Implementation of {@link com.codenvy.api.factory.dto.SimpleFactoryUrl} */
+public class SimpleFactoryUrlImpl implements SimpleFactoryUrl {
     // mandatory parameters
     private String v;
     private String vcs;
@@ -35,13 +38,14 @@ public class SimpleFactoryUrl {
     private String affiliateid;
     private String vcsbranch;
     private Map<String, String> projectattributes = Collections.emptyMap();
-    private List<Variable> variables = Collections.emptyList();
+    private List<Variable>      variables         = Collections.emptyList();
 
-    public SimpleFactoryUrl() {
+    public SimpleFactoryUrlImpl() {
     }
 
-    public SimpleFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean vcsInfo,
-                            String orgid, String affiliateid, String vcsbranch, Map<String, String> projectAttributes, List<Variable> variables) {
+    public SimpleFactoryUrlImpl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile, boolean vcsInfo,
+                                String orgid, String affiliateid, String vcsbranch, Map<String, String> projectAttributes,
+                                List<Variable> variables) {
         this.v = version;
         this.vcs = vcs;
         this.vcsurl = vcsUrl;
@@ -161,7 +165,7 @@ public class SimpleFactoryUrl {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SimpleFactoryUrl that = (SimpleFactoryUrl)o;
+        SimpleFactoryUrlImpl that = (SimpleFactoryUrlImpl)o;
 
         if (vcsinfo != that.vcsinfo) return false;
         if (action != null ? !action.equals(that.action) : that.action != null) return false;

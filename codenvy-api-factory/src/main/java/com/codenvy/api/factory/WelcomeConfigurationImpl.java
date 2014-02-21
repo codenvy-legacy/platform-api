@@ -1,19 +1,23 @@
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.WelcomeConfiguration;
+
 /**
- * Welcome message configuration. Contains title, link for icon url, and link for content page e.g. HTML or something else.
- * This configuration will be processed when user apply factory link. And shows in right side of IDE
+ * Implementation of {@link com.codenvy.api.factory.dto.WelcomeConfiguration}
  */
-public class WelcomeConfiguration {
+public class WelcomeConfigurationImpl implements WelcomeConfiguration {
 
     private String title;
     private String iconurl;
     private String contenturl;
 
-    public WelcomeConfiguration() {
+    public WelcomeConfigurationImpl() {
+        this.title = "";
+        this.iconurl = "";
+        this.contenturl = "";
     }
 
-    public WelcomeConfiguration(String title, String iconurl, String contenturl) {
+    public WelcomeConfigurationImpl(String title, String iconurl, String contenturl) {
         this.title = title;
         this.iconurl = iconurl;
         this.contenturl = contenturl;
@@ -48,7 +52,7 @@ public class WelcomeConfiguration {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        WelcomeConfiguration that = (WelcomeConfiguration)o;
+        WelcomeConfigurationImpl that = (WelcomeConfigurationImpl)o;
 
         if (contenturl != null ? !contenturl.equals(that.contenturl) : that.contenturl != null) return false;
         if (iconurl != null ? !iconurl.equals(that.iconurl) : that.iconurl != null) return false;

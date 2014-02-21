@@ -17,6 +17,9 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
+import com.codenvy.api.factory.dto.SimpleFactoryUrl;
+
 import java.net.URL;
 
 /**

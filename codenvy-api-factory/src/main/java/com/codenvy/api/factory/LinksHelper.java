@@ -17,6 +17,9 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
+import com.codenvy.api.factory.dto.Link;
+
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
@@ -29,9 +32,9 @@ public class LinksHelper {
 
     private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html"));
 
-    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images, UriInfo uriInfo)
+    public static List<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images, UriInfo uriInfo)
             throws UnsupportedEncodingException {
-        Set<Link> links = new LinkedHashSet<>();
+        List<Link> links = new ArrayList<>();
 
         final UriBuilder baseUriBuilder;
         if (uriInfo != null) {
@@ -46,32 +49,32 @@ public class LinksHelper {
 
         // uri to retrieve factory
         links.add(
-                new Link(MediaType.APPLICATION_JSON,
+                new LinkImpl(MediaType.APPLICATION_JSON,
                          factoryUriBuilder.clone().path(FactoryService.class, "getFactory").build(fId).toString(),
                          "self"));
 
         // uri's to retrieve images
         for (FactoryImage image : images) {
-            links.add(new Link(image.getMediaType(),
+            links.add(new LinkImpl(image.getMediaType(),
                                factoryUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
                                                 .build(fId, image.getName()).toString(), "image"));
         }
 
         // uri's of snippets
         for (String snippetType : snippetTypes) {
-            links.add(new Link(MediaType.TEXT_PLAIN,
+            links.add(new LinkImpl(MediaType.TEXT_PLAIN,
                                factoryUriBuilder.clone().path(FactoryService.class, "getFactorySnippet").queryParam("type", snippetType)
                                                 .build(fId).toString(), "snippet/" + snippetType));
         }
 
         // uri to accept factory
-        Link createProject =
-                new Link(MediaType.TEXT_HTML, baseUriBuilder.clone().replacePath("factory").queryParam("id", fId).build().toString(),
+        LinkImpl createProject =
+                new LinkImpl(MediaType.TEXT_HTML, baseUriBuilder.clone().replacePath("factory").queryParam("id", fId).build().toString(),
                          "create-project");
         links.add(createProject);
 
         // links of analytics
-        links.add(new Link(MediaType.TEXT_PLAIN,
+        links.add(new LinkImpl(MediaType.TEXT_PLAIN,
                            baseUriBuilder.clone().path("analytics").path("metric/FACTORY_URL_ACCEPTED_NUMBER")
                                          .queryParam("factory_url", URLEncoder.encode(createProject.getHref(), "UTF-8")).build(
                                    "FACTORY_URL_ACCEPTED_NUMBER").toString(),
@@ -89,11 +92,11 @@ public class LinksHelper {
      *         - searching relation
      * @return - set of links with relation equal to desired, empty set if there is no such links
      */
-    public static Set<Link> getLinkByRelation(Set<Link> links, String relation) {
+    public static List<Link> getLinkByRelation(List<Link> links, String relation) {
         if (relation == null || links == null) {
             throw new IllegalArgumentException("Value of parameters can't be null.");
         }
-        Set<Link> result = new LinkedHashSet<>();
+        List<Link> result = new ArrayList<>();
         for (Link link : links) {
             if (relation.equals(link.getRel())) {
                 result.add(link);

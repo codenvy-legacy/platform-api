@@ -17,34 +17,40 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
+import com.codenvy.api.factory.dto.Link;
+import com.codenvy.api.factory.dto.Variable;
+import com.codenvy.api.factory.dto.WelcomePage;
+
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/** Advanced factory format for factory 1.1. Contains additional information about factory. */
-public class AdvancedFactoryUrl extends SimpleFactoryUrl {
+/** Implementation of {@link com.codenvy.api.factory.dto.AdvancedFactoryUrl} */
+public class AdvancedFactoryUrlImpl extends SimpleFactoryUrlImpl implements AdvancedFactoryUrl {
     private String id;
     private String style;
     private String description;
     private String contactmail;
     private String author;
     private String userid;
-    private long      validuntil = TimeUnit.DAYS.toMillis(3650) + System.currentTimeMillis(); //10 * 365 = 10 years
-    private long      validsince = System.currentTimeMillis();
-    private long      created    = System.currentTimeMillis();
-    private Set<Link> links      = new HashSet<Link>();
+    private String     validuntil = String.valueOf(TimeUnit.DAYS.toMillis(3650) + System.currentTimeMillis()); //10 * 365 = 10 years
+    private String     validsince = String.valueOf(System.currentTimeMillis());
+    private String     created    = String.valueOf(System.currentTimeMillis());
+    private List<Link> links      = Collections.emptyList();
     private WelcomePage welcome;
 
-    public AdvancedFactoryUrl() {
+    public AdvancedFactoryUrlImpl() {
         super();
     }
 
-    public AdvancedFactoryUrl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile,
-                              boolean vcsInfo, String orgid, String affiliateid, String vcsBranch, Map<String, String> projectAttributes,
-                              List<Variable> variables) {
+    public AdvancedFactoryUrlImpl(String version, String vcs, String vcsUrl, String commitId, String action, String openFile,
+                                  boolean vcsInfo, String orgid, String affiliateid, String vcsBranch,
+                                  Map<String, String> projectAttributes,
+                                  List<Variable> variables) {
         super(version, vcs, vcsUrl, commitId, action, openFile, vcsInfo, orgid, affiliateid, vcsBranch, projectAttributes, variables);
     }
 
-    public AdvancedFactoryUrl(AdvancedFactoryUrl originFactory, Set<Link> links) {
+    public AdvancedFactoryUrlImpl(AdvancedFactoryUrl originFactory, List<Link> links) {
         super(originFactory.getV(), originFactory.getVcs(), originFactory.getVcsurl(),
               originFactory.getCommitid(), originFactory.getAction(), originFactory.getOpenfile(), originFactory.getVcsinfo(),
               originFactory.getOrgid(), originFactory.getAffiliateid(), originFactory.getVcsbranch(), originFactory.getProjectattributes(),
@@ -56,10 +62,10 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         contactmail = originFactory.getContactmail();
         author = originFactory.getAuthor();
         userid = originFactory.getUserid();
-        validuntil = originFactory.validuntil;
-        validsince = originFactory.validsince;
-        created = originFactory.created;
-        welcome = originFactory.welcome;
+        validuntil = originFactory.getValiduntil();
+        validsince = originFactory.getValidsince();
+        created = originFactory.getCreated();
+        welcome = originFactory.getWelcome();
 
         setLinks(links);
     }
@@ -112,38 +118,38 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         this.userid = userid;
     }
 
-    public Set<Link> getLinks() {
-        return Collections.unmodifiableSet(links);
+    public List<Link> getLinks() {
+        return Collections.unmodifiableList(links);
     }
 
-    public void setLinks(Set<Link> links) {
+    public void setLinks(List<Link> links) {
         this.links = links;
         if (links != null) {
-            this.links = new HashSet<Link>(links);
+            this.links = new ArrayList<Link>(links);
         }
     }
 
-    public long getValiduntil() {
+    public String getValiduntil() {
         return validuntil;
     }
 
-    public void setValiduntil(long validuntil) {
+    public void setValiduntil(String validuntil) {
         this.validuntil = validuntil;
     }
 
-    public long getValidsince() {
+    public String getValidsince() {
         return validsince;
     }
 
-    public void setValidsince(long validsince) {
+    public void setValidsince(String validsince) {
         this.validsince = validsince;
     }
 
-    public long getCreated() {
+    public String getCreated() {
         return created;
     }
 
-    public void setCreated(long created) {
+    public void setCreated(String created) {
         this.created = created;
     }
 
@@ -161,18 +167,18 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
 
-        AdvancedFactoryUrl that = (AdvancedFactoryUrl)o;
+        AdvancedFactoryUrlImpl that = (AdvancedFactoryUrlImpl)o;
 
-        if (created != that.created) return false;
-        if (validsince != that.validsince) return false;
-        if (validuntil != that.validuntil) return false;
         if (author != null ? !author.equals(that.author) : that.author != null) return false;
         if (contactmail != null ? !contactmail.equals(that.contactmail) : that.contactmail != null) return false;
+        if (created != null ? !created.equals(that.created) : that.created != null) return false;
         if (description != null ? !description.equals(that.description) : that.description != null) return false;
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
         if (links != null ? !links.equals(that.links) : that.links != null) return false;
         if (style != null ? !style.equals(that.style) : that.style != null) return false;
         if (userid != null ? !userid.equals(that.userid) : that.userid != null) return false;
+        if (validsince != null ? !validsince.equals(that.validsince) : that.validsince != null) return false;
+        if (validuntil != null ? !validuntil.equals(that.validuntil) : that.validuntil != null) return false;
         if (welcome != null ? !welcome.equals(that.welcome) : that.welcome != null) return false;
 
         return true;
@@ -187,9 +193,9 @@ public class AdvancedFactoryUrl extends SimpleFactoryUrl {
         result = 31 * result + (contactmail != null ? contactmail.hashCode() : 0);
         result = 31 * result + (author != null ? author.hashCode() : 0);
         result = 31 * result + (userid != null ? userid.hashCode() : 0);
-        result = 31 * result + (int)(validuntil ^ (validuntil >>> 32));
-        result = 31 * result + (int)(validsince ^ (validsince >>> 32));
-        result = 31 * result + (int)(created ^ (created >>> 32));
+        result = 31 * result + (validuntil != null ? validuntil.hashCode() : 0);
+        result = 31 * result + (validsince != null ? validsince.hashCode() : 0);
+        result = 31 * result + (created != null ? created.hashCode() : 0);
         result = 31 * result + (links != null ? links.hashCode() : 0);
         result = 31 * result + (welcome != null ? welcome.hashCode() : 0);
         return result;

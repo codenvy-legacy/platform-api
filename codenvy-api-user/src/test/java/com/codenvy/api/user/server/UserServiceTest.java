@@ -29,7 +29,15 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.core.impl.*;
+import org.everrest.core.impl.ApplicationContextImpl;
+import org.everrest.core.impl.ApplicationProviderBinder;
+import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.impl.EnvironmentContext;
+import org.everrest.core.impl.EverrestConfiguration;
+import org.everrest.core.impl.ProviderBinder;
+import org.everrest.core.impl.RequestDispatcher;
+import org.everrest.core.impl.RequestHandlerImpl;
+import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
 import org.mockito.Mock;
@@ -45,7 +53,11 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -123,7 +135,7 @@ public class UserServiceTest {
     }
 
 
-    //@Test
+    @Test
     public void shouldBeAbleToCreateNewUser() throws Exception {
         String[] s = getRoles(UserService.class, "create");
         for (String role : s) {
@@ -134,10 +146,10 @@ public class UserServiceTest {
                                      environmentContext);
 
             assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-            verify(userDao, times(1)).create(any(User.class));
-            verify(userProfileDao, times(1)).create(any(Profile.class));
             verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
         }
+        verify(userDao, times(s.length)).create(any(User.class));
+        verify(userProfileDao, times(s.length)).create(any(Profile.class));
     }
 
 

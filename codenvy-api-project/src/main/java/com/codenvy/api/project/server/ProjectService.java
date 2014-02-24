@@ -26,6 +26,8 @@ import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.dto.server.DtoFactory;
@@ -43,6 +45,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -60,11 +63,11 @@ import java.util.Map;
 @Path("project/{ws-id}")
 public class ProjectService extends Service {
     @Inject
-    private ProjectManager         projectManager;
+    private ProjectManager          projectManager;
     @Inject
-    private ProjectTypeRegistry    projectTypeRegistry;
+    private ProjectTypeRegistry     projectTypeRegistry;
     @Inject
-    private SourceImporterRegistry sourceImporters;
+    private SourceImporterRegistry  importers;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
@@ -97,7 +100,10 @@ public class ProjectService extends Service {
     public ProjectDescriptor getProject(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
-            throw new ProjectNotFoundException(workspace, path);
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, path));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         return toDescriptor(project);
     }
@@ -123,7 +129,10 @@ public class ProjectService extends Service {
                                           ProjectDescriptor descriptor) throws Exception {
         final Project project = projectManager.getProject(workspace, parentProject);
         if (project == null) {
-            throw new ProjectNotFoundException(workspace, parentProject);
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, parentProject));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         final Project module = project.createModule(name, toDescription(descriptor));
         return toDescriptor(module);
@@ -134,11 +143,14 @@ public class ProjectService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor updateProject(@PathParam("ws-id") String workspace,
-                                           @PathParam("path") String projectPath,
+                                           @PathParam("path") String path,
                                            ProjectDescriptor descriptor) throws Exception {
-        final Project project = projectManager.getProject(workspace, projectPath);
+        final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
-            throw new ProjectNotFoundException(workspace, projectPath);
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, path));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         project.updateDescription(toDescription(descriptor));
         return toDescriptor(project);
@@ -186,7 +198,7 @@ public class ProjectService extends Service {
     @DELETE
     @Path("{path:.*}")
     public void delete(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
-        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         entry.remove();
     }
 
@@ -195,7 +207,7 @@ public class ProjectService extends Service {
     public Response copy(@PathParam("ws-id") String workspace,
                          @PathParam("path") String path,
                          @QueryParam("to") String newParent) throws Exception {
-        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         entry.copyTo(newParent);
         return Response.created(URI.create("")).build(); // TODO: Location
     }
@@ -205,23 +217,91 @@ public class ProjectService extends Service {
     public Response move(@PathParam("ws-id") String workspace,
                          @PathParam("path") String path,
                          @QueryParam("to") String newParent) throws Exception {
-        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         entry.moveTo(newParent);
         return Response.created(URI.create("")).build(); // TODO: Location
     }
 
-/*
-POST	/rename/{path:.*}?name={name}
+    @POST
+    @Path("rename/{path:.*}")
+    public Response rename(@PathParam("ws-id") String workspace,
+                           @PathParam("path") String path,
+                           @QueryParam("name") String newName,
+                           @QueryParam("mediaType") String newMediaType) throws Exception {
+        final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        if (entry.isFile() && newMediaType != null) {
+            ((FileEntry)entry).rename(newName, newMediaType);
+        } else {
+            entry.rename(newName);
+        }
+        return Response.created(URI.create("")).build(); // TODO: Location
+    }
 
-GET	    /children/{parent:.*}
-POST	/import/{path:.*}?name={name}
-POST	/export/{path:.*}
+    @POST
+    @Path("import")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public ProjectDescriptor importProject(@PathParam("ws-id") String workspace,
+                                           @Required @Description("project name") @QueryParam("project") String name,
+                                           ImportSourceDescriptor importDescriptor) throws Exception {
+        final SourceImporter importer = importers.getImporter(importDescriptor.getType());
+        if (importer == null) {
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Unable import sources project from '%s'. Sources type '%s' is not supported. ",
+                                  importDescriptor.getLocation(), importDescriptor.getType()));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
+        }
+        Project project = projectManager.getProject(workspace, name);
+        if (project == null) {
+            project = projectManager.createProject(workspace, name, new ProjectDescription());
+        }
+        importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
+        return toDescriptor(project);
+    }
+
+    @POST
+    @Path("import/{path:.*}")
+    @Consumes("application/zip")
+    public Response importZip(@PathParam("ws-id") String workspace,
+                              @PathParam("path") String name,
+                              InputStream zip) throws Exception {
+        final FolderEntry folder = asFolder(workspace, name);
+        folder.unzip(zip);
+        return Response.created(URI.create("")).build(); // TODO: Location
+    }
+
+    @GET
+    @Path("export/{path:.*}")
+    @Produces("application/zip")
+    public Response exportZip(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
+        final FolderEntry folder = asFolder(workspace, path);
+        return Response.ok()
+                       .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                       .header("Content-Disposition", String.format("attachment; filename=\"%s\"", folder.getName()))
+                       .entity(folder.toZip())
+                       .build();
+    }
+
+    @GET
+    @Path("children/{parent:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<ItemReference> getChildren(@PathParam("ws-id") String workspace, @PathParam("parent") String path) throws Exception {
+        final FolderEntry folder = asFolder(workspace, path);
+        final List<AbstractVirtualFileEntry> children = folder.getChildren();
+        final ArrayList<ItemReference> result = new ArrayList<>(children.size());
+        for (AbstractVirtualFileEntry child : children) {
+            result.add(DtoFactory.getInstance().createDto(ItemReference.class).withName(child.getName())); // TODO
+        }
+        return result;
+    }
+
+/*
 GET	    /search/{path:.*}
 */
 
-
     private FileEntry asFile(String workspace, String path) {
-        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (!entry.isFile()) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                     String.format("Item '%s' isn't a file. ", path));
@@ -232,7 +312,7 @@ GET	    /search/{path:.*}
     }
 
     private FolderEntry asFolder(String workspace, String path) {
-        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (!entry.isFolder()) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                     String.format("Item '%s' isn't a folder. ", path));
@@ -242,9 +322,9 @@ GET	    /search/{path:.*}
         return (FolderEntry)entry;
     }
 
-    private VirtualFileEntry getVirtualFileEntry(String workspace, String path) {
+    private AbstractVirtualFileEntry getVirtualFileEntry(String workspace, String path) {
         final FolderEntry root = projectManager.getProjectsRoot(workspace);
-        final VirtualFileEntry entry = root.getChild(path);
+        final AbstractVirtualFileEntry entry = root.getChild(path);
         if (entry == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                     String.format("Path '%s' doesn't exists. ", path));
@@ -254,10 +334,13 @@ GET	    /search/{path:.*}
         return entry;
     }
 
-    private ProjectDescription toDescription(ProjectDescriptor descriptor) throws InvalidProjectTypeException {
+    private ProjectDescription toDescription(ProjectDescriptor descriptor) {
         final ProjectType projectType = projectTypeRegistry.getProjectType(descriptor.getProjectTypeId());
         if (projectType == null) {
-            throw new InvalidProjectTypeException(descriptor.getProjectTypeId());
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Invalid project type '%s'. ", descriptor.getProjectTypeId()));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         final ProjectDescription projectDescription = new ProjectDescription(projectType);
         final Map<String, List<String>> projectAttributeValues = descriptor.getAttributes();

@@ -51,21 +51,6 @@ public class Project {
         return baseFolder;
     }
 
-    public FileEntry getProjectFile() {
-        final VirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
-        if (projectFile == null) {
-            throw new ProjectStructureConstraintException(String.format("Unable read project file %s/%s. File doesn't exist.",
-                                                                        baseFolder.getPath(),
-                                                                        Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
-        }
-        if (!projectFile.isFile()) {
-            throw new ProjectStructureConstraintException(String.format("Unable read project file %s/%s. Item is not a file.",
-                                                                        baseFolder.getPath(),
-                                                                        Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
-        }
-        return (FileEntry)projectFile;
-    }
-
     public List<Project> getModules() {
         final List<Project> modules = new ArrayList<>();
         for (FolderEntry child : baseFolder.getChildFolders()) {
@@ -94,6 +79,9 @@ public class Project {
     protected ProjectDescription doGetDescription() throws IOException {
         final ProjectProperties projectProperties = getProperties();
         final String projectTypeId = projectProperties.getType();
+        if (projectTypeId == null) {
+            return new ProjectDescription();
+        }
         ProjectType projectType = manager.getProjectTypeRegistry().getProjectType(projectTypeId);
         if (projectType == null) {
             // TODO : Decide how should we treat such situation?
@@ -130,13 +118,7 @@ public class Project {
     }
 
     public final void updateDescription(ProjectDescription projectDescriptionUpdate) throws IOException {
-        final VirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
-        ProjectDescription thisProjectDescription = null;
-        if (projectFile != null) {
-            // Get existed project description.
-            // If project file doesn't exist then this project is newly created.
-            thisProjectDescription = doGetDescription();
-        }
+        final ProjectDescription thisProjectDescription = doGetDescription();
         final ProjectProperties projectProperties = new ProjectProperties();
         projectProperties.setType(projectDescriptionUpdate.getProjectType().getId());
         for (Attribute attributeUpdate : projectDescriptionUpdate.getAttributes()) {
@@ -163,8 +145,11 @@ public class Project {
     }
 
     protected ProjectProperties getProperties() throws IOException {
-        final FileEntry projectFile = getProjectFile();
-        try (InputStream inputStream = projectFile.getInputStream()) {
+        final AbstractVirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        if (projectFile == null || !projectFile.isFile()) {
+            return new ProjectProperties();
+        }
+        try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
             return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
         } catch (JsonParseException e) {
             throw new ProjectStructureConstraintException("Unable parse project properties. " + e.getMessage());
@@ -172,21 +157,21 @@ public class Project {
     }
 
     protected void setProperties(ProjectProperties properties) throws IOException {
-        VirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        AbstractVirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
         if (projectFile != null) {
             if (!projectFile.isFile()) {
                 throw new ProjectStructureConstraintException(
-                        String.format("Unable save project properties. Path %s/%s already exists but is not a file.",
+                        String.format("Unable save project properties. Path %s/%s exists but is not a file.",
                                       baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
             }
             ((FileEntry)projectFile).updateContent(JsonHelper.toJson(properties).getBytes());
         } else {
-            VirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
+            AbstractVirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
             if (codenvyDir == null) {
                 codenvyDir = baseFolder.createFolder(Constants.CODENVY_FOLDER);
             } else if (!codenvyDir.isFolder()) {
                 throw new ProjectStructureConstraintException(
-                        String.format("Unable save project properties. Item %s/%s already exists but is not a folder.",
+                        String.format("Unable save project properties. Path %s/%s exists but is not a folder.",
                                       baseFolder.getPath(), Constants.CODENVY_FOLDER));
             }
             ((FolderEntry)codenvyDir).createFile(Constants.CODENVY_PROJECT_FILE,

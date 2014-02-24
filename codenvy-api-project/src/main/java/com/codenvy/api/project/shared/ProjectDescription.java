@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.project.shared;
 
-import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -44,6 +42,10 @@ public class ProjectDescription {
     public ProjectDescription(ProjectType projectType) {
         this.attributes = new LinkedHashMap<>();
         setProjectType(projectType);
+    }
+
+    public ProjectDescription() {
+        this(new ProjectType("unknown", "unknown"));
     }
 
     public ProjectDescription(ProjectDescription origin) {

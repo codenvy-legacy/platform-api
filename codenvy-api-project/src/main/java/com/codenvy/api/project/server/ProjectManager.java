@@ -68,7 +68,7 @@ public final class ProjectManager {
 
     public Project getProject(String workspace, String projectPath) {
         final FolderEntry myRoot = getProjectsRoot(workspace);
-        final VirtualFileEntry child = myRoot.getChild(projectPath);
+        final AbstractVirtualFileEntry child = myRoot.getChild(projectPath);
         if (child != null && child.isFolder() && ((FolderEntry)child).isProjectFolder()) {
             return new Project((FolderEntry)child, this);
         }
@@ -83,7 +83,7 @@ public final class ProjectManager {
         return project;
     }
 
-    FolderEntry getProjectsRoot(String workspace) {
+    public FolderEntry getProjectsRoot(String workspace) {
         final VirtualFile vfsRoot;
         try {
             vfsRoot = registry.getProvider(workspace).getMountPoint(true).getRoot();

@@ -24,6 +24,7 @@ import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.List;
 /**
  * @author andrew00x
  */
-public class FolderEntry extends VirtualFileEntry {
+public class FolderEntry extends AbstractVirtualFileEntry {
     private static final VirtualFileFilter FOLDER_FILTER = new VirtualFileFilter() {
         @Override
         public boolean accept(VirtualFile file) throws VirtualFileSystemException {
@@ -60,7 +61,7 @@ public class FolderEntry extends VirtualFileEntry {
         }
     }
 
-    public VirtualFileEntry getChild(String path) {
+    public AbstractVirtualFileEntry getChild(String path) {
         try {
             final VirtualFile child = getVirtualFile().getChild(path);
             if (child == null) {
@@ -75,7 +76,7 @@ public class FolderEntry extends VirtualFileEntry {
         }
     }
 
-    public List<VirtualFileEntry> getChildren() {
+    public List<AbstractVirtualFileEntry> getChildren() {
         return getChildren(VirtualFileFilter.ALL);
     }
 
@@ -105,10 +106,10 @@ public class FolderEntry extends VirtualFileEntry {
         }
     }
 
-    List<VirtualFileEntry> getChildren(VirtualFileFilter filter) {
+    List<AbstractVirtualFileEntry> getChildren(VirtualFileFilter filter) {
         try {
             final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(filter);
-            final List<VirtualFileEntry> children = new ArrayList<>();
+            final List<AbstractVirtualFileEntry> children = new ArrayList<>();
             while (vfChildren.hasNext()) {
                 final VirtualFile vf = vfChildren.next();
                 if (vf.isFile()) {
@@ -150,8 +151,28 @@ public class FolderEntry extends VirtualFileEntry {
     }
 
     public boolean isProjectFolder() {
-        final VirtualFileEntry projectFile = getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        final AbstractVirtualFileEntry projectFile = getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
         return projectFile != null && projectFile.isFile();
+    }
+
+    public void unzip(InputStream zip, boolean override) throws IOException {
+        try {
+            getVirtualFile().unzip(zip, override);
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
+    }
+
+    public void unzip(InputStream zip) throws IOException {
+        unzip(zip, true);
+    }
+
+    public InputStream toZip() throws IOException {
+        try {
+            return getVirtualFile().zip(VirtualFileFilter.ALL).getStream();
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
     }
 
     private boolean isRoot(VirtualFile virtualFile) {

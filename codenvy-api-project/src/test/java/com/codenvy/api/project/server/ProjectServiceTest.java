@@ -17,10 +17,12 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
@@ -47,6 +49,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +61,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * @author andrew00x
@@ -63,8 +71,9 @@ public class ProjectServiceTest {
     private static final String      vfsUserName   = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
 
-    private ProjectManager   pm;
-    private ResourceLauncher launcher;
+    private ProjectManager         pm;
+    private ResourceLauncher       launcher;
+    private SourceImporterRegistry importerRegistry;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -96,12 +105,14 @@ public class ProjectServiceTest {
         pm.createProject("my_ws", "my_project", pd);
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
+        importerRegistry = new SourceImporterRegistry(Collections.<SourceImporter>emptySet());
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectTypeRegistry.class, ptr);
+        dependencies.addComponent(SourceImporterRegistry.class, importerRegistry);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
-        providers.addExceptionMapper(new ProjectNotFoundExceptionMapper());
-        providers.addExceptionMapper(new InvalidProjectTypeExceptionMapper());
+        providers.addExceptionMapper(new FileSystemLevelExceptionMapper());
+        providers.addExceptionMapper(new ProjectStructureConstraintExceptionMapper());
         RequestHandler requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
                                                                providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
@@ -321,7 +332,7 @@ public class ProjectServiceTest {
                                                       myContent.getBytes(),
                                                       null);
         Assert.assertEquals(response.getStatus(), 201);
-        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test.txt");
+        AbstractVirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test.txt");
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), "text/plain");
@@ -349,7 +360,7 @@ public class ProjectServiceTest {
         ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/file/my_project/test",
                                                       "http://localhost:8080/api", headers, myContent.getBytes(), null);
         Assert.assertEquals(response.getStatus(), 200);
-        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
+        AbstractVirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), "text/xml");
@@ -361,7 +372,7 @@ public class ProjectServiceTest {
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/folder/my_project/test",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
-        VirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
+        AbstractVirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
         Assert.assertTrue(folder.isFolder());
     }
 
@@ -370,7 +381,7 @@ public class ProjectServiceTest {
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/folder/my_project/a/b/c",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
-        VirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("a/b/c");
+        AbstractVirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("a/b/c");
         Assert.assertTrue(folder.isFolder());
     }
 
@@ -468,5 +479,144 @@ public class ProjectServiceTest {
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/c/test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c/test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c"));
+    }
+
+    @Test
+    public void testRenameFile() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFile("test.txt", "hello".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/rename/my_project/test.txt?name=_test.txt",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("_test.txt"));
+        Assert.assertNull(myProject.getBaseFolder().getChild("test.txt"));
+    }
+
+    @Test
+    public void testRenameFileAndUpdateMediaType() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFile("test.txt", "hello".getBytes(), "text/*");
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/rename/my_project/test.txt?name=_test.txt&mediaType=text/plain",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        FileEntry renamed = (FileEntry)myProject.getBaseFolder().getChild("_test.txt");
+        Assert.assertNotNull(renamed);
+        Assert.assertEquals(renamed.getMediaType(), "text/plain");
+        Assert.assertNull(myProject.getBaseFolder().getChild("test.txt"));
+    }
+
+    @Test
+    public void testRenameFolder() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b/c");
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/rename/my_project/a/b?name=x",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/x"));
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/x/c"));
+        Assert.assertNull(myProject.getBaseFolder().getChild("a/b"));
+    }
+
+    @Test
+    public void testImportProject() throws Exception {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.putNextEntry(new ZipEntry(".codenvy/"));
+        zipOut.putNextEntry(new ZipEntry(".codenvy/project"));
+        zipOut.write(("{\"type\":\"my_project_type\"," +
+                      "\"description\":\"import test\"," +
+                      "\"properties\":[{\"name\":\"x\",\"value\":[\"a\",\"b\"]}]}").getBytes());
+        zipOut.close();
+        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
+        final String importType = "_123_";
+        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
+        importerRegistry.register(new SourceImporter() {
+            @Override
+            public String getType() {
+                return importType;
+            }
+
+            @Override
+            public void importSources(FolderEntry to, String location) throws IOException {
+                // Don't really use location in this test.
+                to.unzip(zip);
+                folderHolder.set(to);
+            }
+        });
+
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("content-type", Arrays.asList("application/json"));
+        byte[] b = String.format("{\"type\":\"%s\"}", importType).getBytes();
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/import?project=new_project",
+                                                      "http://localhost:8080/api", headers, b, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getDescription(), "import test");
+        Assert.assertEquals(descriptor.getProjectTypeId(), "my_project_type");
+        Assert.assertEquals(descriptor.getProjectTypeName(), "my project type");
+        Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
+
+        Project newProject = pm.getProject("my_ws", "new_project");
+        Assert.assertNotNull(newProject);
+    }
+
+    @Test
+    public void testImportZip() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b");
+
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.close();
+        byte[] zip = bout.toByteArray();
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("content-type", Arrays.asList("application/zip"));
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/import/my_project/a/b",
+                                                      "http://localhost:8080/api", headers, zip, null);
+        Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/file1.txt"));
+    }
+
+    @Test
+    public void testExportZip() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "hello".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/export/my_project",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        Assert.assertEquals(response.getContentType().toString(), "application/zip");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGetChildren() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        FolderEntry a = myProject.getBaseFolder().createFolder("a");
+        a.createFolder("b");
+        a.createFile("test.txt", "test".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/children/my_project/a",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        List<ItemReference> result = (List<ItemReference>)response.getEntity();
+        Assert.assertEquals(result.size(), 2);
+        Set<String> names = new LinkedHashSet<>(2);
+        for (ItemReference itemReference : result) {
+            names.add(itemReference.getName());
+        }
+        Assert.assertTrue(names.contains("b"));
+        Assert.assertTrue(names.contains("test.txt"));
     }
 }

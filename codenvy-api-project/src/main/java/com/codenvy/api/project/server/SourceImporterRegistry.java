@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class SourceImporterRegistry {
-
     private final Map<String, SourceImporter> importers;
 
     @Inject
@@ -45,12 +44,18 @@ public class SourceImporterRegistry {
         importers.put(importer.getType(), importer);
     }
 
-    public SourceImporter getImporter(String type) {
-        final SourceImporter importer = importers.get(type);
-        if (importer == null) {
-            throw new IllegalArgumentException(String.format("%s source importer not registered in the system", type));
+    public SourceImporter unregister(String type) {
+        if (type == null) {
+            return null;
         }
-        return importer;
+        return importers.remove(type);
+    }
+
+    public SourceImporter getImporter(String type) {
+        if (type == null) {
+            return null;
+        }
+        return importers.get(type);
     }
 
     public List<String> getImporterTypes() {

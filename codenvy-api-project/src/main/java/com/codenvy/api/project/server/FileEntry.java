@@ -31,7 +31,7 @@ import java.io.OutputStream;
 /**
  * @author andrew00x
  */
-public class FileEntry extends VirtualFileEntry {
+public class FileEntry extends AbstractVirtualFileEntry {
 
     public FileEntry(VirtualFile virtualFile) {
         super(virtualFile);

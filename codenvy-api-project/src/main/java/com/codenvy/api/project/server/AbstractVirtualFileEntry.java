@@ -7,10 +7,10 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 /**
  * @author andrew00x
  */
-public abstract class VirtualFileEntry {
+public abstract class AbstractVirtualFileEntry {
     private VirtualFile virtualFile;
 
-    public VirtualFileEntry(VirtualFile virtualFile) {
+    public AbstractVirtualFileEntry(VirtualFile virtualFile) {
         this.virtualFile = virtualFile;
     }
 
@@ -65,7 +65,7 @@ public abstract class VirtualFileEntry {
         }
     }
 
-    public abstract VirtualFileEntry copyTo(String newParent);
+    public abstract AbstractVirtualFileEntry copyTo(String newParent);
 
     public void moveTo(String newParent) {
         try {

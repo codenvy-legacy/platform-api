@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-
 import java.io.IOException;
 
 /**
@@ -34,15 +32,12 @@ public interface SourceImporter {
     String getType();
 
     /**
-     * Imports source from the given {@code location}. Creates project if it doesn't exist.
+     * Imports source from the given {@code location} to the specified folder.
      *
-     * @param workspace
-     *         the workspace id
-     * @param projectName
-     *         the new name of new project if it not exist or import to the given project
+     * @param to
+     *         the folder for import
      * @param location
      *         location to the import sources
      */
-    void importSource(String workspace, String projectName, String location) throws IOException, VirtualFileSystemException;
-
+    void importSources(FolderEntry to, String location) throws IOException;
 }

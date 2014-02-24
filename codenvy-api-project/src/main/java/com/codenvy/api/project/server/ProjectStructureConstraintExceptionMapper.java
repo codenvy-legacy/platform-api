@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
@@ -28,11 +29,11 @@ import javax.ws.rs.ext.Provider;
  * @author andrew00x
  */
 @Provider
-public class InvalidProjectTypeExceptionMapper implements ExceptionMapper<InvalidProjectTypeException> {
+public class ProjectStructureConstraintExceptionMapper implements ExceptionMapper<ProjectStructureConstraintException> {
     @Override
-    public Response toResponse(InvalidProjectTypeException exception) {
-        return Response.status(Response.Status.BAD_REQUEST)
-                       .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+    public Response toResponse(ProjectStructureConstraintException exception) {
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                       .entity(DtoFactory.getInstance().createDto(ServiceError.class).withMessage(exception.getMessage()))
                        .type(MediaType.APPLICATION_JSON)
                        .build();
     }

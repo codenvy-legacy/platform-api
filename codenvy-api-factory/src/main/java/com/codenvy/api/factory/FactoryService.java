@@ -22,6 +22,7 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
 import com.codenvy.api.factory.dto.Link;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.provider.json.JsonException;
 import org.everrest.core.impl.provider.json.JsonParser;
@@ -130,7 +131,8 @@ public class FactoryService extends Service {
             factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = factoryStore.getFactory(factoryId);
-            factoryUrl = new AdvancedFactoryUrlImpl(factoryUrl, LinksHelper.createLinks(factoryUrl, images, uriInfo));
+            factoryUrl = DtoFactory.getInstance().clone(factoryUrl);
+            factoryUrl.setLinks(LinksHelper.createLinks(factoryUrl, images, uriInfo));
 
             String createProjectLink = "";
             Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
@@ -177,8 +179,9 @@ public class FactoryService extends Service {
         }
 
         try {
-            factoryUrl = new AdvancedFactoryUrlImpl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
-                                                                                    uriInfo));
+            factoryUrl = DtoFactory.getInstance().clone(factoryUrl);
+            factoryUrl.setLinks(LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
+                                                        uriInfo));
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }

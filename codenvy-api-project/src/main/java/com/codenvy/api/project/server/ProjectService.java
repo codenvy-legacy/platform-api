@@ -30,12 +30,14 @@ import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
+import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.ByteStreams;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -63,11 +65,11 @@ import java.util.Map;
 @Path("project/{ws-id}")
 public class ProjectService extends Service {
     @Inject
-    private ProjectManager          projectManager;
+    private ProjectManager         projectManager;
     @Inject
-    private ProjectTypeRegistry     projectTypeRegistry;
+    private ProjectTypeRegistry    projectTypeRegistry;
     @Inject
-    private SourceImporterRegistry  importers;
+    private SourceImporterRegistry importers;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
@@ -295,6 +297,34 @@ public class ProjectService extends Service {
         }
         return result;
     }
+
+    @GET
+    @Path("tree/{parent:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public TreeElement getTree(@PathParam("ws-id") String workspace,
+                               @PathParam("parent") String path,
+                               @DefaultValue("1") @QueryParam("depth") int depth) throws Exception {
+        final FolderEntry folder = asFolder(workspace, path);
+        return DtoFactory.getInstance().createDto(TreeElement.class)
+                         .withNode(DtoFactory.getInstance().createDto(ItemReference.class).withName(folder.getName()))
+                         .withChildren(getTree(folder, depth));
+    }
+
+
+    private List<TreeElement> getTree(FolderEntry folder, int depth) {
+        if (depth == 0) {
+            return null;
+        }
+        final List<FolderEntry> childFolders = folder.getChildFolders();
+        final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
+        for (FolderEntry childFolder : childFolders) {
+            nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
+                                .withNode(DtoFactory.getInstance().createDto(ItemReference.class).withName(childFolder.getName()))
+                                .withChildren(getTree(childFolder, depth - 1)));
+        }
+        return nodes;
+    }
+
 
 /*
 GET	    /search/{path:.*}

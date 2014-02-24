@@ -25,6 +25,7 @@ import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
+import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -618,5 +619,59 @@ public class ProjectServiceTest {
         }
         Assert.assertTrue(names.contains("b"));
         Assert.assertTrue(names.contains("test.txt"));
+    }
+
+    @Test
+    public void testGetTree() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        FolderEntry a = myProject.getBaseFolder().createFolder("a");
+        a.createFolder("b/c");
+        a.createFolder("x/y");
+        a.createFile("test.txt", "test".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/tree/my_project/a",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        TreeElement tree = (TreeElement)response.getEntity();
+        Assert.assertEquals(tree.getNode().getName(), "a");
+        List<TreeElement> children = tree.getChildren();
+        Assert.assertNotNull(children);
+        Assert.assertEquals(children.size(), 2);
+        Set<String> names = new LinkedHashSet<>(2);
+        for (TreeElement subTree : children) {
+            names.add(subTree.getNode().getName());
+            Assert.assertTrue(subTree.getChildren().isEmpty()); // default depth is 1
+        }
+        Assert.assertTrue(names.contains("b"));
+        Assert.assertTrue(names.contains("x"));
+    }
+
+    @Test
+    public void testGetTreeWithDepth() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        FolderEntry a = myProject.getBaseFolder().createFolder("a");
+        a.createFolder("b/c");
+        a.createFolder("x/y");
+        a.createFile("test.txt", "test".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/tree/my_project/a?depth=2",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        TreeElement tree = (TreeElement)response.getEntity();
+        Assert.assertEquals(tree.getNode().getName(), "a");
+        List<TreeElement> children = tree.getChildren();
+        Assert.assertNotNull(children);
+        Set<String> names = new LinkedHashSet<>(4);
+        for (TreeElement subTree : children) {
+            String name = subTree.getNode().getName();
+            names.add(name);
+            for (TreeElement subSubTree : subTree.getChildren()) {
+                names.add(name + "/" + subSubTree.getNode().getName());
+            }
+        }
+        Assert.assertTrue(names.contains("b"));
+        Assert.assertTrue(names.contains("x"));
+        Assert.assertTrue(names.contains("b/c"));
+        Assert.assertTrue(names.contains("x/y"));
     }
 }

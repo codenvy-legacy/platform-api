@@ -39,17 +39,17 @@ public final class ProjectManager {
     private final ProjectTypeRegistry               projectTypeRegistry;
     private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
     private final Map<String, ValueProviderFactory> valueProviderFactories;
-    private final VirtualFileSystemRegistry         registry;
+    private final VirtualFileSystemRegistry         fileSystemRegistry;
 
     @Inject
     public ProjectManager(ProjectTypeRegistry projectTypeRegistry,
                           ProjectTypeDescriptionRegistry typeDescriptionRegistry,
                           Set<ValueProviderFactory> valueProviderFactories,
-                          VirtualFileSystemRegistry registry) {
+                          VirtualFileSystemRegistry fileSystemRegistry) {
         this.projectTypeRegistry = projectTypeRegistry;
         this.typeDescriptionRegistry = typeDescriptionRegistry;
+        this.fileSystemRegistry = fileSystemRegistry;
         this.valueProviderFactories = new HashMap<>();
-        this.registry = registry;
         for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
             this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
         }
@@ -86,22 +86,26 @@ public final class ProjectManager {
     public FolderEntry getProjectsRoot(String workspace) {
         final VirtualFile vfsRoot;
         try {
-            vfsRoot = registry.getProvider(workspace).getMountPoint(true).getRoot();
+            vfsRoot = fileSystemRegistry.getProvider(workspace).getMountPoint(true).getRoot();
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }
         return new FolderEntry(vfsRoot);
     }
 
-    ProjectTypeRegistry getProjectTypeRegistry() {
+    public ProjectTypeRegistry getProjectTypeRegistry() {
         return projectTypeRegistry;
     }
 
-    ProjectTypeDescriptionRegistry getTypeDescriptionRegistry() {
+    public ProjectTypeDescriptionRegistry getTypeDescriptionRegistry() {
         return typeDescriptionRegistry;
     }
 
-    Map<String, ValueProviderFactory> getValueProviderFactories() {
+    public Map<String, ValueProviderFactory> getValueProviderFactories() {
         return valueProviderFactories;
+    }
+
+    public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {
+        return fileSystemRegistry;
     }
 }

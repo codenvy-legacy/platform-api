@@ -25,7 +25,6 @@ import java.io.IOException;
  * @author Vitaly Parfonov
  */
 public interface SourceImporter {
-
     /**
      * @return type of importer e.g git, zip
      */
@@ -34,10 +33,10 @@ public interface SourceImporter {
     /**
      * Imports source from the given {@code location} to the specified folder.
      *
-     * @param to
-     *         the folder for import
+     * @param baseFolder
+     *         base project folder
      * @param location
      *         location to the import sources
      */
-    void importSources(FolderEntry to, String location) throws IOException;
+    void importSources(FolderEntry baseFolder, String location) throws IOException;
 }

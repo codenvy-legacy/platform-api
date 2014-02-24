@@ -23,10 +23,11 @@ import com.google.inject.multibindings.Multibinder;
 
 /** @author andrew00x */
 @DynaModule
-public class ValueProviderFactoryModule extends AbstractModule {
+public class BaseProjectModule extends AbstractModule {
     @Override
     protected void configure() {
-        Multibinder<ValueProviderFactory> multiBinder = Multibinder.newSetBinder(binder(), ValueProviderFactory.class);
-        multiBinder.addBinding().to(DownloadZipValueProviderFactory.class);
+        Multibinder.newSetBinder(binder(), ValueProviderFactory.class).addBinding().to(DownloadZipValueProviderFactory.class);
+        Multibinder.newSetBinder(binder(), SourceImporter.class).addBinding().to(ZipSourceImporter.class);
+        Multibinder.newSetBinder(binder(), ProjectGenerator.class); /* empty binding! */
     }
 }

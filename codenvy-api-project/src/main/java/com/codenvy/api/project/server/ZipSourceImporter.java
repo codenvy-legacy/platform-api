@@ -35,7 +35,7 @@ public class ZipSourceImporter implements SourceImporter {
     }
 
     @Override
-    public void importSources(FolderEntry to, String location) throws IOException {
+    public void importSources(FolderEntry baseFolder, String location) throws IOException {
         InputStream zip = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
         if (zip == null) {
             final Path path = Paths.get(location);
@@ -47,7 +47,7 @@ public class ZipSourceImporter implements SourceImporter {
             throw new IOException(String.format("Can't find %s", location));
         }
         try {
-            to.unzip(zip, true);
+            baseFolder.unzip(zip, true);
         } finally {
             zip.close();
         }

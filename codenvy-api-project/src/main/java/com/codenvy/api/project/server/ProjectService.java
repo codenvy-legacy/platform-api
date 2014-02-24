@@ -21,7 +21,9 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectDescription;
@@ -56,7 +58,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,11 +67,11 @@ import java.util.Map;
 @Path("project/{ws-id}")
 public class ProjectService extends Service {
     @Inject
-    private ProjectManager         projectManager;
+    private ProjectManager           projectManager;
     @Inject
-    private ProjectTypeRegistry    projectTypeRegistry;
+    private SourceImporterRegistry   importers;
     @Inject
-    private SourceImporterRegistry importers;
+    private ProjectGeneratorRegistry generators;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
@@ -107,7 +109,7 @@ public class ProjectService extends Service {
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
-        return toDescriptor(project);
+        return toDescriptor(workspace, project);
     }
 
     @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
@@ -118,7 +120,7 @@ public class ProjectService extends Service {
                                            @Required @Description("project name") @QueryParam("name") String name,
                                            @Description("descriptor of project") ProjectDescriptor descriptor) throws Exception {
         final Project project = projectManager.createProject(workspace, name, toDescription(descriptor));
-        return toDescriptor(project);
+        return toDescriptor(workspace, project);
     }
 
     @POST
@@ -137,7 +139,7 @@ public class ProjectService extends Service {
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         final Project module = project.createModule(name, toDescription(descriptor));
-        return toDescriptor(module);
+        return toDescriptor(workspace, module);
     }
 
     @PUT
@@ -155,7 +157,7 @@ public class ProjectService extends Service {
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         project.updateDescription(toDescription(descriptor));
-        return toDescriptor(project);
+        return toDescriptor(workspace, project);
     }
 
     @POST
@@ -240,11 +242,11 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("import")
+    @Path("import/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor importProject(@PathParam("ws-id") String workspace,
-                                           @Required @Description("project name") @QueryParam("project") String name,
+                                           @PathParam("path") String path,
                                            ImportSourceDescriptor importDescriptor) throws Exception {
         final SourceImporter importer = importers.getImporter(importDescriptor.getType());
         if (importer == null) {
@@ -254,12 +256,35 @@ public class ProjectService extends Service {
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
-        Project project = projectManager.getProject(workspace, name);
+        Project project = projectManager.getProject(workspace, path);
         if (project == null) {
-            project = projectManager.createProject(workspace, name, new ProjectDescription());
+            project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
-        return toDescriptor(project);
+        return toDescriptor(workspace, project);
+    }
+
+    @POST
+    @Path("generate/{path:.*}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public ProjectDescriptor generateProject(@PathParam("ws-id") String workspace,
+                                             @PathParam("path") String path,
+                                             @QueryParam("generator") String generatorName,
+                                             Map<String, String> options) throws Exception {
+        final ProjectGenerator generator = generators.getGenerator(generatorName);
+        if (generator == null) {
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Unable generate project. Unknown generator '%s'. ", generatorName));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
+        }
+        Project project = projectManager.getProject(workspace, path);
+        if (project == null) {
+            project = projectManager.createProject(workspace, path, new ProjectDescription());
+        }
+        generator.generateProject(project.getBaseFolder(), options);
+        return toDescriptor(workspace, project);
     }
 
     @POST
@@ -293,7 +318,14 @@ public class ProjectService extends Service {
         final List<AbstractVirtualFileEntry> children = folder.getChildren();
         final ArrayList<ItemReference> result = new ArrayList<>(children.size());
         for (AbstractVirtualFileEntry child : children) {
-            result.add(DtoFactory.getInstance().createDto(ItemReference.class).withName(child.getName())); // TODO
+            final ItemReference itemReference = DtoFactory.getInstance().createDto(ItemReference.class).withName(child.getName());
+            if (child.isFile()) {
+                itemReference.withLinks(generateFileLinks(workspace, (FileEntry)child));
+            } else {
+                itemReference.withLinks(generateFolderLinks(workspace, (FolderEntry)child));
+            }
+            result.add(itemReference);
+            // TODO
         }
         return result;
     }
@@ -365,7 +397,7 @@ GET	    /search/{path:.*}
     }
 
     private ProjectDescription toDescription(ProjectDescriptor descriptor) {
-        final ProjectType projectType = projectTypeRegistry.getProjectType(descriptor.getProjectTypeId());
+        final ProjectType projectType = projectManager.getProjectTypeRegistry().getProjectType(descriptor.getProjectTypeId());
         if (projectType == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                     String.format("Invalid project type '%s'. ", descriptor.getProjectTypeId()));
@@ -385,7 +417,7 @@ GET	    /search/{path:.*}
         return projectDescription;
     }
 
-    private ProjectDescriptor toDescriptor(Project project) throws IOException {
+    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException {
         final ProjectDescription description = project.getDescription();
         final ProjectType type = description.getProjectType();
         final Map<String, List<String>> attributeValues = new LinkedHashMap<>();
@@ -399,12 +431,91 @@ GET	    /search/{path:.*}
                          .withVisibility("public")
                          .withAttributes(attributeValues)
                          .withModificationDate(project.getBaseFolder().getLastModificationDate())
-                         .withLinks(generateProjectLinks(project));
+                         .withLinks(generateProjectLinks(workspace, project));
         // TODO: check project visibility
     }
 
-    private List<Link> generateProjectLinks(Project project) {
-        final UriBuilder thisServiceUriBuilder = getServiceContext().getServiceUriBuilder();
-        return Collections.emptyList(); // TODO
+    private List<Link> generateProjectLinks(String workspace, Project project) {
+        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
+        final DtoFactory dto = DtoFactory.getInstance();
+        final List<Link> links = new ArrayList<>(5);
+        final String relPath = project.getBaseFolder().getPath().substring(1);
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_UPDATE_PROJECT)
+                     .withMethod("PUT")
+                     .withProduces(MediaType.APPLICATION_JSON)
+                     .withConsumes(MediaType.APPLICATION_JSON)
+                     .withHref(ub.clone().path(getClass(), "updateProject").build(workspace, relPath).toString()));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_EXPORT_ZIP)
+                     .withMethod("GET")
+                     .withProduces("application/zip")
+                     .withHref(ub.clone().path(getClass(), "exportZip").build(workspace, relPath).toString()));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_CHILDREN)
+                     .withMethod("GET")
+                     .withProduces(MediaType.APPLICATION_JSON)
+                     .withHref(ub.clone().path(getClass(), "getChildren").build(workspace, relPath).toString()));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_TREE)
+                     .withMethod("GET")
+                     .withProduces(MediaType.APPLICATION_JSON)
+                     .withHref(ub.clone().path(getClass(), "getTree").build(workspace, relPath).toString())
+                     .withParameters(Arrays.asList(dto.createDto(LinkParameter.class).withName("depth").withType(ParameterType.Number))));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_DELETE)
+                     .withMethod("DELETE")
+                     .withHref(ub.clone().path(getClass(), "delete").build(workspace, relPath).toString()));
+        return links;
+    }
+
+    private List<Link> generateFolderLinks(String workspace, FolderEntry folder) {
+        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
+        final DtoFactory dto = DtoFactory.getInstance();
+        final List<Link> links = new ArrayList<>(4);
+        final String relPath = folder.getPath().substring(1);
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_EXPORT_ZIP)
+                     .withMethod("GET")
+                     .withProduces("application/zip")
+                     .withHref(ub.clone().path(getClass(), "exportZip").build(workspace, relPath).toString()));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_CHILDREN)
+                     .withMethod("GET")
+                     .withProduces(MediaType.APPLICATION_JSON)
+                     .withHref(ub.clone().path(getClass(), "getChildren").build(workspace, relPath).toString()));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_TREE)
+                     .withMethod("GET")
+                     .withProduces(MediaType.APPLICATION_JSON)
+                     .withHref(ub.clone().path(getClass(), "getTree").build(workspace, relPath).toString())
+                     .withParameters(Arrays.asList(dto.createDto(LinkParameter.class).withName("depth").withType(ParameterType.Number))));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_DELETE)
+                     .withMethod("DELETE")
+                     .withHref(ub.clone().path(getClass(), "delete").build(workspace, relPath).toString()));
+        return links;
+    }
+
+    private List<Link> generateFileLinks(String workspace, FileEntry file) {
+        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
+        final DtoFactory dto = DtoFactory.getInstance();
+        final List<Link> links = new ArrayList<>(3);
+        final String relPath = file.getPath().substring(1);
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_GET_CONTENT)
+                     .withMethod("GET")
+                     .withProduces(MediaType.WILDCARD)
+                     .withHref(ub.clone().path(getClass(), "getFile").build(workspace, relPath).toString()));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_UPDATE_CONTENT)
+                     .withMethod("PUT")
+                     .withConsumes(MediaType.WILDCARD)
+                     .withHref(ub.clone().path(getClass(), "updateFile").build(workspace, relPath).toString()));
+        links.add(dto.createDto(Link.class)
+                     .withRel(Constants.LINK_REL_DELETE)
+                     .withMethod("DELETE")
+                     .withHref(ub.clone().path(getClass(), "delete").build(workspace, relPath).toString()));
+        return links;
     }
 }

@@ -72,9 +72,10 @@ public class ProjectServiceTest {
     private static final String      vfsUserName   = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
 
-    private ProjectManager         pm;
-    private ResourceLauncher       launcher;
-    private SourceImporterRegistry importerRegistry;
+    private ProjectManager           pm;
+    private ResourceLauncher         launcher;
+    private SourceImporterRegistry   importerRegistry;
+    private ProjectGeneratorRegistry generatorRegistry;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -107,9 +108,11 @@ public class ProjectServiceTest {
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new SourceImporterRegistry(Collections.<SourceImporter>emptySet());
+        generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectTypeRegistry.class, ptr);
         dependencies.addComponent(SourceImporterRegistry.class, importerRegistry);
+        dependencies.addComponent(ProjectGeneratorRegistry.class, generatorRegistry);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
         providers.addExceptionMapper(new FileSystemLevelExceptionMapper());
@@ -205,7 +208,7 @@ public class ProjectServiceTest {
     @Test
     public void testCreateProject() throws Exception {
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("application/json"));
+        headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
         ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
@@ -232,7 +235,7 @@ public class ProjectServiceTest {
     @Test
     public void testCreateModule() throws Exception {
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("application/json"));
+        headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
         ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
@@ -260,7 +263,7 @@ public class ProjectServiceTest {
     public void testCreateProjectInvalidProjectType() throws Exception {
         final String newProjectTypeId = "new_project_type";
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("application/json"));
+        headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
         ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
@@ -280,7 +283,7 @@ public class ProjectServiceTest {
     @Test
     public void testUpdateProject() throws Exception {
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("application/json"));
+        headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));
         ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
@@ -307,7 +310,7 @@ public class ProjectServiceTest {
     @Test
     public void testUpdateProjectInvalidPath() throws Exception {
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("application/json"));
+        headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));
         ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
@@ -326,7 +329,7 @@ public class ProjectServiceTest {
     public void testCreateFile() throws Exception {
         String myContent = "to be or not to be";
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("text/plain"));
+        headers.put("Content-Type", Arrays.asList("text/plain"));
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/file/my_project?name=test.txt",
                                                       "http://localhost:8080/api",
                                                       headers,
@@ -357,7 +360,7 @@ public class ProjectServiceTest {
         String myContent = "<test>hello</test>";
         pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test", "to be or not to be".getBytes(), "text/plain");
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("text/xml"));
+        headers.put("Content-Type", Arrays.asList("text/xml"));
         ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/file/my_project/test",
                                                       "http://localhost:8080/api", headers, myContent.getBytes(), null);
         Assert.assertEquals(response.getStatus(), 200);
@@ -544,18 +547,18 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void importSources(FolderEntry to, String location) throws IOException {
+            public void importSources(FolderEntry baseFolder, String location) throws IOException {
                 // Don't really use location in this test.
-                to.unzip(zip);
-                folderHolder.set(to);
+                baseFolder.unzip(zip);
+                folderHolder.set(baseFolder);
             }
         });
 
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("application/json"));
+        headers.put("Content-Type", Arrays.asList("application/json"));
         byte[] b = String.format("{\"type\":\"%s\"}", importType).getBytes();
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/import?project=new_project",
+                                                      "http://localhost:8080/api/project/my_ws/import/new_project",
                                                       "http://localhost:8080/api", headers, b, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
@@ -581,12 +584,42 @@ public class ProjectServiceTest {
         zipOut.close();
         byte[] zip = bout.toByteArray();
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("content-type", Arrays.asList("application/zip"));
+        headers.put("Content-Type", Arrays.asList("application/zip"));
         ContainerResponse response = launcher.service("POST",
                                                       "http://localhost:8080/api/project/my_ws/import/my_project/a/b",
                                                       "http://localhost:8080/api", headers, zip, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/file1.txt"));
+    }
+
+    @Test
+    public void testGenerate() throws Exception {
+        pm.createProject("my_ws", "new_project", new ProjectDescription(new ProjectType("my_project_type", "my project type")));
+        generatorRegistry.register(new ProjectGenerator() {
+            @Override
+            public String getName() {
+                return "my_generator";
+            }
+
+            @Override
+            public void generateProject(FolderEntry baseFolder, Map<String, String> options) throws IOException {
+                baseFolder.createFolder("a");
+                baseFolder.createFolder("b");
+                baseFolder.createFile("test.txt", "test".getBytes(), "text/plain");
+            }
+        });
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/generate/new_project?generator=my_generator",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getProjectTypeId(), "my_project_type");
+        Assert.assertEquals(descriptor.getProjectTypeName(), "my project type");
+        Project newProject = pm.getProject("my_ws", "new_project");
+        Assert.assertNotNull(newProject);
+        Assert.assertNotNull(newProject.getBaseFolder().getChild("a"));
+        Assert.assertNotNull(newProject.getBaseFolder().getChild("b"));
+        Assert.assertNotNull(newProject.getBaseFolder().getChild("test.txt"));
     }
 
     @Test

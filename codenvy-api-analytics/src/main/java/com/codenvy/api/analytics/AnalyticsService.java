@@ -22,18 +22,20 @@ package com.codenvy.api.analytics;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.security.Principal;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 
@@ -55,6 +57,7 @@ public class AnalyticsService extends Service {
     @GET
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({"user"})
     public Response getValue(@PathParam("name") String metricName,
                              @QueryParam("page") String page,
                              @QueryParam("per_page") String perPage,
@@ -66,28 +69,41 @@ public class AnalyticsService extends Service {
                 return Response.status(Response.Status.UNAUTHORIZED).build();
             }
 
-            Map<String, String> metricContext = Utils.extractContext(uriInfo, page, perPage);
-
-            String user = securityContext.getUserPrincipal().getName();
-            if (!Utils.isAdmin(user)) {
-                metricContext.put("USER", user);
-            }
+            Map<String, String> metricContext = Utils.extractContext(uriInfo,
+                                                                     securityContext.getUserPrincipal(),
+                                                                     page,
+                                                                     perPage);
 
             MetricValueDTO value = metricHandler.getValue(metricName, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
-        } catch (MetricNotFoundException e) {
-            LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.NOT_FOUND).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
 
+    @GenerateLink(rel = "metric value")
+    @GET
+    @Path("public-metric/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getPublicValue(@PathParam("name") String metricName,
+                                   @QueryParam("page") String page,
+                                   @QueryParam("per_page") String perPage,
+                                   @Context UriInfo uriInfo,
+                                   @Context SecurityContext securityContext) {
+
+        return getValue(metricName,
+                        page,
+                        perPage,
+                        uriInfo,
+                        securityContext);
+    }
+
     @GenerateLink(rel = "metric info")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo/{name}")
+    @RolesAllowed({"user"})
     public Response getInfo(@PathParam("name") String metricName,
                             @Context UriInfo uriInfo,
                             @Context SecurityContext securityContext) {
@@ -98,9 +114,8 @@ public class AnalyticsService extends Service {
             }
 
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
-        } catch (MetricNotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND).build();
         } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
@@ -109,6 +124,7 @@ public class AnalyticsService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo")
+    @RolesAllowed({"user"})
     public Response getAllInfo(@Context UriInfo uriInfo,
                                @Context SecurityContext securityContext) {
         try {
@@ -129,7 +145,18 @@ public class AnalyticsService extends Service {
     }
 
     private boolean isRolesAllowed(MetricInfoDTO metricInfoDTO, SecurityContext securityContext) {
-        for (String role : metricInfoDTO.getRolesAllowed()) {
+        Principal principal = securityContext.getUserPrincipal();
+
+        if (principal != null && Utils.isSystemUser(principal.getName())) {
+            return true;
+        }
+
+        List<String> rolesAllowed = metricInfoDTO.getRolesAllowed();
+        if (rolesAllowed.isEmpty()) {
+            return true;
+        }
+
+        for (String role : rolesAllowed) {
             if (securityContext.isUserInRole(role)) {
                 return true;
             }

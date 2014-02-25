@@ -17,51 +17,57 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.organization.client.AccountManager;
-import com.codenvy.organization.client.UserManager;
-import com.codenvy.organization.model.Account;
+import com.codenvy.commons.user.UserImpl;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
 import org.everrest.assured.JettyHttpServer;
-import org.mockito.*;
+import org.everrest.core.Filter;
+import org.everrest.core.GenericContainerRequest;
+import org.everrest.core.RequestFilter;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Matchers;
+import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
-import org.testng.annotations.*;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
 
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.ext.ExceptionMapper;
 import java.io.File;
 import java.net.URLEncoder;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static com.jayway.restassured.RestAssured.given;
 import static javax.ws.rs.core.Response.Status;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 @Listeners(value = {EverrestJetty.class, MockitoTestNGListener.class})
 public class FactoryServiceTest {
-    private final String          CORRECT_FACTORY_ID = "correctFactoryId";
-    private final String          ILLEGAL_FACTORY_ID = "illegalFactoryId";
-    private final String          SERVICE_PATH       = "/factory";
-    private final ExceptionMapper exceptionMapper    = new FactoryServiceExceptionMapper();
-    private com.codenvy.organization.model.User user;
+    private final String                        CORRECT_FACTORY_ID = "correctFactoryId";
+    private final String                        ILLEGAL_FACTORY_ID = "illegalFactoryId";
+    private final String                        SERVICE_PATH       = "/factory";
+    private final FactoryServiceExceptionMapper exceptionMapper    = new FactoryServiceExceptionMapper();
+
+    private EnvironmentFilter filter = new EnvironmentFilter();
 
     @Mock
     private FactoryStore factoryStore;
 
-    @Mock
-    private UserManager userManager;
-
-    @Mock
-    private AccountManager accountManager;
 
     @Mock
     private FactoryUrlValidator validator;
@@ -69,10 +75,26 @@ public class FactoryServiceTest {
     @InjectMocks
     private FactoryService factoryService;
 
+    @javax.ws.rs.Path("factory")
+    @Filter
+    public static class EnvironmentFilter implements RequestFilter {
+
+        public void doFilter(GenericContainerRequest request) {
+            EnvironmentContext context = EnvironmentContext.getCurrent();
+            context.setUser(new UserImpl(JettyHttpServer.ADMIN_USER_NAME, "id-2314", "token-2323",
+                                         Collections.<String>emptyList()));
+        }
+
+    }
+
+
     @BeforeMethod
     public void setUp() throws Exception {
-        user = new com.codenvy.organization.model.User();
-        user.setId("123456789");
+
+    }
+
+    public void cleanup() {
+        EnvironmentContext.reset();
     }
 
     @Test
@@ -88,17 +110,18 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
-        Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
-                multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
-                multiPart("image", path.toFile(), "image/jpeg").//
-                when().//
-                post("/private" + SERVICE_PATH);
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
+                        multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON).//
+                        multiPart("image", path.toFile(), "image/jpeg").//
+                        when().//
+                        post("/private" + SERVICE_PATH);
 
         assertEquals(response.getStatusCode(), 200);
-        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
+        AdvancedFactoryUrl responseFactoryUrl =
+                JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
         boolean found = false;
         Iterator<Link> iter = responseFactoryUrl.getLinks().iterator();
         while (iter.hasNext()) {
@@ -112,14 +135,13 @@ public class FactoryServiceTest {
     @Test
     public void shouldReturnStatus400IfSaveRequestHaveNotFactoryInfo() throws Exception {
         // given
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
                 multiPart("someOtherData", "Some content", MediaType.TEXT_PLAIN).//
                 expect().//
                 statusCode(Status.BAD_REQUEST.getStatusCode()).//
-                body(equalTo("No factory URL information found in 'factoryUrl' section of multipart form-data.")).//
+                body(equalTo("No factory URL information found in 'factoryUrl' section of multipart/form-data.")).//
                 when().//
                 post("/private" + SERVICE_PATH);
     }
@@ -137,7 +159,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         Response response =
@@ -152,7 +173,7 @@ public class FactoryServiceTest {
                 new Link("application/json", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID, "self")));
         assertTrue(responseFactoryUrl.getLinks().contains(expectedCreateProject));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/private/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                new Link("text/plain", getServerUrl(context) + "/rest/private/analytics/public-metric/factory_used?factory=" +
                                        URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
@@ -179,10 +200,6 @@ public class FactoryServiceTest {
         factoryUrl.setWelcome(new WelcomePage());
         factoryUrl.setOrgid("orgid");
 
-        Account account = new Account(user.getId());
-
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
-        when(accountManager.getAccountById("orgid")).thenReturn(account);
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 
@@ -208,11 +225,9 @@ public class FactoryServiceTest {
         factoryUrl.setWelcome(new WelcomePage());
         factoryUrl.setOrgid("orgid");
 
-        Account account = new Account("other id");
-
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
-        when(accountManager.getAccountById("orgid")).thenReturn(account);
-        when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
+        doThrow(new FactoryUrlException("You are not authorized to use this orgid.")).when(validator).validateUrl(
+                Matchers.any(AdvancedFactoryUrl.class));
+        when(factoryStore.saveFactory(Matchers.any(AdvancedFactoryUrl.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 
         // when, then
@@ -237,7 +252,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
@@ -263,7 +277,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
@@ -287,7 +300,6 @@ public class FactoryServiceTest {
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-        when(userManager.getUserByAlias(JettyHttpServer.ADMIN_USER_NAME)).thenReturn(user);
 
         // when, then
         given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
@@ -335,7 +347,7 @@ public class FactoryServiceTest {
                 new Link("image/png", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=image987654321",
                          "image")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                new Link("text/plain", getServerUrl(context) + "/rest/analytics/public-metric/factory_used?factory=" +
                                        URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",

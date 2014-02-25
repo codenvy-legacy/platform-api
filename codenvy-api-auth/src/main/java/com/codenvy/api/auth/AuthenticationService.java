@@ -20,6 +20,7 @@ package com.codenvy.api.auth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
@@ -31,12 +32,6 @@ import java.util.Collections;
  * <p/>
  * In response user receive "token". This token user can use
  * to identify him in all other request to API, to do that he should pass it as query parameter.
- * Also user receive several cookies.
- * <p/>
- * <ul>
- * <li>"session-access-key" - session based, http only, located by path "/" cookie. It act like token.</li>
- * <li>"token-access-key    - persistent cookie used to restore "session-access-key".</li>
- * </ul>
  *
  * @author Sergii Kabashniuk
  * @author Alexander Garagatyi
@@ -50,6 +45,7 @@ public class AuthenticationService {
     protected TicketManager         ticketManager;
     @Inject
     protected TokenGenerator        uniqueTokenGenerator;
+    @Nullable
     @Inject
     protected CookieBuilder         cookieBuilder;
 
@@ -103,14 +99,18 @@ public class AuthenticationService {
                 }
             } else {
                 //cookie is outdated, clearing
-                cookieBuilder.clearCookies(builder, tokenAccessCookie.getValue(), secure);
+                if (cookieBuilder != null) {
+                    cookieBuilder.clearCookies(builder, tokenAccessCookie.getValue(), secure);
+                }
+
             }
         }
         // If we obtained principal  - authentication is done.
         String token = uniqueTokenGenerator.generate();
         ticketManager.putAccessTicket(new AccessTicket(token, principal));
-
-        cookieBuilder.setCookies(builder, token, secure, false);
+        if (cookieBuilder != null) {
+            cookieBuilder.setCookies(builder, token, secure);
+        }
         builder.entity(Collections.singletonMap("token", token));
         return builder.build();
     }
@@ -149,8 +149,9 @@ public class AuthenticationService {
             response = Response.status(Response.Status.BAD_REQUEST);
             LOG.warn("Token not found in request.");
         }
-
-        cookieBuilder.clearCookies(response, accessToken, secure);
+        if (cookieBuilder != null) {
+            cookieBuilder.clearCookies(response, accessToken, secure);
+        }
         return response.build();
     }
 

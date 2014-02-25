@@ -101,6 +101,14 @@ public class DtoImplServerTemplate extends DtoImpl {
                 builder.append("        return false;\n");
                 builder.append("      }\n");
             } else {
+
+                if (isList(returnType) || isMap(returnType)) {
+
+                    builder.append("      ").append("this.").append(getEnsureName(fieldName)).append("();\n");
+                    builder.append("      ").append("other.").append(getEnsureName(fieldName)).append("();\n");
+                    builder.append("      \n");
+
+                }
                 builder.append("      if (this.").append(fieldName).append(" != null) {\n");
                 builder.append("        if (!this.").append(fieldName).append(".equals(other.").append(fieldName).append(")) {\n");
                 builder.append("          return false;\n");
@@ -129,6 +137,9 @@ public class DtoImplServerTemplate extends DtoImpl {
                 builder.append("      hash = hash * 31 + ").append(wrappedType.getName()).append(".valueOf(").append(fieldName)
                        .append(").hashCode();\n");
             } else {
+                if (isList(type) || isMap(type)) {
+                    builder.append("      ").append(getEnsureName(fieldName)).append("();\n");
+                }
                 builder.append("      hash = hash * 31 + (").append(fieldName).append(" != null ? ").append(fieldName).append(
                         ".hashCode() : 0);\n");
             }

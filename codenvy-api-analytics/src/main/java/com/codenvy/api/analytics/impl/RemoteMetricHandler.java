@@ -24,10 +24,8 @@ import com.codenvy.api.analytics.dto.Constants;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
@@ -51,7 +49,8 @@ import java.util.Properties;
 /**
  * Implementation provides means to perform remote REST requests to receive analytics data from remote rest service.
  *
- * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
+ * @author Dmitry Kuleshov
+ * @author Anatoliy Bazko
  */
 public class RemoteMetricHandler implements MetricHandler {
 
@@ -70,7 +69,7 @@ public class RemoteMetricHandler implements MetricHandler {
     @Override
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> executionContext,
-                                   UriInfo uriInfo) throws MetricNotFoundException {
+                                   UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getValue", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
@@ -79,20 +78,20 @@ public class RemoteMetricHandler implements MetricHandler {
                            "GET",
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
-        } catch (IOException | RemoteException e) {
-            throw new MetricNotFoundException();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
     }
 
     @Override
-    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
+    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getInfo", metricName);
         try {
             MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
-        } catch (IOException | RemoteException e) {
-            throw new MetricNotFoundException();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -103,8 +102,10 @@ public class RemoteMetricHandler implements MetricHandler {
             MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, proxyUrl, "GET", null);
             updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
-        } catch (IOException | RemoteException e) {
-            throw new RuntimeException("Can't get generate metric info list!");
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "We have received an error code from the server. For some reason, " +
+                    "we are unable to generate the list of metrics.");
         }
     }
 
@@ -175,21 +176,7 @@ public class RemoteMetricHandler implements MetricHandler {
                 if (in == null) {
                     in = conn.getInputStream();
                 }
-                final String str = IoUtil.readAndCloseQuietly(in);
-                final String contentType = conn.getContentType();
-                if (contentType.startsWith("application/json")) {
-                    final ServiceError serviceError =
-                            DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
-                    if (serviceError.getMessage() != null) {
-                        // Error is in format what we can understand.
-                        throw new RemoteException(serviceError);
-                    }
-                }
-                // Can't parse content as json or content has format other we expect for error.
-                throw new IOException(
-                        String.format("Failed access: %s, method: %s, response code: %d, message: %s", proxyUrl,
-                                      method,
-                                      responseCode, str));
+                throw new IOException(IoUtil.readAndCloseQuietly(in));
             }
             final String contentType = conn.getContentType();
             if (!contentType.startsWith("application/json")) {

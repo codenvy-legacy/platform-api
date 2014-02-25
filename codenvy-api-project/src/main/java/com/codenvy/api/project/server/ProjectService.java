@@ -69,7 +69,7 @@ public class ProjectService extends Service {
     @Inject
     private ProjectManager           projectManager;
     @Inject
-    private SourceImporterRegistry   importers;
+    private ProjectImporterRegistry  importers;
     @Inject
     private ProjectGeneratorRegistry generators;
 
@@ -84,14 +84,13 @@ public class ProjectService extends Service {
             final ProjectDescription description = project.getDescription();
             final ProjectType type = description.getProjectType();
             final String name = project.getName();
-            // TODO: check project visibility
             projectRefs.add(DtoFactory.getInstance().createDto(ProjectReference.class)
                                       .withName(name)
                                       .withWorkspace(workspace)
                                       .withProjectTypeId(type.getId())
                                       .withProjectTypeName(type.getName())
                                       .withDescription(description.getDescription())
-                                      .withVisibility("public")
+                                      .withVisibility(project.getVisibility())
                                       .withUrl(thisServiceUriBuilder.clone().path(getClass(), "getProject").build(workspace, name)
                                                                     .toString()));
         }
@@ -156,7 +155,11 @@ public class ProjectService extends Service {
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
+        final String newVisibility = descriptor.getVisibility();
         project.updateDescription(toDescription(descriptor));
+        if (!(newVisibility == null || newVisibility.equals(project.getVisibility()))) {
+            project.setVisibility(newVisibility);
+        }
         return toDescriptor(workspace, project);
     }
 
@@ -167,8 +170,10 @@ public class ProjectService extends Service {
                                @QueryParam("name") String fileName,
                                @HeaderParam("content-type") String contentType,
                                InputStream content) throws Exception {
-        asFolder(workspace, parentPath).createFile(fileName, content, contentType);
-        return Response.created(URI.create("")).build(); // TODO: Location
+        final FileEntry file = asFolder(workspace, parentPath).createFile(fileName, content, contentType);
+        return Response.created(getServiceContext().getServiceUriBuilder()
+                                                   .path(getClass(), "getFile")
+                                                   .build(workspace, file.getPath().substring(1))).build();
     }
 
     @GET
@@ -195,8 +200,10 @@ public class ProjectService extends Service {
     @POST
     @Path("folder/{path:.*}")
     public Response createFolder(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
-        projectManager.getProjectsRoot(workspace).createFolder(path);
-        return Response.created(URI.create("")).build(); // TODO: Location
+        final FolderEntry folder = projectManager.getProjectsRoot(workspace).createFolder(path);
+        return Response.created(getServiceContext().getServiceUriBuilder()
+                                                   .path(getClass(), "getChildren")
+                                                   .build(workspace, folder.getPath().substring(1))).build();
     }
 
     @DELETE
@@ -212,8 +219,11 @@ public class ProjectService extends Service {
                          @PathParam("path") String path,
                          @QueryParam("to") String newParent) throws Exception {
         final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
-        entry.copyTo(newParent);
-        return Response.created(URI.create("")).build(); // TODO: Location
+        final AbstractVirtualFileEntry copy = entry.copyTo(newParent);
+        final URI location = getServiceContext().getServiceUriBuilder()
+                                                .path(getClass(), copy.isFile() ? "getFile" : "getChildren")
+                                                .build(workspace, copy.getPath().substring(1));
+        return Response.created(location).build();
     }
 
     @POST
@@ -223,7 +233,10 @@ public class ProjectService extends Service {
                          @QueryParam("to") String newParent) throws Exception {
         final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         entry.moveTo(newParent);
-        return Response.created(URI.create("")).build(); // TODO: Location
+        final URI location = getServiceContext().getServiceUriBuilder()
+                                                .path(getClass(), entry.isFile() ? "getFile" : "getChildren")
+                                                .build(workspace, entry.getPath().substring(1));
+        return Response.created(location).build();
     }
 
     @POST
@@ -238,7 +251,10 @@ public class ProjectService extends Service {
         } else {
             entry.rename(newName);
         }
-        return Response.created(URI.create("")).build(); // TODO: Location
+        final URI location = getServiceContext().getServiceUriBuilder()
+                                                .path(getClass(), entry.isFile() ? "getFile" : "getChildren")
+                                                .build(workspace, entry.getPath().substring(1));
+        return Response.created(location).build();
     }
 
     @POST
@@ -248,7 +264,7 @@ public class ProjectService extends Service {
     public ProjectDescriptor importProject(@PathParam("ws-id") String workspace,
                                            @PathParam("path") String path,
                                            ImportSourceDescriptor importDescriptor) throws Exception {
-        final SourceImporter importer = importers.getImporter(importDescriptor.getType());
+        final ProjectImporter importer = importers.getImporter(importDescriptor.getType());
         if (importer == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                     String.format("Unable import sources project from '%s'. Sources type '%s' is not supported. ",
@@ -295,7 +311,9 @@ public class ProjectService extends Service {
                               InputStream zip) throws Exception {
         final FolderEntry folder = asFolder(workspace, name);
         folder.unzip(zip);
-        return Response.created(URI.create("")).build(); // TODO: Location
+        return Response.created(getServiceContext().getServiceUriBuilder()
+                                                   .path(getClass(), "getChildren")
+                                                   .build(workspace, folder.getPath().substring(1))).build();
     }
 
     @GET
@@ -318,14 +336,15 @@ public class ProjectService extends Service {
         final List<AbstractVirtualFileEntry> children = folder.getChildren();
         final ArrayList<ItemReference> result = new ArrayList<>(children.size());
         for (AbstractVirtualFileEntry child : children) {
-            final ItemReference itemReference = DtoFactory.getInstance().createDto(ItemReference.class).withName(child.getName());
+            final ItemReference itemReference = DtoFactory.getInstance().createDto(ItemReference.class)
+                                                          .withName(child.getName())
+                                                          .withPath(child.getPath());
             if (child.isFile()) {
-                itemReference.withLinks(generateFileLinks(workspace, (FileEntry)child));
+                itemReference.withType("file").withLinks(generateFileLinks(workspace, (FileEntry)child));
             } else {
-                itemReference.withLinks(generateFolderLinks(workspace, (FolderEntry)child));
+                itemReference.withType("folder").withLinks(generateFolderLinks(workspace, (FolderEntry)child));
             }
             result.add(itemReference);
-            // TODO
         }
         return result;
     }
@@ -356,6 +375,8 @@ public class ProjectService extends Service {
         }
         return nodes;
     }
+
+
 
 
 /*
@@ -428,11 +449,10 @@ GET	    /search/{path:.*}
                          .withProjectTypeId(type.getId())
                          .withProjectTypeName(type.getName())
                          .withDescription(description.getDescription())
-                         .withVisibility("public")
+                         .withVisibility(project.getVisibility())
                          .withAttributes(attributeValues)
                          .withModificationDate(project.getBaseFolder().getLastModificationDate())
                          .withLinks(generateProjectLinks(workspace, project));
-        // TODO: check project visibility
     }
 
     private List<Link> generateProjectLinks(String workspace, Project project) {

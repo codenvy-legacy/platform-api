@@ -24,11 +24,11 @@ import java.io.IOException;
  *
  * @author Vitaly Parfonov
  */
-public interface SourceImporter {
+public interface ProjectImporter {
     /**
-     * @return type of importer e.g git, zip
+     * @return unique id of importer e.g git, zip
      */
-    String getType();
+    String getId();
 
     /**
      * Imports source from the given {@code location} to the specified folder.

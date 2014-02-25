@@ -22,13 +22,22 @@ import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+
+import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 /**
  * @author andrew00x
@@ -177,6 +186,49 @@ public class Project {
             ((FolderEntry)codenvyDir).createFile(Constants.CODENVY_PROJECT_FILE,
                                                  JsonHelper.toJson(properties).getBytes(),
                                                  "application/json");
+        }
+    }
+
+    public String getVisibility() {
+        try {
+            final Principal guest = DtoFactory.getInstance().createDto(Principal.class)
+                                              .withName("any")
+                                              .withType(Principal.Type.USER);
+            final List<AccessControlEntry> acl = baseFolder.getVirtualFile().getACL();
+            if (acl.isEmpty()) {
+                return "public";
+            }
+            for (AccessControlEntry ace : acl) {
+                if (guest.equals(ace.getPrincipal()) && ace.getPermissions().contains("read")) {
+                    return "public";
+                }
+            }
+            return "private";
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
+    }
+
+    public void setVisibility(String projectVisibility) {
+        try {
+            switch (projectVisibility) {
+                case "private":
+                    final List<AccessControlEntry> acl = new ArrayList<>(2);
+                    final Principal developer = DtoFactory.getInstance().createDto(Principal.class)
+                                                          .withName("workspace/developer")
+                                                          .withType(Principal.Type.GROUP);
+                    acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                      .withPrincipal(developer)
+                                      .withPermissions(Arrays.asList("all")));
+                    baseFolder.getVirtualFile().updateACL(acl, true, null);
+                    break;
+                case "public":
+                    // Remove ACL. Default behaviour of underlying virtual filesystem: everyone can read but can't update.
+                    baseFolder.getVirtualFile().updateACL(Collections.<AccessControlEntry>emptyList(), true, null);
+                    break;
+            }
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
         }
     }
 }

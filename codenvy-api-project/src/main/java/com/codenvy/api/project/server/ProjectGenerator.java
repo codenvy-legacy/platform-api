@@ -26,8 +26,8 @@ import java.util.Map;
  * @author andrew00x
  */
 public interface ProjectGenerator {
-    /** Unique name of project generator. */
-    String getName();
+    /** Unique id of project generator. */
+    String getId();
 
     /**
      * Generates project.

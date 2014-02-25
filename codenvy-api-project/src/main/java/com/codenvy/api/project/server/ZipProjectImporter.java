@@ -28,9 +28,9 @@ import java.nio.file.Paths;
  * @author Vitaly Parfonov
  */
 @Singleton
-public class ZipSourceImporter implements SourceImporter {
+public class ZipProjectImporter implements ProjectImporter {
     @Override
-    public String getType() {
+    public String getId() {
         return "zip";
     }
 

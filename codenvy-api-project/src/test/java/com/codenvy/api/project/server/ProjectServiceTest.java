@@ -31,6 +31,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
+import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.RequestHandler;
@@ -54,6 +55,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,6 +67,8 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+
 /**
  * @author andrew00x
  */
@@ -74,7 +78,7 @@ public class ProjectServiceTest {
 
     private ProjectManager           pm;
     private ResourceLauncher         launcher;
-    private SourceImporterRegistry   importerRegistry;
+    private ProjectImporterRegistry  importerRegistry;
     private ProjectGeneratorRegistry generatorRegistry;
 
     @BeforeMethod
@@ -107,11 +111,11 @@ public class ProjectServiceTest {
         pm.createProject("my_ws", "my_project", pd);
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
-        importerRegistry = new SourceImporterRegistry(Collections.<SourceImporter>emptySet());
+        importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
         generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectTypeRegistry.class, ptr);
-        dependencies.addComponent(SourceImporterRegistry.class, importerRegistry);
+        dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
         dependencies.addComponent(ProjectGeneratorRegistry.class, generatorRegistry);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
@@ -336,6 +340,8 @@ public class ProjectServiceTest {
                                                       myContent.getBytes(),
                                                       null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/test.txt"));
         AbstractVirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test.txt");
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
@@ -376,6 +382,8 @@ public class ProjectServiceTest {
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/folder/my_project/test",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/test"));
         AbstractVirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
         Assert.assertTrue(folder.isFolder());
     }
@@ -385,6 +393,8 @@ public class ProjectServiceTest {
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/folder/my_project/a/b/c",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/b/c"));
         AbstractVirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("a/b/c");
         Assert.assertTrue(folder.isFolder());
     }
@@ -441,6 +451,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/copy/my_project/a/b/test.txt?to=/my_project/a/b/c",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/a/b/c/test.txt"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/test.txt")); // new
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/test.txt")); // old
     }
@@ -454,6 +466,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/copy/my_project/a/b?to=/my_project/a/b/c",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/b/c/b"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/test.txt"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/b/test.txt"));
     }
@@ -467,6 +481,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/move/my_project/a/b/test.txt?to=/my_project/a/b/c",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/a/b/c/test.txt"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/test.txt")); // new
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/test.txt")); // old
     }
@@ -480,6 +496,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/move/my_project/a/b/c?to=/my_project/a",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/c"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/c/test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c/test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c"));
@@ -493,6 +511,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/rename/my_project/test.txt?name=_test.txt",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/_test.txt"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("_test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("test.txt"));
     }
@@ -505,6 +525,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/rename/my_project/test.txt?name=_test.txt&mediaType=text/plain",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/_test.txt"));
         FileEntry renamed = (FileEntry)myProject.getBaseFolder().getChild("_test.txt");
         Assert.assertNotNull(renamed);
         Assert.assertEquals(renamed.getMediaType(), "text/plain");
@@ -519,6 +541,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/rename/my_project/a/b?name=x",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/x"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/x"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/x/c"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b"));
@@ -540,9 +564,9 @@ public class ProjectServiceTest {
         final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
         final String importType = "_123_";
         final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
-        importerRegistry.register(new SourceImporter() {
+        importerRegistry.register(new ProjectImporter() {
             @Override
-            public String getType() {
+            public String getId() {
                 return importType;
             }
 
@@ -589,6 +613,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/import/my_project/a/b",
                                                       "http://localhost:8080/api", headers, zip, null);
         Assert.assertEquals(response.getStatus(), 201);
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/b"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/file1.txt"));
     }
 
@@ -597,7 +623,7 @@ public class ProjectServiceTest {
         pm.createProject("my_ws", "new_project", new ProjectDescription(new ProjectType("my_project_type", "my project type")));
         generatorRegistry.register(new ProjectGenerator() {
             @Override
-            public String getName() {
+            public String getId() {
                 return "my_generator";
             }
 
@@ -706,5 +732,32 @@ public class ProjectServiceTest {
         Assert.assertTrue(names.contains("x"));
         Assert.assertTrue(names.contains("b/c"));
         Assert.assertTrue(names.contains("x/y"));
+    }
+
+    @Test
+    public void testUpdateProjectVisibility() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/my_project",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        descriptor.setVisibility("private");
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project",
+                                    "http://localhost:8080/api",
+                                    headers,
+                                    DtoFactory.getInstance().toJson(descriptor).getBytes(),
+                                    null);
+        descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getVisibility(), "private");
+        Map<Principal, Set<BasicPermissions>> permissions =
+                myProject.getBaseFolder().getVirtualFile().getPermissions();
+        Assert.assertEquals(permissions.size(), 1);
+        Principal principal = DtoFactory.getInstance().createDto(Principal.class)
+                                        .withName("workspace/developer")
+                                        .withType(Principal.Type.GROUP);
+        Assert.assertEquals(permissions.get(principal), Arrays.asList(BasicPermissions.ALL));
     }
 }

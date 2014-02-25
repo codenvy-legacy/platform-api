@@ -41,24 +41,24 @@ public class ProjectGeneratorRegistry {
     }
 
     public void register(ProjectGenerator generator) {
-        generators.put(generator.getName(), generator);
+        generators.put(generator.getId(), generator);
     }
 
-    public ProjectGenerator unregister(String name) {
-        if (name == null) {
+    public ProjectGenerator unregister(String id) {
+        if (id == null) {
             return null;
         }
-        return generators.remove(name);
+        return generators.remove(id);
     }
 
-    public ProjectGenerator getGenerator(String name) {
-        if (name == null) {
+    public ProjectGenerator getGenerator(String id) {
+        if (id == null) {
             return null;
         }
-        return generators.get(name);
+        return generators.get(id);
     }
 
-    public List<String> getGeneratorNames() {
-        return new ArrayList<>(generators.keySet());
+    public List<ProjectGenerator> getGenerators() {
+        return new ArrayList<>(generators.values());
     }
 }

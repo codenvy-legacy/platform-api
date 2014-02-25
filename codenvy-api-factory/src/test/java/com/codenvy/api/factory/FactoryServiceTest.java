@@ -173,7 +173,7 @@ public class FactoryServiceTest {
                 new Link("application/json", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID, "self")));
         assertTrue(responseFactoryUrl.getLinks().contains(expectedCreateProject));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/private/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                new Link("text/plain", getServerUrl(context) + "/rest/private/analytics/public-metric/factory_used?factory=" +
                                        URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
@@ -347,7 +347,7 @@ public class FactoryServiceTest {
                 new Link("image/png", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=image987654321",
                          "image")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                new Link("text/plain", getServerUrl(context) + "/rest/analytics/public-metric/factory_used?factory=" +
                                        URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
                 new Link("text/plain", getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",

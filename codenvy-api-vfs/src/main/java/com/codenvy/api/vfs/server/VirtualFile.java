@@ -194,7 +194,7 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      * @throws VirtualFileSystemException
      *         if an error occurs
      */
-    void setMediaType(String mediaType) throws VirtualFileSystemException;
+    VirtualFile setMediaType(String mediaType) throws VirtualFileSystemException;
 
     /**
      * Get creation time in long format or <code>-1</code> if creation time is unknown.

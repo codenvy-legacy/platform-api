@@ -245,13 +245,14 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public void setMediaType(String mediaType) throws VirtualFileSystemException {
+    public VirtualFile setMediaType(String mediaType) throws VirtualFileSystemException {
         checkExist();
         if (mediaType == null) {
             properties.remove("vfs:mimeType");
         } else {
             properties.put("vfs:mimeType", Arrays.asList(mediaType));
         }
+        return this;
     }
 
     public String getPath() throws VirtualFileSystemException {

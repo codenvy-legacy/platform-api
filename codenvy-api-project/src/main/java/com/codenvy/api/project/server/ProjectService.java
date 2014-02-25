@@ -33,6 +33,8 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.vfs.server.search.QueryExpression;
+import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.ByteStreams;
 
@@ -59,6 +61,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +75,8 @@ public class ProjectService extends Service {
     private ProjectImporterRegistry  importers;
     @Inject
     private ProjectGeneratorRegistry generators;
+    @Inject
+    private SearcherProvider         searcherProvider;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
@@ -340,9 +345,13 @@ public class ProjectService extends Service {
                                                           .withName(child.getName())
                                                           .withPath(child.getPath());
             if (child.isFile()) {
-                itemReference.withType("file").withLinks(generateFileLinks(workspace, (FileEntry)child));
+                itemReference.withType("file")
+                             .withMediaType(((FileEntry)child).getMediaType())
+                             .withLinks(generateFileLinks(workspace, (FileEntry)child));
             } else {
-                itemReference.withType("folder").withLinks(generateFolderLinks(workspace, (FolderEntry)child));
+                itemReference.withType("folder")
+                             .withMediaType("text/directory")
+                             .withLinks(generateFolderLinks(workspace, (FolderEntry)child));
             }
             result.add(itemReference);
         }
@@ -357,12 +366,16 @@ public class ProjectService extends Service {
                                @DefaultValue("1") @QueryParam("depth") int depth) throws Exception {
         final FolderEntry folder = asFolder(workspace, path);
         return DtoFactory.getInstance().createDto(TreeElement.class)
-                         .withNode(DtoFactory.getInstance().createDto(ItemReference.class).withName(folder.getName()))
-                         .withChildren(getTree(folder, depth));
+                         .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
+                                             .withName(folder.getName())
+                                             .withPath(folder.getPath())
+                                             .withType("folder")
+                                             .withMediaType("text/directory")
+                                             .withLinks(generateFolderLinks(workspace, folder)))
+                         .withChildren(getTree(workspace, folder, depth));
     }
 
-
-    private List<TreeElement> getTree(FolderEntry folder, int depth) {
+    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) {
         if (depth == 0) {
             return null;
         }
@@ -370,18 +383,69 @@ public class ProjectService extends Service {
         final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
         for (FolderEntry childFolder : childFolders) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
-                                .withNode(DtoFactory.getInstance().createDto(ItemReference.class).withName(childFolder.getName()))
-                                .withChildren(getTree(childFolder, depth - 1)));
+                                .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
+                                                    .withName(childFolder.getName())
+                                                    .withPath(childFolder.getPath())
+                                                    .withType("folder")
+                                                    .withMediaType("text/directory")
+                                                    .withLinks(generateFolderLinks(workspace, childFolder)))
+                                .withChildren(getTree(workspace, childFolder, depth - 1)));
         }
         return nodes;
     }
 
+    @GET
+    @Path("search/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<ItemReference> search(@PathParam("ws-id") String workspace,
+                                      @PathParam("path") String path,
+                                      @QueryParam("name") String name,
+                                      @QueryParam("mediatype") String mediatype,
+                                      @QueryParam("text") String text,
+                                      @QueryParam("maxItems") @DefaultValue("-1") int maxItems,
+                                      @QueryParam("skipCount") int skipCount) throws Exception {
+        final FolderEntry folder = asFolder(workspace, path);
+        if (searcherProvider != null) {
+            if (skipCount < 0) {
+                final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                        String.format("Invalid 'skipCount' parameter: %d. ", skipCount));
+                throw new WebApplicationException(
+                        Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
+            }
+            final QueryExpression expr = new QueryExpression()
+                    .setPath(path.startsWith("/") ? path : ('/' + path))
+                    .setName(name)
+                    .setMediaType(mediatype)
+                    .setText(text);
 
-
-
-/*
-GET	    /search/{path:.*}
-*/
+            final String[] result = searcherProvider.getSearcher(folder.getVirtualFile().getMountPoint(), true).search(expr);
+            if (skipCount > 0) {
+                if (skipCount > result.length) {
+                    final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                            String.format("'skipCount' parameter: %d is greater then total number of items in result: %d. ",
+                                          skipCount, result.length));
+                    throw new WebApplicationException(
+                            Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
+                }
+            }
+            final int length = maxItems > 0 ? Math.min(result.length, maxItems) : result.length;
+            final List<ItemReference> items = new ArrayList<>(length);
+            final FolderEntry root = projectManager.getProjectsRoot(workspace);
+            for (int i = skipCount; i < length; i++) {
+                final AbstractVirtualFileEntry child = root.getChild(result[i]);
+                if (child != null && child.isFile()) {
+                    items.add(DtoFactory.getInstance().createDto(ItemReference.class)
+                                        .withName(child.getName())
+                                        .withPath(child.getPath())
+                                        .withType("file")
+                                        .withMediaType(((FileEntry)child).getMediaType())
+                                        .withLinks(generateFileLinks(workspace, (FileEntry)child)));
+                }
+            }
+            return items;
+        }
+        return Collections.emptyList();
+    }
 
     private FileEntry asFile(String workspace, String path) {
         final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);

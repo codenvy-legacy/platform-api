@@ -24,6 +24,16 @@ public interface ItemReference {
     /** Set type of item, e.g. "file" or "folder". */
     void setType(String type);
 
+    ItemReference withType(String type);
+
+    /** Get mediatype. */
+    String getMediaType();
+
+    /** Get mediatype. */
+    void setMediaType(String mediaType);
+
+    ItemReference withMediaType(String mediaType);
+
     /** Get path of item. */
     String getPath();
 
@@ -31,8 +41,6 @@ public interface ItemReference {
     void setPath(String path);
 
     ItemReference withPath(String path);
-
-    ItemReference withType(String type);
 
     List<Link> getLinks();
 

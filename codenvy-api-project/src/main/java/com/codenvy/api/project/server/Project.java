@@ -35,9 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-
-import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 /**
  * @author andrew00x

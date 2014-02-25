@@ -35,7 +35,7 @@ import java.net.URI;
 public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     private static final Logger LOG = LoggerFactory.getLogger(MemoryFileSystemProvider.class);
 
-    private static class SimpleLuceneSearcherProvider extends LuceneSearcherProvider {
+    public static class SimpleLuceneSearcherProvider extends LuceneSearcherProvider {
         MemoryLuceneSearcher searcher;
 
         @Override

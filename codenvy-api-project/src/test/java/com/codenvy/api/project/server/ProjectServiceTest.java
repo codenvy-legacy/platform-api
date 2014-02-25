@@ -31,6 +31,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
+import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -96,7 +97,8 @@ public class ProjectServiceTest {
                 return Collections.emptyList();
             }
         });
-        MemoryMountPoint mmp = new MemoryMountPoint(null, new VirtualFileSystemUserContext() {
+        SearcherProvider searcherProvider = new MemoryFileSystemProvider.SimpleLuceneSearcherProvider();
+        MemoryMountPoint mmp = new MemoryMountPoint(searcherProvider, new VirtualFileSystemUserContext() {
             @Override
             public VirtualFileSystemUser getVirtualFileSystemUser() {
                 return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
@@ -117,6 +119,7 @@ public class ProjectServiceTest {
         dependencies.addComponent(ProjectTypeRegistry.class, ptr);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
         dependencies.addComponent(ProjectGeneratorRegistry.class, generatorRegistry);
+        dependencies.addComponent(SearcherProvider.class, searcherProvider);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
         providers.addExceptionMapper(new FileSystemLevelExceptionMapper());
@@ -735,7 +738,7 @@ public class ProjectServiceTest {
     }
 
     @Test
-    public void testUpdateProjectVisibility() throws Exception {
+    public void testUpdateProjectVisibilityToPrivate() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
         ContainerResponse response = launcher.service("GET",
                                                       "http://localhost:8080/api/project/my_ws/my_project",
@@ -759,5 +762,113 @@ public class ProjectServiceTest {
                                         .withName("workspace/developer")
                                         .withType(Principal.Type.GROUP);
         Assert.assertEquals(permissions.get(principal), Arrays.asList(BasicPermissions.ALL));
+    }
+
+    @Test
+    public void testUpdateProjectVisibilityToPublic() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.setVisibility("private");
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/my_project",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        descriptor.setVisibility("public");
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project",
+                                    "http://localhost:8080/api",
+                                    headers,
+                                    DtoFactory.getInstance().toJson(descriptor).getBytes(),
+                                    null);
+        descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getVisibility(), "public");
+        Map<Principal, Set<BasicPermissions>> permissions =
+                myProject.getBaseFolder().getVirtualFile().getPermissions();
+        Assert.assertEquals(permissions.size(), 0);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSearchByName() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "hello".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("x/y").createFile("test.txt", "test".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("c").createFile("exclude", "test".getBytes(), "text/plain");
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/search/my_project?name=test.txt",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        List<ItemReference> result = (List<ItemReference>)response.getEntity();
+        Assert.assertEquals(result.size(), 2);
+        Set<String> paths = new LinkedHashSet<>(2);
+        for (ItemReference itemReference : result) {
+            paths.add(itemReference.getPath());
+        }
+        Assert.assertTrue(paths.contains("/my_project/a/b/test.txt"));
+        Assert.assertTrue(paths.contains("/my_project/x/y/test.txt"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSearchByText() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "hello".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("x/y").createFile("__test.txt", "searchhit".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("c").createFile("_test", "searchhit".getBytes(), "text/plain");
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/search/my_project?text=searchhit",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        List<ItemReference> result = (List<ItemReference>)response.getEntity();
+        Assert.assertEquals(result.size(), 2);
+        Set<String> paths = new LinkedHashSet<>(2);
+        for (ItemReference itemReference : result) {
+            paths.add(itemReference.getPath());
+        }
+        Assert.assertTrue(paths.contains("/my_project/x/y/__test.txt"));
+        Assert.assertTrue(paths.contains("/my_project/c/_test"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSearchByMediaType() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "6769675".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("x/y").createFile("test.txt", "132434".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("c").createFile("test", "2343124".getBytes(), "text/plain");
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/search/my_project?mediatype=text/plain",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        List<ItemReference> result = (List<ItemReference>)response.getEntity();
+        Assert.assertEquals(result.size(), 3);
+        Set<String> paths = new LinkedHashSet<>(3);
+        for (ItemReference itemReference : result) {
+            paths.add(itemReference.getPath());
+        }
+        Assert.assertTrue(paths.contains("/my_project/x/y/test.txt"));
+        Assert.assertTrue(paths.contains("/my_project/a/b/test.txt"));
+        Assert.assertTrue(paths.contains("/my_project/c/test"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSearchByNameAndTextAndMediaType() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "test".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("x/y").createFile("test.txt", "test".getBytes(), "text/*");
+        myProject.getBaseFolder().createFolder("c").createFile("test", "test".getBytes(), "text/plain");
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/search/my_project?text=test&name=test&mediatype=text/plain",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        List<ItemReference> result = (List<ItemReference>)response.getEntity();
+        Assert.assertEquals(result.size(), 1);
+        Assert.assertTrue(result.get(0).getPath().equals("/my_project/c/test"));
     }
 }

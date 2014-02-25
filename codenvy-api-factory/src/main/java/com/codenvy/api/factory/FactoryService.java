@@ -17,13 +17,11 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 
-import org.everrest.core.impl.provider.json.JsonException;
-import org.everrest.core.impl.provider.json.JsonParser;
-import org.everrest.core.impl.provider.json.JsonValue;
-import org.everrest.core.impl.provider.json.ObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,16 +31,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import javax.ws.rs.core.*;
+import java.io.*;
+import java.util.*;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
@@ -57,6 +48,12 @@ public class FactoryService {
 
     @Inject
     private FactoryUrlValidator validator;
+
+    @Inject
+    private LinksHelper linksHelper;
+
+    @Inject
+    private FactoryBuilder factoryBuilder;
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
@@ -80,7 +77,7 @@ public class FactoryService {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo) throws FactoryUrlException {
+    public Factory saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo) throws FactoryUrlException {
         try {
             EnvironmentContext context = EnvironmentContext.getCurrent();
             if (context.getUser() == null || context.getUser().getName() == null || context.getUser().getId() == null) {
@@ -88,15 +85,12 @@ public class FactoryService {
             }
 
             Set<FactoryImage> images = new HashSet<>();
-            AdvancedFactoryUrl factoryUrl = null;
+            Factory factoryUrl = null;
 
             for (Part part : request.getParts()) {
                 String fieldName = part.getName();
                 if (fieldName.equals("factoryUrl")) {
-                    JsonParser jsonParser = new JsonParser();
-                    jsonParser.parse(part.getInputStream());
-                    JsonValue jsonValue = jsonParser.getJsonObject();
-                    factoryUrl = ObjectBuilder.createObject(AdvancedFactoryUrl.class, jsonValue);
+                    factoryUrl = factoryBuilder.buildEncoded(part.getInputStream());
                 } else if (fieldName.equals("image")) {
                     try (InputStream inputStream = part.getInputStream()) {
                         FactoryImage factoryImage =
@@ -114,22 +108,16 @@ public class FactoryService {
                                               "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
-            // check that vcs value is correct (only git is supported for now)
-            if (factoryUrl.getVcs() == null) {
-                factoryUrl.setVcs("git");
-            }
-
-            validator.validateUrl(factoryUrl);
+            validator.validateEncodedUrl(factoryUrl);
 
             factoryUrl.setUserid(context.getUser().getId());
-
             factoryUrl.setCreated(System.currentTimeMillis());
-            String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
+            String factoryId = factoryStore.saveFactory(factoryUrl, images);
             factoryUrl = factoryStore.getFactory(factoryId);
-            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, images, uriInfo));
+            factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, images, uriInfo));
 
             String createProjectLink = "";
-            Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
+            Iterator<Link> createProjectLinksIterator = linksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
             if (createProjectLinksIterator.hasNext()) {
                 createProjectLink = createProjectLinksIterator.next().getHref();
             }
@@ -138,14 +126,14 @@ public class FactoryService {
                     "",
                     context.getUser().getName(),
                     "",
-                    nullToEmpty(factoryUrl.getProjectattributes().get("ptype")),
+                    nullToEmpty(factoryUrl.getProjectattributes().getPtype()),
                     factoryUrl.getVcsurl(),
                     createProjectLink,
                     nullToEmpty(factoryUrl.getAffiliateid()),
                     nullToEmpty(factoryUrl.getOrgid()));
 
             return factoryUrl;
-        } catch (IOException | JsonException | ServletException e) {
+        } catch (IOException | ServletException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getLocalizedMessage(), e);
         }
@@ -164,16 +152,15 @@ public class FactoryService {
     @GET
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public AdvancedFactoryUrl getFactory(@PathParam("id") String id, @Context UriInfo uriInfo) throws FactoryUrlException {
-        AdvancedFactoryUrl factoryUrl = factoryStore.getFactory(id);
+    public Factory getFactory(@PathParam("id") String id, @Context UriInfo uriInfo) throws FactoryUrlException {
+        Factory factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
             LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));
         }
 
         try {
-            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
-                                                                                    uriInfo));
+            factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }
@@ -245,7 +232,7 @@ public class FactoryService {
     public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type,
                                     @Context UriInfo uriInfo)
             throws FactoryUrlException {
-        AdvancedFactoryUrl factory = factoryStore.getFactory(id);
+        Factory factory = factoryStore.getFactory(id);
         if (factory == null) {
             LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), String.format("Factory URL with id %s is not found.", id));

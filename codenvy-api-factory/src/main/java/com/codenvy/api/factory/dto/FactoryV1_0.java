@@ -1,7 +1,5 @@
 package com.codenvy.api.factory.dto;
 
-import java.util.List;
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 /**
@@ -81,33 +79,4 @@ public interface FactoryV1_0 {
 
     @Deprecated
     void setWname(String wname);
-
-    /**
-     * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
-     */
-    @Deprecated
-    long getValidsince();
-
-    @Deprecated
-    void setValidsince(long validsince);
-
-
-    /**
-     * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
-     */
-    @Deprecated
-    long getValiduntil();
-
-    @Deprecated
-    void setValiduntil(long validuntil);
-
-
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    FactoryV1_0 withLinks(List<Link> links);
-
-
 }

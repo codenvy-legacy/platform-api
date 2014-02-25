@@ -17,21 +17,26 @@
  */
 package com.codenvy.api.factory;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.LinkParameter;
+import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.dto.server.DtoFactory;
+
+import javax.inject.Singleton;
+import javax.ws.rs.core.*;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
 
 /** Helper class for creation links. */
+@Singleton
 public class LinksHelper {
 
     private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html"));
 
-    public static Set<Link> createLinks(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images, UriInfo uriInfo)
+    public List<Link> createLinks(Factory factoryUrl, Set<FactoryImage> images, UriInfo uriInfo)
             throws UnsupportedEncodingException {
-        Set<Link> links = new LinkedHashSet<>();
+        List<Link> links = new LinkedList<>();
 
         final UriBuilder baseUriBuilder;
         if (uriInfo != null) {
@@ -41,42 +46,37 @@ public class LinksHelper {
         }
         // add path to factory service
         UriBuilder factoryUriBuilder = baseUriBuilder.clone().path(FactoryService.class);
-
-        String fId = factoryUrl.getId();
+        String factoryId = factoryUrl.getId();
+        Link link;
 
         // uri to retrieve factory
-        links.add(
-                new Link(MediaType.APPLICATION_JSON,
-                         factoryUriBuilder.clone().path(FactoryService.class, "getFactory").build(fId).toString(),
-                         "self"));
+        links.add(createLink("GET", "self", null, MediaType.APPLICATION_JSON,
+                             factoryUriBuilder.clone().path(FactoryService.class, "getFactory").build(factoryId).toString(), null));
 
         // uri's to retrieve images
         for (FactoryImage image : images) {
-            links.add(new Link(image.getMediaType(),
-                               factoryUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
-                                                .build(fId, image.getName()).toString(), "image"));
+            links.add(createLink("GET", "image", null, image.getMediaType(),
+                                 factoryUriBuilder.clone().path(FactoryService.class, "getImage").queryParam("imgId", image.getName())
+                                                  .build(factoryId).toString(), null));
         }
 
         // uri's of snippets
         for (String snippetType : snippetTypes) {
-            links.add(new Link(MediaType.TEXT_PLAIN,
-                               factoryUriBuilder.clone().path(FactoryService.class, "getFactorySnippet").queryParam("type", snippetType)
-                                                .build(fId).toString(), "snippet/" + snippetType));
+            links.add(createLink("GET", "snippet/" + snippetType, null, MediaType.TEXT_PLAIN,
+                                 factoryUriBuilder.clone().path(FactoryService.class, "getFactorySnippet").queryParam("type", snippetType)
+                                                  .build(factoryId).toString(), null));
         }
 
         // uri to accept factory
-        Link createProject =
-                new Link(MediaType.TEXT_HTML, baseUriBuilder.clone().replacePath("factory").queryParam("id", fId).build().toString(),
-                         "create-project");
-        links.add(createProject);
+        link = createLink("GET", "create-project", null, MediaType.TEXT_HTML,
+                          baseUriBuilder.clone().replacePath("factory").queryParam("id", factoryId).build().toString(), null);
+        links.add(link);
 
         // links of analytics
-        links.add(new Link(MediaType.TEXT_PLAIN,
-                           baseUriBuilder.clone().path("analytics").path("metric/FACTORY_URL_ACCEPTED_NUMBER")
-                                         .queryParam("factory_url", URLEncoder.encode(createProject.getHref(), "UTF-8")).build(
-                                   "FACTORY_URL_ACCEPTED_NUMBER").toString(),
-                           "accepted"));
-
+        links.add(createLink("GET", "accepted", null, MediaType.TEXT_PLAIN,
+                             baseUriBuilder.clone().path("analytics").path("metric/FACTORY_URL_ACCEPTED_NUMBER")
+                                           .queryParam("factory_url", URLEncoder.encode(link.getHref(), "UTF-8"))
+                                           .build("FACTORY_URL_ACCEPTED_NUMBER").toString(), null));
         return links;
     }
 
@@ -89,11 +89,11 @@ public class LinksHelper {
      *         - searching relation
      * @return - set of links with relation equal to desired, empty set if there is no such links
      */
-    public static Set<Link> getLinkByRelation(Set<Link> links, String relation) {
+    public List<Link> getLinkByRelation(List<Link> links, String relation) {
         if (relation == null || links == null) {
             throw new IllegalArgumentException("Value of parameters can't be null.");
         }
-        Set<Link> result = new LinkedHashSet<>();
+        List<Link> result = new LinkedList<>();
         for (Link link : links) {
             if (relation.equals(link.getRel())) {
                 result.add(link);
@@ -101,5 +101,15 @@ public class LinksHelper {
         }
 
         return result;
+    }
+
+    private Link createLink(String method, String rel, String consumes, String produces, String href, List<LinkParameter> params) {
+        return DtoFactory.getInstance().createDto(Link.class)
+                         .withMethod(method)
+                         .withRel(rel)
+                         .withProduces(produces)
+                         .withConsumes(consumes)
+                         .withHref(href)
+                         .withParameters(params);
     }
 }

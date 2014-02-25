@@ -17,9 +17,14 @@
  */
 package com.codenvy.api.factory.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+
+import java.util.List;
 
 /** Latest version of factory implementation */
 @DTO
 public interface Factory extends FactoryV1_2{
+    @Override
+    Factory withLinks(List<Link> links);
 }

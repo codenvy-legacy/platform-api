@@ -21,6 +21,7 @@ import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -33,10 +34,8 @@ import java.net.URLEncoder;
  *
  * @author Sergii Kabashniuk
  */
+@Singleton
 public class FactoryBuilder {
-    private FactoryBuilder() {
-    }
-
     private void buildNonEncoded(FactoryV1_0 factory, StringBuilder builder) {
         builder.append("v=").append(factory.getV());
         builder.append("&vcs=").append(factory.getVcs());
@@ -75,9 +74,6 @@ public class FactoryBuilder {
             if (projectattributes.getPtype() != null) {
                 builder.append("&projectattributes.ptype=").append(projectattributes.getPtype());
             }
-        }
-        if (factory.getDescription() != null) {
-            builder.append("&description=").append(factory.getDescription());
         }
 
         if (factory.getContactmail() != null) {
@@ -149,8 +145,6 @@ public class FactoryBuilder {
             if (git.getConfigremoteoriginfetch() != null) {
                 builder.append("&git.configremoteoriginfetch=").append(encode(git.getConfigremoteoriginfetch()));
             }
-
-
         }
 
     }
@@ -170,7 +164,7 @@ public class FactoryBuilder {
      *         - factory object.
      * @return - json view of given factory
      */
-    public static String buildEncoded(Factory factory) {
+    public String buildEncoded(Factory factory) {
         return DtoFactory.getInstance().toJson(factory);
     }
 
@@ -181,7 +175,7 @@ public class FactoryBuilder {
      *         - factory object.
      * @return - query part of url of nonencoded version
      */
-    public static String buildNonEncoded(Factory factory) {
+    public String buildNonEncoded(Factory factory) {
         FactoryBuilder builder = new FactoryBuilder();
         StringBuilder result = new StringBuilder();
         builder.buildNonEncoded(factory, result);
@@ -195,7 +189,7 @@ public class FactoryBuilder {
      *         - query string from nonencoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public static Factory buildNonEncoded(String queryString) {
+    public Factory buildNonEncoded(String queryString) {
         return null;
     }
 
@@ -206,7 +200,7 @@ public class FactoryBuilder {
      *         - json  Reader from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public static Factory buildEncoded(Reader json) throws IOException {
+    public Factory buildEncoded(Reader json) throws IOException {
         return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
     }
 
@@ -217,7 +211,7 @@ public class FactoryBuilder {
      *         - json  string from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public static Factory buildEncoded(String json) {
+    public Factory buildEncoded(String json) {
         return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
     }
 
@@ -228,7 +222,7 @@ public class FactoryBuilder {
      *         - json  InputStream from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public static Factory buildEncoded(InputStream json) throws IOException {
+    public Factory buildEncoded(InputStream json) throws IOException {
         return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
     }
 }

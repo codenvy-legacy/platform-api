@@ -1,6 +1,9 @@
 package com.codenvy.api.factory.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+
+import java.util.List;
 
 /**
  * @author Sergii Kabashniuk
@@ -30,5 +33,6 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     @Deprecated
     void setImage(String image);
 
-
+    @Override
+    FactoryV1_2 withLinks(List<Link> links);
 }

@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.Factory;
+
 import java.net.URL;
 
 /**
@@ -45,15 +47,5 @@ public interface FactoryUrlValidator {
      *         - factory url to validate
      * @throws FactoryUrlException
      */
-    void validateUrl(SimpleFactoryUrl factoryUrl) throws FactoryUrlException;
-
-    /**
-     * Validates factory url object. Implementation should throw
-     * {@link com.codenvy.api.factory.FactoryUrlException} if factory url is invalid.
-     *
-     * @param factoryUrl
-     *         - factory url to validate
-     * @throws FactoryUrlException
-     */
-    void validateUrl(AdvancedFactoryUrl factoryUrl) throws FactoryUrlException;
+    void validateEncodedUrl(Factory factoryUrl) throws FactoryUrlException;
 }

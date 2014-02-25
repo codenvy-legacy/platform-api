@@ -1,13 +1,18 @@
 package com.codenvy.api.factory.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+
+import java.util.List;
 
 /**
  * @author Sergii Kabashniuk
  */
 @DTO
 public interface FactoryV1_1 extends FactoryV1_0 {
+    String getId();
 
+    void setId(String id);
 
     void setProjectattributes(ProjectAttributes projectattributes);
 
@@ -110,11 +115,33 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     void setVariable(Variable variable);
 
     /**
+     * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
+     */
+    @Deprecated
+    long getValidsince();
+
+    @Deprecated
+    void setValidsince(long validsince);
+
+    /**
+     * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
+     */
+    @Deprecated
+    long getValiduntil();
+
+    @Deprecated
+    void setValiduntil(long validuntil);
+
+    /**
      * @return welcome page configuration.
      */
     WelcomePage getWelcome();
 
     void setWelcome(WelcomePage welcome);
 
+    List<Link> getLinks();
 
+    void setLinks(List<Link> links);
+
+    FactoryV1_1 withLinks(List<Link> links);
 }

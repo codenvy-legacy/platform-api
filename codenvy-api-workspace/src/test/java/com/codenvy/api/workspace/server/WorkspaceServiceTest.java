@@ -135,6 +135,10 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToCreateNewWorkspace() throws Exception {
+        User current = DtoFactory.getInstance().createDto(User.class)
+                                 .withId(USER_ID);
+        when(userDao.getByAlias(PRINCIPAL_NAME)).thenReturn(current);
+
         String[] roles = getRoles(WorkspaceService.class, "create");
         for (String role : roles) {
             prepareSecurityContext(role);
@@ -143,6 +147,7 @@ public class WorkspaceServiceTest {
             verifyLinksRel(((Workspace)response.getEntity()).getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).create(any(Workspace.class));
+        verify(memberDao, times(roles.length)).create(any(Member.class));
     }
 
     @Test

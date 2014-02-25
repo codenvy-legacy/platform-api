@@ -85,9 +85,8 @@ public class LinksHelper {
         // links of analytics
         Link accept = DtoFactory.getInstance().createDto(Link.class);
         accept.setType(MediaType.TEXT_PLAIN);
-        accept.setHref(baseUriBuilder.clone().path("analytics").path("metric/FACTORY_URL_ACCEPTED_NUMBER")
-                                     .queryParam("factory_url", URLEncoder.encode(createProject.getHref(), "UTF-8")).build(
-                        "FACTORY_URL_ACCEPTED_NUMBER").toString());
+        accept.setHref(baseUriBuilder.clone().path("analytics").path("public-metric/factory_used")
+                                     .queryParam("factory", URLEncoder.encode(createProject.getHref(), "UTF-8")).build().toString());
         accept.setRel("accepted");
         links.add(accept);
 

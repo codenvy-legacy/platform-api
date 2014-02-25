@@ -90,13 +90,22 @@ public class WorkspaceService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
-            throws WorkspaceException {
+            throws WorkspaceException, UserException, MembershipException {
         if (newWorkspace == null) {
             throw new WorkspaceException("Missed workspace to create");
         }
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         workspaceDao.create(newWorkspace);
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
+        if (user == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
+        Member member =
+                DtoFactory.getInstance().createDto(Member.class).withRoles(Arrays.asList("workspace/admin")).withUserId(user.getId())
+                          .withWorkspaceId(wsId);
+        memberDao.create(member);
         injectLinks(newWorkspace, securityContext);
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }

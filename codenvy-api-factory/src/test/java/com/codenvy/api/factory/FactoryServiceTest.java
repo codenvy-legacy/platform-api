@@ -188,7 +188,7 @@ public class FactoryServiceTest {
 
         Link accepted = DtoFactory.getInstance().createDto(Link.class);
         accepted.setType("text/plain");
-        accepted.setHref(getServerUrl(context) + "/rest/private/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+        accepted.setHref(getServerUrl(context) + "/rest/private/analytics/public-metric/factory_used?factory=" +
                          URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"));
         accepted.setRel("accepted");
         expectedLinks.add(accepted);
@@ -399,8 +399,8 @@ public class FactoryServiceTest {
 
         Link accepted = DtoFactory.getInstance().createDto(Link.class);
         accepted.setType("text/plain");
-        accepted.setHref(getServerUrl(context) + "/rest/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
-                            URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"));
+        accepted.setHref(getServerUrl(context) + "/rest/analytics/public-metric/factory_used?factory=" +
+                         URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"));
         accepted.setRel("accepted");
         expectedLinks.add(accepted);
 

@@ -128,6 +128,53 @@ public class UserProfileTest {
         }
     }
 
+    @Test
+    public void shouldBeAbleToGetCurrentProfileWithFilter() throws Exception {
+        Map<String, String> prefs = new HashMap<>();
+        prefs.put("first", "first_value");
+        prefs.put("____firstASD", "other_first_value");
+        prefs.put("second", "second_value");
+        prefs.put("other", "other_value");
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withPreferences(prefs);
+        when(userProfileDao.getById(USER_ID, "first")).thenReturn(profile);
+        prepareSecurityContext("user");
+
+        ContainerResponse response =
+                launcher.service("GET", SERVICE_PATH + "?filter=first", BASE_URI, null, JsonHelper.toJson(profile).getBytes(), null,
+                                 environmentContext);
+
+        assertEquals(response.getStatus(), Status.OK.getStatusCode());
+        Profile current = (Profile)response.getEntity();
+        verifyLinksRel(current.getLinks(), getRels("user"));
+    }
+
+    @Test
+    public void shouldBeAbleToUpdateCurrentProfilePrefs() throws Exception {
+        // given
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(USER_ID);
+        when(userProfileDao.getById(USER_ID)).thenReturn(profile);
+
+        Map<String, List<String>> headers = new HashMap<>();
+
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        Map<String, String> prefsToUpdate = new HashMap<>();
+        prefsToUpdate.put("second", "second_value");
+        prefsToUpdate.put("other", "other_value");
+        String[] s = getRoles(UserProfileService.class, "updatePrefs");
+        for (String one : s) {
+            prepareSecurityContext(one);
+            ContainerResponse response =
+                    launcher.service("POST", SERVICE_PATH + "/prefs", BASE_URI, headers, JsonHelper.toJson(prefsToUpdate).getBytes(),
+                                     null,
+                                     environmentContext);
+
+            assertEquals(response.getStatus(), Status.OK.getStatusCode());
+            verify(userProfileDao, times(1)).update(any(Profile.class));
+            Profile responseProfile = (Profile)response.getEntity();
+            assertEquals(responseProfile.getPreferences(), prefsToUpdate);
+            verifyLinksRel(responseProfile.getLinks(), getRels(one));
+        }
+    }
 
     @Test
     public void shouldBeAbleToGETProfileById() throws Exception {

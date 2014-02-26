@@ -26,6 +26,9 @@ import com.codenvy.dto.server.DtoFactory;
 import java.util.Arrays;
 
 public class LocalProfileDaoImpl implements UserProfileDao {
+
+    private Profile current;
+
     @Override
     public void create(Profile profile) throws UserProfileException {
         throw new RuntimeException("Not implemented");
@@ -33,7 +36,7 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @Override
     public void update(Profile profile) throws UserProfileException {
-        throw new RuntimeException("Not implemented");
+        this.current = profile;
     }
 
     @Override
@@ -43,13 +46,11 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @Override
     public Profile getById(String id) throws UserProfileException {
-        return DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
+        return current != null ? current : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
                 Arrays.asList(
                         DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
                                   .withDescription("User's first name"),
                         DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name").withValue("Baumgartner")
-                                  .withDescription("User's last name"),
-                        DtoFactory.getInstance().createDto(Attribute.class).withName("Phone").withValue("+380441112233")
-                                  .withDescription("User's phone")));
+                                  .withDescription("User's last name")));
     }
 }

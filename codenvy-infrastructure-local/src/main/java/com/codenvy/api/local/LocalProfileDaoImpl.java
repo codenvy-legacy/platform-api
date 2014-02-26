@@ -46,11 +46,25 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @Override
     public Profile getById(String id) throws UserProfileException {
-        return current != null ? current : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
-                Arrays.asList(
-                        DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
-                                  .withDescription("User's first name"),
-                        DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name").withValue("Baumgartner")
-                                  .withDescription("User's last name")));
+        return current != null ? current
+                               : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
+                                       Arrays.asList(
+                                               DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
+                                                         .withDescription("User's first name"),
+                                               DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name")
+                                                         .withValue("Baumgartner")
+                                                         .withDescription("User's last name")));
+    }
+
+    @Override
+    public Profile getById(String id, String filter) throws UserProfileException {
+        return current != null ? current
+                               : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
+                                       Arrays.asList(
+                                               DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
+                                                         .withDescription("User's first name"),
+                                               DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name")
+                                                         .withValue("Baumgartner")
+                                                         .withDescription("User's last name")));
     }
 }

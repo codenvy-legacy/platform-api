@@ -29,7 +29,6 @@ import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -107,17 +106,6 @@ public class FileEntryTest {
         String mediaType = myFile.getMediaType();
         byte[] b = "test update content".getBytes();
         myFile.updateContent(b);
-        Assert.assertEquals(myFile.contentAsBytes(), b);
-        Assert.assertEquals(myFile.getMediaType(), mediaType);
-    }
-
-    @Test
-    public void testUpdateContentWithStream() throws Exception {
-        String mediaType = myFile.getMediaType();
-        byte[] b = "test update content with stream".getBytes();
-        OutputStream outputStream = myFile.openOutputStream();
-        outputStream.write(b);
-        outputStream.close();
         Assert.assertEquals(myFile.contentAsBytes(), b);
         Assert.assertEquals(myFile.getMediaType(), mediaType);
     }

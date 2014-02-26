@@ -24,9 +24,9 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.google.common.io.ByteStreams;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * @author andrew00x
@@ -105,22 +105,20 @@ public class FileEntry extends AbstractVirtualFileEntry {
     }
 
     public void updateContent(byte[] content, String mediaType) throws IOException {
-        try (OutputStream outputStream = openOutputStream()) {
-            outputStream.write(content);
-            outputStream.flush();
-        }
-        if (mediaType != null) {
-            setMediaType(mediaType);
-        }
+        updateContent(new ByteArrayInputStream(content), mediaType);
     }
 
     public void updateContent(byte[] content) throws IOException {
-        updateContent(content, null);
+        updateContent(content, getMediaType());
     }
 
-    public OutputStream openOutputStream() throws IOException {
+    public void updateContent(InputStream content) throws IOException {
+        updateContent(content, getMediaType());
+    }
+
+    public void updateContent(InputStream content, String mediaType) throws IOException {
         try {
-            return getVirtualFile().openOutputStream();
+            getVirtualFile().updateContent(mediaType, content, null);
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }

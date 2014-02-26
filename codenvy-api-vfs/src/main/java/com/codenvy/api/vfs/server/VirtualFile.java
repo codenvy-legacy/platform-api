@@ -27,7 +27,6 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -168,17 +167,6 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      * @see #isFile()
      */
     VirtualFile updateContent(String mediaType, InputStream content, String lockToken) throws VirtualFileSystemException;
-
-    /**
-     * Opens {@code OutputStream} for this file.
-     *
-     * @return OutputStream for this file
-     * @throws IOException
-     *         if i/o error occurs
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile denotes folder or other error occurs
-     */
-    OutputStream openOutputStream() throws IOException, VirtualFileSystemException;
 
     /**
      * Get media type of the VirtualFile. This method should not return <code>null</code>.

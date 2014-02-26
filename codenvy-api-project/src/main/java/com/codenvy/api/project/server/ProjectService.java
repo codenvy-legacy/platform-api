@@ -36,7 +36,6 @@ import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.dto.server.DtoFactory;
-import com.google.common.io.ByteStreams;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -57,7 +56,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -195,10 +193,7 @@ public class ProjectService extends Service {
                                @HeaderParam("content-type") String contentType,
                                InputStream content) throws Exception {
         final FileEntry file = asFile(workspace, path);
-        try (OutputStream outputStream = file.openOutputStream()) {
-            ByteStreams.copy(content, outputStream);
-        }
-        file.setMediaType(contentType);
+        file.updateContent(content, contentType);
         return Response.ok().build();
     }
 

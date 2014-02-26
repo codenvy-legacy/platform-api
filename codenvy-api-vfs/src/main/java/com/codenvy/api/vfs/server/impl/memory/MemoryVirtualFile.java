@@ -61,7 +61,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -586,34 +585,6 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         lastModificationDate = System.currentTimeMillis();
         return this;
-    }
-
-    @Override
-    public OutputStream openOutputStream() throws IOException, VirtualFileSystemException {
-        return new ByteArrayOutputStream() {
-            private boolean closed;
-
-            @Override
-            public void close() throws IOException {
-                if (closed) {
-                    return;
-                }
-                try {
-                    MemoryVirtualFile.this.content = toByteArray();
-                    SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
-                    if (searcherProvider != null) {
-                        try {
-                            searcherProvider.getSearcher(mountPoint, true).update(MemoryVirtualFile.this);
-                        } catch (VirtualFileSystemException e) {
-                            LOG.error(e.getMessage(), e);
-                        }
-                    }
-                } finally {
-                    closed = true;
-                    lastModificationDate = System.currentTimeMillis();
-                }
-            }
-        };
     }
 
     @Override

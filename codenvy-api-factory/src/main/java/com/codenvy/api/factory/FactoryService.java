@@ -17,8 +17,12 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.rest.Service;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
+import com.codenvy.api.factory.dto.Link;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.provider.json.JsonException;
 import org.everrest.core.impl.provider.json.JsonParser;
@@ -49,7 +53,7 @@ import static javax.ws.rs.core.Response.Status;
 
 /** Service for factory rest api features */
 @Path("/factory")
-public class FactoryService {
+public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
     @Inject
@@ -66,6 +70,7 @@ public class FactoryService {
      * @param request
      *         - http request
      * @param uriInfo
+     *         - url context
      * @return - stored data
      * @throws FactoryUrlException
      *         - with response code 400 if factory url json is not found
@@ -126,7 +131,8 @@ public class FactoryService {
             factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = factoryStore.getFactory(factoryId);
-            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, images, uriInfo));
+            factoryUrl = DtoFactory.getInstance().clone(factoryUrl);
+            factoryUrl.setLinks(LinksHelper.createLinks(factoryUrl, images, uriInfo));
 
             String createProjectLink = "";
             Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
@@ -157,6 +163,7 @@ public class FactoryService {
      * @param id
      *         - id of factory
      * @param uriInfo
+     *         - url context
      * @return - stored data, if id is correct.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist
@@ -172,8 +179,9 @@ public class FactoryService {
         }
 
         try {
-            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
-                                                                                    uriInfo));
+            factoryUrl = DtoFactory.getInstance().clone(factoryUrl);
+            factoryUrl.setLinks(LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
+                                                        uriInfo));
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }
@@ -234,6 +242,7 @@ public class FactoryService {
      * @param type
      *         - type of snippet.
      * @param uriInfo
+     *         - url context
      * @return - snippet content.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist

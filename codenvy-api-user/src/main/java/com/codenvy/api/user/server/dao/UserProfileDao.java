@@ -23,6 +23,9 @@ import com.codenvy.api.user.shared.dto.Profile;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Profile} data.
+ *
+ * @author Eugene Voevodin
+ * @author Max Shaposhnik
  */
 public interface UserProfileDao {
 
@@ -60,11 +63,21 @@ public interface UserProfileDao {
      * Gets profile from persistent layer.
      *
      * @param id
-     *         - profile identifier
+     *         profile identifier
      * @return profile POJO, or <code>null</code> if nothing is found
      * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
     Profile getById(String id) throws UserProfileException;
 
+    /**
+     * @param id
+     *         profile identifier
+     * @param filter
+     *         reg-exp for filtering preferences keys
+     * @return profile POJO, or <code>null</code> if profile not found
+     * @throws UserProfileException
+     *         if any issue occurred during performing an operation
+     */
+    Profile getById(String id, String filter) throws UserProfileException;
 }

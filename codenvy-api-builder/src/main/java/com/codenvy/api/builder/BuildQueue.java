@@ -20,11 +20,9 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BuilderServiceAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
-import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.internal.dto.BuildOptions;
+import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -240,9 +238,10 @@ public class BuildQueue {
                                                              .withWorkspace(workspace)
                                                              .withProject(project);
         if (buildOptions != null) {
+            request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
             request.setTargets(buildOptions.getTargets());
-            request.setDeployJarWithDependencies(buildOptions.isDeployJarWithDependencies());
+            request.setIncludeDependencies(buildOptions.isIncludeDependencies());
         }
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
@@ -316,13 +315,15 @@ public class BuildQueue {
     }
 
     private void addRequestParameters(ProjectDescriptor descriptor, BaseBuilderRequest request) {
-        final String builder;
-        List<String> builderAttribute = descriptor.getAttributes().get(Constants.BUILDER_NAME);
-        if (builderAttribute == null || builderAttribute.isEmpty() || (builder = builderAttribute.get(0)) == null) {
-            throw new IllegalStateException(
-                    String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
+        String builder = request.getBuilder();
+        if (builder == null || builder.isEmpty()) {
+            List<String> builderAttribute = descriptor.getAttributes().get(Constants.BUILDER_NAME);
+            if (builderAttribute == null || builderAttribute.isEmpty() || (builder = builderAttribute.get(0)) == null) {
+                throw new IllegalStateException(
+                        String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
+            }
+            request.setBuilder(builder);
         }
-        request.setBuilder(builder);
         final String buildTargets = Constants.BUILDER_TARGETS.replace("${builder}", builder);
         final String buildOptions = Constants.BUILDER_OPTIONS.replace("${builder}", builder);
 

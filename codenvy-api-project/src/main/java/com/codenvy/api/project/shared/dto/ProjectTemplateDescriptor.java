@@ -22,42 +22,25 @@ import com.codenvy.dto.shared.DTO;
 /** @author Vitaly Parfonov */
 @DTO
 public interface ProjectTemplateDescriptor {
+    ImportSourceDescriptor getSources();
 
-    /** Get unique ID of template. */
-    String getTemplateId();
+    void setSources(ImportSourceDescriptor sources);
 
-    /** Set unique ID of template. */
-    void setTemplateId(String id);
-
-    ProjectTemplateDescriptor withTemplateId(String id);
-
-    /** Get ID of type of project. */
-    String getProjectTypeId();
-
-    /** Set ID of type of project. */
-    void setProjectTypeId(String id);
-
-    ProjectTemplateDescriptor withProjectTypeId(String id);
+    ProjectTemplateDescriptor withSources(ImportSourceDescriptor sources);
 
     /** Get display name of project template. */
-    String getTemplateTitle();
+    String getDisplayName();
 
     /** Set display name of project template. */
-    void setTemplateTitle(String title);
+    void setDisplayName(String displayName);
 
-    ProjectTemplateDescriptor withTemplateTitle(String title);
+    ProjectTemplateDescriptor withDisplayName(String displayName);
 
     /** Get description of project template. */
-    String getTemplateDescription();
+    String getDescription();
 
     /** Set description of project template. */
-    void setTemplateDescription(String description);
+    void setDescription(String description);
 
-    ProjectTemplateDescriptor withTemplateDescription(String description);
-
-    String getTemplateLocation();
-
-    void setTemplateLocation(String location);
-
-    ProjectTemplateDescriptor withTemplateLocation(String location);
+    ProjectTemplateDescriptor withDescription(String description);
 }

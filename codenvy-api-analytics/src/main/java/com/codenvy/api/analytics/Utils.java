@@ -19,6 +19,7 @@ package com.codenvy.api.analytics;
 
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -30,7 +31,11 @@ public class Utils {
     private static final Pattern ADMIN_ROLE_EMAIL_PATTERN = Pattern.compile("@codenvy[.]com$");
 
     /** Extract the execution context from passed query parameters. */
-    public static Map<String, String> extractContext(UriInfo info, String page, String perPage) {
+    public static Map<String, String> extractContext(UriInfo info,
+                                                     Principal userPrincipal,
+                                                     String page,
+                                                     String perPage) {
+
         MultivaluedMap<String, String> parameters = info.getQueryParameters();
         Map<String, String> context = new HashMap<>(parameters.size());
 
@@ -38,20 +43,37 @@ public class Utils {
             context.put(key.toUpperCase(), parameters.getFirst(key));
         }
 
-        if (page != null) {
+        if (page != null && perPage != null) {
             context.put("PAGE", page);
             context.put("PER_PAGE", perPage);
+        }
+
+        if (userPrincipal != null) {
+            context.put("USER_PRINCIPAL", userPrincipal.getName());
         }
 
         return context;
     }
 
     /** Extract the execution context from passed query parameters. */
-    public static Map<String, String> extractContext(UriInfo info) {
-        return extractContext(info, null, null);
+    public static Map<String, String> extractContext(UriInfo info, Principal userPrincipal) {
+        return extractContext(info, userPrincipal, null, null);
     }
 
-    public static boolean isAdmin(String email) {
+    /** Extract the execution context from passed query parameters. */
+    public static Map<String, String> extractContext(UriInfo info, String page, String perPage) {
+        return extractContext(info, null, page, perPage);
+    }
+
+    /** Extract the execution context from passed query parameters. */
+    public static Map<String, String> extractContext(UriInfo info) {
+        return extractContext(info, null, null, null);
+    }
+
+    /**
+     * The only way to check if user belongs to codenvy's employee.
+     */
+    public static boolean isSystemUser(String email) {
         Matcher matcher = ADMIN_ROLE_EMAIL_PATTERN.matcher(email);
         return matcher.find();
     }

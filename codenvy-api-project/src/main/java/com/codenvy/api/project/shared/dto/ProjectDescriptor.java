@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -45,6 +46,30 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withProjectTypeName(String name);
 
+    /** Get project visibility, e.g. private or public. */
+    String getVisibility();
+
+    /** Set project visibility, e.g. private or public. */
+    void setVisibility(String visibility);
+
+    ProjectDescriptor withVisibility(String visibility);
+
+    /** Get optional description of project. */
+    String getDescription();
+
+    /** Set optional description of project. */
+    void setDescription(String description);
+
+    ProjectDescriptor withDescription(String description);
+
+    /** Get modification date of project. */
+    long getModificationDate();
+
+    /** Set modification date of project. */
+    void setModificationDate(long date);
+
+    ProjectDescriptor withModificationDate(long date);
+
     /** Get attributes of project. */
     Map<String, List<String>> getAttributes();
 
@@ -52,4 +77,10 @@ public interface ProjectDescriptor {
     void setAttributes(Map<String, List<String>> attributes);
 
     ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
+
+    List<Link> getLinks();
+
+    ProjectDescriptor withLinks(List<Link> links);
+
+    void setLinks(List<Link> links);
 }

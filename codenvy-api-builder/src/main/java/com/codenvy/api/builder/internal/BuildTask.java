@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.core.util.CommandLine;
 
 /**
@@ -65,7 +66,7 @@ public interface BuildTask {
      * Reports whether build task is started or not.
      *
      * @return {@code true} if task is started and {@code false} otherwise
-     * @throws BuilderException
+     * @throws com.codenvy.api.builder.BuilderException
      *         if an error occurs when try to check status of build process
      */
     boolean isStarted() throws BuilderException;

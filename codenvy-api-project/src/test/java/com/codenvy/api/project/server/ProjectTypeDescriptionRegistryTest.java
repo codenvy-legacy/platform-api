@@ -18,16 +18,16 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
-import com.codenvy.api.project.shared.ProjectTypeExtension;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -57,6 +57,11 @@ public class ProjectTypeDescriptionRegistryTest {
             @Override
             public List<Attribute> getPredefinedAttributes() {
                 return attributes;
+            }
+
+            @Override
+            public List<ProjectTemplateDescription> getTemplates() {
+                return Collections.emptyList();
             }
         });
         ProjectType myType = typeRegistry.getProjectType("my_type");

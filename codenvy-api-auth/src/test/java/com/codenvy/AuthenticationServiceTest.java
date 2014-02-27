@@ -23,17 +23,27 @@ import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.mapper.ObjectMapper;
 
 import org.everrest.assured.EverrestJetty;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.mockito.testng.MockitoTestNGListener;
-import org.testng.annotations.*;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
 
+import javax.ws.rs.core.NewCookie;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import java.security.Principal;
 
 import static com.jayway.restassured.RestAssured.given;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 
 /**
@@ -52,7 +62,7 @@ public class AuthenticationServiceTest {
     protected Principal             oldPrincipal;
     @Mock
     protected TicketManager         ticketManager;
-    @Spy
+    @Mock
     protected CookieBuilder         cookieBuilder;
     @Mock
     protected TokenGenerator        uniqueTokenGenerator;
@@ -60,13 +70,13 @@ public class AuthenticationServiceTest {
     protected AuthenticationService authenticationService;
     protected String                token;
     protected String                tokenOld;
-    private ExceptionMapper exceptionMapper = new AuthenticationExceptionMapper();
+
+    private  ExceptionMapper exceptionMapper = new AuthenticationExceptionMapper();
 
     @BeforeMethod
     public void init() {
-        TokenGenerator tokenGenerator = new TokenGenerator();
-        token = tokenGenerator.generate();
-        tokenOld = tokenGenerator.generate();
+        token = "t1";
+        tokenOld = "t2";
         when(ticketManager.getAccessTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal));
 
         when(uniqueTokenGenerator.generate()).thenReturn(token);
@@ -81,6 +91,24 @@ public class AuthenticationServiceTest {
                 return "user@site.com";
             }
         });
+
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                Response.ResponseBuilder builder = (Response.ResponseBuilder)args[0];
+                String token = (String)args[1];
+                boolean secure = (boolean)args[2];
+                if (token != null && !token.isEmpty()) {
+                    builder.header("Set-Cookie",
+                                   new NewCookie("token-access-key", token, "/sso/server", null, null, 0, secure) + ";HttpOnly");
+                    builder.header("Set-Cookie", new NewCookie("session-access-key", token, "/", null, null, 0, secure) + ";HttpOnly");
+                }
+                builder.cookie(new NewCookie("logged_in", "true", "/", null, null, 0, secure));
+                return null;
+            }
+        }).when(cookieBuilder).setCookies(any(Response.ResponseBuilder.class), anyString(), anyBoolean());
+
 
         // when
         TokenResponse response = given()
@@ -175,8 +203,23 @@ public class AuthenticationServiceTest {
                 return "user@site.com";
             }
         });
-
         when(oldPrincipal.getName()).thenReturn("old@site.com");
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                Response.ResponseBuilder builder = (Response.ResponseBuilder)args[0];
+                String token = (String)args[1];
+                boolean secure = (boolean)args[2];
+                if (token != null && !token.isEmpty()) {
+                    builder.header("Set-Cookie",
+                                   new NewCookie("token-access-key", token, "/sso/server", null, null, 0, secure) + ";HttpOnly");
+                    builder.header("Set-Cookie", new NewCookie("session-access-key", token, "/", null, null, 0, secure) + ";HttpOnly");
+                }
+                builder.cookie(new NewCookie("logged_in", "true", "/", null, null, 0, secure));
+                return null;
+            }
+        }).when(cookieBuilder).setCookies(any(Response.ResponseBuilder.class), anyString(), anyBoolean());
 
 
         // when

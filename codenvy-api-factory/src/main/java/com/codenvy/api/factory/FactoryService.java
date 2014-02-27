@@ -17,14 +17,17 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.rest.Service;
+import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
+import com.codenvy.api.factory.dto.Link;
 import com.codenvy.commons.lang.NameGenerator;
-import com.codenvy.organization.client.AccountManager;
-import com.codenvy.organization.client.UserManager;
-import com.codenvy.organization.exception.OrganizationServiceException;
-import com.codenvy.organization.model.Account;
-import com.codenvy.organization.model.User;
+import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.core.impl.provider.json.*;
+import org.everrest.core.impl.provider.json.JsonException;
+import org.everrest.core.impl.provider.json.JsonParser;
+import org.everrest.core.impl.provider.json.JsonValue;
+import org.everrest.core.impl.provider.json.ObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,27 +37,27 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
 import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.*;
-import java.security.Principal;
-import java.util.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
 
 /** Service for factory rest api features */
 @Path("/factory")
-public class FactoryService {
+public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
     @Inject
     private FactoryStore factoryStore;
-
-    @Inject
-    private UserManager userManager;
-
-    @Inject
-    private AccountManager accountManager;
 
     @Inject
     private FactoryUrlValidator validator;
@@ -67,6 +70,7 @@ public class FactoryService {
      * @param request
      *         - http request
      * @param uriInfo
+     *         - url context
      * @return - stored data
      * @throws FactoryUrlException
      *         - with response code 400 if factory url json is not found
@@ -81,17 +85,11 @@ public class FactoryService {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo,
-                                          @Context SecurityContext securityContext) throws FactoryUrlException {
+    public AdvancedFactoryUrl saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo) throws FactoryUrlException {
         try {
-            Principal userPrincipal = securityContext.getUserPrincipal();
-            if (userPrincipal == null || userPrincipal.getName() == null) {
-                throw new FactoryUrlException(Status.UNAUTHORIZED.getStatusCode(), "You are not authenticated for using this method.");
-            }
-
-            User user = userManager.getUserByAlias(userPrincipal.getName());
-            if (user.isTemporary()) {
-                throw new FactoryUrlException(Status.FORBIDDEN.getStatusCode(), "Current user is not allowed for using this method.");
+            EnvironmentContext context = EnvironmentContext.getCurrent();
+            if (context.getUser() == null || context.getUser().getName() == null || context.getUser().getId() == null) {
+                throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Unable to identify user from context");
             }
 
             Set<FactoryImage> images = new HashSet<>();
@@ -118,7 +116,7 @@ public class FactoryService {
             if (factoryUrl == null) {
                 LOG.warn("No factory URL information found in 'factoryUrl' section of multipart form-data.");
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
-                                              "No factory URL information found in 'factoryUrl' section of multipart form-data.");
+                                              "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
             // check that vcs value is correct (only git is supported for now)
@@ -128,20 +126,13 @@ public class FactoryService {
 
             validator.validateUrl(factoryUrl);
 
-            if (factoryUrl.getWelcome() != null) {
-                String orgid = factoryUrl.getOrgid();
-                Account account = accountManager.getAccountById(orgid);
-                if (!account.getOwner().getId().equals(user.getId())) {
-                    throw new FactoryUrlException("You are not authorized to use this orgid.");
-                }
-            }
-
-            factoryUrl.setUserid(user.getId());
+            factoryUrl.setUserid(context.getUser().getId());
 
             factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, new HashSet<>(images));
             factoryUrl = factoryStore.getFactory(factoryId);
-            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, images, uriInfo));
+            factoryUrl = DtoFactory.getInstance().clone(factoryUrl);
+            factoryUrl.setLinks(LinksHelper.createLinks(factoryUrl, images, uriInfo));
 
             String createProjectLink = "";
             Iterator<Link> createProjectLinksIterator = LinksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
@@ -151,7 +142,7 @@ public class FactoryService {
             LOG.info(
                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
                     "",
-                    userPrincipal.getName(),
+                    context.getUser().getName(),
                     "",
                     nullToEmpty(factoryUrl.getProjectattributes().get("ptype")),
                     factoryUrl.getVcsurl(),
@@ -160,7 +151,7 @@ public class FactoryService {
                     nullToEmpty(factoryUrl.getOrgid()));
 
             return factoryUrl;
-        } catch (IOException | JsonException | ServletException | OrganizationServiceException e) {
+        } catch (IOException | JsonException | ServletException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getLocalizedMessage(), e);
         }
@@ -172,6 +163,7 @@ public class FactoryService {
      * @param id
      *         - id of factory
      * @param uriInfo
+     *         - url context
      * @return - stored data, if id is correct.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist
@@ -187,8 +179,9 @@ public class FactoryService {
         }
 
         try {
-            factoryUrl = new AdvancedFactoryUrl(factoryUrl, LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
-                                                                                    uriInfo));
+            factoryUrl = DtoFactory.getInstance().clone(factoryUrl);
+            factoryUrl.setLinks(LinksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null),
+                                                        uriInfo));
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }
@@ -249,6 +242,7 @@ public class FactoryService {
      * @param type
      *         - type of snippet.
      * @param uriInfo
+     *         - url context
      * @return - snippet content.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist

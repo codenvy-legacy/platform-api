@@ -35,7 +35,7 @@ import java.net.URI;
 public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     private static final Logger LOG = LoggerFactory.getLogger(MemoryFileSystemProvider.class);
 
-    private static class SimpleLuceneSearcherProvider extends LuceneSearcherProvider {
+    public static class SimpleLuceneSearcherProvider extends LuceneSearcherProvider {
         MemoryLuceneSearcher searcher;
 
         @Override
@@ -52,6 +52,11 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
 
     public MemoryFileSystemProvider(String workspaceId) {
         super(workspaceId);
+    }
+
+    public MemoryFileSystemProvider(String workspaceId, MemoryMountPoint memoryMountPoint) {
+        super(workspaceId);
+        this.memoryMountPoint = memoryMountPoint;
     }
 
     @Override

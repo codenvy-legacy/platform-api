@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
  * Attaches any point on backend filesystem some VirtualFile (root folder). Only children of root folder may be accessible through this
  * API.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface MountPoint {
     /**

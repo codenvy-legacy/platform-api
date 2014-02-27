@@ -34,6 +34,22 @@ public interface ProjectReference {
 
     ProjectReference withName(String name);
 
+    /** Get unique ID of type of project. */
+    String getProjectTypeId();
+
+    /** Set unique ID of type of project. */
+    void setProjectTypeId(String id);
+
+    ProjectReference withProjectTypeId(String id);
+
+    /** Get display name of type of project. */
+    String getProjectTypeName();
+
+    /** Set display name of type of project. */
+    void setProjectTypeName(String name);
+
+    ProjectReference withProjectTypeName(String name);
+
     /** Get URL for getting detailed information about project. */
     String getUrl();
 
@@ -41,4 +57,28 @@ public interface ProjectReference {
     void setUrl(String url);
 
     ProjectReference withUrl(String url);
+
+    /** Get name of workspace this project belongs to. */
+    String getWorkspace();
+
+    /** Set name of workspace this project belongs to. */
+    void setWorkspace(String workspace);
+
+    ProjectReference withWorkspace(String workspace);
+
+    /** Get project visibility, e.g. private or public. */
+    String getVisibility();
+
+    /** Set project visibility, e.g. private or public. */
+    void setVisibility(String visibility);
+
+    ProjectReference withVisibility(String visibility);
+
+    /** Get optional description of project. */
+    String getDescription();
+
+    /** Set optional description of project. */
+    void setDescription(String description);
+
+    ProjectReference withDescription(String description);
 }

@@ -26,9 +26,11 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.vfs.server.ContentStreamWriter;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
@@ -122,6 +124,7 @@ public class ProjectServiceTest {
         dependencies.addComponent(SearcherProvider.class, searcherProvider);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
+        providers.addMessageBodyWriter(new ContentStreamWriter());
         providers.addExceptionMapper(new FileSystemLevelExceptionMapper());
         providers.addExceptionMapper(new ProjectStructureConstraintExceptionMapper());
         RequestHandler requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
@@ -576,7 +579,11 @@ public class ProjectServiceTest {
             @Override
             public void importSources(FolderEntry baseFolder, String location) throws IOException {
                 // Don't really use location in this test.
-                baseFolder.unzip(zip);
+                try {
+                    baseFolder.getVirtualFile().unzip(zip, true);
+                } catch (VirtualFileSystemException e) {
+                    throw new IOException(e.getMessage(), e);
+                }
                 folderHolder.set(baseFolder);
             }
         });

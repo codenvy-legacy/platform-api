@@ -33,6 +33,8 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.vfs.server.ContentStream;
+import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.dto.server.DtoFactory;
@@ -50,7 +52,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -107,7 +108,7 @@ public class ProjectService extends Service {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, path));
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -136,7 +137,7 @@ public class ProjectService extends Service {
         final Project project = projectManager.getProject(workspace, parentProject);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, parentProject));
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", parentProject, workspace));
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -154,7 +155,7 @@ public class ProjectService extends Service {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, path));
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -310,22 +311,29 @@ public class ProjectService extends Service {
                               @PathParam("path") String name,
                               InputStream zip) throws Exception {
         final FolderEntry folder = asFolder(workspace, name);
-        folder.unzip(zip);
+        VirtualFileSystemImpl.importZip(folder.getVirtualFile(), zip, true);
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getChildren")
                                                    .build(workspace, folder.getPath().substring(1))).build();
     }
 
+    /** See {@link com.codenvy.api.vfs.server.VirtualFileSystem#exportZip(String)}. */
     @GET
     @Path("export/{path:.*}")
     @Produces("application/zip")
-    public Response exportZip(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
+    public ContentStream exportZip(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
         final FolderEntry folder = asFolder(workspace, path);
-        return Response.ok()
-                       .header(HttpHeaders.CONTENT_TYPE, "application/zip")
-                       .header("Content-Disposition", String.format("attachment; filename=\"%s\"", folder.getName()))
-                       .entity(folder.toZip())
-                       .build();
+        return VirtualFileSystemImpl.exportZip(folder.getVirtualFile());
+    }
+
+    /** See {@link com.codenvy.api.vfs.server.VirtualFileSystem#exportZip(String, java.io.InputStream)}. */
+    @POST
+    @Path("export/{path:.*}")
+    @Consumes("text/plain")
+    @Produces("application/zip")
+    public Response exportDiffZip(@PathParam("ws-id") String workspace, @PathParam("path") String path, InputStream in) throws Exception {
+        final FolderEntry folder = asFolder(workspace, path);
+        return VirtualFileSystemImpl.exportZip(folder.getVirtualFile(), in);
     }
 
     @GET

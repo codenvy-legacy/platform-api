@@ -83,7 +83,7 @@ public class RemoteRunner {
     public RunnerState getRemoteRunnerState() throws IOException, RemoteException, RunnerException {
         final Link stateLink = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_STATE);
         if (stateLink == null) {
-            throw new RunnerException("Unable get URL for getting state of a remote runner");
+            throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s'", name));
         }
         return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
     }

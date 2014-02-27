@@ -24,7 +24,6 @@ import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -153,26 +152,6 @@ public class FolderEntry extends AbstractVirtualFileEntry {
     public boolean isProjectFolder() {
         final AbstractVirtualFileEntry projectFile = getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
         return projectFile != null && projectFile.isFile();
-    }
-
-    public void unzip(InputStream zip, boolean override) throws IOException {
-        try {
-            getVirtualFile().unzip(zip, override);
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
-    }
-
-    public void unzip(InputStream zip) throws IOException {
-        unzip(zip, true);
-    }
-
-    public InputStream toZip() throws IOException {
-        try {
-            return getVirtualFile().zip(VirtualFileFilter.ALL).getStream();
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
     }
 
     private boolean isRoot(VirtualFile virtualFile) {

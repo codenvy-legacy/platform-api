@@ -18,7 +18,7 @@
 package com.codenvy.api.vfs.server.search;
 
 import com.codenvy.api.vfs.server.LazyIterator;
-import com.codenvy.api.vfs.server.MediaTypeFilter;
+import com.codenvy.api.vfs.server.util.MediaTypeFilter;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;

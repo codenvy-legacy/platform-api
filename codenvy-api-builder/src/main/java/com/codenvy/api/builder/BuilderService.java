@@ -22,6 +22,7 @@ import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
@@ -63,17 +64,18 @@ public final class BuilderService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_BUILD)
     @POST
     @Path("build")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@PathParam("ws-id") String workspace,
                                      @Required @Description("project name") @QueryParam("project") String project,
                                      @Description("build options") BuildOptions options) throws Exception {
-        return buildQueue.scheduleBuild(workspace, project, getServiceContext(), options).getDescriptor(getServiceContext());
+        final ServiceContext serviceContext = getServiceContext();
+        return buildQueue.scheduleBuild(workspace, project, serviceContext, options).getDescriptor(serviceContext);
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
     @POST
     @Path("dependencies")
-    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor dependencies(@PathParam("ws-id") String workspace,
                                             @Required @Description("project name") @QueryParam("project") String project,

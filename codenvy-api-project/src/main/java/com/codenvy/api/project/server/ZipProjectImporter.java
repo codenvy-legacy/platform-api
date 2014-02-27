@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,7 +49,9 @@ public class ZipProjectImporter implements ProjectImporter {
             throw new IOException(String.format("Can't find %s", location));
         }
         try {
-            baseFolder.unzip(zip, true);
+            baseFolder.getVirtualFile().unzip(zip, true);
+        } catch (VirtualFileSystemException e) {
+            throw new IOException(e.getMessage(), e);
         } finally {
             zip.close();
         }

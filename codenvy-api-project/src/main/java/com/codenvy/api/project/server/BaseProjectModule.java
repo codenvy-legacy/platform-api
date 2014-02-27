@@ -26,8 +26,8 @@ import com.google.inject.multibindings.Multibinder;
 public class BaseProjectModule extends AbstractModule {
     @Override
     protected void configure() {
-        Multibinder.newSetBinder(binder(), ValueProviderFactory.class).addBinding().to(DownloadZipValueProviderFactory.class);
         Multibinder.newSetBinder(binder(), ProjectImporter.class).addBinding().to(ZipProjectImporter.class);
-        Multibinder.newSetBinder(binder(), ProjectGenerator.class); /* empty binding! */
+        Multibinder.newSetBinder(binder(), ValueProviderFactory.class); /* empty binding */
+        Multibinder.newSetBinder(binder(), ProjectGenerator.class); /* empty binding */
     }
 }

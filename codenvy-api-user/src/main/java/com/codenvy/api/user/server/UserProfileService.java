@@ -226,6 +226,8 @@ public class UserProfileService extends Service {
                                                                       .withDescription("update profile")
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFS, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "updatePrefs").build().toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,

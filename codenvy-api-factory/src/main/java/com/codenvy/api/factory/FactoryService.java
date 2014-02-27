@@ -108,7 +108,7 @@ public class FactoryService {
                                               "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
-            validator.validateEncodedUrl(factoryUrl);
+            validator.validateObject(factoryUrl, true);
 
             factoryUrl.setUserid(context.getUser().getId());
             factoryUrl.setCreated(System.currentTimeMillis());

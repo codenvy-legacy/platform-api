@@ -17,16 +17,16 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.compatibility.FactoryCompatibilityMap;
 import com.codenvy.api.factory.dto.*;
-import com.codenvy.api.factory.dto.ProjectAttributes;
+import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import java.io.*;
+import java.net.*;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
@@ -157,6 +157,14 @@ public class FactoryBuilder {
         }
     }
 
+    private String decode(String value) {
+        try {
+            return URLDecoder.decode(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return value;
+        }
+    }
+
     /**
      * Convert factory to json
      *
@@ -176,9 +184,8 @@ public class FactoryBuilder {
      * @return - query part of url of nonencoded version
      */
     public String buildNonEncoded(Factory factory) {
-        FactoryBuilder builder = new FactoryBuilder();
         StringBuilder result = new StringBuilder();
-        builder.buildNonEncoded(factory, result);
+        buildNonEncoded(factory, result);
         return result.toString();
     }
 
@@ -189,8 +196,32 @@ public class FactoryBuilder {
      *         - query string from nonencoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildNonEncoded(String queryString) {
-        return null;
+    public Factory buildNonEncoded(String queryString) throws FactoryUrlException {
+        if (queryString == null) {
+            throw new FactoryUrlException("Query string is invalid.");
+        }
+        Map<String, Set<String>> params = null;
+        try {
+            params = URLEncodedUtils.parse(new URI("?" + queryString), "UTF-8");
+        } catch (URISyntaxException e) {
+            throw new FactoryUrlException("Query string is invalid.");
+        }
+
+        if (params.get("v") != null || params.get("v").size() != 1) {
+            throw new FactoryUrlException("Parameter v is missing or has multiple values.");
+        }
+
+        FactoryCompatibilityMap compatibilityMap = FactoryCompatibilityMap.create(params.get("v").iterator().next());
+        for (Map.Entry<String, Set<String>> entry : params.entrySet()) {
+            String value;
+            if (entry.getValue() == null || entry.getValue().size() != 1 || (value = entry.getValue().iterator().next()) == null) {
+                throw new FactoryUrlException(String.format("Value of parameter %s is illegal.", entry.getKey()));
+            }
+
+            compatibilityMap.set(entry.getKey(), value);
+        }
+
+        return compatibilityMap.getFactory();
     }
 
     /**

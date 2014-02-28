@@ -34,6 +34,7 @@ public final class Constants {
     public static final String LINK_REL_ADD_WORKSPACE_MEMBER         = "add member";
     public static final String LINK_REL_REMOVE_WORKSPACE_MEMBER      = "remove member";
     public static final String LINK_REL_REMOVE_WORKSPACE             = "remove workspace";
+    public static final String LINK_REL_CREATE_TEMP_WORKSPACE        = "create temp workspace";
     public static final int    ID_LENGTH                             = 16;
 
     private Constants() {

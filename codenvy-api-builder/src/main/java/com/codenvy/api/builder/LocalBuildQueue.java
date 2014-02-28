@@ -45,6 +45,13 @@ import java.util.Set;
 public final class LocalBuildQueue extends BuildQueue {
     private final List<RemoteBuilder> remoteBuilders;
 
+    // work-around to be bale configure port.
+    static class SlaveBuilderPortHolder {
+        @com.google.inject.Inject(optional = true)
+        @Named("builder.queue.local.slave_builder_port")
+        private int port = 8080;
+    }
+
     /**
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
@@ -62,9 +69,10 @@ public final class LocalBuildQueue extends BuildQueue {
                            @Named("builder.queue.max_time_in_queue") int maxTimeInQueue,
                            @Named("builder.queue.build_timeout") int timeout,
                            BuilderSelectionStrategy builderSelector,
+                           SlaveBuilderPortHolder portHolder,
                            Set<Builder> builders) {
         super(baseProjectApiUrl, maxTimeInQueue, timeout, builderSelector);
-        final String baseUrl = "http://localhost:8080/api/internal/builder";
+        final String baseUrl = String.format("http://localhost:%d/api/internal/builder", portHolder.port);
         final List<Link> links = new ArrayList<>();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel("builder state")

@@ -498,6 +498,7 @@ public class RunQueue {
         if (runner == null) {
             throw new RunnerException("There is no any runner to process this request. ");
         }
+        LOG.debug("Use slave runner {} at {}", runner.getName(), runner.getBaseUrl());
         return runner;
     }
 

@@ -120,6 +120,7 @@ public class WorkspaceService extends Service {
     @POST
     @Path("temp")
     @GenerateLink(rel = Constants.LINK_REL_CREATE_TEMP_WORKSPACE)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response createTemporary(@Context SecurityContext securityContext,
                                     @Required @Description("New temporary workspace") Workspace newWorkspace)

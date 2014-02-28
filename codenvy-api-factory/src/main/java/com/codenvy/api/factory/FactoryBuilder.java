@@ -17,16 +17,14 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.compatibility.FactoryCompatibilityMap;
 import com.codenvy.api.factory.dto.*;
-import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
 import java.io.*;
-import java.net.*;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.Method;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
@@ -197,7 +195,7 @@ public class FactoryBuilder {
      * @return - Factory object represented by given factory string.
      */
     public Factory buildNonEncoded(String queryString) throws FactoryUrlException {
-        if (queryString == null) {
+        /*if (queryString == null) {
             throw new FactoryUrlException("Query string is invalid.");
         }
         Map<String, Set<String>> params = null;
@@ -221,7 +219,8 @@ public class FactoryBuilder {
             compatibilityMap.set(entry.getKey(), value);
         }
 
-        return compatibilityMap.getFactory();
+        return compatibilityMap.getFactory();*/
+        return null;
     }
 
     /**
@@ -255,5 +254,21 @@ public class FactoryBuilder {
      */
     public Factory buildEncoded(InputStream json) throws IOException {
         return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+    }
+
+    public Factory validateCompatibility(Factory factory) {
+        String version = factory.getV();
+
+        Method[] methods = factory.getClass().getMethods();
+
+        for (Method method : methods) {
+            Compatibility compatibility = method.getAnnotation(Compatibility.class);
+            System.out.println(method.getName());
+            if (compatibility != null) {
+                System.out.println(method.getName());
+            }
+        }
+
+        return factory;
     }
 }

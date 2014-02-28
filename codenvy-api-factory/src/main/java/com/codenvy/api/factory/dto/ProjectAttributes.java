@@ -17,7 +17,10 @@
  */
 package com.codenvy.api.factory.dto;
 
+import com.codenvy.api.factory.Compatibility;
 import com.codenvy.dto.shared.DTO;
+
+import static com.codenvy.api.factory.Compatibility.Optionality.OPTIONAL;
 
 /** @author Sergii Kabashniuk */
 @DTO
@@ -28,6 +31,7 @@ public interface ProjectAttributes {
      * <p/>
      * Project name should be in valid format,
      */
+    @Compatibility(optionality = OPTIONAL)
     String getPname();
 
     public void setPname(String pname);
@@ -35,6 +39,7 @@ public interface ProjectAttributes {
     /**
      * @return Project type.
      */
+    @Compatibility(optionality = OPTIONAL)
     public String getPtype();
 
     public void setPtype(String ptype);

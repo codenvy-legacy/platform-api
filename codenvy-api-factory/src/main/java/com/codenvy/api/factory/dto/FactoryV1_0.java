@@ -1,6 +1,12 @@
 package com.codenvy.api.factory.dto;
 
+import com.codenvy.api.factory.Compatibility;
 import com.codenvy.dto.shared.DTO;
+
+import static com.codenvy.api.factory.Compatibility.Optionality.MANDATORY;
+import static com.codenvy.api.factory.Compatibility.Optionality.OPTIONAL;
+import static com.codenvy.api.factory.Compatibility.Version.V1_0;
+import static com.codenvy.api.factory.Compatibility.Version.V1_1;
 
 /**
  * @author Sergii Kabashniuk
@@ -10,6 +16,7 @@ public interface FactoryV1_0 {
     /**
      * @return Version for Codenvy Factory API.
      */
+    @Compatibility(optionality = MANDATORY)
     String getV();
 
     void setV(String v);
@@ -17,6 +24,7 @@ public interface FactoryV1_0 {
     /**
      * @return Version Control System used. Now only one possible value: git
      */
+    @Compatibility(optionality = MANDATORY)
     String getVcs();
 
     void setVcs(String vcs);
@@ -24,6 +32,7 @@ public interface FactoryV1_0 {
     /**
      * @return Locations of sources in Version Control System.
      */
+    @Compatibility(optionality = MANDATORY)
     String getVcsurl();
 
     void setVcsurl(String vcs);
@@ -33,11 +42,13 @@ public interface FactoryV1_0 {
      * <p/>
      * (using the commit ID avoid to remember which branch the user was working on, it will b)
      */
+    @Compatibility(optionality = OPTIONAL)
     String getCommitid();
 
     void setCommitid(String commitid);
 
     @Deprecated
+    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1)
     String getIdcommit();
 
     @Deprecated
@@ -51,6 +62,7 @@ public interface FactoryV1_0 {
      * specified by this spec: URL Scheme V3 for workspaces/projects#ImpactsonProjectnames
      */
     @Deprecated
+    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1)
     String getPname();
 
     @Deprecated
@@ -60,6 +72,7 @@ public interface FactoryV1_0 {
      * @return Project type.
      */
     @Deprecated
+    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1)
     String getPtype();
 
     @Deprecated
@@ -70,11 +83,13 @@ public interface FactoryV1_0 {
      * <p/>
      * Currently, the only available value is openproject. More actions will be available in future.
      */
+    @Compatibility(optionality = OPTIONAL)
     String getAction();
 
     void setAction(String action);
 
     @Deprecated
+    @Compatibility(optionality = OPTIONAL, ignoredSince = V1_0)
     String getWname();
 
     @Deprecated

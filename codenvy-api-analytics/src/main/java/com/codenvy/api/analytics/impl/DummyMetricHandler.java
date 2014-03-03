@@ -64,6 +64,7 @@ public class DummyMetricHandler implements MetricHandler {
 
     private MetricValueDTO createDummyMetricValueDTO(String metricName) {
         MetricValueDTO metricValueDTO = DtoFactory.getInstance().createDto(MetricValueDTO.class);
+        metricValueDTO.setName(metricName);
         if ("FACTORY_USED".equalsIgnoreCase(metricName)) {
             metricValueDTO.setValue(String.valueOf(new Random().nextInt(256)));
         } else {

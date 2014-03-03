@@ -23,7 +23,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.9.0</version>
+        <version>0.9.1-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-core</artifactId>
     <packaging>jar</packaging>

@@ -36,7 +36,6 @@ import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
-import javax.annotation.Nullable;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -89,7 +88,7 @@ public class UserProfileService extends Service {
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        Profile profile = null;
+        Profile profile;
         if (filter == null) {
             profile = profileDao.getById(user.getId());
         } else {

@@ -274,15 +274,16 @@ public class FactoryBuilder {
         return validateCompatibility(factory, version, sourceEncoding, factory.getOrgid() != null && !factory.getOrgid().isEmpty());
     }
 
-    public Object validateCompatibility(Object object, Version version, Encoding sourceEncoding, boolean orgIdIsPresent) throws FactoryUrlException {
+    private Object validateCompatibility(Object object, Version version, Encoding sourceEncoding, boolean orgIdIsPresent)
+            throws FactoryUrlException {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             Compatibility compatibility = getAnnotation(method);
             if (compatibility != null) {
                 // check that field is set
-                Object o;
+                Object methodParameter;
                 try {
-                    o = method.invoke(object);
+                    methodParameter = method.invoke(object);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     LOG.error(e.getLocalizedMessage(), e);
                     // TODO proper message
@@ -290,7 +291,8 @@ public class FactoryBuilder {
                 }
 
                 // if value is null
-                if (null == o) {
+                if (null == methodParameter || (Long.class.equals(methodParameter.getClass()) && (Long)methodParameter == 0) ||
+                    (Boolean.class.equals(methodParameter.getClass()) && (Boolean)methodParameter == false)) {
                     // field mustn't be mandatory, unless it's ignored or deprecated
                     if (Optionality.MANDATORY.equals(compatibility.optionality()) &&
                         compatibility.deprecatedSince().compareTo(version) > 0 && compatibility.ignoredSince().compareTo(version) > 0) {
@@ -299,15 +301,14 @@ public class FactoryBuilder {
                     }
                 } else {
                     // is deprecated
-                    if (compatibility.deprecatedSince().compareTo(version) > 0) {
+                    if (compatibility.deprecatedSince().compareTo(version) <= 0) {
                         // TODO better solution must check that name of the method starts from 'get' or 'is' etc
                         throw new FactoryUrlException("Parameter " + method.getName().substring(3) + " is deprecated.");
                     }
 
                     // is ignored
-                    if (compatibility.ignoredSince().compareTo(version) > 0) {
-                        // TODO remove value
-                        // IgnoreFieldConverter.ignore ...
+                    if (compatibility.ignoredSince().compareTo(version) <= 0) {
+                        ignoreConverter.convert(method, object);
                         continue;
                     }
 
@@ -334,8 +335,8 @@ public class FactoryBuilder {
                     }
 
 
-                    // TODO go into parameters like Git ot ProjectAttributes
-                    //validateCompatibility()
+                    // validate inner objects such Git ot ProjectAttributes
+                    validateCompatibility(methodParameter, version, sourceEncoding, orgIdIsPresent);
                 }
             }
         }
@@ -343,7 +344,7 @@ public class FactoryBuilder {
         return object;
     }
 
-    static Compatibility getAnnotation(Method baseMethod) {
+    private static Compatibility getAnnotation(Method baseMethod) {
         Method method;
         Class<?>[] interfaces = baseMethod.getDeclaringClass().getInterfaces();
         for (Class<?> factoryInterface : interfaces) {

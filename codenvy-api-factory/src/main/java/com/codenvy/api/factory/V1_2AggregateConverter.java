@@ -18,6 +18,8 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.ProjectAttributes;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.lang.reflect.Method;
 
@@ -36,7 +38,7 @@ public class V1_2AggregateConverter implements CompatibilityConverter {
             case "getPtype":
                 convertPtype(factory);
                 break;
-            case "getIdCommit":
+            case "getIdcommit":
                 convertIdCommit(factory);
                 break;
             case "getValidsince":
@@ -51,22 +53,38 @@ public class V1_2AggregateConverter implements CompatibilityConverter {
     }
 
     private void convertIdCommit(Factory factory) {
-
+        // TODO check that user didn't used multiple version of parameter
+        factory.setCommitid(factory.getIdcommit());
+        factory.setIdcommit(null);
     }
 
     private void convertPname(Factory factory) {
+        // TODO check that user didn't used multiple version of parameter
+        ProjectAttributes attributes = factory.getProjectattributes();
+        if (null == attributes) {
+            factory.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class));
+            attributes = factory.getProjectattributes();
+        }
 
+        attributes.setPname(factory.getPname());
     }
 
     private void convertPtype(Factory factory) {
+        // TODO check that user didn't used multiple version of parameter
+        ProjectAttributes attributes = factory.getProjectattributes();
+        if (null == attributes) {
+            factory.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class));
+            attributes = factory.getProjectattributes();
+        }
 
+        attributes.setPtype(factory.getPtype());
     }
 
     private void convertValidsince(Factory factory) {
-
+        //TODO
     }
 
     private void convertValiduntil(Factory factory) {
-
+        //TODO
     }
 }

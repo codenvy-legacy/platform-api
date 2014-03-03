@@ -23,9 +23,9 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     void setId(String id);
 
     @Compatibility(optionality = OPTIONAL)
-    void setProjectattributes(ProjectAttributes projectattributes);
-
     ProjectAttributes getProjectattributes();
+
+    void setProjectattributes(ProjectAttributes projectattributes);
 
     /**
      * @return Codenow  button style: vertical, horisontal, dark, wite

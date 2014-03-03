@@ -21,24 +21,39 @@ import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.*;
 
 import java.io.*;
-import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.testng.Assert.assertEquals;
 
 /**
  * @author Sergii Kabashniuk
  */
+@Listeners(MockitoTestNGListener.class)
 public class FactoryBuilderTest {
-    Factory factory;
+    @Spy
+    private IgnoreConverter ignoreConverter;
+
+    @InjectMocks
+    private FactoryBuilder factoryBuilder;
+
+    private Factory factory;
+
+    private Factory expectedFactory;
 
     @BeforeMethod
     public void setUp() throws Exception {
-
         factory = DtoFactory.getInstance().createDto(Factory.class);
+
+        expectedFactory = DtoFactory.getInstance().createDto(Factory.class);
     }
 
     @Test(dataProvider = "jsonprovider")
@@ -68,7 +83,36 @@ public class FactoryBuilderTest {
         return result;
     }
 
+    @Test
+    public void shouldBeAbleToValidateFactory1_0() throws FactoryUrlException {
+        factory.setV("1.0");
+        factory.setVcs("vcs");
+        factory.setVcsurl("vcsurl");
+        //factory.setCommitid("commitid");
+        factory.setIdcommit("idcommit");
+        factory.setPtype("ptype");
+        factory.setPname("pname");
+        factory.setAction("action");
+        factory.setWname("wname");
 
+        expectedFactory.setV("1.0");
+        expectedFactory.setVcs("vcs");
+        expectedFactory.setVcsurl("vcsurl");
+        expectedFactory.setCommitid("idcommit");
+        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
+        projectAttributes.setPname("pname");
+        projectAttributes.setPtype("ptype");
+        expectedFactory.setProjectattributes(projectAttributes);
+        expectedFactory.setPtype("ptype");
+        expectedFactory.setPname("pname");
+        expectedFactory.setAction("action");
+        expectedFactory.setWname("wname");
+
+        Factory newFactory = (Factory)factoryBuilder.validateFactoryCompatibility(factory, Compatibility.Encoding.NONENCODED);
+
+        assertEquals(newFactory, expectedFactory);
+
+    }
 
     @Test
     public void test() {
@@ -376,35 +420,6 @@ public class FactoryBuilderTest {
 
             }
         });
-
-        List<String> needless = new LinkedList<>();
-        List<String> need = new LinkedList<>();
-
-        Factory validFactory = DtoFactory.getInstance().clone(factory);
-
-        String version = factory.getV();
-
-        Method[] methods = factory.getClass().getMethods();
-
-        for (Method method : methods) {
-            Compatibility compatibility = FactoryBuilder.getAnnotation(method);
-            if (compatibility != null) {
-                //System.out.println(method.getName());
-                need.add(method.getName());
-            } else {
-                needless.add(method.getName());
-            }
-        }
-
-        System.out.println("Suitable:");
-        for (String method : need) {
-            System.out.println(method);
-        }
-
-        System.out.println("Not suitable:");
-        for (String method : needless) {
-            System.out.println(method);
-        }
     }
 
 }

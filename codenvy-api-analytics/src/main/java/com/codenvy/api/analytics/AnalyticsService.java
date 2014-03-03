@@ -120,17 +120,12 @@ public class AnalyticsService extends Service {
                 }
             }
 
-            List<MetricValueDTO> metricValues = new ArrayList<>();
             Map<String, String> metricContext = Utils.extractContext(uriInfo,
                                                                      securityContext.getUserPrincipal(),
                                                                      page,
                                                                      perPage);
             
-            for (String metricName : metricNames) {
-                metricValues.add(metricHandler.getValue(metricName, metricContext, uriInfo));
-            }
-            
-            return Response.status(Response.Status.OK).entity(metricValues).build();
+            return Response.status(Response.Status.OK).entity(metricHandler.getValues(metricNames, metricContext, uriInfo)).build();
         } catch (MetricNotFoundException e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.NOT_FOUND).build();

@@ -24,6 +24,7 @@ import com.codenvy.api.analytics.dto.Constants;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
@@ -34,6 +35,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -81,6 +83,15 @@ public class RemoteMetricHandler implements MetricHandler {
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
+    }
+    
+    @Override
+    public List<MetricValueDTO> getValues(List<String> metricNames, Map<String, String> metricContext, UriInfo uriInfo) throws MetricNotFoundException {
+        List<MetricValueDTO> metricValues = new ArrayList<>();
+        for (String metricName : metricNames) {
+            metricValues.add(this.getValue(metricName, metricContext, uriInfo));
+        }
+        return metricValues;
     }
 
     @Override

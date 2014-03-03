@@ -24,6 +24,8 @@ import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 
 import javax.ws.rs.core.UriInfo;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,6 +40,10 @@ public interface MetricHandler {
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> metricContext,
                                    UriInfo uriInfo) throws MetricNotFoundException;
+    
+    public List<MetricValueDTO> getValues(List<String> metricNames,
+                                          Map<String, String> metricContext,
+                                          UriInfo uriInfo) throws MetricNotFoundException;
 
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException;
 

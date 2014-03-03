@@ -22,6 +22,7 @@ package com.codenvy.api.analytics;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 
@@ -33,7 +34,9 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +100,44 @@ public class AnalyticsService extends Service {
                         perPage,
                         uriInfo,
                         securityContext);
+    }
+    
+    @GenerateLink(rel = "list metric value")
+    @POST
+    @Path("/metric/user")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getValues(List<String> metricNames,
+                             @QueryParam("page") String page,
+                             @QueryParam("per_page") String perPage,
+                             @Context UriInfo uriInfo,
+                             @Context SecurityContext securityContext) {
+        try {
+            for (String metricName : metricNames) {
+                MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
+                if (!isRolesAllowed(metricInfoDTO, securityContext)) {
+                    return Response.status(Response.Status.UNAUTHORIZED).build();
+                }
+            }
+
+            List<MetricValueDTO> metricValues = new ArrayList<>();
+            Map<String, String> metricContext = Utils.extractContext(uriInfo,
+                                                                     securityContext.getUserPrincipal(),
+                                                                     page,
+                                                                     perPage);
+            
+            for (String metricName : metricNames) {
+                metricValues.add(metricHandler.getValue(metricName, metricContext, uriInfo));
+            }
+            
+            return Response.status(Response.Status.OK).entity(metricValues).build();
+        } catch (MetricNotFoundException e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.NOT_FOUND).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        }
     }
 
     @GenerateLink(rel = "metric info")

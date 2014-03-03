@@ -110,7 +110,8 @@ public class WorkspaceService extends Service {
             throw new UserNotFoundException(principal.getName());
         }
         Member member =
-                DtoFactory.getInstance().createDto(Member.class).withRoles(Arrays.asList("workspace/admin")).withUserId(user.getId())
+                DtoFactory.getInstance().createDto(Member.class)
+                          .withRoles(Arrays.asList("workspace/admin", "workspace/developer")).withUserId(user.getId())
                           .withWorkspaceId(wsId);
         memberDao.create(member);
         injectLinks(newWorkspace, securityContext);

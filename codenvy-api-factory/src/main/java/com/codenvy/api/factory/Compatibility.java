@@ -32,14 +32,30 @@ public @interface Compatibility {
     }
 
     public enum Encoding {
-        ENCODED, NONENCODED
+        ENCODED, NONENCODED, BOTH
     }
 
     public enum Version {
-        NEVER, V1_0, V1_1, V1_2
+        // NEVER must be the last constant
+        V1_0, V1_1, V1_2, NEVER;
+
+        public static Version fromString(String v) {
+            if (null != v) {
+                switch (v) {
+                    case "1.0" :
+                        return V1_0;
+                    case "1.1" :
+                        return V1_1;
+                    case "1.2" :
+                        return V1_2;
+                }
+            }
+
+            throw new IllegalArgumentException(String.format("Unknown version %s.", v));
+        }
     }
 
-    public Encoding[] encoding() default {Encoding.ENCODED, Encoding.NONENCODED};
+    public Encoding encoding() default Encoding.BOTH;
 
     public Optionality optionality();
 
@@ -48,4 +64,6 @@ public @interface Compatibility {
     public Version deprecatedSince() default Version.NEVER;
 
     public Version ignoredSince() default Version.NEVER;
+
+    public Class<? extends CompatibilityConverter> converter() default CompatibilityConverter.DefaultCompatibilityConverter.class;
 }

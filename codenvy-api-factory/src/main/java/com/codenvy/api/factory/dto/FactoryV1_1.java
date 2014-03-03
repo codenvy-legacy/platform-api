@@ -2,6 +2,7 @@ package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.Compatibility;
+import com.codenvy.api.factory.V1_2AggregateConverter;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -129,15 +130,15 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return Allow to use text replacement in project files after clone
      */
     @Compatibility(optionality = OPTIONAL)
-    Variable getVariable();
+    Variable getVariables();
 
-    void setVariable(Variable variable);
+    void setVariables(Variable variable);
 
     /**
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @Compatibility(optionality = OPTIONAL, ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true)
+    @Compatibility(optionality = OPTIONAL, ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true, converter = V1_2AggregateConverter.class)
     long getValidsince();
 
     @Deprecated
@@ -147,7 +148,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @Compatibility(optionality = OPTIONAL, ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true)
+    @Compatibility(optionality = OPTIONAL, ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true, converter = V1_2AggregateConverter.class)
     long getValiduntil();
 
     @Deprecated

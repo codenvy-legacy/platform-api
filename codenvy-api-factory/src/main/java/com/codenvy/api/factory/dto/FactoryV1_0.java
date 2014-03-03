@@ -1,6 +1,7 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.factory.Compatibility;
+import com.codenvy.api.factory.V1_2AggregateConverter;
 import com.codenvy.dto.shared.DTO;
 
 import static com.codenvy.api.factory.Compatibility.Optionality.MANDATORY;
@@ -48,7 +49,7 @@ public interface FactoryV1_0 {
     void setCommitid(String commitid);
 
     @Deprecated
-    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1)
+    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1, converter = V1_2AggregateConverter.class)
     String getIdcommit();
 
     @Deprecated
@@ -62,7 +63,7 @@ public interface FactoryV1_0 {
      * specified by this spec: URL Scheme V3 for workspaces/projects#ImpactsonProjectnames
      */
     @Deprecated
-    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1)
+    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1, converter = V1_2AggregateConverter.class)
     String getPname();
 
     @Deprecated
@@ -72,7 +73,7 @@ public interface FactoryV1_0 {
      * @return Project type.
      */
     @Deprecated
-    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1)
+    @Compatibility(optionality = OPTIONAL, deprecatedSince = V1_1, converter = V1_2AggregateConverter.class)
     String getPtype();
 
     @Deprecated

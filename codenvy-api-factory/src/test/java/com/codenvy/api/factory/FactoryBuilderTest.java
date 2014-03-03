@@ -17,23 +17,24 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.*;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.testng.annotations.*;
 
 import java.io.*;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Sergii Kabashniuk
  */
-public class FactoryParseTest {
+public class FactoryBuilderTest {
     Factory factory;
+
     @BeforeMethod
     public void setUp() throws Exception {
 
@@ -50,7 +51,7 @@ public class FactoryParseTest {
 
     @DataProvider(name = "jsonprovider")
     public static Object[][] createData() throws URISyntaxException, IOException {
-        File file = new File(FactoryParseTest.class.getResource("/logback-test.xml").toURI());
+        File file = new File(FactoryBuilderTest.class.getResource("/logback-test.xml").toURI());
         File resourcesDirectory = file.getParentFile();
         String[] list = resourcesDirectory.list(new FilenameFilter() {
             @Override
@@ -66,6 +67,8 @@ public class FactoryParseTest {
 
         return result;
     }
+
+
 
     @Test
     public void test() {
@@ -197,7 +200,7 @@ public class FactoryParseTest {
             }
         });
 
-        factory.setVariable(new Variable() {
+        factory.setVariables(new Variable() {
             @Override
             public List<String> getFiles() {
                 return Arrays.asList("file1", "file2");
@@ -374,7 +377,34 @@ public class FactoryParseTest {
             }
         });
 
-        new FactoryBuilder().validateCompatibility(factory);
+        List<String> needless = new LinkedList<>();
+        List<String> need = new LinkedList<>();
+
+        Factory validFactory = DtoFactory.getInstance().clone(factory);
+
+        String version = factory.getV();
+
+        Method[] methods = factory.getClass().getMethods();
+
+        for (Method method : methods) {
+            Compatibility compatibility = FactoryBuilder.getAnnotation(method);
+            if (compatibility != null) {
+                //System.out.println(method.getName());
+                need.add(method.getName());
+            } else {
+                needless.add(method.getName());
+            }
+        }
+
+        System.out.println("Suitable:");
+        for (String method : need) {
+            System.out.println(method);
+        }
+
+        System.out.println("Not suitable:");
+        for (String method : needless) {
+            System.out.println(method);
+        }
     }
 
 }

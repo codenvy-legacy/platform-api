@@ -43,8 +43,8 @@ public interface MetricHandler {
                                    UriInfo uriInfo) throws MetricNotFoundException;
     
     public MetricValueListDTO getUserValues(List<String> metricNames,
-                                          Map<String, String> metricContext,
-                                          UriInfo uriInfo) throws MetricNotFoundException;
+                                            Map<String, String> metricContext,
+                                            UriInfo uriInfo) throws MetricNotFoundException;
 
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException;
 

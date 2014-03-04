@@ -107,8 +107,7 @@ public class AnalyticsService extends Service {
                              @Context UriInfo uriInfo,
                              @Context SecurityContext securityContext) {
         try {
-            Map<String, String> metricContext = Utils.extractContext(uriInfo,
-                                                                     securityContext.getUserPrincipal());
+            Map<String, String> metricContext = Utils.extractContext(uriInfo, securityContext.getUserPrincipal());
             
             MetricValueListDTO list = metricHandler.getUserValues(metricNames, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(list).build();
@@ -127,8 +126,7 @@ public class AnalyticsService extends Service {
     @Path("metricinfo/{name}")
     @RolesAllowed({"user"})
     public Response getInfo(@PathParam("name") String metricName,
-                            @Context UriInfo uriInfo,
-                            @Context SecurityContext securityContext) {
+                            @Context UriInfo uriInfo) {
         try {
             MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
@@ -143,8 +141,7 @@ public class AnalyticsService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("metricinfo")
     @RolesAllowed({"user"})
-    public Response getAllInfo(@Context UriInfo uriInfo,
-                               @Context SecurityContext securityContext) {
+    public Response getAllInfo(@Context UriInfo uriInfo) {
         try {
             MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();

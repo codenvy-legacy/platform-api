@@ -18,6 +18,8 @@
 package com.codenvy.api.workspace.server;
 
 
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -81,13 +83,16 @@ public class WorkspaceService extends Service {
     private final UserDao        userDao;
     private final MemberDao      memberDao;
     private final UserProfileDao userProfileDao;
+    private final AccountDao     accountDao;
 
     @Inject
-    public WorkspaceService(WorkspaceDao workspaceDao, UserDao userDao, MemberDao memberDao, UserProfileDao userProfileDao) {
+    public WorkspaceService(WorkspaceDao workspaceDao, UserDao userDao, MemberDao memberDao,
+                            UserProfileDao userProfileDao, AccountDao accountDao) {
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
         this.userProfileDao = userProfileDao;
+        this.accountDao = accountDao;
     }
 
     @POST
@@ -95,20 +100,32 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"user", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
-            throws WorkspaceException, UserException, MembershipException {
+    public Response create(@Context SecurityContext securityContext,
+                           @Required @Description("new workspace") Workspace newWorkspace)
+            throws WorkspaceException, UserException, MembershipException, AccountException {
         if (newWorkspace == null) {
             throw new WorkspaceException("Missed workspace to create");
         }
-        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
-        newWorkspace.setId(wsId);
-        newWorkspace.setTemporary(false);
-        workspaceDao.create(newWorkspace);
+        String accountId = newWorkspace.getAccountId();
+        if (accountId == null || accountId.isEmpty() || accountDao.getById(accountId) == null)
+            throw new WorkspaceException("Incorrect account to link workspace with.");
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
+        if (!accountDao.getById(accountId).getOwner().equals(user.getId()))
+            throw new WorkspaceException("You can only create workspace linked to your own account.");
+
+        // Change with subscription check later
+        if (workspaceDao.getByAccount(accountId).size() > 0)
+            throw new WorkspaceException("Given account already has workspaces.");
+
+        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
+        newWorkspace.setId(wsId);
+        newWorkspace.setTemporary(false);
+        workspaceDao.create(newWorkspace);
+
         Member member =
                 DtoFactory.getInstance().createDto(Member.class)
                           .withRoles(Arrays.asList("workspace/admin", "workspace/developer")).withUserId(user.getId())
@@ -214,6 +231,22 @@ public class WorkspaceService extends Service {
         workspaceDao.update(workspaceToUpdate);
         injectLinks(workspaceToUpdate, securityContext);
         return workspaceToUpdate;
+    }
+
+    @GET
+    @Path("find/account")
+    @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACES_BY_ACCOUNT)
+    @RolesAllowed("user")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Workspace> getWorkspacesByAccount(@Context SecurityContext securityContext,
+                                                  @QueryParam("id") String accountId)
+            throws WorkspaceException, UserException, MembershipException {
+        final List<Workspace> workspaces = new ArrayList<>();
+        for (Workspace workspace : workspaceDao.getByAccount(accountId)) {
+            injectLinks(workspace, securityContext);
+            workspaces.add(workspace);
+        }
+        return workspaces;
     }
 
     @GET

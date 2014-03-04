@@ -17,53 +17,41 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 
 /**
  * @author Vitaly Parfonov
  */
 @Singleton
-public class ZipSourceImporter implements SourceImporter {
-
-    private final VirtualFileSystemRegistry vfsRegistry;
-
-    @Inject
-    public ZipSourceImporter(VirtualFileSystemRegistry vfsRegistry) {
-        this.vfsRegistry = vfsRegistry;
-    }
-
+public class ZipProjectImporter implements ProjectImporter {
     @Override
-    public String getType() {
+    public String getId() {
         return "zip";
     }
 
     @Override
-    public void importSource(String workspace, String projectName, String location) throws IOException, VirtualFileSystemException {
-        MountPoint mountPoint = vfsRegistry.getProvider(workspace).getMountPoint(true);
-        VirtualFile projectFolder = mountPoint.getRoot().getChild(projectName);
-        if (projectFolder == null) {
-            projectFolder = mountPoint.getRoot().createFolder(projectName);
-        }
+    public void importSources(FolderEntry baseFolder, String location) throws IOException {
         InputStream zip = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
         if (zip == null) {
-            zip = Files.newInputStream(Paths.get(location), StandardOpenOption.READ);
+            final Path path = Paths.get(location);
+            if (Files.isReadable(path)) {
+                zip = Files.newInputStream(path);
+            }
         }
         if (zip == null) {
             throw new IOException(String.format("Can't find %s", location));
         }
         try {
-            projectFolder.unzip(zip, true);
+            baseFolder.getVirtualFile().unzip(zip, true);
+        } catch (VirtualFileSystemException e) {
+            throw new IOException(e.getMessage(), e);
         } finally {
             zip.close();
         }

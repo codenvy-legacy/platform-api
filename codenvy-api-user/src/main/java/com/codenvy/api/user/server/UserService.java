@@ -87,25 +87,21 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_CREATE_USER)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @QueryParam("token") String token,
-                           @Required @Description("is user temporary") @QueryParam("temporary") Boolean isTemporary)
+                           @Description("is user temporary") @QueryParam("temporary") boolean isTemporary)
             throws ApiException {
         if (token == null) {
             throw new UserException("Missed token parameter");
-        }
-        if (isTemporary == null) {
-            throw new UserException("Missed isTemporary parameter");
         }
         final String userEmail = tokenValidator.validateToken(token);
         final User user = DtoFactory.getInstance().createDto(User.class);
         String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
         user.setId(userId);
         user.setEmail(userEmail);
-        // TODO: password ?
+        user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
         try {
             Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-            String profileId = userId;
-            profile.setId(profileId);
+            profile.setId(userId);
             profile.setUserId(userId);
             profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
                                                           .withName("temporary")
@@ -116,6 +112,7 @@ public class UserService extends Service {
             userDao.remove(userId);
             throw e;
         }
+        user.setPassword("<none>");
         injectLinks(user, securityContext);
         return Response.status(Response.Status.CREATED).entity(user).build();
     }
@@ -142,6 +139,9 @@ public class UserService extends Service {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public void updatePassword(@Context SecurityContext securityContext, @FormParam("password") String password)
             throws UserException {
+        if (password == null) {
+            throw new UserException("Password required");
+        }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {

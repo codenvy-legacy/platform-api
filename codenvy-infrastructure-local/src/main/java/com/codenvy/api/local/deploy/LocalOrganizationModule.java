@@ -15,18 +15,25 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.server;
+package com.codenvy.api.local.deploy;
 
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.local.*;
+import com.codenvy.api.user.server.dao.MemberDao;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.dao.UserProfileDao;
+import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
-/** @author andrew00x */
 @DynaModule
-public class ValueProviderFactoryModule extends AbstractModule {
+public class LocalOrganizationModule extends AbstractModule {
     @Override
     protected void configure() {
-        Multibinder<ValueProviderFactory> multiBinder = Multibinder.newSetBinder(binder(), ValueProviderFactory.class);
-        multiBinder.addBinding().to(DownloadZipValueProviderFactory.class);
+        bind(UserDao.class).toInstance(new LocalUserDaoImpl());
+        bind(WorkspaceDao.class).toInstance(new LocalWorkspaceDaoImpl());
+        bind(UserProfileDao.class).toInstance(new LocalProfileDaoImpl());
+        bind(MemberDao.class).toInstance(new LocalMemberDaoImpl());
+        bind(AccountDao.class).toInstance(new LocalAccountDaoImpl());
     }
 }

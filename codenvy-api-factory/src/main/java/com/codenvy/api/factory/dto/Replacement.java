@@ -3,12 +3,13 @@ package com.codenvy.api.factory.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
+ * Configuration for replacement. Contains part of text to search and another to replace one.
+ * 
  * @author Sergii Kabashniuk
  */
 @DTO
 public interface Replacement {
-
-    String getFind();
+   String getFind();
 
     void setFind(String find);
 
@@ -19,5 +20,4 @@ public interface Replacement {
     String getReplacemode();
 
     void setReplacemode(String replacemode);
-
 }

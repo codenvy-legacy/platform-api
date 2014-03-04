@@ -17,10 +17,12 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +42,7 @@ import static javax.ws.rs.core.Response.Status;
 
 /** Service for factory rest api features */
 @Path("/factory")
-public class FactoryService {
+public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
     @Inject
@@ -63,6 +65,7 @@ public class FactoryService {
      * @param request
      *         - http request
      * @param uriInfo
+     *         - url context
      * @return - stored data
      * @throws FactoryUrlException
      *         - with response code 400 if factory url json is not found
@@ -145,6 +148,7 @@ public class FactoryService {
      * @param id
      *         - id of factory
      * @param uriInfo
+     *         - url context
      * @return - stored data, if id is correct.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist
@@ -221,6 +225,7 @@ public class FactoryService {
      * @param type
      *         - type of snippet.
      * @param uriInfo
+     *         - url context
      * @return - snippet content.
      * @throws FactoryUrlException
      *         - with response code 404 if factory with given id doesn't exist

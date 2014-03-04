@@ -23,8 +23,6 @@ import java.util.List;
 
 /**
  * Attribute of Project.
- * NOTE that this class is not thread-safe. If multiple threads access an this instance concurrently, and at least one of the threads
- * modifies this instance, then access to this instance must be synchronized with some external mechanism.
  *
  * @author andrew00x
  * @see ValueProvider
@@ -35,8 +33,8 @@ public class Attribute {
     private final ValueProvider valueProvider;
 
     /**
-     * Creates new Attribute with specified <code>name</code> and use specified <code>ValueProvider</code> to reading and updating
-     * value of this Attribute.
+     * Creates new Attribute with specified {@code name} and use specified {@code ValueProvider} to reading and updating value of this
+     * Attribute.
      *
      * @throws IllegalArgumentException
      *         If {@code name} is {@code null} or empty
@@ -60,6 +58,16 @@ public class Attribute {
     /** Creates new Attribute. */
     public Attribute(String name, List<String> values) {
         this(name, new DefaultValueProvider(values));
+    }
+
+    /** Creates new Attribute. */
+    public Attribute(String name, String... values) {
+        this(name, new DefaultValueProvider(values));
+    }
+
+    /** Copy constructor. */
+    public Attribute(Attribute origin) {
+        this(origin.getName(), new DefaultValueProvider(origin.getValues()));
     }
 
     /** Get name of this attribute. */
@@ -141,9 +149,5 @@ public class Attribute {
         } else {
             valueProvider.setValues(null);
         }
-    }
-
-    public final ValueProvider getValueProvider() {
-        return valueProvider;
     }
 }

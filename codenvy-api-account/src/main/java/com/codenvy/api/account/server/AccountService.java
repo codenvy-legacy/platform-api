@@ -104,6 +104,7 @@ public class AccountService extends Service {
         String accountId = NameGenerator.generate(Account.class.getSimpleName(), Constants.ID_LENGTH);
         newAccount.setId(accountId);
         //account should have owner
+        newAccount.setOwner(current.getId());
         accountDao.create(newAccount);
         injectLinks(newAccount, securityContext);
         return Response.status(Response.Status.CREATED).entity(newAccount).build();

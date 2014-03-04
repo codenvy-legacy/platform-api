@@ -20,6 +20,7 @@ package com.codenvy.api.builder.internal;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.ZipUtils;
@@ -108,7 +109,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         }
         // Avoid multiple threads download source of the same project.
         Future<Void> future = tasks.get(key);
-        final IOException[] errorHolder = new IOException[1];
+        final ValueHolder<IOException> errorHolder = new ValueHolder<>();
         if (future == null) {
             final FutureTask<Void> newFuture = new FutureTask<>(new Runnable() {
                 @Override
@@ -122,7 +123,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                         @Override
                         public void error(IOException e) {
                             LOG.error(e.getMessage(), e);
-                            errorHolder[0] = e;
+                            errorHolder.set(e);
                         }
                     });
                 }
@@ -135,8 +136,9 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         }
         try {
             future.get(); // Block thread until download is completed.
-            if (errorHolder[0] != null) {
-                throw errorHolder[0];
+            final IOException ioError = errorHolder.get();
+            if (ioError != null) {
+                throw ioError;
             }
             IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
             Files.setLastModifiedTime(srcDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));

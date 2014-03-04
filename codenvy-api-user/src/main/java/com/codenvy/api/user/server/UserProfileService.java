@@ -44,6 +44,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
@@ -51,6 +52,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,13 +80,20 @@ public class UserProfileService extends Service {
     @RolesAllowed("user")
     @GenerateLink(rel = "current profile")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getCurrent(@Context SecurityContext securityContext) throws UserException, UserProfileException {
-        Principal principal = securityContext.getUserPrincipal();
-        User user = userDao.getByAlias(principal.getName());
+    public Profile getCurrent(@Context SecurityContext securityContext,
+                              @Description("Preferences path filter") @QueryParam("filter") String filter)
+            throws UserException, UserProfileException {
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        Profile profile = profileDao.getById(user.getId());
+        Profile profile;
+        if (filter == null) {
+            profile = profileDao.getById(user.getId());
+        } else {
+            profile = profileDao.getById(user.getId(), filter);
+        }
         if (profile == null) {
             throw new ProfileNotFoundException(user.getId());
         }
@@ -138,6 +147,7 @@ public class UserProfileService extends Service {
         if (profile == null) {
             throw new ProfileNotFoundException(profileId);
         }
+        profile.setPreferences(Collections.<String, String>emptyMap());
         injectLinks(profile, securityContext);
         return profile;
     }
@@ -174,6 +184,33 @@ public class UserProfileService extends Service {
         return profile;
     }
 
+    @POST
+    @Path("prefs")
+    @RolesAllowed({"user"})
+    @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFS)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Profile updatePrefs(@Context SecurityContext securityContext,
+                               @Required @Description("preferences to update") Map<String, String> prefsToUpdate)
+            throws UserException, UserProfileException {
+        if (prefsToUpdate == null) {
+            throw new UserProfileException("Preferences required");
+        }
+        final Principal principal = securityContext.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        if (current == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
+        final Profile currentProfile = profileDao.getById(current.getId());
+        if (currentProfile == null) {
+            throw new ProfileNotFoundException(current.getId());
+        }
+        Map<String, String> currentPrefs = currentProfile.getPreferences();
+        currentPrefs.putAll(prefsToUpdate);
+        profileDao.update(currentProfile);
+        injectLinks(currentProfile, securityContext);
+        return currentProfile;
+    }
 
     private void injectLinks(Profile profile, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
@@ -188,6 +225,8 @@ public class UserProfileService extends Service {
                                                                       .withDescription("update profile")
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFS, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "updatePrefs").build().toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,

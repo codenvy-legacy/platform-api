@@ -24,14 +24,25 @@ package com.codenvy.api.project.shared;
  */
 public class AttributeDescription {
     private final String name;
+    private final String description;
 
     /**
-     * Creates new AttributeDescription with specified <code>name</code>.
+     * Creates new AttributeDescription with specified {@code name}.
      *
      * @throws IllegalArgumentException
      *         If {@code name} is {@code null} or empty
      */
     public AttributeDescription(String name) {
+        this(name, null);
+    }
+
+    /**
+     * Creates new AttributeDescription with specified {@code name} and {@code description}.
+     *
+     * @throws IllegalArgumentException
+     *         If {@code name} is {@code null} or empty
+     */
+    public AttributeDescription(String name, String description) {
         if (name == null) {
             throw new IllegalArgumentException("Null name is not allowed. ");
         }
@@ -39,9 +50,14 @@ public class AttributeDescription {
             throw new IllegalArgumentException("Name may not be empty. ");
         }
         this.name = name;
+        this.description = description;
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getDescription() {
+        return description;
     }
 }

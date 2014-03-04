@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -44,14 +45,6 @@ public interface ProjectDescriptor {
     void setProjectTypeName(String name);
 
     ProjectDescriptor withProjectTypeName(String name);
-
-    /** Get name of workspace this project belongs to. */
-    String getWorkspace();
-
-    /** Set name of workspace this project belongs to. */
-    void setWorkspace(String workspace);
-
-    ProjectDescriptor withWorkspace(String workspace);
 
     /** Get project visibility, e.g. private or public. */
     String getVisibility();
@@ -84,4 +77,10 @@ public interface ProjectDescriptor {
     void setAttributes(Map<String, List<String>> attributes);
 
     ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
+
+    List<Link> getLinks();
+
+    ProjectDescriptor withLinks(List<Link> links);
+
+    void setLinks(List<Link> links);
 }

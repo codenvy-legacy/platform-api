@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.BuilderException;
+import com.codenvy.api.builder.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -137,7 +139,7 @@ public abstract class Builder {
      *         Note: {@code true} is not indicated successful build but only normal process termination. Build itself may be unsuccessful
      *         because to compilation error, failed tests, etc.
      * @return BuildResult
-     * @throws BuilderException
+     * @throws com.codenvy.api.builder.BuilderException
      *         if an error occurs when try to get result
      * @see BuildTask#getResult()
      */
@@ -489,7 +491,7 @@ public abstract class Builder {
      * @param id
      *         id of BuildTask
      * @return BuildTask
-     * @throws NoSuchBuildTaskException
+     * @throws com.codenvy.api.builder.NoSuchBuildTaskException
      *         if id of BuildTask is invalid
      * @see #addBuildListener(BuildListener)
      * @see #removeBuildListener(BuildListener)

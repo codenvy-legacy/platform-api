@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -17,16 +17,11 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.inject.DynaModule;
-import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
-
-/** @author Artem Zatsarynnyy */
-@DynaModule
-public class SourceImporterModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        Multibinder<SourceImporter> multiBinder = Multibinder.newSetBinder(binder(), SourceImporter.class);
-        multiBinder.addBinding().to(ZipSourceImporter.class);
+/**
+ * @author andrew00x
+ */
+public final class ProjectStructureConstraintException extends RuntimeException {
+    public ProjectStructureConstraintException(String message) {
+        super(message);
     }
 }

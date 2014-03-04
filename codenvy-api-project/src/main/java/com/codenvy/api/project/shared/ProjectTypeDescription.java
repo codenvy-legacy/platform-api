@@ -32,16 +32,6 @@ public class ProjectTypeDescription {
     private final ProjectType                       projectType;
     private final Map<String, AttributeDescription> attributeDescriptions;
 
-    public ProjectTypeDescription(ProjectType projectType, AttributeDescription... attributeDescriptions) {
-        if (projectType == null) {
-            throw new IllegalArgumentException("Project type may not be null. ");
-        }
-        this.projectType = projectType;
-        this.attributeDescriptions = new LinkedHashMap<>();
-        addCommonAttributes();
-        setAttributeDescriptions(attributeDescriptions);
-    }
-
     public ProjectTypeDescription(ProjectType projectType, List<AttributeDescription> attributeDescriptions) {
         if (projectType == null) {
             throw new IllegalArgumentException("Project type may not be null. ");
@@ -68,8 +58,6 @@ public class ProjectTypeDescription {
 
     // Probably temporary solution for adding common attributes that are applicable for any type of project.
     protected void addCommonAttributes() {
-        setAttributeDescription(new AttributeDescription("zipball_sources_url"));
-        setAttributeDescription(new AttributeDescription("dockerfile_url"));
     }
 
     /**
@@ -110,15 +98,6 @@ public class ProjectTypeDescription {
     /** Set single description of attribute. New description will override exited description with the same name. */
     public void setAttributeDescription(AttributeDescription attributeDescription) {
         attributeDescriptions.put(attributeDescription.getName(), attributeDescription);
-    }
-
-    /** Set descriptions of attributes. New descriptions will override exited description with the same name. */
-    public void setAttributeDescriptions(AttributeDescription... elements) {
-        if (elements != null && elements.length > 0) {
-            for (AttributeDescription attributeDescription : elements) {
-                this.attributeDescriptions.put(attributeDescription.getName(), attributeDescription);
-            }
-        }
     }
 
     /** Set descriptions of attributes. New descriptions will override exited description with the same name. */

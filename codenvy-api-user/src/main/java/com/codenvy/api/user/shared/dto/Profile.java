@@ -22,6 +22,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -52,4 +53,10 @@ public interface Profile {
     void setLinks(List<Link> links);
 
     Profile withLinks(List<Link> links);
+
+    Map<String, String> getPreferences();
+
+    void setPreferences(Map<String, String> prefs);
+
+    Profile withPreferences(Map<String, String> prefs);
 }

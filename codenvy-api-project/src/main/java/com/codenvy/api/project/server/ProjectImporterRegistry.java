@@ -29,31 +29,36 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Vitaly Parfonov
  */
 @Singleton
-public class SourceImporterRegistry {
-
-    private final Map<String, SourceImporter> importers;
+public class ProjectImporterRegistry {
+    private final Map<String, ProjectImporter> importers;
 
     @Inject
-    public SourceImporterRegistry(Set<SourceImporter> importers) {
+    public ProjectImporterRegistry(Set<ProjectImporter> importers) {
         this.importers = new ConcurrentHashMap<>();
-        for (SourceImporter importer : importers) {
+        for (ProjectImporter importer : importers) {
             register(importer);
         }
     }
 
-    public void register(SourceImporter importer) {
-        importers.put(importer.getType(), importer);
+    public void register(ProjectImporter importer) {
+        importers.put(importer.getId(), importer);
     }
 
-    public SourceImporter getImporter(String type) {
-        final SourceImporter importer = importers.get(type);
-        if (importer == null) {
-            throw new IllegalArgumentException(String.format("%s source importer not registered in the system", type));
+    public ProjectImporter unregister(String type) {
+        if (type == null) {
+            return null;
         }
-        return importer;
+        return importers.remove(type);
     }
 
-    public List<String> getImporterTypes() {
-        return new ArrayList<>(importers.keySet());
+    public ProjectImporter getImporter(String type) {
+        if (type == null) {
+            return null;
+        }
+        return importers.get(type);
+    }
+
+    public List<ProjectImporter> getImporters() {
+        return new ArrayList<>(importers.values());
     }
 }

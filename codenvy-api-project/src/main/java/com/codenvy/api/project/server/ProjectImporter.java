@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-
 import java.io.IOException;
 
 /**
@@ -26,23 +24,19 @@ import java.io.IOException;
  *
  * @author Vitaly Parfonov
  */
-public interface SourceImporter {
-
+public interface ProjectImporter {
     /**
-     * @return type of importer e.g git, zip
+     * @return unique id of importer e.g git, zip
      */
-    String getType();
+    String getId();
 
     /**
-     * Imports source from the given {@code location}. Creates project if it doesn't exist.
+     * Imports source from the given {@code location} to the specified folder.
      *
-     * @param workspace
-     *         the workspace id
-     * @param projectName
-     *         the new name of new project if it not exist or import to the given project
+     * @param baseFolder
+     *         base project folder
      * @param location
      *         location to the import sources
      */
-    void importSource(String workspace, String projectName, String location) throws IOException, VirtualFileSystemException;
-
+    void importSources(FolderEntry baseFolder, String location) throws IOException;
 }

@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,31 +15,29 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
- * Base type for all {@code Builder} error.
- *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @SuppressWarnings("serial")
-public class BuilderException extends ApiException {
-    public BuilderException(ServiceError serviceError) {
+public class ProjectException extends ApiException {
+    public ProjectException(ServiceError serviceError) {
         super(serviceError);
     }
 
-    public BuilderException(String message) {
+    public ProjectException(String message) {
         super(message);
     }
 
-    public BuilderException(String message, Throwable cause) {
+    public ProjectException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public BuilderException(Throwable cause) {
+    public ProjectException(Throwable cause) {
         super(cause);
     }
 }

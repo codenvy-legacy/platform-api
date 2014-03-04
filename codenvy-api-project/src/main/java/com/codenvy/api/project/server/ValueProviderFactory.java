@@ -1,7 +1,6 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.ValueProvider;
-import com.codenvy.api.vfs.shared.dto.Project;
 
 /**
  * Factory for {@link com.codenvy.api.project.shared.ValueProvider}.

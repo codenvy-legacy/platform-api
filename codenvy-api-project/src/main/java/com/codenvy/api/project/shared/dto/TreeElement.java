@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,16 +15,26 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.shared.dto;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@SuppressWarnings("serial")
-public final class NoSuchBuildTaskException extends BuilderException {
-    public NoSuchBuildTaskException(Long taskId) {
-        this(String.format("Invalid build task id: %d", taskId));
-    }
+import com.codenvy.dto.shared.DTO;
 
-    public NoSuchBuildTaskException(String message) {
-        super(message);
-    }
+import java.util.List;
+
+/**
+ * @author andrew00x
+ */
+@DTO
+public interface TreeElement {
+    ItemReference getNode();
+
+    void setNode(ItemReference node);
+
+    TreeElement withNode(ItemReference node);
+
+    List<TreeElement> getChildren();
+
+    void setChildren(List<TreeElement> children);
+
+    TreeElement withChildren(List<TreeElement> children);
 }

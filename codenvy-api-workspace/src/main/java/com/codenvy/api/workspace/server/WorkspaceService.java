@@ -28,10 +28,14 @@ import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.server.exception.UserNotFoundException;
+import com.codenvy.api.user.server.exception.UserProfileException;
+import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.server.exception.WorkspaceException;
@@ -73,15 +77,17 @@ import java.util.List;
 public class WorkspaceService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceService.class);
 
-    private final WorkspaceDao workspaceDao;
-    private final UserDao      userDao;
-    private final MemberDao    memberDao;
+    private final WorkspaceDao   workspaceDao;
+    private final UserDao        userDao;
+    private final MemberDao      memberDao;
+    private final UserProfileDao userProfileDao;
 
     @Inject
-    public WorkspaceService(WorkspaceDao workspaceDao, UserDao userDao, MemberDao memberDao) {
+    public WorkspaceService(WorkspaceDao workspaceDao, UserDao userDao, MemberDao memberDao, UserProfileDao userProfileDao) {
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
+        this.userProfileDao = userProfileDao;
     }
 
     @POST
@@ -90,14 +96,72 @@ public class WorkspaceService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @Description("new workspace") Workspace newWorkspace)
-            throws WorkspaceException {
+            throws WorkspaceException, UserException, MembershipException {
         if (newWorkspace == null) {
             throw new WorkspaceException("Missed workspace to create");
         }
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
+        newWorkspace.setTemporary(false);
         workspaceDao.create(newWorkspace);
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
+        if (user == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
+        Member member =
+                DtoFactory.getInstance().createDto(Member.class)
+                          .withRoles(Arrays.asList("workspace/admin", "workspace/developer")).withUserId(user.getId())
+                          .withWorkspaceId(wsId);
+        memberDao.create(member);
         injectLinks(newWorkspace, securityContext);
+        return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
+    }
+
+    @POST
+    @Path("temp")
+    @GenerateLink(rel = Constants.LINK_REL_CREATE_TEMP_WORKSPACE)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createTemporary(@Context SecurityContext securityContext,
+                                    @Required @Description("New temporary workspace") Workspace newWorkspace)
+            throws WorkspaceException, UserException, UserProfileException, MembershipException {
+        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
+        newWorkspace.setId(wsId);
+        newWorkspace.setTemporary(true);
+        workspaceDao.create(newWorkspace);
+        final Principal principal = securityContext.getUserPrincipal();
+        //temporary user should be created if real user does not exist
+        User user;
+        if (principal == null) {
+            user = DtoFactory.getInstance().createDto(User.class)
+                             .withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
+            userDao.create(user);
+            try {
+                Profile profile = DtoFactory.getInstance().createDto(Profile.class);
+                profile.setId(user.getId());
+                profile.setUserId(user.getId());
+                profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                              .withName("temporary")
+                                                              .withValue(String.valueOf(true))
+                                                              .withDescription("Indicates user as temporary")));
+                userProfileDao.create(profile);
+            } catch (UserProfileException e) {
+                userDao.remove(user.getId());
+                throw e;
+            }
+        } else {
+            //if user exists we don't need to create it
+            user = userDao.getByAlias(principal.getName());
+            if (user == null) {
+                throw new UserNotFoundException(principal.getName());
+            }
+        }
+        Member member = DtoFactory.getInstance().createDto(Member.class)
+                                  .withUserId(user.getId())
+                                  .withWorkspaceId(wsId)
+                                  .withRoles(Arrays.asList("workspace/developer"));
+        memberDao.create(member);
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }
 

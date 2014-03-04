@@ -17,14 +17,12 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuilderServiceAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
-import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -32,17 +30,16 @@ import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
-import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
-import com.codenvy.api.core.util.Pair;
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -50,12 +47,9 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +64,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Accepts all build request and redirects them to the slave-builders. If there is no any available slave-builder at the moment it stores
  * build request and tries send request again. Requests don't stay in this queue forever. Max time (in minutes) for request to be in the
- * queue set up by configuration parameter {@link #MAX_TIME_IN_QUEUE}.
+ * queue set up by configuration parameter {@code builder.queue.max_time_in_queue}.
  *
  * @author andrew00x
  * @author Eugene Voevodin
@@ -79,30 +73,37 @@ import java.util.concurrent.TimeUnit;
 public class BuildQueue {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
-    /**
-     * Name of configuration parameter that sets max time (in seconds) which request may be in this queue. After this time the results of
-     * build may be removed.
-     */
-    public static final String MAX_TIME_IN_QUEUE = "builder.queue.max_time_in_queue";
-    /** Name of configuration parameter that provides build timeout is seconds. After this time build may be terminated. */
-    public static final String BUILD_TIMEOUT     = "builder.queue.build_timeout";
-
     private static final long CHECK_AVAILABLE_BUILDER_DELAY = 2000;
 
     private final BuilderSelectionStrategy                   builderSelector;
     private final ExecutorService                            executor;
     private final ConcurrentMap<Long, BuildQueueTask>        tasks;
     private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
+    private final String                                     baseProjectApiUrl;
     private final int                                        timeout;
     /** Max time for request to be in queue in milliseconds. */
     private final long                                       maxTimeInQueueMillis;
 
     private boolean started;
 
+    /**
+     * @param baseProjectApiUrl
+     *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
+     *         the same base URL as builder API has, e.g. suppose we have builder API at URL: <i>http://codenvy.com/api/builder/my_workspace</i>,
+     *         in this case base URL is <i>http://codenvy.com/api</i> so we will try to find project API at URL:
+     *         <i>http://codenvy.com/api/project/my_workspace</i>
+     * @param maxTimeInQueue
+     *         max time for request to be in queue in seconds. Configuration parameter that sets max time (in seconds) which request may be
+     *         in this queue. After this time the results of build may be removed.
+     * @param timeout
+     *         build timeout. Configuration parameter that provides build timeout is seconds. After this time build may be terminated.
+     */
     @Inject
-    public BuildQueue(@Named(MAX_TIME_IN_QUEUE) int maxTimeInQueue,
-                      @Named(BUILD_TIMEOUT) int timeout,
+    public BuildQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
+                      @Named("builder.queue.max_time_in_queue") int maxTimeInQueue,
+                      @Named("builder.queue.build_timeout") int timeout,
                       BuilderSelectionStrategy builderSelector) {
+        this.baseProjectApiUrl = baseProjectApiUrl;
         this.timeout = timeout;
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.builderSelector = builderSelector;
@@ -167,7 +168,7 @@ public class BuildQueue {
         return registerBuilders(workspace, project, toAdd);
     }
 
-    private boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
+    boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
         final BuilderListKey key = new BuilderListKey(project, workspace);
         BuilderList builderList = builderListMapping.get(key);
         if (builderList == null) {
@@ -203,7 +204,7 @@ public class BuildQueue {
         return unregisterBuilders(toRemove);
     }
 
-    private boolean unregisterBuilders(List<RemoteBuilder> toRemove) {
+    boolean unregisterBuilders(List<RemoteBuilder> toRemove) {
         boolean modified = false;
         for (Iterator<BuilderList> i = builderListMapping.values().iterator(); i.hasNext(); ) {
             final BuilderList builderList = i.next();
@@ -255,6 +256,7 @@ public class BuildQueue {
                 if (builder == null) {
                     throw new BuilderException("There is no any builder available. ");
                 }
+                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
                 return builder.perform(request);
             }
         };
@@ -303,6 +305,7 @@ public class BuildQueue {
                 if (builder == null) {
                     throw new BuilderException("There is no any builder available. ");
                 }
+                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
                 return builder.perform(request);
             }
         };
@@ -326,44 +329,59 @@ public class BuildQueue {
             }
             request.setBuilder(builder);
         }
+
+        final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor);
+        if (zipballLink != null) {
+            request.setSourcesUrl(zipballLink.getHref());
+        }
+
         final String buildTargets = Constants.BUILDER_TARGETS.replace("${builder}", builder);
         final String buildOptions = Constants.BUILDER_OPTIONS.replace("${builder}", builder);
 
         for (Map.Entry<String, List<String>> entry : descriptor.getAttributes().entrySet()) {
-            if ("zipball_sources_url".equals(entry.getKey())) {
-                if (!entry.getValue().isEmpty()) {
-                    request.setSourcesUrl(entry.getValue().get(0));
-                }
-            } else if (buildTargets.equals(entry.getKey()) && request.getTargets().isEmpty()) {
+            if (buildTargets.equals(entry.getKey()) && request.getTargets().isEmpty()) {
                 if (!entry.getValue().isEmpty()) {
                     request.setTargets(entry.getValue());
                 }
-            } else if (buildOptions.equals(entry.getKey()) && request.getOptions().isEmpty()) {
+            } else if (buildOptions.equals(entry.getKey())) {
                 if (!entry.getValue().isEmpty()) {
-                    final Map<String, String> options = new LinkedHashMap<>();
+                    final Map<String, String> options = request.getOptions();
                     for (String str : entry.getValue()) {
                         if (str != null) {
                             final String[] pair = str.split("=");
-                            if (pair.length > 1) {
-                                options.put(pair[0], pair[1]);
-                            } else {
-                                options.put(pair[0], null);
+                            if (!options.containsKey(pair[0])) {
+                                if (pair.length > 1) {
+                                    options.put(pair[0], pair[1]);
+                                } else {
+                                    options.put(pair[0], null);
+                                }
                             }
                         }
                     }
-                    request.setOptions(options);
                 }
             }
         }
     }
 
+    private Link getLink(String rel, ProjectDescriptor descriptor) {
+        for (Link link : descriptor.getLinks()) {
+            if (rel.equals(link.getRel())) {
+                return link;
+            }
+        }
+        return null;
+    }
+
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
             throws IOException, RemoteException {
-        final UriBuilder baseUriBuilder = serviceContext.getBaseUriBuilder();
-        final String projectUrl = baseUriBuilder.path(ProjectService.class)
-                                                .path(ProjectService.class, "getProject")
-                                                .build(workspace).toString();
-        return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl, Pair.of("name", project));
+        final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
+                                                 ? serviceContext.getBaseUriBuilder()
+                                                 : UriBuilder.fromUri(baseProjectApiUrl);
+        final String projectUrl = baseProjectUriBuilder.path(ProjectService.class)
+                                                       .path(ProjectService.class, "getProject")
+                                                       .build(workspace, project.startsWith("/") ? project.substring(1) : project)
+                                                       .toString();
+        return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
     }
 
     private BuilderList getBuilderList(BaseBuilderRequest request) throws BuilderException {
@@ -442,56 +460,7 @@ public class BuildQueue {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        final InputStream regConf = Thread.currentThread().getContextClassLoader().getResourceAsStream("codenvy/builders.json");
-        if (regConf != null) {
-            try {
-                final BuilderRegistration[] registrations = JsonHelper.fromJson(regConf, BuilderRegistration[].class, null);
-                final List<RemoteBuilder> builders = new ArrayList<>(registrations.length);
-                for (BuilderRegistration registration : registrations) {
-                    final ServiceDescriptor serviceDescriptor = registration.getBuilderServiceDescriptor();
-                    for (BuilderDescriptor builderDescriptor : registration.getBuilderDescriptors()) {
-                        builders.add(new RemoteBuilder(serviceDescriptor.getHref(), builderDescriptor, serviceDescriptor.getLinks()));
-                    }
-                }
-                registerBuilders(null, null, builders);
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            } finally {
-                try {
-                    regConf.close();
-                } catch (IOException ignored) {
-                }
-            }
-        }
         started = true;
-    }
-
-    // For local registration of Builders on startup. Need it to avoid sending any HTTP requests during starting servlet container.
-    // This class MUST provide all required information about each Builder.
-    public final static class BuilderRegistration {
-        // info about remote builder service (rest service that is frontend for builders)
-        private ServiceDescriptor       builderServiceDescriptor;
-        // set of builders that must be available
-        private List<BuilderDescriptor> builderDescriptors;
-
-        public ServiceDescriptor getBuilderServiceDescriptor() {
-            return builderServiceDescriptor;
-        }
-
-        public void setBuilderServiceDescriptor(ServiceDescriptor builderServiceDescriptor) {
-            this.builderServiceDescriptor = builderServiceDescriptor;
-        }
-
-        public List<BuilderDescriptor> getBuilderDescriptors() {
-            if (builderDescriptors == null) {
-                return Collections.emptyList();
-            }
-            return builderDescriptors;
-        }
-
-        public void setBuilderDescriptors(List<BuilderDescriptor> builderDescriptors) {
-            this.builderDescriptors = builderDescriptors;
-        }
     }
 
     protected synchronized void checkStarted() {

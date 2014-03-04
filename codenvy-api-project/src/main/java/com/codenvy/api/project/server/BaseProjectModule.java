@@ -15,12 +15,19 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal;
+package com.codenvy.api.project.server;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@SuppressWarnings("serial")
-public final class NoSuchBuilderException extends BuilderException {
-    public NoSuchBuilderException(String name) {
-        super(String.format("Unknown builder %s", name));
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
+
+/** @author andrew00x */
+@DynaModule
+public class BaseProjectModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        Multibinder.newSetBinder(binder(), ProjectImporter.class).addBinding().to(ZipProjectImporter.class);
+        Multibinder.newSetBinder(binder(), ValueProviderFactory.class); /* empty binding */
+        Multibinder.newSetBinder(binder(), ProjectGenerator.class); /* empty binding */
     }
 }

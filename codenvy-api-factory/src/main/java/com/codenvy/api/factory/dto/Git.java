@@ -1,9 +1,9 @@
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.Compatibility;
+import com.codenvy.api.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.Compatibility.Optionality.OPTIONAL;
+import static com.codenvy.api.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
  * @author Sergii Kabashniuk
@@ -13,7 +13,7 @@ public interface Git {
     /**
      * @return Allows get ref-specs of the changes of remote repository
      */
-    @Compatibility(optionality = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL)
     String getConfigremoteoriginfetch();
 
     void setConfigremoteoriginfetch(String configremoteoriginfetch);
@@ -23,7 +23,7 @@ public interface Git {
      *
      * @return
      */
-    @Compatibility(optionality = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL)
     String getConfigpushdefault();
 
     void setConfigpushdefault(String configpushdefault);
@@ -39,7 +39,7 @@ public interface Git {
      * <p/>
      * vcsbranch should be not null.
      */
-    @Compatibility(optionality = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL)
     String getConfigbranchmerge();
 
     void setConfigbranchmerge(String configbranchmerge);

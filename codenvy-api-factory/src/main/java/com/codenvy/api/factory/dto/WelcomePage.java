@@ -12,7 +12,7 @@ public interface WelcomePage {
 
     /**
      * @return
-     **/
+     */
     WelcomeConfiguration getAuthenticated();
 
     void setAuthenticated(WelcomeConfiguration authenticated);
@@ -20,7 +20,7 @@ public interface WelcomePage {
 
     /**
      * @return
-     **/
+     */
     WelcomeConfiguration getNonauthenticated();
 
     void setNonauthenticated(WelcomeConfiguration nonauthenticated);

@@ -15,19 +15,23 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.factory.dto;
+package com.codenvy.api.factory.parameter;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.dto.shared.DTO;
+import com.codenvy.api.factory.FactoryUrlException;
+import com.codenvy.api.factory.dto.Factory;
 
-import java.util.List;
+import javax.inject.Singleton;
 
-/** Latest version of factory implementation */
-@DTO
-public interface Factory extends FactoryV1_2 {
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    Factory withLinks(List<Link> links);
+/**
+ * @author Alexander Garagatyi
+ */
+@Singleton
+public class IdCommitConverter implements FactoryParameterConverter {
+    @Override
+    public void convert(Object object) throws FactoryUrlException {
+        // TODO check that user didn't used multiple version of parameter
+        Factory factory = (Factory)object;
+        factory.setCommitid(factory.getIdcommit());
+        factory.setIdcommit(null);
+    }
 }

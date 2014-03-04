@@ -15,20 +15,19 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.factory;
+package com.codenvy.api.factory.parameter;
 
-import java.lang.reflect.Method;
+import com.codenvy.api.factory.FactoryUrlException;
 
 /**
  * @author Alexander Garagatyi
  */
-public interface CompatibilityConverter {
-    void convert(Method method, Object object) throws FactoryUrlException;
+public interface FactoryParameterConverter {
+    void convert(Object object) throws FactoryUrlException;
 
-    public static class DefaultCompatibilityConverter implements CompatibilityConverter {
-
+    public static class DefaultFactoryParameterConverter implements FactoryParameterConverter {
         @Override
-        public void convert(Method method, Object object) throws FactoryUrlException {
+        public void convert(Object object) throws FactoryUrlException {
             // do nothing
         }
     }

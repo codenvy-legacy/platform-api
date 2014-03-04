@@ -1,9 +1,9 @@
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.Compatibility;
+import com.codenvy.api.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.Compatibility.Optionality.OPTIONAL;
+import static com.codenvy.api.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
  * @author Sergii Kabashniuk
@@ -14,7 +14,7 @@ public interface Restriction {
     /**
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
      */
-    @Compatibility(optionality = OPTIONAL, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, trackedOnly = true)
     long getValidsince();
 
     void setValidsince(long validsince);
@@ -23,7 +23,7 @@ public interface Restriction {
     /**
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
-    @Compatibility(optionality = OPTIONAL, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, trackedOnly = true)
     long getValiduntil();
 
     void setValiduntil(long validuntil);
@@ -31,7 +31,7 @@ public interface Restriction {
     /**
      * @return referer dns name
      */
-    @Compatibility(optionality = OPTIONAL, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, trackedOnly = true)
     String getRefererhostname();
 
     void setRefererhostname(String refererhostname);
@@ -39,7 +39,7 @@ public interface Restriction {
     /**
      * @return Indicates that factory is password protected. Set by server
      */
-    @Compatibility(optionality = OPTIONAL, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, trackedOnly = true, setByServer = true)
     String getRestrictbypassword();
 
     void setRestrictbypassword(String restrictbypassword);
@@ -48,7 +48,7 @@ public interface Restriction {
     /**
      * @return Password asked for factory activation. Not exposed in any case.
      */
-    @Compatibility(optionality = OPTIONAL, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, trackedOnly = true)
     String getPassword();
 
     void setPassword(String password);
@@ -56,7 +56,7 @@ public interface Restriction {
     /**
      * @return It is a number that indicates the maximum number of sessions this factory is allowed to have.
      */
-    @Compatibility(optionality = OPTIONAL, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, trackedOnly = true)
     int getValidsessioncount();
 
     void setValidsessioncount(int validsessioncount);

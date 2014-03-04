@@ -22,7 +22,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
-import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

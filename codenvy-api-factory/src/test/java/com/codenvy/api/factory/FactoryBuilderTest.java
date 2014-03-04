@@ -19,6 +19,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
+import com.codenvy.api.factory.parameter.IgnoreConverter;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.mockito.InjectMocks;
@@ -105,7 +106,7 @@ public class FactoryBuilderTest {
         expectedFactory.setAction("action");
         expectedFactory.setWname("wname");
 
-        Factory newFactory = factoryBuilder.validateFactoryCompatibility(factory, Compatibility.Encoding.NONENCODED);
+        Factory newFactory = factoryBuilder.validateFactoryCompatibility(factory, FactoryParameter.Format.NONENCODED);
 
         assertEquals(newFactory, expectedFactory);
 

@@ -15,7 +15,9 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.factory;
+package com.codenvy.api.factory.parameter;
+
+import com.codenvy.api.factory.FactoryUrlException;
 
 import javax.inject.Singleton;
 import java.lang.reflect.InvocationTargetException;
@@ -25,11 +27,11 @@ import java.lang.reflect.Method;
  * @author Alexander Garagatyi
  */
 @Singleton
-public class IgnoreConverter implements CompatibilityConverter {
-    @Override
+public class IgnoreConverter {
     public void convert(Method method, Object object) throws FactoryUrlException {
         try {
             Class<?> returnClass = method.getReturnType();
+            // TODO improve by checking is it getSmth
             Method setMethod = object.getClass().getMethod("set" + method.getName().substring(3), returnClass);
             if (boolean.class.equals(returnClass)) {
                 method.invoke(object, false);

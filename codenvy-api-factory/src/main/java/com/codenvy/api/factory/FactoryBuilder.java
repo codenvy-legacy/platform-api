@@ -18,6 +18,9 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.*;
+import com.codenvy.api.factory.parameter.FactoryParameterConverter;
+import com.codenvy.api.factory.parameter.IgnoreConverter;
+import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
@@ -28,10 +31,11 @@ import javax.inject.Singleton;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+import java.net.*;
+import java.util.Map;
+import java.util.Set;
 
-import static com.codenvy.api.factory.Compatibility.*;
+import static com.codenvy.api.factory.FactoryParameter.*;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
@@ -207,7 +211,7 @@ public class FactoryBuilder {
      * @return - Factory object represented by given factory string.
      */
     public Factory buildNonEncoded(String queryString) throws FactoryUrlException {
-        /*if (queryString == null) {
+        if (queryString == null) {
             throw new FactoryUrlException("Query string is invalid.");
         }
         Map<String, Set<String>> params = null;
@@ -217,22 +221,17 @@ public class FactoryBuilder {
             throw new FactoryUrlException("Query string is invalid.");
         }
 
-        if (params.get("v") != null || params.get("v").size() != 1) {
-            throw new FactoryUrlException("Parameter v is missing or has multiple values.");
-        }
-
-        FactoryCompatibilityMap compatibilityMap = FactoryCompatibilityMap.create(params.get("v").iterator().next());
+        Factory factory = DtoFactory.getInstance().createDto(Factory.class);
         for (Map.Entry<String, Set<String>> entry : params.entrySet()) {
             String value;
             if (entry.getValue() == null || entry.getValue().size() != 1 || (value = entry.getValue().iterator().next()) == null) {
                 throw new FactoryUrlException(String.format("Value of parameter %s is illegal.", entry.getKey()));
             }
 
-            compatibilityMap.set(entry.getKey(), value);
+
         }
 
-        return compatibilityMap.getFactory();*/
-        return null;
+        return null; //validateFactoryCompatibility(factory, Format.ENCODED);
     }
 
     /**
@@ -242,8 +241,9 @@ public class FactoryBuilder {
      *         - json  Reader from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildEncoded(Reader json) throws IOException {
-        return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+    public Factory buildEncoded(Reader json) throws IOException, FactoryUrlException {
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+        return validateFactoryCompatibility(factory, Format.ENCODED);
     }
 
     /**
@@ -253,8 +253,9 @@ public class FactoryBuilder {
      *         - json  string from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildEncoded(String json) {
-        return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+    public Factory buildEncoded(String json) throws FactoryUrlException {
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+        return validateFactoryCompatibility(factory, Format.ENCODED);
     }
 
     /**
@@ -264,22 +265,23 @@ public class FactoryBuilder {
      *         - json  InputStream from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildEncoded(InputStream json) throws IOException {
-        return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+    public Factory buildEncoded(InputStream json) throws IOException, FactoryUrlException {
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+        return validateFactoryCompatibility(factory, Format.ENCODED);
     }
 
-    public Factory validateFactoryCompatibility(Factory factory, Encoding sourceEncoding) throws FactoryUrlException {
+    public Factory validateFactoryCompatibility(Factory factory, Format sourceFormat) throws FactoryUrlException {
         Version version = Version.fromString(factory.getV());
 
-        return (Factory)validateCompatibility(factory, version, sourceEncoding, factory.getOrgid() != null && !factory.getOrgid().isEmpty());
+        return (Factory)validateCompatibility(factory, version, sourceFormat, factory.getOrgid() != null && !factory.getOrgid().isEmpty());
     }
 
-    private Object validateCompatibility(Object object, Version version, Encoding sourceEncoding, boolean orgIdIsPresent)
+    private Object validateCompatibility(Object object, Version version, Format sourceFormat, boolean orgIdIsPresent)
             throws FactoryUrlException {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
-            Compatibility compatibility = getAnnotation(method);
-            if (compatibility != null) {
+            FactoryParameter factoryParameter = getAnnotation(method);
+            if (factoryParameter != null) {
                 // check that field is set
                 Object methodParameter;
                 try {
@@ -294,49 +296,55 @@ public class FactoryBuilder {
                 if (null == methodParameter || (Long.class.equals(methodParameter.getClass()) && (Long)methodParameter == 0) ||
                     (Boolean.class.equals(methodParameter.getClass()) && (Boolean)methodParameter == false)) {
                     // field mustn't be mandatory, unless it's ignored or deprecated
-                    if (Optionality.MANDATORY.equals(compatibility.optionality()) &&
-                        compatibility.deprecatedSince().compareTo(version) > 0 && compatibility.ignoredSince().compareTo(version) > 0) {
+                    if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
+                        factoryParameter.deprecatedSince().compareTo(version) > 0 &&
+                        factoryParameter.ignoredSince().compareTo(version) > 0) {
                         // TODO better solution must check that name of the method starts from 'get' or 'is' etc
                         throw new FactoryUrlException("Parameter " + method.getName().substring(3) + " is mandatory.");
                     }
                 } else {
-                    // is deprecated
-                    if (compatibility.deprecatedSince().compareTo(version) <= 0) {
+                    // is parameter deprecated
+                    if (factoryParameter.deprecatedSince().compareTo(version) <= 0) {
                         // TODO better solution must check that name of the method starts from 'get' or 'is' etc
                         throw new FactoryUrlException("Parameter " + method.getName().substring(3) + " is deprecated.");
                     }
 
-                    // is ignored
-                    if (compatibility.ignoredSince().compareTo(version) <= 0) {
+                    // is parameter ignored
+                    if (factoryParameter.ignoredSince().compareTo(version) <= 0) {
                         ignoreConverter.convert(method, object);
                         continue;
                     }
 
-                    // check that field satisfies encoding rules
-                    if (!Encoding.BOTH.equals(compatibility.encoding()) && !compatibility.encoding().equals(sourceEncoding)) {
+                    // is parameter ignored
+                    if (factoryParameter.setByServer()) {
+                        throw new FactoryUrlException("Parameter " + method.getName().substring(3) + " can't be set by user.");
+                    }
+
+                    // check that field satisfies format rules
+                    if (!Format.BOTH.equals(factoryParameter.format()) && !factoryParameter.format().equals(sourceFormat)) {
                         // TODO better solution must check that name of the method starts from 'get' or 'is' etc
                         throw new FactoryUrlException(
                                 "Parameter " + method.getName().substring(3) + " is unsupported for this type of factory.");
                     }
 
                     // check tracked-only fields
-                    if (orgIdIsPresent && compatibility.trackedOnly()) {
+                    if (orgIdIsPresent && factoryParameter.trackedOnly()) {
                         throw new FactoryUrlException("Parameter " + method.getName().substring(3) + " can't be used without 'orgid'.");
                     }
 
                     // TODO check that user didn't used multiple version of parameter such as pname
                     try {
                         // TODO add cache of converters
-                        CompatibilityConverter converter = compatibility.converter().newInstance();
-                        converter.convert(method, object);
+                        FactoryParameterConverter converter = factoryParameter.converter().newInstance();
+                        converter.convert(object);
                     } catch (InstantiationException | IllegalAccessException e) {
                         LOG.error(e.getLocalizedMessage(), e);
+                        // TODO proper message
                         throw new FactoryUrlException("Internal server error.");
                     }
 
-
                     // validate inner objects such Git ot ProjectAttributes
-                    validateCompatibility(methodParameter, version, sourceEncoding, orgIdIsPresent);
+                    validateCompatibility(methodParameter, version, sourceFormat, orgIdIsPresent);
                 }
             }
         }
@@ -344,13 +352,13 @@ public class FactoryBuilder {
         return object;
     }
 
-    private static Compatibility getAnnotation(Method baseMethod) {
+    private static FactoryParameter getAnnotation(Method baseMethod) {
         Method method;
         Class<?>[] interfaces = baseMethod.getDeclaringClass().getInterfaces();
         for (Class<?> factoryInterface : interfaces) {
             try {
                 method = factoryInterface.getDeclaredMethod(baseMethod.getName(), baseMethod.getParameterTypes());
-                return method.getAnnotation(Compatibility.class);
+                return method.getAnnotation(FactoryParameter.class);
             } catch (NoSuchMethodException ignored) {
             }
         }

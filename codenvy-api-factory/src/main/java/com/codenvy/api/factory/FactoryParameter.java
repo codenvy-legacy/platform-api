@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.parameter.FactoryParameterConverter;
+
 import java.lang.annotation.*;
 
 /**
@@ -26,27 +28,27 @@ import java.lang.annotation.*;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Compatibility {
-    public enum Optionality {
+public @interface FactoryParameter {
+    public enum Obligation {
         MANDATORY, OPTIONAL
     }
 
-    public enum Encoding {
+    public enum Format {
         ENCODED, NONENCODED, BOTH
     }
 
     public enum Version {
-        // NEVER must be the last constant
+        // NEVER must be the last defined constant
         V1_0, V1_1, V1_2, NEVER;
 
         public static Version fromString(String v) {
             if (null != v) {
                 switch (v) {
-                    case "1.0" :
+                    case "1.0":
                         return V1_0;
-                    case "1.1" :
+                    case "1.1":
                         return V1_1;
-                    case "1.2" :
+                    case "1.2":
                         return V1_2;
                 }
             }
@@ -55,9 +57,11 @@ public @interface Compatibility {
         }
     }
 
-    public Encoding encoding() default Encoding.BOTH;
+    public Format format() default Format.BOTH;
 
-    public Optionality optionality();
+    public Obligation obligation();
+
+    public boolean setByServer() default false;
 
     public boolean trackedOnly() default false;
 
@@ -65,5 +69,5 @@ public @interface Compatibility {
 
     public Version ignoredSince() default Version.NEVER;
 
-    public Class<? extends CompatibilityConverter> converter() default CompatibilityConverter.DefaultCompatibilityConverter.class;
+    public Class<? extends FactoryParameterConverter> converter() default FactoryParameterConverter.DefaultFactoryParameterConverter.class;
 }

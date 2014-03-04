@@ -108,18 +108,18 @@ public class WorkspaceService extends Service {
         }
         String accountId = newWorkspace.getAccountId();
         if (accountId == null || accountId.isEmpty() || accountDao.getById(accountId) == null)
-            throw new WorkspaceException("Incorrect account to link workspace with.");
+            throw new WorkspaceException("Incorrect account to associate workspace with.");
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
         if (!accountDao.getById(accountId).getOwner().equals(user.getId()))
-            throw new WorkspaceException("You can only create workspace linked to your own account.");
+            throw new WorkspaceException("You can only create workspace associated to your own account.");
 
         // Change with subscription check later
         if (workspaceDao.getByAccount(accountId).size() > 0)
-            throw new WorkspaceException("Given account already has workspaces.");
+            throw new WorkspaceException("Given account already has associated workspace.");
 
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);

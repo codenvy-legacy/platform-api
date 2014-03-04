@@ -24,7 +24,7 @@ import com.codenvy.api.analytics.dto.Constants;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.exception.MetricNotFoundException;
+import com.codenvy.api.analytics.dto.MetricValueListDTO;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
@@ -86,12 +86,20 @@ public class RemoteMetricHandler implements MetricHandler {
     }
     
     @Override
-    public List<MetricValueDTO> getValues(List<String> metricNames, Map<String, String> metricContext, UriInfo uriInfo) throws MetricNotFoundException {
-        List<MetricValueDTO> metricValues = new ArrayList<>();
-        for (String metricName : metricNames) {
-            metricValues.add(this.getValue(metricName, metricContext, uriInfo));
+    public MetricValueListDTO getValues(List<String> metricNames,
+                                   Map<String, String> executionContext,
+                                   UriInfo uriInfo) {
+        String proxyUrl = getProxyURL("getValues", "");
+        try {
+            List<Pair<String, String>> pairs = mapToParisList(executionContext);
+            return request(MetricValueListDTO.class,
+                           proxyUrl,
+                           "POST",
+                           metricNames,
+                           pairs.toArray(new Pair[pairs.size()]));
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
-        return metricValues;
     }
 
     @Override

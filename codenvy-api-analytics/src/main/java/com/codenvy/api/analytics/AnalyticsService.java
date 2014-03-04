@@ -67,11 +67,6 @@ public class AnalyticsService extends Service {
                              @Context UriInfo uriInfo,
                              @Context SecurityContext securityContext) {
         try {
-            MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
-            if (!isRolesAllowed(metricInfoDTO, securityContext)) {
-                return Response.status(Response.Status.UNAUTHORIZED).build();
-            }
-
             Map<String, String> metricContext = Utils.extractContext(uriInfo,
                                                                      securityContext.getUserPrincipal(),
                                                                      page,
@@ -113,13 +108,6 @@ public class AnalyticsService extends Service {
                              @Context UriInfo uriInfo,
                              @Context SecurityContext securityContext) {
         try {
-            for (String metricName : metricNames) {
-                MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
-                if (!isRolesAllowed(metricInfoDTO, securityContext)) {
-                    return Response.status(Response.Status.UNAUTHORIZED).build();
-                }
-            }
-
             Map<String, String> metricContext = Utils.extractContext(uriInfo,
                                                                      securityContext.getUserPrincipal(),
                                                                      page,
@@ -145,10 +133,6 @@ public class AnalyticsService extends Service {
                             @Context SecurityContext securityContext) {
         try {
             MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
-            if (!isRolesAllowed(metricInfoDTO, securityContext)) {
-                return Response.status(Response.Status.UNAUTHORIZED).build();
-            }
-
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
@@ -165,39 +149,10 @@ public class AnalyticsService extends Service {
                                @Context SecurityContext securityContext) {
         try {
             MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(uriInfo);
-
-            Iterator<MetricInfoDTO> iterator = metricInfoListDTO.getMetrics().iterator();
-            while (iterator.hasNext()) {
-                if (!isRolesAllowed(iterator.next(), securityContext)) {
-                    iterator.remove();
-                }
-            }
-
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
-    }
-
-    private boolean isRolesAllowed(MetricInfoDTO metricInfoDTO, SecurityContext securityContext) {
-        Principal principal = securityContext.getUserPrincipal();
-
-        if (principal != null && Utils.isSystemUser(principal.getName())) {
-            return true;
-        }
-
-        List<String> rolesAllowed = metricInfoDTO.getRolesAllowed();
-        if (rolesAllowed.isEmpty()) {
-            return true;
-        }
-
-        for (String role : rolesAllowed) {
-            if (securityContext.isUserInRole(role)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

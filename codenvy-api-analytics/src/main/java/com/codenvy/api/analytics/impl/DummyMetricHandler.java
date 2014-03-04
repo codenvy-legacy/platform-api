@@ -23,6 +23,7 @@ import com.codenvy.api.analytics.Utils;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.dto.MetricValueListDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -47,12 +48,14 @@ public class DummyMetricHandler implements MetricHandler {
     }
     
     @Override
-    public List<MetricValueDTO> getValues(List<String> metricNames, Map<String, String> metricContext, UriInfo uriInfo) throws MetricNotFoundException {
+    public MetricValueListDTO getValues(List<String> metricNames, Map<String, String> metricContext, UriInfo uriInfo) throws MetricNotFoundException {
+        MetricValueListDTO metricValueListDTO = DtoFactory.getInstance().createDto(MetricValueListDTO.class);
         List<MetricValueDTO> metricValues = new ArrayList<>();
         for (String metricName : metricNames) {
             metricValues.add(createDummyMetricValueDTO(metricName));
         }
-        return metricValues;
+        metricValueListDTO.setMetrics(metricValues);
+        return metricValueListDTO;
     }
 
     @Override

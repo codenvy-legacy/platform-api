@@ -42,7 +42,7 @@ public interface MetricHandler {
                                    Map<String, String> metricContext,
                                    UriInfo uriInfo) throws MetricNotFoundException;
     
-    public MetricValueListDTO getValues(List<String> metricNames,
+    public MetricValueListDTO getUserValues(List<String> metricNames,
                                           Map<String, String> metricContext,
                                           UriInfo uriInfo) throws MetricNotFoundException;
 

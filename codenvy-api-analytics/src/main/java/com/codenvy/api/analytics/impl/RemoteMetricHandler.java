@@ -86,10 +86,10 @@ public class RemoteMetricHandler implements MetricHandler {
     }
     
     @Override
-    public MetricValueListDTO getValues(List<String> metricNames,
+    public MetricValueListDTO getUserValues(List<String> metricNames,
                                    Map<String, String> executionContext,
                                    UriInfo uriInfo) {
-        String proxyUrl = getProxyURL("getValues", "");
+        String proxyUrl = getProxyURL("getUserValues", "");
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueListDTO.class,

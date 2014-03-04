@@ -22,6 +22,7 @@ package com.codenvy.api.analytics;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.dto.MetricValueListDTO;
 import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -97,23 +98,20 @@ public class AnalyticsService extends Service {
                         securityContext);
     }
     
-    @GenerateLink(rel = "list metric value")
+    @GenerateLink(rel = "list of metric values")
     @POST
     @Path("/metric/user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getValues(List<String> metricNames,
-                             @QueryParam("page") String page,
-                             @QueryParam("per_page") String perPage,
+    public Response getUserValues(List<String> metricNames,
                              @Context UriInfo uriInfo,
                              @Context SecurityContext securityContext) {
         try {
             Map<String, String> metricContext = Utils.extractContext(uriInfo,
-                                                                     securityContext.getUserPrincipal(),
-                                                                     page,
-                                                                     perPage);
+                                                                     securityContext.getUserPrincipal());
             
-            return Response.status(Response.Status.OK).entity(metricHandler.getValues(metricNames, metricContext, uriInfo)).build();
+            MetricValueListDTO list = metricHandler.getUserValues(metricNames, metricContext, uriInfo);
+            return Response.status(Response.Status.OK).entity(list).build();
         } catch (MetricNotFoundException e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.NOT_FOUND).build();

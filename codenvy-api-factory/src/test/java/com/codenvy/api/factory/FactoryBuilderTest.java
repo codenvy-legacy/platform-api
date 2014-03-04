@@ -29,8 +29,6 @@ import org.testng.annotations.*;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.List;
 
 import static org.testng.Assert.assertEquals;
 
@@ -79,7 +77,6 @@ public class FactoryBuilderTest {
             result[i][0] = new String(Files.readAllBytes(new File(resourcesDirectory, list[i]).toPath()), "UTF-8");
         }
 
-
         return result;
     }
 
@@ -108,7 +105,7 @@ public class FactoryBuilderTest {
         expectedFactory.setAction("action");
         expectedFactory.setWname("wname");
 
-        Factory newFactory = (Factory)factoryBuilder.validateFactoryCompatibility(factory, Compatibility.Encoding.NONENCODED);
+        Factory newFactory = factoryBuilder.validateFactoryCompatibility(factory, Compatibility.Encoding.NONENCODED);
 
         assertEquals(newFactory, expectedFactory);
 
@@ -244,89 +241,7 @@ public class FactoryBuilderTest {
             }
         });
 
-        factory.setVariables(new Variable() {
-            @Override
-            public List<String> getFiles() {
-                return Arrays.asList("file1", "file2");
-            }
-
-            @Override
-            public void setFiles(List<String> files) {
-
-            }
-
-            @Override
-            public List<Replacement> getEntries() {
-                return Arrays.asList(new Replacement() {
-                                         @Override
-                                         public String getFind() {
-                                             return "find1";
-                                         }
-
-                                         @Override
-                                         public void setFind(String find) {
-
-                                         }
-
-                                         @Override
-                                         public String getReplace() {
-                                             return "replace1";
-                                         }
-
-                                         @Override
-                                         public void setReplace(String replace) {
-
-                                         }
-
-                                         @Override
-                                         public String getReplacemode() {
-                                             return "replacemod1";
-                                         }
-
-                                         @Override
-                                         public void setReplacemode(String replacemode) {
-
-                                         }
-                                     }, new Replacement() {
-
-                                         @Override
-                                         public String getFind() {
-                                             return "find2";
-                                         }
-
-                                         @Override
-                                         public void setFind(String find) {
-
-                                         }
-
-                                         @Override
-                                         public String getReplace() {
-                                             return "replace2";
-                                         }
-
-                                         @Override
-                                         public void setReplace(String replace) {
-
-                                         }
-
-                                         @Override
-                                         public String getReplacemode() {
-                                             return "replacemod";
-                                         }
-
-                                         @Override
-                                         public void setReplacemode(String replacemode) {
-
-                                         }
-                                     }
-                                    );
-            }
-
-            @Override
-            public void setEntries(List<Replacement> entries) {
-
-            }
-        });
+        //factory.setVariables();
         factory.setGit(new Git() {
             @Override
             public String getConfigremoteoriginfetch() {

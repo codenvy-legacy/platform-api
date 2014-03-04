@@ -268,10 +268,10 @@ public class FactoryBuilder {
         return DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
     }
 
-    public Object validateFactoryCompatibility(Factory factory, Encoding sourceEncoding) throws FactoryUrlException {
+    public Factory validateFactoryCompatibility(Factory factory, Encoding sourceEncoding) throws FactoryUrlException {
         Version version = Version.fromString(factory.getV());
 
-        return validateCompatibility(factory, version, sourceEncoding, factory.getOrgid() != null && !factory.getOrgid().isEmpty());
+        return (Factory)validateCompatibility(factory, version, sourceEncoding, factory.getOrgid() != null && !factory.getOrgid().isEmpty());
     }
 
     private Object validateCompatibility(Object object, Version version, Encoding sourceEncoding, boolean orgIdIsPresent)

@@ -130,9 +130,9 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return Allow to use text replacement in project files after clone
      */
     @Compatibility(optionality = OPTIONAL)
-    Variable getVariables();
+    List<Variable> getVariables();
 
-    void setVariables(Variable variable);
+    void setVariables(List<Variable> variable);
 
     /**
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)

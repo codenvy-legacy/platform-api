@@ -19,6 +19,8 @@ package com.codenvy.api.workspace.server;
 
 import sun.security.acl.PrincipalImpl;
 
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
@@ -64,7 +66,6 @@ import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -87,6 +88,7 @@ public class WorkspaceServiceTest {
     private static final String WS_ID          = "workspace0xffffffffffffff";
     private static final String WS_NAME        = "ws1";
     private static final String USER_ID        = "user0xffffffffffffff";
+    private static final String ACCOUNT_ID     = "account0xffffffffffffff";
     private static final String PRINCIPAL_NAME = "Yoda@starwars.com";
 
     @Mock
@@ -97,6 +99,9 @@ public class WorkspaceServiceTest {
 
     @Mock
     private MemberDao memberDao;
+
+    @Mock
+    AccountDao accountDao;
 
     @Mock
     private UserProfileDao userProfileDao;
@@ -127,6 +132,7 @@ public class WorkspaceServiceTest {
         dependencies.addComponent(MemberDao.class, memberDao);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
+        dependencies.addComponent(AccountDao.class, accountDao);
         resources.addResource(WorkspaceService.class, null);
         requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
                                                 providers, dependencies, new EverrestConfiguration());
@@ -134,17 +140,19 @@ public class WorkspaceServiceTest {
         launcher = new ResourceLauncher(requestHandler);
         workspace = DtoFactory.getInstance().createDto(Workspace.class)
                               .withId(WS_ID)
-                              .withName(WS_NAME);
+                              .withName(WS_NAME)
+                              .withAccountId(ACCOUNT_ID);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(PRINCIPAL_NAME));
-
     }
 
     @Test
     public void shouldBeAbleToCreateNewWorkspace() throws Exception {
         User current = DtoFactory.getInstance().createDto(User.class)
                                  .withId(USER_ID);
+        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID).withOwner(USER_ID);
         when(userDao.getByAlias(PRINCIPAL_NAME)).thenReturn(current);
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(acc);
 
         String[] roles = getRoles(WorkspaceService.class, "create");
         for (String role : roles) {

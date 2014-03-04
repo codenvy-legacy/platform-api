@@ -17,12 +17,14 @@
  */
 package com.codenvy.api.factory;
 
+import javax.inject.Singleton;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
  * @author Alexander Garagatyi
  */
+@Singleton
 public class IgnoreConverter implements CompatibilityConverter {
     @Override
     public void convert(Method method, Object object) throws FactoryUrlException {

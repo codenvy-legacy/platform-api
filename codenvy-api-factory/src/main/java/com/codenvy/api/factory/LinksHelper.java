@@ -47,7 +47,7 @@ public class LinksHelper {
         // add path to factory service
         UriBuilder factoryUriBuilder = baseUriBuilder.clone().path(FactoryService.class);
         String factoryId = factoryUrl.getId();
-        Link link;
+        Link createProject;
 
         // uri to retrieve factory
         links.add(createLink("GET", "self", null, MediaType.APPLICATION_JSON,
@@ -68,15 +68,15 @@ public class LinksHelper {
         }
 
         // uri to accept factory
-        link = createLink("GET", "create-project", null, MediaType.TEXT_HTML,
-                          baseUriBuilder.clone().replacePath("factory").queryParam("id", factoryId).build().toString(), null);
-        links.add(link);
+        createProject = createLink("GET", "create-project", null, MediaType.TEXT_HTML,
+                                   baseUriBuilder.clone().replacePath("factory").queryParam("id", factoryId).build().toString(), null);
+        links.add(createProject);
 
         // links of analytics
         links.add(createLink("GET", "accepted", null, MediaType.TEXT_PLAIN,
-                             baseUriBuilder.clone().path("analytics").path("metric/FACTORY_URL_ACCEPTED_NUMBER")
-                                           .queryParam("factory_url", URLEncoder.encode(link.getHref(), "UTF-8"))
-                                           .build("FACTORY_URL_ACCEPTED_NUMBER").toString(), null));
+                             baseUriBuilder.clone().path("analytics").path("public-metric/factory_used")
+                                           .queryParam("factory", URLEncoder.encode(createProject.getHref(), "UTF-8")).build().toString(),
+                             null));
         return links;
     }
 

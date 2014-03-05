@@ -89,6 +89,8 @@ public class ProjectTest {
             public List<AttributeDescription> getAttributeDescriptions() {
                 return Arrays.asList(new AttributeDescription("calculated_attribute"));
             }
+
+
         });
         MemoryMountPoint mmp = new MemoryMountPoint(null, new VirtualFileSystemUserContext() {
             @Override

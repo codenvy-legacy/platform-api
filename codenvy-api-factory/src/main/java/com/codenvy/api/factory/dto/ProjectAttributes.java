@@ -17,10 +17,10 @@
  */
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.FactoryParameter;
+import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
 
 /** @author Sergii Kabashniuk */
 @DTO
@@ -31,7 +31,7 @@ public interface ProjectAttributes {
      * <p/>
      * Project name should be in valid format,
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "pname")
     String getPname();
 
     public void setPname(String pname);
@@ -39,7 +39,7 @@ public interface ProjectAttributes {
     /**
      * @return Project type.
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "ptype")
     public String getPtype();
 
     public void setPtype(String ptype);

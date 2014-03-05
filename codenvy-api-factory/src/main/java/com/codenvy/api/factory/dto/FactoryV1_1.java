@@ -1,28 +1,28 @@
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.FactoryParameter;
+import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.api.factory.parameter.ValidSinceConverter;
 import com.codenvy.api.factory.parameter.ValidUntilConverter;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
 
-import static com.codenvy.api.factory.FactoryParameter.Format.ENCODED;
-import static com.codenvy.api.factory.FactoryParameter.Obligation.OPTIONAL;
-import static com.codenvy.api.factory.FactoryParameter.Version.V1_1;
-import static com.codenvy.api.factory.FactoryParameter.Version.V1_2;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Format.ENCODED;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_1;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_2;
 
 /**
  * @author Sergii Kabashniuk
  */
 @DTO
 public interface FactoryV1_1 extends FactoryV1_0 {
-    @FactoryParameter(obligation = OPTIONAL, format = ENCODED, setByServer = true)
+    @FactoryParameter(obligation = OPTIONAL, name = "id", format = ENCODED, setByServer = true)
     String getId();
 
     void setId(String id);
 
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "projectattributes")
     ProjectAttributes getProjectattributes();
 
     void setProjectattributes(ProjectAttributes projectattributes);
@@ -30,7 +30,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Codenow  button style: vertical, horisontal, dark, wite
      */
-    @FactoryParameter(obligation = OPTIONAL, format = ENCODED)
+    @FactoryParameter(obligation = OPTIONAL, name = "style", format = ENCODED)
     String getStyle();
 
     void setStyle(String style);
@@ -39,7 +39,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Description of the factory.
      */
-    @FactoryParameter(obligation = OPTIONAL, format = ENCODED)
+    @FactoryParameter(obligation = OPTIONAL, name = "description", format = ENCODED)
     String getDescription();
 
     void setDescription(String description);
@@ -47,7 +47,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Author's email provided as meta information.
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "contactmail")
     String getContactmail();
 
     void setContactmail(String contactmail);
@@ -55,7 +55,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Author's as meta information.
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "author")
     String getAuthor();
 
     void setAuthor(String author);
@@ -64,7 +64,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return path of the file to open in the project.
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "openfile")
     String getOpenfile();
 
     void setOpenfile(String openfile);
@@ -75,7 +75,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * <p/>
      * This will allow us to group together many factories across a single organization.
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "orgid")
     String getOrgid();
 
     void setOrgid(String orgid);
@@ -86,7 +86,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * <p/>
      * referral fees on any business we generate from affiliates.
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "affiliateid")
     String getAffiliateid();
 
     void setAffiliateid(String affiliateid);
@@ -95,7 +95,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Indicates should .git folder be removed after cloning (allow commit to origin repository)
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "vcsinfo")
     boolean getVcsinfo();
 
     void setVcsinfo(boolean vcsinfo);
@@ -104,7 +104,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Allow to checkout to the latest commit in given branch
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "vcsbranch")
     String getVcsbranch();
 
     void setVcsbranch(String vcsbranch);
@@ -113,7 +113,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Id of user that create factory, set by the server
      */
-    @FactoryParameter(obligation = OPTIONAL, setByServer = true, format = ENCODED)
+    @FactoryParameter(obligation = OPTIONAL, name = "userid", setByServer = true, format = ENCODED)
     String getUserid();
 
     void setUserid(String userid);
@@ -121,7 +121,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Creation time of factory, set by the server (in milliseconds, from Unix epoch, no timezone)
      */
-    @FactoryParameter(obligation = OPTIONAL, setByServer = true, format = ENCODED)
+    @FactoryParameter(obligation = OPTIONAL, name = "created", setByServer = true, format = ENCODED)
     long getCreated();
 
     void setCreated(long created);
@@ -129,7 +129,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return Allow to use text replacement in project files after clone
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "variables")
     List<Variable> getVariables();
 
     void setVariables(List<Variable> variable);
@@ -138,7 +138,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true,
+    @FactoryParameter(obligation = OPTIONAL, name = "validsince", ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true,
                       converter = ValidSinceConverter.class)
     long getValidsince();
 
@@ -149,7 +149,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true,
+    @FactoryParameter(obligation = OPTIONAL, name = "validuntil", ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true,
                       converter = ValidUntilConverter.class)
     long getValiduntil();
 
@@ -159,7 +159,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return welcome page configuration.
      */
-    @FactoryParameter(obligation = OPTIONAL, format = ENCODED, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, name = "welcome", format = ENCODED, trackedOnly = true)
     WelcomePage getWelcome();
 
     void setWelcome(WelcomePage welcome);

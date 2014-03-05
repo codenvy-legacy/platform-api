@@ -1,13 +1,13 @@
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.FactoryParameter;
+import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.api.factory.parameter.*;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.FactoryParameter.Obligation.MANDATORY;
-import static com.codenvy.api.factory.FactoryParameter.Obligation.OPTIONAL;
-import static com.codenvy.api.factory.FactoryParameter.Version.V1_0;
-import static com.codenvy.api.factory.FactoryParameter.Version.V1_1;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.MANDATORY;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_0;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_1;
 
 /**
  * @author Sergii Kabashniuk
@@ -17,7 +17,7 @@ public interface FactoryV1_0 {
     /**
      * @return Version for Codenvy Factory API.
      */
-    @FactoryParameter(obligation = MANDATORY)
+    @FactoryParameter(obligation = MANDATORY, name = "v")
     String getV();
 
     void setV(String v);
@@ -25,7 +25,7 @@ public interface FactoryV1_0 {
     /**
      * @return Version Control System used. Now only one possible value: git
      */
-    @FactoryParameter(obligation = MANDATORY)
+    @FactoryParameter(obligation = MANDATORY, name = "vcs")
     String getVcs();
 
     void setVcs(String vcs);
@@ -33,7 +33,7 @@ public interface FactoryV1_0 {
     /**
      * @return Locations of sources in Version Control System.
      */
-    @FactoryParameter(obligation = MANDATORY)
+    @FactoryParameter(obligation = MANDATORY, name = "vcsurl")
     String getVcsurl();
 
     void setVcsurl(String vcs);
@@ -43,13 +43,13 @@ public interface FactoryV1_0 {
      * <p/>
      * (using the commit ID avoid to remember which branch the user was working on, it will b)
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "commitid")
     String getCommitid();
 
     void setCommitid(String commitid);
 
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, converter = IdCommitConverter.class, deprecatedSince = V1_1)
+    @FactoryParameter(obligation = OPTIONAL, name = "idcommit", converter = IdCommitConverter.class, deprecatedSince = V1_1)
     String getIdcommit();
 
     @Deprecated
@@ -63,7 +63,7 @@ public interface FactoryV1_0 {
      * specified by this spec: URL Scheme V3 for workspaces/projects#ImpactsonProjectnames
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, converter = PnameConverter.class, deprecatedSince = V1_1)
+    @FactoryParameter(obligation = OPTIONAL, name = "pname", converter = PnameConverter.class, deprecatedSince = V1_1)
     String getPname();
 
     @Deprecated
@@ -73,7 +73,7 @@ public interface FactoryV1_0 {
      * @return Project type.
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, converter = PtypeConverter.class, deprecatedSince = V1_1)
+    @FactoryParameter(obligation = OPTIONAL, name = "ptype", converter = PtypeConverter.class, deprecatedSince = V1_1)
     String getPtype();
 
     @Deprecated
@@ -84,13 +84,13 @@ public interface FactoryV1_0 {
      * <p/>
      * Currently, the only available value is openproject. More actions will be available in future.
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "action")
     String getAction();
 
     void setAction(String action);
 
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, ignoredSince = V1_0)
+    @FactoryParameter(obligation = OPTIONAL, name = "wname", ignoredSince = V1_0)
     String getWname();
 
     @Deprecated

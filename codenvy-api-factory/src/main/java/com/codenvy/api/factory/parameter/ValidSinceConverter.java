@@ -31,13 +31,14 @@ import javax.inject.Singleton;
 public class ValidSinceConverter implements FactoryParameterConverter {
     @Override
     public void convert(Object object) throws FactoryUrlException {
-        // TODO check that user didn't used multiple version of parameter
         Factory factory = (Factory)object;
 
         Restriction restriction = factory.getRestriction();
         if (restriction == null) {
             restriction = DtoFactory.getInstance().createDto(Restriction.class);
             factory.setRestriction(restriction);
+        } else if (restriction.getValidsince() != 0) {
+            throw new FactoryUrlException("Parameters 'validsince' and 'restriction.validsince' are mutually exclusive.");
         }
 
         restriction.setValidsince(factory.getValidsince());

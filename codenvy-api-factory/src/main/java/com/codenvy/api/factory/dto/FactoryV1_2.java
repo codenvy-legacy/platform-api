@@ -1,10 +1,10 @@
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.FactoryParameter;
+import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.FactoryParameter.Obligation.OPTIONAL;
-import static com.codenvy.api.factory.FactoryParameter.Version.V1_2;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_2;
 
 /**
  * @author Sergii Kabashniuk
@@ -14,7 +14,7 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return additinal git configuration
      */
-    @FactoryParameter(obligation = OPTIONAL)
+    @FactoryParameter(obligation = OPTIONAL, name = "git")
     Git getGit();
 
     void setGit(Git git);
@@ -22,7 +22,7 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return Factory acceptance restrictions
      */
-    @FactoryParameter(obligation = OPTIONAL, trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, name = "restriction", trackedOnly = true)
     Restriction getRestriction();
 
     void setRestriction(Restriction restriction);
@@ -30,7 +30,7 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return path to the image
      */
-    @FactoryParameter(obligation = OPTIONAL, deprecatedSince = V1_2)
+    @FactoryParameter(obligation = OPTIONAL, name = "image", deprecatedSince = V1_2)
     @Deprecated
     String getImage();
 

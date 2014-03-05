@@ -15,9 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.factory;
-
-import com.codenvy.api.factory.parameter.FactoryParameterConverter;
+package com.codenvy.api.factory.parameter;
 
 import java.lang.annotation.*;
 
@@ -53,7 +51,7 @@ public @interface FactoryParameter {
                 }
             }
 
-            throw new IllegalArgumentException(String.format("Unknown version %s.", v));
+            throw new IllegalArgumentException("Unknown version " + v + ".");
         }
     }
 
@@ -64,6 +62,8 @@ public @interface FactoryParameter {
     public boolean setByServer() default false;
 
     public boolean trackedOnly() default false;
+
+    public String name();
 
     public Version deprecatedSince() default Version.NEVER;
 

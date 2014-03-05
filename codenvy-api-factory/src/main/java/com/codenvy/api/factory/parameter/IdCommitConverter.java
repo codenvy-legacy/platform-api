@@ -29,9 +29,12 @@ import javax.inject.Singleton;
 public class IdCommitConverter implements FactoryParameterConverter {
     @Override
     public void convert(Object object) throws FactoryUrlException {
-        // TODO check that user didn't used multiple version of parameter
         Factory factory = (Factory)object;
-        factory.setCommitid(factory.getIdcommit());
-        factory.setIdcommit(null);
+        if (factory.getCommitid() == null && factory.getIdcommit() != null) {
+            factory.setCommitid(factory.getIdcommit());
+            factory.setIdcommit(null);
+        } else {
+            throw new FactoryUrlException("Parameters 'commitid' and 'idcommit' are mutually exclusive.");
+        }
     }
 }

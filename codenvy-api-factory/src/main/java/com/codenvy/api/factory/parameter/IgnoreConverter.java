@@ -28,15 +28,19 @@ import java.lang.reflect.Method;
  */
 @Singleton
 public class IgnoreConverter {
-    public void convert(Method method, Object object) throws FactoryUrlException {
+    public void convert(Method method, FactoryParameter factoryParameter, Object object) throws FactoryUrlException {
         try {
             Class<?> returnClass = method.getReturnType();
-            // TODO improve by checking is it getSmth
-            Method setMethod = object.getClass().getMethod("set" + method.getName().substring(3), returnClass);
+            String setterMethodName =
+                    "set" + Character.toUpperCase(factoryParameter.name().charAt(0)) + factoryParameter.name().substring(1);
+            Method setMethod = object.getClass().getMethod(setterMethodName, returnClass);
             if (boolean.class.equals(returnClass)) {
-                method.invoke(object, false);
+                setMethod.invoke(object, false);
+            } else if (returnClass.isPrimitive()) {
+                setMethod.invoke(object, 0);
             } else {
-                method.invoke(object);
+                Object[] params = {null};
+                setMethod.invoke(object, params);
             }
 
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {

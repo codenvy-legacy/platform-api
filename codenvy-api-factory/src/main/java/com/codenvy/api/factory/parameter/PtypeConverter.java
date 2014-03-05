@@ -31,14 +31,16 @@ import javax.inject.Singleton;
 public class PtypeConverter implements FactoryParameterConverter {
     @Override
     public void convert(Object object) throws FactoryUrlException {
-        // TODO check that user didn't used multiple version of parameter
         Factory factory = (Factory)object;
         ProjectAttributes attributes = factory.getProjectattributes();
         if (null == attributes) {
-            factory.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class));
-            attributes = factory.getProjectattributes();
+            attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
+            factory.setProjectattributes(attributes);
+        } else if (attributes.getPtype() != null) {
+            throw new FactoryUrlException("Parameters 'ptype' and 'projectsttributes.ptype' are mutually exclusive.");
         }
 
         attributes.setPtype(factory.getPtype());
+        factory.setPtype(null);
     }
 }

@@ -31,13 +31,14 @@ import javax.inject.Singleton;
 public class ValidUntilConverter implements FactoryParameterConverter {
     @Override
     public void convert(Object object) throws FactoryUrlException {
-        // TODO check that user didn't used multiple version of parameter
         Factory factory = (Factory)object;
 
         Restriction restriction = factory.getRestriction();
         if (restriction == null) {
             restriction = DtoFactory.getInstance().createDto(Restriction.class);
             factory.setRestriction(restriction);
+        } else if (restriction.getValiduntil() != 0) {
+            throw new FactoryUrlException("Parameters 'validuntil' and 'restriction.validuntil' are mutually exclusive.");
         }
 
         restriction.setValiduntil(factory.getValiduntil());

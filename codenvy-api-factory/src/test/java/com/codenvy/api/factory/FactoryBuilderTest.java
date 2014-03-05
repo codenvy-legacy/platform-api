@@ -19,16 +19,20 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
+import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.api.factory.parameter.IgnoreConverter;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.core.impl.uri.UriBuilderImpl;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.*;
 
+import javax.ws.rs.core.UriBuilder;
 import java.io.*;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 
 import static org.testng.Assert.assertEquals;
@@ -86,7 +90,6 @@ public class FactoryBuilderTest {
         factory.setV("1.0");
         factory.setVcs("vcs");
         factory.setVcsurl("vcsurl");
-        //factory.setCommitid("commitid");
         factory.setIdcommit("idcommit");
         factory.setPtype("ptype");
         factory.setPname("pname");
@@ -101,15 +104,43 @@ public class FactoryBuilderTest {
         projectAttributes.setPname("pname");
         projectAttributes.setPtype("ptype");
         expectedFactory.setProjectattributes(projectAttributes);
-        expectedFactory.setPtype("ptype");
-        expectedFactory.setPname("pname");
         expectedFactory.setAction("action");
-        expectedFactory.setWname("wname");
 
-        Factory newFactory = factoryBuilder.validateFactoryCompatibility(factory, FactoryParameter.Format.NONENCODED);
+        Factory newFactory;
+        //long start= System.currentTimeMillis();
+        //for (int i = 0; i < 1000; ++i) {
+            newFactory = factoryBuilder.validateFactoryCompatibility(factory, FactoryParameter.Format.NONENCODED);
+        //}
+        //System.err.println((System.currentTimeMillis() - start));
 
         assertEquals(newFactory, expectedFactory);
 
+    }
+
+    @Test
+    public void shouldBeAbleToValidateNonEncodedFactory1_2() throws FactoryUrlException, UnsupportedEncodingException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("v=").append("1.2").append("&");
+        sb.append("vcs=").append("git").append("&");
+        sb.append("vcsurl=").append(URLEncoder.encode("https://github.com/codenvy/commons.git", "UTF-8")).append("&");
+        sb.append("commitid=").append("7896464674879").append("&");
+        sb.append("projectattributes.ptype=").append("type").append("&");
+        sb.append("projectattributes.pname=").append("name").append("&");
+        sb.append("action=").append("openReadme").append("&");
+        sb.append("wname=").append("codenvy");
+
+        expectedFactory.setV("1.2");
+        expectedFactory.setVcs("git");
+        expectedFactory.setVcsurl("https://github.com/codenvy/commons.git");
+        expectedFactory.setCommitid("7896464674879");
+        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
+        projectAttributes.setPname("name");
+        projectAttributes.setPtype("type");
+        expectedFactory.setProjectattributes(projectAttributes);
+        expectedFactory.setAction("openReadme");
+
+        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        assertEquals(newFactory, expectedFactory);
     }
 
     @Test

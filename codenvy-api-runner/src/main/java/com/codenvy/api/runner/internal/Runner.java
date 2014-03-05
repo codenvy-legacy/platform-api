@@ -17,18 +17,21 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
 import com.codenvy.api.runner.RunnerException;
+import com.codenvy.api.runner.internal.dto.CallbackEvent;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.commons.lang.IoUtil;
+import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,14 +187,10 @@ public abstract class Runner {
         checkStarted();
         // TODO: cleanup
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
-        final Long id = processIdSequence.getAndIncrement();
-        final String webHookUrl = request.getWebHookUrl();
-        final RunnerProcessImpl process = new RunnerProcessImpl(id,
-                                                                getName(),
-                                                                runnerCfg,
-                                                                webHookUrl == null ? null : new WebHookCallback(webHookUrl));
+        final Long internalId = processIdSequence.getAndIncrement();
+        final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, new MyCallback());
         purgeExpiredProcesses();
-        processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
+        processes.put(internalId, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem)
@@ -445,35 +444,31 @@ public abstract class Runner {
         }
     }
 
-    private static class WebHookCallback implements RunnerProcess.Callback {
-        final String url;
-
-        WebHookCallback(String url) {
-            this.url = url;
-        }
-
+    private static class MyCallback implements RunnerProcess.Callback {
         @Override
         public void started(RunnerProcess process) {
-            try {
-                HttpJsonHelper.post(null, url, null, Pair.of("event", "started"));
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
+            broadcastEvent(process.getConfiguration().getRequest().getId(), "started");
         }
 
         @Override
         public void stopped(RunnerProcess process) {
-            try {
-                HttpJsonHelper.post(null, url, null, Pair.of("event", "stopped"));
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
+            broadcastEvent(process.getConfiguration().getRequest().getId(), "stopped");
         }
 
         @Override
         public void error(RunnerProcess process, Throwable t) {
+            broadcastEvent(process.getConfiguration().getRequest().getId(), "error");
+        }
+
+        private void broadcastEvent(long requestId, String state) {
             try {
-                HttpJsonHelper.post(null, url, null, Pair.of("event", "error"));
+                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                bm.setChannel("runner:internal:eventbus");
+                bm.setUuid(NameGenerator.generate(null, 8));
+                final DtoFactory dtoFactory = DtoFactory.getInstance();
+                final CallbackEvent event = dtoFactory.createDto(CallbackEvent.class).withRequestId(requestId).withState(state);
+                bm.setBody(dtoFactory.toJson(event));
+                WSConnectionContext.sendMessage(bm);
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
             }

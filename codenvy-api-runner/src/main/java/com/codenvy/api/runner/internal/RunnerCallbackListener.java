@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- * [2012] - [2013] Codenvy, S.A.
- * All Rights Reserved.
- *
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
+ *  All Rights Reserved.
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,13 +15,13 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.observation;
+package com.codenvy.api.runner.internal;
+
+import com.codenvy.api.runner.internal.dto.CallbackEvent;
 
 /**
- * Handler for errors occurred when process events.
- *
  * @author andrew00x
  */
-public interface ErrorHandler {
-    void onError(Event event, Throwable error);
+public interface RunnerCallbackListener {
+    void handleEvent(CallbackEvent event);
 }

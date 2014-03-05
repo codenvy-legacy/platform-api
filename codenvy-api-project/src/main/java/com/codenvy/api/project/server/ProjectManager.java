@@ -18,9 +18,26 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.ProjectDescription;
+import com.codenvy.api.project.shared.dto.ProjectUpdateEvent;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.server.observation.CreateEvent;
+import com.codenvy.api.vfs.server.observation.DeleteEvent;
+import com.codenvy.api.vfs.server.observation.EventListener;
+import com.codenvy.api.vfs.server.observation.MoveEvent;
+import com.codenvy.api.vfs.server.observation.NotificationService;
+import com.codenvy.api.vfs.server.observation.RenameEvent;
+import com.codenvy.api.vfs.server.observation.UpdateACLEvent;
+import com.codenvy.api.vfs.server.observation.UpdateContentEvent;
+import com.codenvy.api.vfs.server.observation.UpdatePropertiesEvent;
+import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.dto.server.DtoFactory;
+
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,6 +53,12 @@ import java.util.Set;
  */
 @Singleton
 public final class ProjectManager {
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectManager.class);
+
+    static {
+        NotificationService.register(new ProjectUpdateListener());
+    }
+
     private final ProjectTypeRegistry               projectTypeRegistry;
     private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
     private final Map<String, ValueProviderFactory> valueProviderFactories;
@@ -107,5 +130,86 @@ public final class ProjectManager {
 
     public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {
         return fileSystemRegistry;
+    }
+
+    public static class ProjectUpdateListener implements EventListener {
+        @Override
+        public void create(CreateEvent event) {
+            try {
+                DtoFactory.getInstance().createDto(ProjectUpdateEvent.class)
+                          .withEventType(event.getType().toString())
+                          .withFolder(event.getVirtualFile().isFolder())
+                          .withMediaType(event.getVirtualFile().getMediaType())
+                          .withPath(event.getVirtualFile().getPath());
+            } catch (VirtualFileSystemException e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void move(MoveEvent event) {
+            try {
+                DtoFactory.getInstance().createDto(ProjectUpdateEvent.class)
+                          .withEventType(event.getType().toString())
+                          .withFolder(event.getVirtualFile().isFolder())
+                          .withMediaType(event.getVirtualFile().getMediaType())
+                          .withPath(event.getVirtualFile().getPath())
+                          .withPath(event.getOldPath());
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void rename(RenameEvent event) {
+            try {
+                DtoFactory.getInstance().createDto(ProjectUpdateEvent.class)
+                          .withEventType(event.getType().toString())
+                          .withFolder(event.getVirtualFile().isFolder())
+                          .withMediaType(event.getVirtualFile().getMediaType())
+                          .withPath(event.getVirtualFile().getPath())
+                          .withPath(event.getOldPath());
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void delete(DeleteEvent event) {
+            DtoFactory.getInstance().createDto(ProjectUpdateEvent.class)
+                      .withEventType(event.getType().toString())
+                      .withFolder(event.isFolder())
+                      .withPath(event.getPath());
+        }
+
+        @Override
+        public void updateContent(UpdateContentEvent event) {
+            try {
+                send(DtoFactory.getInstance().createDto(ProjectUpdateEvent.class)
+                               .withEventType(event.getType().toString())
+                               .withFolder(event.getVirtualFile().isFolder())
+                               .withMediaType(event.getVirtualFile().getMediaType())
+                               .withPath(event.getVirtualFile().getPath()));
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void updateProperties(UpdatePropertiesEvent event) {
+        }
+
+        @Override
+        public void updateACL(UpdateACLEvent event) {
+        }
+
+        private void send(ProjectUpdateEvent updateEvent) throws Exception {
+//            final ChannelBroadcastMessage message = new ChannelBroadcastMessage();
+//            message.setChannel("project:update");
+//            message.setType(ChannelBroadcastMessage.Type.NONE);
+//            message.setUuid(NameGenerator.generate(null, 16));
+//            message.setBody(DtoFactory.getInstance().toJson(updateEvent));
+//            WSConnectionContext.sendMessage(message);
+        }
     }
 }

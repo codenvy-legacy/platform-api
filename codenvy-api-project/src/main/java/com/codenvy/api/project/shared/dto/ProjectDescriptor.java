@@ -30,6 +30,14 @@ import java.util.Map;
  */
 @DTO
 public interface ProjectDescriptor {
+    /** Get name of project. */
+    String getName();
+
+    /** Set name of project. */
+    void setName(String name);
+
+    ProjectDescriptor withName(String name);
+
     /** Get unique ID of type of project. */
     String getProjectTypeId();
 

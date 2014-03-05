@@ -24,7 +24,6 @@ import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +59,10 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     }
 
     @Override
-    public VirtualFileSystem newInstance(URI baseUri, EventListenerList listeners) throws VirtualFileSystemException {
+    public VirtualFileSystem newInstance(URI baseUri) throws VirtualFileSystemException {
         final MemoryMountPoint memoryMountPoint = (MemoryMountPoint)getMountPoint(true);
         return new MemoryFileSystem(
                 baseUri == null ? URI.create("") : baseUri,
-                listeners,
                 getWorkspaceId(),
                 memoryMountPoint.getUserContext(),
                 memoryMountPoint,

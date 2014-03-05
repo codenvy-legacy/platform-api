@@ -19,13 +19,12 @@ package com.codenvy.api.vfs.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 @DTO
 public interface Link {
     // Folder
     String REL_CHILDREN        = "children";
     String REL_TREE            = "tree";
-    String REL_CREATE_PROJECT  = "create-project";
     String REL_CREATE_FOLDER   = "create-folder";
     String REL_CREATE_FILE     = "create-file";
     String REL_UPLOAD_FILE     = "upload-file";

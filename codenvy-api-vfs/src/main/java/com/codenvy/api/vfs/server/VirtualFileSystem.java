@@ -33,7 +33,6 @@ import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.ItemList;
 import com.codenvy.api.vfs.shared.dto.ItemNode;
 import com.codenvy.api.vfs.shared.dto.Lock;
-import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
@@ -54,7 +53,7 @@ import java.util.List;
 /**
  * Virtual file system abstraction.
  *
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface VirtualFileSystem {
     /**
@@ -68,7 +67,7 @@ public interface VirtualFileSystem {
      * @throws ItemNotFoundException
      *         if <code>source</code> or <code>parentId</code> does not exist
      * @throws ConstraintException
-     *         if <code>parentId</code> is not a folder or project
+     *         if <code>parentId</code> is not a folder
      * @throws ItemAlreadyExistException
      *         if <code>parentId</code> already contains item with the same name
      * @throws PermissionDeniedException
@@ -99,7 +98,7 @@ public interface VirtualFileSystem {
      * @throws InvalidArgumentException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>parentId</code> is not a folder or project</li>
+     *         <li><code>parentId</code> is not a folder</li>
      *         <li><code>name</code> is not specified</li>
      *         </ul>
      * @throws ItemAlreadyExistException
@@ -130,7 +129,7 @@ public interface VirtualFileSystem {
      * @throws InvalidArgumentException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>parentId</code> is not a folder or project</li>
+     *         <li><code>parentId</code> is not a folder</li>
      *         <li><code>name</code> is not specified</li>
      *         </ul>
      * @throws ItemAlreadyExistException
@@ -146,43 +145,6 @@ public interface VirtualFileSystem {
     Folder createFolder(String parentId, String name) throws ItemNotFoundException, InvalidArgumentException,
                                                              ItemAlreadyExistException, PermissionDeniedException,
                                                              VirtualFileSystemException;
-
-    /**
-     * Create new project in specified folder.
-     * <p/>
-     * NOTE: It should NOT be allowable to create project inside project
-     *
-     * @param parentId
-     *         parent's folder id
-     * @param name
-     *         project name
-     * @param type
-     *         project type
-     * @param properties
-     *         properties
-     * @return newly created project
-     * @throws ItemNotFoundException
-     *         if <code>parentId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if any of following conditions are met:
-     *         <ul>
-     *         <li><code>parentId</code> is not a folder</li>
-     *         <li><code>name</code> is not specified</li>
-     *         <li><code>type</code> is not specified</li>
-     *         </ul>
-     * @throws ItemAlreadyExistException
-     *         if <code>parentId</code> already contains item with the same name
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
-     *         if any other errors occur
-     */
-    @POST
-    @Path("project")
-    @Produces({MediaType.APPLICATION_JSON})
-    Project createProject(String parentId, String name, String type, List<Property> properties)
-            throws ItemNotFoundException, InvalidArgumentException, ItemAlreadyExistException, PermissionDeniedException,
-                   VirtualFileSystemException;
 
     /**
      * Delete item <code>id</code>. If item is folder then all children of this folder should be removed or
@@ -282,7 +244,6 @@ public interface VirtualFileSystem {
      *         <ul>
      *         <li>file</li>
      *         <li>folder</li>
-     *         <li>project</li>
      *         </ul>
      * @param includePermissions
      *         if <code>true</code> add permissions for current user for each item. See {@link
@@ -297,7 +258,7 @@ public interface VirtualFileSystem {
      * @throws InvalidArgumentException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>folderId</code> is not a folder or project</li>
+     *         <li><code>folderId</code> is not a folder</li>
      *         <li><code>skipCount</code> is negative or greater then total number of items</li>
      *         <li><code>itemType</code> is not <code>null</code> and not one of the known item types</li>
      *         </ul>
@@ -340,7 +301,7 @@ public interface VirtualFileSystem {
      * @throws ItemNotFoundException
      *         if <code>folderId</code> does not exist
      * @throws InvalidArgumentException
-     *         if <code>folderId</code> is not a folder or project
+     *         if <code>folderId</code> is not a folder
      * @throws PermissionDeniedException
      *         if user which perform operation has no permissions to do it
      * @throws VirtualFileSystemException
@@ -901,7 +862,7 @@ public interface VirtualFileSystem {
      * @throws ItemNotFoundException
      *         if <code>folderId</code> does not exist
      * @throws InvalidArgumentException
-     *         if <code>folderId</code> item is not a folder or project
+     *         if <code>folderId</code> item is not a folder
      * @throws PermissionDeniedException
      *         if user which perform operation has no permissions to do it
      * @throws IOException
@@ -948,7 +909,7 @@ public interface VirtualFileSystem {
      * @throws ItemNotFoundException
      *         if <code>folderId</code> does not exist
      * @throws InvalidArgumentException
-     *         if <code>folderId</code> item is not a folder or project
+     *         if <code>folderId</code> item is not a folder
      * @throws PermissionDeniedException
      *         if user which perform operation has no permissions to do it
      * @throws IOException
@@ -1025,7 +986,7 @@ public interface VirtualFileSystem {
      * @throws InvalidArgumentException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>parentId</code> is not a folder or project</li>
+     *         <li><code>parentId</code> is not a folder</li>
      *         <li>If form does not contain all required fields. Set of fields is implementation specific.</li>
      *         </ul>
      * @throws ItemAlreadyExistException
@@ -1059,7 +1020,7 @@ public interface VirtualFileSystem {
      * @throws ItemNotFoundException
      *         if <code>folderId</code> does not exist
      * @throws InvalidArgumentException
-     *         if <code>folderId</code> item is not a folder or project
+     *         if <code>folderId</code> item is not a folder
      * @throws PermissionDeniedException
      *         if user which perform operation has no permissions to do it
      * @throws IOException

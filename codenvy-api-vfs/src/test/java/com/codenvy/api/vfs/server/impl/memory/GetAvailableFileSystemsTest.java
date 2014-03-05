@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/** @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class GetAvailableFileSystemsTest extends MemoryFileSystemTest {
     public void testAvailableFS() throws Exception {
         String path = BASE_URI + "/vfs/my-ws";

@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- * [2012] - [2013] Codenvy, S.A.
- * All Rights Reserved.
- *
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
+ *  All Rights Reserved.
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -17,11 +17,26 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
+import com.codenvy.api.vfs.server.VirtualFileSystemUser;
+
 /**
- * Handler for errors occurred when process events.
- *
  * @author andrew00x
  */
-public interface ErrorHandler {
-    void onError(Event event, Throwable error);
+public class DeleteEvent extends Event {
+    private final String  path;
+    private final boolean isFolder;
+
+    public DeleteEvent(String path, boolean isFolder, VirtualFileSystemUser user) {
+        super(null, ChangeType.DELETED, user);
+        this.path = path;
+        this.isFolder = isFolder;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public boolean isFolder() {
+        return isFolder;
+    }
 }

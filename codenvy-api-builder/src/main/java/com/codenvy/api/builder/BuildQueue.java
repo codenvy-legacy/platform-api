@@ -256,6 +256,7 @@ public class BuildQueue {
                 if (builder == null) {
                     throw new BuilderException("There is no any builder available. ");
                 }
+                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
                 return builder.perform(request);
             }
         };
@@ -304,6 +305,7 @@ public class BuildQueue {
                 if (builder == null) {
                     throw new BuilderException("There is no any builder available. ");
                 }
+                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
                 return builder.perform(request);
             }
         };

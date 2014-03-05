@@ -18,16 +18,12 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
 import com.codenvy.api.factory.dto.Link;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.core.impl.provider.json.JsonException;
-import org.everrest.core.impl.provider.json.JsonParser;
-import org.everrest.core.impl.provider.json.JsonValue;
-import org.everrest.core.impl.provider.json.ObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,16 +33,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import javax.ws.rs.core.*;
+import java.io.*;
+import java.util.*;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
@@ -98,10 +87,7 @@ public class FactoryService extends Service {
             for (Part part : request.getParts()) {
                 String fieldName = part.getName();
                 if (fieldName.equals("factoryUrl")) {
-                    JsonParser jsonParser = new JsonParser();
-                    jsonParser.parse(part.getInputStream());
-                    JsonValue jsonValue = jsonParser.getJsonObject();
-                    factoryUrl = ObjectBuilder.createObject(AdvancedFactoryUrl.class, jsonValue);
+                    factoryUrl = DtoFactory.getInstance().createDtoFromJson(part.getInputStream(), AdvancedFactoryUrl.class);
                 } else if (fieldName.equals("image")) {
                     try (InputStream inputStream = part.getInputStream()) {
                         FactoryImage factoryImage =
@@ -151,7 +137,7 @@ public class FactoryService extends Service {
                     nullToEmpty(factoryUrl.getOrgid()));
 
             return factoryUrl;
-        } catch (IOException | JsonException | ServletException e) {
+        } catch (IOException | ServletException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getLocalizedMessage(), e);
         }

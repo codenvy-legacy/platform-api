@@ -45,6 +45,13 @@ import java.util.Set;
 public class LocalRunQueue extends RunQueue {
     private final List<RemoteRunner> remoteRunners;
 
+    // work-around to be bale configure port.
+    static class SlaveRunnerPortHolder {
+        @com.google.inject.Inject(optional = true)
+        @Named("runner.queue.local.slave_runner_port")
+        private int port = 8080;
+    }
+
     /**
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
@@ -70,9 +77,10 @@ public class LocalRunQueue extends RunQueue {
                          @Named("runner.queue.max_time_in_queue") int maxTimeInQueue,
                          @Named("runner.queue.app_lifetime") int appLifetime,
                          RunnerSelectionStrategy runnerSelector,
+                         SlaveRunnerPortHolder portHolder,
                          Set<Runner> runners) {
         super(baseProjectApiUrl, baseBuilderApiUrl, defMemSize, maxTimeInQueue, appLifetime, runnerSelector);
-        final String baseUrl = "http://localhost:8080/api/internal/runner";
+        final String baseUrl = String.format("http://localhost:%s/api/internal/runner", portHolder.port);
         final List<Link> links = new ArrayList<>();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel("runner state")

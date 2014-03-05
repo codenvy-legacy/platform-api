@@ -165,7 +165,13 @@ public class DtoGenerator {
             for (Class<?> clazz : dtosDependencies) {
                 for (Class impl : reflection.getSubTypesOf(clazz)) {
                     if (!(impl.isInterface() || urls.contains(impl.getProtectionDomain().getCodeSource().getLocation()))) {
-                        dtoTemplate.addImplementation(clazz, impl);
+                        if (DtoGenerator.this.impl.equals(CLIENT)) {
+                            if (isClientImpl(impl)) {
+                                dtoTemplate.addImplementation(clazz, impl);
+                            }
+                        } else if (!isClientImpl(impl)) {
+                            dtoTemplate.addImplementation(clazz, impl);
+                        }
                     }
                 }
             }
@@ -190,6 +196,10 @@ public class DtoGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean isClientImpl(Class impl) {
+        return impl.getName().contains(".client.");
     }
 
     private static String getApiHash(String packageName) throws IOException {

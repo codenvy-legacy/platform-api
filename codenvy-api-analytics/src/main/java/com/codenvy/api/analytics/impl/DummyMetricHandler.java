@@ -42,13 +42,17 @@ import java.util.Random;
 public class DummyMetricHandler implements MetricHandler {
 
     @Override
-    public MetricValueDTO getValue(String metricName, Map<String, String> metricContext, UriInfo uriInfo)
+    public MetricValueDTO getValue(String metricName, 
+                                   Map<String, String> metricContext, 
+                                   UriInfo uriInfo)
             throws MetricNotFoundException {
         return createDummyMetricValueDTO(metricName);
     }
     
     @Override
-    public MetricValueListDTO getUserValues(List<String> metricNames, Map<String, String> metricContext, UriInfo uriInfo) throws MetricNotFoundException {
+    public MetricValueListDTO getUserValues(List<String> metricNames, 
+                                            Map<String, String> metricContext, 
+                                            UriInfo uriInfo) throws MetricNotFoundException {
         MetricValueListDTO metricValueListDTO = DtoFactory.getInstance().createDto(MetricValueListDTO.class);
         List<MetricValueDTO> metricValues = new ArrayList<>();
         for (String metricName : metricNames) {

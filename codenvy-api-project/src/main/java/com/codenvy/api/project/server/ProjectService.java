@@ -378,6 +378,7 @@ public class ProjectService extends Service {
                          .withChildren(getTree(workspace, folder, depth));
     }
 
+    // TODO: Temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
     private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) {
         if (depth == 0 || !entry.isFolder()) {
             return null;

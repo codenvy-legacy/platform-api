@@ -20,6 +20,7 @@ package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.exception.AccountException;
+import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -74,6 +75,7 @@ import java.util.List;
  * Workspace API
  *
  * @author Eugene Voevodin
+ * @author Max Shaposhnik
  */
 @Path("/workspace")
 public class WorkspaceService extends Service {
@@ -107,19 +109,22 @@ public class WorkspaceService extends Service {
             throw new WorkspaceException("Missed workspace to create");
         }
         String accountId = newWorkspace.getAccountId();
-        if (accountId == null || accountId.isEmpty() || accountDao.getById(accountId) == null)
+        Account currentAcc;
+        if (accountId == null || accountId.isEmpty() || (currentAcc = accountDao.getById(accountId)) == null) {
             throw new WorkspaceException("Incorrect account to associate workspace with.");
+        }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        if (!accountDao.getById(accountId).getOwner().equals(user.getId()))
+        if (!currentAcc.getOwner().equals(user.getId())) {
             throw new WorkspaceException("You can only create workspace associated to your own account.");
-
-        // Change with subscription check later
-        if (workspaceDao.getByAccount(accountId).size() > 0)
+        }
+//        TODO change with subscription check later
+        if (workspaceDao.getByAccount(accountId).size() > 0) {
             throw new WorkspaceException("Given account already has associated workspace.");
+        }
 
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
@@ -239,8 +244,11 @@ public class WorkspaceService extends Service {
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Workspace> getWorkspacesByAccount(@Context SecurityContext securityContext,
-                                                  @QueryParam("id") String accountId)
+                                                  @Required @Description("Account id to get workspaces") @QueryParam("id") String accountId)
             throws WorkspaceException, UserException, MembershipException {
+        if (accountId == null) {
+            throw new WorkspaceException("Account id required");
+        }
         final List<Workspace> workspaces = new ArrayList<>();
         for (Workspace workspace : workspaceDao.getByAccount(accountId)) {
             injectLinks(workspace, securityContext);

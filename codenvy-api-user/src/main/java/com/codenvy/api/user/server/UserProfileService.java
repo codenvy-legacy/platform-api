@@ -53,6 +53,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -106,14 +107,10 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update current")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateCurrent(@Context SecurityContext securityContext,
-                                 @Required @Description("updates for profile") List<Attribute> updates)
+    public Profile updateCurrent(@Context SecurityContext securityContext, @Description("updates for profile") List<Attribute> updates)
             throws UserException, UserProfileException {
-        if (updates == null) {
-            throw new UserProfileException("Missed attributes");
-        }
-        Principal principal = securityContext.getUserPrincipal();
-        User user = userDao.getByAlias(principal.getName());
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
@@ -121,17 +118,23 @@ public class UserProfileService extends Service {
         if (profile == null) {
             throw new ProfileNotFoundException(user.getId());
         }
-        Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
-        for (Attribute attribute : updates) {
-            m.put(attribute.getName(), attribute);
-        }
-        for (Iterator<Attribute> i = profile.getAttributes().iterator(); i.hasNext(); ) {
-            Attribute attribute = i.next();
-            if (m.containsKey(attribute.getName())) {
-                i.remove();
+        //if updates are not null, append it to existed attributes
+        if (updates != null) {
+            Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
+            for (Attribute attribute : updates) {
+                m.put(attribute.getName(), attribute);
             }
+            for (Iterator<Attribute> i = profile.getAttributes().iterator(); i.hasNext(); ) {
+                Attribute attribute = i.next();
+                if (m.containsKey(attribute.getName())) {
+                    i.remove();
+                }
+            }
+            profile.getAttributes().addAll(updates);
+        } else {
+            //if updates are null - clear profile attributes
+            profile.setAttributes(new ArrayList<Attribute>());
         }
-        profile.getAttributes().addAll(updates);
         profileDao.update(profile);
         injectLinks(profile, securityContext);
         return profile;
@@ -161,24 +164,27 @@ public class UserProfileService extends Service {
     public Profile update(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
                           @Context SecurityContext securityContext)
             throws UserProfileException {
-        if (updates == null) {
-            throw new UserProfileException("Missed attributes to update");
-        }
         Profile profile = profileDao.getById(profileId);
         if (profile == null) {
             throw new ProfileNotFoundException(profileId);
         }
-        Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
-        for (Attribute attribute : updates) {
-            m.put(attribute.getName(), attribute);
-        }
-        for (Iterator<Attribute> i = profile.getAttributes().iterator(); i.hasNext(); ) {
-            Attribute attribute = i.next();
-            if (m.containsKey(attribute.getName())) {
-                i.remove();
+        //if updates are not null, append it to existed attributes
+        if (updates != null) {
+            Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
+            for (Attribute attribute : updates) {
+                m.put(attribute.getName(), attribute);
             }
+            for (Iterator<Attribute> i = profile.getAttributes().iterator(); i.hasNext(); ) {
+                Attribute attribute = i.next();
+                if (m.containsKey(attribute.getName())) {
+                    i.remove();
+                }
+            }
+            profile.getAttributes().addAll(updates);
+        } else {
+            //if updates are null - clear profile attributes
+            profile.setAttributes(new ArrayList<Attribute>());
         }
-        profile.getAttributes().addAll(updates);
         profileDao.update(profile);
         injectLinks(profile, securityContext);
         return profile;
@@ -191,11 +197,8 @@ public class UserProfileService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updatePrefs(@Context SecurityContext securityContext,
-                               @Required @Description("preferences to update") Map<String, String> prefsToUpdate)
+                               @Description("preferences to update") Map<String, String> prefsToUpdate)
             throws UserException, UserProfileException {
-        if (prefsToUpdate == null) {
-            throw new UserProfileException("Preferences required");
-        }
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
@@ -205,8 +208,14 @@ public class UserProfileService extends Service {
         if (currentProfile == null) {
             throw new ProfileNotFoundException(current.getId());
         }
-        Map<String, String> currentPrefs = currentProfile.getPreferences();
-        currentPrefs.putAll(prefsToUpdate);
+        //if given preferences are not null append it to existed preferences
+        if (prefsToUpdate != null) {
+            Map<String, String> currentPrefs = currentProfile.getPreferences();
+            currentPrefs.putAll(prefsToUpdate);
+        } else {
+            //if given preferences are null - clear profile preferences
+            currentProfile.setPreferences(new HashMap<String, String>());
+        }
         profileDao.update(currentProfile);
         injectLinks(currentProfile, securityContext);
         return currentProfile;

@@ -218,69 +218,67 @@ public class FactoryBuilder {
         Map<String, Set<String>> queryParams = null;
         try {
             queryParams = URLEncodedUtils.parse(new URI("?" + queryString), "UTF-8");
+            queryParams.remove("");
         } catch (URISyntaxException e) {
             throw new FactoryUrlException("Query string is invalid.");
         }
 
-        Factory factory = buildFactoryDtoParameter(queryParams, "", Factory.class);
+        Factory factory = buildDtoObject(queryParams, "", Factory.class);
 
         if (!queryParams.isEmpty()) {
-            throw new FactoryUrlException("Unsupported parameters is found: " + queryParams.keySet().toString());
+            throw new FactoryUrlException("Unsupported parameters are found: " + queryParams.keySet().toString());
         }
 
         return validateFactoryCompatibility(factory, Format.ENCODED);
-        //return null;
     }
 
-    private <T> T buildFactoryDtoParameter(Map<String, Set<String>> queryParams, String parentName, Class<T> cl)
-            throws FactoryUrlException {
-        // lazy initialization
+    private <T> T buildDtoObject(Map<String, Set<String>> queryParams, String parentName, Class<T> cl) throws FactoryUrlException {
         T result = DtoFactory.getInstance().createDto(cl);
         boolean returnNull = true;
         for (Method method : cl.getMethods()) {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
             try {
                 if (factoryParameter != null && !factoryParameter.format().equals(ENCODED)) {
-                    String parameterName = factoryParameter.name();
-                    if (queryParams.containsKey(getName(parentName, parameterName))) {
+                    String fullName = parentName.isEmpty() ? factoryParameter.name() : parentName + "." + factoryParameter.name();
+                    Class<?> returnClass = method.getReturnType();
+
+                    Object param = null;
+                    if (queryParams.containsKey(fullName)) {
                         Set<String> values;
-                        if ((values = queryParams.remove(getName(parentName, parameterName))) == null || values.size() != 1) {
-                            throw new FactoryUrlException("Value of parameter '" + getName(parentName, parameterName) + "' is illegal.");
+                        if ((values = queryParams.remove(fullName)) == null || values.size() != 1) {
+                            throw new FactoryUrlException("Value of parameter '" + fullName + "' is illegal.");
                         }
 
-                        Class<?> returnClass = method.getReturnType();
+                        if (String.class.equals(returnClass)) {
+                            param = values.iterator().next();
+                        } else if (returnClass.isPrimitive()) {
+                            if (boolean.class.equals(returnClass)) {
+                                param = Boolean.parseBoolean(values.iterator().next());
+                            } else {
+                                if (int.class.equals(returnClass)) {
+                                    param = Integer.parseInt(values.iterator().next());
+                                } else if (long.class.equals(returnClass)) {
+                                    param = Long.parseLong(values.iterator().next());
+                                }
+                            }
+                        } else if ("variables".equals(fullName)) {
+                            param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
+                        } else {
+                            throw new FactoryUrlException("Unknown parameter '" + fullName + "'.");
+                        }
+                    } else if (returnClass.isAnnotationPresent(DTO.class)) {
+                        param = buildDtoObject(queryParams, fullName, returnClass);
+                    }
+                    if (param != null) {
                         String setterMethodName =
                                 "set" + Character.toUpperCase(factoryParameter.name().charAt(0)) + factoryParameter.name().substring(1);
                         Method setterMethod = cl.getMethod(setterMethodName, returnClass);
-
-                        if (boolean.class.equals(returnClass)) {
-                            setterMethod.invoke(result, Boolean.parseBoolean(values.iterator().next()));
-                            returnNull = false;
-                        } else if (returnClass.isPrimitive()) {
-                            setterMethod.invoke(result, Long.parseLong(values.iterator().next()));
-                            returnNull = false;
-                        } else if (String.class.equals(returnClass)) {
-                            setterMethod.invoke(result, values.iterator().next());
-                            returnNull = false;
-                        } else if ("variables".equals(parameterName)) {
-                            setterMethod.invoke(result,
-                                                DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class));
-                            returnNull = false;
-                        }
-                    } else {
-                        Class<?> returnClass = method.getReturnType();
-                        if (returnClass.isAnnotationPresent(DTO.class)) {
-                            Object param = buildFactoryDtoParameter(queryParams, parameterName, returnClass);
-                            if (param != null) {
-                                String setterMethodName =
-                                        "set" + Character.toUpperCase(factoryParameter.name().charAt(0)) + factoryParameter.name().substring(1);
-                                Method setterMethod = cl.getMethod(setterMethodName, returnClass);
-                                setterMethod.invoke(result, param);
-                                returnNull = false;
-                            }
-                        }
+                        setterMethod.invoke(result, param);
+                        returnNull = false;
                     }
                 }
+            } catch (FactoryUrlException e) {
+                throw e;
             } catch (Exception e) {
                 LOG.error(e.getLocalizedMessage(), e);
                 throw new FactoryUrlException("Can't validate '" + factoryParameter.name() + "' parameter.");
@@ -288,10 +286,6 @@ public class FactoryBuilder {
         }
 
         return returnNull ? null : result;
-    }
-
-    private String getName(String parent, String current) {
-        return parent.isEmpty() ? current : parent + "." + current;
     }
 
     /**
@@ -386,7 +380,7 @@ public class FactoryBuilder {
                     }
 
                     // check tracked-only fields
-                    if (orgIdIsPresent && factoryParameter.trackedOnly()) {
+                    if (!orgIdIsPresent && factoryParameter.trackedOnly()) {
                         throw new FactoryUrlException("Parameter " + parameterName + " can't be used without 'orgid'.");
                     }
 

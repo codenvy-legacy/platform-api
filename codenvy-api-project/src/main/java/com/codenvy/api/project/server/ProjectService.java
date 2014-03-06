@@ -378,21 +378,22 @@ public class ProjectService extends Service {
                          .withChildren(getTree(workspace, folder, depth));
     }
 
-    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) {
-        if (depth == 0) {
+    private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) {
+        if (depth == 0 || !entry.isFolder()) {
             return null;
         }
-        final List<FolderEntry> childFolders = folder.getChildFolders();
-        final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
-        for (FolderEntry childFolder : childFolders) {
+        final List<AbstractVirtualFileEntry> children = ((FolderEntry)entry).getChildren();
+        final List<TreeElement> nodes = new ArrayList<>(children.size());
+        for (AbstractVirtualFileEntry child : children) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
-                                                    .withName(childFolder.getName())
-                                                    .withPath(childFolder.getPath())
-                                                    .withType("folder")
-                                                    .withMediaType("text/directory")
-                                                    .withLinks(generateFolderLinks(workspace, childFolder)))
-                                .withChildren(getTree(workspace, childFolder, depth - 1)));
+                                                    .withName(child.getName())
+                                                    .withPath(child.getPath())
+                                                    .withType(child.isFile() ? "file" : "folder")
+                                                    .withMediaType(child.isFile() ? ((FileEntry)child).getMediaType() : "text/directory")
+                                                    .withLinks(child.isFile() ? generateFileLinks(workspace, (FileEntry)child)
+                                                                              : generateFolderLinks(workspace, (FolderEntry)child)))
+                                .withChildren(getTree(workspace, child, depth - 1)));
         }
         return nodes;
     }

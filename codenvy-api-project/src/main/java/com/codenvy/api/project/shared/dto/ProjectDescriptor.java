@@ -30,6 +30,12 @@ import java.util.Map;
  */
 @DTO
 public interface ProjectDescriptor {
+    String getBaseUrl();
+
+    void setBaseUrl(String url);
+
+    ProjectDescriptor withBaseUrl(String url);
+
     /** Get unique ID of type of project. */
     String getProjectTypeId();
 

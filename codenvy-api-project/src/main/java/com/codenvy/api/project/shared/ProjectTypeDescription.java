@@ -19,6 +19,7 @@ package com.codenvy.api.project.shared;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ public class ProjectTypeDescription {
         addCommonAttributes();
         setAttributeDescriptions(attributeDescriptions);
     }
+
 
     public ProjectTypeDescription(ProjectType projectType) {
         if (projectType == null) {
@@ -71,6 +73,7 @@ public class ProjectTypeDescription {
     public List<AttributeDescription> getAttributeDescriptions() {
         return new ArrayList<>(attributeDescriptions.values());
     }
+
 
     /** Get unmodifiable list of descriptions of attributes of project which names are started with specified prefix. */
     public List<AttributeDescription> getAttributeDescriptions(String prefix) {

@@ -111,7 +111,7 @@ public interface BaseBuilderRequest {
 
     String getProjectUrl();
 
-    BaseBuilderRequest withSourcesUrl(String url);
+    BaseBuilderRequest withProjectUrl(String url);
 
     void setProjectUrl(String url);
 }

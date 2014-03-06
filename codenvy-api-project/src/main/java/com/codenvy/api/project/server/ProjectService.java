@@ -513,7 +513,7 @@ public class ProjectService extends Service {
             attributeValues.put(attribute.getName(), attribute.getValues());
         }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
-                         .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath())).build(workspace).toString()
+                         .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
                          .withProjectTypeId(type.getId())
                          .withProjectTypeName(type.getName())
                          .withDescription(description.getDescription())

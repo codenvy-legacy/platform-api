@@ -108,4 +108,10 @@ public interface BaseBuilderRequest {
     void setIncludeDependencies(boolean includeDependencies);
 
     BaseBuilderRequest withIncludeDependencies(boolean includeDependencies);
+
+    String getProjectUrl();
+
+    BaseBuilderRequest withSourcesUrl(String url);
+
+    void setProjectUrl(String url);
 }

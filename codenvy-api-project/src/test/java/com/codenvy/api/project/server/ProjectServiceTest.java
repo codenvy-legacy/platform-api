@@ -705,8 +705,8 @@ public class ProjectServiceTest {
         Assert.assertEquals(tree.getNode().getName(), "a");
         List<TreeElement> children = tree.getChildren();
         Assert.assertNotNull(children);
-        Assert.assertEquals(children.size(), 2);
-        Set<String> names = new LinkedHashSet<>(2);
+        Assert.assertEquals(children.size(), 3);
+        Set<String> names = new LinkedHashSet<>(3);
         for (TreeElement subTree : children) {
             names.add(subTree.getNode().getName());
             Assert.assertTrue(subTree.getChildren().isEmpty()); // default depth is 1

@@ -24,6 +24,7 @@ import com.codenvy.api.builder.internal.BuildTask;
 import com.codenvy.api.builder.internal.Builder;
 import com.codenvy.api.builder.internal.BuilderConfiguration;
 import com.codenvy.api.builder.internal.DelegateBuildLogger;
+import com.codenvy.api.builder.internal.SourceManagerListener;
 import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.core.util.CommandLine;
@@ -77,7 +78,6 @@ public class BuilderTest {
         @Override
         public SourcesManager getSourcesManager() {
             return new SourcesManager() {
-
                 @Override
                 public void getSources(String workspace, String project, String sourcesUrl, File workDir) throws IOException {
                     // Don't need for current set of tests.
@@ -86,6 +86,15 @@ public class BuilderTest {
                 @Override
                 public java.io.File getDirectory() {
                     return getSourcesDirectory();
+                }
+
+                @Override
+                public void addListener(SourceManagerListener listener) {
+                }
+
+                @Override
+                public boolean removeListener(SourceManagerListener listener) {
+                    return false;
                 }
             };
         }

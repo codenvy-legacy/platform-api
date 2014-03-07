@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public class MoveEvent extends Event {
+public class MoveEvent extends VirtualFileEvent {
     private final String oldPath;
 
     public MoveEvent(String oldPath, VirtualFile virtualFile, VirtualFileSystemUser user) {

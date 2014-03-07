@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public abstract class Event {
+public abstract class VirtualFileEvent {
     public static enum ChangeType {
         ACL_UPDATED("acl_updated"),
         CONTENT_UPDATED("content_updated"),
@@ -53,7 +53,7 @@ public abstract class Event {
     private final ChangeType            type;
     private final VirtualFileSystemUser user;
 
-    protected Event(VirtualFile virtualFile, ChangeType type, VirtualFileSystemUser user) {
+    protected VirtualFileEvent(VirtualFile virtualFile, ChangeType type, VirtualFileSystemUser user) {
         this.virtualFile = virtualFile;
         this.type = type;
         this.user = user;

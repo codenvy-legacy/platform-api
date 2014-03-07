@@ -306,12 +306,16 @@ public class ProjectService extends Service {
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         Project project = projectManager.getProject(workspace, path);
+        boolean newProject = false;
         if (project == null) {
+            newProject = true;
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
         final ProjectDescriptor projectDescriptor = toDescriptor(workspace, project);
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
+        if (newProject) {
+            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
+        }
         return projectDescriptor;
     }
 
@@ -555,6 +559,7 @@ public class ProjectService extends Service {
         }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withName(project.getName())
+                         .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
                          .withProjectTypeId(type.getId())
                          .withProjectTypeName(type.getName())
                          .withDescription(description.getDescription())

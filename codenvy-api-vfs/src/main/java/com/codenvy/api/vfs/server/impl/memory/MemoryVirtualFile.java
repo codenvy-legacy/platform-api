@@ -37,7 +37,6 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 import com.codenvy.api.vfs.server.observation.CreateEvent;
 import com.codenvy.api.vfs.server.observation.DeleteEvent;
 import com.codenvy.api.vfs.server.observation.MoveEvent;
-import com.codenvy.api.vfs.server.observation.NotificationService;
 import com.codenvy.api.vfs.server.observation.RenameEvent;
 import com.codenvy.api.vfs.server.observation.UpdateContentEvent;
 import com.codenvy.api.vfs.server.observation.UpdatePropertiesEvent;
@@ -90,9 +89,9 @@ import java.util.zip.ZipOutputStream;
  * @author andrew00x
  */
 public class MemoryVirtualFile implements VirtualFile {
-    private static final Logger                       LOG          = LoggerFactory.getLogger(MemoryVirtualFile.class);
-    private static final boolean                      FILE         = false;
-    private static final boolean                      FOLDER       = true;
+    private static final Logger  LOG    = LoggerFactory.getLogger(MemoryVirtualFile.class);
+    private static final boolean FILE   = false;
+    private static final boolean FOLDER = true;
 
     private static MemoryVirtualFile newFile(MemoryVirtualFile parent, String name, InputStream content, String mediaType)
             throws IOException {
@@ -385,7 +384,8 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         lastModificationDate = System.currentTimeMillis();
-        NotificationService.handleEvent(new UpdatePropertiesEvent(this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService()
+                  .publish("vfs", new UpdatePropertiesEvent(this, mountPoint.getUserContext().getVirtualFileSystemUser()));
         return this;
     }
 
@@ -555,7 +555,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         lastModificationDate = System.currentTimeMillis();
-        NotificationService.handleEvent(new UpdateContentEvent(this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish("vfs", new UpdateContentEvent(this, mountPoint.getUserContext().getVirtualFileSystemUser()));
         return this;
     }
 
@@ -618,7 +618,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        NotificationService.handleEvent(new CreateEvent(copy, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish("vfs", new CreateEvent(copy, mountPoint.getUserContext().getVirtualFileSystemUser()));
         return copy;
     }
 
@@ -711,7 +711,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        NotificationService.handleEvent(new MoveEvent(myPath, this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish("vfs", new MoveEvent(myPath, this, mountPoint.getUserContext().getVirtualFileSystemUser()));
         return this;
     }
 
@@ -775,7 +775,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        NotificationService.handleEvent(new RenameEvent(myPath, this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish("vfs", new RenameEvent(myPath, this, mountPoint.getUserContext().getVirtualFileSystemUser()));
         return this;
     }
 
@@ -835,7 +835,8 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        NotificationService.handleEvent(new DeleteEvent(myPath, isFolder, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish("vfs",
+                                             new DeleteEvent(myPath, isFolder, mountPoint.getUserContext().getVirtualFileSystemUser()));
     }
 
     @Override
@@ -1045,7 +1046,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        NotificationService.handleEvent(new CreateEvent(newFile, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish("vfs", new CreateEvent(newFile, mountPoint.getUserContext().getVirtualFileSystemUser()));
         return newFile;
     }
 
@@ -1084,7 +1085,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         mountPoint.putItem(newFolder);
-        NotificationService.handleEvent(new CreateEvent(newFolder, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish("vfs", new CreateEvent(newFolder, mountPoint.getUserContext().getVirtualFileSystemUser()));
         return newFolder;
     }
 

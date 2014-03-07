@@ -22,7 +22,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public class DeleteEvent extends Event {
+public class DeleteEvent extends VirtualFileEvent {
     private final String  path;
     private final boolean isFolder;
 

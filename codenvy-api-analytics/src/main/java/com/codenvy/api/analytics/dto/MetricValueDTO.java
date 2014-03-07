@@ -26,6 +26,11 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface MetricValueDTO {
+    
+    String getName();
+
+    void setName(String name);
+    
     String getValue();
 
     void setValue(String name);

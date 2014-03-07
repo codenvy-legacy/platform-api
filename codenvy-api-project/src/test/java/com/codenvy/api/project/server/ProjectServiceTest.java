@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
@@ -100,7 +101,7 @@ public class ProjectServiceTest {
             }
         });
         SearcherProvider searcherProvider = new MemoryFileSystemProvider.SimpleLuceneSearcherProvider();
-        MemoryMountPoint mmp = new MemoryMountPoint(searcherProvider, new VirtualFileSystemUserContext() {
+        MemoryMountPoint mmp = new MemoryMountPoint(new EventService(), searcherProvider, new VirtualFileSystemUserContext() {
             @Override
             public VirtualFileSystemUser getVirtualFileSystemUser() {
                 return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);

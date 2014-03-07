@@ -22,6 +22,7 @@ import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * ProjectTypeExtension
@@ -34,4 +35,7 @@ public interface ProjectTypeExtension {
     List<Attribute> getPredefinedAttributes();
 
     List<ProjectTemplateDescription> getTemplates();
+
+    Map<String, String> getIconRegistry();
+
 }

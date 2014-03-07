@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public class CreateEvent extends Event {
+public class CreateEvent extends VirtualFileEvent {
     public CreateEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
         super(virtualFile, ChangeType.CREATED, user);
     }

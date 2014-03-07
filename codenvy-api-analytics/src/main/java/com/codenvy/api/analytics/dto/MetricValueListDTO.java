@@ -1,13 +1,13 @@
 /*
+ *
  * CODENVY CONFIDENTIAL
- * __________________
+ * ________________
  *
- * [2012] - [2013] Codenvy, S.A.
+ * [2012] - [2014] Codenvy, S.A.
  * All Rights Reserved.
- *
- * NOTICE:  All information contained herein is, and remains
+ * NOTICE: All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
- * if any.  The intellectual and technical concepts contained
+ * if any. The intellectual and technical concepts contained
  * herein are proprietary to Codenvy S.A.
  * and its suppliers and may be covered by U.S. and Foreign Patents,
  * patents in process, and are protected by trade secret or copyright law.
@@ -15,13 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.observation;
+package com.codenvy.api.analytics.dto;
 
-/**
- * Handler for errors occurred when process events.
- *
- * @author andrew00x
- */
-public interface ErrorHandler {
-    void onError(VirtualFileEvent event, Throwable error);
+import java.util.List;
+
+import com.codenvy.dto.shared.DTO;
+
+/** @author Alexander Reshetnyak */
+@DTO
+public interface MetricValueListDTO {
+    List<MetricValueDTO> getMetrics();
+
+    void setMetrics(List<MetricValueDTO> metricValueDTOs);
 }

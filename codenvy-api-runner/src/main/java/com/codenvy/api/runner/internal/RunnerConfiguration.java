@@ -38,6 +38,7 @@ public class RunnerConfiguration {
 
     private String  debugHost;
     private int     debugPort;
+    private boolean watchProjectUpdates;
     private boolean debugSuspend;
 
     public RunnerConfiguration(int memory, RunRequest request) {
@@ -99,6 +100,14 @@ public class RunnerConfiguration {
         this.debugSuspend = debugSuspend;
     }
 
+    public boolean isWatchProjectUpdates() {
+        return watchProjectUpdates;
+    }
+
+    public void setWatchProjectUpdates(boolean watchProjectUpdates) {
+        this.watchProjectUpdates = watchProjectUpdates;
+    }
+
     @Override
     public String toString() {
         return "RunnerConfiguration{" +
@@ -108,6 +117,7 @@ public class RunnerConfiguration {
                ", debugHost='" + debugHost + '\'' +
                ", debugPort=" + debugPort +
                ", debugSuspend=" + debugSuspend +
+               ", watchProjectUpdates=" + watchProjectUpdates +
                '}';
     }
 }

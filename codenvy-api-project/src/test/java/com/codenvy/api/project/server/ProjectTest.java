@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
@@ -89,8 +90,10 @@ public class ProjectTest {
             public List<AttributeDescription> getAttributeDescriptions() {
                 return Arrays.asList(new AttributeDescription("calculated_attribute"));
             }
+
+
         });
-        MemoryMountPoint mmp = new MemoryMountPoint(null, new VirtualFileSystemUserContext() {
+        MemoryMountPoint mmp = new MemoryMountPoint(new EventService(), null, new VirtualFileSystemUserContext() {
             @Override
             public VirtualFileSystemUser getVirtualFileSystemUser() {
                 return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);

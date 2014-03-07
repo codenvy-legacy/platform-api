@@ -27,7 +27,7 @@ public final class LogErrorHandler implements ErrorHandler {
     private static final Logger LOG = LoggerFactory.getLogger(LogErrorHandler.class);
 
     @Override
-    public void onError(Event event, Throwable error) {
+    public void onError(VirtualFileEvent event, Throwable error) {
         LOG.error(String.format("Error processing of event: %s", event), error);
     }
 }

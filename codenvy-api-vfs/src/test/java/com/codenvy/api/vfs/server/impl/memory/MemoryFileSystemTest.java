@@ -19,6 +19,7 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import junit.framework.TestCase;
 
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.URLHandlerFactorySetup;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -91,9 +92,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        System.setProperty("org.exoplatform.mimetypes", "conf/mimetypes.properties");
-
-        fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID);
+        fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID, new EventService());
         virtualFileSystemRegistry.registerProvider(MY_WORKSPACE_ID, fileSystemProvider);
         mountPoint = (MemoryMountPoint)fileSystemProvider.getMountPoint(true);
         DependencySupplierImpl dependencies = new DependencySupplierImpl();

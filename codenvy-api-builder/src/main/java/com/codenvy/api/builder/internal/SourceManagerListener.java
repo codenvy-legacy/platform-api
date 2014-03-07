@@ -15,24 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
-
-import com.codenvy.dto.shared.DTO;
+package com.codenvy.api.builder.internal;
 
 /**
  * @author andrew00x
  */
-@DTO
-public interface CallbackEvent {
-    long getRequestId();
-
-    void setRequestId(long id);
-
-    CallbackEvent withRequestId(long id);
-
-    String getState();
-
-    void setState(String state);
-
-    CallbackEvent withState(String state);
+public interface SourceManagerListener {
+    void afterDownload(SourceManagerEvent event);
 }

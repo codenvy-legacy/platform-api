@@ -80,8 +80,6 @@ import java.util.Set;
  * @author andrew00x
  */
 public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
-    private static final Logger LOG = LoggerFactory.getLogger(VirtualFileSystemImpl.class);
-
     protected final String                       vfsId;
     protected final URI                          baseUri;
     protected final VirtualFileSystemUserContext userContext;
@@ -173,16 +171,16 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException("'skipCount' parameter is negative. ");
         }
 
-        final ItemType itemTypeType;
-        if (itemType != null) {
-            try {
-                itemTypeType = ItemType.fromValue(itemType);
-            } catch (IllegalArgumentException e) {
-                throw new InvalidArgumentException(String.format("Unknown type: %s", itemType));
-            }
-        } else {
-            itemTypeType = null;
-        }
+        final ItemType itemTypeType=null;
+//        if (itemType != null) {
+//            try {
+//                itemTypeType = ItemType.fromValue(itemType);
+//            } catch (IllegalArgumentException e) {
+//                throw new InvalidArgumentException(String.format("Unknown type: %s", itemType));
+//            }
+//        } else {
+//            itemTypeType = null;
+//        }
 
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
 

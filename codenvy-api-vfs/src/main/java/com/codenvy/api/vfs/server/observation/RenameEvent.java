@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public class RenameEvent extends Event {
+public class RenameEvent extends VirtualFileEvent {
     private final String oldPath;
 
     public RenameEvent(String oldPath, VirtualFile virtualFile, VirtualFileSystemUser user) {

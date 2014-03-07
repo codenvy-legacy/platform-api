@@ -29,31 +29,19 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServiceLocation;
 import com.codenvy.api.runner.dto.RunnerServiceRegistration;
 import com.codenvy.api.runner.internal.Constants;
-import com.codenvy.api.runner.internal.RunnerCallbackListener;
-import com.codenvy.api.runner.internal.dto.CallbackEvent;
 import com.codenvy.api.runner.internal.dto.DebugMode;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerState;
-import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.websockets.WSConnectionContext;
-import org.everrest.websockets.client.BaseClientMessageListener;
-import org.everrest.websockets.client.WSClient;
-import org.everrest.websockets.message.ChannelBroadcastMessage;
-import org.everrest.websockets.message.JsonMessageConverter;
-import org.everrest.websockets.message.MessageConversionException;
-import org.everrest.websockets.message.MessageConverter;
-import org.everrest.websockets.message.RESTfulInputMessage;
-import org.everrest.websockets.message.RESTfulOutputMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,11 +62,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -106,8 +91,6 @@ public class RunQueue {
     private final String                                   baseBuilderApiUrl;
     private final int                                      appLifetime;
     private final long                                     maxTimeInQueueMillis;
-    private final WebSocketEventBusProvider                eventBusProvider;
-    private final List<RunnerCallbackListener>             callbackListeners;
 
     private boolean started;
 
@@ -145,8 +128,6 @@ public class RunQueue {
         tasks = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("RunQueue-", true));
         runnerListMapping = new ConcurrentHashMap<>();
-        eventBusProvider = new WebSocketEventBusProvider();
-        callbackListeners = new CopyOnWriteArrayList<>();
     }
 
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions options)
@@ -187,7 +168,7 @@ public class RunQueue {
             }
             callable = createTaskFor(null, request);
         }
-        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(callable);
+        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(ThreadLocalPropagateContext.wrap(callable));
         final Long id = sequence.getAndIncrement();
         request.setId(id); // for getting callback events from remote runner
         final RunQueueTask task = new RunQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
@@ -195,14 +176,6 @@ public class RunQueue {
         tasks.put(id, task);
         executor.execute(future);
         return task;
-    }
-
-    public void registerCallbackListener(RunnerCallbackListener listener) {
-        callbackListeners.add(listener);
-    }
-
-    public void unregisterCallbackListener(RunnerCallbackListener listener) {
-        callbackListeners.remove(listener);
     }
 
     private Link getLink(String rel, ProjectDescriptor descriptor) {
@@ -406,34 +379,15 @@ public class RunQueue {
         return task;
     }
 
+    public List<RunQueueTask> getTasks() {
+        return new ArrayList<>(tasks.values());
+    }
+
     @PostConstruct
     public synchronized void start() {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        // Register listener that resend events from runner to the client (browser).
-        registerCallbackListener(new RunnerCallbackListener() {
-            @Override
-            public void handleEvent(CallbackEvent event) {
-                LOG.debug("CALLBACK: {}", event);
-                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                try {
-                    final long id = event.getRequestId();
-                    final ApplicationProcessDescriptor processDescriptor = getTask(id).getDescriptor();
-                    bm.setChannel(String.format("runner:status:%d", id));
-                    bm.setType(ChannelBroadcastMessage.Type.NONE);
-                    bm.setBody(DtoFactory.getInstance().toJson(processDescriptor));
-                } catch (Exception e) {
-                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                    bm.setBody(e.getMessage());
-                }
-                try {
-                    WSConnectionContext.sendMessage(bm);
-                } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
-                }
-            }
-        });
         started = true;
     }
 
@@ -553,87 +507,81 @@ public class RunQueue {
             throw new RunnerException("There is no any runner to process this request. ");
         }
         LOG.debug("Use slave runner {} at {}", runner.getName(), runner.getBaseUrl());
-        try {
-            // be sure event bus is initialized
-            eventBusProvider.openEventBus(runner.getBaseUrl());
-        } catch (Throwable e) {
-            LOG.error("Unable create event-bus for getting events from remote runner. ", e);
-        }
         return runner;
     }
 
-    private class WebSocketEventBusProvider {
-        private final String                                  channel          = "runner:internal:eventbus";
-        private final MessageConverter                        messageConverter = new JsonMessageConverter();
-        private final ConcurrentMap<String, Future<WSClient>> busMap           = new ConcurrentHashMap<>();
-
-        WSClient openEventBus(final String remoteRunnerBaseUrl) throws IOException, InterruptedException {
-            Future<WSClient> busFuture = busMap.get(remoteRunnerBaseUrl);
-            if (busFuture == null) {
-                LOG.debug("Not found EventBus for '{}'. Create new one. ", remoteRunnerBaseUrl);
-                FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
-                    @Override
-                    public WSClient call() throws IOException, MessageConversionException {
-                        final UriBuilder uriBuilder = UriBuilder.fromUri(remoteRunnerBaseUrl);
-                        uriBuilder.scheme("ws").replacePath("/api/ws/");
-                        WSClient bus = new WSClient(uriBuilder.build(), new BaseClientMessageListener() {
-                            @Override
-                            public void onClose(int status, String message) {
-                                busMap.remove(remoteRunnerBaseUrl);
-                            }
-
-                            @Override
-                            public void onMessage(String data) {
-                                CallbackEvent event = null;
-                                try {
-                                    final String body = messageConverter.fromString(data, RESTfulOutputMessage.class).getBody();
-                                    event = DtoFactory.getInstance().createDtoFromJson(body, CallbackEvent.class);
-                                } catch (Exception e) {
-                                    LOG.error(e.getMessage(), e);
-                                }
-                                if (event != null) {
-                                    for (RunnerCallbackListener listener : callbackListeners) {
-                                        try {
-                                            listener.handleEvent(event);
-                                        } catch (Throwable e) {
-                                            LOG.error(e.getMessage(), e);
-                                        }
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public void onOpen(WSClient client) {
-                                LOG.debug("EventBus for '{}' is created. ", remoteRunnerBaseUrl);
-                            }
-                        });
-                        bus.connect(2000);
-                        bus.send(messageConverter.toString(
-                                RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel)));
-                        return bus;
-                    }
-                });
-                busFuture = busMap.putIfAbsent(remoteRunnerBaseUrl, newFuture);
-                if (busFuture == null) {
-                    busFuture = newFuture;
-                    newFuture.run();
-                }
-            }
-            try {
-                return busFuture.get();
-            } catch (ExecutionException e) {
-                final Throwable cause = e.getCause();
-                if (cause instanceof Error) {
-                    throw (Error)cause;
-                } else if (cause instanceof RuntimeException) {
-                    throw (RuntimeException)cause;
-                } else if (cause instanceof IOException) {
-                    throw (IOException)cause;
-                }
-                throw new RuntimeException(e);
-            }
-        }
-    }
+//    private class WebSocketEventBusProvider {
+//        private final String                                  channel          = "runner:internal:eventbus";
+//        private final MessageConverter                        messageConverter = new JsonMessageConverter();
+//        private final ConcurrentMap<String, Future<WSClient>> busMap           = new ConcurrentHashMap<>();
+//
+//        WSClient openEventBus(final String remoteRunnerBaseUrl) throws IOException, InterruptedException {
+//            Future<WSClient> busFuture = busMap.get(remoteRunnerBaseUrl);
+//            if (busFuture == null) {
+//                LOG.debug("Not found EventBus for '{}'. Create new one. ", remoteRunnerBaseUrl);
+//                FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
+//                    @Override
+//                    public WSClient call() throws IOException, MessageConversionException {
+//                        final UriBuilder uriBuilder = UriBuilder.fromUri(remoteRunnerBaseUrl);
+//                        uriBuilder.scheme("ws").replacePath("/api/ws/");
+//                        WSClient bus = new WSClient(uriBuilder.build(), new BaseClientMessageListener() {
+//                            @Override
+//                            public void onClose(int status, String message) {
+//                                busMap.remove(remoteRunnerBaseUrl);
+//                            }
+//
+//                            @Override
+//                            public void onMessage(String data) {
+//                                CallbackEvent event = null;
+//                                try {
+//                                    final String body = messageConverter.fromString(data, RESTfulOutputMessage.class).getBody();
+//                                    event = DtoFactory.getInstance().createDtoFromJson(body, CallbackEvent.class);
+//                                } catch (Exception e) {
+//                                    LOG.error(e.getMessage(), e);
+//                                }
+//                                if (event != null) {
+//                                    for (RunnerCallbackListener listener : callbackListeners) {
+//                                        try {
+//                                            listener.handleEvent(event);
+//                                        } catch (Throwable e) {
+//                                            LOG.error(e.getMessage(), e);
+//                                        }
+//                                    }
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void onOpen(WSClient client) {
+//                                LOG.debug("EventBus for '{}' is created. ", remoteRunnerBaseUrl);
+//                            }
+//                        });
+//                        bus.connect(2000);
+//                        bus.send(messageConverter.toString(
+//                                RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel)));
+//                        return bus;
+//                    }
+//                });
+//                busFuture = busMap.putIfAbsent(remoteRunnerBaseUrl, newFuture);
+//                if (busFuture == null) {
+//                    busFuture = newFuture;
+//                    newFuture.run();
+//                }
+//            }
+//            try {
+//                return busFuture.get();
+//            } catch (ExecutionException e) {
+//                final Throwable cause = e.getCause();
+//                if (cause instanceof Error) {
+//                    throw (Error)cause;
+//                } else if (cause instanceof RuntimeException) {
+//                    throw (RuntimeException)cause;
+//                } else if (cause instanceof IOException) {
+//                    throw (IOException)cause;
+//                }
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
 
     private static class RunnerListKey {
         final String project;

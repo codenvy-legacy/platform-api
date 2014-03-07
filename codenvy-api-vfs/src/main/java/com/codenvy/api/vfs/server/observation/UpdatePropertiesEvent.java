@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public class UpdatePropertiesEvent extends Event {
+public class UpdatePropertiesEvent extends VirtualFileEvent {
     public UpdatePropertiesEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
         super(virtualFile, ChangeType.PROPERTIES_UPDATED, user);
     }

@@ -17,13 +17,14 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import com.codenvy.api.vfs.server.search.LuceneSearcherProvider;
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.search.Searcher;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.server.search.LuceneSearcherProvider;
+import com.codenvy.api.vfs.server.search.Searcher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,10 +48,12 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
         }
     }
 
+    private EventService     eventService;
     private MemoryMountPoint memoryMountPoint;
 
-    public MemoryFileSystemProvider(String workspaceId) {
+    public MemoryFileSystemProvider(String workspaceId, EventService eventService) {
         super(workspaceId);
+        this.eventService = eventService;
     }
 
     public MemoryFileSystemProvider(String workspaceId, MemoryMountPoint memoryMountPoint) {
@@ -72,7 +75,8 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     @Override
     public MountPoint getMountPoint(boolean create) throws VirtualFileSystemException {
         if (memoryMountPoint == null && create) {
-            memoryMountPoint = new MemoryMountPoint(new SimpleLuceneSearcherProvider(), VirtualFileSystemUserContext.newInstance());
+            memoryMountPoint = new MemoryMountPoint(eventService, new SimpleLuceneSearcherProvider(),
+                                                    VirtualFileSystemUserContext.newInstance());
         }
         return memoryMountPoint;
     }

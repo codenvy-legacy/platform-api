@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2014] Codenvy, S.A. 
+ *
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,13 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal;
-
-import com.codenvy.api.runner.internal.dto.CallbackEvent;
+package com.codenvy.api.core.notification;
 
 /**
  * @author andrew00x
  */
-public interface RunnerCallbackListener {
-    void handleEvent(CallbackEvent event);
+public interface MessageReceiver<T> {
+    void onEvent(String channel, T data);
 }

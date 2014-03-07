@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,6 +42,8 @@ public class ProjectTypeDescriptionRegistry {
     private final Map<String, ProjectTypeDescription>           descriptions;
     private final Map<String, List<Attribute>>                  predefinedAttributes;
     private final Map<String, List<ProjectTemplateDescription>> templates;
+    private final Map<String, Map<String, String>>              icons;
+
 
     @Inject
     public ProjectTypeDescriptionRegistry(ProjectTypeRegistry projectTypeRegistry) {
@@ -48,6 +51,7 @@ public class ProjectTypeDescriptionRegistry {
         descriptions = new ConcurrentHashMap<>();
         predefinedAttributes = new ConcurrentHashMap<>();
         templates = new ConcurrentHashMap<>();
+        icons = new ConcurrentHashMap<>();
     }
 
     public void registerProjectType(ProjectTypeExtension extension) {
@@ -62,6 +66,10 @@ public class ProjectTypeDescriptionRegistry {
         final List<ProjectTemplateDescription> templates = extension.getTemplates();
         if (templates != null && !templates.isEmpty()) {
             this.templates.put(type.getId(), new ArrayList<>(templates));
+        }
+        Map<String, String> icons = extension.getIconRegistry();
+        if (icons != null && !icons.isEmpty()) {
+            this.icons.put(type.getId(), new HashMap<>(icons));
         }
     }
 
@@ -107,4 +115,14 @@ public class ProjectTypeDescriptionRegistry {
         }
         return Collections.emptyList();
     }
+
+    public Map<String, String> getIcons(ProjectType type) {
+        final Map<String, String> icons = this.icons.get(type.getId());
+        if (icons != null) {
+            return Collections.unmodifiableMap(icons);
+        }
+        return Collections.emptyMap();
+    }
+
+
 }

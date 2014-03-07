@@ -20,15 +20,13 @@ package com.codenvy.api.analytics.impl;
 
 import com.codenvy.api.analytics.AnalyticsService;
 import com.codenvy.api.analytics.MetricHandler;
-import com.codenvy.api.analytics.dto.Constants;
-import com.codenvy.api.analytics.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.dto.MetricValueDTO;
+import com.codenvy.api.analytics.dto.*;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
@@ -56,13 +54,27 @@ public class RemoteMetricHandler implements MetricHandler {
 
     private static final String BASE_NAME = RemoteMetricHandler.class.getName();
     private static final String PROXY_URL = BASE_NAME + ".proxy-url";
+    private static final String USER      = "user";
+    private static final String PASSWORD  = "password";
 
     private String proxyUrl;
+    private String user;
+    private String password;
 
     public RemoteMetricHandler(Properties properties) {
         this.proxyUrl = properties.getProperty(PROXY_URL);
         if (this.proxyUrl == null) {
             throw new IllegalArgumentException("Not defined mandatory property " + PROXY_URL);
+        }
+
+        this.user = properties.getProperty(USER);
+        if (this.user == null) {
+            throw new IllegalArgumentException("Not defined mandatory property " + USER);
+        }
+
+        this.password = properties.getProperty(PASSWORD);
+        if (this.password == null) {
+            throw new IllegalArgumentException("Not defined mandatory property " + PASSWORD);
         }
     }
 
@@ -77,6 +89,23 @@ public class RemoteMetricHandler implements MetricHandler {
                            proxyUrl,
                            "GET",
                            null,
+                           pairs.toArray(new Pair[pairs.size()]));
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public MetricValueListDTO getUserValues(List<String> metricNames,
+                                            Map<String, String> executionContext,
+                                            UriInfo uriInfo) {
+        String proxyUrl = getProxyURL("getUserValues", "");
+        try {
+            List<Pair<String, String>> pairs = mapToParisList(executionContext);
+            return request(MetricValueListDTO.class,
+                           proxyUrl,
+                           "POST",
+                           metricNames,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
@@ -159,6 +188,7 @@ public class RemoteMetricHandler implements MetricHandler {
         }
         final HttpURLConnection conn = (HttpURLConnection)new URL(proxyUrl).openConnection();
         conn.setConnectTimeout(30 * 1000);
+        conn.addRequestProperty("Authorization", "Basic " + Base64.encode((user + ":" + password).getBytes()));
         try {
             conn.setRequestMethod(method);
             if (body != null) {

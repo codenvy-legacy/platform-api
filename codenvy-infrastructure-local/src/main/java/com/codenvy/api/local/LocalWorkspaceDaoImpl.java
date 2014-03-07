@@ -22,6 +22,9 @@ import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.dto.server.DtoFactory;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class LocalWorkspaceDaoImpl implements WorkspaceDao {
     @Override
     public void create(Workspace workspace) throws WorkspaceException {
@@ -47,5 +50,10 @@ public class LocalWorkspaceDaoImpl implements WorkspaceDao {
     public Workspace getByName(String name) throws WorkspaceException {
         return DtoFactory.getInstance().createDto(Workspace.class).withId("Workspace1").withName("default").withTemporary(false);
 
+    }
+
+    @Override
+    public List<Workspace> getByAccount(String accountId) throws WorkspaceException {
+        return Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class).withId("Workspace1").withName("default").withTemporary(false));
     }
 }

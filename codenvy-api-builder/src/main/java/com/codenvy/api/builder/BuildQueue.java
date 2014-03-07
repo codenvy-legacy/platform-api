@@ -329,6 +329,8 @@ public class BuildQueue {
             }
             request.setBuilder(builder);
         }
+        
+        request.setProjectUrl(descriptor.getBaseUrl());
 
         final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor);
         if (zipballLink != null) {

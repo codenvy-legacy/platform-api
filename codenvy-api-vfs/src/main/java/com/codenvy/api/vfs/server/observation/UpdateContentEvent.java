@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public class UpdateContentEvent extends Event {
+public class UpdateContentEvent extends VirtualFileEvent {
     public UpdateContentEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
         super(virtualFile, ChangeType.CONTENT_UPDATED, user);
     }

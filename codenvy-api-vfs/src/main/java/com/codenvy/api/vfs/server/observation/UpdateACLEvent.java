@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 /**
  * @author andrew00x
  */
-public class UpdateACLEvent extends Event {
+public class UpdateACLEvent extends VirtualFileEvent {
     public UpdateACLEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
         super(virtualFile, ChangeType.ACL_UPDATED, user);
     }

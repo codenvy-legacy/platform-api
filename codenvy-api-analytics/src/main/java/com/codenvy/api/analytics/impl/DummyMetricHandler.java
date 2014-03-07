@@ -19,16 +19,13 @@
 package com.codenvy.api.analytics.impl;
 
 import com.codenvy.api.analytics.MetricHandler;
-import com.codenvy.api.analytics.Utils;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.dto.MetricValueListDTO;
-import com.codenvy.api.analytics.exception.MetricNotFoundException;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.UriInfo;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,17 +39,23 @@ import java.util.Random;
 public class DummyMetricHandler implements MetricHandler {
 
     @Override
-    public MetricValueDTO getValue(String metricName, 
-                                   Map<String, String> metricContext, 
-                                   UriInfo uriInfo)
-            throws MetricNotFoundException {
+    public MetricValueDTO getValue(String metricName,
+                                   Map<String, String> metricContext,
+                                   UriInfo uriInfo) {
         return createDummyMetricValueDTO(metricName);
     }
-    
+
     @Override
-    public MetricValueListDTO getUserValues(List<String> metricNames, 
-                                            Map<String, String> metricContext, 
-                                            UriInfo uriInfo) throws MetricNotFoundException {
+    public MetricValueDTO getPublicValue(String metricName,
+                                         Map<String, String> metricContext,
+                                         UriInfo uriInfo) {
+        return createDummyMetricValueDTO(metricName);
+    }
+
+    @Override
+    public MetricValueListDTO getUserValues(List<String> metricNames,
+                                            Map<String, String> metricContext,
+                                            UriInfo uriInfo) {
         MetricValueListDTO metricValueListDTO = DtoFactory.getInstance().createDto(MetricValueListDTO.class);
         List<MetricValueDTO> metricValues = new ArrayList<>();
         for (String metricName : metricNames) {
@@ -63,7 +66,7 @@ public class DummyMetricHandler implements MetricHandler {
     }
 
     @Override
-    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException {
+    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) {
         return createDummyMetricInfoDto(metricName);
     }
 

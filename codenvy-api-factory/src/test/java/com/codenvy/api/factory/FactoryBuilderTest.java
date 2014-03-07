@@ -19,22 +19,19 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
-import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.api.factory.parameter.IgnoreConverter;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.core.impl.uri.UriBuilderImpl;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.*;
 
-import javax.ws.rs.core.UriBuilder;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.Arrays;
 
 import static org.testng.Assert.assertEquals;
 
@@ -86,6 +83,41 @@ public class FactoryBuilderTest {
         return result;
     }
 
+    @Test(expectedExceptions = FactoryUrlException.class)
+    public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0() throws FactoryUrlException {
+        factory.setV("1.0");
+        factory.setVcs("vcs");
+        factory.setVcsurl("vcsurl");
+        factory.setIdcommit("idcommit");
+        factory.setPtype("ptype");
+        factory.setPname("pname");
+        factory.setAction("action");
+        factory.setWname("wname");
+        factory.setVcsbranch("vcsbranch");
+
+        expectedFactory.setV("1.0");
+        expectedFactory.setVcs("vcs");
+        expectedFactory.setVcsurl("vcsurl");
+        expectedFactory.setCommitid("idcommit");
+        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
+        projectAttributes.setPname("pname");
+        projectAttributes.setPtype("ptype");
+        expectedFactory.setProjectattributes(projectAttributes);
+        expectedFactory.setAction("action");
+        expectedFactory.setVcsbranch("vcsbranch");
+
+
+        Factory newFactory;
+        //long start= System.currentTimeMillis();
+        //for (int i = 0; i < 1000; ++i) {
+        newFactory = factoryBuilder.validateFactoryCompatibility(factory, false);
+        //}
+        //System.err.println((System.currentTimeMillis() - start));
+
+        assertEquals(newFactory, expectedFactory);
+
+    }
+
     @Test
     public void shouldBeAbleToValidateFactory1_0() throws FactoryUrlException {
         factory.setV("1.0");
@@ -108,14 +140,8 @@ public class FactoryBuilderTest {
         expectedFactory.setAction("action");
 
         Factory newFactory;
-        //long start= System.currentTimeMillis();
-        //for (int i = 0; i < 1000; ++i) {
-            newFactory = factoryBuilder.validateFactoryCompatibility(factory, FactoryParameter.Format.NONENCODED);
-        //}
-        //System.err.println((System.currentTimeMillis() - start));
-
+        newFactory = factoryBuilder.validateFactoryCompatibility(factory, false);
         assertEquals(newFactory, expectedFactory);
-
     }
 
     private String encode(String value) {
@@ -149,7 +175,7 @@ public class FactoryBuilderTest {
         sb.append("affiliateid=").append("affiliateid").append("&");
         sb.append("vcsinfo=").append("true").append("&");
         //sb.append("vcsinfo=").append("false").append("&");
-        sb.append("vcsbranch=").append("release").append("&").append("&");
+        sb.append("vcsbranch=").append("release").append("&");
         //sb.append("userid=").append("hudfsauidfais").append("&");
         //sb.append("created=").append("12145646").append("&");
         //sb.append("validsince=").append("1222222").append("&");
@@ -174,7 +200,7 @@ public class FactoryBuilderTest {
         variable.setFiles(Arrays.asList("file1.java, file2.java"));
         variable.setEntries(Arrays.asList(replacement));
 
-        sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]")).append("&");
+        sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]")).append("");
 
         expectedFactory.setV("1.2");
         expectedFactory.setVcs("git");

@@ -24,6 +24,7 @@ import com.codenvy.api.analytics.dto.*;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -38,10 +39,7 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Implementation provides means to perform remote REST requests to receive analytics data from remote rest service.
@@ -118,7 +116,12 @@ public class RemoteMetricHandler implements MetricHandler {
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getInfo", metricName);
         try {
-            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, proxyUrl, "GET", null);
+            List<Pair<String, String>> pairs = mapToParisList(Collections.<String, String>emptyMap());
+            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class,
+                                                  proxyUrl,
+                                                  "GET",
+                                                  null,
+                                                  pairs.toArray(new Pair[pairs.size()]));
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (Exception e) {
@@ -130,7 +133,12 @@ public class RemoteMetricHandler implements MetricHandler {
     public MetricInfoListDTO getAllInfo(UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getAllInfo", "");
         try {
-            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, proxyUrl, "GET", null);
+            List<Pair<String, String>> pairs = mapToParisList(Collections.<String, String>emptyMap());
+            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class,
+                                                          proxyUrl,
+                                                          "GET",
+                                                          null,
+                                                          pairs.toArray(new Pair[pairs.size()]));
             updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
         } catch (Exception e) {
@@ -153,9 +161,18 @@ public class RemoteMetricHandler implements MetricHandler {
     private List<Pair<String, String>> mapToParisList(Map<String, String> executionContext) {
         List<Pair<String, String>> pairs = new ArrayList<>();
         for (Map.Entry<String, String> entry : executionContext.entrySet()) {
-            pairs.add(new Pair(entry.getKey(), entry.getValue()));
+            pairs.add(new Pair<>(entry.getKey(), entry.getValue()));
         }
+
+        putAuthenticationToken(pairs);
         return pairs;
+    }
+
+    private void putAuthenticationToken(List<Pair<String, String>> pairs) {
+        String authToken = EnvironmentContext.getCurrent().getUser().getToken();
+        if (authToken != null) {
+            pairs.add(new Pair<>("token", authToken));
+        }
     }
 
     private String getProxyURL(String methodName, String metricName) {

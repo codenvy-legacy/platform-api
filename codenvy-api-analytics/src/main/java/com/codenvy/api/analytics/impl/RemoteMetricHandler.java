@@ -24,9 +24,9 @@ import com.codenvy.api.analytics.dto.*;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
@@ -39,10 +39,7 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Implementation provides means to perform remote REST requests to receive analytics data from remote rest service.
@@ -54,27 +51,13 @@ public class RemoteMetricHandler implements MetricHandler {
 
     private static final String BASE_NAME = RemoteMetricHandler.class.getName();
     private static final String PROXY_URL = BASE_NAME + ".proxy-url";
-    private static final String USER      = "user";
-    private static final String PASSWORD  = "password";
 
     private String proxyUrl;
-    private String user;
-    private String password;
 
     public RemoteMetricHandler(Properties properties) {
         this.proxyUrl = properties.getProperty(PROXY_URL);
         if (this.proxyUrl == null) {
             throw new IllegalArgumentException("Not defined mandatory property " + PROXY_URL);
-        }
-
-        this.user = properties.getProperty(USER);
-        if (this.user == null) {
-            throw new IllegalArgumentException("Not defined mandatory property " + USER);
-        }
-
-        this.password = properties.getProperty(PASSWORD);
-        if (this.password == null) {
-            throw new IllegalArgumentException("Not defined mandatory property " + PASSWORD);
         }
     }
 
@@ -83,6 +66,23 @@ public class RemoteMetricHandler implements MetricHandler {
                                    Map<String, String> executionContext,
                                    UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getValue", metricName);
+        try {
+            List<Pair<String, String>> pairs = mapToParisList(executionContext);
+            return request(MetricValueDTO.class,
+                           proxyUrl,
+                           "GET",
+                           null,
+                           pairs.toArray(new Pair[pairs.size()]));
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public MetricValueDTO getPublicValue(String metricName,
+                                         Map<String, String> executionContext,
+                                         UriInfo uriInfo) {
+        String proxyUrl = getProxyURL("getPublicValue", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class,
@@ -116,7 +116,12 @@ public class RemoteMetricHandler implements MetricHandler {
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getInfo", metricName);
         try {
-            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class, proxyUrl, "GET", null);
+            List<Pair<String, String>> pairs = mapToParisList(Collections.<String, String>emptyMap());
+            MetricInfoDTO metricInfoDTO = request(MetricInfoDTO.class,
+                                                  proxyUrl,
+                                                  "GET",
+                                                  null,
+                                                  pairs.toArray(new Pair[pairs.size()]));
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (Exception e) {
@@ -128,7 +133,12 @@ public class RemoteMetricHandler implements MetricHandler {
     public MetricInfoListDTO getAllInfo(UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getAllInfo", "");
         try {
-            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class, proxyUrl, "GET", null);
+            List<Pair<String, String>> pairs = mapToParisList(Collections.<String, String>emptyMap());
+            MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class,
+                                                          proxyUrl,
+                                                          "GET",
+                                                          null,
+                                                          pairs.toArray(new Pair[pairs.size()]));
             updateLinks(uriInfo, metricInfoListDTO);
             return metricInfoListDTO;
         } catch (Exception e) {
@@ -151,9 +161,18 @@ public class RemoteMetricHandler implements MetricHandler {
     private List<Pair<String, String>> mapToParisList(Map<String, String> executionContext) {
         List<Pair<String, String>> pairs = new ArrayList<>();
         for (Map.Entry<String, String> entry : executionContext.entrySet()) {
-            pairs.add(new Pair(entry.getKey(), entry.getValue()));
+            pairs.add(new Pair<>(entry.getKey(), entry.getValue()));
         }
+
+        putAuthenticationToken(pairs);
         return pairs;
+    }
+
+    private void putAuthenticationToken(List<Pair<String, String>> pairs) {
+        String authToken = EnvironmentContext.getCurrent().getUser().getToken();
+        if (authToken != null) {
+            pairs.add(new Pair<>("token", authToken));
+        }
     }
 
     private String getProxyURL(String methodName, String metricName) {
@@ -188,7 +207,6 @@ public class RemoteMetricHandler implements MetricHandler {
         }
         final HttpURLConnection conn = (HttpURLConnection)new URL(proxyUrl).openConnection();
         conn.setConnectTimeout(30 * 1000);
-        conn.addRequestProperty("Authorization", "Basic " + Base64.encode((user + ":" + password).getBytes()));
         try {
             conn.setRequestMethod(method);
             if (body != null) {

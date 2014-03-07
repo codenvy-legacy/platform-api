@@ -28,9 +28,13 @@ import javax.inject.Singleton;
  * @author Alexander Garagatyi
  */
 @Singleton
-public class PtypeConverter implements FactoryParameterConverter {
+public class PtypeConverter extends FactoryParameterConverter {
+    public PtypeConverter(Object object) {
+        super(object);
+    }
+
     @Override
-    public void convert(Object object) throws FactoryUrlException {
+    public void convert() throws FactoryUrlException {
         Factory factory = (Factory)object;
         ProjectAttributes attributes = factory.getProjectattributes();
         if (null == attributes) {

@@ -26,9 +26,13 @@ import javax.inject.Singleton;
  * @author Alexander Garagatyi
  */
 @Singleton
-public class IdCommitConverter implements FactoryParameterConverter {
+public class IdCommitConverter extends FactoryParameterConverter {
+    public IdCommitConverter(Object object) {
+        super(object);
+    }
+
     @Override
-    public void convert(Object object) throws FactoryUrlException {
+    public void convert() throws FactoryUrlException {
         Factory factory = (Factory)object;
         if (factory.getCommitid() == null && factory.getIdcommit() != null) {
             factory.setCommitid(factory.getIdcommit());

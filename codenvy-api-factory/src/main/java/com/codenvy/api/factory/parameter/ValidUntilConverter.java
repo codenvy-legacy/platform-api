@@ -28,9 +28,13 @@ import javax.inject.Singleton;
  * @author Alexander Garagatyi
  */
 @Singleton
-public class ValidUntilConverter implements FactoryParameterConverter {
+public class ValidUntilConverter extends FactoryParameterConverter {
+    public ValidUntilConverter(Object object) {
+        super(object);
+    }
+
     @Override
-    public void convert(Object object) throws FactoryUrlException {
+    public void convert() throws FactoryUrlException {
         Factory factory = (Factory)object;
 
         Restriction restriction = factory.getRestriction();

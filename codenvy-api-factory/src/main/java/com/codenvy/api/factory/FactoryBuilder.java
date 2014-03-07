@@ -37,6 +37,7 @@ import java.util.*;
 import static com.codenvy.api.factory.parameter.FactoryParameter.*;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Format.ENCODED;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Format.NONENCODED;
+import static com.codenvy.api.factory.parameter.FactoryParameterConverter.DefaultFactoryParameterConverter;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
@@ -249,17 +250,10 @@ public class FactoryBuilder {
 
                         if (String.class.equals(returnClass)) {
                             param = values.iterator().next();
-                        } else if (returnClass.isPrimitive()) {
-                            if (boolean.class.equals(returnClass)) {
-                                param = Boolean.parseBoolean(values.iterator().next());
-                            } else {
-                                // TODO find more common solution
-                                if (int.class.equals(returnClass)) {
-                                    param = Integer.parseInt(values.iterator().next());
-                                } else if (long.class.equals(returnClass)) {
-                                    param = Long.parseLong(values.iterator().next());
-                                }
-                            }
+                        } else if (Boolean.class.equals(returnClass)) {
+                            param = Boolean.parseBoolean(values.iterator().next());
+                        } else if (Long.class.equals(returnClass)) {
+                            param = Long.parseLong(values.iterator().next());
                             // hack: variables it's an encoded list of jsons
                         } else if ("variables".equals(fullName)) {
                             param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
@@ -331,9 +325,13 @@ public class FactoryBuilder {
     }
 
     /**
+     * Validate factory compatibility, convert parameters to new format if they have changed placement.
+     *
      * @param factory
+     *         - factory object to validate
      * @param encoded
-     * @return
+     *         - is it encoded factory or not
+     * @return - factory object with modern parameters
      * @throws FactoryUrlException
      */
     protected Factory validateFactoryCompatibility(Factory factory, boolean encoded) throws FactoryUrlException {
@@ -382,6 +380,8 @@ public class FactoryBuilder {
                                          Format sourceFormat, boolean orgIdIsPresent,
                                          String parentName) throws FactoryUrlException {
 
+        // list of parameter converters that must be executed after checking parameters because
+        List<FactoryParameterConverter> converters = new LinkedList<>();
         // get all methods recursively
         for (Method method : methodsProvider.getMethods()) {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
@@ -395,11 +395,10 @@ public class FactoryBuilder {
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     LOG.error(e.getLocalizedMessage(), e);
                     throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
-                                                                parameterName.isEmpty() ? "" : " of " + parentName));
+                                                                parameterName.isEmpty() ? "" : (" of " + parentName)));
                 }
 
                 // if value is null or default value for primitives
-                // TODO check int values
                 if (null == methodParameter || (Collection.class.isAssignableFrom(methodParameter.getClass())) ||
                     (Boolean.class.equals(methodParameter.getClass()) && (Boolean)methodParameter == false) ||
                     ((Long.class.equals(methodParameter.getClass()) && (Long)methodParameter == 0))) {
@@ -438,21 +437,32 @@ public class FactoryBuilder {
                         throw new FactoryUrlException("Parameter " + parameterName + " can't be used without 'orgid'.");
                     }
 
-                    try {
-                        FactoryParameterConverter converter = factoryParameter.converter().newInstance();
-                        converter.convert(object);
-                    } catch (InstantiationException | IllegalAccessException e) {
-                        LOG.error(e.getLocalizedMessage(), e);
-                        throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
-                                                                    parameterName.isEmpty() ? "" : " of " + parentName));
+                    if (!DefaultFactoryParameterConverter.class.equals(factoryParameter.converter())) {
+                        try {
+                            FactoryParameterConverter converter =
+                                    factoryParameter.converter().getConstructor(Object.class).newInstance(object);
+                            converters.add(converter);
+                        } catch (Exception e) {
+                            LOG.error(e.getLocalizedMessage(), e);
+                            throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
+                                                                        parameterName.isEmpty() ? "" : (" of " + parentName)));
+                        }
                     }
 
-                    // validate inner objects such Git ot ProjectAttributes
-                    validateCompatibility(methodParameter, method.getReturnType(), method.getReturnType(), version, sourceFormat,
-                                          orgIdIsPresent,
-                                          (parentName.isEmpty() ? "" : parentName + ".") + parameterName);
+                    // use recursion if parameter is DTO object
+                    if (methodParameter.getClass().isAnnotationPresent(DTO.class)) {
+
+                        // validate inner objects such Git ot ProjectAttributes
+                        validateCompatibility(methodParameter, method.getReturnType(), method.getReturnType(), version, sourceFormat,
+                                              orgIdIsPresent, (parentName.isEmpty() ? "" : (parentName + ".")) + parameterName);
+                    }
+
                 }
             }
+        }
+
+        for (FactoryParameterConverter converter : converters) {
+            converter.convert();
         }
 
         return object;

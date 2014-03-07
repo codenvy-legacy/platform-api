@@ -28,6 +28,7 @@ import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.*;
 
 import java.io.*;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
@@ -83,41 +84,6 @@ public class FactoryBuilderTest {
         return result;
     }
 
-    @Test(expectedExceptions = FactoryUrlException.class)
-    public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0() throws FactoryUrlException {
-        factory.setV("1.0");
-        factory.setVcs("vcs");
-        factory.setVcsurl("vcsurl");
-        factory.setIdcommit("idcommit");
-        factory.setPtype("ptype");
-        factory.setPname("pname");
-        factory.setAction("action");
-        factory.setWname("wname");
-        factory.setVcsbranch("vcsbranch");
-
-        expectedFactory.setV("1.0");
-        expectedFactory.setVcs("vcs");
-        expectedFactory.setVcsurl("vcsurl");
-        expectedFactory.setCommitid("idcommit");
-        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
-        projectAttributes.setPname("pname");
-        projectAttributes.setPtype("ptype");
-        expectedFactory.setProjectattributes(projectAttributes);
-        expectedFactory.setAction("action");
-        expectedFactory.setVcsbranch("vcsbranch");
-
-
-        Factory newFactory;
-        //long start= System.currentTimeMillis();
-        //for (int i = 0; i < 1000; ++i) {
-        newFactory = factoryBuilder.validateFactoryCompatibility(factory, false);
-        //}
-        //System.err.println((System.currentTimeMillis() - start));
-
-        assertEquals(newFactory, expectedFactory);
-
-    }
-
     @Test
     public void shouldBeAbleToValidateFactory1_0() throws FactoryUrlException {
         factory.setV("1.0");
@@ -139,9 +105,41 @@ public class FactoryBuilderTest {
         expectedFactory.setProjectattributes(projectAttributes);
         expectedFactory.setAction("action");
 
-        Factory newFactory;
-        newFactory = factoryBuilder.validateFactoryCompatibility(factory, false);
+        assertEquals(factoryBuilder.validateFactoryCompatibility(factory, false), expectedFactory);
+    }
+
+    @Test//(expectedExceptions = FactoryUrlException.class)
+    public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0(/*Method method, Object parameter*/) throws FactoryUrlException {
+        factory.setV("1.0");
+        factory.setVcs("vcs");
+        factory.setVcsurl("vcsurl");
+        factory.setIdcommit("idcommit");
+        factory.setPtype("ptype");
+        factory.setPname("pname");
+        factory.setAction("action");
+        factory.setWname("wname");
+
+
+        expectedFactory.setV("1.0");
+        expectedFactory.setVcs("vcs");
+        expectedFactory.setVcsurl("vcsurl");
+        expectedFactory.setCommitid("idcommit");
+        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
+        projectAttributes.setPname("pname");
+        projectAttributes.setPtype("ptype");
+        expectedFactory.setProjectattributes(projectAttributes);
+        expectedFactory.setAction("action");
+
+        Factory newFactory = null;
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 1000; ++i) {
+            newFactory = DtoFactory.getInstance().clone(factory);
+            newFactory = factoryBuilder.validateFactoryCompatibility(newFactory, false);
+        }
+        System.err.println((System.currentTimeMillis() - start));
+
         assertEquals(newFactory, expectedFactory);
+
     }
 
     private String encode(String value) {
@@ -215,231 +213,4 @@ public class FactoryBuilderTest {
         Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
         //assertEquals(newFactory, expectedFactory);
     }
-
-    @Test
-    public void test() {
-
-        factory.setV("1.2");
-        factory.setVcs("vcs");
-        factory.setVcsurl("vcsurl");
-        factory.setCommitid("commitid");
-        factory.setIdcommit("idcommit");
-        factory.setPtype("ptype");
-        factory.setPname("pname");
-        factory.setAction("action");
-        factory.setWname("wname");
-        factory.setStyle("style");
-        factory.setDescription("description");
-        factory.setContactmail("contactmail");
-        factory.setAuthor("author");
-        factory.setOpenfile("openfile");
-        factory.setOrgid("orgid");
-        factory.setAffiliateid("affid");
-        factory.setVcsinfo(true);
-        factory.setVcsbranch("vcsbranch");
-        factory.setUserid("userid");
-        factory.setCreated(100001);
-        factory.setValiduntil(1000002);
-        factory.setValidsince(100000);
-        factory.setImage("image");
-
-        factory.setProjectattributes(new ProjectAttributes() {
-            @Override
-            public String getPname() {
-                return "attr.pname";
-            }
-
-            @Override
-            public void setPname(String pname) {
-
-            }
-
-            @Override
-            public String getPtype() {
-                return "attr.ptype";
-            }
-
-            @Override
-            public void setPtype(String ptype) {
-
-            }
-        });
-        factory.setWelcome(new WelcomePage() {
-            @Override
-            public WelcomeConfiguration getAuthenticated() {
-                return new WelcomeConfiguration() {
-                    @Override
-                    public String getTitle() {
-                        return "welcome.auth.title";
-                    }
-
-                    @Override
-                    public void setTitle(String title) {
-
-                    }
-
-                    @Override
-                    public String getIconurl() {
-                        return "welcome.auth.iconurl";
-                    }
-
-                    @Override
-                    public void setIconurl(String iconurl) {
-
-                    }
-
-                    @Override
-                    public String getContenturl() {
-                        return "welcome.auth.contenturl";
-                    }
-
-                    @Override
-                    public void setContenturl(String contenturl) {
-
-                    }
-                };
-            }
-
-            @Override
-            public void setAuthenticated(WelcomeConfiguration authenticated) {
-
-            }
-
-            @Override
-            public WelcomeConfiguration getNonauthenticated() {
-                return new WelcomeConfiguration() {
-                    @Override
-                    public String getTitle() {
-                        return "welcome.nonauth.title";
-                    }
-
-                    @Override
-                    public void setTitle(String title) {
-
-                    }
-
-                    @Override
-                    public String getIconurl() {
-                        return "welcome.nonauth.iconurl";
-                    }
-
-                    @Override
-                    public void setIconurl(String iconurl) {
-
-                    }
-
-                    @Override
-                    public String getContenturl() {
-                        return "welcome.nonauth.contenturl";
-                    }
-
-                    @Override
-                    public void setContenturl(String contenturl) {
-
-                    }
-                };
-            }
-
-            @Override
-            public void setNonauthenticated(WelcomeConfiguration nonauthenticated) {
-
-            }
-        });
-
-        //factory.setVariables();
-        factory.setGit(new Git() {
-            @Override
-            public String getConfigremoteoriginfetch() {
-                return "Configremoteoriginfetch";
-            }
-
-            @Override
-            public void setConfigremoteoriginfetch(String configremoteoriginfetch) {
-
-            }
-
-            @Override
-            public String getConfigpushdefault() {
-                return "Configpushdefault";
-            }
-
-            @Override
-            public void setConfigpushdefault(String configpushdefault) {
-
-            }
-
-            @Override
-            public String getConfigbranchmerge() {
-                return "Configbranchmerge";
-            }
-
-            @Override
-            public void setConfigbranchmerge(String configbranchmerge) {
-
-            }
-        });
-
-        factory.setRestriction(new Restriction() {
-            @Override
-            public long getValidsince() {
-                return 11111111;
-            }
-
-            @Override
-            public void setValidsince(long validsince) {
-
-            }
-
-            @Override
-            public long getValiduntil() {
-                return 1000007;
-            }
-
-            @Override
-            public void setValiduntil(long validuntil) {
-
-            }
-
-            @Override
-            public String getRefererhostname() {
-                return "Refererhostname";
-            }
-
-            @Override
-            public void setRefererhostname(String refererhostname) {
-
-            }
-
-            @Override
-            public String getRestrictbypassword() {
-                return "Restrictbypassword";
-            }
-
-            @Override
-            public void setRestrictbypassword(String restrictbypassword) {
-
-            }
-
-            @Override
-            public String getPassword() {
-                return "Password";
-            }
-
-            @Override
-            public void setPassword(String password) {
-
-            }
-
-            @Override
-            public int getValidsessioncount() {
-                return 2000017;
-            }
-
-            @Override
-            public void setValidsessioncount(int validsessioncount) {
-
-            }
-        });
-    }
-
 }

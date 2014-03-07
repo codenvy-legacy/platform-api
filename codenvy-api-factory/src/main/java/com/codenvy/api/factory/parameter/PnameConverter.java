@@ -28,9 +28,13 @@ import javax.inject.Singleton;
  * @author Alexander Garagatyi
  */
 @Singleton
-public class PnameConverter implements FactoryParameterConverter {
+public class PnameConverter extends FactoryParameterConverter {
+    public PnameConverter(Object object) {
+        super(object);
+    }
+
     @Override
-    public void convert(Object object) throws FactoryUrlException {
+    public void convert() throws FactoryUrlException {
         Factory factory = (Factory)object;
         ProjectAttributes attributes = factory.getProjectattributes();
         if (null == attributes) {

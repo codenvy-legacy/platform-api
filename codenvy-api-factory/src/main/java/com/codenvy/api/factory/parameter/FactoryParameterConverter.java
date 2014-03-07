@@ -22,12 +22,22 @@ import com.codenvy.api.factory.FactoryUrlException;
 /**
  * @author Alexander Garagatyi
  */
-public interface FactoryParameterConverter {
-    void convert(Object object) throws FactoryUrlException;
+public abstract class FactoryParameterConverter {
+    protected final Object object;
 
-    public static class DefaultFactoryParameterConverter implements FactoryParameterConverter {
+    public FactoryParameterConverter(Object object) {
+        this.object = object;
+    }
+
+    public abstract void convert() throws FactoryUrlException;
+
+    public static class DefaultFactoryParameterConverter extends FactoryParameterConverter {
+        public DefaultFactoryParameterConverter(Object object) {
+            super(object);
+        }
+
         @Override
-        public void convert(Object object) throws FactoryUrlException {
+        public void convert() throws FactoryUrlException {
             // do nothing
         }
     }

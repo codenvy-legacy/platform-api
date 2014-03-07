@@ -41,4 +41,8 @@ public interface SourcesManager {
     void getSources(String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
 
     java.io.File getDirectory();
+
+    void addListener(SourceManagerListener listener);
+
+    boolean removeListener(SourceManagerListener listener);
 }

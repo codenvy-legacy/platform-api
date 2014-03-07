@@ -41,8 +41,10 @@ import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -75,6 +77,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private final java.io.File                        directory;
     private final ConcurrentMap<String, Future<Void>> tasks;
     private final AtomicReference<String>             projectKeyHolder;
+    private final Set<SourceManagerListener>          listeners;
 
     public SourcesManagerImpl(java.io.File directory) {
         this.directory = directory;
@@ -86,6 +89,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                                      TASK_EXECUTION_PERIOD,
                                      TASK_EXECUTION_PERIOD,
                                      TASK_EXECUTION_PERIOD_UNIT);
+        listeners = new CopyOnWriteArraySet<>();
     }
 
 
@@ -141,7 +145,14 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 throw ioError;
             }
             IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
-            Files.setLastModifiedTime(srcDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
+            try {
+                Files.setLastModifiedTime(srcDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
+            } catch (IOException e) {
+                LOG.error(e.getMessage(), e);
+            }
+            for (SourceManagerListener listener : listeners) {
+                listener.afterDownload(new SourceManagerEvent(workspace, project, sourcesUrl, workDir));
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
@@ -230,6 +241,15 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         return directory;
     }
 
+    @Override
+    public void addListener(SourceManagerListener listener) {
+        listeners.add(listener);
+    }
+
+    @Override
+    public boolean removeListener(SourceManagerListener listener) {
+        return listeners.remove(listener);
+    }
 
     /**
      * Create runnable task that will check last files modifications and remove any of them
@@ -296,7 +316,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             return ESTIMATE_OF_FILE_LIFE_UNIT.convert(System.currentTimeMillis() - lastModifiedTimeInMilliseconds,
                                                       TimeUnit.MILLISECONDS) >= ESTIMATE_OF_FILE_LIFE;
         } catch (IOException e) {
-            LOG.error(String.format("It is not possible to get last modification time of %s", file.getAbsolutePath()), e);
+            LOG.error(e.getMessage(), e);
             return false;
         }
     }

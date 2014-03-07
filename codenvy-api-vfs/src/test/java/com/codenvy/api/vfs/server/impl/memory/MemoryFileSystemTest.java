@@ -19,9 +19,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import junit.framework.TestCase;
 
-import com.codenvy.api.core.user.User;
-import com.codenvy.api.core.user.UserImpl;
-import com.codenvy.api.core.user.UserState;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.URLHandlerFactorySetup;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -39,6 +36,9 @@ import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.user.User;
+import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.RequestHandler;
@@ -116,8 +116,8 @@ public abstract class MemoryFileSystemTest extends TestCase {
         deployer.publish(new VirtualFileSystemApplication());
 
         // RUNTIME VARIABLES
-        User user = new UserImpl("john", Arrays.asList("developer"));
-        UserState.set(new UserState(user));
+        User user = new UserImpl("john", null, Arrays.asList("developer"));
+        EnvironmentContext.getCurrent().setUser(user);
     }
 
     /** @see junit.framework.TestCase#tearDown() */

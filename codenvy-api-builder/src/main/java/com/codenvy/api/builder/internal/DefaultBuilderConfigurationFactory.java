@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;

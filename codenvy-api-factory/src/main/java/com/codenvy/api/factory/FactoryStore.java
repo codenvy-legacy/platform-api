@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
+
 import java.util.Set;
 
 /** Interface for CRUD operations with factory data. */

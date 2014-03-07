@@ -18,12 +18,14 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.project.shared.AttributeDescription;
+import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.codenvy.api.project.shared.dto.AttributeDescriptor;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTypeDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -62,6 +64,17 @@ public class ProjectTypeDescriptionService extends Service {
                                                    .withName(attributeDescription.getName()));
             }
             descriptor.setAttributeDescriptors(attributeDescriptors);
+            final List<ProjectTemplateDescriptor> templateDescriptors = new ArrayList<>();
+            for (ProjectTemplateDescription templateDescription : registry.getTemplates(projectType)) {
+                ProjectTemplateDescriptor templateDescriptor = DtoFactory.getInstance().createDto(ProjectTemplateDescriptor.class)
+                        .withDisplayName(templateDescription.getDisplayName())
+                        .withSources(DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
+                                               .withType(templateDescription.getImporterType())
+                                               .withLocation(templateDescription.getLocation()))
+                        .withDescription(templateDescription.getDescription());
+                templateDescriptors.add(templateDescriptor);
+            }
+            descriptor.setTemplates(templateDescriptors);
             types.add(descriptor);
         }
         return types;

@@ -23,7 +23,6 @@ import com.codenvy.api.builder.internal.BuildResult;
 import com.codenvy.api.builder.internal.BuildTask;
 import com.codenvy.api.builder.internal.Builder;
 import com.codenvy.api.builder.internal.BuilderConfiguration;
-import com.codenvy.api.builder.internal.BuilderException;
 import com.codenvy.api.builder.internal.DelegateBuildLogger;
 import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.internal.dto.BuildRequest;

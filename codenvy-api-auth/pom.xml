@@ -23,21 +23,26 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.8.3-SNAPSHOT</version>
+        <version>0.9.1-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-auth</artifactId>
     <packaging>jar</packaging>
     <name>Codenvy Platform API :: Authentication</name>
     <dependencies>
         <dependency>
-            <groupId>com.codenvy.security</groupId>
-            <artifactId>codenvy-security-api</artifactId>
-            <version>${codenvy.security.version}</version>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>${javax.jcr350.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
             <version>${javax.inject.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+            <version>${javax.validation.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

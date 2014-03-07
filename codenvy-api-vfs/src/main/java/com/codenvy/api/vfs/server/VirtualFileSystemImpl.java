@@ -647,23 +647,6 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", updated.getName(), ((Project)updated).getProjectType());
             }
         }
-
-        /*boolean jRebelPropertyUpdated = false;
-        for (Property p : properties) {
-            if (p.getName().equals("jrebel")) {
-                jRebelPropertyUpdated = true;
-                break;
-            }
-        }
-        if (jRebelPropertyUpdated) {
-            final String projectType = updated.getPropertyValue("vfs:projectType");
-            //TODO : move somewhere VFS must not be care about any project specific properties
-            boolean jRebelUsage = Boolean.parseBoolean(updated.getPropertyValue("jrebel"));
-            VirtualFileSystemUser user = userContext.getVirtualFileSystemUser();
-            LOG.info("EVENT#jrebel-usage# WS#"
-                     + EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_NAME).toString() + "# USER#"
-                     + user.getUserId() + "# PROJECT#" + updated.getName() + "# TYPE#" + projectType + "# JREBEL#" + jRebelUsage + "#");
-        }*/
         return updated;
     }
 

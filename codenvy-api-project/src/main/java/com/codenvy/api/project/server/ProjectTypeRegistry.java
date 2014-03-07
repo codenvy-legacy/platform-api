@@ -41,15 +41,21 @@ public class ProjectTypeRegistry {
     }
 
     public ProjectType unregisterProjectType(String id) {
+        if (id == null) {
+            return null;
+        }
         return types.remove(id);
     }
 
     public ProjectType getProjectType(String id) {
+        if (id == null) {
+            return null;
+        }
         return types.get(id);
     }
 
     public boolean isProjectTypeRegistered(String id) {
-        return types.get(id) != null;
+        return id != null && types.get(id) != null;
     }
 
     public boolean isProjectTypeRegistered(ProjectType type) {

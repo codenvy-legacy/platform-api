@@ -18,7 +18,6 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.ValueProvider;
-import com.codenvy.api.vfs.shared.dto.Project;
 
 import javax.inject.Singleton;
 import java.util.ArrayList;
@@ -42,7 +41,7 @@ public final class DownloadZipValueProviderFactory implements ValueProviderFacto
             @Override
             public List<String> getValues() {
                 final List<String> list = new ArrayList<>(1);
-                list.add(project.getLinks().get(com.codenvy.api.vfs.shared.dto.Link.REL_EXPORT).getHref());
+//                list.add(project.getLinks().get(com.codenvy.api.vfs.shared.dto.Link.REL_EXPORT).getHref());
                 return list;
             }
 

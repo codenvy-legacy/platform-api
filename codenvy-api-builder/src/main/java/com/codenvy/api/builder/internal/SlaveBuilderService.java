@@ -18,6 +18,8 @@
 package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.BuildStatus;
+import com.codenvy.api.builder.BuilderException;
+import com.codenvy.api.builder.NoSuchBuilderException;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;

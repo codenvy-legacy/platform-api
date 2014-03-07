@@ -36,6 +36,12 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withBaseUrl(String url);
 
+    String getId();
+
+    void setId(String id);
+
+    ProjectDescriptor withId(String id);
+
     /** Get unique ID of type of project. */
     String getProjectTypeId();
 

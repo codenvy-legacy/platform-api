@@ -35,6 +35,7 @@ import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.dto.server.DtoFactory;
@@ -378,7 +379,7 @@ public class ProjectService extends Service {
                          .withChildren(getTree(workspace, folder, depth));
     }
 
-    // TODO: Temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
+    // Temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
     private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) {
         if (depth == 0 || !entry.isFolder()) {
             return null;
@@ -507,7 +508,7 @@ public class ProjectService extends Service {
         return projectDescription;
     }
 
-    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException {
+    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException, VirtualFileSystemException {
         final ProjectDescription description = project.getDescription();
         final ProjectType type = description.getProjectType();
         final Map<String, List<String>> attributeValues = new LinkedHashMap<>();
@@ -516,6 +517,8 @@ public class ProjectService extends Service {
         }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
+                         // Temporary add virtualFile ID, since need to rework client side.
+                         .withId(project.getBaseFolder().getVirtualFile().getId())
                          .withProjectTypeId(type.getId())
                          .withProjectTypeName(type.getName())
                          .withDescription(description.getDescription())

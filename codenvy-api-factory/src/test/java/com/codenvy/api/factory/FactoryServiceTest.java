@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.server.DtoServerImpls;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
@@ -97,6 +99,23 @@ public class FactoryServiceTest {
         EnvironmentContext.reset();
     }
 
+
+    @Test
+    public void shouldBeAbleToGetFactoryImage() throws Exception {
+        // given
+
+        // when
+        Factory response = given().when().get(SERVICE_PATH + "/nonencoded?v=1.1&vcs=git&vcsurl=" +
+                                               URLEncoder.encode("git@github.com:codenvy/cloud-ide.git", "UTF-8")).as(
+                DtoServerImpls.FactoryImpl.class);
+
+        // then
+        assertEquals(response.getV(), "1.1");
+        assertEquals(response.getVcs(), "git");
+        assertEquals(response.getVcsurl(), "git@github.com:codenvy/cloud-ide.git");
+    }
+
+
     @Test
     public void shouldBeAbleToSaveFactory(ITestContext context) throws Exception {
         // given
@@ -155,7 +174,8 @@ public class FactoryServiceTest {
         factoryUrl.setVcs("git");
         factoryUrl.setV("1.1");
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
-        Link expectedCreateProject = new Link("text/html", getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID, "create-project");
+        Link expectedCreateProject = new Link("text/html", getServerUrl(context) + "/factory?id=" +
+        CORRECT_FACTORY_ID, "create-project");
 
         when(factoryStore.saveFactory((AdvancedFactoryUrl)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
@@ -168,21 +188,27 @@ public class FactoryServiceTest {
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
+        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(),
+        AdvancedFactoryUrl.class, null);
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("application/json", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID, "self")));
+                new Link("application/json", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID,
+                "self")));
         assertTrue(responseFactoryUrl.getLinks().contains(expectedCreateProject));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/private/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
+                new Link("text/plain", getServerUrl(context) +
+                "/rest/private/analytics/metric/FACTORY_URL_ACCEPTED_NUMBER?factory_url=" +
                                        URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"), "accepted")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=url",
+                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID +
+                "/snippet?type=url",
                          "snippet/url")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=html",
+                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID +
+                "/snippet?type=html",
                          "snippet/html")));
         assertTrue(responseFactoryUrl.getLinks().contains(
-                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown",
+                new Link("text/plain", getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID +
+                "/snippet?type=markdown",
                          "snippet/markdown")));
 
         List<Link> expectedLinks = new ArrayList<>(8);
@@ -209,13 +235,15 @@ public class FactoryServiceTest {
 
         Link snippetHtml = DtoFactory.getInstance().createDto(Link.class);
         snippetHtml.setType("text/plain");
-        snippetHtml.setHref(getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=html");
+        snippetHtml.setHref(getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID +
+        "/snippet?type=html");
         snippetHtml.setRel("snippet/html");
         expectedLinks.add(snippetHtml);
 
         Link snippetMarkdown = DtoFactory.getInstance().createDto(Link.class);
         snippetMarkdown.setType("text/plain");
-        snippetMarkdown.setHref(getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+        snippetMarkdown.setHref(getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID +
+        "/snippet?type=markdown");
         snippetMarkdown.setRel("snippet/markdown");
         expectedLinks.add(snippetMarkdown);
 
@@ -382,7 +410,8 @@ public class FactoryServiceTest {
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(), AdvancedFactoryUrl.class, null);
+        AdvancedFactoryUrl responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(),
+        AdvancedFactoryUrl.class, null);
 
         List<Link> expectedLinks = new ArrayList<>(8);
         expectedLinks.add(expectedCreateProject);
@@ -395,7 +424,8 @@ public class FactoryServiceTest {
 
         Link imageJpeg = DtoFactory.getInstance().createDto(Link.class);
         imageJpeg.setType("image/jpeg");
-        imageJpeg.setHref(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/image?imgId=image123456789");
+        imageJpeg.setHref(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID +
+        "/image?imgId=image123456789");
         imageJpeg.setRel("image");
         expectedLinks.add(imageJpeg);
 
@@ -426,7 +456,8 @@ public class FactoryServiceTest {
 
         Link snippetMarkdown = DtoFactory.getInstance().createDto(Link.class);
         snippetMarkdown.setType("text/plain");
-        snippetMarkdown.setHref(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+        snippetMarkdown.setHref(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID +
+        "/snippet?type=markdown");
         snippetMarkdown.setRel("snippet/markdown");
         expectedLinks.add(snippetMarkdown);
 
@@ -523,7 +554,8 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnUrlSnippet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto(AdvancedFactoryUrl.class));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
+        (AdvancedFactoryUrl.class));
 
         // when, then
         given().//
@@ -538,7 +570,8 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnUrlSnippetIfTypeIsNotSet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto(AdvancedFactoryUrl.class));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
+        (AdvancedFactoryUrl.class));
 
         // when, then
         given().//
@@ -553,7 +586,8 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnHtmlSnippet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto(AdvancedFactoryUrl.class));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
+        (AdvancedFactoryUrl.class));
 
         // when, then
         given().//
@@ -584,7 +618,8 @@ public class FactoryServiceTest {
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(
-                equalTo("[![alt](" + getServerUrl(context) + "/api/factory/" + CORRECT_FACTORY_ID + "/image?imgId=" + imageName + ")](" +
+                equalTo("[![alt](" + getServerUrl(context) + "/api/factory/" + CORRECT_FACTORY_ID + "/image?imgId=" +
+                 imageName + ")](" +
                         getServerUrl(context) + "/factory?id=" +
                         CORRECT_FACTORY_ID + ")")).//
                 when().//
@@ -604,7 +639,8 @@ public class FactoryServiceTest {
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
                 body(
-                equalTo("[![alt](" + getServerUrl(context) + "/factory/resources/factory-white.png)](" + getServerUrl(context) +
+                equalTo("[![alt](" + getServerUrl(context) + "/factory/resources/factory-white.png)](" + getServerUrl
+                (context) +
                         "/factory?id=" +
                         CORRECT_FACTORY_ID + ")")).//
                 when().//
@@ -628,7 +664,8 @@ public class FactoryServiceTest {
     @Test(dataProvider = "badSnippetTypeProvider")
     public void shouldResponse400OnGetSnippetIfTypeIsIllegal(String type) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto(AdvancedFactoryUrl.class));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
+        (AdvancedFactoryUrl.class));
 
         // when, then
         given().//

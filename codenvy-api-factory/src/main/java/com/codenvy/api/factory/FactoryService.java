@@ -142,6 +142,22 @@ public class FactoryService extends Service {
     }
 
     /**
+     * Get  factory json from non encoded version of factory.
+     *
+     * @param uriInfo
+     *         - url context
+     * @return - stored data, if id is correct.
+     * @throws FactoryUrlException
+     *         - with response code 404 if factory with given id doesn't exist
+     */
+    @GET
+    @Path("/nonencoded")
+    @Produces({MediaType.APPLICATION_JSON})
+    public Factory getFactory(@Context UriInfo uriInfo) throws FactoryUrlException {
+        return new FactoryBuilder().buildNonEncoded(uriInfo.getRequestUri().getQuery());
+    }
+
+    /**
      * Get factory information from storage by its id.
      *
      * @param id

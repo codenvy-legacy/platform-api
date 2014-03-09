@@ -19,7 +19,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
-import com.codenvy.api.factory.parameter.IgnoreConverter;
+
 import com.codenvy.dto.server.DtoFactory;
 
 import org.mockito.InjectMocks;
@@ -28,7 +28,6 @@ import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.*;
 
 import java.io.*;
-import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
@@ -41,10 +40,7 @@ import static org.testng.Assert.assertEquals;
  */
 @Listeners(MockitoTestNGListener.class)
 public class FactoryBuilderTest {
-    @Spy
-    private IgnoreConverter ignoreConverter;
 
-    @InjectMocks
     private FactoryBuilder factoryBuilder;
 
     private Factory factory;
@@ -53,6 +49,7 @@ public class FactoryBuilderTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
+        factoryBuilder = new FactoryBuilder();
         factory = DtoFactory.getInstance().createDto(Factory.class);
 
         expectedFactory = DtoFactory.getInstance().createDto(Factory.class);
@@ -105,7 +102,9 @@ public class FactoryBuilderTest {
         expectedFactory.setProjectattributes(projectAttributes);
         expectedFactory.setAction("action");
 
-        assertEquals(factoryBuilder.validateFactoryCompatibility(factory, FactoryFormat.NONENCODED), expectedFactory);
+        factoryBuilder.validateFactoryCompatibility(factory, FactoryFormat.NONENCODED);
+        factory = factoryBuilder.convertLegacyToLatestVersion(factory);
+        assertEquals(factory, expectedFactory);
     }
 
     @Test//(expectedExceptions = FactoryUrlException.class)
@@ -135,7 +134,8 @@ public class FactoryBuilderTest {
         long start = System.currentTimeMillis();
         for (int i = 0; i < 1000; ++i) {
             newFactory = DtoFactory.getInstance().clone(factory);
-            newFactory = factoryBuilder.validateFactoryCompatibility(newFactory, FactoryFormat.NONENCODED);
+            factoryBuilder.validateFactoryCompatibility(newFactory, FactoryFormat.NONENCODED);
+            newFactory = factoryBuilder.convertLegacyToLatestVersion(factory);
         }
         System.err.println((System.currentTimeMillis() - start));
 
@@ -162,7 +162,7 @@ public class FactoryBuilderTest {
         sb.append("projectattributes.ptype=").append("type").append("&");
         sb.append("projectattributes.pname=").append("name").append("&");
         //sb.append("ptype=").append("type").append("&");
-        //sb.append("pname=").append("name").append("&");
+        //sb.append("pname=").append("queryParameterName").append("&");
         sb.append("action=").append("openReadme").append("&");
         sb.append("wname=").append("codenvy").append("&");
         //sb.append("style=").append("Black").append("&");

@@ -13,7 +13,7 @@ public interface Git {
     /**
      * @return Allows get ref-specs of the changes of remote repository
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "configremoteoriginfetch")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configremoteoriginfetch")
     String getConfigremoteoriginfetch();
 
     void setConfigremoteoriginfetch(String configremoteoriginfetch);
@@ -23,7 +23,7 @@ public interface Git {
      *
      * @return
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "configpushdefault")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configpushdefault")
     String getConfigpushdefault();
 
     void setConfigpushdefault(String configpushdefault);
@@ -31,15 +31,15 @@ public interface Git {
     /**
      * @return Defines the upstream branch for vcsbranch.
      * <p/>
-     * Git configuration branch.<name>.merge makes sense only for
+     * Git configuration branch.<queryParameterName>.merge makes sense only for
      * <p/>
      * vcsbranch because in this task we need push only in vcsbranch.
      * <p/>
-     * In gerrit case it will be:"refs/for/" + name branch for which this changes are proposed
+     * In gerrit case it will be:"refs/for/" + queryParameterName branch for which this changes are proposed
      * <p/>
      * vcsbranch should be not null.
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "configbranchmerge")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configbranchmerge")
     String getConfigbranchmerge();
 
     void setConfigbranchmerge(String configbranchmerge);

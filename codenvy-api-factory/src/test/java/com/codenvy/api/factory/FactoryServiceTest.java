@@ -639,7 +639,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=" + type);
     }
 
-    @DataProvider(name = "badSnippetTypeProvider")
+    @DataProvider(queryParameterName = "badSnippetTypeProvider")
     public String[][] badSnippetTypeProvider() {
         return new String[][]{{""},
                               {null},

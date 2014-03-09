@@ -18,27 +18,15 @@
 package com.codenvy.api.factory.parameter;
 
 import com.codenvy.api.factory.FactoryUrlException;
+import com.codenvy.api.factory.dto.Factory;
 
 /**
+ * Convert legacy factory parameter to new the latest format
+ *
  * @author Alexander Garagatyi
  */
-public abstract class FactoryParameterConverter {
-    protected final Object object;
+public interface LegacyConverter {
 
-    public FactoryParameterConverter(Object object) {
-        this.object = object;
-    }
+    void convert(Factory factory) throws FactoryUrlException;
 
-    public abstract void convert() throws FactoryUrlException;
-
-    public static class DefaultFactoryParameterConverter extends FactoryParameterConverter {
-        public DefaultFactoryParameterConverter(Object object) {
-            super(object);
-        }
-
-        @Override
-        public void convert() throws FactoryUrlException {
-            // do nothing
-        }
-    }
 }

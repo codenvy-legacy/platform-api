@@ -29,9 +29,9 @@ public interface ProjectAttributes {
     /**
      * @return Name of the project in temporary workspace after the exporting source code from vcsurl.
      * <p/>
-     * Project name should be in valid format,
+     * Project queryParameterName should be in valid format,
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "pname")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "pname")
     String getPname();
 
     public void setPname(String pname);
@@ -39,7 +39,7 @@ public interface ProjectAttributes {
     /**
      * @return Project type.
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "ptype")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ptype")
     public String getPtype();
 
     public void setPtype(String ptype);

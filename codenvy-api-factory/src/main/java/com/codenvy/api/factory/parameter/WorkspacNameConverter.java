@@ -19,32 +19,17 @@ package com.codenvy.api.factory.parameter;
 
 import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * @author Alexander Garagatyi
  */
-@Singleton
-public class PnameConverter extends FactoryParameterConverter {
-    public PnameConverter(Object object) {
-        super(object);
-    }
-
+public class WorkspacNameConverter implements LegacyConverter {
     @Override
-    public void convert() throws FactoryUrlException {
-        Factory factory = (Factory)object;
-        ProjectAttributes attributes = factory.getProjectattributes();
-        if (null == attributes) {
-            attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
-            factory.setProjectattributes(attributes);
-        } else if (attributes.getPname() != null) {
-            throw new FactoryUrlException("Parameters 'pname' and 'projectsttributes.pname' are mutually exclusive.");
-        }
-
-        attributes.setPname(factory.getPname());
-        factory.setPname(null);
+    public void convert(Factory factory) throws FactoryUrlException {
+        factory.setWname(null);
     }
 }

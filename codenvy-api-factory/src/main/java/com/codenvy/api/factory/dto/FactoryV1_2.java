@@ -14,7 +14,7 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return additinal git configuration
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "git")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "git")
     Git getGit();
 
     void setGit(Git git);
@@ -22,7 +22,7 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return Factory acceptance restrictions
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "restriction", trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "restriction", trackedOnly = true)
     Restriction getRestriction();
 
     void setRestriction(Restriction restriction);
@@ -30,7 +30,7 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return path to the image
      */
-    @FactoryParameter(obligation = OPTIONAL, name = "image", deprecatedSince = V1_2)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "image", deprecatedSince = V1_2)
     @Deprecated
     String getImage();
 

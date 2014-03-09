@@ -19,7 +19,7 @@ package com.codenvy.api.factory.parameter;
 
 import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.Restriction;
+import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
@@ -27,19 +27,20 @@ import javax.inject.Singleton;
 /**
  * @author Alexander Garagatyi
  */
-public class ValidUntilConverter implements LegacyConverter {
+public class ProjectNameConverter implements LegacyConverter {
     @Override
     public void convert(Factory factory) throws FactoryUrlException {
-        if (factory.getValiduntil() > 0) {
-            Restriction restriction = factory.getRestriction();
-            if (restriction == null || restriction.getValiduntil() == 0) {
-                restriction = restriction == null ? DtoFactory.getInstance().createDto(Restriction.class) : restriction;
-                restriction.setValidsince(factory.getValiduntil());
-                factory.setRestriction(restriction);
-                factory.setValiduntil(0);
-            } else if (restriction.getValiduntil() != 0) {
+        if (factory.getPname() != null) {
+            ProjectAttributes attributes = factory.getProjectattributes();
+            if (null == attributes || attributes.getPname() == null) {
+                attributes =
+                        attributes == null ? DtoFactory.getInstance().createDto(ProjectAttributes.class) : attributes;
+                attributes.setPname(factory.getPname());
+                factory.setPname(null);
+                factory.setProjectattributes(attributes);
+            } else if (attributes.getPname() != null) {
                 throw new FactoryUrlException(
-                        "Parameters 'validuntill' and 'restriction.validuntill' are mutually exclusive.");
+                        "Parameters 'pname' and 'projectsttributes.pname' are mutually exclusive.");
             }
         }
     }

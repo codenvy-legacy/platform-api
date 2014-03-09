@@ -62,11 +62,9 @@ public @interface FactoryParameter {
 
     public boolean trackedOnly() default false;
 
-    public String name();
+    public String queryParameterName();
 
     public Version deprecatedSince() default Version.NEVER;
 
     public Version ignoredSince() default Version.NEVER;
-
-    public Class<? extends FactoryParameterConverter> converter() default FactoryParameterConverter.DefaultFactoryParameterConverter.class;
 }

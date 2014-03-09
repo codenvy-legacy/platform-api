@@ -19,6 +19,7 @@ package com.codenvy.api.factory.parameter;
 
 import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -27,25 +28,20 @@ import javax.inject.Singleton;
 /**
  * @author Alexander Garagatyi
  */
-@Singleton
-public class ValidSinceConverter extends FactoryParameterConverter {
-    public ValidSinceConverter(Object object) {
-        super(object);
-    }
-
+public class ValidSinceConverter implements LegacyConverter {
     @Override
-    public void convert() throws FactoryUrlException {
-        Factory factory = (Factory)object;
-
-        Restriction restriction = factory.getRestriction();
-        if (restriction == null) {
-            restriction = DtoFactory.getInstance().createDto(Restriction.class);
-            factory.setRestriction(restriction);
-        } else if (restriction.getValidsince() != 0) {
-            throw new FactoryUrlException("Parameters 'validsince' and 'restriction.validsince' are mutually exclusive.");
+    public void convert(Factory factory) throws FactoryUrlException {
+        if (factory.getValidsince() > 0) {
+            Restriction restriction = factory.getRestriction();
+            if (restriction == null || restriction.getValidsince() == 0) {
+                restriction = restriction == null ? DtoFactory.getInstance().createDto(Restriction.class) : restriction;
+                restriction.setValidsince(factory.getValidsince());
+                factory.setRestriction(restriction);
+                factory.setValidsince(0);
+            } else if (restriction.getValidsince() != 0) {
+                throw new FactoryUrlException(
+                        "Parameters 'validsince' and 'restriction.validsince' are mutually exclusive.");
+            }
         }
-
-        restriction.setValidsince(factory.getValidsince());
-        factory.setValidsince(0);
     }
 }

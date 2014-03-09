@@ -27,24 +27,21 @@ import javax.inject.Singleton;
 /**
  * @author Alexander Garagatyi
  */
-@Singleton
-public class PtypeConverter extends FactoryParameterConverter {
-    public PtypeConverter(Object object) {
-        super(object);
-    }
-
+public class ProjectTypeConverter implements LegacyConverter {
     @Override
-    public void convert() throws FactoryUrlException {
-        Factory factory = (Factory)object;
-        ProjectAttributes attributes = factory.getProjectattributes();
-        if (null == attributes) {
-            attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
-            factory.setProjectattributes(attributes);
-        } else if (attributes.getPtype() != null) {
-            throw new FactoryUrlException("Parameters 'ptype' and 'projectsttributes.ptype' are mutually exclusive.");
+    public void convert(Factory factory) throws FactoryUrlException {
+        if (factory.getPtype() != null) {
+            ProjectAttributes attributes = factory.getProjectattributes();
+            if (null == attributes || attributes.getPtype() == null) {
+                attributes =
+                        attributes == null ? DtoFactory.getInstance().createDto(ProjectAttributes.class) : attributes;
+                attributes.setPtype(factory.getPtype());
+                factory.setPtype(null);
+                factory.setProjectattributes(attributes);
+            } else if (attributes.getPtype() != null) {
+                throw new FactoryUrlException(
+                        "Parameters 'ptype' and 'projectsttributes.ptype' are mutually exclusive.");
+            }
         }
-
-        attributes.setPtype(factory.getPtype());
-        factory.setPtype(null);
     }
 }

@@ -25,7 +25,6 @@ import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.dto.shared.DTO;
 
-import org.everrest.core.impl.method.PrimitiveTypeProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -230,7 +229,8 @@ public class FactoryBuilder {
      * @param queryParams
      *         - source of parameters to parse
      * @param parentName
-     *         - name of parent object. Allow provide support of nested parameters such projectattributes.pname
+     *         - queryParameterName of parent object. Allow provide support of nested parameters such
+     *         projectattributes.pname
      * @param cl
      *         - class of the object to build.
      * @return - built object
@@ -245,9 +245,10 @@ public class FactoryBuilder {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
             try {
                 if (factoryParameter != null && factoryParameter.format() != FactoryFormat.ENCODED) {
-                    // define full name of parameter to be able retrieving nested parameters
+                    // define full queryParameterName of parameter to be able retrieving nested parameters
                     String fullName =
-                            parentName.isEmpty() ? factoryParameter.name() : parentName + "." + factoryParameter.name();
+                            parentName.isEmpty() ? factoryParameter.queryParameterName()
+                                                 : parentName + "." + factoryParameter.queryParameterName();
                     Class<?> returnClass = method.getReturnType();
 
                     //PrimitiveTypeProducer
@@ -258,20 +259,15 @@ public class FactoryBuilder {
                         if ((values = queryParams.remove(fullName)) == null || values.size() != 1) {
                             throw new FactoryUrlException("Value of parameter '" + fullName + "' is illegal.");
                         }
-
-                        if (String.class.equals(returnClass)) {
-                            param = values.iterator().next();
-                        } else if (Boolean.class.equals(returnClass)) {
-                            param = Boolean.parseBoolean(values.iterator().next());
-                        } else if (Long.class.equals(returnClass)) {
-                            param = Long.parseLong(values.iterator().next());
-                            // hack: variables it's an encoded list of jsons
-                        } else if ("variables".equals(fullName)) {
-                            param = DtoFactory.getInstance()
-                                              .createListDtoFromJson(values.iterator().next(), Variable.class);
-                        } else {
-                            // should never happen
-                            throw new FactoryUrlException("Unknown parameter '" + fullName + "'.");
+                        param = ValueHelper.createValue(returnClass, values);
+                        if (param == null) {
+                            if ("variables".equals(fullName)) {
+                                param = DtoFactory.getInstance()
+                                                  .createListDtoFromJson(values.iterator().next(), Variable.class);
+                            } else {
+                                // should never happen
+                                throw new FactoryUrlException("Unknown parameter '" + fullName + "'.");
+                            }
                         }
                     } else if (returnClass.isAnnotationPresent(DTO.class)) {
                         // use recursion if parameter is DTO object
@@ -280,8 +276,8 @@ public class FactoryBuilder {
                     if (param != null) {
                         // call appropriate setter to set current parameter
                         String setterMethodName =
-                                "set" + Character.toUpperCase(factoryParameter.name().charAt(0)) +
-                                factoryParameter.name().substring(1);
+                                "set" + Character.toUpperCase(factoryParameter.queryParameterName().charAt(0)) +
+                                factoryParameter.queryParameterName().substring(1);
                         Method setterMethod = cl.getMethod(setterMethodName, returnClass);
                         setterMethod.invoke(result, param);
                         returnNull = false;
@@ -291,7 +287,8 @@ public class FactoryBuilder {
                 throw e;
             } catch (Exception e) {
                 LOG.error(e.getLocalizedMessage(), e);
-                throw new FactoryUrlException("Can't validate '" + factoryParameter.name() + "' parameter.");
+                throw new FactoryUrlException(
+                        "Can't validate '" + factoryParameter.queryParameterName() + "' parameter.");
             }
         }
 
@@ -387,7 +384,7 @@ public class FactoryBuilder {
      * @param orgIdIsPresent
      *         - flag that indicates is factory tracked
      * @param parentName
-     *         - parent parameter name
+     *         - parent parameter queryParameterName
      * @return - the latest version of validated factory
      * @throws FactoryUrlException
      */
@@ -402,7 +399,7 @@ public class FactoryBuilder {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
             // is it factory parameter
             if (factoryParameter != null) {
-                String parameterName = factoryParameter.name();
+                String parameterName = factoryParameter.queryParameterName();
                 // check that field is set
                 Object methodParameter;
                 try {

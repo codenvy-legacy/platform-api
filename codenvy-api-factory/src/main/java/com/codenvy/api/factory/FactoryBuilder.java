@@ -69,6 +69,241 @@ public class FactoryBuilder {
         LEGACY_CONVERTERS = Collections.unmodifiableList(l);
     }
 
+
+    /**
+     * Convert factory to nonencoded version.
+     *
+     * @param factory
+     *         - factory object.
+     * @return - query part of url of nonencoded version
+     */
+    public String buildNonEncoded(Factory factory) {
+        StringBuilder result = new StringBuilder();
+        buildNonEncoded(factory, result);
+        return result.toString();
+    }
+
+    /**
+     * Build factory from query string and validate compatibility.
+     *
+     * @param queryString
+     *         - query string from nonencoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public Factory buildNonEncoded(String queryString) throws FactoryUrlException {
+        if (queryString == null) {
+            throw new FactoryUrlException("Query string is invalid.");
+        }
+        Map<String, Set<String>> queryParams;
+        try {
+            // question character allow parse url correctly
+            queryParams = URLEncodedUtils.parse(new URI("?" + queryString), "UTF-8");
+        } catch (URISyntaxException e) {
+            throw new FactoryUrlException("Query string is invalid.");
+        }
+
+        Factory factory = buildDtoObject(queryParams, "", Factory.class);
+
+        // there is unsupported parameters in query
+        if (!queryParams.isEmpty()) {
+            throw new FactoryUrlException("Unsupported parameters are found: " + queryParams.keySet().toString());
+        }
+
+        checkValid(factory, FactoryFormat.NONENCODED);
+        return factory;
+
+
+    }
+
+
+    /**
+     * Build factory from query string.
+     *
+     * @param json
+     *         - json  Reader from encoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public Factory buildEncoded(Reader json) throws IOException, FactoryUrlException {
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+
+        checkValid(factory, FactoryFormat.ENCODED);
+        return factory;
+    }
+
+    /**
+     * Build factory from query string.
+     *
+     * @param json
+     *         - json  string from encoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public Factory buildEncoded(String json) throws FactoryUrlException {
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+
+        checkValid(factory, FactoryFormat.ENCODED);
+        return factory;
+    }
+
+    /**
+     * Build factory from json.
+     *
+     * @param json
+     *         - json  InputStream from encoded factory.
+     * @return - Factory object represented by given factory string.
+     */
+    public Factory buildEncoded(InputStream json) throws IOException, FactoryUrlException {
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
+        checkValid(factory, FactoryFormat.ENCODED);
+        return factory;
+    }
+
+    /**
+     * Validate factory compatibility, convert parameters to new format if they have changed placement.
+     *
+     * @param factory
+     *         - factory object to validate
+     * @param sourceFormat
+     *         - is it encoded factory or not
+     * @return - factory object with modern parameters
+     * @throws FactoryUrlException
+     */
+    public void checkValid(Factory factory, FactoryFormat sourceFormat)
+            throws FactoryUrlException {
+        Version v = Version.fromString(factory.getV());
+        boolean tracked = factory.getOrgid() != null && !factory.getOrgid().isEmpty();
+
+        Class usedFactoryVersion;
+        switch (v) {
+            case V1_0:
+                usedFactoryVersion = FactoryV1_0.class;
+                break;
+            case V1_1:
+                usedFactoryVersion = FactoryV1_1.class;
+                break;
+            case V1_2:
+                usedFactoryVersion = FactoryV1_2.class;
+                break;
+            default:
+                throw new FactoryUrlException("Unknown factory version " + factory.getV());
+        }
+
+
+        validateCompatibility(factory, Factory.class, usedFactoryVersion, v, sourceFormat, !tracked, "");
+
+    }
+
+    /**
+     * Convert factory of given version to the latest factory format.
+     *
+     * @param factory
+     *         - given factory.
+     * @return - factory in latest format.
+     * @throws FactoryUrlException
+     */
+    public Factory convertToLatest(Factory factory) throws FactoryUrlException {
+        Factory resultFactory = DtoFactory.getInstance().clone(factory);
+        resultFactory.setV("1.2");
+        for (LegacyConverter converter : LEGACY_CONVERTERS) {
+            converter.convert(resultFactory);
+        }
+
+        return resultFactory;
+    }
+
+
+    /**
+     * Validate compatibility, convert parameters to new format if they have defined converter.
+     *
+     * @param object
+     *         - object to validate factory parameters
+     * @param methodsProvider
+     *         - class that provides methods with {@link com.codenvy.api.factory.parameter.FactoryParameter}
+     *         annotations
+     * @param allowedMethodsProvider
+     *         - class that provides allowed methods
+     * @param version
+     *         - version of factory
+     * @param sourceFormat
+     *         - factory format
+     * @param checkTracked
+     *         - should method check tracked fields
+     * @param parentName
+     *         - parent parameter queryParameterName
+     * @return - the latest version of validated factory
+     * @throws FactoryUrlException
+     */
+    private void validateCompatibility(Object object, Class methodsProvider, Class allowedMethodsProvider,
+                                       Version version,
+                                       FactoryFormat sourceFormat, boolean checkTracked,
+                                       String parentName) throws FactoryUrlException {
+        // get all methods recursively
+        for (Method method : methodsProvider.getMethods()) {
+            FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
+            // is it factory parameter
+            if (factoryParameter != null) {
+                String parameterName = factoryParameter.queryParameterName();
+                // check that field is set
+                Object parameterValue;
+                try {
+                    parameterValue = method.invoke(object);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    LOG.error(e.getLocalizedMessage(), e);
+                    throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
+                                                                parameterName.isEmpty() ? "" : (" of " + parentName)));
+                }
+
+                // if value is null or default value for primitives
+                if (null == parameterValue || (Collection.class.isAssignableFrom(parameterValue.getClass())) ||
+                    (Boolean.class.equals(parameterValue.getClass()) && (Boolean)parameterValue == false) ||
+                    ((Long.class.equals(parameterValue.getClass()) && (Long)parameterValue == 0))) {
+                    // field mustn't be a mandatory, unless it's ignored or deprecated
+                    if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
+                        factoryParameter.deprecatedSince().compareTo(version) > 0 &&
+                        factoryParameter.ignoredSince().compareTo(version) > 0) {  // TODO why ignoreSince is here <<---
+                        throw new FactoryUrlException("Parameter " + parameterName + " is mandatory.");
+                    }
+                } else if (!method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {
+                    throw new FactoryUrlException(
+                            "Parameter " + parameterName + " is unsupported for this version of factory.");
+                } else {
+                    // is parameter deprecated
+                    if (factoryParameter.deprecatedSince().compareTo(version) <= 0) {
+                        throw new FactoryUrlException("Parameter " + parameterName + " is deprecated.");
+                    }
+
+                    if (factoryParameter.setByServer()) {
+                        throw new FactoryUrlException("Parameter " + parameterName + " can't be set by user.");
+                    }
+
+                    // check that field satisfies format rules
+                    if (!FactoryFormat.BOTH.equals(factoryParameter.format()) &&
+                        !factoryParameter.format().equals(sourceFormat)) {
+                        throw new FactoryUrlException(
+                                "Parameter " + parameterName + " is unsupported for this type of factory.");
+                    }
+
+                    // check tracked-only fields
+                    if (checkTracked && factoryParameter.trackedOnly()) {
+                        throw new FactoryUrlException("Parameter " + parameterName + " can't be used without 'orgid'.");
+                    }
+
+
+                    // use recursion if parameter is DTO object
+                    if (parameterValue.getClass().isAnnotationPresent(DTO.class)) {
+
+                        // validate inner objects such Git ot ProjectAttributes
+                        validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version,
+                                              sourceFormat,
+                                              checkTracked,
+                                              (parentName.isEmpty() ? "" : (parentName + ".")) + parameterName);
+                    }
+
+                }
+            }
+        }
+    }
+
+
     private void buildNonEncoded(FactoryV1_0 factory, StringBuilder builder) {
         builder.append("v=").append(factory.getV());
         builder.append("&vcs=").append(factory.getVcs());
@@ -190,51 +425,6 @@ public class FactoryBuilder {
         }
     }
 
-    /**
-     * Convert factory to nonencoded version.
-     *
-     * @param factory
-     *         - factory object.
-     * @return - query part of url of nonencoded version
-     */
-    public String buildNonEncoded(Factory factory) {
-        StringBuilder result = new StringBuilder();
-
-
-        return result.toString();
-    }
-
-    /**
-     * Build factory from query string and validate compatibility.
-     *
-     * @param queryString
-     *         - query string from nonencoded factory.
-     * @return - Factory object represented by given factory string.
-     */
-    public Factory buildNonEncoded(String queryString) throws FactoryUrlException {
-        if (queryString == null) {
-            throw new FactoryUrlException("Query string is invalid.");
-        }
-        Map<String, Set<String>> queryParams;
-        try {
-            // question character allow parse url correctly
-            queryParams = URLEncodedUtils.parse(new URI("?" + queryString), "UTF-8");
-        } catch (URISyntaxException e) {
-            throw new FactoryUrlException("Query string is invalid.");
-        }
-
-        Factory factory = buildDtoObject(queryParams, "", Factory.class);
-
-        // there is unsupported parameters in query
-        if (!queryParams.isEmpty()) {
-            throw new FactoryUrlException("Unsupported parameters are found: " + queryParams.keySet().toString());
-        }
-
-        validateFactoryCompatibility(factory, FactoryFormat.NONENCODED);
-        return factory;
-
-
-    }
 
     /**
      * Build dto object with {@link com.codenvy.api.factory.parameter.FactoryParameter} annotations on its methods.
@@ -306,188 +496,5 @@ public class FactoryBuilder {
         }
 
         return returnNull ? null : result;
-    }
-
-    /**
-     * Build factory from query string.
-     *
-     * @param json
-     *         - json  Reader from encoded factory.
-     * @return - Factory object represented by given factory string.
-     */
-    public Factory buildEncoded(Reader json) throws IOException, FactoryUrlException {
-        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
-
-        validateFactoryCompatibility(factory, FactoryFormat.ENCODED);
-        return factory;
-    }
-
-    /**
-     * Build factory from query string.
-     *
-     * @param json
-     *         - json  string from encoded factory.
-     * @return - Factory object represented by given factory string.
-     */
-    public Factory buildEncoded(String json) throws FactoryUrlException {
-        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
-
-        validateFactoryCompatibility(factory, FactoryFormat.ENCODED);
-        return factory;
-    }
-
-    /**
-     * Build factory from json.
-     *
-     * @param json
-     *         - json  InputStream from encoded factory.
-     * @return - Factory object represented by given factory string.
-     */
-    public Factory buildEncoded(InputStream json) throws IOException, FactoryUrlException {
-        Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
-        validateFactoryCompatibility(factory, FactoryFormat.ENCODED);
-        return factory;
-    }
-
-    /**
-     * Validate factory compatibility, convert parameters to new format if they have changed placement.
-     *
-     * @param factory
-     *         - factory object to validate
-     * @param sourceFormat
-     *         - is it encoded factory or not
-     * @return - factory object with modern parameters
-     * @throws FactoryUrlException
-     */
-    public void validateFactoryCompatibility(Factory factory, FactoryFormat sourceFormat)
-            throws FactoryUrlException {
-        Version v = Version.fromString(factory.getV());
-        boolean tracked = factory.getOrgid() != null && !factory.getOrgid().isEmpty();
-
-        Class usedFactoryVersion;
-        switch (v) {
-            case V1_0:
-                usedFactoryVersion = FactoryV1_0.class;
-                break;
-            case V1_1:
-                usedFactoryVersion = FactoryV1_1.class;
-                break;
-            case V1_2:
-                usedFactoryVersion = FactoryV1_2.class;
-                break;
-            default:
-                throw new FactoryUrlException("Unknown factory version " + factory.getV());
-        }
-
-
-        validateCompatibility(factory, Factory.class, usedFactoryVersion, v, sourceFormat, !tracked, "");
-
-    }
-
-    public Factory convertLegacyToLatestVersion(Factory factory) throws FactoryUrlException {
-        Factory resultFactory = DtoFactory.getInstance().clone(factory);
-        for (LegacyConverter converter : LEGACY_CONVERTERS) {
-            converter.convert(resultFactory);
-        }
-
-        return resultFactory;
-    }
-
-
-    /**
-     * Validate compatibility, convert parameters to new format if they have defined converter.
-     *
-     * @param object
-     *         - object to validate factory parameters
-     * @param methodsProvider
-     *         - class that provides methods with {@link com.codenvy.api.factory.parameter.FactoryParameter}
-     *         annotations
-     * @param allowedMethodsProvider
-     *         - class that provides allowed methods
-     * @param version
-     *         - version of factory
-     * @param sourceFormat
-     *         - factory format
-     * @param checkTracked
-     *         - should method check tracked fields
-     * @param parentName
-     *         - parent parameter queryParameterName
-     * @return - the latest version of validated factory
-     * @throws FactoryUrlException
-     */
-    private <T> T validateCompatibility(T object, Class methodsProvider, Class allowedMethodsProvider, Version version,
-                                        FactoryFormat sourceFormat, boolean checkTracked,
-                                        String parentName) throws FactoryUrlException {
-
-        // list of parameter converters that must be executed after checking parameters because
-        List<LegacyConverter> converters = new LinkedList<>();
-        // get all methods recursively
-        for (Method method : methodsProvider.getMethods()) {
-            FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
-            // is it factory parameter
-            if (factoryParameter != null) {
-                String parameterName = factoryParameter.queryParameterName();
-                // check that field is set
-                Object methodParameter;
-                try {
-                    methodParameter = method.invoke(object);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    LOG.error(e.getLocalizedMessage(), e);
-                    throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
-                                                                parameterName.isEmpty() ? "" : (" of " + parentName)));
-                }
-
-                // if value is null or default value for primitives
-                if (null == methodParameter || (Collection.class.isAssignableFrom(methodParameter.getClass())) ||
-                    (Boolean.class.equals(methodParameter.getClass()) && (Boolean)methodParameter == false) ||
-                    ((Long.class.equals(methodParameter.getClass()) && (Long)methodParameter == 0))) {
-                    // field mustn't be a mandatory, unless it's ignored or deprecated
-                    if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
-                        factoryParameter.deprecatedSince().compareTo(version) > 0 &&
-                        factoryParameter.ignoredSince().compareTo(version) > 0) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " is mandatory.");
-                    }
-                } else if (!method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {
-                    throw new FactoryUrlException(
-                            "Parameter " + parameterName + " is unsupported for this version of factory.");
-                } else {
-                    // is parameter deprecated
-                    if (factoryParameter.deprecatedSince().compareTo(version) <= 0) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " is deprecated.");
-                    }
-
-                    if (factoryParameter.setByServer()) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " can't be set by user.");
-                    }
-
-                    // check that field satisfies format rules
-                    if (!FactoryFormat.BOTH.equals(factoryParameter.format()) &&
-                        !factoryParameter.format().equals(sourceFormat)) {
-                        throw new FactoryUrlException(
-                                "Parameter " + parameterName + " is unsupported for this type of factory.");
-                    }
-
-                    // check tracked-only fields
-                    if (checkTracked && factoryParameter.trackedOnly()) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " can't be used without 'orgid'.");
-                    }
-
-
-                    // use recursion if parameter is DTO object
-                    if (methodParameter.getClass().isAnnotationPresent(DTO.class)) {
-
-                        // validate inner objects such Git ot ProjectAttributes
-                        validateCompatibility(methodParameter, method.getReturnType(), method.getReturnType(), version,
-                                              sourceFormat,
-                                              checkTracked,
-                                              (parentName.isEmpty() ? "" : (parentName + ".")) + parameterName);
-                    }
-
-                }
-            }
-        }
-
-
-        return object;
     }
 }

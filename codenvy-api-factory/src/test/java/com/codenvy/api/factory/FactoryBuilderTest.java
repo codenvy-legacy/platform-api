@@ -22,8 +22,6 @@ import com.codenvy.api.factory.dto.*;
 
 import com.codenvy.dto.server.DtoFactory;
 
-import org.mockito.InjectMocks;
-import org.mockito.Spy;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.*;
 
@@ -92,7 +90,7 @@ public class FactoryBuilderTest {
         factory.setAction("action");
         factory.setWname("wname");
 
-        expectedFactory.setV("1.0");
+        expectedFactory.setV("1.2");
         expectedFactory.setVcs("vcs");
         expectedFactory.setVcsurl("vcsurl");
         expectedFactory.setCommitid("idcommit");
@@ -102,8 +100,8 @@ public class FactoryBuilderTest {
         expectedFactory.setProjectattributes(projectAttributes);
         expectedFactory.setAction("action");
 
-        factoryBuilder.validateFactoryCompatibility(factory, FactoryFormat.NONENCODED);
-        factory = factoryBuilder.convertLegacyToLatestVersion(factory);
+        factoryBuilder.checkValid(factory, FactoryFormat.NONENCODED);
+        factory = factoryBuilder.convertToLatest(factory);
         assertEquals(factory, expectedFactory);
     }
 
@@ -120,7 +118,7 @@ public class FactoryBuilderTest {
         factory.setWname("wname");
 
 
-        expectedFactory.setV("1.0");
+        expectedFactory.setV("1.2");
         expectedFactory.setVcs("vcs");
         expectedFactory.setVcsurl("vcsurl");
         expectedFactory.setCommitid("idcommit");
@@ -134,8 +132,8 @@ public class FactoryBuilderTest {
         long start = System.currentTimeMillis();
         for (int i = 0; i < 1000; ++i) {
             newFactory = DtoFactory.getInstance().clone(factory);
-            factoryBuilder.validateFactoryCompatibility(newFactory, FactoryFormat.NONENCODED);
-            newFactory = factoryBuilder.convertLegacyToLatestVersion(factory);
+            factoryBuilder.convertToLatest(newFactory);
+            newFactory = factoryBuilder.convertToLatest(factory);
         }
         System.err.println((System.currentTimeMillis() - start));
 

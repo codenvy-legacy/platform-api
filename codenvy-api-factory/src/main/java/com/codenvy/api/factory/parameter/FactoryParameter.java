@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory.parameter;
 
+import com.codenvy.api.factory.FactoryFormat;
+
 import java.lang.annotation.*;
 
 /**
@@ -31,9 +33,6 @@ public @interface FactoryParameter {
         MANDATORY, OPTIONAL
     }
 
-    public enum Format {
-        ENCODED, NONENCODED, BOTH
-    }
 
     public enum Version {
         // NEVER must be the last defined constant
@@ -55,7 +54,7 @@ public @interface FactoryParameter {
         }
     }
 
-    public Format format() default Format.BOTH;
+    public FactoryFormat format() default FactoryFormat.BOTH;
 
     public Obligation obligation();
 

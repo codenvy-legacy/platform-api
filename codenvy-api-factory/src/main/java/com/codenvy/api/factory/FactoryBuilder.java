@@ -18,25 +18,32 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.*;
-import com.codenvy.api.factory.parameter.*;
+import com.codenvy.api.factory.parameter.FactoryParameter;
+import com.codenvy.api.factory.parameter.FactoryParameterConverter;
+import com.codenvy.api.factory.parameter.IgnoreConverter;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.dto.shared.DTO;
 
+import org.everrest.core.impl.method.PrimitiveTypeProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.*;
 
-import static com.codenvy.api.factory.parameter.FactoryParameter.*;
-import static com.codenvy.api.factory.parameter.FactoryParameter.Format.ENCODED;
-import static com.codenvy.api.factory.parameter.FactoryParameter.Format.NONENCODED;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation;
+import static com.codenvy.api.factory.parameter.FactoryParameter.Version;
 import static com.codenvy.api.factory.parameter.FactoryParameterConverter.DefaultFactoryParameterConverter;
 
 /**
@@ -214,7 +221,7 @@ public class FactoryBuilder {
             throw new FactoryUrlException("Unsupported parameters are found: " + queryParams.keySet().toString());
         }
 
-        return validateFactoryCompatibility(factory, false);
+        return validateFactoryCompatibility(factory, FactoryFormat.NONENCODED);
     }
 
     /**
@@ -229,17 +236,21 @@ public class FactoryBuilder {
      * @return - built object
      * @throws FactoryUrlException
      */
-    private <T> T buildDtoObject(Map<String, Set<String>> queryParams, String parentName, Class<T> cl) throws FactoryUrlException {
+    private <T> T buildDtoObject(Map<String, Set<String>> queryParams, String parentName, Class<T> cl)
+            throws FactoryUrlException {
         T result = DtoFactory.getInstance().createDto(cl);
         boolean returnNull = true;
         // get all methods of object recursively
         for (Method method : cl.getMethods()) {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
             try {
-                if (factoryParameter != null && !factoryParameter.format().equals(ENCODED)) {
+                if (factoryParameter != null && factoryParameter.format() != FactoryFormat.ENCODED) {
                     // define full name of parameter to be able retrieving nested parameters
-                    String fullName = parentName.isEmpty() ? factoryParameter.name() : parentName + "." + factoryParameter.name();
+                    String fullName =
+                            parentName.isEmpty() ? factoryParameter.name() : parentName + "." + factoryParameter.name();
                     Class<?> returnClass = method.getReturnType();
+
+                    //PrimitiveTypeProducer
 
                     Object param = null;
                     if (queryParams.containsKey(fullName)) {
@@ -256,7 +267,8 @@ public class FactoryBuilder {
                             param = Long.parseLong(values.iterator().next());
                             // hack: variables it's an encoded list of jsons
                         } else if ("variables".equals(fullName)) {
-                            param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
+                            param = DtoFactory.getInstance()
+                                              .createListDtoFromJson(values.iterator().next(), Variable.class);
                         } else {
                             // should never happen
                             throw new FactoryUrlException("Unknown parameter '" + fullName + "'.");
@@ -268,7 +280,8 @@ public class FactoryBuilder {
                     if (param != null) {
                         // call appropriate setter to set current parameter
                         String setterMethodName =
-                                "set" + Character.toUpperCase(factoryParameter.name().charAt(0)) + factoryParameter.name().substring(1);
+                                "set" + Character.toUpperCase(factoryParameter.name().charAt(0)) +
+                                factoryParameter.name().substring(1);
                         Method setterMethod = cl.getMethod(setterMethodName, returnClass);
                         setterMethod.invoke(result, param);
                         returnNull = false;
@@ -295,7 +308,7 @@ public class FactoryBuilder {
     public Factory buildEncoded(Reader json) throws IOException, FactoryUrlException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
 
-        return validateFactoryCompatibility(factory, true);
+        return validateFactoryCompatibility(factory, FactoryFormat.ENCODED);
     }
 
     /**
@@ -308,7 +321,7 @@ public class FactoryBuilder {
     public Factory buildEncoded(String json) throws FactoryUrlException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
 
-        return validateFactoryCompatibility(factory, true);
+        return validateFactoryCompatibility(factory, FactoryFormat.ENCODED);
     }
 
     /**
@@ -321,7 +334,7 @@ public class FactoryBuilder {
     public Factory buildEncoded(InputStream json) throws IOException, FactoryUrlException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
 
-        return validateFactoryCompatibility(factory, true);
+        return validateFactoryCompatibility(factory, FactoryFormat.ENCODED);
     }
 
     /**
@@ -329,12 +342,13 @@ public class FactoryBuilder {
      *
      * @param factory
      *         - factory object to validate
-     * @param encoded
+     * @param sourceFormat
      *         - is it encoded factory or not
      * @return - factory object with modern parameters
      * @throws FactoryUrlException
      */
-    protected Factory validateFactoryCompatibility(Factory factory, boolean encoded) throws FactoryUrlException {
+    protected Factory validateFactoryCompatibility(Factory factory, FactoryFormat sourceFormat)
+            throws FactoryUrlException {
         Version v = Version.fromString(factory.getV());
         boolean tracked = factory.getOrgid() != null && !factory.getOrgid().isEmpty();
 
@@ -353,7 +367,7 @@ public class FactoryBuilder {
                 throw new FactoryUrlException("Unknown factory version " + factory.getV());
         }
 
-        return (Factory)validateCompatibility(factory, Factory.class, usedFactoryVersion, v, encoded ? ENCODED : NONENCODED, tracked, "");
+        return validateCompatibility(factory, Factory.class, usedFactoryVersion, v, sourceFormat, tracked, "");
     }
 
     /**
@@ -362,7 +376,8 @@ public class FactoryBuilder {
      * @param object
      *         - object to validate factory parameters
      * @param methodsProvider
-     *         - class that provides methods with {@link com.codenvy.api.factory.parameter.FactoryParameter} annotations
+     *         - class that provides methods with {@link com.codenvy.api.factory.parameter.FactoryParameter}
+     *         annotations
      * @param allowedMethodsProvider
      *         - class that provides allowed methods
      * @param version
@@ -376,9 +391,9 @@ public class FactoryBuilder {
      * @return - the latest version of validated factory
      * @throws FactoryUrlException
      */
-    private Object validateCompatibility(Object object, Class methodsProvider, Class allowedMethodsProvider, Version version,
-                                         Format sourceFormat, boolean orgIdIsPresent,
-                                         String parentName) throws FactoryUrlException {
+    private <T> T validateCompatibility(T object, Class methodsProvider, Class allowedMethodsProvider, Version version,
+                                        FactoryFormat sourceFormat, boolean orgIdIsPresent,
+                                        String parentName) throws FactoryUrlException {
 
         // list of parameter converters that must be executed after checking parameters because
         List<FactoryParameterConverter> converters = new LinkedList<>();
@@ -409,7 +424,8 @@ public class FactoryBuilder {
                         throw new FactoryUrlException("Parameter " + parameterName + " is mandatory.");
                     }
                 } else if (!method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {
-                    throw new FactoryUrlException("Parameter " + parameterName + " is unsupported for this version of factory.");
+                    throw new FactoryUrlException(
+                            "Parameter " + parameterName + " is unsupported for this version of factory.");
                 } else {
                     // is parameter deprecated
                     if (factoryParameter.deprecatedSince().compareTo(version) <= 0) {
@@ -428,8 +444,10 @@ public class FactoryBuilder {
                     }
 
                     // check that field satisfies format rules
-                    if (!Format.BOTH.equals(factoryParameter.format()) && !factoryParameter.format().equals(sourceFormat)) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " is unsupported for this type of factory.");
+                    if (!FactoryFormat.BOTH.equals(factoryParameter.format()) &&
+                        !factoryParameter.format().equals(sourceFormat)) {
+                        throw new FactoryUrlException(
+                                "Parameter " + parameterName + " is unsupported for this type of factory.");
                     }
 
                     // check tracked-only fields
@@ -444,8 +462,9 @@ public class FactoryBuilder {
                             converters.add(converter);
                         } catch (Exception e) {
                             LOG.error(e.getLocalizedMessage(), e);
-                            throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
-                                                                        parameterName.isEmpty() ? "" : (" of " + parentName)));
+                            throw new FactoryUrlException(
+                                    String.format("Can't validate '%s' parameter%s.", parameterName,
+                                                  parameterName.isEmpty() ? "" : (" of " + parentName)));
                         }
                     }
 
@@ -453,8 +472,10 @@ public class FactoryBuilder {
                     if (methodParameter.getClass().isAnnotationPresent(DTO.class)) {
 
                         // validate inner objects such Git ot ProjectAttributes
-                        validateCompatibility(methodParameter, method.getReturnType(), method.getReturnType(), version, sourceFormat,
-                                              orgIdIsPresent, (parentName.isEmpty() ? "" : (parentName + ".")) + parameterName);
+                        validateCompatibility(methodParameter, method.getReturnType(), method.getReturnType(), version,
+                                              sourceFormat,
+                                              orgIdIsPresent,
+                                              (parentName.isEmpty() ? "" : (parentName + ".")) + parameterName);
                     }
 
                 }

@@ -7,7 +7,7 @@ import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
 
-import static com.codenvy.api.factory.parameter.FactoryParameter.Format.ENCODED;
+import static com.codenvy.api.factory.FactoryFormat.ENCODED;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_1;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_2;
@@ -138,7 +138,8 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, name = "validsince", ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true,
+    @FactoryParameter(obligation = OPTIONAL, name = "validsince", ignoredSince = V1_1, deprecatedSince = V1_2,
+                      trackedOnly = true,
                       converter = ValidSinceConverter.class)
     long getValidsince();
 
@@ -149,7 +150,8 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, name = "validuntil", ignoredSince = V1_1, deprecatedSince = V1_2, trackedOnly = true,
+    @FactoryParameter(obligation = OPTIONAL, name = "validuntil", ignoredSince = V1_1, deprecatedSince = V1_2,
+                      trackedOnly = true,
                       converter = ValidUntilConverter.class)
     long getValiduntil();
 

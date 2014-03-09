@@ -4,6 +4,8 @@ import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.api.factory.parameter.*;
 import com.codenvy.dto.shared.DTO;
 
+import javax.ws.rs.QueryParam;
+
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.MANDATORY;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_0;

@@ -105,11 +105,12 @@ public class FactoryBuilderTest {
         expectedFactory.setProjectattributes(projectAttributes);
         expectedFactory.setAction("action");
 
-        assertEquals(factoryBuilder.validateFactoryCompatibility(factory, false), expectedFactory);
+        assertEquals(factoryBuilder.validateFactoryCompatibility(factory, FactoryFormat.NONENCODED), expectedFactory);
     }
 
     @Test//(expectedExceptions = FactoryUrlException.class)
-    public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0(/*Method method, Object parameter*/) throws FactoryUrlException {
+    public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0(/*Method method, Object parameter*/)
+            throws FactoryUrlException {
         factory.setV("1.0");
         factory.setVcs("vcs");
         factory.setVcsurl("vcsurl");
@@ -134,7 +135,7 @@ public class FactoryBuilderTest {
         long start = System.currentTimeMillis();
         for (int i = 0; i < 1000; ++i) {
             newFactory = DtoFactory.getInstance().clone(factory);
-            newFactory = factoryBuilder.validateFactoryCompatibility(newFactory, false);
+            newFactory = factoryBuilder.validateFactoryCompatibility(newFactory, FactoryFormat.NONENCODED);
         }
         System.err.println((System.currentTimeMillis() - start));
 

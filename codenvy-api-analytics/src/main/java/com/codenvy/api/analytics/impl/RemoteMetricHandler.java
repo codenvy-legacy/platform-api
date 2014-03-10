@@ -26,6 +26,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.Path;
@@ -169,9 +170,12 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     private void putAuthenticationToken(List<Pair<String, String>> pairs) {
-        String authToken = EnvironmentContext.getCurrent().getUser().getToken();
-        if (authToken != null) {
-            pairs.add(new Pair<>("token", authToken));
+        User user = EnvironmentContext.getCurrent().getUser();
+        if (user != null) {
+            String authToken = user.getToken();
+            if (authToken != null) {
+                pairs.add(new Pair<>("token", authToken));
+            }
         }
     }
 

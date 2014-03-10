@@ -411,7 +411,8 @@ public class ProjectService extends Service {
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
                                                     .withName(child.getName())
                                                     .withPath(child.getPath())
-                                                    .withType(child.isFile() ? "file" : "folder")
+                                                     // TODO: Temporary set 'project' type, since need to rework on the client side.
+                                                    .withType(child.isFile() ? "file" : ((FolderEntry)child).isProjectFolder() ? "project" : "folder")
                                                     .withMediaType(child.isFile() ? ((FileEntry)child).getMediaType() : "text/directory")
                                                     .withLinks(child.isFile() ? generateFileLinks(workspace, (FileEntry)child)
                                                                               : generateFolderLinks(workspace, (FolderEntry)child)))

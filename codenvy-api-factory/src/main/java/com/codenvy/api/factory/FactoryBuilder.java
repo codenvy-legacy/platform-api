@@ -253,10 +253,10 @@ public class FactoryBuilder {
 
                 // if value is null or empty collection or default value for primitives
                 if (ValueHelper.isEmpty(parameterValue)) {
-                    // field mustn't be a mandatory, unless it's ignored or deprecated
+                    // field must not be a mandatory, unless it's ignored or deprecated
                     if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
                         factoryParameter.deprecatedSince().compareTo(version) > 0 &&
-                        factoryParameter.ignoredSince().compareTo(version) > 0) {  // TODO why ignoreSince is here <<---
+                        factoryParameter.ignoredSince().compareTo(version) > 0) {
                         throw new FactoryUrlException("Parameter " + parameterName + " is mandatory.");
                     }
                 } else if (!method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {

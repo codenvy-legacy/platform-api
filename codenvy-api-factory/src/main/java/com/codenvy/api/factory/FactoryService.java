@@ -20,6 +20,7 @@ package com.codenvy.api.factory;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 
@@ -111,6 +112,9 @@ public class FactoryService extends Service {
             }
 
             validator.validateObject(factoryUrl, true);
+            if (factoryUrl.getV().equals("1.0")) {
+                throw new FactoryUrlException("Storing of Factory 1.0 is unsupported.");
+            }
 
             factoryUrl.setUserid(context.getUser().getId());
             factoryUrl.setCreated(System.currentTimeMillis());
@@ -123,12 +127,13 @@ public class FactoryService extends Service {
             if (createProjectLinksIterator.hasNext()) {
                 createProjectLink = createProjectLinksIterator.next().getHref();
             }
+            ProjectAttributes attributes = factoryUrl.getProjectattributes();
             LOG.info(
                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
                     "",
                     context.getUser().getName(),
                     "",
-                    nullToEmpty(factoryUrl.getProjectattributes().getPtype()),
+                    nullToEmpty(attributes != null ? attributes.getPtype() : ""),
                     factoryUrl.getVcsurl(),
                     createProjectLink,
                     nullToEmpty(factoryUrl.getAffiliateid()),
@@ -153,7 +158,7 @@ public class FactoryService extends Service {
     @GET
     @Path("/nonencoded")
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory getFactory(@Context UriInfo uriInfo) throws FactoryUrlException {
+    public Factory getFactoryFromNonEncoded(@Context UriInfo uriInfo) throws FactoryUrlException {
         return new FactoryBuilder().buildNonEncoded(uriInfo.getRequestUri().getQuery());
     }
 

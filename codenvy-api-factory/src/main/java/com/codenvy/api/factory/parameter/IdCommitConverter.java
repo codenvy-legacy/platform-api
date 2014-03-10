@@ -28,11 +28,11 @@ public class IdCommitConverter implements LegacyConverter {
     @Override
     public void convert(Factory factory) throws FactoryUrlException {
 
-        if (factory.getCommitid() == null && factory.getIdcommit() != null) {
+        if (factory.getCommitid() != null && factory.getIdcommit() != null) {
+            throw new FactoryUrlException("Parameters 'commitid' and 'idcommit' are mutually exclusive.");
+        } else if (factory.getCommitid() != null) {
             factory.setCommitid(factory.getIdcommit());
             factory.setIdcommit(null);
-        } else {
-            throw new FactoryUrlException("Parameters 'commitid' and 'idcommit' are mutually exclusive.");
         }
     }
 }

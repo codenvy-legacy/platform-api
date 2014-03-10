@@ -155,6 +155,47 @@ public class ProjectServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void testGetModules() throws Exception {
+        pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {
+            @Override
+            public List<ProjectType> getProjectTypes() {
+                return Arrays.asList(new ProjectType("my_module_type", "my module type"));
+            }
+
+            @Override
+            public List<AttributeDescription> getAttributeDescriptions() {
+                return Collections.emptyList();
+            }
+        });
+
+        Project myProject = pm.getProject("my_ws", "my_project");
+        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type"));
+        pd.setDescription("my test module");
+        pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
+        myProject.createModule("my_module", pd);
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/modules/my_project",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        List<ProjectDescriptor> result = (List<ProjectDescriptor>)response.getEntity();
+        Assert.assertNotNull(result);
+
+        Assert.assertEquals(result.size(), 1);
+        ProjectDescriptor projectDescriptor_1 = result.get(0);
+        Assert.assertEquals(projectDescriptor_1.getDescription(), "my test module");
+        Assert.assertEquals(projectDescriptor_1.getProjectTypeId(), "my_module_type");
+        Assert.assertEquals(projectDescriptor_1.getProjectTypeName(), "my module type");
+        Assert.assertEquals(projectDescriptor_1.getVisibility(), "public");
+        Assert.assertTrue(projectDescriptor_1.getModificationDate() > 0);
+        Map<String, List<String>> attributes = projectDescriptor_1.getAttributes();
+        Assert.assertNotNull(attributes);
+        Assert.assertEquals(attributes.size(), 1);
+        Assert.assertEquals(attributes.get("my_module_attribute"), Arrays.asList("attribute value 1"));
+    }
+
+    @Test
     public void testGetProject() throws Exception {
         ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project",
                                                       "http://localhost:8080/api", null, null, null);

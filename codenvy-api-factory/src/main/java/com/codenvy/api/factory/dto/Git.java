@@ -18,6 +18,8 @@ public interface Git {
 
     void setConfigremoteoriginfetch(String configremoteoriginfetch);
 
+    Git withConfigremoteoriginfetch(String configremoteoriginfetch);
+
     /**
      * See https://www.kernel.org/pub/software/scm/git/docs/git-config.html push.default
      *
@@ -27,6 +29,8 @@ public interface Git {
     String getConfigpushdefault();
 
     void setConfigpushdefault(String configpushdefault);
+
+    Git withConfigpushdefault(String configpushdefault);
 
     /**
      * @return Defines the upstream branch for vcsbranch.
@@ -43,4 +47,6 @@ public interface Git {
     String getConfigbranchmerge();
 
     void setConfigbranchmerge(String configbranchmerge);
+
+    Git withConfigbranchmerge(String configbranchmerge);
 }

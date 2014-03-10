@@ -1,8 +1,6 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.factory.parameter.FactoryParameter;
-import com.codenvy.api.factory.parameter.ValidSinceConverter;
-import com.codenvy.api.factory.parameter.ValidUntilConverter;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -22,10 +20,14 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setId(String id);
 
+    FactoryV1_1 withId(String id);
+
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "projectattributes")
     ProjectAttributes getProjectattributes();
 
     void setProjectattributes(ProjectAttributes projectattributes);
+
+    FactoryV1_1 withProjectattributes(ProjectAttributes projectattributes);
 
     /**
      * @return Codenow  button style: vertical, horisontal, dark, wite
@@ -35,6 +37,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setStyle(String style);
 
+    FactoryV1_1 withStyle(String style);
 
     /**
      * @return Description of the factory.
@@ -44,6 +47,8 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setDescription(String description);
 
+    FactoryV1_1 withDescription(String description);
+
     /**
      * @return Author's email provided as meta information.
      */
@@ -51,6 +56,8 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     String getContactmail();
 
     void setContactmail(String contactmail);
+
+    FactoryV1_1 withContactmail(String contactmail);
 
     /**
      * @return Author's as meta information.
@@ -60,6 +67,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setAuthor(String author);
 
+    FactoryV1_1 withAuthor(String author);
 
     /**
      * @return path of the file to open in the project.
@@ -69,6 +77,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setOpenfile(String openfile);
 
+    FactoryV1_1 withOpenfile(String openfile);
 
     /**
      * @return The orgid will be a field that we use to identify an organization that created the Factory
@@ -80,6 +89,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setOrgid(String orgid);
 
+    FactoryV1_1 withOrgid(String orgid);
 
     /**
      * @return The affiliateid will be an Affiliate Code that we issue to partners that will give them certain
@@ -91,6 +101,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setAffiliateid(String affiliateid);
 
+    FactoryV1_1 withAffiliateid(String affiliateid);
 
     /**
      * @return Indicates should .git folder be removed after cloning (allow commit to origin repository)
@@ -100,6 +111,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setVcsinfo(boolean vcsinfo);
 
+    FactoryV1_1 withVcsinfo(boolean vcsinfo);
 
     /**
      * @return Allow to checkout to the latest commit in given branch
@@ -109,6 +121,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setVcsbranch(String vcsbranch);
 
+    FactoryV1_1 withVcsbranch(String vcsbranch);
 
     /**
      * @return Id of user that create factory, set by the server
@@ -118,6 +131,8 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setUserid(String userid);
 
+    FactoryV1_1 withUserid(String userid);
+
     /**
      * @return Creation time of factory, set by the server (in milliseconds, from Unix epoch, no timezone)
      */
@@ -126,6 +141,8 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     void setCreated(long created);
 
+    FactoryV1_1 withCreated(long created);
+
     /**
      * @return Allow to use text replacement in project files after clone
      */
@@ -133,6 +150,8 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     List<Variable> getVariables();
 
     void setVariables(List<Variable> variable);
+
+    FactoryV1_1 withVariables(List<Variable> variable);
 
     /**
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
@@ -147,6 +166,9 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     @Deprecated
     void setValidsince(long validsince);
 
+    @Deprecated
+    FactoryV1_1 withValidsince(long validsince);
+
     /**
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
@@ -160,6 +182,9 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     @Deprecated
     void setValiduntil(long validuntil);
 
+    @Deprecated
+    FactoryV1_1 withValiduntil(long validuntil);
+
     /**
      * @return welcome page configuration.
      */
@@ -167,4 +192,6 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     WelcomePage getWelcome();
 
     void setWelcome(WelcomePage welcome);
+
+    FactoryV1_1 withWelcome(WelcomePage welcome);
 }

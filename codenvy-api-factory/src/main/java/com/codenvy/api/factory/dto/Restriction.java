@@ -19,6 +19,7 @@ public interface Restriction {
 
     void setValidsince(long validsince);
 
+    Restriction withValidsince(long validsince);
 
     /**
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
@@ -28,6 +29,8 @@ public interface Restriction {
 
     void setValiduntil(long validuntil);
 
+    Restriction withValiduntil(long validuntil);
+
     /**
      * @return referer dns queryParameterName
      */
@@ -36,14 +39,17 @@ public interface Restriction {
 
     void setRefererhostname(String refererhostname);
 
+    Restriction withRefererhostname(String refererhostname);
+
     /**
      * @return Indicates that factory is password protected. Set by server
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "restrictbypassword", trackedOnly = true, setByServer = true)
-    String getRestrictbypassword();
+    boolean getRestrictbypassword();
 
-    void setRestrictbypassword(String restrictbypassword);
+    void setRestrictbypassword(boolean restrictbypassword);
 
+    Restriction withRestrictbypassword(boolean restrictbypassword);
 
     /**
      * @return Password asked for factory activation. Not exposed in any case.
@@ -53,6 +59,8 @@ public interface Restriction {
 
     void setPassword(String password);
 
+    Restriction withPassword(String password);
+
     /**
      * @return It is a number that indicates the maximum number of sessions this factory is allowed to have.
      */
@@ -61,4 +69,5 @@ public interface Restriction {
 
     void setValidsessioncount(long validsessioncount);
 
+    Restriction withValidsessioncount(long validsessioncount);
 }

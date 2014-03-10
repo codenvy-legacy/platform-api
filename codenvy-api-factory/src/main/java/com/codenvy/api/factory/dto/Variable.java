@@ -15,11 +15,15 @@ public interface Variable {
 
     void setFiles(List<String> files);
 
+    Variable withFiles(List<String> files);
+
     /**
      * @return
      */
     List<Replacement> getEntries();
 
     void setEntries(List<Replacement> entries);
+
+    Variable withEntries(List<Replacement> entries);
 
 }

@@ -19,6 +19,8 @@ public interface FactoryV1_2 extends FactoryV1_1 {
 
     void setGit(Git git);
 
+    FactoryV1_2 withGit(Git git);
+
     /**
      * @return Factory acceptance restrictions
      */
@@ -26,6 +28,8 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     Restriction getRestriction();
 
     void setRestriction(Restriction restriction);
+
+    FactoryV1_2 withRestriction(Restriction restriction);
 
     /**
      * @return path to the image
@@ -36,4 +40,7 @@ public interface FactoryV1_2 extends FactoryV1_1 {
 
     @Deprecated
     void setImage(String image);
+
+    @Deprecated
+    FactoryV1_2 withImage(String image);
 }

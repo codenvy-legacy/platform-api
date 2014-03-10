@@ -19,11 +19,8 @@ package com.codenvy.api.factory.parameter;
 
 import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.dto.server.DtoFactory;
-
-import javax.inject.Singleton;
 
 /**
  * @author Alexander Garagatyi

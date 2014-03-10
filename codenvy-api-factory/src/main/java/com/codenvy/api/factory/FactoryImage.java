@@ -20,7 +20,7 @@ package com.codenvy.api.factory;
 import java.io.*;
 import java.util.Arrays;
 
-/** Class to hold image information such as data, queryParameterName, media type */
+/** Class to hold image information such as data, name, media type */
 public class FactoryImage {
     private byte[] imageData;
     private String mediaType;
@@ -108,7 +108,7 @@ public class FactoryImage {
      * @param mediaType
      *         - media type of image
      * @param name
-     *         - image queryParameterName
+     *         - image name
      * @return - {@code FactoryImage} if {@code FactoryImage} was created, null if input stream has no content
      * @throws FactoryUrlException
      */

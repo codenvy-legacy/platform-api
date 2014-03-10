@@ -27,15 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Singleton;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
+import java.net.*;
 import java.util.*;
 
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation;
@@ -117,7 +112,7 @@ public class FactoryBuilder {
 
 
     /**
-     * Build factory from query string.
+     * Build factory from json.
      *
      * @param json
      *         - json  Reader from encoded factory.
@@ -131,7 +126,7 @@ public class FactoryBuilder {
     }
 
     /**
-     * Build factory from query string.
+     * Build factory from json.
      *
      * @param json
      *         - json  string from encoded factory.
@@ -158,17 +153,20 @@ public class FactoryBuilder {
     }
 
     /**
-     * Validate factory compatibility, convert parameters to new format if they have changed placement.
+     * Validate factory compatibility.
      *
      * @param factory
      *         - factory object to validate
      * @param sourceFormat
      *         - is it encoded factory or not
-     * @return - factory object with modern parameters
      * @throws FactoryUrlException
      */
     public void checkValid(Factory factory, FactoryFormat sourceFormat)
             throws FactoryUrlException {
+        if (factory.getV() == null) {
+            throw new FactoryUrlException("Paramater 'v' is invalid.");
+        }
+
         Version v = Version.fromString(factory.getV());
         boolean tracked = factory.getOrgid() != null && !factory.getOrgid().isEmpty();
 
@@ -212,7 +210,7 @@ public class FactoryBuilder {
 
 
     /**
-     * Validate compatibility, convert parameters to new format if they have defined converter.
+     * Validate compatibility of factory parameters.
      *
      * @param object
      *         - object to validate factory parameters
@@ -247,15 +245,14 @@ public class FactoryBuilder {
                 try {
                     parameterValue = method.invoke(object);
                 } catch (IllegalAccessException | InvocationTargetException e) {
+                    // should never happen
                     LOG.error(e.getLocalizedMessage(), e);
                     throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
                                                                 parameterName.isEmpty() ? "" : (" of " + parentName)));
                 }
 
-                // if value is null or default value for primitives
-                if (null == parameterValue || (Collection.class.isAssignableFrom(parameterValue.getClass())) ||
-                    (Boolean.class.equals(parameterValue.getClass()) && (Boolean)parameterValue == false) ||
-                    ((Long.class.equals(parameterValue.getClass()) && (Long)parameterValue == 0))) {
+                // if value is null or empty collection or default value for primitives
+                if (ValueHelper.isEmpty(parameterValue)) {
                     // field mustn't be a mandatory, unless it's ignored or deprecated
                     if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
                         factoryParameter.deprecatedSince().compareTo(version) > 0 &&
@@ -396,8 +393,8 @@ public class FactoryBuilder {
                 builder.append("&restriction.password=").append(restriction.getPassword());
             }
 
-            if (restriction.getRestrictbypassword() != null) {
-                builder.append("&restriction.restrictbypassword=").append(restriction.getRestrictbypassword());
+            if (restriction.getRestrictbypassword()) {
+                builder.append("&restriction.restrictbypassword=").append(true);
             }
         }
         Git git = factory.getGit();

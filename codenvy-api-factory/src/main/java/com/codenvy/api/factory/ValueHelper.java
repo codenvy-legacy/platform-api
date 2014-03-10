@@ -1,16 +1,7 @@
 package com.codenvy.api.factory;
 
-import org.everrest.core.impl.method.ParameterHelper;
-import org.everrest.core.impl.method.PrimitiveTypeProducer;
-
-import javax.ws.rs.core.MultivaluedMap;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.*;
+import java.util.*;
 
 /**
  * @author Sergii Kabashniuk
@@ -99,6 +90,29 @@ public class ValueHelper {
             return null;
         }
 
+    }
+
+    /**
+     * Check that value wasn't set by json parser or smth like that.
+     *
+     * @param value
+     *         - value to check
+     * @return - true if value is useless for factory (0 for primitives or false or empty collection), false otherwise
+     */
+    static boolean isEmpty(Object value) {
+        if ((null == value) ||
+            (Collection.class.isAssignableFrom(value.getClass()) && ((Collection)value).isEmpty()) ||
+            (Boolean.class.equals(value.getClass()) && (Boolean)value == false) ||
+            (value.getClass().equals(Long.class) && (Long)value == 0) ||
+            (value.getClass().equals(Byte.class) && (Byte)value == 0) ||
+            (value.getClass().equals(Integer.class) && (Integer)value == 0) ||
+            (value.getClass().equals(Short.class) && (Short)value == 0) ||
+            (value.getClass().equals(Double.class) && (Double)value == 0) ||
+            (value.getClass().equals(Float.class) && (Float)value == 0)) {
+
+            return true;
+        }
+        return false;
     }
 
 }

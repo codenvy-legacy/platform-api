@@ -13,11 +13,18 @@ public interface Replacement {
 
     void setFind(String find);
 
+    Replacement withFind(String find);
+
     String getReplace();
 
     void setReplace(String replace);
 
+    Replacement withReplace(String replace);
+
     String getReplacemode();
 
     void setReplacemode(String replacemode);
+
+    Replacement withReplacemode(String replacemode);
+
 }

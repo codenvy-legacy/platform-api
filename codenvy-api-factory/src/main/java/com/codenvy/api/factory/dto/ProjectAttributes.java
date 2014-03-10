@@ -34,7 +34,9 @@ public interface ProjectAttributes {
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "pname")
     String getPname();
 
-    public void setPname(String pname);
+    void setPname(String pname);
+
+    ProjectAttributes withPname(String pname);
 
     /**
      * @return Project type.
@@ -42,6 +44,7 @@ public interface ProjectAttributes {
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ptype")
     public String getPtype();
 
-    public void setPtype(String ptype);
+    void setPtype(String ptype);
 
+    ProjectAttributes withPtype(String ptype);
 }

@@ -1,9 +1,9 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.factory.parameter.FactoryParameter;
-import com.codenvy.api.factory.parameter.*;
 import com.codenvy.dto.shared.DTO;
 
+import static com.codenvy.api.factory.FactoryFormat.NONENCODED;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.MANDATORY;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_0;
@@ -22,6 +22,8 @@ public interface FactoryV1_0 {
 
     void setV(String v);
 
+    FactoryV1_0 withV(String v);
+
     /**
      * @return Version Control System used. Now only one possible value: git
      */
@@ -30,6 +32,8 @@ public interface FactoryV1_0 {
 
     void setVcs(String vcs);
 
+    FactoryV1_0 withVcs(String vcs);
+
     /**
      * @return Locations of sources in Version Control System.
      */
@@ -37,6 +41,8 @@ public interface FactoryV1_0 {
     String getVcsurl();
 
     void setVcsurl(String vcs);
+
+    FactoryV1_0 withVcsurl(String vcs);
 
     /**
      * @return Latest commit ID.
@@ -48,12 +54,17 @@ public interface FactoryV1_0 {
 
     void setCommitid(String commitid);
 
+    FactoryV1_0 withCommitid(String commitid);
+
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "idcommit",  deprecatedSince = V1_1)
+    @FactoryParameter(obligation = OPTIONAL, format = NONENCODED, queryParameterName = "idcommit", deprecatedSince = V1_1)
     String getIdcommit();
 
     @Deprecated
     void setIdcommit(String idcommit);
+
+    @Deprecated
+    FactoryV1_0 withIdcommit(String idcommit);
 
     /**
      * @return Name of the project in temporary workspace after the exporting source code from vcsurl.
@@ -63,21 +74,27 @@ public interface FactoryV1_0 {
      * specified by this spec: URL Scheme V3 for workspaces/projects#ImpactsonProjectnames
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "pname", deprecatedSince = V1_1)
+    @FactoryParameter(obligation = OPTIONAL, format = NONENCODED, queryParameterName = "pname", deprecatedSince = V1_1)
     String getPname();
 
     @Deprecated
     void setPname(String ptype);
 
+    @Deprecated
+    FactoryV1_0 withPname(String ptype);
+
     /**
      * @return Project type.
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ptype",  deprecatedSince = V1_1)
+    @FactoryParameter(obligation = OPTIONAL, format = NONENCODED, queryParameterName = "ptype", deprecatedSince = V1_1)
     String getPtype();
 
     @Deprecated
     void setPtype(String ptype);
+
+    @Deprecated
+    FactoryV1_0 withPtype(String ptype);
 
     /**
      * @return This value indicates actions to be performed after a temporary workspace has been created.
@@ -89,10 +106,15 @@ public interface FactoryV1_0 {
 
     void setAction(String action);
 
+    FactoryV1_0 withAction(String action);
+
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "wname", ignoredSince = V1_0)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "wname", ignoredSince = V1_0, deprecatedSince = V1_1)
     String getWname();
 
     @Deprecated
     void setWname(String wname);
+
+    @Deprecated
+    FactoryV1_0 withWname(String wname);
 }

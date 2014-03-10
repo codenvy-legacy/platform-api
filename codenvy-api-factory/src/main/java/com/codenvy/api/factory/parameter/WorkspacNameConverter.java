@@ -20,10 +20,6 @@ package com.codenvy.api.factory.parameter;
 import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
 
-import javax.inject.Singleton;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 /**
  * @author Alexander Garagatyi
  */

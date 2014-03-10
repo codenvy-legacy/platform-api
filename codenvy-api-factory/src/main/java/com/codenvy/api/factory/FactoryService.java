@@ -217,7 +217,8 @@ public class FactoryService extends Service {
                 return Response.ok(image.getImageData(), image.getMediaType()).build();
             } else {
                 LOG.warn("Default image for factory {} is not found.", factoryId);
-                throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), "Default image for factory " + factoryId + " is not found.");
+                throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
+                                              "Default image for factory " + factoryId + " is not found.");
             }
         } else {
             for (FactoryImage image : factoryImages) {

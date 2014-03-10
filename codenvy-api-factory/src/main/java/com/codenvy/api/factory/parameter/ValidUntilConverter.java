@@ -22,8 +22,6 @@ import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.dto.server.DtoFactory;
 
-import javax.inject.Singleton;
-
 /**
  * @author Alexander Garagatyi
  */

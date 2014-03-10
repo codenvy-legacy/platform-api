@@ -19,19 +19,21 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
-
 import com.codenvy.dto.server.DtoFactory;
 
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.*;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.Arrays;
 
-import static org.testng.Assert.assertEquals;
+import static com.codenvy.api.factory.FactoryFormat.ENCODED;
+import static com.codenvy.api.factory.FactoryFormat.NONENCODED;
 
 /**
  * @author Sergii Kabashniuk
@@ -41,16 +43,16 @@ public class FactoryBuilderTest {
 
     private FactoryBuilder factoryBuilder;
 
-    private Factory factory;
+    private Factory actual;
 
-    private Factory expectedFactory;
+    private Factory expected;
 
     @BeforeMethod
     public void setUp() throws Exception {
         factoryBuilder = new FactoryBuilder();
-        factory = DtoFactory.getInstance().createDto(Factory.class);
+        actual = DtoFactory.getInstance().createDto(Factory.class);
 
-        expectedFactory = DtoFactory.getInstance().createDto(Factory.class);
+        expected = DtoFactory.getInstance().createDto(Factory.class);
     }
 
     @Test(dataProvider = "jsonprovider")
@@ -81,64 +83,154 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToValidateFactory1_0() throws FactoryUrlException {
-        factory.setV("1.0");
-        factory.setVcs("vcs");
-        factory.setVcsurl("vcsurl");
-        factory.setIdcommit("idcommit");
-        factory.setPtype("ptype");
-        factory.setPname("pname");
-        factory.setAction("action");
-        factory.setWname("wname");
+        actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
+              .withAction("action").withWname("wname");
 
-        expectedFactory.setV("1.2");
-        expectedFactory.setVcs("vcs");
-        expectedFactory.setVcsurl("vcsurl");
-        expectedFactory.setCommitid("idcommit");
-        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
-        projectAttributes.setPname("pname");
-        projectAttributes.setPtype("ptype");
-        expectedFactory.setProjectattributes(projectAttributes);
-        expectedFactory.setAction("action");
-
-        factoryBuilder.checkValid(factory, FactoryFormat.NONENCODED);
-        factory = factoryBuilder.convertToLatest(factory);
-        assertEquals(factory, expectedFactory);
+        factoryBuilder.checkValid(actual, FactoryFormat.NONENCODED);
     }
 
-    @Test//(expectedExceptions = FactoryUrlException.class)
-    public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0(/*Method method, Object parameter*/)
-            throws FactoryUrlException {
-        factory.setV("1.0");
-        factory.setVcs("vcs");
-        factory.setVcsurl("vcsurl");
-        factory.setIdcommit("idcommit");
-        factory.setPtype("ptype");
-        factory.setPname("pname");
-        factory.setAction("action");
-        factory.setWname("wname");
+    @Test
+    public void shouldBeAbleToValidateEncodedFactory1_1() throws FactoryUrlException {
+        ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action")).withStyle(
+                "style").withDescription("description").withContactmail("contactmail").withAuthor("author").withOpenfile(
+                "openfile").withOrgid("orgid").withAffiliateid("affid").withVcsinfo(true).withVcsbranch("branch").withValidsince(
+                123456789).withValiduntil(234567899);
+
+        actual.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+
+        Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class).withReplacemode(
+                "replacemod").withReplace("replace").withFind("find");
+
+        actual.setVariables(Arrays.asList(DtoFactory.getInstance().createDto(Variable.class).withEntries(Arrays.asList(replacement))
+                                                    .withFiles(Arrays.asList("file1"))));
+
+        WelcomeConfiguration wc = DtoFactory.getInstance().createDto(WelcomeConfiguration.class);
+        actual.setWelcome(DtoFactory.getInstance().createDto(WelcomePage.class).withAuthenticated(wc).withNonauthenticated(wc));
+
+        factoryBuilder.checkValid(actual, ENCODED);
+    }
+
+    @Test
+    public void shouldBeAbleToValidateNonEncodedFactory1_1() throws FactoryUrlException {
+        ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action"))
+                .withContactmail(
+                        "contactmail").withAuthor("author").withOpenfile("openfile").withOrgid("orgid").withAffiliateid("affid")
+                .withVcsinfo(true).withVcsbranch("branch").withValidsince(
+                123456789).withValiduntil(234567899);
+
+        actual.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+
+        Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class).withReplacemode(
+                "replacemod").withReplace("replace").withFind("find");
+
+        actual.setVariables(Arrays.asList(DtoFactory.getInstance().createDto(Variable.class).withEntries(Arrays.asList(replacement))
+                                                    .withFiles(Arrays.asList("file1"))));
+
+        factoryBuilder.checkValid(actual, NONENCODED);
+    }
+
+    @Test
+    public void shouldBeAbleToValidateEncodedFactory1_2() throws FactoryUrlException {
+        ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action")).withStyle(
+                "style").withDescription("description").withContactmail("contactmail").withAuthor("author").withOpenfile(
+                "openfile").withOrgid("orgid").withAffiliateid("affid").withVcsinfo(true).withVcsbranch("branch");
+
+        actual.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+
+        Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class).withReplacemode(
+                "replacemod").withReplace("replace").withFind("find");
+
+        actual.setVariables(Arrays.asList(DtoFactory.getInstance().createDto(Variable.class).withEntries(Arrays.asList(replacement))
+                                                    .withFiles(Arrays.asList("file1"))));
+
+        WelcomeConfiguration wc = DtoFactory.getInstance().createDto(WelcomeConfiguration.class);
+        actual.setWelcome(DtoFactory.getInstance().createDto(WelcomePage.class).withAuthenticated(wc).withNonauthenticated(wc));
+
+        actual.withGit(DtoFactory.getInstance().createDto(Git.class).withConfigbranchmerge(
+                "configbranchmerge").withConfigpushdefault("configpushdefault").withConfigremoteoriginfetch(
+                "configremoteoriginfetch"));
+
+        actual.withRestriction(
+                DtoFactory.getInstance().createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
+                          .withValiduntil(123456789).withValidsince(12345678).withValidsessioncount(123).withRestrictbypassword(true));
+
+        factoryBuilder.checkValid(actual, ENCODED);
+    }
+
+    @Test
+    public void shouldBeAbleToValidateNonEncodedFactory1_2() throws FactoryUrlException {
+        ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action"))
+                .withContactmail(
+                        "contactmail").withAuthor("author").withOpenfile(
+                "openfile").withOrgid("orgid").withAffiliateid("affid").withVcsinfo(true).withVcsbranch("branch");
+
+        actual.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+
+        Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class).withReplacemode(
+                "replacemod").withReplace("replace").withFind("find");
+
+        actual.setVariables(Arrays.asList(DtoFactory.getInstance().createDto(Variable.class).withEntries(Arrays.asList(replacement))
+                                                    .withFiles(Arrays.asList("file1"))));
+
+        actual.withGit(DtoFactory.getInstance().createDto(Git.class).withConfigbranchmerge(
+                "configbranchmerge").withConfigpushdefault("configpushdefault").withConfigremoteoriginfetch(
+                "configremoteoriginfetch"));
+
+        actual.withRestriction(
+                DtoFactory.getInstance().createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
+                          .withValiduntil(123456789).withValidsince(12345678).withValidsessioncount(123).withRestrictbypassword(true));
 
 
-        expectedFactory.setV("1.2");
-        expectedFactory.setVcs("vcs");
-        expectedFactory.setVcsurl("vcsurl");
-        expectedFactory.setCommitid("idcommit");
-        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
-        projectAttributes.setPname("pname");
-        projectAttributes.setPtype("ptype");
-        expectedFactory.setProjectattributes(projectAttributes);
-        expectedFactory.setAction("action");
+        factoryBuilder.checkValid(actual, NONENCODED);
+    }
 
-        Factory newFactory = null;
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < 1000; ++i) {
-            newFactory = DtoFactory.getInstance().clone(factory);
-            factoryBuilder.convertToLatest(newFactory);
-            newFactory = factoryBuilder.convertToLatest(factory);
-        }
-        System.err.println((System.currentTimeMillis() - start));
+    @Test(expectedExceptions = FactoryUrlException.class, dataProvider = "TFParamsProvider")
+    public void shouldNotAllowUsingParamsForTrackedFactoriesIfOrgidDoesntSet(String version, Object arg, String methodName, Class argClass)
+            throws InvocationTargetException, IllegalAccessException, FactoryUrlException, NoSuchMethodException {
+        actual.withV(version).withVcs("vcs").withVcsurl("vcsurl");
 
-        assertEquals(newFactory, expectedFactory);
+        Factory.class.getMethod(methodName, argClass).invoke(actual, arg);
 
+        factoryBuilder.checkValid(actual, ENCODED);
+    }
+
+    @DataProvider(name = "TFParamsProvider")
+    public static Object[][] tFParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
+        return new Object[][]{
+                {"1.1", DtoFactory.getInstance().createDto(WelcomePage.class), "setWelcome", WelcomePage.class},
+                {"1.1", 123456789, "setValidsince", long.class},
+                {"1.1", 123456798, "setValiduntil", long.class},
+                {"1.2", DtoFactory.getInstance().createDto(WelcomePage.class), "setWelcome", WelcomePage.class},
+                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withPassword("pass"), "setRestriction", Restriction.class},
+                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname(
+                        "codenvy.com"), "setRestriction", Restriction.class},
+                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withRestrictbypassword(true), "setRestriction",
+                 Restriction.class},
+                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withValidsessioncount(123), "setRestriction",
+                 Restriction.class},
+                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withValidsince(123456789), "setRestriction",
+                 Restriction.class},
+                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(1234567989), "setRestriction",
+                 Restriction.class},
+        };
+    }
+
+    // TODO
+    // set by server tests
+    // not valid params, ignored params - use reflection
+    // converters tests
+    // convertToLatest
+
+    @Test(enabled = false, expectedExceptions = FactoryUrlException.class)
+    public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0(Method method, Object parameter)
+            throws FactoryUrlException, InvocationTargetException, IllegalAccessException {
+        actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
+              .withAction("action").withWname(
+                "wname");
+
+        method.invoke(actual, parameter);
+
+        factoryBuilder.checkValid(actual, NONENCODED);
     }
 
     private String encode(String value) {
@@ -149,8 +241,8 @@ public class FactoryBuilderTest {
         }
     }
 
-    @Test
-    public void shouldBeAbleToValidateNonEncodedFactory1_2() throws FactoryUrlException, UnsupportedEncodingException {
+    @Test(enabled = false)
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2() throws FactoryUrlException, UnsupportedEncodingException {
         StringBuilder sb = new StringBuilder();
         sb.append("v=").append("1.2").append("&");
         sb.append("vcs=").append("git").append("&");
@@ -160,7 +252,7 @@ public class FactoryBuilderTest {
         sb.append("projectattributes.ptype=").append("type").append("&");
         sb.append("projectattributes.pname=").append("name").append("&");
         //sb.append("ptype=").append("type").append("&");
-        //sb.append("pname=").append("queryParameterName").append("&");
+        //sb.append("pname=").append("name").append("&");
         sb.append("action=").append("openReadme").append("&");
         sb.append("wname=").append("codenvy").append("&");
         //sb.append("style=").append("Black").append("&");
@@ -199,17 +291,24 @@ public class FactoryBuilderTest {
 
         sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]")).append("");
 
-        expectedFactory.setV("1.2");
-        expectedFactory.setVcs("git");
-        expectedFactory.setVcsurl("https://github.com/codenvy/commons.git");
-        expectedFactory.setCommitid("7896464674879");
-        ProjectAttributes projectAttributes = DtoFactory.getInstance().createDto(ProjectAttributes.class);
-        projectAttributes.setPname("name");
-        projectAttributes.setPtype("type");
-        expectedFactory.setProjectattributes(projectAttributes);
-        expectedFactory.setAction("openReadme");
+        ((FactoryV1_1)expected.withV("1.2").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git")
+                              .withCommitid("7896464674879").withAction("openReadme")).withProjectattributes(
+                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname"));
 
         Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
         //assertEquals(newFactory, expectedFactory);
     }
+
+    @Test(enabled = false)
+    public void speedTest() throws FactoryUrlException {
+        actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
+              .withAction("action").withWname("wname");
+
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 1000; ++i) {
+            factoryBuilder.checkValid(actual, NONENCODED);
+        }
+        System.err.println((System.currentTimeMillis() - start));
+    }
+
 }

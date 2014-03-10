@@ -16,6 +16,8 @@ public interface WelcomeConfiguration {
 
     void setTitle(String title);
 
+    WelcomeConfiguration withTitle(String title);
+
     /**
      * @return
      */
@@ -23,10 +25,14 @@ public interface WelcomeConfiguration {
 
     void setIconurl(String iconurl);
 
+    WelcomeConfiguration withIconurl(String iconurl);
+
     /**
      * @return
      */
     String getContenturl();
 
     void setContenturl(String contenturl);
+
+    WelcomeConfiguration withContenturl(String contenturl);
 }

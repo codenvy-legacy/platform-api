@@ -9,7 +9,7 @@ import java.util.List;
 @DTO
 public interface Variable {
     /**
-     * @return
+     * @return - list of files to make replacement
      */
     List<String> getFiles();
 
@@ -18,7 +18,7 @@ public interface Variable {
     Variable withFiles(List<String> files);
 
     /**
-     * @return
+     * @return - list of replacement
      */
     List<Replacement> getEntries();
 

@@ -21,6 +21,8 @@ import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
 
 /**
+ * Convert placement of commit id from 'idcommit' parameter to 'commitid'.
+ *
  * @author Alexander Garagatyi
  */
 public class IdCommitConverter implements LegacyConverter {
@@ -30,7 +32,7 @@ public class IdCommitConverter implements LegacyConverter {
 
         if (factory.getCommitid() != null && factory.getIdcommit() != null) {
             throw new FactoryUrlException("Parameters 'commitid' and 'idcommit' are mutually exclusive.");
-        } else if (factory.getCommitid() != null) {
+        } else if (factory.getCommitid() == null) {
             factory.setCommitid(factory.getIdcommit());
             factory.setIdcommit(null);
         }

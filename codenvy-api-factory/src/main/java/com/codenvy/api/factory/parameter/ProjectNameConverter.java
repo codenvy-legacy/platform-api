@@ -23,6 +23,8 @@ import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 
 /**
+ * Move 'pname' parameter into projectattributes object.
+ *
  * @author Alexander Garagatyi
  */
 public class ProjectNameConverter implements LegacyConverter {

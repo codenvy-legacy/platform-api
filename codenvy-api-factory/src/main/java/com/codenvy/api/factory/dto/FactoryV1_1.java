@@ -11,10 +11,15 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_1;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_2;
 
 /**
+ * Factory of version 1.1
+ *
  * @author Sergii Kabashniuk
  */
 @DTO
 public interface FactoryV1_1 extends FactoryV1_0 {
+    /**
+     * @return - id of stored factory object
+     */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "id", format = ENCODED, setByServer = true)
     String getId();
 
@@ -22,6 +27,9 @@ public interface FactoryV1_1 extends FactoryV1_0 {
 
     FactoryV1_1 withId(String id);
 
+    /**
+     * @return - project attributes, such 'ptype', 'pname'
+     */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "projectattributes")
     ProjectAttributes getProjectattributes();
 

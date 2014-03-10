@@ -21,6 +21,8 @@ import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
 
 /**
+ * Remove 'wname' parameter from factory.
+ *
  * @author Alexander Garagatyi
  */
 public class WorkspacNameConverter implements LegacyConverter {

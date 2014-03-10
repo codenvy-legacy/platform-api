@@ -23,6 +23,8 @@ import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 
 /**
+ * Move 'ptype' parameter into projectattributes object.
+ *
  * @author Alexander Garagatyi
  */
 public class ProjectTypeConverter implements LegacyConverter {

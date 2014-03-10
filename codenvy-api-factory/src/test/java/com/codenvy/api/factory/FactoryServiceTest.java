@@ -19,7 +19,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.WelcomePage;
+import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.factory.dto.server.DtoServerImpls;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
@@ -88,6 +88,37 @@ public class FactoryServiceTest {
 
     }
 
+    @Test
+    public void shouldBeAbleToReturnLatestFactory() throws Exception {
+        // given
+        Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
+        factoryUrl.withValidsince(123456789).withValiduntil(12345679).withIdcommit("132456").withWname("wname").withPtype("ptype")
+                  .withPname("pname").withV("1.0");
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+
+        Restriction restriction = DtoFactory.getInstance().createDto(Restriction.class).withValidsince(factoryUrl.getValidsince())
+                                            .withValiduntil(factoryUrl.getValiduntil());
+
+        ProjectAttributes attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(factoryUrl.getPname())
+                                                 .withPtype(factoryUrl.getPtype());
+
+        Factory expected =
+                (Factory)DtoFactory.getInstance().createDto(Factory.class).withRestriction(restriction).withProjectattributes(attributes)
+                                   .withId(CORRECT_FACTORY_ID)
+                                   .withV("1.2").withCommitid(factoryUrl.getIdcommit());
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(Collections.EMPTY_SET);
+
+        // when
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "?legacy=true");
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        Factory responseFactoryUrl = DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), Factory.class);
+        responseFactoryUrl.setLinks(Collections.<Link>emptyList());
+        assertEquals(responseFactoryUrl, expected);
+    }
 
     @Test
     public void shouldBeAbleToGetFactoryValidatedFactoryFromNonEncoded() throws Exception {

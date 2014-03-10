@@ -7,6 +7,8 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTI
 import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_2;
 
 /**
+ * Factory of version 1.2
+ *
  * @author Sergii Kabashniuk
  */
 @DTO

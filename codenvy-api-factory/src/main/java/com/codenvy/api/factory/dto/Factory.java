@@ -24,8 +24,6 @@ import java.util.List;
 
 /**
  * Latest version of factory implementation.
- * <p/>
- * Do not add new methods with primitive type parameter except boolean and long.
  */
 @DTO
 public interface Factory extends FactoryV1_2 {

@@ -227,7 +227,6 @@ public class FactoryBuilder {
      *         - should method check tracked fields
      * @param parentName
      *         - parent parameter queryParameterName
-     * @return - the latest version of validated factory
      * @throws FactoryUrlException
      */
     private void validateCompatibility(Object object, Class methodsProvider, Class allowedMethodsProvider,

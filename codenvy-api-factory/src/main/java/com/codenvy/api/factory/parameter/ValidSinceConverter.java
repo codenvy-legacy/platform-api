@@ -23,6 +23,8 @@ import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.dto.server.DtoFactory;
 
 /**
+ * Move 'validsince' parameter into restriction object.
+ *
  * @author Alexander Garagatyi
  */
 public class ValidSinceConverter implements LegacyConverter {

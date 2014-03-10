@@ -176,13 +176,17 @@ public class FactoryService extends Service {
     @GET
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory getFactory(@PathParam("id") String id, @Context UriInfo uriInfo) throws FactoryUrlException {
+    public Factory getFactory(@PathParam("id") String id, @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
+                              @Context UriInfo uriInfo) throws FactoryUrlException {
         Factory factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
             LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), "Factory URL with id " + id + " is not found.");
         }
 
+        if (legacy) {
+            factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
+        }
         try {
             factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
         } catch (UnsupportedEncodingException e) {

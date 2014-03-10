@@ -10,6 +10,8 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_0;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_1;
 
 /**
+ * Factory of version 1.0
+ *
  * @author Sergii Kabashniuk
  */
 @DTO

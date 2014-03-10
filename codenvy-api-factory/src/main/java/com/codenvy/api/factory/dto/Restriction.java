@@ -6,6 +6,8 @@ import com.codenvy.dto.shared.DTO;
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
 
 /**
+ * Security restriction for the factory.
+ *
  * @author Sergii Kabashniuk
  */
 @DTO

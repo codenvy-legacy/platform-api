@@ -23,6 +23,8 @@ import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.dto.server.DtoFactory;
 
 /**
+ * Move 'validuntil' parameter into restriction object.
+ *
  * @author Alexander Garagatyi
  */
 public class ValidUntilConverter implements LegacyConverter {
@@ -32,7 +34,7 @@ public class ValidUntilConverter implements LegacyConverter {
             Restriction restriction = factory.getRestriction();
             if (restriction == null || restriction.getValiduntil() == 0) {
                 restriction = restriction == null ? DtoFactory.getInstance().createDto(Restriction.class) : restriction;
-                restriction.setValidsince(factory.getValiduntil());
+                restriction.setValiduntil(factory.getValiduntil());
                 factory.setRestriction(restriction);
                 factory.setValiduntil(0);
             } else if (restriction.getValiduntil() != 0) {

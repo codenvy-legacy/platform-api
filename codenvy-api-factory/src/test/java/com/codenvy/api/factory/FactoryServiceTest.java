@@ -89,6 +89,55 @@ public class FactoryServiceTest {
     }
 
     @Test
+    public void shouldBeAbleToConvertQueryStringToFactory() throws Exception {
+        // given
+        Factory expected = DtoFactory.getInstance().createDto(Factory.class);
+        expected.withWname("wname").withPtype("ptype").withPname("pname").withV("1.0").withVcs("git")
+                .withVcsurl("http://github.com/codenvy/platform-api.git");
+
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("v=").append(expected.getV());
+        queryString.append("&vcs=").append(expected.getVcs());
+        queryString.append("&vcsurl=").append(expected.getVcsurl());
+        queryString.append("&pname=").append(expected.getPname());
+        queryString.append("&ptype=").append(expected.getPtype());
+        queryString.append("&wname=").append(expected.getWname());
+
+        // when
+        Response response = given().when().get(SERVICE_PATH + "/nonencoded?" + queryString);
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        Factory responseFactoryUrl = DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), Factory.class);
+        assertEquals(responseFactoryUrl, expected);
+    }
+
+    @Test
+    public void shouldBeAbleToConvertQueryStringToLatestFactory() throws Exception {
+        // given
+        Factory expected = DtoFactory.getInstance().createDto(Factory.class);
+        expected.withProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"))
+                .withV("1.2").withVcs("git").withVcsurl(
+                "http://github.com/codenvy/platform-api.git");
+
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("v=").append("1.0");
+        queryString.append("&vcs=").append(expected.getVcs());
+        queryString.append("&vcsurl=").append(expected.getVcsurl());
+        queryString.append("&pname=").append(expected.getProjectattributes().getPname());
+        queryString.append("&ptype=").append(expected.getProjectattributes().getPtype());
+        queryString.append("&wname=").append("wname");
+
+        // when
+        Response response = given().when().get(SERVICE_PATH + "/nonencoded?legacy=true&" + queryString);
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        Factory responseFactoryUrl = DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), Factory.class);
+        assertEquals(responseFactoryUrl, expected);
+    }
+
+    @Test
     public void shouldBeAbleToReturnLatestFactory() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -112,6 +161,29 @@ public class FactoryServiceTest {
 
         // when
         Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "?legacy=true");
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        Factory responseFactoryUrl = DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), Factory.class);
+        responseFactoryUrl.setLinks(Collections.<Link>emptyList());
+        assertEquals(responseFactoryUrl, expected);
+    }
+
+    @Test
+    public void shouldReturnSavedFactoryIfUserDidNotUseSpecialMethod() throws Exception {
+        // given
+        Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
+        factoryUrl.withValidsince(123456789).withValiduntil(12345679).withIdcommit("132456").withWname("wname").withPtype("ptype")
+                  .withPname("pname").withV("1.0");
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+
+        Factory expected = DtoFactory.getInstance().clone(factoryUrl);
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(Collections.EMPTY_SET);
+
+        // when
+        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
 
         // then
         assertEquals(response.getStatusCode(), 200);

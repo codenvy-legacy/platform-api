@@ -93,7 +93,7 @@ public class ValueHelper {
     }
 
     /**
-     * Check that value wasn't set by json parser or smth like that.
+     * Check that value wasn't set by json parser.
      *
      * @param value
      *         - value to check

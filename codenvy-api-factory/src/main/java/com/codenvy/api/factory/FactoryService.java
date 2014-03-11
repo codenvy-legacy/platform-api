@@ -158,8 +158,15 @@ public class FactoryService extends Service {
     @GET
     @Path("/nonencoded")
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory getFactoryFromNonEncoded(@Context UriInfo uriInfo) throws FactoryUrlException {
-        return new FactoryBuilder().buildNonEncoded(uriInfo.getRequestUri().getQuery());
+    public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy, @Context UriInfo uriInfo)
+            throws FactoryUrlException {
+        String queryString = uriInfo.getRequestUri().getQuery().replaceFirst("&?legacy=(true|false)&?", "");
+
+        Factory factory = factoryBuilder.buildNonEncoded(queryString);
+        if (legacy) {
+            factory = factoryBuilder.convertToLatest(factory);
+        }
+        return factory;
     }
 
     /**

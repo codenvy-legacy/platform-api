@@ -197,8 +197,8 @@ public class FactoryServiceTest {
         // given
 
         // when
-        Factory response = given().when().get(SERVICE_PATH + "/nonencoded?v=1.1&vcs=git&vcsurl=" +
-                                              URLEncoder.encode("git@github.com:codenvy/cloud-ide.git", "UTF-8")).as(
+        Factory response = given().when().get(
+                SERVICE_PATH + "/nonencoded?v=1.1&vcs=git&vcsurl=" + "git@github.com:codenvy/cloud-ide.git").as(
                 DtoServerImpls.FactoryImpl.class);
 
         // then

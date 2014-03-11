@@ -92,7 +92,7 @@ public class FactoryBuilder {
         Map<String, Set<String>> queryParams;
         try {
             // question character allow parse url correctly
-            queryParams = URLEncodedUtils.parse(new URI("?" + queryString), "UTF-8");
+            queryParams = URLEncodedUtils.parse(new URI("?" + queryString), null);
         } catch (URISyntaxException e) {
             throw new FactoryUrlException("Query string is invalid.");
         }

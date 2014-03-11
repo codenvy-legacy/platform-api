@@ -197,9 +197,11 @@ public class FactoryServiceTest {
         // given
 
         // when
-        Factory response = given().when().get(SERVICE_PATH + "/nonencoded?v=1.1&vcs=git&vcsurl=" +
-                                              URLEncoder.encode("git@github.com:codenvy/cloud-ide.git", "UTF-8")).as(
-                DtoServerImpls.FactoryImpl.class);
+        Factory response =
+                given().when().queryParam("v", "1.1").queryParam("vcs", "git").queryParam("vcsurl", "git@github.com:codenvy/cloud-ide.git")
+                        .get(
+                                SERVICE_PATH + "/nonencoded")
+                        .as(DtoServerImpls.FactoryImpl.class);
 
         // then
         assertEquals(response.getV(), "1.1");

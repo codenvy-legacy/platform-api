@@ -50,8 +50,7 @@ import java.util.*;
  */
 public class RemoteMetricHandler implements MetricHandler {
 
-    private static final String BASE_NAME = RemoteMetricHandler.class.getName();
-    private static final String PROXY_URL = BASE_NAME + ".proxy-url";
+    private static final String PROXY_URL = "analytics.api.proxy_url";
 
     private String proxyUrl;
 

@@ -165,9 +165,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validsince", ignoredSince = V1_1,
-                      deprecatedSince = V1_2,
-                      trackedOnly = true
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validsince", ignoredSince = V1_1, deprecatedSince = V1_2
     )
     long getValidsince();
 
@@ -181,9 +179,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validuntil", ignoredSince = V1_1,
-                      deprecatedSince = V1_2,
-                      trackedOnly = true
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validuntil", ignoredSince = V1_1, deprecatedSince = V1_2
     )
     long getValiduntil();
 

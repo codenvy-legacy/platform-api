@@ -31,9 +31,11 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.List;
 
 import static com.codenvy.api.factory.FactoryFormat.ENCODED;
 import static com.codenvy.api.factory.FactoryFormat.NONENCODED;
+import static org.testng.Assert.assertEquals;
 
 /**
  * @author Sergii Kabashniuk
@@ -198,8 +200,6 @@ public class FactoryBuilderTest {
     public static Object[][] tFParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
                 {"1.1", DtoFactory.getInstance().createDto(WelcomePage.class), "setWelcome", WelcomePage.class},
-                {"1.1", 123456789, "setValidsince", long.class},
-                {"1.1", 123456798, "setValiduntil", long.class},
                 {"1.2", DtoFactory.getInstance().createDto(WelcomePage.class), "setWelcome", WelcomePage.class},
                 {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withPassword("pass"), "setRestriction", Restriction.class},
                 {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname(
@@ -215,11 +215,92 @@ public class FactoryBuilderTest {
         };
     }
 
-    // TODO
-    // set by server tests
-    // not valid params, ignored params - use reflection
-    // converters tests
-    // convertToLatest
+    @Test(expectedExceptions = FactoryUrlException.class, dataProvider = "setByServerParamsProvider")
+    public void shouldNotAllowUsingParamsThatCanBeSetOnlyByServer(String version, String methodName, Object arg, Class argClass)
+            throws InvocationTargetException, IllegalAccessException, FactoryUrlException, NoSuchMethodException {
+        actual.withV(version).withVcs("vcs").withVcsurl("vcsurl");
+
+        Factory.class.getMethod(methodName, argClass).invoke(actual, arg);
+
+        factoryBuilder.checkValid(actual, ENCODED);
+    }
+
+    @DataProvider(name = "setByServerParamsProvider")
+    public static Object[][] setByServerParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
+        return new Object[][]{
+                {"1.1", "setId", "id", String.class},
+                {"1.1", "setUserid", "userid", String.class},
+                {"1.1", "setCreated", 123465798, long.class},
+                {"1.2", "setRestriction", DtoFactory.getInstance().createDto(Restriction.class).withRestrictbypassword(true),
+                 Restriction.class}
+        };
+    }
+
+    @Test
+    public void shouldBeAbleToConvertToLatest() throws FactoryUrlException {
+        ((FactoryV1_1)actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname")).withValiduntil(123456)
+                                                                                                               .withValidsince(123456789);
+
+        expected.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(actual.getValidsince())
+                                           .withValiduntil(actual.getValiduntil())).withProjectattributes(
+                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
+                .withCommitid(actual.getIdcommit()).withV("1.2");
+
+        assertEquals(factoryBuilder.convertToLatest(actual), expected);
+    }
+
+    @Test(expectedExceptions = FactoryUrlException.class, dataProvider = "notValidParamsProvider")
+    public <T> void shouldNotAllowUsingNotValidParams(String version, String methodName, T arg, Class<T> argClass, FactoryFormat encoded)
+            throws InvocationTargetException, IllegalAccessException, FactoryUrlException, NoSuchMethodException {
+        actual.withV(version).withVcs("vcs").withVcsurl("vcsurl");
+
+        Factory.class.getMethod(methodName, argClass).invoke(actual, arg);
+
+        factoryBuilder.checkValid(actual, encoded);
+    }
+
+    @DataProvider(name = "notValidParamsProvider")
+    public static Object[][] notValidParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
+        return new Object[][]{
+                {"1.1", "setWname", "smth", String.class, ENCODED},
+                {"1.2", "setWname", "smth", String.class, ENCODED},
+                {"1.1", "setIdcommit", "smth", String.class, ENCODED},
+                {"1.1", "setPname", "smth", String.class, ENCODED},
+                {"1.1", "setPtype", "smth", String.class, ENCODED},
+                {"1.2", "setIdcommit", "smth", String.class, ENCODED},
+                {"1.2", "setPname", "smth", String.class, ENCODED},
+                {"1.2", "setPtype", "smth", String.class, ENCODED},
+                {"1.1", "setStyle", "smth", String.class, NONENCODED},
+                {"1.2", "setStyle", "smth", String.class, NONENCODED},
+                {"1.1", "setDescription", "smth", String.class, NONENCODED},
+                {"1.2", "setDescription", "smth", String.class, NONENCODED},
+                {"1.0", "setProjectattributes", DtoFactory.getInstance().createDto(ProjectAttributes.class), ProjectAttributes.class,
+                 ENCODED},
+                {"1.0", "setStyle", "smth", String.class, ENCODED},
+                {"1.0", "setDescription", "smth", String.class, ENCODED},
+                {"1.0", "setContactmail", "smth", String.class, ENCODED},
+                {"1.0", "setAuthor", "smth", String.class, ENCODED},
+                {"1.0", "setOpenfile", "smth", String.class, ENCODED},
+                {"1.0", "setOrgid", "smth", String.class, ENCODED},
+                {"1.0", "setAffiliateid", "smth", String.class, ENCODED},
+                {"1.0", "setVcsinfo", true, boolean.class, ENCODED},
+                {"1.0", "setVcsbranch", "smth", String.class, ENCODED},
+                {"1.0", "setValidsince", 132, long.class, ENCODED},
+                {"1.0", "setValiduntil", 123, long.class, ENCODED},
+                {"1.2", "setValidsince", 132, long.class, ENCODED},
+                {"1.2", "setValiduntil", 123, long.class, ENCODED},
+                {"1.0", "setVariables", Arrays.asList(DtoFactory.getInstance().createDto(Variable.class)), List.class, ENCODED},
+                {"1.0", "setWelcome", DtoFactory.getInstance().createDto(WelcomePage.class), WelcomePage.class, ENCODED},
+                {"1.1", "setWelcome", DtoFactory.getInstance().createDto(WelcomePage.class), WelcomePage.class, NONENCODED},
+                {"1.0", "setImage", "smth", String.class, ENCODED},
+                {"1.1", "setImage", "smth", String.class, ENCODED},
+                {"1.2", "setImage", "smth", String.class, ENCODED},
+                {"1.0", "setRestriction", DtoFactory.getInstance().createDto(Restriction.class), Restriction.class, ENCODED},
+                {"1.1", "setRestriction", DtoFactory.getInstance().createDto(Restriction.class), Restriction.class, ENCODED},
+                {"1.0", "setGit", DtoFactory.getInstance().createDto(Git.class), Git.class, ENCODED},
+                {"1.1", "setGit", DtoFactory.getInstance().createDto(Git.class), Git.class, ENCODED}
+        };
+    }
 
     @Test(enabled = false, expectedExceptions = FactoryUrlException.class)
     public void shouldThrowExceptionIfInitializedParameterIsUnsupportedInVersion1_0(Method method, Object parameter)

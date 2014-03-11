@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -17,21 +17,29 @@
  */
 package com.codenvy.api.auth;
 
+import java.security.Principal;
+
 /**
- * Authentication using username and password.
+ * Represent principal that goes throw authentication, and can
+ * be unique identified by its id.
  *
  * @author Sergii Kabashniuk
  */
-public interface AuthenticationHandler {
-    /**
-     * Authenticate user.
-     *
-     * @return - user principal if authentication is done, throw an {@link com.codenvy.api.auth.AuthenticationException}
-     * otherwise.
-     * @throws AuthenticationException
-     */
-    UniquePrincipal authenticate(final String login, final String password) throws AuthenticationException;
+public class UniquePrincipal implements Principal {
+    private final String name;
+    private final String id;
 
-    /** @return - type of authentication handler */
-    String getType();
+    public UniquePrincipal(String name, String id) {
+        this.name = name;
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
 }

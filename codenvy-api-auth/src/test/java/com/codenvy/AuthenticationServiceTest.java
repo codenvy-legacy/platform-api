@@ -36,7 +36,6 @@ import org.testng.annotations.Test;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
-import java.security.Principal;
 
 import static com.jayway.restassured.RestAssured.given;
 import static org.mockito.Matchers.any;
@@ -55,42 +54,41 @@ import static org.testng.Assert.assertEquals;
 public class AuthenticationServiceTest {
 
     @Mock
-    protected AuthenticationHandler handler;
+    protected AuthenticationHandler         handler;
     @Mock
-    protected Principal             principal;
+    protected AuthenticationHandlerProvider handlerProvider;
     @Mock
-    protected Principal             oldPrincipal;
+    protected UniquePrincipal               principal;
     @Mock
-    protected TicketManager         ticketManager;
+    protected UniquePrincipal               oldPrincipal;
     @Mock
-    protected CookieBuilder         cookieBuilder;
+    protected TicketManager                 ticketManager;
     @Mock
-    protected TokenGenerator        uniqueTokenGenerator;
+    protected CookieBuilder                 cookieBuilder;
+    @Mock
+    protected TokenGenerator                uniqueTokenGenerator;
     @InjectMocks
-    protected AuthenticationService authenticationService;
-    protected String                token;
-    protected String                tokenOld;
+    protected AuthenticationService         authenticationService;
+    protected String                        token;
+    protected String                        tokenOld;
 
-    private  ExceptionMapper exceptionMapper = new AuthenticationExceptionMapper();
+    private ExceptionMapper exceptionMapper = new AuthenticationExceptionMapper();
 
     @BeforeMethod
     public void init() {
         token = "t1";
         tokenOld = "t2";
-        when(ticketManager.getAccessTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal));
-
+        when(ticketManager.getAccessTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal, "default"));
+        when(handlerProvider.getDefaultHandler()).thenReturn(handler);
+        when(handlerProvider.getHandler(anyString())).thenReturn(handler);
+        when(handler.getType()).thenReturn("default");
         when(uniqueTokenGenerator.generate()).thenReturn(token);
     }
 
     @Test
     public void shouldAuthenticateWithCorrectParams() throws Exception {
         //given
-        when(handler.authenticate(eq("user@site.com"), eq("secret"))).thenReturn(new Principal() {
-            @Override
-            public String getName() {
-                return "user@site.com";
-            }
-        });
+        when(handler.authenticate(eq("user@site.com"), eq("secret"))).thenReturn(new UniquePrincipal("user@site.com", "14433"));
 
         doAnswer(new Answer<Object>() {
             @Override
@@ -197,12 +195,7 @@ public class AuthenticationServiceTest {
     @Test
     public void shouldLogoutFirstIfUserAlreadyLoggedIn() throws Exception {
         //given
-        when(handler.authenticate(eq("user@site.com"), eq("secret"))).thenReturn(new Principal() {
-            @Override
-            public String getName() {
-                return "user@site.com";
-            }
-        });
+        when(handler.authenticate(eq("user@site.com"), eq("secret"))).thenReturn(new UniquePrincipal("user@site.com", "14433"));
         when(oldPrincipal.getName()).thenReturn("old@site.com");
         doAnswer(new Answer<Object>() {
             @Override
@@ -247,7 +240,7 @@ public class AuthenticationServiceTest {
     @Test
     public void shouldBeAbleToLogoutByQueryParameter() throws Exception {
         //given
-        when(ticketManager.removeTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal));
+        when(ticketManager.removeTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal, "default"));
         // when
         given()
                 .contentType(ContentType.JSON)
@@ -263,7 +256,7 @@ public class AuthenticationServiceTest {
     @Test
     public void shouldBeAbleToLogoutByCookie() throws Exception {
         //given
-        when(ticketManager.removeTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal));
+        when(ticketManager.removeTicket(eq(tokenOld))).thenReturn(new AccessTicket(tokenOld, oldPrincipal, "default"));
         // when
         given()
                 .contentType(ContentType.JSON)

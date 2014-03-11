@@ -19,6 +19,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.factory.parameter.*;
+import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.dto.shared.DTO;
 
@@ -29,7 +30,7 @@ import javax.inject.Singleton;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URLEncoder;
+import java.net.*;
 import java.util.*;
 
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation;
@@ -80,16 +81,27 @@ public class FactoryBuilder {
     /**
      * Build factory from query string and validate compatibility.
      *
-     * @param queryParameters
-     *         - query parameters from nonencoded factory.
+     * @param queryString
+     *         - query string from nonencoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildNonEncoded(Map<String, List<String>> queryParameters) throws FactoryUrlException {
-        Factory factory = buildDtoObject(queryParameters, "", Factory.class);
+    public Factory buildNonEncoded(String queryString) throws FactoryUrlException {
+        if (queryString == null) {
+            throw new FactoryUrlException("Query string is invalid.");
+        }
+        Map<String, Set<String>> queryParams;
+        try {
+            // question character allow parse url correctly
+            queryParams = URLEncodedUtils.parse(new URI("?" + queryString), "UTF-8");
+        } catch (URISyntaxException e) {
+            throw new FactoryUrlException("Query string is invalid.");
+        }
+
+        Factory factory = buildDtoObject(queryParams, "", Factory.class);
 
         // there is unsupported parameters in query
-        if (!queryParameters.isEmpty()) {
-            throw new FactoryUrlException("Unsupported parameters are found: " + queryParameters.keySet().toString());
+        if (!queryParams.isEmpty()) {
+            throw new FactoryUrlException("Unsupported parameters are found: " + queryParams.keySet().toString());
         }
 
         checkValid(factory, FactoryFormat.NONENCODED);
@@ -414,16 +426,16 @@ public class FactoryBuilder {
      * Build dto object with {@link com.codenvy.api.factory.parameter.FactoryParameter} annotations on its methods.
      *
      * @param queryParams
-     *         source of parameters to parse. This map must be modifiable and will be modified in process of building of object.
+     *         - source of parameters to parse
      * @param parentName
-     *         queryParameterName of parent object. Allow provide support of nested parameters such
+     *         - queryParameterName of parent object. Allow provide support of nested parameters such
      *         projectattributes.pname
      * @param cl
-     *         class of the object to build.
-     * @return built object
+     *         - class of the object to build.
+     * @return - built object
      * @throws FactoryUrlException
      */
-    private <T> T buildDtoObject(Map<String, List<String>> queryParams, String parentName, Class<T> cl)
+    private <T> T buildDtoObject(Map<String, Set<String>> queryParams, String parentName, Class<T> cl)
             throws FactoryUrlException {
         T result = DtoFactory.getInstance().createDto(cl);
         boolean returnNull = true;
@@ -442,7 +454,7 @@ public class FactoryBuilder {
 
                     Object param = null;
                     if (queryParams.containsKey(fullName)) {
-                        List<String> values;
+                        Set<String> values;
                         if ((values = queryParams.remove(fullName)) == null || values.size() != 1) {
                             throw new FactoryUrlException("Value of parameter '" + fullName + "' is illegal.");
                         }

@@ -26,7 +26,7 @@ public class ValueHelper {
         PRIMITIVE_TYPES_MAP = Collections.unmodifiableMap(m);
     }
 
-    static Object createValue(Class<?> parameterClass, List<String> values)
+    static Object createValue(Class<?> parameterClass, Set<String> values)
             throws Exception {
         // parameters is not collection
         Method methodValueOf;

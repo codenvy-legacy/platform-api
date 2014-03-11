@@ -160,10 +160,9 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy, @Context UriInfo uriInfo)
             throws FactoryUrlException {
-        MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
-        queryParameters.remove("legacy");
+        String queryString = uriInfo.getRequestUri().getQuery().replaceFirst("&?legacy=(true|false)&?", "");
 
-        Factory factory = factoryBuilder.buildNonEncoded(queryParameters);
+        Factory factory = factoryBuilder.buildNonEncoded(queryString);
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
         }

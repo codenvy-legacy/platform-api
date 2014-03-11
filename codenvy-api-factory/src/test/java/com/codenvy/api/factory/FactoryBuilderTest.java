@@ -30,7 +30,8 @@ import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.codenvy.api.factory.FactoryFormat.ENCODED;
 import static com.codenvy.api.factory.FactoryFormat.NONENCODED;
@@ -323,30 +324,43 @@ public class FactoryBuilderTest {
 
     @Test(enabled = false)
     public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2() throws FactoryUrlException, UnsupportedEncodingException {
-        Map<String, List<String>> parameters = new HashMap<>();
-        parameters.put("v=", Arrays.asList("1.2"));
-        parameters.put("vcs=", Arrays.asList("git"));
-        parameters.put("vcsurl=", Arrays.asList(encode("https://github.com/codenvy/commons.git")));
-        parameters.put("commitid=", Arrays.asList("7896464674879"));
-        parameters.put("projectattributes.ptype=", Arrays.asList("type"));
-        parameters.put("projectattributes.pname=", Arrays.asList("name"));
-        parameters.put("action=", Arrays.asList("openReadme"));
-        parameters.put("wname=", Arrays.asList("codenvy"));
-        parameters.put("contactmail=", Arrays.asList(encode("developer@codenvy.com")));
-        parameters.put("author=", Arrays.asList("codenvy"));
-        parameters.put("openfile=", Arrays.asList("/src/test.java"));
-        parameters.put("orgid=", Arrays.asList("orgid"));
-        parameters.put("affiliateid=", Arrays.asList("affiliateid"));
-        parameters.put("vcsinfo=", Arrays.asList("true"));
-        parameters.put("vcsbranch=", Arrays.asList("release"));
-        parameters.put("restriction.refererhostname=", Arrays.asList("stackoverflow.com"));
-        parameters.put("restriction.validsince=", Arrays.asList("1654879849"));
-        parameters.put("restriction.validuntil=", Arrays.asList("5679841595"));
-        parameters.put("restriction.password=", Arrays.asList("password2323"));
-        parameters.put("restriction.validsessioncount=", Arrays.asList("3"));
-        parameters.put("git.configremoteoriginfetch=", Arrays.asList(encode("changes/41/1841/1")));
-        parameters.put("git.configbranchmerge=", Arrays.asList(encode("refs/for/master")));
-        parameters.put("git.configpushdefault=", Arrays.asList("upstream"));
+        StringBuilder sb = new StringBuilder();
+        sb.append("v=").append("1.2").append("&");
+        sb.append("vcs=").append("git").append("&");
+        sb.append("vcsurl=").append(encode("https://github.com/codenvy/commons.git")).append("&");
+        sb.append("commitid=").append("7896464674879").append("&");
+        //sb.append("idcommit=").append("7896464674879").append("&");
+        sb.append("projectattributes.ptype=").append("type").append("&");
+        sb.append("projectattributes.pname=").append("name").append("&");
+        //sb.append("ptype=").append("type").append("&");
+        //sb.append("pname=").append("name").append("&");
+        sb.append("action=").append("openReadme").append("&");
+        sb.append("wname=").append("codenvy").append("&");
+        //sb.append("style=").append("Black").append("&");
+        //sb.append("description=").append("desc").append("&");
+        sb.append("contactmail=").append(encode("developer@codenvy.com")).append("&");
+        sb.append("author=").append("codenvy").append("&");
+        sb.append("openfile=").append(encode("/src/test.java")).append("&");
+        sb.append("orgid=").append("orgid").append("&");
+        sb.append("affiliateid=").append("affiliateid").append("&");
+        sb.append("vcsinfo=").append("true").append("&");
+        //sb.append("vcsinfo=").append("false").append("&");
+        sb.append("vcsbranch=").append("release").append("&");
+        //sb.append("userid=").append("hudfsauidfais").append("&");
+        //sb.append("created=").append("12145646").append("&");
+        //sb.append("validsince=").append("1222222").append("&");
+        //sb.append("validuntil=").append("1222223").append("&");
+        //sb.append("welcome=").append("true").append("&");
+        //sb.append("image=").append(encode("http://codenvy/icon.ico")).append("&");
+        sb.append("restriction.refererhostname=").append("stackoverflow.com").append("&");
+        sb.append("restriction.validsince=").append("1654879849").append("&");
+        sb.append("restriction.validuntil=").append("5679841595").append("&");
+        //sb.append("restriction.restrictbypassword=").append("true").append("&");
+        sb.append("restriction.password=").append("password2323").append("&");
+        sb.append("restriction.validsessioncount=").append("3").append("&");
+        sb.append("git.configremoteoriginfetch=").append(encode("changes/41/1841/1")).append("&");
+        sb.append("git.configbranchmerge=").append(encode("refs/for/master")).append("&");
+        sb.append("git.configpushdefault=").append("upstream").append("&");
 
         Variable variable = DtoFactory.getInstance().createDto(Variable.class);
         Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class);
@@ -356,14 +370,13 @@ public class FactoryBuilderTest {
         variable.setFiles(Arrays.asList("file1.java, file2.java"));
         variable.setEntries(Arrays.asList(replacement));
 
-        parameters.put("variables=", Arrays.asList(encode("[" + DtoFactory.getInstance().toJson(variable) + "]")));
+        sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]")).append("");
 
         ((FactoryV1_1)expected.withV("1.2").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git")
                               .withCommitid("7896464674879").withAction("openReadme")).withProjectattributes(
                 DtoFactory.getInstance().createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname"));
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(parameters);
-
+        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
         //assertEquals(newFactory, expectedFactory);
     }
 

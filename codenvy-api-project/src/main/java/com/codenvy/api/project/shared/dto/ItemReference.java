@@ -10,6 +10,14 @@ import java.util.List;
  */
 @DTO
 public interface ItemReference {
+    /** Get id of item. */
+    String getId();
+
+    /** Set id of item. */
+    void setId(String id);
+
+    ItemReference withId(String id);
+
     /** Get name of item. */
     String getName();
 

@@ -399,8 +399,8 @@ public class ProjectService extends Service {
                          .withChildren(getTree(workspace, folder, depth));
     }
 
-    // Temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
-    private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) {
+    // Method temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
+    private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) throws VirtualFileSystemException {
         if (depth == 0 || !entry.isFolder()) {
             return null;
         }
@@ -409,9 +409,11 @@ public class ProjectService extends Service {
         for (AbstractVirtualFileEntry child : children) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
+                                                     // Temporary add id.
+                                                    .withId(child.getVirtualFile().getId())
                                                     .withName(child.getName())
                                                     .withPath(child.getPath())
-                                                     // TODO: Temporary set 'project' type, since need to rework on the client side.
+                                                     // Temporary set 'project' type, since need to rework on the client side.
                                                     .withType(child.isFile() ? "file" : ((FolderEntry)child).isProjectFolder() ? "project" : "folder")
                                                     .withMediaType(child.isFile() ? ((FileEntry)child).getMediaType() : "text/directory")
                                                     .withLinks(child.isFile() ? generateFileLinks(workspace, (FileEntry)child)

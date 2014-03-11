@@ -25,7 +25,6 @@ import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.internal.dto.RunRequest;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
@@ -100,6 +99,10 @@ public abstract class Runner {
 
     protected ExecutorService getExecutor() {
         return executor;
+    }
+
+    protected EventService getEventService() {
+        return eventService;
     }
 
     @PostConstruct
@@ -185,23 +188,28 @@ public abstract class Runner {
 
     public RunnerProcess execute(final RunRequest request) throws IOException, RunnerException {
         checkStarted();
-        // TODO: cleanup
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final Long internalId = processIdSequence.getAndIncrement();
         final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, new RunnerProcess.Callback() {
             @Override
             public void started(RunnerProcess process) {
-                eventService.publish("runner", new LocalRunnerEvent(process, "started", EnvironmentContext.getCurrent().getUser()));
+                final RunRequest runRequest = process.getConfiguration().getRequest();
+                eventService.publish(new RunnerEvent(RunnerEvent.EventType.STARTED, runRequest.getId(), runRequest.getWorkspace(),
+                                                     runRequest.getProject()));
             }
 
             @Override
             public void stopped(RunnerProcess process) {
-                eventService.publish("runner", new LocalRunnerEvent(process, "stopped", EnvironmentContext.getCurrent().getUser()));
+                final RunRequest runRequest = process.getConfiguration().getRequest();
+                eventService.publish(new RunnerEvent(RunnerEvent.EventType.STOPPED, runRequest.getId(), runRequest.getWorkspace(),
+                                                     runRequest.getProject()));
             }
 
             @Override
             public void error(RunnerProcess process, Throwable t) {
-                eventService.publish("runner", new LocalRunnerEvent(process, "error", t, EnvironmentContext.getCurrent().getUser()));
+                final RunRequest runRequest = process.getConfiguration().getRequest();
+                eventService.publish(new RunnerEvent(RunnerEvent.EventType.ERROR, runRequest.getId(), runRequest.getWorkspace(),
+                                                     runRequest.getProject(), t.getMessage()));
             }
         });
         purgeExpiredProcesses();

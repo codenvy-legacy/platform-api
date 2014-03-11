@@ -17,21 +17,25 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
 public class RenameEvent extends VirtualFileEvent {
-    private final String oldPath;
+    private String oldPath;
 
-    public RenameEvent(String oldPath, VirtualFile virtualFile, VirtualFileSystemUser user) {
-        super(virtualFile, ChangeType.RENAMED, user);
+    public RenameEvent(String workspaceId, String path, String oldPath) {
+        super(workspaceId, path, ChangeType.RENAMED);
         this.oldPath = oldPath;
+    }
+
+    public RenameEvent() {
     }
 
     public String getOldPath() {
         return oldPath;
+    }
+
+    public void setOldPath(String oldPath) {
+        this.oldPath = oldPath;
     }
 }

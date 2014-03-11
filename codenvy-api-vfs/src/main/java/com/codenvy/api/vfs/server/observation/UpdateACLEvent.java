@@ -17,14 +17,14 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
 public class UpdateACLEvent extends VirtualFileEvent {
-    public UpdateACLEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
-        super(virtualFile, ChangeType.ACL_UPDATED, user);
+    public UpdateACLEvent(String workspaceId, String path) {
+        super(workspaceId, path, ChangeType.ACL_UPDATED);
+    }
+
+    public UpdateACLEvent() {
     }
 }

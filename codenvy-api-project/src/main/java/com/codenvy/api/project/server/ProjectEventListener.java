@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2014] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,11 +15,14 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.notification;
+package com.codenvy.api.project.server;
 
 /**
+ * Listener for project events.
+ *
  * @author andrew00x
+ * @see com.codenvy.api.project.server.ProjectEventService
  */
-public interface MessageReceiver<T> {
-    void onEvent(String channel, T data);
+public interface ProjectEventListener {
+    void onEvent(ProjectEvent event);
 }

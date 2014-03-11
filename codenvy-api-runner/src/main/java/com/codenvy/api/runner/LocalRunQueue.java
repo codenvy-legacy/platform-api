@@ -18,7 +18,7 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.core.notification.MessageReceiver;
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
@@ -27,16 +27,9 @@ import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.internal.LocalRunnerEvent;
 import com.codenvy.api.runner.internal.Runner;
-import com.codenvy.api.runner.internal.RunnerProcess;
-import com.codenvy.api.runner.internal.dto.RunRequest;
+import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
-import com.codenvy.api.vfs.server.observation.DeleteEvent;
-import com.codenvy.api.vfs.server.observation.MoveEvent;
-import com.codenvy.api.vfs.server.observation.RenameEvent;
-import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.websockets.WSConnectionContext;
@@ -148,13 +141,12 @@ public class LocalRunQueue extends RunQueue {
         super.start();
         registerRunners(null, null, remoteRunners);
         // Register listener that resend events from runner to the client (browser).
-        eventService.subscribe("runner", new MessageReceiver<LocalRunnerEvent>() {
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
             @Override
-            public void onEvent(String channel, LocalRunnerEvent event) {
+            public void onEvent(RunnerEvent event) {
                 try {
-                    final RunnerProcess process = event.getRunnerProcess();
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                    final long id = process.getConfiguration().getRequest().getId();
+                    final long id = event.getTaskId();
                     final ApplicationProcessDescriptor processDescriptor = getTask(id).getDescriptor();
                     // TODO: do need to have separate channel? Can use runner:status channel for all events?
                     bm.setChannel(String.format("runner:status:%d", id));
@@ -166,84 +158,22 @@ public class LocalRunQueue extends RunQueue {
                 }
             }
         });
-        eventService.subscribe("runner", new MessageReceiver<LocalRunnerEvent>() {
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
             @Override
-            public void onEvent(String channel, LocalRunnerEvent event) {
+            public void onEvent(RunnerEvent event) {
                 if (!event.hasError()) {
-                    EnvironmentContext.getCurrent().setUser(event.getUser());
                     try {
-                        final RunRequest request = event.getRunnerProcess().getConfiguration().getRequest();
-                        final Project project = projectManager.getProject(request.getWorkspace(), request.getProject());
+                        final Project project = projectManager.getProject(event.getWorkspace(), event.getProject());
                         final ProjectDescription description = project.getDescription();
-                        if ("started".equals(event.getState())) {
+                        if (RunnerEvent.EventType.STARTED.equals(event.getType())) {
                             description.setAttribute(new Attribute("runner.running", "true"));
-                        } else if ("stopped".equals(event.getState())) {
+                        } else if (RunnerEvent.EventType.STOPPED.equals(event.getType())) {
                             description.setAttribute(new Attribute("runner.running", "false"));
                         }
                         project.updateDescription(description);
                     } catch (IOException e) {
                         LOG.error(e.getMessage(), e);
-                    } finally {
-                        EnvironmentContext.reset();
                     }
-                }
-            }
-        });
-        eventService.subscribe("vfs", new MessageReceiver<VirtualFileEvent>() {
-            @Override
-            public void onEvent(String channel, VirtualFileEvent event) {
-                try {
-                    if (event.getType() == VirtualFileEvent.ChangeType.CONTENT_UPDATED) {
-                        String path = event.getVirtualFile().getPath();
-                        for (RunQueueTask task : getTasks()) {
-                            final String project = task.getRequest().getProject();
-                            if (path.startsWith(project)) {
-                                System.out.printf(">>>>> UPDATE %s in %s%n", path, project);
-                            }
-                        }
-                    } else if (event.getType() == VirtualFileEvent.ChangeType.CREATED) {
-                        String path = event.getVirtualFile().getPath();
-                        for (RunQueueTask task : getTasks()) {
-                            final String project = task.getRequest().getProject();
-                            if (path.startsWith(project)) {
-                                System.out.printf(">>>>> CREATE %s in %s%n", path, project);
-                            }
-                        }
-                    } else if (event.getType() == VirtualFileEvent.ChangeType.DELETED) {
-                        String oldPath = ((DeleteEvent)event).getPath();
-                        for (RunQueueTask task : getTasks()) {
-                            final String project = task.getRequest().getProject();
-                            if (oldPath.startsWith(project)) {
-                                System.out.printf(">>>>> DELETE %s in %s%n", oldPath, project);
-                            }
-                        }
-                    } else if (event.getType() == VirtualFileEvent.ChangeType.MOVED) {
-                        String oldPath = ((MoveEvent)event).getOldPath();
-                        String path = event.getVirtualFile().getPath();
-                        for (RunQueueTask task : getTasks()) {
-                            final String project = task.getRequest().getProject();
-                            if (oldPath.startsWith(project)) {
-                                System.out.printf(">>>>> DELETE %s in %s%n", oldPath, project);
-                            }
-                            if (path.startsWith(project)) {
-                                System.out.printf(">>>>> CREATE %s in %s%n", path, project);
-                            }
-                        }
-                    } else if (event.getType() == VirtualFileEvent.ChangeType.RENAMED) {
-                        String oldPath = ((RenameEvent)event).getOldPath();
-                        String path = event.getVirtualFile().getPath();
-                        for (RunQueueTask task : getTasks()) {
-                            final String project = task.getRequest().getProject();
-                            if (oldPath.startsWith(project)) {
-                                System.out.printf(">>>>> DELETE %s in %s%n", oldPath, project);
-                            }
-                            if (path.startsWith(project)) {
-                                System.out.printf(">>>>> CREATE %s in %s%n", path, project);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
             }
         });

@@ -44,8 +44,6 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -171,16 +169,16 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException("'skipCount' parameter is negative. ");
         }
 
-        final ItemType itemTypeType=null;
-//        if (itemType != null) {
-//            try {
-//                itemTypeType = ItemType.fromValue(itemType);
-//            } catch (IllegalArgumentException e) {
-//                throw new InvalidArgumentException(String.format("Unknown type: %s", itemType));
-//            }
-//        } else {
-//            itemTypeType = null;
-//        }
+        final ItemType itemTypeType;
+        if (itemType != null) {
+            try {
+                itemTypeType = ItemType.fromValue(itemType);
+            } catch (IllegalArgumentException e) {
+                throw new InvalidArgumentException(String.format("Unknown type: %s", itemType));
+            }
+        } else {
+            itemTypeType = null;
+        }
 
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
 
@@ -644,7 +642,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (deleted.length() > 0) {
             responseBuilder.header("x-removed-paths", deleted.toString());
         }
-        return  responseBuilder.build();
+        return responseBuilder.build();
     }
 
 

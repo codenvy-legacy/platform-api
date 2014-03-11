@@ -30,25 +30,23 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * Dispatchers events to listeners. Usage example:
  * <pre>
  *     EventService bus = new EventService();
- *     bus.subscribe("test", new MessageReceiver&lt;String&gt;() {
+ *     bus.subscribe(new EventSubscriber&lt;MyEvent&gt;() {
  *         &#64;Override
- *         public void onEvent(String channel, String data) {
- *             System.out.println(channel + ":" + data);
+ *         public void onEvent(MyEvent event) {
+ *             // do something with event
  *         }
  *     });
- *     bus.publish("test", "hello");
+ *     bus.publish(new MyEvent());
  * </pre>
- * Code above prints "test:hello" to the output.
  *
  * @author andrew00x
  */
@@ -58,14 +56,14 @@ public final class EventService {
 
     private static final int CACHE_NUM  = 1 << 2;
     private static final int CACHE_MASK = CACHE_NUM - 1;
-    private static final int SEG_SIZE   = 16;
+    private static final int SEG_SIZE   = 32;
 
     private final Cache<Class<?>, Set<Class<?>>>[]              typeCache;
-    private final ConcurrentMap<String, List<ListenerWithType>> listenersByChannel;
+    private final ConcurrentMap<Class<?>, Set<EventSubscriber>> subscribersByEventType;
 
     @SuppressWarnings("unchecked")
     public EventService() {
-        listenersByChannel = new ConcurrentHashMap<>();
+        subscribersByEventType = new ConcurrentHashMap<>();
         typeCache = new Cache[CACHE_NUM];
         for (int i = 0; i < CACHE_NUM; i++) {
             typeCache[i] = new SynchronizedCache<>(new LoadingValueSLRUCache<Class<?>, Set<Class<?>>>(SEG_SIZE, SEG_SIZE) {
@@ -93,32 +91,25 @@ public final class EventService {
     }
 
     /**
-     * Publish event {@code data} to the {@code channel}.
+     * Publish event {@code event}.
      *
-     * @param channel
-     *         channel for publishing
-     * @param data
+     * @param event
      *         event
      */
     @SuppressWarnings("unchecked")
-    public void publish(String channel, Object data) {
-        if (channel == null) {
-            throw new IllegalArgumentException("Invalid name of channel.");
-        }
-        if (data == null) {
+    public void publish(Object event) {
+        if (event == null) {
             throw new IllegalArgumentException("Null event.");
         }
-        final List<ListenerWithType> wrappers = listenersByChannel.get(channel);
-        if (wrappers != null && !wrappers.isEmpty()) {
-            final Class<?> eventClass = data.getClass();
-            for (Class<?> clazz : typeCache[eventClass.hashCode() & CACHE_MASK].get(eventClass)) {
-                for (ListenerWithType wrapper : wrappers) {
-                    if (wrapper.eventType.equals(clazz)) {
-                        try {
-                            wrapper.listener.onEvent(channel, data);
-                        } catch (RuntimeException e) {
-                            LOG.error(e.getMessage(), e);
-                        }
+        final Class<?> eventClass = event.getClass();
+        for (Class<?> clazz : typeCache[eventClass.hashCode() & CACHE_MASK].get(eventClass)) {
+            final Set<EventSubscriber> eventSubscribers = subscribersByEventType.get(clazz);
+            if (eventSubscribers != null && !eventSubscribers.isEmpty()) {
+                for (EventSubscriber eventSubscriber : eventSubscribers) {
+                    try {
+                        eventSubscriber.onEvent(event);
+                    } catch (RuntimeException e) {
+                        LOG.error(e.getMessage(), e);
                     }
                 }
             }
@@ -126,27 +117,52 @@ public final class EventService {
     }
 
     /**
-     * Subscribe {@code listener} to the {@code channel}.
+     * Subscribe event listener.
      *
-     * @param channel
-     *         channel name
-     * @param listener
-     *         event listener
-     * @throws java.lang.IllegalArgumentException
-     *         if {@code channel} is {@code null}
+     * @param subscriber
+     *         event subscriber
      */
-    public void subscribe(String channel, MessageReceiver<?> listener) {
-        if (channel == null) {
-            throw new IllegalArgumentException("Invalid name of channel.");
+    public void subscribe(EventSubscriber<?> subscriber) {
+        final Class<?> eventType = getEventType(subscriber);
+        Set<EventSubscriber> entries = subscribersByEventType.get(eventType);
+        if (entries == null) {
+            Set<EventSubscriber> newEntries = new CopyOnWriteArraySet<>();
+            entries = subscribersByEventType.putIfAbsent(eventType, newEntries);
+            if (entries == null) {
+                entries = newEntries;
+            }
         }
+        entries.add(subscriber);
+    }
+
+    /**
+     * Unsubscribe event listener.
+     *
+     * @param subscriber
+     *         event subscriber
+     */
+    public void unsubscribe(EventSubscriber<?> subscriber) {
+        final Class<?> eventType = getEventType(subscriber);
+        final Set<EventSubscriber> entries = subscribersByEventType.get(eventType);
+        if (entries != null && !entries.isEmpty()) {
+            boolean changed = entries.remove(subscriber);
+            if (changed) {
+                if (entries.isEmpty()) {
+                    subscribersByEventType.remove(eventType);
+                }
+            }
+        }
+    }
+
+    private Class<?> getEventType(EventSubscriber<?> subscriber) {
         Class<?> eventType = null;
-        Class<?> clazz = listener.getClass();
+        Class<?> clazz = subscriber.getClass();
         while (clazz != null && eventType == null) {
             for (Type type : clazz.getGenericInterfaces()) {
                 if (type instanceof ParameterizedType) {
                     final ParameterizedType parameterizedType = (ParameterizedType)type;
                     final Type rawType = parameterizedType.getRawType();
-                    if (MessageReceiver.class == rawType) {
+                    if (EventSubscriber.class == rawType) {
                         final Type[] typeArguments = parameterizedType.getActualTypeArguments();
                         if (typeArguments.length == 1) {
                             if (typeArguments[0] instanceof Class) {
@@ -159,52 +175,8 @@ public final class EventService {
             clazz = clazz.getSuperclass();
         }
         if (eventType == null) {
-            throw new IllegalArgumentException(String.format("Unable determine type of events processed by %s", listener));
+            throw new IllegalArgumentException(String.format("Unable determine type of events processed by %s", subscriber));
         }
-        List<ListenerWithType> wrappers = listenersByChannel.get(channel);
-        if (wrappers == null) {
-            List<ListenerWithType> newWrappers = new CopyOnWriteArrayList<>();
-            wrappers = listenersByChannel.putIfAbsent(channel, newWrappers);
-            if (wrappers == null) {
-                wrappers = newWrappers;
-            }
-        }
-        wrappers.add(new ListenerWithType(eventType, listener));
-    }
-
-    /**
-     * Unsubscribe {@code listener} from the {@code channel}.
-     *
-     * @param channel
-     *         channel name
-     * @param listener
-     *         event listener
-     * @throws java.lang.IllegalArgumentException
-     *         if {@code channel} is {@code null}
-     */
-    public void unsubscribe(String channel, MessageReceiver<?> listener) {
-        if (channel == null) {
-            throw new IllegalArgumentException("Invalid name of channel.");
-        }
-        final List<ListenerWithType> wrappers = listenersByChannel.get(channel);
-        if (wrappers != null && !wrappers.isEmpty()) {
-            List<ListenerWithType> toRemove = new LinkedList<>();
-            for (ListenerWithType wrapper : wrappers) {
-                if (listener.equals(wrapper.listener)) {
-                    toRemove.add(wrapper);
-                }
-            }
-            wrappers.removeAll(toRemove);
-        }
-    }
-
-    private static class ListenerWithType {
-        final Class<?>        eventType;
-        final MessageReceiver listener;
-
-        ListenerWithType(Class<?> eventType, MessageReceiver<?> listener) {
-            this.eventType = eventType;
-            this.listener = listener;
-        }
+        return eventType;
     }
 }

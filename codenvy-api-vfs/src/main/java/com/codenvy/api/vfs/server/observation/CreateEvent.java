@@ -17,14 +17,14 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
 public class CreateEvent extends VirtualFileEvent {
-    public CreateEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
-        super(virtualFile, ChangeType.CREATED, user);
+    public CreateEvent(String workspaceId, String path) {
+        super(workspaceId, path, ChangeType.CREATED);
+    }
+
+    public CreateEvent() {
     }
 }

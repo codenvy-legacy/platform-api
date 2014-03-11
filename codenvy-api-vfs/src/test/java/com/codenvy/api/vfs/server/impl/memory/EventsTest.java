@@ -17,16 +17,16 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import com.codenvy.api.core.notification.MessageReceiver;
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.observation.CreateEvent;
 import com.codenvy.api.vfs.server.observation.DeleteEvent;
-import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 import com.codenvy.api.vfs.server.observation.MoveEvent;
 import com.codenvy.api.vfs.server.observation.RenameEvent;
 import com.codenvy.api.vfs.server.observation.UpdateACLEvent;
 import com.codenvy.api.vfs.server.observation.UpdateContentEvent;
 import com.codenvy.api.vfs.server.observation.UpdatePropertiesEvent;
+import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 
 import org.everrest.core.impl.ContainerResponse;
 
@@ -62,49 +62,48 @@ public class EventsTest extends MemoryFileSystemTest {
         testFileId = testFile.getId();
         testFilePath = testFile.getPath();
         events = new ArrayList<>();
-        mountPoint.getEventService().subscribe("vfs", new MessageReceiver<CreateEvent>() {
+        mountPoint.getEventService().subscribe(new EventSubscriber<CreateEvent>() {
             @Override
-            public void onEvent(String channel, CreateEvent data) {
-                events.add(data);
+            public void onEvent(CreateEvent event) {
+                events.add(event);
             }
         });
-        mountPoint.getEventService().subscribe("vfs", new MessageReceiver<MoveEvent>() {
+        mountPoint.getEventService().subscribe(new EventSubscriber<MoveEvent>() {
             @Override
-            public void onEvent(String channel, MoveEvent data) {
-                events.add(data);
+            public void onEvent(MoveEvent event) {
+                events.add(event);
             }
         });
-        mountPoint.getEventService().subscribe("vfs", new MessageReceiver<RenameEvent>() {
+        mountPoint.getEventService().subscribe(new EventSubscriber<RenameEvent>() {
             @Override
-            public void onEvent(String channel, RenameEvent data) {
-                events.add(data);
+            public void onEvent(RenameEvent event) {
+                events.add(event);
             }
         });
-        mountPoint.getEventService().subscribe("vfs", new MessageReceiver<DeleteEvent>() {
+        mountPoint.getEventService().subscribe(new EventSubscriber<DeleteEvent>() {
             @Override
-            public void onEvent(String channel, DeleteEvent data) {
-                events.add(data);
+            public void onEvent(DeleteEvent event) {
+                events.add(event);
             }
         });
-        mountPoint.getEventService().subscribe("vfs", new MessageReceiver<UpdateContentEvent>() {
+        mountPoint.getEventService().subscribe(new EventSubscriber<UpdateContentEvent>() {
             @Override
-            public void onEvent(String channel, UpdateContentEvent data) {
-                events.add(data);
+            public void onEvent(UpdateContentEvent event) {
+                events.add(event);
             }
         });
-        mountPoint.getEventService().subscribe("vfs", new MessageReceiver<UpdatePropertiesEvent>() {
+        mountPoint.getEventService().subscribe(new EventSubscriber<UpdatePropertiesEvent>() {
             @Override
-            public void onEvent(String channel, UpdatePropertiesEvent data) {
-                events.add(data);
+            public void onEvent(UpdatePropertiesEvent event) {
+                events.add(event);
             }
         });
-        mountPoint.getEventService().subscribe("vfs", new MessageReceiver<UpdateACLEvent>() {
+        mountPoint.getEventService().subscribe(new EventSubscriber<UpdateACLEvent>() {
             @Override
-            public void onEvent(String channel, UpdateACLEvent data) {
-                events.add(data);
+            public void onEvent(UpdateACLEvent event) {
+                events.add(event);
             }
         });
-
     }
 
     public void testCreateFile() throws Exception {
@@ -119,7 +118,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CREATED, events.get(0).getType());
-        assertEquals(testFolderPath + '/' + name, events.get(0).getVirtualFile().getPath());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
+        assertEquals(testFolderPath + '/' + name, events.get(0).getPath());
     }
 
     public void testCreateFolder() throws Exception {
@@ -129,7 +129,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CREATED, events.get(0).getType());
-        assertEquals(testFolderPath + '/' + name, events.get(0).getVirtualFile().getPath());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
+        assertEquals(testFolderPath + '/' + name, events.get(0).getPath());
     }
 
     public void testCopy() throws Exception {
@@ -138,7 +139,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CREATED, events.get(0).getType());
-        assertEquals(destinationFolderPath + "/file", events.get(0).getVirtualFile().getPath());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
+        assertEquals(destinationFolderPath + "/file", events.get(0).getPath());
     }
 
     public void testMove() throws Exception {
@@ -147,7 +149,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.MOVED, events.get(0).getType());
-        assertEquals(destinationFolderPath + "/file", events.get(0).getVirtualFile().getPath());
+        assertEquals(destinationFolderPath + "/file", events.get(0).getPath());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFilePath, ((MoveEvent)events.get(0)).getOldPath());
     }
 
@@ -162,8 +165,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(204, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CONTENT_UPDATED, events.get(0).getType());
-        assertEquals(testFilePath, events.get(0).getVirtualFile().getPath());
-        assertEquals("application/xml", events.get(0).getVirtualFile().getMediaType());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
+        assertEquals(testFilePath, events.get(0).getPath());
     }
 
     public void testUpdateProperties() throws Exception {
@@ -177,7 +180,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.PROPERTIES_UPDATED, events.get(0).getType());
-        assertEquals(testFilePath, events.get(0).getVirtualFile().getPath());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
+        assertEquals(testFilePath, events.get(0).getPath());
     }
 
     public void testDelete() throws Exception {
@@ -186,7 +190,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(204, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.DELETED, events.get(0).getType());
-        assertEquals(testFilePath, ((DeleteEvent)events.get(0)).getPath());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
+        assertEquals(testFilePath, events.get(0).getPath());
     }
 
     public void testRename() throws Exception {
@@ -195,7 +200,8 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.RENAMED, events.get(0).getType());
-        assertEquals(testFolderPath + '/' + "_FILE_NEW_NAME_", events.get(0).getVirtualFile().getPath());
+        assertEquals(testFolderPath + '/' + "_FILE_NEW_NAME_", events.get(0).getPath());
+        assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFilePath, ((RenameEvent)events.get(0)).getOldPath());
     }
 }

@@ -17,21 +17,25 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
 public class MoveEvent extends VirtualFileEvent {
-    private final String oldPath;
+    private String oldPath;
 
-    public MoveEvent(String oldPath, VirtualFile virtualFile, VirtualFileSystemUser user) {
-        super(virtualFile, ChangeType.MOVED, user);
+    public MoveEvent(String workspaceId, String path, String oldPath) {
+        super(workspaceId, path, ChangeType.MOVED);
         this.oldPath = oldPath;
+    }
+
+    public MoveEvent() {
     }
 
     public String getOldPath() {
         return oldPath;
+    }
+
+    public void setOldPath(String oldPath) {
+        this.oldPath = oldPath;
     }
 }

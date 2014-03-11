@@ -28,6 +28,10 @@ import com.codenvy.api.vfs.server.search.SearcherProvider;
  * @author andrew00x
  */
 public interface MountPoint {
+
+    /** Get id of workspace to which this mount point associated to.*/
+    String getWorkspaceId();
+
     /**
      * Get root folder of virtual file system. Any files in higher level than root are not accessible through virtual file system API.
      *

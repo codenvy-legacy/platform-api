@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
@@ -15,21 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.server;
-
-import com.codenvy.api.project.shared.AttributeDescription;
-import com.codenvy.api.project.shared.ProjectType;
-
-import java.util.List;
+package com.codenvy.api.core.notification;
 
 /**
- * ProjectDescriptionExtension
- *
- * @author gazarenkov
+ * @author andrew00x
  */
-public interface ProjectTypeDescriptionExtension {
-    List<ProjectType> getProjectTypes();
-
-    List<AttributeDescription> getAttributeDescriptions();
-
+public interface EventSubscriber<T> {
+    void onEvent(T event);
 }

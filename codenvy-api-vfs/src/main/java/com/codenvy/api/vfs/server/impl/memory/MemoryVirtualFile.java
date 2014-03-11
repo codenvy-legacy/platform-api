@@ -38,6 +38,7 @@ import com.codenvy.api.vfs.server.observation.CreateEvent;
 import com.codenvy.api.vfs.server.observation.DeleteEvent;
 import com.codenvy.api.vfs.server.observation.MoveEvent;
 import com.codenvy.api.vfs.server.observation.RenameEvent;
+import com.codenvy.api.vfs.server.observation.UpdateACLEvent;
 import com.codenvy.api.vfs.server.observation.UpdateContentEvent;
 import com.codenvy.api.vfs.server.observation.UpdatePropertiesEvent;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
@@ -285,6 +286,7 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         permissionsMap.putAll(update);
         lastModificationDate = System.currentTimeMillis();
+        mountPoint.getEventService().publish(new UpdateACLEvent(mountPoint.getWorkspaceId(), getPath()));
         return this;
     }
 
@@ -384,8 +386,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         lastModificationDate = System.currentTimeMillis();
-        mountPoint.getEventService()
-                  .publish("vfs", new UpdatePropertiesEvent(this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new UpdatePropertiesEvent(mountPoint.getWorkspaceId(), getPath()));
         return this;
     }
 
@@ -555,7 +556,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         lastModificationDate = System.currentTimeMillis();
-        mountPoint.getEventService().publish("vfs", new UpdateContentEvent(this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new UpdateContentEvent(mountPoint.getWorkspaceId(), getPath()));
         return this;
     }
 
@@ -618,7 +619,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish("vfs", new CreateEvent(copy, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), copy.getPath()));
         return copy;
     }
 
@@ -711,7 +712,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish("vfs", new MoveEvent(myPath, this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new MoveEvent(mountPoint.getWorkspaceId(), getPath(), myPath));
         return this;
     }
 
@@ -775,7 +776,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish("vfs", new RenameEvent(myPath, this, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new RenameEvent(mountPoint.getWorkspaceId(), getPath(), myPath));
         return this;
     }
 
@@ -835,8 +836,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish("vfs",
-                                             new DeleteEvent(myPath, isFolder, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new DeleteEvent(mountPoint.getWorkspaceId(), myPath));
     }
 
     @Override
@@ -1046,7 +1046,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish("vfs", new CreateEvent(newFile, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFile.getPath()));
         return newFile;
     }
 
@@ -1085,7 +1085,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         mountPoint.putItem(newFolder);
-        mountPoint.getEventService().publish("vfs", new CreateEvent(newFolder, mountPoint.getUserContext().getVirtualFileSystemUser()));
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFolder.getPath()));
         return newFolder;
     }
 

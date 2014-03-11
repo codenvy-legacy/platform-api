@@ -42,13 +42,16 @@ import java.util.Map;
  * @author andrew00x
  */
 public class MemoryMountPoint implements MountPoint {
+    private final String                       workspaceId;
     private final EventService                 eventService;
     private final SearcherProvider             searcherProvider;
     private final VirtualFileSystemUserContext userContext;
     private final Map<String, VirtualFile>     entries;
     private final VirtualFile                  root;
 
-    public MemoryMountPoint(EventService eventService, SearcherProvider searcherProvider, VirtualFileSystemUserContext userContext) {
+    public MemoryMountPoint(String workspaceId, EventService eventService, SearcherProvider searcherProvider,
+                            VirtualFileSystemUserContext userContext) {
+        this.workspaceId = workspaceId;
         this.eventService = eventService;
         this.searcherProvider = searcherProvider;
         this.userContext = userContext;
@@ -56,6 +59,12 @@ public class MemoryMountPoint implements MountPoint {
         root = new MemoryVirtualFile(this);
     }
 
+    @Override
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    @Override
     public VirtualFile getRoot() {
         return root;
     }

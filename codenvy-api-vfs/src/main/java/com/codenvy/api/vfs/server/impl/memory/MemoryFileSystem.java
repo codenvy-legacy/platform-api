@@ -34,7 +34,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class MemoryFileSystem extends VirtualFileSystemImpl {
     private final String vfsId;
     private final URI    baseUri;

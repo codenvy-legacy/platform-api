@@ -27,6 +27,7 @@ import com.codenvy.api.builder.internal.DelegateBuildLogger;
 import com.codenvy.api.builder.internal.SourceManagerListener;
 import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
@@ -47,7 +48,7 @@ public class BuilderTest {
         MyDelegateBuildLogger logger;
 
         public MyBuilder(File root, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
-            super(root, numberOfWorkers, queueSize, cleanBuildResultDelay);
+            super(root, numberOfWorkers, queueSize, cleanBuildResultDelay, new EventService());
         }
 
         @Override
@@ -89,7 +90,8 @@ public class BuilderTest {
                 }
 
                 @Override
-                public void addListener(SourceManagerListener listener) {
+                public boolean addListener(SourceManagerListener listener) {
+                    return false;
                 }
 
                 @Override

@@ -17,14 +17,14 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
 public class UpdateContentEvent extends VirtualFileEvent {
-    public UpdateContentEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
-        super(virtualFile, ChangeType.CONTENT_UPDATED, user);
+    public UpdateContentEvent(String workspaceId, String path) {
+        super(workspaceId, path, ChangeType.CONTENT_UPDATED);
+    }
+
+    public UpdateContentEvent() {
     }
 }

@@ -48,7 +48,7 @@ public class FileEntryTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        mmp = new MemoryMountPoint(new EventService(), null, new VirtualFileSystemUserContext() {
+        mmp = new MemoryMountPoint("my_ws", new EventService(), null, new VirtualFileSystemUserContext() {
             @Override
             public VirtualFileSystemUser getVirtualFileSystemUser() {
                 return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);

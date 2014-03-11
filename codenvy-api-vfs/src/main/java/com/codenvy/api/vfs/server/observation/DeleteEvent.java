@@ -17,26 +17,14 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
 public class DeleteEvent extends VirtualFileEvent {
-    private final String  path;
-    private final boolean isFolder;
-
-    public DeleteEvent(String path, boolean isFolder, VirtualFileSystemUser user) {
-        super(null, ChangeType.DELETED, user);
-        this.path = path;
-        this.isFolder = isFolder;
+    public DeleteEvent(String workspaceId, String path) {
+        super(workspaceId, path, ChangeType.DELETED);
     }
 
-    public String getPath() {
-        return path;
-    }
-
-    public boolean isFolder() {
-        return isFolder;
+    public DeleteEvent() {
     }
 }

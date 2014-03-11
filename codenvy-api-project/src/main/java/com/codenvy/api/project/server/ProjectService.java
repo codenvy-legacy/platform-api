@@ -35,6 +35,7 @@ import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.dto.server.DtoFactory;
@@ -131,6 +132,26 @@ public class ProjectService extends Service {
         final ProjectDescriptor projectDescriptor = toDescriptor(workspace, project);
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
         return projectDescriptor;
+    }
+
+    @GET
+    @Path("modules/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<ProjectDescriptor> getModules(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
+        final Project project = projectManager.getProject(workspace, path);
+        if (project == null) {
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
+        }
+
+        List<Project> modules = project.getModules();
+        List<ProjectDescriptor> result = new ArrayList<>(modules.size());
+        for (Project module : modules) {
+            result.add(toDescriptor(workspace, module));
+        }
+        return result;
     }
 
     @POST
@@ -423,21 +444,26 @@ public class ProjectService extends Service {
                          .withChildren(getTree(workspace, folder, depth));
     }
 
-    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) {
-        if (depth == 0) {
+    // Method temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
+    private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) throws VirtualFileSystemException {
+        if (depth == 0 || !entry.isFolder()) {
             return null;
         }
-        final List<FolderEntry> childFolders = folder.getChildFolders();
-        final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
-        for (FolderEntry childFolder : childFolders) {
+        final List<AbstractVirtualFileEntry> children = ((FolderEntry)entry).getChildren();
+        final List<TreeElement> nodes = new ArrayList<>(children.size());
+        for (AbstractVirtualFileEntry child : children) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
-                                                    .withName(childFolder.getName())
-                                                    .withPath(childFolder.getPath())
-                                                    .withType("folder")
-                                                    .withMediaType("text/directory")
-                                                    .withLinks(generateFolderLinks(workspace, childFolder)))
-                                .withChildren(getTree(workspace, childFolder, depth - 1)));
+                                                     // Temporary add id.
+                                                    .withId(child.getVirtualFile().getId())
+                                                    .withName(child.getName())
+                                                    .withPath(child.getPath())
+                                                     // Temporary set 'project' type, since need to rework on the client side.
+                                                    .withType(child.isFile() ? "file" : ((FolderEntry)child).isProjectFolder() ? "project" : "folder")
+                                                    .withMediaType(child.isFile() ? ((FileEntry)child).getMediaType() : "text/directory")
+                                                    .withLinks(child.isFile() ? generateFileLinks(workspace, (FileEntry)child)
+                                                                              : generateFolderLinks(workspace, (FolderEntry)child)))
+                                .withChildren(getTree(workspace, child, depth - 1)));
         }
         return nodes;
     }
@@ -550,7 +576,7 @@ public class ProjectService extends Service {
         return projectDescription;
     }
 
-    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException {
+    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException, VirtualFileSystemException {
         final ProjectDescription description = project.getDescription();
         final ProjectType type = description.getProjectType();
         final Map<String, List<String>> attributeValues = new LinkedHashMap<>();
@@ -560,6 +586,8 @@ public class ProjectService extends Service {
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withName(project.getName())
                          .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
+                         // Temporary add virtualFile ID, since need to rework client side.
+                         .withId(project.getBaseFolder().getVirtualFile().getId())
                          .withProjectTypeId(type.getId())
                          .withProjectTypeName(type.getName())
                          .withDescription(description.getDescription())

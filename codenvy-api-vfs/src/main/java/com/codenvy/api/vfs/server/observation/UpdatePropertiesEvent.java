@@ -17,14 +17,14 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
 public class UpdatePropertiesEvent extends VirtualFileEvent {
-    public UpdatePropertiesEvent(VirtualFile virtualFile, VirtualFileSystemUser user) {
-        super(virtualFile, ChangeType.PROPERTIES_UPDATED, user);
+    public UpdatePropertiesEvent(String workspaceId, String path) {
+        super(workspaceId, path, ChangeType.PROPERTIES_UPDATED);
+    }
+
+    public UpdatePropertiesEvent() {
     }
 }

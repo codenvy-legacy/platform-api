@@ -17,9 +17,6 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-
 /**
  * @author andrew00x
  */
@@ -49,25 +46,40 @@ public abstract class VirtualFileEvent {
         }
     }
 
-    private final VirtualFile           virtualFile;
-    private final ChangeType            type;
-    private final VirtualFileSystemUser user;
+    private String     workspaceId;
+    private String     path;
+    private ChangeType type;
 
-    protected VirtualFileEvent(VirtualFile virtualFile, ChangeType type, VirtualFileSystemUser user) {
-        this.virtualFile = virtualFile;
+    protected VirtualFileEvent(String workspaceId, String path, ChangeType type) {
+        this.workspaceId = workspaceId;
+        this.path = path;
         this.type = type;
-        this.user = user;
     }
 
-    public VirtualFile getVirtualFile() {
-        return virtualFile;
+    protected VirtualFileEvent() {
+    }
+
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public String getPath() {
+        return path;
     }
 
     public ChangeType getType() {
         return type;
     }
 
-    public VirtualFileSystemUser getUser() {
-        return user;
+    public void setWorkspaceId(String workspaceId) {
+        this.workspaceId = workspaceId;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public void setType(ChangeType type) {
+        this.type = type;
     }
 }

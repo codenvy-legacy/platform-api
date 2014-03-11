@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class RemoteRunner {
     private final String     baseUrl;
     private final String     description;
@@ -83,7 +83,7 @@ public class RemoteRunner {
     public RunnerState getRemoteRunnerState() throws IOException, RemoteException, RunnerException {
         final Link stateLink = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_STATE);
         if (stateLink == null) {
-            throw new RunnerException("Unable get URL for getting state of a remote runner");
+            throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'", name, baseUrl));
         }
         return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
     }

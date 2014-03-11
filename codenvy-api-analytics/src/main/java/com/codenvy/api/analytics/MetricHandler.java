@@ -21,9 +21,10 @@ package com.codenvy.api.analytics;
 import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.exception.MetricNotFoundException;
+import com.codenvy.api.analytics.dto.MetricValueListDTO;
 
 import javax.ws.rs.core.UriInfo;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -37,9 +38,17 @@ import java.util.Map;
 public interface MetricHandler {
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> metricContext,
-                                   UriInfo uriInfo) throws MetricNotFoundException;
+                                   UriInfo uriInfo) throws Exception;
 
-    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws MetricNotFoundException;
+    public MetricValueDTO getPublicValue(String metricName,
+                                         Map<String, String> metricContext,
+                                         UriInfo uriInfo) throws Exception;
 
-    public MetricInfoListDTO getAllInfo(UriInfo uriInfo);
+    public MetricValueListDTO getUserValues(List<String> metricNames,
+                                            Map<String, String> metricContext,
+                                            UriInfo uriInfo) throws Exception;
+
+    public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) throws Exception;
+
+    public MetricInfoListDTO getAllInfo(UriInfo uriInfo) throws Exception;
 }

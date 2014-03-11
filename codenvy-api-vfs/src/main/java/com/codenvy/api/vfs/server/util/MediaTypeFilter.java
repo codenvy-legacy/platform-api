@@ -15,8 +15,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server;
+package com.codenvy.api.vfs.server.util;
 
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import java.util.Collection;

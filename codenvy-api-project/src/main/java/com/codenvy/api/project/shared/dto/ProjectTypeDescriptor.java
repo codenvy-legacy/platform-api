@@ -20,6 +20,7 @@ package com.codenvy.api.project.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Data transfer object (DTO) for com.codenvy.api.project.shared.ProjectTypeDescription.
@@ -55,4 +56,10 @@ public interface ProjectTypeDescriptor {
     void setTemplates(List<ProjectTemplateDescriptor> templates);
 
     ProjectTypeDescriptor withTemplates(List<ProjectTemplateDescriptor> templates);
+
+    Map<String, String> getIconRegistry();
+
+    void setIconRegistry(Map<String, String> iconRegistry);
+
+    ProjectTypeDescriptor withIconRegistry(Map<String, String> iconRegistry);
 }

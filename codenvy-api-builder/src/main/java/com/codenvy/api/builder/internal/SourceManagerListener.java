@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,27 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.server;
-
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.ProjectTemplateDescription;
-import com.codenvy.api.project.shared.ProjectType;
-
-import java.util.List;
-import java.util.Map;
+package com.codenvy.api.builder.internal;
 
 /**
- * ProjectTypeExtension
- *
- * @author gazarenkov
+ * @author andrew00x
  */
-public interface ProjectTypeExtension {
-    ProjectType getProjectType();
-
-    List<Attribute> getPredefinedAttributes();
-
-    List<ProjectTemplateDescription> getTemplates();
-
-    Map<String, String> getIconRegistry();
-
+public interface SourceManagerListener {
+    void afterDownload(SourceManagerEvent event);
 }

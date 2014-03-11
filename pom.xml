@@ -27,7 +27,7 @@
     </parent>
     <groupId>com.codenvy.platform-api</groupId>
     <artifactId>codenvy-platform-api-parent</artifactId>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>0.10.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Codenvy Platform API :: Parent</name>
     <modules>
@@ -53,7 +53,7 @@
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
     </scm>
     <properties>
-        <codenvy.commons.version>0.15.0</codenvy.commons.version>
+        <codenvy.commons.version>0.16.0-SNAPSHOT</codenvy.commons.version>
         <commons-codec.version>1.6</commons-codec.version>
         <commons-fileupload.version>1.2.1</commons-fileupload.version>
         <commons-io.version>2.1</commons-io.version>
@@ -70,7 +70,7 @@
         <javax.ws.rs.version>1.0</javax.ws.rs.version>
         <jna.version>3.5.2</jna.version>
         <junit.version>4.10</junit.version>
-        <logback.version>1.0.13</logback.version>
+        <logback.version>1.1.1</logback.version>
         <lucene.version>2.9.4</lucene.version>
         <maven.model.version>3.0.5</maven.model.version>
         <maven.plugin-annotations.version>3.2</maven.plugin-annotations.version>
@@ -82,7 +82,7 @@
         <org.exoplatform.core.version>2.4.9-GA</org.exoplatform.core.version>
         <reflections.version>0.9.9-RC1</reflections.version>
         <servlet-api.version>3.0.1</servlet-api.version>
-        <slf4j.version>1.7.5</slf4j.version>
+        <slf4j.version>1.7.6</slf4j.version>
         <testng.version>6.8</testng.version>
         <version.animal-sniffer.enforcer-rule>1.8</version.animal-sniffer.enforcer-rule>
         <version.enforcer.plugin>1.2</version.enforcer.plugin>

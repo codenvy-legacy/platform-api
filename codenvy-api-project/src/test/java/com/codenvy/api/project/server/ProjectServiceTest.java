@@ -26,9 +26,11 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.vfs.server.ContentStreamWriter;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
@@ -122,6 +124,7 @@ public class ProjectServiceTest {
         dependencies.addComponent(SearcherProvider.class, searcherProvider);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
+        providers.addMessageBodyWriter(new ContentStreamWriter());
         providers.addExceptionMapper(new FileSystemLevelExceptionMapper());
         providers.addExceptionMapper(new ProjectStructureConstraintExceptionMapper());
         RequestHandler requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
@@ -149,6 +152,47 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getProjectTypeId(), "my_project_type");
         Assert.assertEquals(projectReference.getProjectTypeName(), "my project type");
         Assert.assertEquals(projectReference.getVisibility(), "public");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGetModules() throws Exception {
+        pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {
+            @Override
+            public List<ProjectType> getProjectTypes() {
+                return Arrays.asList(new ProjectType("my_module_type", "my module type"));
+            }
+
+            @Override
+            public List<AttributeDescription> getAttributeDescriptions() {
+                return Collections.emptyList();
+            }
+        });
+
+        Project myProject = pm.getProject("my_ws", "my_project");
+        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type"));
+        pd.setDescription("my test module");
+        pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
+        myProject.createModule("my_module", pd);
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/modules/my_project",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        List<ProjectDescriptor> result = (List<ProjectDescriptor>)response.getEntity();
+        Assert.assertNotNull(result);
+
+        Assert.assertEquals(result.size(), 1);
+        ProjectDescriptor projectDescriptor_1 = result.get(0);
+        Assert.assertEquals(projectDescriptor_1.getDescription(), "my test module");
+        Assert.assertEquals(projectDescriptor_1.getProjectTypeId(), "my_module_type");
+        Assert.assertEquals(projectDescriptor_1.getProjectTypeName(), "my module type");
+        Assert.assertEquals(projectDescriptor_1.getVisibility(), "public");
+        Assert.assertTrue(projectDescriptor_1.getModificationDate() > 0);
+        Map<String, List<String>> attributes = projectDescriptor_1.getAttributes();
+        Assert.assertNotNull(attributes);
+        Assert.assertEquals(attributes.size(), 1);
+        Assert.assertEquals(attributes.get("my_module_attribute"), Arrays.asList("attribute value 1"));
     }
 
     @Test
@@ -576,7 +620,11 @@ public class ProjectServiceTest {
             @Override
             public void importSources(FolderEntry baseFolder, String location) throws IOException {
                 // Don't really use location in this test.
-                baseFolder.unzip(zip);
+                try {
+                    baseFolder.getVirtualFile().unzip(zip, true);
+                } catch (VirtualFileSystemException e) {
+                    throw new IOException(e.getMessage(), e);
+                }
                 folderHolder.set(baseFolder);
             }
         });
@@ -698,8 +746,8 @@ public class ProjectServiceTest {
         Assert.assertEquals(tree.getNode().getName(), "a");
         List<TreeElement> children = tree.getChildren();
         Assert.assertNotNull(children);
-        Assert.assertEquals(children.size(), 2);
-        Set<String> names = new LinkedHashSet<>(2);
+        Assert.assertEquals(children.size(), 3);
+        Set<String> names = new LinkedHashSet<>(3);
         for (TreeElement subTree : children) {
             names.add(subTree.getNode().getName());
             Assert.assertTrue(subTree.getChildren().isEmpty()); // default depth is 1

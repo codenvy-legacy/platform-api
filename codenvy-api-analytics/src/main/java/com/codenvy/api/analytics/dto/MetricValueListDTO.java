@@ -3,7 +3,7 @@
  * CODENVY CONFIDENTIAL
  * ________________
  *
- * [2012] - [2013] Codenvy, S.A.
+ * [2012] - [2014] Codenvy, S.A.
  * All Rights Reserved.
  * NOTICE: All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
@@ -15,12 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
+package com.codenvy.api.analytics.dto;
 
-package com.codenvy.api.analytics.exception;
+import java.util.List;
 
-/** To indicate that metric is not found @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a> */
-public class MetricNotFoundException extends Exception {
-    public MetricNotFoundException(String message) {
-        super(message);
-    }
+import com.codenvy.dto.shared.DTO;
+
+/** @author Alexander Reshetnyak */
+@DTO
+public interface MetricValueListDTO {
+    List<MetricValueDTO> getMetrics();
+
+    void setMetrics(List<MetricValueDTO> metricValueDTOs);
 }

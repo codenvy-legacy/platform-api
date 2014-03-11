@@ -657,7 +657,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (!virtualFile.isFolder()) {
             throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
-        return virtualFile.zip(VirtualFileFilter.ALL);
+        return exportZip(virtualFile);
+    }
+
+    // For usage from Project API.
+    public static ContentStream exportZip(VirtualFile folder) throws IOException, VirtualFileSystemException {
+        return folder.zip(VirtualFileFilter.ALL);
     }
 
     @Path("export/{folderId}")
@@ -667,6 +672,11 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (!virtualFile.isFolder()) {
             throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
+        return exportZip(virtualFile, in);
+    }
+
+    // For usage from Project API.
+    public static Response exportZip(VirtualFile folder, InputStream in) throws IOException, VirtualFileSystemException {
         final List<Pair<String, String>> remote = new LinkedList<>();
         final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         String line;
@@ -683,7 +693,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             }
         }
         if (remote.isEmpty()) {
-            final ContentStream zip = virtualFile.zip(VirtualFileFilter.ALL);
+            final ContentStream zip = folder.zip(VirtualFileFilter.ALL);
             return Response
                     .ok(zip.getStream(), zip.getMimeType())
                     .lastModified(zip.getLastModificationDate())
@@ -691,7 +701,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                     .header("Content-Disposition", "attachment; filename=\"" + zip.getFileName() + '"')
                     .build();
         }
-        final LazyIterator<Pair<String, String>> md5Sums = virtualFile.countMd5Sums();
+        final LazyIterator<Pair<String, String>> md5Sums = folder.countMd5Sums();
         final int size = md5Sums.size();
         final List<Pair<String, String>> local =
                 size > 0 ? new ArrayList<Pair<String, String>>(size) : new ArrayList<Pair<String, String>>();
@@ -717,13 +727,13 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             if (r == 0) {
                 // remote and local file exist, compare md5sum
                 if (!remoteItem.first.equals(localItem.first)) {
-                    diff.add(Pair.of(remoteItem.second, virtualFile.getVirtualFilePath().newPath(localItem.second)));
+                    diff.add(Pair.of(remoteItem.second, folder.getVirtualFilePath().newPath(localItem.second)));
                 }
                 remoteIndex++;
                 localIndex++;
             } else if (r > 0) {
                 // new file
-                diff.add(Pair.of((String)null, virtualFile.getVirtualFilePath().newPath(localItem.second)));
+                diff.add(Pair.of((String)null, folder.getVirtualFilePath().newPath(localItem.second)));
                 localIndex++;
             } else {
                 // deleted file
@@ -735,14 +745,14 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             diff.add(Pair.of(remote.get(remoteIndex++).second, (com.codenvy.api.vfs.server.Path)null));
         }
         while (localIndex < local.size()) {
-            diff.add(Pair.of((String)null, virtualFile.getVirtualFilePath().newPath(local.get(localIndex++).second)));
+            diff.add(Pair.of((String)null, folder.getVirtualFilePath().newPath(local.get(localIndex++).second)));
         }
 
         if (diff.isEmpty()) {
             return Response.status(204).build();
         }
 
-        final ContentStream zip = virtualFile.zip(new VirtualFileFilter() {
+        final ContentStream zip = folder.zip(new VirtualFileFilter() {
             @Override
             public boolean accept(VirtualFile file) throws VirtualFileSystemException {
                 for (Pair<String, com.codenvy.api.vfs.server.Path> pair : diff) {
@@ -774,6 +784,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         return  responseBuilder.build();
     }
 
+
     @Path("import/{parentId}")
     @Override
     public void importZip(@PathParam("parentId") String parentId,
@@ -782,11 +793,16 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throws VirtualFileSystemException, IOException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
         final boolean isProjectBefore = parent.isProject();
-        parent.unzip(in, overwrite);
+        importZip(parent, in, overwrite);
         final boolean isProjectAfter = parent.isProject();
         if (!isProjectBefore && isProjectAfter) {
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", parent.getName(), parent.getPropertyValue("vfs:projectType"));
         }
+    }
+
+    // For usage from Project API.
+    public static void importZip(VirtualFile parent, InputStream in, boolean overwrite) throws VirtualFileSystemException, IOException {
+        parent.unzip(in, overwrite);
     }
 
     @Path("downloadfile/{id}")

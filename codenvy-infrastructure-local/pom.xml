@@ -15,12 +15,12 @@
         </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-account</artifactId>
+            <artifactId>codenvy-api-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-core</artifactId>
+            <artifactId>codenvy-api-organization</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -15,8 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-
-package com.codenvy.api.workspace.shared.dto;
+package com.codenvy.api.organization.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
@@ -27,40 +26,36 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface Workspace {
-    String getId();
+public interface Organization {
+    String getOwner();
 
-    void setId(String id);
+    void setOwner(String owner);
 
-    Workspace withId(String id);
-
-    String getName();
-
-    void setName(String name);
-
-    Workspace withName(String name);
-
-    void setTemporary(boolean temporary);
-
-    boolean isTemporary();
-
-    Workspace withTemporary(boolean temporary);
-
-    String getOrganizationId();
-
-    void setOrganizationId(String accountId);
-
-    Workspace withOrganizationId(String accountId);
+    Organization withOwner(String owner);
 
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);
 
-    Workspace withAttributes(List<Attribute> attributes);
+    Organization withAttributes(List<Attribute> attributes);
+
+    String getName();
+
+    void setName(String name);
+
+    Organization withName(String name);
+
+    String getId();
+
+    void setId(String id);
+
+    Organization withId(String id);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    Workspace withLinks(List<Link> links);
+    Organization withLinks(List<Link> links);
+
+
 }

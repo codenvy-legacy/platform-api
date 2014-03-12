@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
+import com.codenvy.api.factory.dto.Factory;
 
 import java.util.Set;
 
@@ -33,7 +33,7 @@ public interface FactoryStore {
      * @return - if of stored factory
      * @throws FactoryUrlException
      */
-    public String saveFactory(AdvancedFactoryUrl factoryUrl, Set<FactoryImage> images) throws FactoryUrlException;
+    public String saveFactory(Factory factoryUrl, Set<FactoryImage> images) throws FactoryUrlException;
 
     /**
      * Remove factory by id
@@ -52,7 +52,7 @@ public interface FactoryStore {
      * @return - {@code AdvancedFactoryUrl} if factory exist and found, null otherwise
      * @throws FactoryUrlException
      */
-    public AdvancedFactoryUrl getFactory(String id) throws FactoryUrlException;
+    public Factory getFactory(String id) throws FactoryUrlException;
 
     /**
      * Retrieve factory images by factory id

@@ -381,8 +381,8 @@ public class FactoryBuilder {
             if (restriction.getValiduntil() > 0) {
                 builder.append("&restriction.validuntil=").append(restriction.getValiduntil());
             }
-            if (restriction.getValidsessioncount() > 0) {
-                builder.append("&restriction.validsessioncount=").append(restriction.getValidsessioncount());
+            if (restriction.getMaxsessioncount() > 0) {
+                builder.append("&restriction.maxsessioncount=").append(restriction.getMaxsessioncount());
             }
             if (restriction.getRefererhostname() != null) {
                 builder.append("&restriction.refererhostname=").append(restriction.getRefererhostname());
@@ -462,7 +462,8 @@ public class FactoryBuilder {
                         if (param == null) {
                             if ("variables".equals(fullName)) {
                                 param = DtoFactory.getInstance()
-                                                  .createListDtoFromJson(values.iterator().next(), Variable.class);
+                                                  .createListDtoFromJson(URLDecoder.decode(values.iterator().next(), "UTF-8"),
+                                                                         Variable.class);
                             } else {
                                 // should never happen
                                 throw new FactoryUrlException("Unknown parameter '" + fullName + "'.");

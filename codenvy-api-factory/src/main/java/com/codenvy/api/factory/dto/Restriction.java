@@ -66,10 +66,10 @@ public interface Restriction {
     /**
      * @return It is a number that indicates the maximum number of sessions this factory is allowed to have.
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validsessioncount", trackedOnly = true)
-    long getValidsessioncount();
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "maxsessioncount", trackedOnly = true)
+    long getMaxsessioncount();
 
-    void setValidsessioncount(long validsessioncount);
+    void setMaxsessioncount(long maxsessioncount);
 
-    Restriction withValidsessioncount(long validsessioncount);
+    Restriction withMaxsessioncount(long maxsessioncount);
 }

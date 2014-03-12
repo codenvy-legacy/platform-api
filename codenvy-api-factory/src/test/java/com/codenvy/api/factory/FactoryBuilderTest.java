@@ -154,7 +154,7 @@ public class FactoryBuilderTest {
 
         actual.withRestriction(
                 DtoFactory.getInstance().createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
-                          .withValiduntil(123456789).withValidsince(12345678).withValidsessioncount(123).withRestrictbypassword(true));
+                          .withValiduntil(123456789).withValidsince(12345678).withMaxsessioncount(123).withRestrictbypassword(true));
 
         factoryBuilder.checkValid(actual, ENCODED);
     }
@@ -180,7 +180,7 @@ public class FactoryBuilderTest {
 
         actual.withRestriction(
                 DtoFactory.getInstance().createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
-                          .withValiduntil(123456789).withValidsince(12345678).withValidsessioncount(123).withRestrictbypassword(true));
+                          .withValiduntil(123456789).withValidsince(12345678).withMaxsessioncount(123).withRestrictbypassword(true));
 
 
         factoryBuilder.checkValid(actual, NONENCODED);
@@ -206,7 +206,7 @@ public class FactoryBuilderTest {
                         "codenvy.com"), "setRestriction", Restriction.class},
                 {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withRestrictbypassword(true), "setRestriction",
                  Restriction.class},
-                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withValidsessioncount(123), "setRestriction",
+                {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withMaxsessioncount(123), "setRestriction",
                  Restriction.class},
                 {"1.2", DtoFactory.getInstance().createDto(Restriction.class).withValidsince(123456789), "setRestriction",
                  Restriction.class},
@@ -322,45 +322,63 @@ public class FactoryBuilderTest {
         }
     }
 
-    @Test(enabled = false)
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2() throws FactoryUrlException, UnsupportedEncodingException {
+    @Test
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0() throws FactoryUrlException, UnsupportedEncodingException {
         StringBuilder sb = new StringBuilder();
-        sb.append("v=").append("1.2").append("&");
+        sb.append("v=").append("1.0").append("&");
         sb.append("vcs=").append("git").append("&");
-        sb.append("vcsurl=").append(encode("https://github.com/codenvy/commons.git")).append("&");
+        sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
         sb.append("commitid=").append("7896464674879").append("&");
-        //sb.append("idcommit=").append("7896464674879").append("&");
-        sb.append("projectattributes.ptype=").append("type").append("&");
-        sb.append("projectattributes.pname=").append("name").append("&");
-        //sb.append("ptype=").append("type").append("&");
-        //sb.append("pname=").append("name").append("&");
+        sb.append("ptype=").append("ptype").append("&");
+        sb.append("pname=").append("pname").append("&");
         sb.append("action=").append("openReadme").append("&");
         sb.append("wname=").append("codenvy").append("&");
-        //sb.append("style=").append("Black").append("&");
-        //sb.append("description=").append("desc").append("&");
-        sb.append("contactmail=").append(encode("developer@codenvy.com")).append("&");
-        sb.append("author=").append("codenvy").append("&");
-        sb.append("openfile=").append(encode("/src/test.java")).append("&");
-        sb.append("orgid=").append("orgid").append("&");
-        sb.append("affiliateid=").append("affiliateid").append("&");
-        sb.append("vcsinfo=").append("true").append("&");
-        //sb.append("vcsinfo=").append("false").append("&");
-        sb.append("vcsbranch=").append("release").append("&");
-        //sb.append("userid=").append("hudfsauidfais").append("&");
-        //sb.append("created=").append("12145646").append("&");
-        //sb.append("validsince=").append("1222222").append("&");
-        //sb.append("validuntil=").append("1222223").append("&");
-        //sb.append("welcome=").append("true").append("&");
-        //sb.append("image=").append(encode("http://codenvy/icon.ico")).append("&");
-        sb.append("restriction.refererhostname=").append("stackoverflow.com").append("&");
-        sb.append("restriction.validsince=").append("1654879849").append("&");
-        sb.append("restriction.validuntil=").append("5679841595").append("&");
-        //sb.append("restriction.restrictbypassword=").append("true").append("&");
-        sb.append("restriction.password=").append("password2323").append("&");
-        sb.append("restriction.validsessioncount=").append("3").append("&");
-        sb.append("git.configremoteoriginfetch=").append(encode("changes/41/1841/1")).append("&");
-        sb.append("git.configbranchmerge=").append(encode("refs/for/master")).append("&");
-        sb.append("git.configpushdefault=").append("upstream").append("&");
+
+        expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withCommitid("7896464674879")
+                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy");
+
+        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        assertEquals(newFactory, expected);
+    }
+
+    @Test
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0WithIdCommit() throws FactoryUrlException, UnsupportedEncodingException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("v=").append("1.0").append("&");
+        sb.append("vcs=").append("git").append("&");
+        sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
+        sb.append("idcommit=").append("7896464674879").append("&");
+        sb.append("ptype=").append("ptype").append("&");
+        sb.append("pname=").append("pname").append("&");
+        sb.append("action=").append("openReadme").append("&");
+        sb.append("wname=").append("codenvy").append("&");
+
+        expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withIdcommit("7896464674879")
+                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy");
+
+        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        assertEquals(newFactory, expected);
+    }
+
+    @Test
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_1() throws FactoryUrlException, UnsupportedEncodingException {
+
+        expected.setV("1.1");
+        expected.setVcs("git");
+        expected.setVcsurl("https://github.com/codenvy/commons.git");
+        expected.setCommitid("7896464674879");
+        expected.setAction("openReadme");
+        expected.setContactmail("developer@codenvy.com");
+        expected.setAuthor("codenvy");
+        expected.setOpenfile("/src/test.java");
+        expected.setOrgid("orgid");
+        expected.setAffiliateid("affiliateid");
+        expected.setVcsinfo(true);
+        expected.setVcsbranch("release");
+        expected.setValidsince(123456);
+        expected.setValiduntil(1234567);
+
+        ProjectAttributes attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname");
 
         Variable variable = DtoFactory.getInstance().createDto(Variable.class);
         Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class);
@@ -370,14 +388,98 @@ public class FactoryBuilderTest {
         variable.setFiles(Arrays.asList("file1.java, file2.java"));
         variable.setEntries(Arrays.asList(replacement));
 
-        sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]")).append("");
+        expected.setProjectattributes(attributes);
+        expected.setVariables(Arrays.asList(variable));
 
-        ((FactoryV1_1)expected.withV("1.2").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git")
-                              .withCommitid("7896464674879").withAction("openReadme")).withProjectattributes(
-                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname"));
+        StringBuilder sb = new StringBuilder();
+        sb.append("v=").append(expected.getV()).append("&");
+        sb.append("vcs=").append(expected.getVcs()).append("&");
+        sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
+        sb.append("commitid=").append(expected.getCommitid()).append("&");
+        sb.append("projectattributes.ptype=").append(expected.getProjectattributes().getPtype()).append("&");
+        sb.append("projectattributes.pname=").append(expected.getProjectattributes().getPname()).append("&");
+        sb.append("action=").append(expected.getAction()).append("&");
+        sb.append("contactmail=").append(expected.getContactmail()).append("&");
+        sb.append("author=").append(expected.getAuthor()).append("&");
+        sb.append("openfile=").append(expected.getOpenfile()).append("&");
+        sb.append("orgid=").append(expected.getOrgid()).append("&");
+        sb.append("affiliateid=").append(expected.getAffiliateid()).append("&");
+        sb.append("vcsinfo=").append(expected.getVcsinfo()).append("&");
+        sb.append("vcsbranch=").append(expected.getVcsbranch()).append("&");
+        sb.append("validsince=").append(expected.getValidsince()).append("&");
+        sb.append("validuntil=").append(expected.getValiduntil()).append("&");
+        sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]"));
 
         Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
-        //assertEquals(newFactory, expectedFactory);
+        assertEquals(newFactory, expected);
+    }
+
+    @Test
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2() throws FactoryUrlException, UnsupportedEncodingException {
+
+        expected.setV("1.2");
+        expected.setVcs("git");
+        expected.setVcsurl("https://github.com/codenvy/commons.git");
+        expected.setCommitid("7896464674879");
+        expected.setAction("openReadme");
+        expected.setContactmail("developer@codenvy.com");
+        expected.setAuthor("codenvy");
+        expected.setOpenfile("/src/test.java");
+        expected.setOrgid("orgid");
+        expected.setAffiliateid("affiliateid");
+        expected.setVcsinfo(true);
+        expected.setVcsbranch("release");
+
+        Restriction restriction = DtoFactory.getInstance().createDto(Restriction.class).withMaxsessioncount(3).withPassword("password2323")
+                                            .withValiduntil(5679841595l).withValidsince(1654879849)
+                                            .withRefererhostname("stackoverflow.com");
+
+        Git git =
+                DtoFactory.getInstance().createDto(Git.class).withConfigbranchmerge("refs/for/master").withConfigpushdefault("upstream")
+                          .withConfigremoteoriginfetch("changes/41/1841/1");
+
+        ProjectAttributes attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname");
+
+        Variable variable = DtoFactory.getInstance().createDto(Variable.class);
+        Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class);
+        replacement.setFind("find1");
+        replacement.setReplace("replace1");
+        replacement.setReplacemode("mode1");
+        variable.setFiles(Arrays.asList("file1.java, file2.java"));
+        variable.setEntries(Arrays.asList(replacement));
+
+        expected.setRestriction(restriction);
+        expected.setGit(git);
+        expected.setProjectattributes(attributes);
+        expected.setVariables(Arrays.asList(variable));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("v=").append(expected.getV()).append("&");
+        sb.append("vcs=").append(expected.getVcs()).append("&");
+        sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
+        sb.append("commitid=").append(expected.getCommitid()).append("&");
+        sb.append("projectattributes.ptype=").append(expected.getProjectattributes().getPtype()).append("&");
+        sb.append("projectattributes.pname=").append(expected.getProjectattributes().getPname()).append("&");
+        sb.append("action=").append(expected.getAction()).append("&");
+        sb.append("contactmail=").append(expected.getContactmail()).append("&");
+        sb.append("author=").append(expected.getAuthor()).append("&");
+        sb.append("openfile=").append(expected.getOpenfile()).append("&");
+        sb.append("orgid=").append(expected.getOrgid()).append("&");
+        sb.append("affiliateid=").append(expected.getAffiliateid()).append("&");
+        sb.append("vcsinfo=").append(expected.getVcsinfo()).append("&");
+        sb.append("vcsbranch=").append(expected.getVcsbranch()).append("&");
+        sb.append("restriction.refererhostname=").append(expected.getRestriction().getRefererhostname()).append("&");
+        sb.append("restriction.validsince=").append(expected.getRestriction().getValidsince()).append("&");
+        sb.append("restriction.validuntil=").append(expected.getRestriction().getValiduntil()).append("&");
+        sb.append("restriction.password=").append(expected.getRestriction().getPassword()).append("&");
+        sb.append("restriction.maxsessioncount=").append(expected.getRestriction().getMaxsessioncount()).append("&");
+        sb.append("git.configremoteoriginfetch=").append(expected.getGit().getConfigremoteoriginfetch()).append("&");
+        sb.append("git.configbranchmerge=").append(expected.getGit().getConfigbranchmerge()).append("&");
+        sb.append("git.configpushdefault=").append(expected.getGit().getConfigpushdefault()).append("&");
+        sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]"));
+
+        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        assertEquals(newFactory, expected);
     }
 
     @Test(enabled = false)

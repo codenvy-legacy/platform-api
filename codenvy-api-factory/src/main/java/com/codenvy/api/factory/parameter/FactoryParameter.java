@@ -52,6 +52,11 @@ public @interface FactoryParameter {
 
             throw new IllegalArgumentException("Unknown version " + v + ".");
         }
+
+        @Override
+        public String toString() {
+            return super.name().substring(1).replace('_', '.');
+        }
     }
 
     public FactoryFormat format() default FactoryFormat.BOTH;

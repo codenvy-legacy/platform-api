@@ -20,7 +20,6 @@ package com.codenvy.api.factory;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
-import com.codenvy.api.factory.dto.server.DtoServerImpls;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
@@ -37,11 +36,11 @@ import org.testng.annotations.*;
 
 import javax.ws.rs.core.MediaType;
 import java.io.File;
-import java.net.URLEncoder;
 import java.nio.file.*;
 import java.util.*;
 
 import static com.jayway.restassured.RestAssured.given;
+import static java.net.URLEncoder.encode;
 import static javax.ws.rs.core.Response.Status;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Matchers.any;
@@ -197,14 +196,17 @@ public class FactoryServiceTest {
         // given
 
         // when
-        Factory response = given().when().get(
-                SERVICE_PATH + "/nonencoded?v=1.1&vcs=git&vcsurl=" + "git@github.com:codenvy/cloud-ide.git").as(
-                DtoServerImpls.FactoryImpl.class);
+        Response response =
+                given().when().queryParam("v", "1.1").queryParam("vcs", "git").queryParam("vcsurl", "git@github.com:codenvy/cloud-ide.git")
+                        .queryParam("variables",
+                                    ("[" + DtoFactory.getInstance().toJson(DtoFactory.getInstance().createDto(Variable.class)) + "]")).get(
+                        SERVICE_PATH + "/nonencoded");
 
         // then
-        assertEquals(response.getV(), "1.1");
-        assertEquals(response.getVcs(), "git");
-        assertEquals(response.getVcsurl(), "git@github.com:codenvy/cloud-ide.git");
+        Factory factory = DtoFactory.getInstance().createDtoFromJson(response.asInputStream(), Factory.class);
+        assertEquals(DtoFactory.getInstance().createDto(Factory.class)
+                               .withVariables(Arrays.asList(DtoFactory.getInstance().createDto(Variable.class))).withV(
+                        "1.1").withVcs("git").withVcsurl("git@github.com:codenvy/cloud-ide.git"), factory);
     }
 
 
@@ -291,7 +293,7 @@ public class FactoryServiceTest {
                                      .contains(DtoFactory.getInstance().createDto(Link.class).withMethod("GET").withProduces("text/plain")
                                                          .withHref(getServerUrl(context) +
                                                                    "/rest/private/analytics/public-metric/factory_used?factory=" +
-                                                                   URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"))
+                                                                   encode(expectedCreateProject.getHref(), "UTF-8"))
                                                          .withRel("accepted")));
         assertTrue(responseFactoryUrl.getLinks()
                                      .contains(DtoFactory.getInstance().createDto(Link.class).withMethod("GET").withProduces("text/plain")
@@ -324,7 +326,7 @@ public class FactoryServiceTest {
         accepted.setMethod("GET");
         accepted.setProduces("text/plain");
         accepted.setHref(getServerUrl(context) + "/rest/private/analytics/public-metric/factory_used?factory=" +
-                         URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"));
+                         encode(expectedCreateProject.getHref(), "UTF-8"));
         accepted.setRel("accepted");
         expectedLinks.add(accepted);
 
@@ -517,7 +519,7 @@ public class FactoryServiceTest {
         Link accepted = DtoFactory.getInstance().createDto(Link.class);
         accepted.setProduces("text/plain");
         accepted.setHref(getServerUrl(context) + "/rest/analytics/public-metric/factory_used?factory=" +
-                         URLEncoder.encode(expectedCreateProject.getHref(), "UTF-8"));
+                         encode(expectedCreateProject.getHref(), "UTF-8"));
         accepted.setRel("accepted");
         expectedLinks.add(accepted);
 

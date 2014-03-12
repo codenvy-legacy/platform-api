@@ -27,8 +27,7 @@ import org.testng.annotations.*;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
+import java.net.*;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
@@ -323,8 +322,9 @@ public class FactoryBuilderTest {
     }
 
     @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0() throws FactoryUrlException, UnsupportedEncodingException {
-        StringBuilder sb = new StringBuilder();
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0()
+            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
+        StringBuilder sb = new StringBuilder("?");
         sb.append("v=").append("1.0").append("&");
         sb.append("vcs=").append("git").append("&");
         sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
@@ -337,13 +337,14 @@ public class FactoryBuilderTest {
         expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withCommitid("7896464674879")
                 .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy");
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 
     @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0WithIdCommit() throws FactoryUrlException, UnsupportedEncodingException {
-        StringBuilder sb = new StringBuilder();
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0WithIdCommit()
+            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
+        StringBuilder sb = new StringBuilder("?");
         sb.append("v=").append("1.0").append("&");
         sb.append("vcs=").append("git").append("&");
         sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
@@ -356,12 +357,13 @@ public class FactoryBuilderTest {
         expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withIdcommit("7896464674879")
                 .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy");
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 
     @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_1() throws FactoryUrlException, UnsupportedEncodingException {
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_1()
+            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
 
         expected.setV("1.1");
         expected.setVcs("git");
@@ -391,7 +393,7 @@ public class FactoryBuilderTest {
         expected.setProjectattributes(attributes);
         expected.setVariables(Arrays.asList(variable));
 
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder("?");
         sb.append("v=").append(expected.getV()).append("&");
         sb.append("vcs=").append(expected.getVcs()).append("&");
         sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
@@ -410,12 +412,13 @@ public class FactoryBuilderTest {
         sb.append("validuntil=").append(expected.getValiduntil()).append("&");
         sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]"));
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 
     @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2() throws FactoryUrlException, UnsupportedEncodingException {
+    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2()
+            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
 
         expected.setV("1.2");
         expected.setVcs("git");
@@ -453,7 +456,7 @@ public class FactoryBuilderTest {
         expected.setProjectattributes(attributes);
         expected.setVariables(Arrays.asList(variable));
 
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder("?");
         sb.append("v=").append(expected.getV()).append("&");
         sb.append("vcs=").append(expected.getVcs()).append("&");
         sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
@@ -478,7 +481,7 @@ public class FactoryBuilderTest {
         sb.append("git.configpushdefault=").append(expected.getGit().getConfigpushdefault()).append("&");
         sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]"));
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(sb.toString());
+        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 

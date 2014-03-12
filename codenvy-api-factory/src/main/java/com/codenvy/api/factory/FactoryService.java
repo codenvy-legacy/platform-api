@@ -35,6 +35,8 @@ import javax.servlet.http.Part;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
@@ -160,9 +162,15 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy, @Context UriInfo uriInfo)
             throws FactoryUrlException {
-        String queryString = uriInfo.getRequestUri().getQuery().replaceFirst("&?legacy=(true|false)&?", "");
+        String uri = uriInfo.getRequestUri().toString().replaceFirst("&?legacy=(true|false)&?", "");
 
-        Factory factory = factoryBuilder.buildNonEncoded(queryString);
+        Factory factory = null;
+        try {
+            factory = factoryBuilder.buildNonEncoded(new URI(uri));
+        } catch (URISyntaxException e) {
+            // should never happen
+            throw new FactoryUrlException("Passed in invalid query parameters.");
+        }
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
         }

@@ -30,7 +30,8 @@ import javax.inject.Singleton;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.*;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.util.*;
 
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation;
@@ -47,6 +48,21 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Version;
 @Singleton
 public class FactoryBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
+
+    private static final String INVALID_PARAMETER_MESSAGE                      =
+            "Passed in an invalid parameter.  You either provided a non-valid parameter, or that parameter is not accepted for this Factory version.  For more information, please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
+    private static final String INVALID_VERSION_MESSAGE                        =
+            "You have provided an inaccurate or deprecated Factory Version.  For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
+    private static final String MISSING_MANDATORY_MESSAGE                      =
+            "You are missing a mandatory parameter.  For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
+    private static final String PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE =
+            "You have provided a Tracked Factory parameter %s, and you do not have a valid orgId %s.  You could have provided the wrong code, your subscription has expired, or you do not have a valid subscription account.  Please contact info@codenvy.com with any questions.";
+    private static final String PARAMETRIZED_INVALID_PARAMETER_MESSAGE         =
+            "You have provided an invalid parameter %s for this version of Factory parameters %s.  For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
+    private static final String PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE    =
+            "You submitted a parameter that can only be submitted through an encoded Factory URL %s.  For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
+    private static final String PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE   =
+            "The parameter %s has a value submitted %s with a value that is unexpected. For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
     /**
      * List contains all possible implementation of factory legacy converters.
@@ -81,33 +97,25 @@ public class FactoryBuilder {
     /**
      * Build factory from query string and validate compatibility.
      *
-     * @param queryString
-     *         - query string from nonencoded factory.
+     * @param uri
+     *         - uri with factory parameters.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildNonEncoded(String queryString) throws FactoryUrlException {
-        if (queryString == null) {
-            throw new FactoryUrlException("Query string is invalid.");
+    public Factory buildNonEncoded(URI uri) throws FactoryUrlException {
+        if (uri == null) {
+            throw new FactoryUrlException("Passed in invalid query parameters.");
         }
-        Map<String, Set<String>> queryParams;
-        try {
-            // question character allow parse url correctly
-            queryParams = URLEncodedUtils.parse(new URI("?" + queryString));
-        } catch (URISyntaxException e) {
-            throw new FactoryUrlException("Query string is invalid.");
-        }
+        Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
 
         Factory factory = buildDtoObject(queryParams, "", Factory.class);
 
         // there is unsupported parameters in query
         if (!queryParams.isEmpty()) {
-            throw new FactoryUrlException("Unsupported parameters are found: " + queryParams.keySet().toString());
+            throw new FactoryUrlException(INVALID_PARAMETER_MESSAGE);
         }
 
         checkValid(factory, FactoryFormat.NONENCODED);
         return factory;
-
-
     }
 
 
@@ -161,14 +169,13 @@ public class FactoryBuilder {
      *         - is it encoded factory or not
      * @throws FactoryUrlException
      */
-    public void checkValid(Factory factory, FactoryFormat sourceFormat)
-            throws FactoryUrlException {
+    public void checkValid(Factory factory, FactoryFormat sourceFormat) throws FactoryUrlException {
         if (factory.getV() == null) {
-            throw new FactoryUrlException("Paramater 'v' is invalid.");
+            throw new FactoryUrlException(INVALID_VERSION_MESSAGE);
         }
 
         Version v = Version.fromString(factory.getV());
-        boolean tracked = factory.getOrgid() != null && !factory.getOrgid().isEmpty();
+        String orgid = factory.getOrgid() != null && !factory.getOrgid().isEmpty() ? factory.getOrgid() : null;
 
         Class usedFactoryVersion;
         switch (v) {
@@ -182,11 +189,11 @@ public class FactoryBuilder {
                 usedFactoryVersion = FactoryV1_2.class;
                 break;
             default:
-                throw new FactoryUrlException("Unknown factory version " + factory.getV());
+                throw new FactoryUrlException(INVALID_VERSION_MESSAGE);
         }
 
 
-        validateCompatibility(factory, Factory.class, usedFactoryVersion, v, sourceFormat, !tracked, "");
+        validateCompatibility(factory, Factory.class, usedFactoryVersion, v, sourceFormat, orgid, "");
 
     }
 
@@ -223,22 +230,22 @@ public class FactoryBuilder {
      *         - version of factory
      * @param sourceFormat
      *         - factory format
-     * @param checkTracked
-     *         - should method check tracked fields
+     * @param orgid
+     *         - orgid of a factory
      * @param parentName
      *         - parent parameter queryParameterName
      * @throws FactoryUrlException
      */
     private void validateCompatibility(Object object, Class methodsProvider, Class allowedMethodsProvider,
                                        Version version,
-                                       FactoryFormat sourceFormat, boolean checkTracked,
+                                       FactoryFormat sourceFormat, String orgid,
                                        String parentName) throws FactoryUrlException {
         // get all methods recursively
         for (Method method : methodsProvider.getMethods()) {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
             // is it factory parameter
             if (factoryParameter != null) {
-                String parameterName = factoryParameter.queryParameterName();
+                String fullName = (parentName.isEmpty() ? "" : (parentName + ".")) + factoryParameter.queryParameterName();
                 // check that field is set
                 Object parameterValue;
                 try {
@@ -246,8 +253,7 @@ public class FactoryBuilder {
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     // should never happen
                     LOG.error(e.getLocalizedMessage(), e);
-                    throw new FactoryUrlException(String.format("Can't validate '%s' parameter%s.", parameterName,
-                                                                parameterName.isEmpty() ? "" : (" of " + parentName)));
+                    throw new FactoryUrlException(INVALID_PARAMETER_MESSAGE);
                 }
 
                 // if value is null or empty collection or default value for primitives
@@ -256,42 +262,37 @@ public class FactoryBuilder {
                     if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
                         factoryParameter.deprecatedSince().compareTo(version) > 0 &&
                         factoryParameter.ignoredSince().compareTo(version) > 0) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " is mandatory.");
+                        throw new FactoryUrlException(MISSING_MANDATORY_MESSAGE);
                     }
                 } else if (!method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {
-                    throw new FactoryUrlException(
-                            "Parameter " + parameterName + " is unsupported for this version of factory.");
+                    throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                 } else {
                     // is parameter deprecated
                     if (factoryParameter.deprecatedSince().compareTo(version) <= 0) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " is deprecated.");
+                        throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                     }
 
                     if (factoryParameter.setByServer()) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " can't be set by user.");
+                        throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                     }
 
                     // check that field satisfies format rules
                     if (!FactoryFormat.BOTH.equals(factoryParameter.format()) &&
                         !factoryParameter.format().equals(sourceFormat)) {
-                        throw new FactoryUrlException(
-                                "Parameter " + parameterName + " is unsupported for this type of factory.");
+                        throw new FactoryUrlException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
                     }
 
                     // check tracked-only fields
-                    if (checkTracked && factoryParameter.trackedOnly()) {
-                        throw new FactoryUrlException("Parameter " + parameterName + " can't be used without 'orgid'.");
+                    if (orgid == null && factoryParameter.trackedOnly()) {
+                        throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName, orgid));
                     }
 
 
                     // use recursion if parameter is DTO object
                     if (parameterValue.getClass().isAnnotationPresent(DTO.class)) {
-
                         // validate inner objects such Git ot ProjectAttributes
-                        validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version,
-                                              sourceFormat,
-                                              checkTracked,
-                                              (parentName.isEmpty() ? "" : (parentName + ".")) + parameterName);
+                        validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
+                                              orgid, fullName);
                     }
 
                 }
@@ -445,28 +446,30 @@ public class FactoryBuilder {
             try {
                 if (factoryParameter != null && factoryParameter.format() != FactoryFormat.ENCODED) {
                     // define full queryParameterName of parameter to be able retrieving nested parameters
-                    String fullName =
-                            parentName.isEmpty() ? factoryParameter.queryParameterName()
-                                                 : parentName + "." + factoryParameter.queryParameterName();
+                    String fullName = (parentName.isEmpty() ? "" : parentName + ".") + factoryParameter.queryParameterName();
                     Class<?> returnClass = method.getReturnType();
 
                     //PrimitiveTypeProducer
-
                     Object param = null;
                     if (queryParams.containsKey(fullName)) {
                         Set<String> values;
                         if ((values = queryParams.remove(fullName)) == null || values.size() != 1) {
-                            throw new FactoryUrlException("Value of parameter '" + fullName + "' is illegal.");
+                            throw new FactoryUrlException(String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName,
+                                                                        null != values ? values.toString() : "null"));
                         }
                         param = ValueHelper.createValue(returnClass, values);
                         if (param == null) {
                             if ("variables".equals(fullName)) {
-                                param = DtoFactory.getInstance()
-                                                  .createListDtoFromJson(URLDecoder.decode(values.iterator().next(), "UTF-8"),
-                                                                         Variable.class);
+                                try {
+                                    param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
+                                } catch (Exception e) {
+                                    throw new FactoryUrlException(
+                                            String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
+                                }
                             } else {
                                 // should never happen
-                                throw new FactoryUrlException("Unknown parameter '" + fullName + "'.");
+                                throw new FactoryUrlException(
+                                        String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
                             }
                         }
                     } else if (returnClass.isAnnotationPresent(DTO.class)) {

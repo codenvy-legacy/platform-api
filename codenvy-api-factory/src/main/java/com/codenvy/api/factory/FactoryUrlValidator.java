@@ -17,10 +17,9 @@
  */
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.dto.AdvancedFactoryUrl;
-import com.codenvy.api.factory.dto.SimpleFactoryUrl;
+import com.codenvy.api.factory.dto.Factory;
 
-import java.net.URL;
+import java.net.URI;
 
 /**
  * Interface for different validations of factory urls
@@ -38,25 +37,15 @@ public interface FactoryUrlValidator {
      *         - factory url to validate
      * @throws FactoryUrlException
      */
-    void validateUrl(URL factoryUrl) throws FactoryUrlException;
+    void validateUrl(URI factoryUrl) throws FactoryUrlException;
 
     /**
      * Validates factory url object. Implementation should throw
      * {@link com.codenvy.api.factory.FactoryUrlException} if factory url object is invalid.
      *
-     * @param factoryUrl
-     *         - factory url to validate
+     * @param factory
+     *         - factory object to validate
      * @throws FactoryUrlException
      */
-    void validateUrl(SimpleFactoryUrl factoryUrl) throws FactoryUrlException;
-
-    /**
-     * Validates factory url object. Implementation should throw
-     * {@link com.codenvy.api.factory.FactoryUrlException} if factory url is invalid.
-     *
-     * @param factoryUrl
-     *         - factory url to validate
-     * @throws FactoryUrlException
-     */
-    void validateUrl(AdvancedFactoryUrl factoryUrl) throws FactoryUrlException;
+    void validateObject(Factory factory, boolean encoded) throws FactoryUrlException;
 }

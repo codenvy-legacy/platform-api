@@ -19,35 +19,30 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.everrest.core.impl.ContainerResponse;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class UpdateTest extends MemoryFileSystemTest {
     private String fileId;
-    private String folderId;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile updateTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile updateTestFolder = mountPoint.getRoot().createFolder(name);
         VirtualFile file =
-                updateTestProject.createFile("UpdateTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+                updateTestFolder.createFile("UpdateTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
-        VirtualFile folder = updateTestProject.createFolder("UpdateTest_FOLDER");
-        folderId = folder.getId();
     }
 
     public void testUpdatePropertiesFile() throws Exception {
@@ -99,25 +94,6 @@ public class UpdateTest extends MemoryFileSystemTest {
         assertEquals(403, response.getStatus());
         file = mountPoint.getVirtualFileById(fileId);
         assertEquals(null, file.getPropertyValue("MyProperty"));
-    }
-
-    public void testUpdatePropertiesAndChangeFolderType() throws Exception {
-        VirtualFile folder = mountPoint.getVirtualFileById(folderId);
-        assertFalse(folder.isProject());
-        String properties = "[{\"name\":\"vfs:mimeType\", \"value\":[\"text/vnd.ideproject+directory\"]}]";
-        doUpdate(folderId, properties);
-        folder = mountPoint.getVirtualFileById(folderId);
-        assertTrue("Regular folder must be converted to project. ", folder.isProject());
-    }
-
-    public void testUpdatePropertiesAndChangeFolderTypeBack() throws Exception {
-        VirtualFile folder = mountPoint.getVirtualFileById(folderId);
-        folder.updateProperties(Arrays.<Property>asList(createProperty("vfs:mimeType", "text/vnd.ideproject+directory")), null);
-        assertTrue(folder.isProject());
-        String properties = "[{\"name\":\"vfs:mimeType\", \"value\":[\"text/directory\"]}]";
-        doUpdate(folderId, properties);
-        folder = mountPoint.getVirtualFileById(folderId);
-        assertFalse("Project must be converted to regular folder . ", folder.isProject());
     }
 
     public void doUpdate(String id, String rawData) throws Exception {

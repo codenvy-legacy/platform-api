@@ -19,12 +19,12 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import junit.framework.TestCase;
 
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.URLHandlerFactorySetup;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemApplication;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.shared.ItemType;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.File;
@@ -32,7 +32,6 @@ import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.ItemList;
 import com.codenvy.api.vfs.shared.dto.Link;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
@@ -70,12 +69,10 @@ import java.util.Set;
 
 /** @author andrew00x */
 public abstract class MemoryFileSystemTest extends TestCase {
-    protected static EventListenerList eventListenerList;
-
     protected static VirtualFileSystemRegistry virtualFileSystemRegistry = new VirtualFileSystemRegistry();
 
     static {
-        URLHandlerFactorySetup.setup(virtualFileSystemRegistry, eventListenerList);
+        URLHandlerFactorySetup.setup(virtualFileSystemRegistry);
     }
 
     protected MemoryFileSystemProvider fileSystemProvider;
@@ -95,16 +92,11 @@ public abstract class MemoryFileSystemTest extends TestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        System.setProperty("org.exoplatform.mimetypes", "conf/mimetypes.properties");
-
-        eventListenerList = new EventListenerList();
-
-        fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID);
+        fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID, new EventService());
         virtualFileSystemRegistry.registerProvider(MY_WORKSPACE_ID, fileSystemProvider);
         mountPoint = (MemoryMountPoint)fileSystemProvider.getMountPoint(true);
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         dependencies.addComponent(VirtualFileSystemRegistry.class, virtualFileSystemRegistry);
-        dependencies.addComponent(EventListenerList.class, eventListenerList);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
         RequestHandler requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
@@ -373,18 +365,6 @@ public abstract class MemoryFileSystemTest extends TestCase {
             assertEquals(UriBuilder.fromPath(SERVICE_URI).path("uploadfile").path(item.getId()).build().toString(),
                          link.getHref());
 
-            link = links.get(Link.REL_CREATE_PROJECT);
-            if (item instanceof Project) {
-                assertNull("'" + Link.REL_CREATE_PROJECT + "' link not allowed for project. ", link);
-            } else {
-                assertNotNull("'" + Link.REL_CREATE_PROJECT + "' link not found. ", link);
-                assertEquals(MediaType.APPLICATION_JSON, link.getType());
-                assertEquals(Link.REL_CREATE_PROJECT, link.getRel());
-                assertEquals(
-                        UriBuilder.fromPath(SERVICE_URI).path("project").path(item.getId()).queryParam("name", "[name]")
-                                  .queryParam("type", "[type]").build().toString(), link.getHref());
-            }
-
             link = links.get(Link.REL_EXPORT);
             assertNotNull("'" + Link.REL_EXPORT + "' link not found. ", link);
             assertEquals("application/zip", link.getType());
@@ -459,13 +439,6 @@ public abstract class MemoryFileSystemTest extends TestCase {
         assertEquals(Link.REL_CREATE_FOLDER, template.getRel());
         assertEquals(UriBuilder.fromPath(SERVICE_URI).path("folder").path("[parentId]").queryParam("name", "[name]")
                                .build().toString(), template.getHref());
-
-        template = templates.get(Link.REL_CREATE_PROJECT);
-        assertNotNull("'" + Link.REL_CREATE_PROJECT + "' template not found. ", template);
-        assertEquals(MediaType.APPLICATION_JSON, template.getType());
-        assertEquals(Link.REL_CREATE_PROJECT, template.getRel());
-        assertEquals(UriBuilder.fromPath(SERVICE_URI).path("project").path("[parentId]").queryParam("name", "[name]")
-                               .queryParam("type", "[type]").build().toString(), template.getHref());
 
         template = templates.get(Link.REL_LOCK);
         assertNotNull("'" + Link.REL_LOCK + "' template not found. ", template);

@@ -17,14 +17,11 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-
 /**
- * Handler for errors occurred when process events. Implementation of this interface may be passed to
- * EventListenerList. Some implementations may re-throw received error.
+ * Handler for errors occurred when process events.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface ErrorHandler {
-    void onError(ChangeEvent event, Throwable error) throws VirtualFileSystemException;
+    void onError(VirtualFileEvent event, Throwable error);
 }

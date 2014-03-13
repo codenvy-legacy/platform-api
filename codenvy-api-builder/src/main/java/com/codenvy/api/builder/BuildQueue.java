@@ -60,6 +60,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Accepts all build request and redirects them to the slave-builders. If there is no any available slave-builder at the moment it stores
@@ -74,6 +75,8 @@ public class BuildQueue {
     private static final Logger LOG = LoggerFactory.getLogger(BuildQueue.class);
 
     private static final long CHECK_AVAILABLE_BUILDER_DELAY = 2000;
+
+    private static final AtomicLong sequence = new AtomicLong(1);
 
     private final BuilderSelectionStrategy                   builderSelector;
     private final ExecutorService                            executor;
@@ -261,10 +264,10 @@ public class BuildQueue {
             }
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final BuildQueueTask task = new BuildQueueTask(request, future);
-        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace,
-                                                                                                                task.getId()).toString());
-        tasks.put(task.getId(), task);
+        final Long id = sequence.getAndIncrement();
+        request.setId(id);
+        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
+        tasks.put(id, task);
         purgeExpiredTasks();
         executor.execute(future);
         return task;
@@ -310,10 +313,10 @@ public class BuildQueue {
             }
         };
         final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final BuildQueueTask task = new BuildQueueTask(request, future);
-        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(BuilderService.class, "webhook").build(workspace,
-                                                                                                                task.getId()).toString());
-        tasks.put(task.getId(), task);
+        final Long id = sequence.getAndIncrement();
+        request.setId(id);
+        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
+        tasks.put(id, task);
         purgeExpiredTasks();
         executor.execute(future);
         return task;

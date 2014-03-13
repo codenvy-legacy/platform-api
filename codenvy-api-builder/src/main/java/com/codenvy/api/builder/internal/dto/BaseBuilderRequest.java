@@ -25,10 +25,15 @@ import java.util.Map;
 /**
  * Base request.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface BaseBuilderRequest {
+    long getId();
+
+    void setId(long id);
+
+    BaseBuilderRequest withId(long id);
 
     /**
      * Location of source code for build. It is required to have {@link com.codenvy.api.core.util.DownloadPlugin} which supports such type
@@ -95,13 +100,6 @@ public interface BaseBuilderRequest {
     BaseBuilderRequest withProject(String project);
 
     void setProject(String project);
-
-    /** URL that will be notified when build is done: successfully, failed or cancelled. */
-    String getWebHookUrl();
-
-    BaseBuilderRequest withWebHookUrl(String url);
-
-    void setWebHookUrl(String url);
 
     boolean isIncludeDependencies();
 

@@ -31,7 +31,6 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -39,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class ChildrenTest extends MemoryFileSystemTest {
     private String folderId;
 
@@ -47,18 +46,18 @@ public class ChildrenTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile parentProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile parentFolder = mountPoint.getRoot().createFolder(name);
 
-        VirtualFile folder = parentProject.createFolder("ChildrenTest_FOLDER");
+        VirtualFile folder = parentFolder.createFolder("ChildrenTest_FOLDER");
 
         VirtualFile file = folder.createFile("ChildrenTest_FILE01", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        file.updateProperties(Arrays.<Property>asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
+        file.updateProperties(Arrays.asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
 
         VirtualFile folder1 = folder.createFolder("ChildrenTest_FOLDER01");
-        folder1.updateProperties(Arrays.<Property>asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
+        folder1.updateProperties(Arrays.asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
 
         VirtualFile folder2 = folder.createFolder("ChildrenTest_FOLDER02");
-        folder2.updateProperties(Arrays.<Property>asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
+        folder2.updateProperties(Arrays.asList(createProperty("PropertyA", "A"), createProperty("PropertyB", "B")), null);
 
         folderId = folder.getId();
     }

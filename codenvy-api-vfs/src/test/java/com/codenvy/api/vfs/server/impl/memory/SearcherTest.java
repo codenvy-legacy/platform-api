@@ -18,11 +18,10 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.core.util.Pair;
-import com.codenvy.api.vfs.server.search.LuceneSearcher;
 import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.server.search.LuceneSearcher;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.ItemList;
-import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.apache.lucene.analysis.SimpleAnalyzer;
 import org.apache.lucene.index.Term;
@@ -38,14 +37,16 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author andrew00x
+ */
 public class SearcherTest extends MemoryFileSystemTest {
     private Pair<String[], String>[] queryToResult;
-    private VirtualFile              searchTestProject;
+    private VirtualFile              searchTestFolder;
     private String                   searchTestPath;
     private String                   file1;
     private String                   file2;
@@ -57,10 +58,10 @@ public class SearcherTest extends MemoryFileSystemTest {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        searchTestProject = mountPoint.getRoot().createProject("SearcherTest", Collections.<Property>emptyList());
+        searchTestFolder = mountPoint.getRoot().createFolder("SearcherTest");
         searcher = (LuceneSearcher)mountPoint.getSearcherProvider().getSearcher(mountPoint, true);
 
-        VirtualFile searchTestFolder = searchTestProject.createFolder("SearcherTest_Folder");
+        VirtualFile searchTestFolder = this.searchTestFolder.createFolder("SearcherTest_Folder");
         searchTestPath = searchTestFolder.getPath();
 
         file1 = searchTestFolder.createFile("SearcherTest_File01", "text/xml", new ByteArrayInputStream("to be or not to be".getBytes()))
@@ -172,7 +173,7 @@ public class SearcherTest extends MemoryFileSystemTest {
 
     public void testMove() throws Exception {
         IndexSearcher luceneSearcher = searcher.getLuceneSearcher();
-        String destination = searchTestProject.createFolder("___destination").getPath();
+        String destination = searchTestFolder.createFolder("___destination").getPath();
         String expected = destination + '/' + "SearcherTest_File03";
         TopDocs topDocs = luceneSearcher.search(new PrefixQuery(new Term("path", expected)), 10);
         assertEquals(0, topDocs.totalHits);
@@ -189,7 +190,7 @@ public class SearcherTest extends MemoryFileSystemTest {
 
     public void testCopy() throws Exception {
         IndexSearcher luceneSearcher = searcher.getLuceneSearcher();
-        String destination = searchTestProject.createFolder("___destination").getPath();
+        String destination = searchTestFolder.createFolder("___destination").getPath();
         String expected = destination + '/' + "SearcherTest_File03";
         TopDocs topDocs = luceneSearcher.search(new PrefixQuery(new Term("path", expected)), 10);
         assertEquals(0, topDocs.totalHits);

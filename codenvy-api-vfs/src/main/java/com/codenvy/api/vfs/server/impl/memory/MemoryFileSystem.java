@@ -20,7 +20,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.LinksHelper;
 import com.codenvy.api.vfs.shared.PropertyFilter;
@@ -35,18 +34,17 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class MemoryFileSystem extends VirtualFileSystemImpl {
     private final String vfsId;
     private final URI    baseUri;
 
     public MemoryFileSystem(URI baseUri,
-                            EventListenerList listeners,
                             String vfsId,
                             VirtualFileSystemUserContext userContext,
                             MemoryMountPoint memoryMountPoint,
                             SearcherProvider searcherProvider) {
-        super(vfsId, baseUri, listeners, userContext, memoryMountPoint, searcherProvider);
+        super(vfsId, baseUri, userContext, memoryMountPoint, searcherProvider);
         this.baseUri = baseUri;
         this.vfsId = vfsId;
     }

@@ -42,7 +42,7 @@ public interface SourcesManager {
 
     java.io.File getDirectory();
 
-    void addListener(SourceManagerListener listener);
+    boolean addListener(SourceManagerListener listener);
 
     boolean removeListener(SourceManagerListener listener);
 }

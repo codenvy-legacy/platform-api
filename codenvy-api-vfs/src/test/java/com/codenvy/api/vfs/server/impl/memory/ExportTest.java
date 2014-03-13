@@ -19,30 +19,28 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.ExitCodes;
-import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class ExportTest extends MemoryFileSystemTest {
-    private String exportProjectId;
+    private String exportFolderId;
 
     private Set<String> expectedExportTestRootZipItems = new HashSet<>();
-    private Set<String> expectedExportProjectZipItems  = new HashSet<>();
+    private Set<String> expectedExportFolderZipItems   = new HashSet<>();
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile exportTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile exportTestFolder = mountPoint.getRoot().createFolder(name);
 
 //      Create in exportTestFolder folder next files and folders:
 //      ----------------------------
@@ -60,9 +58,9 @@ public class ExportTest extends MemoryFileSystemTest {
 //         folder3/folder32/file32.txt
 //      ----------------------------
 
-        VirtualFile folder1 = exportTestProject.createFolder("folder1");
-        VirtualFile folder2 = exportTestProject.createFolder("folder2");
-        VirtualFile folder3 = exportTestProject.createFolder("folder3");
+        VirtualFile folder1 = exportTestFolder.createFolder("folder1");
+        VirtualFile folder2 = exportTestFolder.createFolder("folder2");
+        VirtualFile folder3 = exportTestFolder.createFolder("folder3");
 
         VirtualFile file1 = folder1.createFile("file1.txt", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
         VirtualFile file2 = folder2.createFile("file2.txt", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
@@ -76,45 +74,34 @@ public class ExportTest extends MemoryFileSystemTest {
         VirtualFile file22 = folder22.createFile("file22.txt", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
         VirtualFile file32 = folder32.createFile("file32.txt", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
 
-        expectedExportProjectZipItems.add("folder1/");
-        expectedExportProjectZipItems.add("folder2/");
-        expectedExportProjectZipItems.add("folder3/");
-        expectedExportProjectZipItems.add("folder1/file1.txt");
-        expectedExportProjectZipItems.add("folder1/folder12/");
-        expectedExportProjectZipItems.add("folder2/file2.txt");
-        expectedExportProjectZipItems.add("folder2/folder22/");
-        expectedExportProjectZipItems.add("folder3/file3.txt");
-        expectedExportProjectZipItems.add("folder3/folder32/");
-        expectedExportProjectZipItems.add("folder1/folder12/file12.txt");
-        expectedExportProjectZipItems.add("folder2/folder22/file22.txt");
-        expectedExportProjectZipItems.add("folder3/folder32/file32.txt");
-        expectedExportProjectZipItems.add(".project");
+        expectedExportFolderZipItems.add("folder1/");
+        expectedExportFolderZipItems.add("folder2/");
+        expectedExportFolderZipItems.add("folder3/");
+        expectedExportFolderZipItems.add("folder1/file1.txt");
+        expectedExportFolderZipItems.add("folder1/folder12/");
+        expectedExportFolderZipItems.add("folder2/file2.txt");
+        expectedExportFolderZipItems.add("folder2/folder22/");
+        expectedExportFolderZipItems.add("folder3/file3.txt");
+        expectedExportFolderZipItems.add("folder3/folder32/");
+        expectedExportFolderZipItems.add("folder1/folder12/file12.txt");
+        expectedExportFolderZipItems.add("folder2/folder22/file22.txt");
+        expectedExportFolderZipItems.add("folder3/folder32/file32.txt");
 
-        exportProjectId = exportTestProject.getId();
+        exportFolderId = exportTestFolder.getId();
 
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + '/');
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder1/");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder2/");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder3/");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder1/file1.txt");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder1/folder12/");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder2/file2.txt");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder2/folder22/");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder3/file3.txt");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder3/folder32/");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder1/folder12/file12.txt");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder2/folder22/file22.txt");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/folder3/folder32/file32.txt");
-        expectedExportTestRootZipItems.add(exportTestProject.getName() + "/.project");
-    }
-
-    public void testExportProject() throws Exception {
-        ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-        String path = SERVICE_URI + "export/" + exportProjectId;
-        ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, writer, null);
-        assertEquals(200, response.getStatus());
-        assertEquals("application/zip", writer.getHeaders().getFirst("Content-Type"));
-        checkZipItems(expectedExportProjectZipItems, new ZipInputStream(new ByteArrayInputStream(writer.getBody())));
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + '/');
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder1/");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder2/");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder3/");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder1/file1.txt");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder1/folder12/");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder2/file2.txt");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder2/folder22/");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder3/file3.txt");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder3/folder32/");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder1/folder12/file12.txt");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder2/folder22/file22.txt");
+        expectedExportTestRootZipItems.add(exportTestFolder.getName() + "/folder3/folder32/file32.txt");
     }
 
     public void testExportRootFolder() throws Exception {
@@ -127,7 +114,7 @@ public class ExportTest extends MemoryFileSystemTest {
     }
 
     public void testExportFile() throws Exception {
-        VirtualFile file = mountPoint.getVirtualFileById(exportProjectId)
+        VirtualFile file = mountPoint.getVirtualFileById(exportFolderId)
                                      .createFile("export_test_file.txt", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT_BYTES));
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "export/" + file.getId();

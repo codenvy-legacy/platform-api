@@ -20,7 +20,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
@@ -28,14 +27,13 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class UpdateACLTest extends MemoryFileSystemTest {
     private String objectId;
 
@@ -43,7 +41,7 @@ public class UpdateACLTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile updateAclTestFolder = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile updateAclTestFolder = mountPoint.getRoot().createFolder(name);
 
         VirtualFile file = updateAclTestFolder.createFile("UpdateACLTest_FILE", "text/plain",
                                                           new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));

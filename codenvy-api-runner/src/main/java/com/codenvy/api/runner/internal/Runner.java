@@ -17,10 +17,9 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.rest.HttpJsonHelper;
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
@@ -28,6 +27,7 @@ import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,16 +68,18 @@ public abstract class Runner {
     private final java.io.File                  deployDirectoryRoot;
     private final DownloadPlugin                downloadPlugin;
     private final ResourceAllocators            allocators;
+    private final EventService                  eventService;
     private final int                           cleanupDelay;
 
 
     private java.io.File deployDirectory;
     private boolean      started;
 
-    public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators) {
+    public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators, EventService eventService) {
         this.deployDirectoryRoot = deployDirectoryRoot;
         this.cleanupDelay = cleanupDelay;
         this.allocators = allocators;
+        this.eventService = eventService;
         processes = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
         applicationDisposers = new HashMap<>();
@@ -97,6 +99,10 @@ public abstract class Runner {
 
     protected ExecutorService getExecutor() {
         return executor;
+    }
+
+    protected EventService getEventService() {
+        return eventService;
     }
 
     @PostConstruct
@@ -182,21 +188,36 @@ public abstract class Runner {
 
     public RunnerProcess execute(final RunRequest request) throws IOException, RunnerException {
         checkStarted();
-        // TODO: cleanup
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
-        final Long id = processIdSequence.getAndIncrement();
-        final String webHookUrl = request.getWebHookUrl();
-        final RunnerProcessImpl process = new RunnerProcessImpl(id,
-                                                                getName(),
-                                                                runnerCfg,
-                                                                webHookUrl == null ? null : new WebHookCallback(webHookUrl));
+        final Long internalId = processIdSequence.getAndIncrement();
+        final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, new RunnerProcess.Callback() {
+            @Override
+            public void started(RunnerProcess process) {
+                final RunRequest runRequest = process.getConfiguration().getRequest();
+                eventService.publish(new RunnerEvent(RunnerEvent.EventType.STARTED, runRequest.getId(), runRequest.getWorkspace(),
+                                                     runRequest.getProject()));
+            }
+
+            @Override
+            public void stopped(RunnerProcess process) {
+                final RunRequest runRequest = process.getConfiguration().getRequest();
+                eventService.publish(new RunnerEvent(RunnerEvent.EventType.STOPPED, runRequest.getId(), runRequest.getWorkspace(),
+                                                     runRequest.getProject()));
+            }
+
+            @Override
+            public void error(RunnerProcess process, Throwable t) {
+                final RunRequest runRequest = process.getConfiguration().getRequest();
+                eventService.publish(new RunnerEvent(RunnerEvent.EventType.ERROR, runRequest.getId(), runRequest.getWorkspace(),
+                                                     runRequest.getProject(), t.getMessage()));
+            }
+        });
         purgeExpiredProcesses();
-        processes.put(id, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
+        processes.put(internalId, new RunnerProcessEntry(process, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanupDelay)));
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
-        final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem)
-                                                            .allocate();
-        executor.execute(new Runnable() {
+        final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem).allocate();
+        executor.execute(ThreadLocalPropagateContext.wrap(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -218,7 +239,7 @@ public abstract class Runner {
                     runningAppsCounter.decrementAndGet();
                 }
             }
-        });
+        }));
         return process;
     }
 
@@ -345,12 +366,12 @@ public abstract class Runner {
             startTime = System.currentTimeMillis();
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
-                getExecutor().execute(new Runnable() {
+                getExecutor().execute(ThreadLocalPropagateContext.wrap(new Runnable() {
                     @Override
                     public void run() {
                         callback.started(RunnerProcessImpl.this);
                     }
-                });
+                }));
             }
         }
 
@@ -358,12 +379,12 @@ public abstract class Runner {
             stopTime = System.currentTimeMillis();
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
-                getExecutor().execute(new Runnable() {
+                getExecutor().execute(ThreadLocalPropagateContext.wrap(new Runnable() {
                     @Override
                     public void run() {
                         callback.stopped(RunnerProcessImpl.this);
                     }
-                });
+                }));
             }
         }
 
@@ -402,12 +423,12 @@ public abstract class Runner {
             this.error = error;
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
-                getExecutor().execute(new Runnable() {
+                getExecutor().execute(ThreadLocalPropagateContext.wrap(new Runnable() {
                     @Override
                     public void run() {
                         callback.error(RunnerProcessImpl.this, error);
                     }
-                });
+                }));
             }
         }
 
@@ -442,41 +463,6 @@ public abstract class Runner {
 
         boolean isExpired() {
             return expirationTime < System.currentTimeMillis();
-        }
-    }
-
-    private static class WebHookCallback implements RunnerProcess.Callback {
-        final String url;
-
-        WebHookCallback(String url) {
-            this.url = url;
-        }
-
-        @Override
-        public void started(RunnerProcess process) {
-            try {
-                HttpJsonHelper.post(null, url, null, Pair.of("event", "started"));
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
-        }
-
-        @Override
-        public void stopped(RunnerProcess process) {
-            try {
-                HttpJsonHelper.post(null, url, null, Pair.of("event", "stopped"));
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
-        }
-
-        @Override
-        public void error(RunnerProcess process, Throwable t) {
-            try {
-                HttpJsonHelper.post(null, url, null, Pair.of("event", "error"));
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
         }
     }
 }

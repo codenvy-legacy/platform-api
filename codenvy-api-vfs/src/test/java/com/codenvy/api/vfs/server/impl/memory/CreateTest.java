@@ -20,10 +20,8 @@ package com.codenvy.api.vfs.server.impl.memory;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
@@ -31,14 +29,13 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class CreateTest extends MemoryFileSystemTest {
     private String      createTestFolderId;
     private String      createTestFolderPath;
@@ -48,7 +45,7 @@ public class CreateTest extends MemoryFileSystemTest {
     public void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        createTestFolder = mountPoint.getRoot().createProject(name, java.util.Collections.<Property>emptyList());
+        createTestFolder = mountPoint.getRoot().createFolder(name);
         createTestFolderId = createTestFolder.getId();
         createTestFolderPath = createTestFolder.getPath();
     }
@@ -162,8 +159,8 @@ public class CreateTest extends MemoryFileSystemTest {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
         Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions. ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions. READ));
+        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
         createTestFolder.updateACL(createAcl(permissions), true, null);
 
         String name = "testCreateFileNoPermissions";
@@ -301,53 +298,6 @@ public class CreateTest extends MemoryFileSystemTest {
             mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
         } catch (ItemNotFoundException e) {
             fail("Created folder not accessible by id. ");
-        }
-    }
-
-    public void testCreateProject() throws Exception {
-        String name = "testCreateProject";
-        String properties = "[{\"name\":\"vfs:projectType\", \"value\":[\"java\"]}]";
-        String path = SERVICE_URI + "project/" + createTestFolderId + '?' + "name=" + name + '&' + "type=" + "java";
-        Map<String, List<String>> h = new HashMap<>(1);
-        h.put("Content-Type", Arrays.asList("application/json"));
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, h, properties.getBytes(), null);
-        assertEquals("Error: " + response.getEntity(), 200, response.getStatus());
-        String expectedPath = createTestFolderPath + "/" + name;
-        try {
-            VirtualFile project = mountPoint.getVirtualFile(expectedPath);
-            List<String> values = project.getProperties(PropertyFilter.valueOf("vfs:projectType")).get(0).getValue();
-            assertEquals("java", values.get(0));
-            assertEquals("text/vnd.ideproject+directory", project.getMediaType());
-        } catch (ItemNotFoundException e) {
-            fail("Project was not created in expected location. ");
-        }
-        try {
-            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
-        } catch (ItemNotFoundException e) {
-            fail("Created project not accessible by id. ");
-        }
-    }
-
-    public void testCreateProjectInsideProject() throws Exception {
-        VirtualFile parentProject = mountPoint.getVirtualFileById(createTestFolderId);
-        String path = SERVICE_URI + "project/" + parentProject.getId() + '?' + "name=" + "childProject" + '&' + "type=" + "java";
-        Map<String, List<String>> h = new HashMap<>(1);
-        h.put("Content-Type", Arrays.asList("application/json"));
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, h, null, null);
-        assertEquals("Unexpected status " + response.getStatus(), 200, response.getStatus());
-        String expectedPath = parentProject.getPath() + "/childProject";
-        try {
-            VirtualFile project = mountPoint.getVirtualFile(expectedPath);
-            List<String> values = project.getProperties(PropertyFilter.valueOf("vfs:projectType")).get(0).getValue();
-            assertEquals("java", values.get(0));
-            assertEquals("text/vnd.ideproject+directory", project.getMediaType());
-        } catch (ItemNotFoundException e) {
-            fail("Project was not created in expected location. ");
-        }
-        try {
-            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
-        } catch (ItemNotFoundException e) {
-            fail("Created project not accessible by id. ");
         }
     }
 }

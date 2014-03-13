@@ -22,7 +22,6 @@ import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.core.rest.ProxyResponse;
 import com.codenvy.api.core.rest.RemoteException;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.dto.server.DtoFactory;
@@ -34,28 +33,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Wrapper for RemoteBuildTask.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class BuildQueueTask implements Cancellable {
-    private static final AtomicLong sequence = new AtomicLong(1);
-
     private final Long                    id;
     private final long                    created;
     private final BaseBuilderRequest      request;
     private final Future<RemoteBuildTask> future;
 
+    /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
+    private final UriBuilder uriBuilder;
+
+    private UriBuilder getUriBuilder() {
+        return uriBuilder.clone();
+    }
+    /* ~~~~ */
+
     private RemoteBuildTask remote;
 
-    BuildQueueTask(BaseBuilderRequest request, Future<RemoteBuildTask> future) {
-        id = sequence.getAndIncrement();
-        created = System.currentTimeMillis();
+    BuildQueueTask(Long id, BaseBuilderRequest request, Future<RemoteBuildTask> future, UriBuilder uriBuilder) {
+        this.id = id;
+        this.uriBuilder = uriBuilder;
         this.future = future;
         this.request = request;
+        created = System.currentTimeMillis();
     }
 
     /**
@@ -148,19 +153,18 @@ public final class BuildQueueTask implements Cancellable {
      * @throws BuilderException
      *         if any other errors
      */
-    public BuildTaskDescriptor getDescriptor(ServiceContext restfulRequestContext) throws RemoteException, IOException, BuilderException {
+    public BuildTaskDescriptor getDescriptor() throws RemoteException, IOException, BuilderException {
         if (isWaiting()) {
-            final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
             final List<Link> links = new ArrayList<>(2);
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_GET_STATUS)
-                                .withHref(servicePathBuilder.clone().path(BuilderService.class, "getStatus")
-                                                            .build(request.getWorkspace(), id).toString()).withMethod("GET")
+                                .withHref(getUriBuilder().clone().path(BuilderService.class, "getStatus")
+                                                         .build(request.getWorkspace(), id).toString()).withMethod("GET")
                                 .withProduces(MediaType.APPLICATION_JSON));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_CANCEL)
-                                .withHref(servicePathBuilder.clone().path(BuilderService.class, "cancel")
-                                                            .build(request.getWorkspace(), id).toString())
+                                .withHref(getUriBuilder().clone().path(BuilderService.class, "cancel")
+                                                         .build(request.getWorkspace(), id).toString())
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
             return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
@@ -175,50 +179,45 @@ public final class BuildQueueTask implements Cancellable {
                              .withStartTime(-1);
         }
         final BuildTaskDescriptor remoteStatus = getRemoteBuildTask().getBuildTaskDescriptor();
-        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
                          .withTaskId(id)
                          .withStatus(remoteStatus.getStatus())
-                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks(), servicePathBuilder))
+                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks()))
                          .withStartTime(remoteStatus.getStartTime());
     }
 
-    private List<Link> rewriteKnownLinks(List<Link> links, UriBuilder serviceUriBuilder) {
+    private List<Link> rewriteKnownLinks(List<Link> links) {
         final List<Link> rewritten = new ArrayList<>(5);
         for (Link link : links) {
             if (Constants.LINK_REL_GET_STATUS.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(
-                        serviceUriBuilder.clone().path(BuilderService.class, "getStatus").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(BuilderService.class, "getStatus").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_CANCEL.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(
-                        serviceUriBuilder.clone().path(BuilderService.class, "cancel").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(BuilderService.class, "cancel").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_VIEW_LOG.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(
-                        serviceUriBuilder.clone().path(BuilderService.class, "getLogs").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(BuilderService.class, "getLogs").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_VIEW_REPORT.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(
-                        serviceUriBuilder.clone().path(BuilderService.class, "getReport").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(BuilderService.class, "getReport").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_DOWNLOAD_RESULT.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
                 // Special behaviour for download links.
                 // Download links may be multiple.
                 // Relative path to download file is in query parameter so copy query string from original URL.
-                final UriBuilder cloned = serviceUriBuilder.clone();
-                cloned.path(BuilderService.class, "download");
+                final UriBuilder myUriBuilder = getUriBuilder();
+                myUriBuilder.path(BuilderService.class, "download");
                 final String originalUrl = copy.getHref();
                 final int q = originalUrl.indexOf('?');
                 if (q > 0) {
-                    cloned.replaceQuery(originalUrl.substring(q + 1));
+                    myUriBuilder.replaceQuery(originalUrl.substring(q + 1));
                 }
-                copy.setHref(cloned.build(request.getWorkspace(), id).toString());
+                copy.setHref(myUriBuilder.build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             }
         }

@@ -112,16 +112,6 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     FactoryV1_1 withAffiliateid(String affiliateid);
 
     /**
-     * @return Indicates should .git folder be removed after cloning (allow commit to origin repository)
-     */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "vcsinfo")
-    boolean getVcsinfo();
-
-    void setVcsinfo(boolean vcsinfo);
-
-    FactoryV1_1 withVcsinfo(boolean vcsinfo);
-
-    /**
      * @return Allow to checkout to the latest commit in given branch
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "vcsbranch")

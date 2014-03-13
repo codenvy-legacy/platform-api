@@ -17,12 +17,25 @@
  */
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
+import com.codenvy.api.project.server.Project;
+import com.codenvy.api.project.server.ProjectManager;
+import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.ProjectDescription;
+import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.Runner;
+import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.dto.server.DtoFactory;
+
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
@@ -30,6 +43,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +57,11 @@ import java.util.Set;
  */
 @Singleton
 public class LocalRunQueue extends RunQueue {
+    private static final Logger LOG = LoggerFactory.getLogger(LocalRunQueue.class);
+
     private final List<RemoteRunner> remoteRunners;
+    private final EventService       eventService;
+    private final ProjectManager     projectManager;
 
     // work-around to be bale configure port.
     static class SlaveRunnerPortHolder {
@@ -77,9 +95,13 @@ public class LocalRunQueue extends RunQueue {
                          @Named("runner.queue.max_time_in_queue") int maxTimeInQueue,
                          @Named("runner.queue.app_lifetime") int appLifetime,
                          RunnerSelectionStrategy runnerSelector,
+                         EventService eventService,
                          SlaveRunnerPortHolder portHolder,
-                         Set<Runner> runners) {
+                         Set<Runner> runners,
+                         ProjectManager projectManager) {
         super(baseProjectApiUrl, baseBuilderApiUrl, defMemSize, maxTimeInQueue, appLifetime, runnerSelector);
+        this.eventService = eventService;
+        this.projectManager = projectManager;
         final String baseUrl = String.format("http://localhost:%s/api/internal/runner", portHolder.port);
         final List<Link> links = new ArrayList<>();
         links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -118,6 +140,43 @@ public class LocalRunQueue extends RunQueue {
     public synchronized void start() {
         super.start();
         registerRunners(null, null, remoteRunners);
+        // Register listener that resend events from runner to the client (browser).
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
+            @Override
+            public void onEvent(RunnerEvent event) {
+                try {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    final long id = event.getTaskId();
+                    final ApplicationProcessDescriptor processDescriptor = getTask(id).getDescriptor();
+                    // TODO: do need to have separate channel? Can use runner:status channel for all events?
+                    bm.setChannel(String.format("runner:status:%d", id));
+                    bm.setType(event.hasError() ? ChannelBroadcastMessage.Type.ERROR : ChannelBroadcastMessage.Type.NONE);
+                    bm.setBody(DtoFactory.getInstance().toJson(processDescriptor));
+                    WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
+            @Override
+            public void onEvent(RunnerEvent event) {
+                if (!event.hasError()) {
+                    try {
+                        final Project project = projectManager.getProject(event.getWorkspace(), event.getProject());
+                        final ProjectDescription description = project.getDescription();
+                        if (RunnerEvent.EventType.STARTED.equals(event.getType())) {
+                            description.setAttribute(new Attribute("runner.running", "true"));
+                        } else if (RunnerEvent.EventType.STOPPED.equals(event.getType())) {
+                            description.setAttribute(new Attribute("runner.running", "false"));
+                        }
+                        project.updateDescription(description);
+                    } catch (IOException e) {
+                        LOG.error(e.getMessage(), e);
+                    }
+                }
+            }
+        });
     }
 
     @PreDestroy

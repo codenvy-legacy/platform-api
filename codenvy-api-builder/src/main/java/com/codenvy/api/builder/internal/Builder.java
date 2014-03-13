@@ -22,7 +22,7 @@ import com.codenvy.api.builder.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.core.rest.HttpJsonHelper;
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.api.core.util.ProcessUtil;
@@ -91,6 +91,7 @@ public abstract class Builder {
     private final java.io.File                          rootDirectory;
     private final Set<BuildListener>                    buildListeners;
     private final int                                   cleanBuildResultDelay;
+    private final EventService                          eventService;
     private final int                                   queueSize;
     private final int                                   numberOfWorkers;
 
@@ -102,11 +103,12 @@ public abstract class Builder {
     private java.io.File       builds;
     private SourcesManager     sourcesManager;
 
-    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
+    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay, EventService eventService) {
         this.rootDirectory = rootDirectory;
         this.numberOfWorkers = numberOfWorkers;
         this.queueSize = queueSize;
         this.cleanBuildResultDelay = cleanBuildResultDelay;
+        this.eventService = eventService;
         buildListeners = new LinkedHashSet<>();
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
@@ -147,8 +149,12 @@ public abstract class Builder {
 
     protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws BuilderException;
 
-    public ExecutorService getExecutor() {
+    protected ExecutorService getExecutor() {
         return executor;
+    }
+
+    protected EventService getEventService() {
+        return eventService;
     }
 
     protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
@@ -309,8 +315,7 @@ public abstract class Builder {
         final java.io.File workDir = configuration.getWorkDir();
         final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(configuration, logFile);
-        final String webHookUrl = request.getWebHookUrl();
-        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
+        return execute(configuration, logger);
     }
 
     /**
@@ -328,20 +333,25 @@ public abstract class Builder {
         final java.io.File workDir = configuration.getWorkDir();
         final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(configuration, logFile);
-        final String webHookUrl = request.getWebHookUrl();
-        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
+        return execute(configuration, logger);
     }
 
-    protected BuildTask execute(BuilderConfiguration configuration, BuildTask.Callback callback, BuildLogger logger)
-            throws BuilderException {
+    protected BuildTask execute(BuilderConfiguration configuration, BuildLogger logger) throws BuilderException {
         final CommandLine commandLine = createCommandLine(configuration);
         final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
-        final FutureBuildTask task =
-                new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), configuration, logger, callback);
+        final Long internalId = buildIdSequence.getAndIncrement();
+        final BuildTask.Callback callback = new BuildTask.Callback() {
+            @Override
+            public void done(BuildTask task) {
+                final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
+                eventService.publish(new BuildDoneEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
+            }
+        };
+        final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, logger, callback);
         final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
         final BuildTaskEntry cachedTask = new BuildTaskEntry(task, expirationTime);
         purgeExpiredTasks();
-        tasks.put(task.getId(), cachedTask);
+        tasks.put(internalId, cachedTask);
         tasksFIFO.offer(cachedTask);
         executor.execute(task);
         return task;
@@ -733,23 +743,6 @@ public abstract class Builder {
             return "BuildTaskEntry{" +
                    "task=" + task +
                    '}';
-        }
-    }
-
-    private static class WebHookCallback implements BuildTask.Callback {
-        final String url;
-
-        WebHookCallback(String url) {
-            this.url = url;
-        }
-
-        @Override
-        public void done(BuildTask task) {
-            try {
-                HttpJsonHelper.post(null, url, null);
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
         }
     }
 }

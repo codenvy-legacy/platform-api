@@ -30,6 +30,20 @@ import java.util.Map;
  */
 @DTO
 public interface ProjectDescriptor {
+    String getId();
+
+    void setId(String id);
+
+    ProjectDescriptor withId(String id);
+
+    /** Get name of project. */
+    String getName();
+
+    /** Set name of project. */
+    void setName(String name);
+
+    ProjectDescriptor withName(String name);
+
     String getBaseUrl();
 
     void setBaseUrl(String url);

@@ -119,26 +119,8 @@ public class LinksHelper {
                                                       String parentId) {
         final UriBuilder baseUriBuilder = UriBuilder.fromUri(baseUri).path(VirtualFileSystemFactory.class)
                                                     .path(VirtualFileSystemFactory.class, "getFileSystem");
-        // This method is used extremely actively so it is imported to set size of map directly
-        // and prevent unnecessary growth of map.
         final Map<String, Link> links = new HashMap<>(32, 1.0f);
         addBaseFolderLinks(links, baseUriBuilder, wsName, itemId, isRoot, parentId);
-        links.put(Link.REL_CREATE_PROJECT, //
-                  createLink(createURI(baseUriBuilder.clone(), wsName, "project", itemId, "name", "[name]", "type", "[type]"),
-                             Link.REL_CREATE_PROJECT, MediaType.APPLICATION_JSON));
-        return links;
-    }
-
-    public static Map<String, Link> createProjectLinks(URI baseUri,
-                                                       String wsName,
-                                                       String itemId,
-                                                       String parentId) {
-        final UriBuilder baseUriBuilder = UriBuilder.fromUri(baseUri).path(VirtualFileSystemFactory.class)
-                                                    .path(VirtualFileSystemFactory.class, "getFileSystem");
-        // This method is used extremely actively so it is imported to set size of map directly
-        // and prevent unnecessary growth of map.
-        final Map<String, Link> links = new HashMap<>(16, 1.0f);
-        addBaseFolderLinks(links, baseUriBuilder, wsName, itemId, false, parentId);
         return links;
     }
 
@@ -228,10 +210,6 @@ public class LinksHelper {
         templates.put(Link.REL_CREATE_FOLDER,
                       createLink(createURI(baseUriBuilder.clone(), wsName, "folder", "[parentId]", "name", "[name]"),
                                    Link.REL_CREATE_FOLDER, MediaType.APPLICATION_JSON));
-
-        templates.put(Link.REL_CREATE_PROJECT,
-                      createLink(createURI(baseUriBuilder.clone(), wsName, "project", "[parentId]", "name", "[name]", "type", "[type]"),
-                                   Link.REL_CREATE_PROJECT, MediaType.APPLICATION_JSON));
 
         templates.put(Link.REL_COPY,
                       createLink(createURI(baseUriBuilder.clone(), wsName, "copy", "[id]", "parentId", "[parentId]"),

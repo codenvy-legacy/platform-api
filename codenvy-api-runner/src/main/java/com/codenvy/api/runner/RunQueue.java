@@ -39,6 +39,7 @@ import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
@@ -65,6 +66,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author andrew00x
@@ -77,6 +79,8 @@ public class RunQueue {
     /** Pause in milliseconds for checking the result of build process. */
     private static final long CHECK_BUILD_RESULT_DELAY     = 2000;
     private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
+
+    private static final AtomicLong sequence = new AtomicLong(1);
 
     private final RunnerSelectionStrategy                  runnerSelector;
     private final ExecutorService                          executor;
@@ -164,12 +168,12 @@ public class RunQueue {
             }
             callable = createTaskFor(null, request);
         }
-        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(callable);
-        final RunQueueTask task = new RunQueueTask(request, future);
-        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(RunnerService.class, "webhook").build(workspace,
-                                                                                                               task.getId()).toString());
+        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(ThreadLocalPropagateContext.wrap(callable));
+        final Long id = sequence.getAndIncrement();
+        request.setId(id); // for getting callback events from remote runner
+        final RunQueueTask task = new RunQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         purgeExpiredTasks();
-        tasks.put(task.getId(), task);
+        tasks.put(id, task);
         executor.execute(future);
         return task;
     }
@@ -375,6 +379,10 @@ public class RunQueue {
         return task;
     }
 
+    public List<RunQueueTask> getTasks() {
+        return new ArrayList<>(tasks.values());
+    }
+
     @PostConstruct
     public synchronized void start() {
         if (started) {
@@ -501,6 +509,79 @@ public class RunQueue {
         LOG.debug("Use slave runner {} at {}", runner.getName(), runner.getBaseUrl());
         return runner;
     }
+
+//    private class WebSocketEventBusProvider {
+//        private final String                                  channel          = "runner:internal:eventbus";
+//        private final MessageConverter                        messageConverter = new JsonMessageConverter();
+//        private final ConcurrentMap<String, Future<WSClient>> busMap           = new ConcurrentHashMap<>();
+//
+//        WSClient openEventBus(final String remoteRunnerBaseUrl) throws IOException, InterruptedException {
+//            Future<WSClient> busFuture = busMap.get(remoteRunnerBaseUrl);
+//            if (busFuture == null) {
+//                LOG.debug("Not found EventBus for '{}'. Create new one. ", remoteRunnerBaseUrl);
+//                FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
+//                    @Override
+//                    public WSClient call() throws IOException, MessageConversionException {
+//                        final UriBuilder uriBuilder = UriBuilder.fromUri(remoteRunnerBaseUrl);
+//                        uriBuilder.scheme("ws").replacePath("/api/ws/");
+//                        WSClient bus = new WSClient(uriBuilder.build(), new BaseClientMessageListener() {
+//                            @Override
+//                            public void onClose(int status, String message) {
+//                                busMap.remove(remoteRunnerBaseUrl);
+//                            }
+//
+//                            @Override
+//                            public void onMessage(String data) {
+//                                CallbackEvent event = null;
+//                                try {
+//                                    final String body = messageConverter.fromString(data, RESTfulOutputMessage.class).getBody();
+//                                    event = DtoFactory.getInstance().createDtoFromJson(body, CallbackEvent.class);
+//                                } catch (Exception e) {
+//                                    LOG.error(e.getMessage(), e);
+//                                }
+//                                if (event != null) {
+//                                    for (RunnerCallbackListener listener : callbackListeners) {
+//                                        try {
+//                                            listener.handleEvent(event);
+//                                        } catch (Throwable e) {
+//                                            LOG.error(e.getMessage(), e);
+//                                        }
+//                                    }
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void onOpen(WSClient client) {
+//                                LOG.debug("EventBus for '{}' is created. ", remoteRunnerBaseUrl);
+//                            }
+//                        });
+//                        bus.connect(2000);
+//                        bus.send(messageConverter.toString(
+//                                RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel)));
+//                        return bus;
+//                    }
+//                });
+//                busFuture = busMap.putIfAbsent(remoteRunnerBaseUrl, newFuture);
+//                if (busFuture == null) {
+//                    busFuture = newFuture;
+//                    newFuture.run();
+//                }
+//            }
+//            try {
+//                return busFuture.get();
+//            } catch (ExecutionException e) {
+//                final Throwable cause = e.getCause();
+//                if (cause instanceof Error) {
+//                    throw (Error)cause;
+//                } else if (cause instanceof RuntimeException) {
+//                    throw (RuntimeException)cause;
+//                } else if (cause instanceof IOException) {
+//                    throw (IOException)cause;
+//                }
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
 
     private static class RunnerListKey {
         final String project;

@@ -21,49 +21,43 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class MoveTest extends MemoryFileSystemTest {
-    private VirtualFile moveTestDestinationProject;
+    private VirtualFile moveTestDestinationFolder;
     private VirtualFile folderForMove;
     private VirtualFile fileForMove;
-    private VirtualFile projectForMove;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile moveTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile moveTestFolder = mountPoint.getRoot().createFolder(name);
 
-        moveTestDestinationProject =
-                mountPoint.getRoot().createProject(name + "_MoveTest_DESTINATION", Collections.<Property>emptyList());
+        moveTestDestinationFolder = mountPoint.getRoot().createFolder(name + "_MoveTest_DESTINATION");
 
-        folderForMove = moveTestProject.createFolder("MoveTest_FOLDER");
+        folderForMove = moveTestFolder.createFolder("MoveTest_FOLDER");
         folderForMove.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
 
-        fileForMove = moveTestProject.createFile("MoveTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-
-        projectForMove = moveTestProject.createProject("MoveTest_PROJECT", Collections.<Property>emptyList());
+        fileForMove = moveTestFolder.createFile("MoveTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
     }
 
     public void testMoveFile() throws Exception {
-        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = fileForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + fileForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be moved. ");
@@ -77,9 +71,9 @@ public class MoveTest extends MemoryFileSystemTest {
     }
 
     public void testMoveFileAlreadyExist() throws Exception {
-        moveTestDestinationProject.createFile(fileForMove.getName(), "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        moveTestDestinationFolder.createFile(fileForMove.getName(), "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         String originPath = fileForMove.getPath();
-        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(400, response.getStatus());
         assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
@@ -107,12 +101,12 @@ public class MoveTest extends MemoryFileSystemTest {
 
     public void testMoveLockedFile() throws Exception {
         String lockToken = fileForMove.lock(0);
-        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId() +
+        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId() +
                       '&' + "lockToken=" + lockToken;
         String originPath = fileForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + fileForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be moved. ");
@@ -128,12 +122,12 @@ public class MoveTest extends MemoryFileSystemTest {
     public void testMoveLockedFileNoLockToken() throws Exception {
         fileForMove.lock(0);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = fileForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         log.info(new String(writer.getBody()));
         assertEquals(423, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + fileForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -155,12 +149,12 @@ public class MoveTest extends MemoryFileSystemTest {
         fileForMove.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = fileForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         log.info(new String(writer.getBody()));
         assertEquals(403, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + fileForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -179,15 +173,15 @@ public class MoveTest extends MemoryFileSystemTest {
         Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
         permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
         permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
-        moveTestDestinationProject.updateACL(createAcl(permissions), true, null);
+        moveTestDestinationFolder.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = fileForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         log.info(new String(writer.getBody()));
         assertEquals(403, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + fileForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -201,11 +195,11 @@ public class MoveTest extends MemoryFileSystemTest {
     }
 
     public void testMoveFolder() throws Exception {
-        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = folderForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + folderForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + folderForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
             fail("Folder must be moved. ");
@@ -225,11 +219,11 @@ public class MoveTest extends MemoryFileSystemTest {
 
     public void testMoveFolderWithLockedFile() throws Exception {
         folderForMove.getChild("file").lock(0);
-        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = folderForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(423, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + folderForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + folderForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -251,11 +245,11 @@ public class MoveTest extends MemoryFileSystemTest {
         permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
         myFile.updateACL(createAcl(permissions), true, null);
 
-        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = folderForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(403, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + folderForMove.getName();
+        String expectedPath = moveTestDestinationFolder.getPath() + '/' + folderForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -269,28 +263,10 @@ public class MoveTest extends MemoryFileSystemTest {
     }
 
     public void testMoveFolderAlreadyExist() throws Exception {
-        moveTestDestinationProject.createFolder(folderForMove.getName());
-        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
+        moveTestDestinationFolder.createFolder(folderForMove.getName());
+        String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(400, response.getStatus());
         assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
-    }
-
-    public void testMoveProjectToProject() throws Exception {
-        String path = SERVICE_URI + "move/" + projectForMove.getId() + '?' + "parentId=" + moveTestDestinationProject.getId();
-        final String originPath = projectForMove.getPath();
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals("Unexpected status " + response.getStatus(), 200, response.getStatus());
-        String expectedPath = moveTestDestinationProject.getPath() + '/' + projectForMove.getName();
-        try {
-            mountPoint.getVirtualFile(originPath);
-            fail("Project must be moved. ");
-        } catch (ItemNotFoundException e) {
-        }
-        try {
-            mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
-            fail("Not found project in destination location. ");
-        }
     }
 }

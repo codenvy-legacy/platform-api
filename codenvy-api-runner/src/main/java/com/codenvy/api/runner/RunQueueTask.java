@@ -19,7 +19,6 @@ package com.codenvy.api.runner;
 
 import com.codenvy.api.core.rest.ProxyResponse;
 import com.codenvy.api.core.rest.RemoteException;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
@@ -34,27 +33,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Wraps RemoteRunnerProcess.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class RunQueueTask implements Cancellable {
-    private static final AtomicLong sequence = new AtomicLong(1);
-
     private final Long                        id;
     private final RunRequest                  request;
     private final Future<RemoteRunnerProcess> future;
     private final long                        created;
 
+    /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
+    private final UriBuilder uriBuilder;
+
+    private UriBuilder getUriBuilder() {
+        return uriBuilder.clone();
+    }
+    /* ~~~~ */
+
     private RemoteRunnerProcess myRemoteProcess;
 
-    RunQueueTask(RunRequest request, Future<RemoteRunnerProcess> future) {
-        this.id = sequence.getAndIncrement();
+    RunQueueTask(Long id, RunRequest request, Future<RemoteRunnerProcess> future, UriBuilder uriBuilder) {
+        this.id = id;
         this.future = future;
         this.request = request;
+        this.uriBuilder = uriBuilder;
         created = System.currentTimeMillis();
     }
 
@@ -99,7 +104,7 @@ public final class RunQueueTask implements Cancellable {
      * @throws RunnerException
      *         if any other errors
      */
-    public ApplicationProcessDescriptor getDescriptor(ServiceContext restfulRequestContext)
+    public ApplicationProcessDescriptor getDescriptor()
             throws IOException, RemoteException, RunnerException {
         if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
@@ -108,17 +113,16 @@ public final class RunQueueTask implements Cancellable {
         }
         final RemoteRunnerProcess remoteProcess = getRemoteProcess();
         if (remoteProcess == null) {
-            final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
             final List<Link> links = new ArrayList<>(2);
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_GET_STATUS)
-                                .withHref(servicePathBuilder.clone().path(RunnerService.class, "getStatus")
-                                                            .build(request.getWorkspace(), id).toString()).withMethod("GET")
+                                .withHref(getUriBuilder().path(RunnerService.class, "getStatus")
+                                                         .build(request.getWorkspace(), id).toString()).withMethod("GET")
                                 .withProduces(MediaType.APPLICATION_JSON));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_STOP)
-                                .withHref(servicePathBuilder.clone().path(RunnerService.class, "stop")
-                                                            .build(request.getWorkspace(), id).toString())
+                                .withHref(getUriBuilder().path(RunnerService.class, "stop")
+                                                         .build(request.getWorkspace(), id).toString())
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
@@ -130,23 +134,23 @@ public final class RunQueueTask implements Cancellable {
         // re-write some parameters, we are working as revers-proxy
         return DtoFactory.getInstance().clone(remoteStatus)
                          .withProcessId(id)
-                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks(), restfulRequestContext.getServiceUriBuilder()));
+                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks()));
     }
 
-    private List<Link> rewriteKnownLinks(List<Link> links, UriBuilder serviceUriBuilder) {
+    private List<Link> rewriteKnownLinks(List<Link> links) {
         final List<Link> rewritten = new ArrayList<>(3);
         for (Link link : links) {
             if (Constants.LINK_REL_GET_STATUS.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "getStatus").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(RunnerService.class, "getStatus").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_STOP.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "stop").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(RunnerService.class, "stop").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_VIEW_LOG.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else {
                 rewritten.add(DtoFactory.getInstance().clone(link));

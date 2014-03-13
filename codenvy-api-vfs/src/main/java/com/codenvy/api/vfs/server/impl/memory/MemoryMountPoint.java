@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.Path;
@@ -38,21 +39,32 @@ import java.util.Map;
  * <p/>
  * NOTE: This implementation is not thread safe.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class MemoryMountPoint implements MountPoint {
-    private final Map<String, VirtualFile>     entries;
-    private final VirtualFile                  root;
+    private final String                       workspaceId;
+    private final EventService                 eventService;
     private final SearcherProvider             searcherProvider;
     private final VirtualFileSystemUserContext userContext;
+    private final Map<String, VirtualFile>     entries;
+    private final VirtualFile                  root;
 
-    public MemoryMountPoint(SearcherProvider searcherProvider, VirtualFileSystemUserContext userContext) {
+    public MemoryMountPoint(String workspaceId, EventService eventService, SearcherProvider searcherProvider,
+                            VirtualFileSystemUserContext userContext) {
+        this.workspaceId = workspaceId;
+        this.eventService = eventService;
         this.searcherProvider = searcherProvider;
         this.userContext = userContext;
         entries = new HashMap<>();
         root = new MemoryVirtualFile(this);
     }
 
+    @Override
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    @Override
     public VirtualFile getRoot() {
         return root;
     }
@@ -129,8 +141,14 @@ public class MemoryMountPoint implements MountPoint {
         entries.remove(id);
     }
 
-    SearcherProvider getSearcherProvider() {
+    @Override
+    public SearcherProvider getSearcherProvider() {
         return searcherProvider;
+    }
+
+    @Override
+    public EventService getEventService() {
+        return eventService;
     }
 
     VirtualFileSystemUserContext getUserContext() {

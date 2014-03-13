@@ -157,16 +157,17 @@ public class OrganizationServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToGetCurrentOrganization() throws Exception {
+    @SuppressWarnings("unchecked")
+    public void shouldBeAbleToGetCurrentOrganizations() throws Exception {
         when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
-        prepareSecurityContext("organization/owner");
+        when(organizationDao.getByMember(USER_ID)).thenReturn(null);
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Organization current = (Organization)response.getEntity();
-        verifyLinksRel(current.getLinks(), generateRels("organization/owner"));
+        List<Organization> currentOrganizations = (List<Organization>)response.getEntity();
         verify(organizationDao, times(1)).getByOwner(USER_ID);
+        verify(organizationDao, times(1)).getByMember(USER_ID);
     }
 
     @Test
@@ -271,7 +272,8 @@ public class OrganizationServiceTest {
                 DtoFactory.getInstance().createDto(Subscription.class).withStartDate("22-12-13").withEndDate("22-01-13")
                           .withServiceId(SERVICE_ID).withProperties(Collections.EMPTY_MAP)));
 
-        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions/" + SERVICE_ID, null, null);
+        ContainerResponse response =
+                makeRequest("DELETE", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions/" + SERVICE_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(serviceRegistry, times(1)).get(SERVICE_ID);

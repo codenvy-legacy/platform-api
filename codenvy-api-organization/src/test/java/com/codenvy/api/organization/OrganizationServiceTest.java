@@ -166,6 +166,8 @@ public class OrganizationServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         List<Organization> currentOrganizations = (List<Organization>)response.getEntity();
+        assertEquals(currentOrganizations.size(), 1);
+
         verify(organizationDao, times(1)).getByOwner(USER_ID);
         verify(organizationDao, times(1)).getByMember(USER_ID);
     }

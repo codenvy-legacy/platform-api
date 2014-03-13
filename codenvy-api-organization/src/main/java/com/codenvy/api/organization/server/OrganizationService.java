@@ -41,6 +41,9 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -68,6 +71,8 @@ import java.util.List;
  */
 @Path("organization")
 public class OrganizationService extends Service {
+
+    private static final Logger LOG = LoggerFactory.getLogger(OrganizationService.class);
 
     private final OrganizationDao             organizationDao;
     private final UserDao                     userDao;
@@ -125,11 +130,11 @@ public class OrganizationService extends Service {
         if (currentOrganizations == null) {
             currentOrganizations = new ArrayList<>();
         }
-        final Organization organization = organizationDao.getByOwner(current.getId());
-        if (organization != null) {
-            currentOrganizations.add(organization);
+        final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
+        if (ownedByCurrentUser != null) {
+            currentOrganizations.add(ownedByCurrentUser);
         }
-        injectLinks(organization, securityContext);
+        injectLinks(ownedByCurrentUser, securityContext);
         return currentOrganizations;
     }
 
@@ -208,17 +213,17 @@ public class OrganizationService extends Service {
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        final Organization organization = organizationDao.getByOwner(current.getId());
-        if (organization == null) {
+        final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
+        if (ownedByCurrentUser == null) {
             throw OrganizationNotFoundException.doesNotExistWithOwner(current.getId());
         }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final List<Member> members = organizationDao.getMembers(organization.getId());
+        final List<Member> members = organizationDao.getMembers(ownedByCurrentUser.getId());
         //injecting links
         for (Member member : members) {
             member.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
                                                      uriBuilder.clone().path(getClass(), "removeMember")
-                                                               .build(organization.getId(), member.getUserId()).toString())));
+                                                               .build(ownedByCurrentUser.getId(), member.getUserId()).toString())));
         }
         return members;
     }
@@ -295,18 +300,31 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfCurrentOrganization(@Context SecurityContext securityContext)
+    public List<Subscription> getSubscriptionsOfCurrentOrganizations(@Context SecurityContext securityContext)
             throws UserException, OrganizationException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        final Organization organization = organizationDao.getByOwner(current.getId());
-        if (organization == null) {
-            throw OrganizationNotFoundException.doesNotExistWithOwner(current.getId());
+        List<Organization> currentOrganizations = organizationDao.getByMember(current.getId());
+        if (currentOrganizations == null) {
+            currentOrganizations = new ArrayList<>();
         }
-        return organizationDao.getSubscriptions(organization.getId());
+        final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
+        if (ownedByCurrentUser != null) {
+            currentOrganizations.add(ownedByCurrentUser);
+        }
+        final List<Subscription> allSubscriptions = new ArrayList<>();
+        for (Organization organization : currentOrganizations) {
+            try {
+                allSubscriptions.addAll(organizationDao.getSubscriptions(organization.getId()));
+            } catch (OrganizationException e) {
+                LOG.error(String.format("OrganizationException was occurred when was an attempt to take %s organization subscriptions",
+                                        organization.getId()), e);
+            }
+        }
+        return allSubscriptions;
     }
 
     @GET
@@ -399,7 +417,7 @@ public class OrganizationService extends Service {
                                                                       .withRequired(true)
                                                                       .withDescription("Organization to update"))));
             links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentOrganization").build().toString()));
+                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentOrganizations").build().toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembersOfCurrentOrganization").build().toString()));
         }

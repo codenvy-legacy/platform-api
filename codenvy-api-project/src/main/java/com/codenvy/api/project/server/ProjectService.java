@@ -154,26 +154,6 @@ public class ProjectService extends Service {
         return result;
     }
 
-    @GET
-    @Path("modules/{path:.*}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectDescriptor> getModules(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
-        final Project project = projectManager.getProject(workspace, path);
-        if (project == null) {
-            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
-            throw new WebApplicationException(
-                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
-        }
-
-        List<Project> modules = project.getModules();
-        List<ProjectDescriptor> result = new ArrayList<>(modules.size());
-        for (Project module : modules) {
-            result.add(toDescriptor(workspace, module));
-        }
-        return result;
-    }
-
     @POST
     @Path("{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)

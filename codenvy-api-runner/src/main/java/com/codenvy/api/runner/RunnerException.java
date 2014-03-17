@@ -21,9 +21,9 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
- * Base type for all runner API error.
+ * Base type for all runner API errors.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @SuppressWarnings("serial")
 public class RunnerException extends ApiException {

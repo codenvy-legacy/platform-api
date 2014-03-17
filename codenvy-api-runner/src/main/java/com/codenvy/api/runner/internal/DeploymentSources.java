@@ -21,7 +21,12 @@ import com.codenvy.commons.lang.ZipUtils;
 
 import java.io.IOException;
 
-/** @author andrew00x */
+/**
+ * An application bundle that contains all needed binaries, configurations, etc for running application with {@link
+ * com.codenvy.api.runner.internal.Runner}. May be represented with single (archive) file or directory.
+ *
+ * @author andrew00x
+ */
 public class DeploymentSources {
     private final java.io.File file;
 
@@ -29,10 +34,16 @@ public class DeploymentSources {
         this.file = file;
     }
 
+    /** Get application file or directory. */
     public java.io.File getFile() {
         return file;
     }
 
+    /**
+     * Checks is application bundle is zip archive or not.
+     *
+     * @return is application bundle is zip archive or not
+     */
     public boolean isArchive() {
         try {
             return file != null && ZipUtils.isZipFile(file);

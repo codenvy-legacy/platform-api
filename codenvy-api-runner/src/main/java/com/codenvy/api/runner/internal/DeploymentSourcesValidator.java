@@ -17,7 +17,20 @@
  */
 package com.codenvy.api.runner.internal;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Validates DeploymentSources before running application.
+ *
+ * @author andrew00x
+ * @see com.codenvy.api.runner.internal.DeploymentSources
+ * @see com.codenvy.api.runner.internal.Runner#getDeploymentSourcesValidator()
+ */
 public interface DeploymentSourcesValidator {
+    /**
+     * Validates application bundle.
+     *
+     * @param deployment
+     *         application bundle for validation
+     * @return {@code true} is application is valid and {@code false} otherwise
+     */
     boolean isValid(DeploymentSources deployment);
 }

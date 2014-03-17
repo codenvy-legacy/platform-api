@@ -55,6 +55,9 @@ public class BuilderRegistry {
      * @return {@code Builder} or {@code null} if there is no such {@code Builder}
      */
     public Builder get(String name) {
+        if (name == null) {
+            return null;
+        }
         return builders.get(name);
     }
 
@@ -66,6 +69,9 @@ public class BuilderRegistry {
      * @return {@code Builder} or {@code null} if there is no such {@code Builder}
      */
     public Builder remove(String name) {
+        if (name == null) {
+            return null;
+        }
         return builders.remove(name);
     }
 

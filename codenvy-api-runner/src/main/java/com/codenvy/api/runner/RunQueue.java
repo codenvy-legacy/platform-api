@@ -130,8 +130,7 @@ public class RunQueue {
         runnerListMapping = new ConcurrentHashMap<>();
     }
 
-    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions options)
-            throws IOException, RemoteException, RunnerException {
+    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions options) throws RunnerException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
@@ -151,15 +150,19 @@ public class RunQueue {
             || descriptor.getAttributes().get(com.codenvy.api.builder.internal.Constants.BUILDER_NAME) != null) {
             LOG.debug("Need build project first");
             final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(workspace, serviceContext);
-            final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
-            if (buildLink == null) {
-                throw new RunnerException("Unable get URL for starting build of the application");
-            }
             // schedule build
-            final BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
-                                                                               buildLink,
-                                                                               buildOptions,
-                                                                               Pair.of("project", project));
+            final BuildTaskDescriptor buildDescriptor;
+            try {
+                final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
+                if (buildLink == null) {
+                    throw new RunnerException("Unable get URL for starting build of the application");
+                }
+                buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
+            } catch (IOException e) {
+                throw new RunnerException(e);
+            } catch (RemoteException e) {
+                throw new RunnerException(e.getServiceError());
+            }
             callable = createTaskFor(buildDescriptor, request);
         } else {
             final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor);
@@ -188,7 +191,7 @@ public class RunQueue {
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
-            throws IOException, RemoteException {
+            throws RunnerException {
         final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
                                                  ? serviceContext.getBaseUriBuilder()
                                                  : UriBuilder.fromUri(baseProjectApiUrl);
@@ -196,7 +199,13 @@ public class RunQueue {
                                                        .path(ProjectService.class, "getProject")
                                                        .build(workspace, project.startsWith("/") ? project.substring(1) : project)
                                                        .toString();
-        return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        try {
+            return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
+        }
     }
 
     private RemoteServiceDescriptor getBuilderServiceDescriptor(String workspace, ServiceContext serviceContext) {
@@ -254,7 +263,7 @@ public class RunQueue {
         }
     }
 
-    private Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor, final RunRequest request) {
+    protected Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor, final RunRequest request) {
         return new Callable<RemoteRunnerProcess>() {
             @Override
             public RemoteRunnerProcess call() throws Exception {
@@ -414,7 +423,17 @@ public class RunQueue {
         started = false;
     }
 
-    public boolean registerRunnerService(RunnerServiceRegistration registration) throws RemoteException, IOException, RunnerException {
+    /**
+     * Register remote SlaveRunnerService which can process run application.
+     *
+     * @param registration
+     *         RunnerServiceRegistration
+     * @return {@code true} if set of available Runners changed as result of the call
+     *         if we access remote SlaveRunnerService successfully but get error response
+     * @throws RunnerException
+     *         if other type of error occurs
+     */
+    public boolean registerRunnerService(RunnerServiceRegistration registration) throws RunnerException {
         checkStarted();
         String workspace = null;
         String project = null;
@@ -432,7 +451,7 @@ public class RunQueue {
         return registerRunners(workspace, project, toAdd);
     }
 
-    boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {
+    protected boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {
         final RunnerListKey key = new RunnerListKey(project, workspace);
         RunnerList runnerList = runnerListMapping.get(key);
         if (runnerList == null) {
@@ -445,7 +464,17 @@ public class RunQueue {
         return runnerList.addRunners(toAdd);
     }
 
-    public boolean unregisterRunnerService(RunnerServiceLocation location) throws RemoteException, IOException, RunnerException {
+    /**
+     * Unregister remote SlaveRunnerService.
+     *
+     * @param location
+     *         RunnerServiceLocation
+     * @return {@code true} if set of available Runners changed as result of the call
+     *         if we access remote SlaveRunnerService successfully but get error response
+     * @throws RunnerException
+     *         if other type of error occurs
+     */
+    public boolean unregisterRunnerService(RunnerServiceLocation location) throws RunnerException {
         checkStarted();
         final RemoteRunnerFactory factory = new RemoteRunnerFactory(location.getUrl());
         final List<RemoteRunner> toRemove = new ArrayList<>();
@@ -455,7 +484,7 @@ public class RunQueue {
         return unregisterRunners(toRemove);
     }
 
-    boolean unregisterRunners(List<RemoteRunner> toRemove) {
+    protected boolean unregisterRunners(List<RemoteRunner> toRemove) {
         boolean modified = false;
         for (Iterator<RunnerList> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
             final RunnerList runnerList = i.next();

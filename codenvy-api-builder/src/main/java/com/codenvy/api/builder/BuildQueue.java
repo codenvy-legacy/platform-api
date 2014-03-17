@@ -142,19 +142,15 @@ public class BuildQueue {
     }
 
     /**
-     * Register remote BuildService which can process builds.
+     * Register remote SlaveBuildService which can process builds.
      *
      * @param registration
      *         BuilderServiceRegistration
      * @return {@code true} if set of available Builders changed as result of the call
-     * @throws java.io.IOException
-     *         if any i/o error occurs when try to access remote BuildService
-     * @throws RemoteException
-     *         if we access remote BuildService successfully but get error response
      * @throws BuilderException
-     *         if other type of error occurs
+     *         if an error occurs
      */
-    public boolean registerBuilderService(BuilderServiceRegistration registration) throws IOException, RemoteException, BuilderException {
+    public boolean registerBuilderService(BuilderServiceRegistration registration) throws BuilderException {
         checkStarted();
         String workspace = null;
         String project = null;
@@ -171,7 +167,7 @@ public class BuildQueue {
         return registerBuilders(workspace, project, toAdd);
     }
 
-    boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
+    protected boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
         final BuilderListKey key = new BuilderListKey(project, workspace);
         BuilderList builderList = builderListMapping.get(key);
         if (builderList == null) {
@@ -185,19 +181,15 @@ public class BuildQueue {
     }
 
     /**
-     * Unregister remote BuildService which can process builds.
+     * Unregister remote SlaveBuildService.
      *
      * @param location
      *         BuilderServiceLocation
      * @return {@code true} if set of available Builders changed as result of the call
-     * @throws java.io.IOException
-     *         if any i/o error occurs when try to access remote BuildService
-     * @throws RemoteException
-     *         if we access remote BuildService successfully but get error response
      * @throws BuilderException
-     *         if other type of error occurs
+     *         if an error occurs
      */
-    public boolean unregisterBuilderService(BuilderServiceLocation location) throws RemoteException, IOException, BuilderException {
+    public boolean unregisterBuilderService(BuilderServiceLocation location) throws BuilderException {
         checkStarted();
         final RemoteBuilderFactory factory = new RemoteBuilderFactory(location.getUrl());
         final List<RemoteBuilder> toRemove = new ArrayList<>();
@@ -207,7 +199,7 @@ public class BuildQueue {
         return unregisterBuilders(toRemove);
     }
 
-    boolean unregisterBuilders(List<RemoteBuilder> toRemove) {
+    protected boolean unregisterBuilders(List<RemoteBuilder> toRemove) {
         boolean modified = false;
         for (Iterator<BuilderList> i = builderListMapping.values().iterator(); i.hasNext(); ) {
             final BuilderList builderList = i.next();
@@ -231,13 +223,9 @@ public class BuildQueue {
      * @param serviceContext
      *         ServiceContext
      * @return BuildQueueTask
-     * @throws RemoteException
-     *         if error occurs when try to get info about project or access slave-builder
-     * @throws IOException
-     *         if an i/o error occurs
      */
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
-            throws RemoteException, IOException, BuilderException {
+            throws BuilderException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
@@ -251,10 +239,22 @@ public class BuildQueue {
         }
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
-        final BuilderList builderList = getBuilderList(request);
-        final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
+        final Callable<RemoteTask> callable = createTaskFor(request);
+        final FutureTask<RemoteTask> future = new FutureTask<>(callable);
+        final Long id = sequence.getAndIncrement();
+        request.setId(id);
+        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
+        tasks.put(id, task);
+        purgeExpiredTasks();
+        executor.execute(future);
+        return task;
+    }
+
+    protected Callable<RemoteTask> createTaskFor(final BuildRequest request) {
+        return new Callable<RemoteTask>() {
             @Override
-            public RemoteBuildTask call() throws IOException, RemoteException, BuilderException {
+            public RemoteTask call() throws BuilderException {
+                final BuilderList builderList = getBuilderList(request);
                 final RemoteBuilder builder = builderList.getBuilder(request);
                 if (builder == null) {
                     throw new BuilderException("There is no any builder available. ");
@@ -263,14 +263,6 @@ public class BuildQueue {
                 return builder.perform(request);
             }
         };
-        final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final Long id = sequence.getAndIncrement();
-        request.setId(id);
-        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
-        tasks.put(id, task);
-        purgeExpiredTasks();
-        executor.execute(future);
-        return task;
     }
 
     /**
@@ -285,13 +277,9 @@ public class BuildQueue {
      * @param serviceContext
      *         ServiceContext
      * @return BuildQueueTask
-     * @throws RemoteException
-     *         if error occurs when try to get info about project or access slave-builder
-     * @throws IOException
-     *         if an i/o error occurs
      */
     public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
-            throws RemoteException, IOException, BuilderException {
+            throws BuilderException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
@@ -300,10 +288,22 @@ public class BuildQueue {
                                                                        .withProject(project);
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
-        final BuilderList builderList = getBuilderList(request);
-        final Callable<RemoteBuildTask> callable = new Callable<RemoteBuildTask>() {
+        final Callable<RemoteTask> callable = createTaskFor(request);
+        final FutureTask<RemoteTask> future = new FutureTask<>(callable);
+        final Long id = sequence.getAndIncrement();
+        request.setId(id);
+        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
+        tasks.put(id, task);
+        purgeExpiredTasks();
+        executor.execute(future);
+        return task;
+    }
+
+    protected Callable<RemoteTask> createTaskFor(final DependencyRequest request) {
+        return new Callable<RemoteTask>() {
             @Override
-            public RemoteBuildTask call() throws IOException, RemoteException, BuilderException {
+            public RemoteTask call() throws BuilderException {
+                final BuilderList builderList = getBuilderList(request);
                 final RemoteBuilder builder = builderList.getBuilder(request);
                 if (builder == null) {
                     throw new BuilderException("There is no any builder available. ");
@@ -312,14 +312,6 @@ public class BuildQueue {
                 return builder.perform(request);
             }
         };
-        final FutureTask<RemoteBuildTask> future = new FutureTask<>(callable);
-        final Long id = sequence.getAndIncrement();
-        request.setId(id);
-        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
-        tasks.put(id, task);
-        purgeExpiredTasks();
-        executor.execute(future);
-        return task;
     }
 
     private void addRequestParameters(ProjectDescriptor descriptor, BaseBuilderRequest request) {
@@ -332,7 +324,7 @@ public class BuildQueue {
             }
             request.setBuilder(builder);
         }
-        
+
         request.setProjectUrl(descriptor.getBaseUrl());
 
         final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor);
@@ -378,7 +370,7 @@ public class BuildQueue {
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
-            throws IOException, RemoteException {
+            throws BuilderException {
         final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
                                                  ? serviceContext.getBaseUriBuilder()
                                                  : UriBuilder.fromUri(baseProjectApiUrl);
@@ -386,7 +378,13 @@ public class BuildQueue {
                                                        .path(ProjectService.class, "getProject")
                                                        .build(workspace, project.startsWith("/") ? project.substring(1) : project)
                                                        .toString();
-        return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        try {
+            return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (RemoteException e) {
+            throw new BuilderException(e.getServiceError());
+        }
     }
 
     private BuilderList getBuilderList(BaseBuilderRequest request) throws BuilderException {
@@ -416,7 +414,7 @@ public class BuildQueue {
         return builderList;
     }
 
-    private long getBuildTimeout(BaseBuilderRequest request) {
+    private long getBuildTimeout(BaseBuilderRequest request) throws BuilderException {
         // TODO: calculate in different way for different workspace/project.
         return timeout;
     }
@@ -581,7 +579,7 @@ public class BuildQueue {
                     }
                     SlaveBuilderState builderState;
                     try {
-                        builderState = builder.getRemoteBuilderState();
+                        builderState = builder.getBuilderState();
                     } catch (Exception e) {
                         LOG.error(e.getMessage(), e);
                         ++attemptGetState;

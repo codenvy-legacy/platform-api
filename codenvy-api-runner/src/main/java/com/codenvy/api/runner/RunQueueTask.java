@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.runner;
 
-import com.codenvy.api.core.rest.ProxyResponse;
+import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
@@ -97,15 +97,10 @@ public final class RunQueueTask implements Cancellable {
     /**
      * Get status of this process.
      *
-     * @throws RemoteException
-     *         if an error that we understand occurs when ask remote slave-runner about status
-     * @throws IOException
-     *         if an i/o error occurs when ask remote slave-runner about status
      * @throws RunnerException
-     *         if any other errors
+     *         if an error occurs
      */
-    public ApplicationProcessDescriptor getDescriptor()
-            throws IOException, RemoteException, RunnerException {
+    public ApplicationProcessDescriptor getDescriptor() throws RunnerException {
         if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                              .withProcessId(id)
@@ -138,7 +133,7 @@ public final class RunQueueTask implements Cancellable {
     }
 
     private List<Link> rewriteKnownLinks(List<Link> links) {
-        final List<Link> rewritten = new ArrayList<>(3);
+        final List<Link> rewritten = new ArrayList<>();
         for (Link link : links) {
             if (Constants.LINK_REL_GET_STATUS.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
@@ -174,7 +169,7 @@ public final class RunQueueTask implements Cancellable {
      *
      * @return {@code true} if process was interrupted and {@code false} otherwise
      */
-    public boolean isCancelled() throws IOException, RemoteException, RunnerException {
+    public boolean isCancelled() throws RunnerException {
         return future.isCancelled();
     }
 
@@ -188,7 +183,7 @@ public final class RunQueueTask implements Cancellable {
     }
 
     /** Stop process. */
-    public void stop() throws RemoteException, IOException, RunnerException {
+    public void stop() throws RunnerException {
         if (future.isCancelled()) {
             return;
         }
@@ -200,15 +195,15 @@ public final class RunQueueTask implements Cancellable {
         }
     }
 
-    public void readLogs(ProxyResponse proxyResponse) throws RemoteException, IOException, RunnerException {
+    public void readLogs(OutputProvider output) throws IOException, RunnerException {
         final RemoteRunnerProcess remoteProcess = getRemoteProcess();
         if (remoteProcess == null) {
             throw new RunnerException("Application isn't started yet, logs aren't available");
         }
-        remoteProcess.readLogs(proxyResponse);
+        remoteProcess.readLogs(output);
     }
 
-    private RemoteRunnerProcess getRemoteProcess() throws RemoteException, IOException, RunnerException {
+    private RemoteRunnerProcess getRemoteProcess() throws RunnerException {
         if (!future.isDone()) {
             return null;
         }
@@ -226,9 +221,7 @@ public final class RunQueueTask implements Cancellable {
                 } else if (cause instanceof RunnerException) {
                     throw (RunnerException)cause;
                 } else if (cause instanceof RemoteException) {
-                    throw (RemoteException)cause;
-                } else if (cause instanceof IOException) {
-                    throw (IOException)cause;
+                    throw new RunnerException(((RemoteException)cause).getServiceError());
                 } else {
                     throw new RunnerException(cause.getMessage(), cause);
                 }

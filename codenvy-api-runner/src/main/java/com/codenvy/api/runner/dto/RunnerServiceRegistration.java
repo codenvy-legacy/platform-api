@@ -22,7 +22,7 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Provides info for registration new SlaveRunnerService.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see com.codenvy.api.runner.RunnerAdminService#register(com.codenvy.api.runner.dto.RunnerServiceRegistration)
  */
 @DTO

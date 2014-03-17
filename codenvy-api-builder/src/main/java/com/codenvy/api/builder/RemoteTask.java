@@ -43,7 +43,7 @@ import java.net.URL;
  *
  * @author andrew00x
  */
-public class RemoteTask implements SlaveBuilderTask {
+public class RemoteTask {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteTask.class);
 
     private final String baseUrl;
@@ -59,12 +59,18 @@ public class RemoteTask implements SlaveBuilderTask {
         created = System.currentTimeMillis();
     }
 
-    @Override
+    /** Get date when this remote build task was started. */
     public long getCreationTime() {
         return created;
     }
 
-    @Override
+    /**
+     * Get actual status of remote build process.
+     *
+     * @return status of remote build process
+     * @throws BuilderException
+     *         if an error occurs
+     */
     public BuildTaskDescriptor getBuildTaskDescriptor() throws BuilderException {
         try {
             return HttpJsonHelper.get(BuildTaskDescriptor.class, String.format("%s/status/%s/%d", baseUrl, builder, taskId));
@@ -75,7 +81,13 @@ public class RemoteTask implements SlaveBuilderTask {
         }
     }
 
-    @Override
+    /**
+     * Cancel a remote build process.
+     *
+     * @return status of remote build process after the call
+     * @throws BuilderException
+     *         if an error occurs
+     */
     public BuildTaskDescriptor cancel() throws BuilderException {
         final ValueHolder<BuildTaskDescriptor> holder = new ValueHolder<>();
         final Link link = getLink(Constants.LINK_REL_CANCEL, holder);
@@ -99,7 +111,16 @@ public class RemoteTask implements SlaveBuilderTask {
         }
     }
 
-    @Override
+    /**
+     * Copy logs of build process to specified {@code output}.
+     *
+     * @param output
+     *         output for logs content
+     * @throws IOException
+     *         if an i/o error occurs
+     * @throws BuilderException
+     *         if other error occurs
+     */
     public void readLogs(OutputProvider output) throws IOException, BuilderException {
         final Link link = getLink(Constants.LINK_REL_VIEW_LOG, null);
         if (link == null) {
@@ -108,7 +129,17 @@ public class RemoteTask implements SlaveBuilderTask {
         doRequest(link.getHref(), link.getMethod(), output);
     }
 
-    @Override
+    /**
+     * Copy report file of build process to specified {@code output}.
+     *
+     * @param output
+     *         output for report
+     * @throws IOException
+     *         if an i/o error occurs
+     * @throws BuilderException
+     *         if other error occurs
+     * @see com.codenvy.api.builder.internal.BuildResult#getBuildReport()
+     */
     public void readReport(OutputProvider output) throws IOException, BuilderException {
         final Link link = getLink(Constants.LINK_REL_VIEW_REPORT, null);
         if (link == null) {
@@ -117,7 +148,19 @@ public class RemoteTask implements SlaveBuilderTask {
         doRequest(link.getHref(), link.getMethod(), output);
     }
 
-    @Override
+    /**
+     * Copy file to specified {@code output}.
+     *
+     * @param path
+     *         path to build artifact
+     * @param output
+     *         output for download content
+     * @throws IOException
+     *         if an i/o error occurs
+     * @throws BuilderException
+     *         if other error occurs
+     * @see com.codenvy.api.builder.internal.BuildResult#getResults()
+     */
     public void readFile(String path, OutputProvider output) throws IOException, BuilderException {
         doRequest(String.format("%s/download/%s/%d?path=%s", baseUrl, builder, taskId, path), "GET", output);
     }

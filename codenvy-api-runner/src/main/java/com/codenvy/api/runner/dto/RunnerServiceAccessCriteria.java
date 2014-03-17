@@ -22,7 +22,7 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Resource access criteria. Basically resource may be assigned to {@code workspace}, {@code project} in some workspace.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface RunnerServiceAccessCriteria {

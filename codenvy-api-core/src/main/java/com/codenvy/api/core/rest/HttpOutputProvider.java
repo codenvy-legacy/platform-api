@@ -24,7 +24,16 @@ package com.codenvy.api.core.rest;
  * @author andrew00x
  */
 public interface HttpOutputProvider extends OutputProvider {
+    /** Set HTTP status. */
     void setStatus(int status);
 
+    /**
+     * Add HTTP header.
+     *
+     * @param name
+     *         name of header
+     * @param value
+     *         value of header
+     */
     void addHttpHeader(String name, String value);
 }

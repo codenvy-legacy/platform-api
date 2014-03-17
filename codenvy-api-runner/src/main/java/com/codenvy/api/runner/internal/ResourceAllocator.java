@@ -20,7 +20,7 @@ package com.codenvy.api.runner.internal;
 /**
  * Abstraction for allocation and releasing resources.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface ResourceAllocator {
     /**

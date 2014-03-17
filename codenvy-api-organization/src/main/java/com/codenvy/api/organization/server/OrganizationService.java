@@ -364,7 +364,7 @@ public class OrganizationService extends Service {
             throw new ServiceNotFoundException(subscription.getServiceId());
         }
         organizationDao.addSubscription(subscription, id);
-        service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
+        service.notifyHandlers(new SubscriptionEvent(id, subscription, SubscriptionEvent.EventType.CREATE));
     }
 
     @DELETE
@@ -387,7 +387,7 @@ public class OrganizationService extends Service {
         }
         if (needed != null) {
             organizationDao.removeSubscription(organizationId, serviceId);
-            service.notifyHandlers(new SubscriptionEvent(needed, SubscriptionEvent.EventType.REMOVE));
+            service.notifyHandlers(new SubscriptionEvent(organizationId, needed, SubscriptionEvent.EventType.REMOVE));
         } else {
             throw new SubscriptionNotFoundException(serviceId);
         }

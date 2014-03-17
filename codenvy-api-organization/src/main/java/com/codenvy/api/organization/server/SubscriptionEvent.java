@@ -32,16 +32,12 @@ public class SubscriptionEvent {
 
     private final Subscription subscription;
     private final EventType    eventType;
-    private       String       property;
+    private final String       organizationId;
 
-    public SubscriptionEvent(Subscription subscription, EventType eventType) {
+    public SubscriptionEvent(String organizationId, Subscription subscription, EventType eventType) {
         this.eventType = eventType;
         this.subscription = subscription;
-    }
-
-    public SubscriptionEvent(Subscription subscription, EventType eventType, String property) {
-        this(subscription, eventType);
-        this.property = property;
+        this.organizationId = organizationId;
     }
 
     public Subscription getSubscription() {
@@ -52,7 +48,7 @@ public class SubscriptionEvent {
         return eventType;
     }
 
-    public String getProperty() {
-        return property;
+    public String getOrganizationId() {
+        return organizationId;
     }
 }

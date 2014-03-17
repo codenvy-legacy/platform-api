@@ -17,7 +17,13 @@
  */
 package com.codenvy.api.runner;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Thrown when particular application process (newly created, running or already stopped) is request but isn't available.
+ *
+ * @author andrew00x
+ * @see RunQueue#getTask(Long)
+ * @see com.codenvy.api.runner.internal.Runner#getProcess(Long)
+ */
 @SuppressWarnings("serial")
 public final class NoSuchRunnerTaskException extends RunnerException {
     public NoSuchRunnerTaskException(Long taskId) {

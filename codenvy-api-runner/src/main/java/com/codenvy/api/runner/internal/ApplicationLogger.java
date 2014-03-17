@@ -26,7 +26,7 @@ import java.io.IOException;
  * #writeLine(String)}. Once a ApplicationLogger is closed, any attempt to write new lines upon it will cause a {@link java.io.IOException}
  * to be thrown, but closing should not prevent to get logs with {@link #getLogs(Appendable)}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface ApplicationLogger extends LineConsumer {
     /**

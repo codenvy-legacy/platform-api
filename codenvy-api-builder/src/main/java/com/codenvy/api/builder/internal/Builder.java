@@ -46,6 +46,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -109,7 +110,7 @@ public abstract class Builder {
         this.queueSize = queueSize;
         this.cleanBuildResultDelay = cleanBuildResultDelay;
         this.eventService = eventService;
-        buildListeners = new LinkedHashSet<>();
+        buildListeners = new CopyOnWriteArraySet<>();
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
         cleanerQueue = new ConcurrentLinkedQueue<>();
@@ -123,7 +124,7 @@ public abstract class Builder {
     public abstract String getName();
 
     /**
-     * Returns the description of builder. Description should help client to recognize correct type of builder for an application.
+     * Returns the description of the builder. Description should help client to recognize correct type of builder for an application.
      *
      * @return the description of builder
      */
@@ -165,7 +166,6 @@ public abstract class Builder {
         }
     }
 
-
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
     public synchronized void start() {
@@ -198,7 +198,7 @@ public abstract class Builder {
     }
 
     /**
-     * Stops builder and releases any resources associated with the Builder.
+     * Stops Builder and releases any resources associated with the Builder.
      * <p/>
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
@@ -267,9 +267,7 @@ public abstract class Builder {
      * @return {@code true} if {@code listener} was added
      */
     public boolean addBuildListener(BuildListener listener) {
-        synchronized (buildListeners) {
-            return buildListeners.add(listener);
-        }
+        return buildListeners.add(listener);
     }
 
     /**
@@ -280,9 +278,7 @@ public abstract class Builder {
      * @return {@code true} if {@code listener} was removed
      */
     public boolean removeBuildListener(BuildListener listener) {
-        synchronized (buildListeners) {
-            return buildListeners.remove(listener);
-        }
+        return buildListeners.remove(listener);
     }
 
     /**
@@ -291,9 +287,7 @@ public abstract class Builder {
      * @return all available download plugins
      */
     public Set<BuildListener> getBuildListeners() {
-        synchronized (buildListeners) {
-            return new LinkedHashSet<>(buildListeners);
-        }
+        return new LinkedHashSet<>(buildListeners);
     }
 
     public BuilderConfigurationFactory getBuilderConfigurationFactory() {

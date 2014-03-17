@@ -17,7 +17,12 @@
  */
 package com.codenvy.api.runner;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Thrown when particular Runner is request but isn't available in this environment.
+ *
+ * @author andrew00x
+ * @see com.codenvy.api.runner.internal.SlaveRunnerService
+ */
 @SuppressWarnings("serial")
 public final class NoSuchRunnerException extends RunnerException {
     public NoSuchRunnerException(String name) {

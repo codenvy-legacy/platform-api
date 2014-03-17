@@ -36,9 +36,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,6 +48,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * Super-class for all implementation of Runner.
+ *
  * @author andrew00x
  * @author Eugene Voevodin
  */
@@ -82,20 +83,31 @@ public abstract class Runner {
         this.eventService = eventService;
         processes = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
-        applicationDisposers = new HashMap<>();
+        applicationDisposers = new ConcurrentHashMap<>();
         applicationDisposersLock = new Object();
         runningAppsCounter = new AtomicInteger(0);
         downloadPlugin = new HttpDownloadPlugin();
     }
 
+    /**
+     * Returns the name of the runner. All registered runners should have unique name.
+     *
+     * @return the name of this runner
+     */
     public abstract String getName();
 
+    /**
+     * Returns the description of the runner. Description should help client to recognize correct type of runner for an application.
+     *
+     * @return the description of this runner
+     */
     public abstract String getDescription();
 
+    /** @see com.codenvy.api.runner.internal.RunnerConfiguration */
     public abstract RunnerConfigurationFactory getRunnerConfigurationFactory();
 
-    protected abstract ApplicationProcess newApplicationProcess(DeploymentSources toDeploy,
-                                                                RunnerConfiguration runnerCfg) throws RunnerException;
+    protected abstract ApplicationProcess newApplicationProcess(DeploymentSources toDeploy, RunnerConfiguration runnerCfg)
+            throws RunnerException;
 
     protected ExecutorService getExecutor() {
         return executor;
@@ -105,6 +117,25 @@ public abstract class Runner {
         return eventService;
     }
 
+    private static final DeploymentSourcesValidator ALL_VALID = new DeploymentSourcesValidator() {
+        @Override
+        public boolean isValid(DeploymentSources deployment) {
+            return true;
+        }
+    };
+
+    /**
+     * Get validator for DeploymentSources. By default this method returns validator that does nothing. Sub-classes may override this
+     * method
+     * and provide proper implementation of DeploymentSourcesValidator.
+     *
+     * @return validator for DeploymentSources
+     */
+    protected DeploymentSourcesValidator getDeploymentSourcesValidator() {
+        return ALL_VALID;
+    }
+
+    /** Initialize Runner. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
     public synchronized void start() {
         if (started) {
@@ -123,6 +154,11 @@ public abstract class Runner {
         }
     }
 
+    /**
+     * Stops Runner and releases any resources associated with the Runner.
+     * <p/>
+     * Sub-classes should invoke {@code super.stop} at the end of this method.
+     */
     @PreDestroy
     public synchronized void stop() {
         checkStarted();
@@ -135,13 +171,11 @@ public abstract class Runner {
                 LOG.error(t.getMessage(), t);
             }
         }
-        List<Disposer> allDisposers = new ArrayList<>();
+        List<Disposer> allDisposers = new LinkedList<>();
         synchronized (applicationDisposersLock) {
-            for (List<Disposer> disposerList : applicationDisposers.values()) {
-                if (disposerList != null) {
-                    for (Disposer disposer : disposerList) {
-                        allDisposers.add(disposer);
-                    }
+            for (List<Disposer> disposers : applicationDisposers.values()) {
+                if (disposers != null) {
+                    allDisposers.addAll(disposers);
                 }
             }
             applicationDisposers.clear();
@@ -173,11 +207,25 @@ public abstract class Runner {
         started = false;
     }
 
+    /**
+     * Get root directory for deploy all applications.
+     *
+     * @return root directory for deploy all applications.
+     */
     public java.io.File getDeployDirectory() {
         return deployDirectory;
     }
 
-    public RunnerProcess getProcess(Long id) throws RunnerException {
+    /**
+     * Get process by its {@code id}.
+     *
+     * @param id
+     *         id of process
+     * @return runner process with specified id
+     * @throws NoSuchRunnerTaskException
+     *         if id of RunnerProcess is invalid
+     */
+    public RunnerProcess getProcess(Long id) throws NoSuchRunnerTaskException {
         checkStarted();
         final RunnerProcessEntry wrapper = processes.get(id);
         if (wrapper == null) {
@@ -186,7 +234,7 @@ public abstract class Runner {
         return wrapper.process;
     }
 
-    public RunnerProcess execute(final RunRequest request) throws IOException, RunnerException {
+    public RunnerProcess execute(final RunRequest request) throws RunnerException {
         checkStarted();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final Long internalId = processIdSequence.getAndIncrement();
@@ -221,8 +269,14 @@ public abstract class Runner {
             @Override
             public void run() {
                 try {
-                    final ApplicationProcess realProcess =
-                            newApplicationProcess(downloadApplication(request.getDeploymentSourcesUrl()), runnerCfg);
+                    final DeploymentSources deploymentSources = downloadApplication(request.getDeploymentSourcesUrl());
+                    process.setDeploymentSources(deploymentSources);
+                    if (!getDeploymentSourcesValidator().isValid(deploymentSources)) {
+                        throw new RunnerException(
+                                String.format("Unsupported project. Cannot deploy project %s from workspace %s with runner %s",
+                                              request.getProject(), request.getWorkspace(), getName()));
+                    }
+                    final ApplicationProcess realProcess = newApplicationProcess(deploymentSources, runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
                     watcher.start(process);
@@ -274,11 +328,11 @@ public abstract class Runner {
     protected void registerDisposer(ApplicationProcess application, Disposer disposer) {
         final Long id = application.getId();
         synchronized (applicationDisposersLock) {
-            List<Disposer> disposersList = applicationDisposers.get(id);
-            if (disposersList == null) {
-                applicationDisposers.put(id, disposersList = new ArrayList<>(1));
+            List<Disposer> disposers = applicationDisposers.get(id);
+            if (disposers == null) {
+                applicationDisposers.put(id, disposers = new LinkedList<>());
             }
-            disposersList.add(disposer);
+            disposers.add(0, disposer);
         }
     }
 
@@ -295,22 +349,31 @@ public abstract class Runner {
                     continue; // try next time
                 }
                 i.remove();
-                Disposer[] disposers = null;
+                Disposer[] appDisposers = null;
                 final ApplicationProcess realProcess = next.process.realProcess;
                 if (realProcess != null) {
                     synchronized (applicationDisposersLock) {
-                        final List<Disposer> disposerList = applicationDisposers.remove(realProcess.getId());
-                        if (disposerList != null) {
-                            disposers = disposerList.toArray(new Disposer[disposerList.size()]);
+                        final List<Disposer> disposers = applicationDisposers.remove(realProcess.getId());
+                        if (disposers != null) {
+                            appDisposers = disposers.toArray(new Disposer[disposers.size()]);
                         }
                     }
                 }
-                if (disposers != null) {
-                    for (Disposer disposer : disposers) {
+                if (appDisposers != null) {
+                    for (Disposer disposer : appDisposers) {
                         try {
                             disposer.dispose();
                         } catch (RuntimeException e) {
                             LOG.error(e.getMessage(), e);
+                        }
+                    }
+                }
+                final DeploymentSources deploymentSources = next.process.getDeploymentSources();
+                if (deploymentSources != null) {
+                    final java.io.File file = deploymentSources.getFile();
+                    if (file != null) {
+                        if (!IoUtil.deleteRecursive(file)) {
+                            LOG.warn("Failed delete {}", file);
                         }
                     }
                 }
@@ -336,6 +399,7 @@ public abstract class Runner {
         private long               startTime;
         private long               stopTime;
         private Throwable          error;
+        private DeploymentSources  deploymentSources;
 
         RunnerProcessImpl(Long id, String runner, RunnerConfiguration configuration, Callback callback) {
             this.id = id;
@@ -437,6 +501,14 @@ public abstract class Runner {
             if (realProcess != null) {
                 realProcess.stop();
             }
+        }
+
+        synchronized void setDeploymentSources(DeploymentSources deploymentSources) {
+            this.deploymentSources = deploymentSources;
+        }
+
+        synchronized DeploymentSources getDeploymentSources() {
+            return deploymentSources;
         }
 
         @Override

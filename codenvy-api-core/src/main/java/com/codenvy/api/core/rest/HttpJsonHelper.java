@@ -36,7 +36,7 @@ import java.net.URLEncoder;
 /**
  * Provides helper method to send HTTP requests with JSON content.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class HttpJsonHelper {
 
@@ -199,6 +199,30 @@ public class HttpJsonHelper {
     }
 
     /**
+     * Sends PUT request to specified {@code url}.
+     *
+     * @param dtoInterface
+     *         type of expected response. If server returns some content we try parse it and restore object of the specified type from it.
+     *         Specified interface must be annotated with &#064DTO.
+     * @param url
+     *         URL to send request
+     * @param body
+     *         body of request. Object must implements DTO interface (interface must be annotated with &#064DTO).
+     * @param parameters
+     *         additional query parameters.
+     * @return instance of {@code dtoInterface} which represents JSON response from the server
+     * @throws RemoteException
+     *         if server returns error response in supported JSON format, see {@link ServiceError}
+     * @throws IOException
+     *         if any other error occurs
+     * @see com.codenvy.dto.shared.DTO
+     */
+    public static <DTO> DTO put(Class<DTO> dtoInterface, String url, Object body, Pair<String, ?>... parameters)
+            throws IOException, RemoteException {
+        return request(dtoInterface, url, "PUT", body, parameters);
+    }
+
+    /**
      * Sends OPTIONS request to specified {@code url}.
      *
      * @param dtoInterface
@@ -217,6 +241,27 @@ public class HttpJsonHelper {
      */
     public static <DTO> DTO options(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters) throws IOException, RemoteException {
         return request(dtoInterface, url, "OPTIONS", null, parameters);
+    }
+
+    /**
+     * Sends DELETE request to specified {@code url}.
+     *
+     * @param dtoInterface
+     *         type of expected response. If server returns some content we try parse it and restore object of the specified type from it.
+     *         Specified interface must be annotated with &#064DTO.
+     * @param url
+     *         URL to send request
+     * @param parameters
+     *         additional query parameters.
+     * @return instance of {@code dtoInterface} which represents JSON response from the server
+     * @throws RemoteException
+     *         if server returns error response in supported JSON format, see {@link ServiceError}
+     * @throws IOException
+     *         if any other error occurs
+     * @see com.codenvy.dto.shared.DTO
+     */
+    public static <DTO> DTO delete(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters) throws IOException, RemoteException {
+        return request(dtoInterface, url, "DELETE", null, parameters);
     }
 
     private HttpJsonHelper() {

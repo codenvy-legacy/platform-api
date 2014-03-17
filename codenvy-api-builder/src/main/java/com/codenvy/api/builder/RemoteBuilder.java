@@ -17,10 +17,10 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
@@ -44,13 +44,14 @@ import java.util.List;
  *     RemoteBuilderFactory factory = new RemoteBuilderFactory(baseUrl);
  *     RemoteBuilder builder = factory.getRemoteBuilder(builderName);
  *     BuildRequest request = ...
- *     RemoteBuildTask remote = builder.perform(request);
- *     // do something with RemoteBuildTask
+ *     RemoteTask remote = builder.perform(request);
+ *     // do something with RemoteTask
  *     // e.g. check status
  *     System.out.println(remote.getDescriptor());
  * </pre>
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
+ * @see com.codenvy.api.builder.RemoteBuilderFactory
  */
 public class RemoteBuilder {
     private final String     baseUrl;
@@ -61,8 +62,7 @@ public class RemoteBuilder {
 
     private volatile long lastUsage = -1;
 
-    /* Package visibility, not expected to be created by api users.
-    They should use RemoteBuilderFactory to get an instance of RemoteBuilder. */
+    /* Package visibility, not expected to be created by api users. They should use RemoteBuilderFactory to get an instance of RemoteBuilder. */
     RemoteBuilder(String baseUrl, BuilderDescriptor builderDescriptor, List<Link> links) {
         this.baseUrl = baseUrl;
         name = builderDescriptor.getName();
@@ -78,48 +78,101 @@ public class RemoteBuilder {
         return baseUrl;
     }
 
-    /** @see com.codenvy.api.builder.internal.Builder#getName() */
+    /**
+     * Get name of this builder.
+     *
+     * @return name of this builder
+     * @see com.codenvy.api.builder.internal.Builder#getName()
+     */
     public final String getName() {
         return name;
     }
 
-    /** @see com.codenvy.api.builder.internal.Builder#getDescription() */
+    /**
+     * Get description of this builder.
+     *
+     * @return description of this builder
+     * @see com.codenvy.api.builder.internal.Builder#getDescription()
+     */
     public final String getDescription() {
         return description;
     }
 
+    /**
+     * Get last time of usage of this builder.
+     *
+     * @return last time of usage of this builder
+     */
     public long getLastUsageTime() {
         return lastUsage;
     }
 
-    public RemoteBuildTask perform(BuildRequest request) throws IOException, RemoteException, BuilderException {
+    /**
+     * Stats new build process.
+     *
+     * @param request
+     *         build request
+     * @return build task
+     * @throws BuilderException
+     *         if an error occurs
+     */
+    public RemoteTask perform(BuildRequest request) throws BuilderException {
         final Link link = getLink(Constants.LINK_REL_BUILD);
         if (link == null) {
             throw new BuilderException("Unable get URL for starting remote process");
         }
-        return doRequest(link, request);
+        return perform(link, request);
     }
 
-    public RemoteBuildTask perform(DependencyRequest request) throws IOException, RemoteException, BuilderException {
+    /**
+     * Stats new process of analysis dependencies.
+     *
+     * @param request
+     *         analysis dependencies request
+     * @return analysis dependencies task
+     * @throws BuilderException
+     *         if an error occurs
+     */
+    public RemoteTask perform(DependencyRequest request) throws BuilderException {
         final Link link = getLink(Constants.LINK_REL_DEPENDENCIES_ANALYSIS);
         if (link == null) {
             throw new BuilderException("Unable get URL for starting remote process");
         }
-        return doRequest(link, request);
+        return perform(link, request);
     }
 
-    private RemoteBuildTask doRequest(Link link, BaseBuilderRequest request) throws IOException, RemoteException {
-        final BuildTaskDescriptor build = HttpJsonHelper.request(BuildTaskDescriptor.class, link, request);
+    private RemoteTask perform(Link link, BaseBuilderRequest request) throws BuilderException {
+        final BuildTaskDescriptor build;
+        try {
+            build = HttpJsonHelper.request(BuildTaskDescriptor.class, link, request);
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (RemoteException e) {
+            throw new BuilderException(e.getServiceError());
+        }
         lastUsage = System.currentTimeMillis();
-        return new RemoteBuildTask(baseUrl, request.getBuilder(), build.getTaskId());
+        return new RemoteTask(baseUrl, request.getBuilder(), build.getTaskId());
     }
 
-    public SlaveBuilderState getRemoteBuilderState() throws IOException, RemoteException, BuilderException {
+    /**
+     * Get description of current state of {@link com.codenvy.api.builder.internal.Builder}.
+     *
+     * @return description of current state of {@link com.codenvy.api.builder.internal.Builder}
+     * @throws BuilderException
+     *         if an error occurs
+     */
+    public SlaveBuilderState getBuilderState() throws BuilderException {
         final Link stateLink = getLink(Constants.LINK_REL_BUILDER_STATE);
         if (stateLink == null) {
             throw new BuilderException("Unable get URL for getting state of a remote builder");
         }
-        return HttpJsonHelper.request(SlaveBuilderState.class, stateLink, Pair.of("builder", name));
+        try {
+            return HttpJsonHelper.request(SlaveBuilderState.class, stateLink, Pair.of("builder", name));
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (RemoteException e) {
+            throw new BuilderException(e.getServiceError());
+        }
     }
 
     private Link getLink(String rel) {

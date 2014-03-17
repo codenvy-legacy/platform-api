@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,22 +15,23 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.core.rest;
 
-import com.codenvy.dto.shared.DTO;
+import java.io.IOException;
+import java.io.OutputStream;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@DTO
-public interface ConfigurationParameter {
-    String getName();
-
-    void setName(String name);
-
-    ConfigurationParameter withName(String name);
-
-    String getValue();
-
-    void setValue(String value);
-
-    ConfigurationParameter withValue(String value);
+/**
+ * Factory for writable output.
+ *
+ * @author andrew00x
+ */
+public interface OutputProvider {
+    /**
+     * Get writable output.
+     *
+     * @return writable output
+     * @throws IOException
+     *         if an i/o error occurs
+     */
+    OutputStream getOutputStream() throws IOException;
 }

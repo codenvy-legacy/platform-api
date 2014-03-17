@@ -21,8 +21,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
-public final class HttpServletProxyResponse implements ProxyResponse {
+/** @author andrew00x */
+public final class HttpServletProxyResponse implements HttpOutputProvider {
     private final HttpServletResponse httpServletResponse;
 
     public HttpServletProxyResponse(HttpServletResponse httpServletResponse) {

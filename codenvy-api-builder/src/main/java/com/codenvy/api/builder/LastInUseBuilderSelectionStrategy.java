@@ -30,12 +30,12 @@ import java.util.List;
 @Singleton
 public class LastInUseBuilderSelectionStrategy implements BuilderSelectionStrategy, Comparator<RemoteBuilder> {
     @Override
-    public RemoteBuilder select(List<RemoteBuilder> remoteBuilders) {
-        if (remoteBuilders == null || remoteBuilders.isEmpty()) {
+    public RemoteBuilder select(List<RemoteBuilder> slaveBuilders) {
+        if (slaveBuilders == null || slaveBuilders.isEmpty()) {
             throw new IllegalArgumentException("empty or null list");
         }
-        Collections.sort(remoteBuilders, this);
-        return remoteBuilders.get(0);
+        Collections.sort(slaveBuilders, this);
+        return slaveBuilders.get(0);
     }
 
     @Override

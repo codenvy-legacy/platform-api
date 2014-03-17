@@ -17,19 +17,23 @@
  */
 package com.codenvy.api.core.rest;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 /**
  * Proxies response from remote server to the client. It helps to avoid download response from remote server and resend info to the client.
  * Instead implementation of this interface may pump information from the remote server directly to the client.
  *
  * @author andrew00x
  */
-public interface ProxyResponse {
+public interface HttpOutputProvider extends OutputProvider {
+    /** Set HTTP status. */
     void setStatus(int status);
 
+    /**
+     * Add HTTP header.
+     *
+     * @param name
+     *         name of header
+     * @param value
+     *         value of header
+     */
     void addHttpHeader(String name, String value);
-
-    OutputStream getOutputStream() throws IOException;
 }

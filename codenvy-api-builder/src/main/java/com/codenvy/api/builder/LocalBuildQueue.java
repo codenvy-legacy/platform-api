@@ -46,7 +46,7 @@ import java.util.Set;
 
 /**
  * Implementation of BuildQueue that looks up Builder's on startup. Usage of this class assumes {@link
- * com.codenvy.api.builder.internal.SlaveBuilderService} is deployed on the same host with {@link BuilderService}.
+ * com.codenvy.api.builder.internal.SlaveBuilderService} is deployed on the same host with {@link com.codenvy.api.builder.BuilderService}.
  *
  * @author andrew00x
  */

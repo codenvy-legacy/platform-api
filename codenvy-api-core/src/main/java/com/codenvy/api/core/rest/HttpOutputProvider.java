@@ -15,22 +15,16 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.core.rest;
 
-import com.codenvy.dto.shared.DTO;
+/**
+ * Proxies response from remote server to the client. It helps to avoid download response from remote server and resend info to the client.
+ * Instead implementation of this interface may pump information from the remote server directly to the client.
+ *
+ * @author andrew00x
+ */
+public interface HttpOutputProvider extends OutputProvider {
+    void setStatus(int status);
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@DTO
-public interface ConfigurationParameter {
-    String getName();
-
-    void setName(String name);
-
-    ConfigurationParameter withName(String name);
-
-    String getValue();
-
-    void setValue(String value);
-
-    ConfigurationParameter withValue(String value);
+    void addHttpHeader(String name, String value);
 }

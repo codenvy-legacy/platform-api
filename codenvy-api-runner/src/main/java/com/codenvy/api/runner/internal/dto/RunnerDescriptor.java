@@ -19,8 +19,6 @@ package com.codenvy.api.runner.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
  * Describes of {@link com.codenvy.api.runner.internal.Runner}.
  *
@@ -48,20 +46,6 @@ public interface RunnerDescriptor {
     void setName(String name);
 
     RunnerDescriptor withName(String name);
-
-
-    /**
-     * Get list of programming languages that are supported by particular Runner. Empty list means Runner doesn't have any language
-     * restriction and may be used for launching all types of projects.
-     *
-     * @return list of programming languages that are supported by particular Runner
-     */
-    List<String> getLanguages();
-
-    void setLanguages(List<String> languages);
-
-    RunnerDescriptor withLanguagese(List<String> languages);
-
 
     /**
      * Get optional description of Runner.

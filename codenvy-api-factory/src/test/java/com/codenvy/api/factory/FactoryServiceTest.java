@@ -671,15 +671,15 @@ public class FactoryServiceTest {
                 (Factory.class));
 
         // when, then
-        given().//
+        Response response = given().//
                 expect().//
                 statusCode(200).//
                 contentType(MediaType.TEXT_PLAIN).//
-                body(equalTo("<script type=\"text/javascript\" language=\"javascript\" src=\"" + getServerUrl(context) +
-                             "/factory/resources/embed.js?" + CORRECT_FACTORY_ID + "\"></script>"))
-                .//
-                        when().//
+                when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=html");
+
+        assertEquals(response.body().asString(), "<script type=\"text/javascript\" style=\"null\" src=\"" + getServerUrl(context) +
+                                      "/factory/resources/factory.js?" + CORRECT_FACTORY_ID + "\"></script>");
     }
 
     @Test

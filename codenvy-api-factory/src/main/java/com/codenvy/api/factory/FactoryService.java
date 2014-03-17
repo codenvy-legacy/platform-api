@@ -286,7 +286,7 @@ public class FactoryService extends Service {
             case "url":
                 return SnippetGenerator.generateUrlSnippet(id, uriInfo.getBaseUri());
             case "html":
-                return SnippetGenerator.generateHtmlSnippet(id, uriInfo.getBaseUri());
+                return SnippetGenerator.generateHtmlSnippet(id, factory.getStyle(), uriInfo.getBaseUri());
             case "markdown":
                 return SnippetGenerator
                         .generateMarkdownSnippet(id, factoryStore.getFactoryImages(id, null), factory.getStyle(),

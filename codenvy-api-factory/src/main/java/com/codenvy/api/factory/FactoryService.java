@@ -119,7 +119,6 @@ public class FactoryService extends Service {
                                               "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
-            validator.validateObject(factoryUrl, true);
             if (factoryUrl.getV().equals("1.0")) {
                 throw new FactoryUrlException("Storing of Factory 1.0 is unsupported.");
             }

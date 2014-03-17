@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- * [2012] - [2013] Codenvy, S.A.
- * All Rights Reserved.
- *
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
+ *  All Rights Reserved.
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,18 +15,27 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.shared.dto;
+package com.codenvy.api.vfs.server.observation;
 
-import com.codenvy.dto.shared.DTO;
+/**
+ * @author andrew00x
+ */
+public class RenameEvent extends VirtualFileEvent {
+    private String oldPath;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
-@DTO
-public interface Project extends Folder {
-    String PROJECT_MIME_TYPE = "text/vnd.ideproject+directory";
+    public RenameEvent(String workspaceId, String path, String oldPath) {
+        super(workspaceId, path, ChangeType.RENAMED);
+        this.oldPath = oldPath;
+    }
 
-    String getProjectType();
+    public RenameEvent() {
+    }
 
-    Project withProjectType(String projectType);
+    public String getOldPath() {
+        return oldPath;
+    }
 
-    void setProjectType(String projectType);
+    public void setOldPath(String oldPath) {
+        this.oldPath = oldPath;
+    }
 }

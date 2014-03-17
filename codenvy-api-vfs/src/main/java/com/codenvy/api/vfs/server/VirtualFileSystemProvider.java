@@ -18,7 +18,6 @@
 package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +46,10 @@ public abstract class VirtualFileSystemProvider {
      *
      * @param baseUri
      *         base URI. Virtual filesystem uses it to provide correct links for set of operation with its items
-     * @param listeners
-     *         listeners VirtualFileSystem may notify listeners about changes of its items
      * @return instance of VirtualFileSystem
      * @throws VirtualFileSystemException
      */
-    public abstract VirtualFileSystem newInstance(URI baseUri, EventListenerList listeners) throws VirtualFileSystemException;
+    public abstract VirtualFileSystem newInstance(URI baseUri) throws VirtualFileSystemException;
 
     /**
      * Get mount point of virtual filesystem.

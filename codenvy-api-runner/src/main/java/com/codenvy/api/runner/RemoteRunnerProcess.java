@@ -1,11 +1,15 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.ProxyResponse;
+import com.codenvy.api.core.rest.HttpOutputProvider;
+import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.InputSupplier;
+import com.google.common.io.OutputSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +23,7 @@ import java.net.URL;
 /**
  * Representation of remote application process.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class RemoteRunnerProcess {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteRunnerProcess.class);
@@ -42,28 +46,39 @@ public class RemoteRunnerProcess {
         return created;
     }
 
-    public ApplicationProcessDescriptor getApplicationProcessDescriptor() throws IOException, RemoteException {
-        //"status/{runner}/{id}"
-        return HttpJsonHelper.get(ApplicationProcessDescriptor.class, baseUrl + "/status/" + runner + '/' + processId);
+    public ApplicationProcessDescriptor getApplicationProcessDescriptor() throws RunnerException {
+        try {
+            return HttpJsonHelper.get(ApplicationProcessDescriptor.class, baseUrl + "/status/" + runner + '/' + processId);
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
+        }
     }
 
-    public ApplicationProcessDescriptor stop() throws IOException, RemoteException, RunnerException {
+    public ApplicationProcessDescriptor stop() throws RunnerException {
         final ValueHolder<ApplicationProcessDescriptor> holder = new ValueHolder<>();
         final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_STOP, holder);
         if (link == null) {
             switch (holder.get().getStatus()) {
                 case STOPPED:
                 case CANCELLED:
-                    LOG.info("Can't stop process, status is {}", holder.get().getStatus()); // TODO: debug
+                    LOG.debug("Can't stop process, status is {}", holder.get().getStatus());
                     return holder.get();
                 default:
                     throw new RunnerException("Can't stop application. Link for stop application is not available");
             }
         }
-        return HttpJsonHelper.request(ApplicationProcessDescriptor.class, link);
+        try {
+            return HttpJsonHelper.request(ApplicationProcessDescriptor.class, link);
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
+        }
     }
 
-    public void readLogs(ProxyResponse proxyResponse) throws IOException, RemoteException, RunnerException {
+    public void readLogs(final OutputProvider output) throws IOException, RunnerException {
         final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_VIEW_LOG, null);
         if (link == null) {
             throw new RunnerException("Logs are not available.");
@@ -73,26 +88,33 @@ public class RemoteRunnerProcess {
         conn.setConnectTimeout(30 * 1000);
         conn.setRequestMethod(link.getMethod());
         try {
-            proxyResponse.setStatus(conn.getResponseCode());
-            final String contentType = conn.getContentType();
-            if (contentType != null) {
-                proxyResponse.addHttpHeader("Content-Type", contentType);
-            }
-            final OutputStream proxyOutputStream = proxyResponse.getOutputStream();
-            try (InputStream input = conn.getInputStream()) {
-                byte[] buf = new byte[8192];
-                int n;
-                while ((n = input.read(buf)) > 0) {
-                    proxyOutputStream.write(buf, 0, n);
+            if (output instanceof HttpOutputProvider) {
+                HttpOutputProvider httpOutput = (HttpOutputProvider)output;
+                httpOutput.setStatus(conn.getResponseCode());
+                final String contentType = conn.getContentType();
+                if (contentType != null) {
+                    httpOutput.addHttpHeader("Content-Type", contentType);
                 }
-                proxyOutputStream.flush();
             }
+            ByteStreams.copy(new InputSupplier<InputStream>() {
+                                 @Override
+                                 public InputStream getInput() throws IOException {
+                                     return conn.getInputStream();
+                                 }
+                             },
+                             new OutputSupplier<OutputStream>() {
+                                 @Override
+                                 public OutputStream getOutput() throws IOException {
+                                     return output.getOutputStream();
+                                 }
+                             }
+                            );
         } finally {
             conn.disconnect();
         }
     }
 
-    private Link getLink(String rel, ValueHolder<ApplicationProcessDescriptor> statusHolder) throws IOException, RemoteException {
+    private Link getLink(String rel, ValueHolder<ApplicationProcessDescriptor> statusHolder) throws RunnerException {
         final ApplicationProcessDescriptor descriptor = getApplicationProcessDescriptor();
         if (statusHolder != null) {
             statusHolder.set(descriptor);

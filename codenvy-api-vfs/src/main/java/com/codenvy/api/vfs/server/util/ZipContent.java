@@ -119,23 +119,17 @@ public final class ZipContent {
                 }
             };
 
-            boolean isProject = false;
-
             ZipEntry zipEntry;
             while ((zipEntry = zip.getNextEntry()) != null) {
-                if (".project".equals(zipEntry.getName())) {
-                    isProject = true;
-                } else if (!zipEntry.isDirectory()) {
+                if (!zipEntry.isDirectory()) {
                     while (uncompressedCounter.read(buff) != -1) {
                         // Read full data from stream to be able detect zip-bomb.
                     }
                 }
             }
 
-            return new ZipContent(
-                    inMemory != null ? new ByteArrayInputStream(inMemory) : new DeleteOnCloseFileInputStream(file),
-                    isProject,
-                    file == null);
+            return new ZipContent(inMemory != null ? new ByteArrayInputStream(inMemory) : new DeleteOnCloseFileInputStream(file),
+                                  file == null);
         } finally {
             if (zip != null) {
                 zip.close();
@@ -144,12 +138,10 @@ public final class ZipContent {
     }
 
     public final InputStream zippedData;
-    public final boolean     isProject;
     public final boolean     inMemory;
 
-    private ZipContent(InputStream zippedData, boolean project, boolean inMemory) {
+    private ZipContent(InputStream zippedData, boolean inMemory) {
         this.zippedData = zippedData;
-        isProject = project;
         this.inMemory = inMemory;
     }
 }

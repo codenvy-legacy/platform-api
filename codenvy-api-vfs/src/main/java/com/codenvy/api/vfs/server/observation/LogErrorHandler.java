@@ -21,14 +21,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class LogErrorHandler implements ErrorHandler {
     private static final Logger LOG = LoggerFactory.getLogger(LogErrorHandler.class);
 
     @Override
-    public void onError(ChangeEvent event, Throwable error) {
-        LOG.error("Error processing of event: {} ", event, error);
+    public void onError(VirtualFileEvent event, Throwable error) {
+        LOG.error(String.format("Error processing of event: %s", event), error);
     }
 }
 

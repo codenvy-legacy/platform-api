@@ -135,6 +135,11 @@ public class ProjectDescription {
         }
     }
 
+    /** Set single attribute. New attribute will override exited attribute with the same name. */
+    public void setAttribute(Attribute attribute) {
+        this.attributes.put(attribute.getName(), attribute);
+    }
+
     /** Set project type and attributes. New attributes will override exited attributes with the same names. */
     public void setProjectTypeAndAttributes(ProjectType projectType, List<Attribute> list) {
         setProjectType(projectType);

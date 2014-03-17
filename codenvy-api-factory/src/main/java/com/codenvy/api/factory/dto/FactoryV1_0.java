@@ -110,6 +110,16 @@ public interface FactoryV1_0 {
 
     FactoryV1_0 withAction(String action);
 
+    /**
+     * @return Indicates should .git folder be removed after cloning (allow commit to origin repository)
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "vcsinfo")
+    boolean getVcsinfo();
+
+    void setVcsinfo(boolean vcsinfo);
+
+    FactoryV1_0 withVcsinfo(boolean vcsinfo);
+
     @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "wname", ignoredSince = V1_0, deprecatedSince = V1_1)
     String getWname();

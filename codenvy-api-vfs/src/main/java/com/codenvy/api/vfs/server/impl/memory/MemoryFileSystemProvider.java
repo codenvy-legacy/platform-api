@@ -17,14 +17,14 @@
  */
 package com.codenvy.api.vfs.server.impl.memory;
 
-import com.codenvy.api.vfs.server.search.LuceneSearcherProvider;
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.search.Searcher;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
 import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
+import com.codenvy.api.vfs.server.search.LuceneSearcherProvider;
+import com.codenvy.api.vfs.server.search.Searcher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,33 +48,40 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
         }
     }
 
+    private final String                       workspaceId;
+    private final EventService                 eventService;
+    private final VirtualFileSystemUserContext userContext;
+    private final SimpleLuceneSearcherProvider searcherProvider;
+
     private MemoryMountPoint memoryMountPoint;
 
-    public MemoryFileSystemProvider(String workspaceId) {
+    public MemoryFileSystemProvider(String workspaceId, EventService eventService, VirtualFileSystemUserContext userContext) {
         super(workspaceId);
+        this.workspaceId = workspaceId;
+        this.eventService = eventService;
+        this.userContext = userContext;
+        searcherProvider = new SimpleLuceneSearcherProvider();
     }
 
-    public MemoryFileSystemProvider(String workspaceId, MemoryMountPoint memoryMountPoint) {
-        super(workspaceId);
-        this.memoryMountPoint = memoryMountPoint;
+    public MemoryFileSystemProvider(String workspaceId, EventService eventService) {
+        this(workspaceId, eventService, VirtualFileSystemUserContext.newInstance());
     }
 
     @Override
-    public VirtualFileSystem newInstance(URI baseUri, EventListenerList listeners) throws VirtualFileSystemException {
+    public VirtualFileSystem newInstance(URI baseUri) throws VirtualFileSystemException {
         final MemoryMountPoint memoryMountPoint = (MemoryMountPoint)getMountPoint(true);
         return new MemoryFileSystem(
                 baseUri == null ? URI.create("") : baseUri,
-                listeners,
-                getWorkspaceId(),
-                memoryMountPoint.getUserContext(),
+                workspaceId,
+                userContext,
                 memoryMountPoint,
-                memoryMountPoint.getSearcherProvider());
+                searcherProvider);
     }
 
     @Override
     public MountPoint getMountPoint(boolean create) throws VirtualFileSystemException {
         if (memoryMountPoint == null && create) {
-            memoryMountPoint = new MemoryMountPoint(new SimpleLuceneSearcherProvider(), VirtualFileSystemUserContext.newInstance());
+            memoryMountPoint = new MemoryMountPoint(workspaceId, eventService, searcherProvider, userContext);
         }
         return memoryMountPoint;
     }

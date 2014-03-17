@@ -23,6 +23,7 @@ import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
+import com.google.gson.JsonSyntaxException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +96,12 @@ public class FactoryService extends Service {
             for (Part part : request.getParts()) {
                 String fieldName = part.getName();
                 if (fieldName.equals("factoryUrl")) {
-                    factoryUrl = factoryBuilder.buildEncoded(part.getInputStream());
+                    try {
+                        factoryUrl = factoryBuilder.buildEncoded(part.getInputStream());
+                    } catch (JsonSyntaxException e) {
+                        throw new FactoryUrlException(
+                                "You have provided an invalid JSON.  For more information, please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/");
+                    }
                 } else if (fieldName.equals("image")) {
                     try (InputStream inputStream = part.getInputStream()) {
                         FactoryImage factoryImage =

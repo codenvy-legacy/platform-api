@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- * [2012] - [2013] Codenvy, S.A.
- * All Rights Reserved.
- *
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
+ *  All Rights Reserved.
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,13 +15,14 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.vfs.server.observation;
-
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+package com.codenvy.api.project.server;
 
 /**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * Listener for project events.
+ *
+ * @author andrew00x
+ * @see com.codenvy.api.project.server.ProjectEventService
  */
-public interface EventListener {
-    void handleEvent(ChangeEvent event) throws VirtualFileSystemException;
+public interface ProjectEventListener {
+    void onEvent(ProjectEvent event);
 }

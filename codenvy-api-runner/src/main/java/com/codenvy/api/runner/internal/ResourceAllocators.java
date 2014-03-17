@@ -38,7 +38,7 @@ import java.util.concurrent.Semaphore;
  *     }
  * </pre>
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @Singleton
 public class ResourceAllocators {

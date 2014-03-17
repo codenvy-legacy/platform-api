@@ -120,4 +120,15 @@ public class LocalOrganizationDaoImpl implements OrganizationDao {
                              DtoFactory.getInstance().createDto(Member.class).withOrganizationId(organizationId)
                                        .withUserId("userId112233322239").withRoles(Arrays.asList("organization/member")));
     }
+
+    @Override
+    public List<Organization> getByMember(String userId) throws OrganizationException {
+        return Arrays.asList(DtoFactory.getInstance().createDto(Organization.class)
+                                       .withName("org_name")
+                                       .withId("org0xffaassdeereqWsss")
+                                       .withOwner("owner")
+                                       .withAttributes(Arrays.asList(
+                                               DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
+                                                         .withDescription("important attribute"))));
+    }
 }

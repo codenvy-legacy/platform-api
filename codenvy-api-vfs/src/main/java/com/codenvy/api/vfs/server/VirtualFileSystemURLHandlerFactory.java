@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.observation.EventListenerList;
-
 import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;
 
@@ -32,25 +30,6 @@ public final class VirtualFileSystemURLHandlerFactory implements URLStreamHandle
 
     private final VirtualFileSystemRegistry registry;
 
-    private final EventListenerList listeners;
-
-    /**
-     * @param delegate
-     *         factory which we should ask to create URLStreamHandler if current factory does not support
-     *         requested protocol.
-     * @param registry
-     *         set of all available virtual file systems
-     * @param listeners
-     *         EventListenerList
-     */
-    public VirtualFileSystemURLHandlerFactory(URLStreamHandlerFactory delegate,
-                                              VirtualFileSystemRegistry registry,
-                                              EventListenerList listeners) {
-        this.delegate = delegate;
-        this.registry = registry;
-        this.listeners = listeners;
-    }
-
     /**
      * @param delegate
      *         factory which we should ask to create URLStreamHandler if current factory does not support
@@ -59,14 +38,15 @@ public final class VirtualFileSystemURLHandlerFactory implements URLStreamHandle
      *         set of all available virtual file systems
      */
     public VirtualFileSystemURLHandlerFactory(URLStreamHandlerFactory delegate, VirtualFileSystemRegistry registry) {
-        this(delegate, registry, null);
+        this.delegate = delegate;
+        this.registry = registry;
     }
 
     /** @see java.net.URLStreamHandlerFactory#createURLStreamHandler(java.lang.String) */
     @Override
     public URLStreamHandler createURLStreamHandler(String protocol) {
         if ("ide+vfs".equals(protocol)) {
-            return new VirtualFileSystemResourceHandler(registry, listeners);
+            return new VirtualFileSystemResourceHandler(registry);
         } else if (delegate != null) {
             delegate.createURLStreamHandler(protocol);
         }

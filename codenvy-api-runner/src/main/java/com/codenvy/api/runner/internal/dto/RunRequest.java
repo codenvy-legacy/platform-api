@@ -29,6 +29,12 @@ import java.util.Map;
  */
 @DTO
 public interface RunRequest {
+    long getId();
+
+    void setId(long id);
+
+    RunRequest withId(long id);
+
     /** Location of deployment sources. Deployment sources typically points to zip bundle of application that is ready to run. */
     String getDeploymentSourcesUrl();
 
@@ -93,10 +99,4 @@ public interface RunRequest {
     void setProject(String project);
 
     RunRequest withProject(String project);
-
-    String getWebHookUrl();
-
-    RunRequest withWebHookUrl(String url);
-
-    void setWebHookUrl(String url);
 }

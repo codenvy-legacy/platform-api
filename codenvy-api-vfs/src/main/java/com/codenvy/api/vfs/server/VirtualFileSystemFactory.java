@@ -18,7 +18,6 @@
 package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import javax.annotation.Nullable;
@@ -47,9 +46,6 @@ public class VirtualFileSystemFactory {
     private VirtualFileSystemRegistry registry;
     @Inject
     @Nullable
-    private EventListenerList         listeners;
-    @Inject
-    @Nullable
     private RequestValidator          requestValidator;
     @Context
     private HttpServletRequest        request;
@@ -63,7 +59,7 @@ public class VirtualFileSystemFactory {
         validateRequest();
         //final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
         VirtualFileSystemProvider provider = registry.getProvider(vfsId);
-        return provider.newInstance(uriInfo.getBaseUri(), listeners);
+        return provider.newInstance(uriInfo.getBaseUri());
     }
 
     @GET
@@ -74,7 +70,7 @@ public class VirtualFileSystemFactory {
         final List<VirtualFileSystemInfo> result = new ArrayList<>(vfsProviders.size());
         final URI baseUri = uriInfo.getBaseUri();
         for (VirtualFileSystemProvider p : vfsProviders) {
-            VirtualFileSystem fs = p.newInstance(baseUri, listeners);
+            VirtualFileSystem fs = p.newInstance(baseUri);
             result.add(fs.getInfo());
         }
         return result;

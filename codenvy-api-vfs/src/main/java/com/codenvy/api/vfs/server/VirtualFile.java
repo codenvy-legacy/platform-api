@@ -81,7 +81,7 @@ public interface VirtualFile extends Comparable<VirtualFile> {
     boolean isRoot() throws VirtualFileSystemException;
 
     /**
-     * Tests whether this VirtualFile is a regular file (not folder of project).
+     * Tests whether this VirtualFile is a regular file.
      *
      * @throws VirtualFileSystemException
      *         if an error occurs
@@ -95,15 +95,6 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      *         if an error occurs
      */
     boolean isFolder() throws VirtualFileSystemException;
-
-    /**
-     * Tests whether this VirtualFile is a project. Project is a special type of folder. If this method returns <code>true</code> then
-     * {@link #isFolder()} should return <code>true</code>
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
-     */
-    boolean isProject() throws VirtualFileSystemException;
 
     /**
      * Get parent folder. If this folder is root folder this method always returns <code>null</code>.
@@ -143,7 +134,7 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      *
      * @return content ot he file
      * @throws VirtualFileSystemException
-     *         if this VirtualFile denotes folder of project or other error occurs
+     *         if this VirtualFile denotes folder or other error occurs
      * @see #isFile()
      */
     ContentStream getContent() throws VirtualFileSystemException;
@@ -498,25 +489,6 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      *         if this VirtualFile does not denote a folder or other error occurs
      */
     VirtualFile createFolder(String name) throws VirtualFileSystemException;
-
-    /**
-     * Create new VirtualFile which denotes project and use this one as parent folder. Typically projects may be created in root folder or
-     * as child of other project. Implementation may throw {@link com.codenvy.api.vfs.server.exceptions.ConstraintException} if this
-     * constraint is violated.
-     *
-     * @param name
-     *         name
-     * @param properties
-     *         properties of project
-     * @return newly create VirtualFile
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission for this VirtualFile
-     * @throws com.codenvy.api.vfs.server.exceptions.ConstraintException
-     *         if project may not be created in this parent
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile does not denote a folder or other error occurs
-     */
-    VirtualFile createProject(String name, List<Property> properties) throws VirtualFileSystemException;
 
     /**
      * Get {@link MountPoint} to which this VirtualFile belongs.

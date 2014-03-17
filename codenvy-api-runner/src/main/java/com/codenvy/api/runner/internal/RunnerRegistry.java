@@ -55,6 +55,9 @@ public class RunnerRegistry {
      * @return {@code Runner} or {@code null} if there is no such {@code Runner}
      */
     public Runner get(String name) {
+        if (name == null) {
+            return null;
+        }
         return runners.get(name);
     }
 
@@ -66,6 +69,9 @@ public class RunnerRegistry {
      * @return {@code Runner} or {@code null} if there is no such {@code Runner}
      */
     public Runner remove(String name) {
+        if (name == null) {
+            return null;
+        }
         return runners.get(name);
     }
 

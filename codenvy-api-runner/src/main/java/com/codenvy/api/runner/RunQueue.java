@@ -39,6 +39,7 @@ import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
@@ -65,6 +66,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author andrew00x
@@ -77,6 +79,8 @@ public class RunQueue {
     /** Pause in milliseconds for checking the result of build process. */
     private static final long CHECK_BUILD_RESULT_DELAY     = 2000;
     private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
+
+    private static final AtomicLong sequence = new AtomicLong(1);
 
     private final RunnerSelectionStrategy                  runnerSelector;
     private final ExecutorService                          executor;
@@ -126,8 +130,7 @@ public class RunQueue {
         runnerListMapping = new ConcurrentHashMap<>();
     }
 
-    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions options)
-            throws IOException, RemoteException, RunnerException {
+    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions options) throws RunnerException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
@@ -147,15 +150,19 @@ public class RunQueue {
             || descriptor.getAttributes().get(com.codenvy.api.builder.internal.Constants.BUILDER_NAME) != null) {
             LOG.debug("Need build project first");
             final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(workspace, serviceContext);
-            final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
-            if (buildLink == null) {
-                throw new RunnerException("Unable get URL for starting build of the application");
-            }
             // schedule build
-            final BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
-                                                                               buildLink,
-                                                                               buildOptions,
-                                                                               Pair.of("project", project));
+            final BuildTaskDescriptor buildDescriptor;
+            try {
+                final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
+                if (buildLink == null) {
+                    throw new RunnerException("Unable get URL for starting build of the application");
+                }
+                buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
+            } catch (IOException e) {
+                throw new RunnerException(e);
+            } catch (RemoteException e) {
+                throw new RunnerException(e.getServiceError());
+            }
             callable = createTaskFor(buildDescriptor, request);
         } else {
             final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor);
@@ -164,12 +171,12 @@ public class RunQueue {
             }
             callable = createTaskFor(null, request);
         }
-        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(callable);
-        final RunQueueTask task = new RunQueueTask(request, future);
-        request.setWebHookUrl(serviceContext.getServiceUriBuilder().path(RunnerService.class, "webhook").build(workspace,
-                                                                                                               task.getId()).toString());
+        final FutureTask<RemoteRunnerProcess> future = new FutureTask<>(ThreadLocalPropagateContext.wrap(callable));
+        final Long id = sequence.getAndIncrement();
+        request.setId(id); // for getting callback events from remote runner
+        final RunQueueTask task = new RunQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         purgeExpiredTasks();
-        tasks.put(task.getId(), task);
+        tasks.put(id, task);
         executor.execute(future);
         return task;
     }
@@ -184,7 +191,7 @@ public class RunQueue {
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
-            throws IOException, RemoteException {
+            throws RunnerException {
         final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
                                                  ? serviceContext.getBaseUriBuilder()
                                                  : UriBuilder.fromUri(baseProjectApiUrl);
@@ -192,7 +199,13 @@ public class RunQueue {
                                                        .path(ProjectService.class, "getProject")
                                                        .build(workspace, project.startsWith("/") ? project.substring(1) : project)
                                                        .toString();
-        return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        try {
+            return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
+        }
     }
 
     private RemoteServiceDescriptor getBuilderServiceDescriptor(String workspace, ServiceContext serviceContext) {
@@ -250,7 +263,7 @@ public class RunQueue {
         }
     }
 
-    private Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor, final RunRequest request) {
+    protected Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor, final RunRequest request) {
         return new Callable<RemoteRunnerProcess>() {
             @Override
             public RemoteRunnerProcess call() throws Exception {
@@ -375,6 +388,10 @@ public class RunQueue {
         return task;
     }
 
+    public List<RunQueueTask> getTasks() {
+        return new ArrayList<>(tasks.values());
+    }
+
     @PostConstruct
     public synchronized void start() {
         if (started) {
@@ -406,7 +423,17 @@ public class RunQueue {
         started = false;
     }
 
-    public boolean registerRunnerService(RunnerServiceRegistration registration) throws RemoteException, IOException, RunnerException {
+    /**
+     * Register remote SlaveRunnerService which can process run application.
+     *
+     * @param registration
+     *         RunnerServiceRegistration
+     * @return {@code true} if set of available Runners changed as result of the call
+     *         if we access remote SlaveRunnerService successfully but get error response
+     * @throws RunnerException
+     *         if other type of error occurs
+     */
+    public boolean registerRunnerService(RunnerServiceRegistration registration) throws RunnerException {
         checkStarted();
         String workspace = null;
         String project = null;
@@ -424,7 +451,7 @@ public class RunQueue {
         return registerRunners(workspace, project, toAdd);
     }
 
-    boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {
+    protected boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {
         final RunnerListKey key = new RunnerListKey(project, workspace);
         RunnerList runnerList = runnerListMapping.get(key);
         if (runnerList == null) {
@@ -437,7 +464,17 @@ public class RunQueue {
         return runnerList.addRunners(toAdd);
     }
 
-    public boolean unregisterRunnerService(RunnerServiceLocation location) throws RemoteException, IOException, RunnerException {
+    /**
+     * Unregister remote SlaveRunnerService.
+     *
+     * @param location
+     *         RunnerServiceLocation
+     * @return {@code true} if set of available Runners changed as result of the call
+     *         if we access remote SlaveRunnerService successfully but get error response
+     * @throws RunnerException
+     *         if other type of error occurs
+     */
+    public boolean unregisterRunnerService(RunnerServiceLocation location) throws RunnerException {
         checkStarted();
         final RemoteRunnerFactory factory = new RemoteRunnerFactory(location.getUrl());
         final List<RemoteRunner> toRemove = new ArrayList<>();
@@ -447,7 +484,7 @@ public class RunQueue {
         return unregisterRunners(toRemove);
     }
 
-    boolean unregisterRunners(List<RemoteRunner> toRemove) {
+    protected boolean unregisterRunners(List<RemoteRunner> toRemove) {
         boolean modified = false;
         for (Iterator<RunnerList> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
             final RunnerList runnerList = i.next();
@@ -501,6 +538,79 @@ public class RunQueue {
         LOG.debug("Use slave runner {} at {}", runner.getName(), runner.getBaseUrl());
         return runner;
     }
+
+//    private class WebSocketEventBusProvider {
+//        private final String                                  channel          = "runner:internal:eventbus";
+//        private final MessageConverter                        messageConverter = new JsonMessageConverter();
+//        private final ConcurrentMap<String, Future<WSClient>> busMap           = new ConcurrentHashMap<>();
+//
+//        WSClient openEventBus(final String remoteRunnerBaseUrl) throws IOException, InterruptedException {
+//            Future<WSClient> busFuture = busMap.get(remoteRunnerBaseUrl);
+//            if (busFuture == null) {
+//                LOG.debug("Not found EventBus for '{}'. Create new one. ", remoteRunnerBaseUrl);
+//                FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
+//                    @Override
+//                    public WSClient call() throws IOException, MessageConversionException {
+//                        final UriBuilder uriBuilder = UriBuilder.fromUri(remoteRunnerBaseUrl);
+//                        uriBuilder.scheme("ws").replacePath("/api/ws/");
+//                        WSClient bus = new WSClient(uriBuilder.build(), new BaseClientMessageListener() {
+//                            @Override
+//                            public void onClose(int status, String message) {
+//                                busMap.remove(remoteRunnerBaseUrl);
+//                            }
+//
+//                            @Override
+//                            public void onMessage(String data) {
+//                                CallbackEvent event = null;
+//                                try {
+//                                    final String body = messageConverter.fromString(data, RESTfulOutputMessage.class).getBody();
+//                                    event = DtoFactory.getInstance().createDtoFromJson(body, CallbackEvent.class);
+//                                } catch (Exception e) {
+//                                    LOG.error(e.getMessage(), e);
+//                                }
+//                                if (event != null) {
+//                                    for (RunnerCallbackListener listener : callbackListeners) {
+//                                        try {
+//                                            listener.handleEvent(event);
+//                                        } catch (Throwable e) {
+//                                            LOG.error(e.getMessage(), e);
+//                                        }
+//                                    }
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void onOpen(WSClient client) {
+//                                LOG.debug("EventBus for '{}' is created. ", remoteRunnerBaseUrl);
+//                            }
+//                        });
+//                        bus.connect(2000);
+//                        bus.send(messageConverter.toString(
+//                                RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel)));
+//                        return bus;
+//                    }
+//                });
+//                busFuture = busMap.putIfAbsent(remoteRunnerBaseUrl, newFuture);
+//                if (busFuture == null) {
+//                    busFuture = newFuture;
+//                    newFuture.run();
+//                }
+//            }
+//            try {
+//                return busFuture.get();
+//            } catch (ExecutionException e) {
+//                final Throwable cause = e.getCause();
+//                if (cause instanceof Error) {
+//                    throw (Error)cause;
+//                } else if (cause instanceof RuntimeException) {
+//                    throw (RuntimeException)cause;
+//                } else if (cause instanceof IOException) {
+//                    throw (IOException)cause;
+//                }
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
 
     private static class RunnerListKey {
         final String project;

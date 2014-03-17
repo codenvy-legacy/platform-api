@@ -19,7 +19,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.everrest.core.impl.ContainerResponse;
@@ -27,14 +26,13 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class UpdateContentTest extends MemoryFileSystemTest {
     private String fileId;
     private String folderId;
@@ -44,11 +42,11 @@ public class UpdateContentTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile updateContentTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
-        VirtualFile file = updateContentTestProject.createFile("UpdateContentTest_FILE", "text/plain",
-                                                               new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        VirtualFile updateContentTestFolder = mountPoint.getRoot().createFolder(name);
+        VirtualFile file = updateContentTestFolder.createFile("UpdateContentTest_FILE", "text/plain",
+                                                              new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
-        VirtualFile folder = updateContentTestProject.createFolder("UpdateContentTest_FOLDER");
+        VirtualFile folder = updateContentTestFolder.createFolder("UpdateContentTest_FOLDER");
         folderId = folder.getId();
     }
 

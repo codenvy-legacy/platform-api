@@ -21,22 +21,20 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class RenameTest extends MemoryFileSystemTest {
-    private VirtualFile renameTestProject;
+    private VirtualFile renameTestFolder;
     private String      fileId;
     private String      folderId;
     private VirtualFile file;
@@ -46,12 +44,12 @@ public class RenameTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        renameTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        renameTestFolder = mountPoint.getRoot().createFolder(name);
 
-        folder = renameTestProject.createFolder("RenameFileTest_FOLDER");
+        folder = renameTestFolder.createFolder("RenameFileTest_FOLDER");
         folderId = folder.getId();
 
-        file = renameTestProject.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        file = renameTestFolder.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
     }
 
@@ -61,7 +59,7 @@ public class RenameTest extends MemoryFileSystemTest {
         String originPath = file.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = renameTestProject.getPath() + '/' + "_FILE_NEW_NAME_";
+        String expectedPath = renameTestFolder.getPath() + '/' + "_FILE_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be renamed. ");
@@ -77,7 +75,7 @@ public class RenameTest extends MemoryFileSystemTest {
     }
 
     public void testRenameFileAlreadyExists() throws Exception {
-        renameTestProject.createFile("_FILE_NEW_NAME_", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        renameTestFolder.createFile("_FILE_NEW_NAME_", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         String path = SERVICE_URI + "rename/" + fileId + '?' + "newname=" + "_FILE_NEW_NAME_" + '&' + "mediaType=" +
                       "text/*;charset=ISO-8859-1";
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
@@ -92,7 +90,7 @@ public class RenameTest extends MemoryFileSystemTest {
         String originPath = file.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = renameTestProject.getPath() + '/' + "_FILE_NEW_NAME_";
+        String expectedPath = renameTestFolder.getPath() + '/' + "_FILE_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be renamed. ");
@@ -114,7 +112,7 @@ public class RenameTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         assertEquals(423, response.getStatus());
         log.info(new String(writer.getBody()));
-        String expectedPath = renameTestProject.getPath() + '/' + "_FILE_NEW_NAME_";
+        String expectedPath = renameTestFolder.getPath() + '/' + "_FILE_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -141,7 +139,7 @@ public class RenameTest extends MemoryFileSystemTest {
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
-        String expectedPath = renameTestProject.getPath() + '/' + "_FILE_NEW_NAME_";
+        String expectedPath = renameTestFolder.getPath() + '/' + "_FILE_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -159,7 +157,7 @@ public class RenameTest extends MemoryFileSystemTest {
         String originPath = folder.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = renameTestProject.getPath() + '/' + "_FOLDER_NEW_NAME_";
+        String expectedPath = renameTestFolder.getPath() + '/' + "_FOLDER_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
             fail("Folder must be renamed. ");
@@ -178,7 +176,7 @@ public class RenameTest extends MemoryFileSystemTest {
         String originPath = folder.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(423, response.getStatus());
-        String expectedPath = renameTestProject.getPath() + '/' + "_FOLDER_NEW_NAME_";
+        String expectedPath = renameTestFolder.getPath() + '/' + "_FOLDER_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -204,7 +202,7 @@ public class RenameTest extends MemoryFileSystemTest {
         String originPath = folder.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(403, response.getStatus());
-        String expectedPath = renameTestProject.getPath() + '/' + "_FOLDER_NEW_NAME_";
+        String expectedPath = renameTestFolder.getPath() + '/' + "_FOLDER_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -215,26 +213,5 @@ public class RenameTest extends MemoryFileSystemTest {
             fail("Folder must not be renamed since permissions restriction. ");
         } catch (ItemNotFoundException e) {
         }
-    }
-
-    public void testConvertFolder() throws Exception {
-        String path = SERVICE_URI + "rename/" + folderId + '?' + "newname=" + "_FOLDER_NEW_NAME_" +
-                      '&' + "mediaType=" + "text/vnd.ideproject%2Bdirectory";
-        String originPath = folder.getPath();
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(200, response.getStatus());
-        String expectedPath = renameTestProject.getPath() + '/' + "_FOLDER_NEW_NAME_";
-        try {
-            mountPoint.getVirtualFile(originPath);
-            fail("Folder must be renamed. ");
-        } catch (ItemNotFoundException e) {
-        }
-        try {
-            mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
-            fail("Can't folder file after rename. ");
-        }
-        VirtualFile folder = mountPoint.getVirtualFile(expectedPath);
-        assertTrue("Regular folder must be converted to project. ", folder.isProject());
     }
 }

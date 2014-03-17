@@ -19,7 +19,12 @@ package com.codenvy.api.runner.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Describes debug mode of an application.
+ *
+ * @author andrew00x
+ * @see #getMode()
+ */
 @DTO
 public interface DebugMode {
     /** Debugger mode. If {@code null} Runner uses default debug mode. Default mode depends to Runner implementation. */

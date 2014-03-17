@@ -106,51 +106,61 @@ public interface OrganizationDao {
     /**
      * Removes member from existing organization
      *
-     * @param accountId
+     * @param organizationId
      *         organization identifier
      * @param userId
      *         user identifier
      * @throws com.codenvy.api.organization.server.exception.OrganizationException
      */
-    void removeMember(String accountId, String userId) throws OrganizationException;
+    void removeMember(String organizationId, String userId) throws OrganizationException;
 
     /**
      * Adds new subscription to organization that already exists in persistent layer
      *
      * @param subscription
      *         subscription POJO
-     * @param accountId
+     * @param organizationId
      *         organization identifier
      * @throws com.codenvy.api.organization.server.exception.OrganizationException
      */
-    void addSubscription(Subscription subscription, String accountId) throws OrganizationException;
+    void addSubscription(Subscription subscription, String organizationId) throws OrganizationException;
 
     /**
      * Remove subscription related to existing organization
      *
      * @param serviceId
      *         service identifier
-     * @param accountId
+     * @param organizationId
      *         organization identifier
      * @throws com.codenvy.api.organization.server.exception.OrganizationException
      */
-    void removeSubscription(String accountId, String serviceId) throws OrganizationException;
+    void removeSubscription(String organizationId, String serviceId) throws OrganizationException;
 
     /**
      * Gets list of existing in persistent layer subscriptions related to given organization
      *
-     * @param accountId
+     * @param organizationId
      *         organization id
      * @return list of subscriptions
      */
-    List<Subscription> getSubscriptions(String accountId) throws OrganizationException;
+    List<Subscription> getSubscriptions(String organizationId) throws OrganizationException;
 
     /**
      * Gets list of existing in persistent layer members related to given organization
      *
-     * @param accountId
+     * @param organizationId
      *         organization id
      * @return list of members
      */
-    List<Member> getMembers(String accountId) throws OrganizationException;
+    List<Member> getMembers(String organizationId) throws OrganizationException;
+
+    /**
+     * Gets list of existing in persistent layer Organizations where given member is member
+     *
+     * @param userId
+     *         user identifier to search
+     * @return list of organizations
+     * @throws com.codenvy.api.organization.server.exception.OrganizationException
+     */
+    public List<Organization> getByMember(String userId) throws OrganizationException;
 }

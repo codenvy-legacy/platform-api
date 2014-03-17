@@ -51,17 +51,17 @@ public abstract class SubscriptionService {
         switch (event.getEventType()) {
             case CREATE:
                 for (SubscriptionHandler handler : handlers) {
-                    handler.onCreateSubscription(event.getSubscription());
+                    handler.onCreateSubscription(event);
                 }
                 break;
             case REMOVE:
                 for (SubscriptionHandler handler : handlers) {
-                    handler.onRemoveSubscription(event.getSubscription());
+                    handler.onRemoveSubscription(event);
                 }
                 break;
             case CHANGE:
                 for (SubscriptionHandler handler : handlers) {
-                    handler.onCheckSubscription(event.getSubscription(), event.getProperty());
+                    handler.onCheckSubscription(event);
                 }
                 break;
             default:

@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.observation.EventListenerList;
-
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -27,24 +25,22 @@ import java.net.URLStreamHandler;
 /**
  * URLStreamHandler for 'ide+vfs' protocol.
  *
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class VirtualFileSystemResourceHandler extends URLStreamHandler {
     private final VirtualFileSystemRegistry registry;
-    private final EventListenerList         listeners;
 
     /**
      * @param registry
      *         virtual file system registry
      */
-    public VirtualFileSystemResourceHandler(VirtualFileSystemRegistry registry, EventListenerList listeners) {
+    public VirtualFileSystemResourceHandler(VirtualFileSystemRegistry registry) {
         this.registry = registry;
-        this.listeners = listeners;
     }
 
     /** @see java.net.URLStreamHandler#openConnection(java.net.URL) */
     @Override
     protected URLConnection openConnection(URL url) throws IOException {
-        return new VirtualFileSystemURLConnection(url, registry, listeners);
+        return new VirtualFileSystemURLConnection(url, registry);
     }
 }

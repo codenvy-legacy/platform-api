@@ -20,7 +20,6 @@ package com.codenvy.api.vfs.server.impl.memory;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
@@ -30,14 +29,13 @@ import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class GetACLTest extends MemoryFileSystemTest {
     private VirtualFile file;
     private String      fileId;
@@ -46,9 +44,9 @@ public class GetACLTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile getAclTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile getAclTestFolder = mountPoint.getRoot().createFolder(name);
 
-        file = getAclTestProject.createFile(name, "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        file = getAclTestFolder.createFile(name, "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
 
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);

@@ -26,6 +26,7 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -38,11 +39,11 @@ import javax.ws.rs.core.Response;
 /**
  * Builder admin API.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @Path("builder/admin")
 @Description("Builder API")
-//@RolesAllowed("cloud/admin")
+@RolesAllowed("cloud/admin")
 public class BuilderAdminService extends Service {
     @Inject
     private BuildQueue buildQueue;

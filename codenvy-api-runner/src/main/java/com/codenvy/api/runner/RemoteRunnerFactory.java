@@ -27,31 +27,53 @@ import com.codenvy.api.runner.internal.dto.RunnerList;
 import java.io.IOException;
 import java.util.List;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Factory for RemoteRunner. See {@link RemoteRunner} about usage of this class.
+ *
+ * @author andrew00x
+ */
 public class RemoteRunnerFactory extends RemoteServiceDescriptor {
 
     public RemoteRunnerFactory(String baseUrl) {
         super(baseUrl);
     }
 
-    public RemoteRunner getRemoteRunner(String name) throws IOException, RemoteException, RunnerException {
-        for (RunnerDescriptor runnerDescriptor : getAvailableRunners()) {
-            if (name.equals(runnerDescriptor.getName())) {
-                return new RemoteRunner(baseUrl, runnerDescriptor, getLinks());
+    public RemoteRunner getRemoteRunner(String name) throws RunnerException {
+        try {
+            for (RunnerDescriptor runnerDescriptor : getAvailableRunners()) {
+                if (name.equals(runnerDescriptor.getName())) {
+                    return new RemoteRunner(baseUrl, runnerDescriptor, getLinks());
+                }
             }
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
         }
         throw new RunnerException(String.format("Invalid runner name %s", name));
     }
 
-    public RemoteRunner createRemoteRunner(RunnerDescriptor descriptor) throws IOException, RemoteException {
-        return new RemoteRunner(baseUrl, descriptor, getLinks());
+    public RemoteRunner createRemoteRunner(RunnerDescriptor descriptor) throws RunnerException {
+        try {
+            return new RemoteRunner(baseUrl, descriptor, getLinks());
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
+        }
     }
 
-    public List<RunnerDescriptor> getAvailableRunners() throws IOException, RemoteException, RunnerException {
-        final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_AVAILABLE_RUNNERS);
-        if (link == null) {
-            throw new RunnerException("Unable get URL for retrieving list of remote runners");
+    public List<RunnerDescriptor> getAvailableRunners() throws RunnerException {
+        try {
+            final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_AVAILABLE_RUNNERS);
+            if (link == null) {
+                throw new RunnerException("Unable get URL for retrieving list of remote runners");
+            }
+            return HttpJsonHelper.request(RunnerList.class, link).getRunners();
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
         }
-        return HttpJsonHelper.request(RunnerList.class, link).getRunners();
     }
 }

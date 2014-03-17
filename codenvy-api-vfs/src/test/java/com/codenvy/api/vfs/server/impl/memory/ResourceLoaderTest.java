@@ -18,15 +18,13 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.dto.Property;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
-import java.util.Collections;
 
-/** @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class ResourceLoaderTest extends MemoryFileSystemTest {
     private String folderId;
     private String folderPath;
@@ -39,14 +37,14 @@ public class ResourceLoaderTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile resourceLoaderTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile resourceLoaderTestFolder = mountPoint.getRoot().createFolder(name);
 
-        VirtualFile folder = resourceLoaderTestProject.createFolder("GetResourceTest_FOLDER");
+        VirtualFile folder = resourceLoaderTestFolder.createFolder("GetResourceTest_FOLDER");
         folder.createFile("file1", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         folderId = folder.getId();
         folderPath = folder.getPath();
 
-        VirtualFile file = resourceLoaderTestProject.createFile("GetResourceTest_FILE", "text/plain",
+        VirtualFile file = resourceLoaderTestFolder.createFile("GetResourceTest_FILE", "text/plain",
                                                                 new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
         filePath = file.getPath();

@@ -28,7 +28,6 @@ import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.InstanceState;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
@@ -107,7 +106,7 @@ public final class SlaveBuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@Description("Parameters for build task in JSON format") BuildRequest request) throws Exception {
         final BuildTask task = getBuilder(request.getBuilder()).perform(request);
-        return getDescriptor(task, getServiceContext());
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
@@ -118,7 +117,7 @@ public final class SlaveBuilderService extends Service {
     public BuildTaskDescriptor dependencies(@Description("Parameters for analyze dependencies in JSON format") DependencyRequest request)
             throws Exception {
         final BuildTask task = getBuilder(request.getBuilder()).perform(request);
-        return getDescriptor(task, getServiceContext());
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
     }
 
     @GET
@@ -126,7 +125,7 @@ public final class SlaveBuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor getStatus(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
         final BuildTask task = getBuilder(builder).getBuildTask(id);
-        return getDescriptor(task, getServiceContext());
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
     }
 
     @GET
@@ -142,7 +141,7 @@ public final class SlaveBuilderService extends Service {
     public BuildTaskDescriptor cancel(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
         final BuildTask task = getBuilder(builder).getBuildTask(id);
         task.cancel();
-        return getDescriptor(task, getServiceContext());
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
     }
 
     @GET
@@ -237,7 +236,7 @@ public final class SlaveBuilderService extends Service {
         return myBuilder;
     }
 
-    private BuildTaskDescriptor getDescriptor(BuildTask task, ServiceContext restfulRequestContext) throws BuilderException {
+    private BuildTaskDescriptor getDescriptor(BuildTask task, UriBuilder uriBuilder) throws BuilderException {
         final String builder = task.getBuilder();
         final Long taskId = task.getId();
         final BuildResult result = task.getResult();
@@ -247,19 +246,16 @@ public final class SlaveBuilderService extends Service {
                                                          : (result.isSuccessful() ? BuildStatus.SUCCESSFUL : BuildStatus.FAILED))
                                    : (task.isStarted() ? BuildStatus.IN_PROGRESS : BuildStatus.IN_QUEUE);
         final List<Link> links = new ArrayList<>();
-        final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel(Constants.LINK_REL_GET_STATUS)
-                            .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getStatus")
-                                                        .build(builder, taskId).toString())
+                            .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "getStatus").build(builder, taskId).toString())
                             .withMethod("GET")
                             .withProduces(MediaType.APPLICATION_JSON));
 
         if (status == BuildStatus.IN_QUEUE || status == BuildStatus.IN_PROGRESS) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_CANCEL)
-                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "cancel")
-                                                            .build(builder, taskId).toString())
+                                .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "cancel").build(builder, taskId).toString())
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
         }
@@ -267,14 +263,13 @@ public final class SlaveBuilderService extends Service {
         if (status != BuildStatus.IN_QUEUE) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_VIEW_LOG)
-                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "getLogs")
-                                                            .build(builder, taskId).toString())
+                                .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "getLogs").build(builder, taskId).toString())
                                 .withMethod("GET")
                                 .withProduces(task.getBuildLogger().getContentType()));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_BROWSE)
-                                .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/")
-                                                            .build(builder, taskId).toString())
+                                .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/")
+                                                    .build(builder, taskId).toString())
                                 .withMethod("GET")
                                 .withProduces(MediaType.TEXT_HTML));
         }
@@ -283,10 +278,11 @@ public final class SlaveBuilderService extends Service {
             for (java.io.File ru : result.getResults()) {
                 links.add(DtoFactory.getInstance().createDto(Link.class)
                                     .withRel(Constants.LINK_REL_DOWNLOAD_RESULT)
-                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "download")
-                                                                .queryParam("path", workDirPath.relativize(ru.toPath()))
-                                                                .build(builder, taskId).toString())
-                                    .withMethod("GET").withProduces(ContentTypeGuesser.guessContentType(ru)));
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "download")
+                                                        .queryParam("path", workDirPath.relativize(ru.toPath()))
+                                                        .build(builder, taskId).toString())
+                                    .withMethod("GET")
+                                    .withProduces(ContentTypeGuesser.guessContentType(ru)));
             }
         }
 
@@ -295,17 +291,17 @@ public final class SlaveBuilderService extends Service {
             if (br.isDirectory()) {
                 links.add(DtoFactory.getInstance().createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
-                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "browse")
-                                                                .queryParam("path", workDirPath.relativize(br.toPath()))
-                                                                .build(builder, taskId).toString())
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browse")
+                                                        .queryParam("path", workDirPath.relativize(br.toPath()))
+                                                        .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(MediaType.TEXT_HTML));
             } else {
                 links.add(DtoFactory.getInstance().createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
-                                    .withHref(servicePathBuilder.clone().path(SlaveBuilderService.class, "view")
-                                                                .queryParam("path", workDirPath.relativize(br.toPath()))
-                                                                .build(builder, taskId).toString())
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "view")
+                                                        .queryParam("path", workDirPath.relativize(br.toPath()))
+                                                        .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(ContentTypeGuesser.guessContentType(br)));
             }

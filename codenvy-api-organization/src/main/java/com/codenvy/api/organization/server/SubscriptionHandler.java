@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.organization.server;
 
-import com.codenvy.api.organization.shared.dto.Subscription;
-
 /**
  * Base interface for all subscription handlers
  *
@@ -27,9 +25,9 @@ import com.codenvy.api.organization.shared.dto.Subscription;
  */
 public interface SubscriptionHandler {
 
-    void onCreateSubscription(Subscription subscription);
+    void onCreateSubscription(SubscriptionEvent subscription);
 
-    void onRemoveSubscription(Subscription subscription);
+    void onRemoveSubscription(SubscriptionEvent subscription);
 
-    void onCheckSubscription(Subscription subscription, String property);
+    void onCheckSubscription(SubscriptionEvent subscription);
 }

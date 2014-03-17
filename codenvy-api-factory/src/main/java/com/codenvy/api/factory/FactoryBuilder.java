@@ -174,7 +174,13 @@ public class FactoryBuilder {
             throw new FactoryUrlException(INVALID_VERSION_MESSAGE);
         }
 
-        Version v = Version.fromString(factory.getV());
+        Version v;
+        try {
+            v = Version.fromString(factory.getV());
+        } catch (IllegalArgumentException e) {
+            throw new FactoryUrlException(INVALID_VERSION_MESSAGE);
+        }
+
         String orgid = factory.getOrgid() != null && !factory.getOrgid().isEmpty() ? factory.getOrgid() : null;
 
         Class usedFactoryVersion;

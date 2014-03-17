@@ -24,9 +24,6 @@ import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.observation.ChangeEvent;
-import com.codenvy.api.vfs.server.observation.ChangeEvent.ChangeType;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.LinksHelper;
@@ -40,7 +37,6 @@ import com.codenvy.api.vfs.shared.dto.ItemList;
 import com.codenvy.api.vfs.shared.dto.ItemNode;
 import com.codenvy.api.vfs.shared.dto.Lock;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
@@ -48,8 +44,6 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -84,24 +78,19 @@ import java.util.Set;
  * @author andrew00x
  */
 public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
-    private static final Logger LOG = LoggerFactory.getLogger(VirtualFileSystemImpl.class);
-
     protected final String                       vfsId;
     protected final URI                          baseUri;
-    protected final EventListenerList            listeners;
     protected final VirtualFileSystemUserContext userContext;
     protected final MountPoint                   mountPoint;
     protected final SearcherProvider             searcherProvider;
 
     public VirtualFileSystemImpl(String vfsId,
                                  URI baseUri,
-                                 EventListenerList listeners,
                                  VirtualFileSystemUserContext userContext,
                                  MountPoint mountPoint,
                                  SearcherProvider searcherProvider) {
         this.vfsId = vfsId;
         this.baseUri = baseUri;
-        this.listeners = listeners;
         this.userContext = userContext;
         this.mountPoint = mountPoint;
         this.searcherProvider = searcherProvider;
@@ -120,13 +109,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException("Unable create copy item. Item specified as parent is not a folder. ");
         }
         final VirtualFile virtualFileCopy = mountPoint.getVirtualFileById(id).copyTo(parent);
-        final Item copy = fromVirtualFile(virtualFileCopy, false, PropertyFilter.ALL_FILTER);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, copy.getId(), copy.getPath(), copy.getMimeType(), ChangeType.CREATED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
-        return copy;
+        return fromVirtualFile(virtualFileCopy, false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("file/{parentId}")
@@ -140,13 +123,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException("Unable create new file. Item specified as parent is not a folder. ");
         }
         final VirtualFile newVirtualFile = parent.createFile(name, mediaType != null ? mediaType.toString() : null, content);
-        final File file = (File)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, file.getId(), file.getPath(), file.getMimeType(), ChangeType.CREATED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
-        return file;
+        return (File)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("folder/{parentId}")
@@ -157,51 +134,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException("Unable create new folder. Item specified as parent is not a folder. ");
         }
         final VirtualFile newVirtualFile = parent.createFolder(name);
-        final Folder folder = (Folder)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, folder.getId(), folder.getPath(), folder.getMimeType(), ChangeType.CREATED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
-        return folder;
-    }
-
-    @Path("project/{parentId}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Override
-    public Project createProject(@PathParam("parentId") String parentId,
-                                 @QueryParam("name") String name,
-                                 @QueryParam("type") String type,
-                                 List<Property> properties) throws VirtualFileSystemException {
-        if (properties == null) {
-            properties = new ArrayList<>(2);
-        }
-        if (type != null) {
-            final Property projectTypeProperty = DtoFactory.getInstance().createDto(Property.class)
-                                                           .withName("vfs:projectType").withValue(Collections.singletonList(type));
-            properties.add(projectTypeProperty);
-        }
-        final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class)
-                                                    .withName("vfs:mimeType")
-                                                    .withValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
-        properties.add(mimeTypeProperty);
-
-        final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        if (!parent.isFolder()) {
-            throw new InvalidArgumentException("Unable create new project. Item specified as parent is not a folder. ");
-        }
-        final VirtualFile newVirtualFile = parent.createProject(name, properties);
-        final Project project = (Project)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, project.getId(), project.getPath(), project.getMimeType(), ChangeType.CREATED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
-        if (newVirtualFile.getParent().isRoot()) {
-            //For child project project no need to fire event for create project
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", name, project.getProjectType());
-        }
-        return project;
+        return (Folder)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("delete/{id}")
@@ -211,27 +144,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (virtualFile.isRoot()) {
             throw new InvalidArgumentException("Unable delete root folder. ");
         }
-        final String path = virtualFile.getPath();
-        final String mediaType = virtualFile.getMediaType();
-        String name = null;
-        String projectType = null;
-        final boolean isProject = virtualFile.isProject();
-        final boolean isInRootFolder = virtualFile.getParent().isRoot();
-        if (isProject) {
-            name = virtualFile.getName();
-            projectType = virtualFile.getPropertyValue("vfs:projectType");
-        }
         virtualFile.delete(lockToken);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, id, path, mediaType, ChangeType.DELETED, userContext.getVirtualFileSystemUser()));
-        }
-        if (isProject) {
-            //For child project project no need to fire event for delete project
-            if (isInRootFolder) {
-                LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}#", name, projectType);
-            }
-        }
     }
 
     @Path("acl/{id}")
@@ -281,7 +194,6 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 @Override
                 public boolean accept(VirtualFile file) throws VirtualFileSystemException {
                     return (itemTypeType == ItemType.FILE && file.isFile())
-                           || (itemTypeType == ItemType.PROJECT && file.isProject())
                            || (itemTypeType == ItemType.FOLDER && file.isFolder());
                 }
             };
@@ -475,18 +387,11 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                      @QueryParam("parentId") String parentId,
                      @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
         final VirtualFile origin = mountPoint.getVirtualFileById(id);
-        final String oldPath = origin.getPath();
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
         if (!parent.isFolder()) {
             throw new InvalidArgumentException("Unable create move item. Item specified as parent is not a folder. ");
         }
-        final Item moved = fromVirtualFile(origin.moveTo(parent, lockToken), false, PropertyFilter.ALL_FILTER);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, moved.getId(), moved.getPath(), oldPath, moved.getMimeType(), ChangeType.MOVED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
-        return moved;
+        return fromVirtualFile(origin.moveTo(parent, lockToken), false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("rename/{id}")
@@ -499,25 +404,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             // Nothing to do. Return unchanged object.
             return getItem(id, false, PropertyFilter.ALL_FILTER);
         }
-
         final VirtualFile origin = mountPoint.getVirtualFileById(id);
-        final boolean isProjectBefore = origin.isProject();
-        final String oldPath = origin.getPath();
         final VirtualFile renamedVirtualFile = origin.rename(newName, newMediaType == null ? null : newMediaType.toString(), lockToken);
-        final Item renamed = fromVirtualFile(renamedVirtualFile, false, PropertyFilter.ALL_FILTER);
-        final boolean isProjectAfter = renamedVirtualFile.isProject();
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, renamed.getId(), renamed.getPath(), oldPath, renamed.getMimeType(), ChangeType.RENAMED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
-        if (isProjectAfter && !isProjectBefore) {
-            //For child project project no need to fire event for create project
-            if (renamedVirtualFile.getParent().isRoot()) {
-                LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", renamed.getName(), ((Project)renamed).getProjectType());
-            }
-        }
-        return renamed;
+        return fromVirtualFile(renamedVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
     @Consumes({MediaType.APPLICATION_FORM_URLENCODED})
@@ -597,13 +486,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (getInfo().getAclCapability() != ACLCapability.MANAGE) {
             throw new NotSupportedException("Managing of ACL is not supported. ");
         }
-        final VirtualFile virtualFile = mountPoint.getVirtualFileById(id).updateACL(acl, override, lockToken);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, virtualFile.getId(), virtualFile.getPath(), virtualFile.getMediaType(),
-                                    ChangeType.ACL_UPDATED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
+        mountPoint.getVirtualFileById(id).updateACL(acl, override, lockToken);
     }
 
     @Path("content/{id}")
@@ -618,12 +501,6 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             throw new InvalidArgumentException(String.format("Unable update content. Item '%s' is not a file. ", id));
         }
         virtualFile.updateContent(mediaType != null ? mediaType.toString() : null, newContent, lockToken);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, virtualFile.getId(), virtualFile.getPath(), virtualFile.getMediaType(),
-                                    ChangeType.CONTENT_UPDATED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
     }
 
     @Path("item/{id}")
@@ -632,22 +509,8 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                            List<Property> properties,
                            @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
-        final boolean isProjectBefore = virtualFile.isProject();
         virtualFile.updateProperties(properties, lockToken);
-        final boolean isProjectAfter = virtualFile.isProject();
-        final Item updated = fromVirtualFile(virtualFile, false, PropertyFilter.ALL_FILTER);
-        if (listeners != null) {
-            listeners.notifyListeners(
-                    new ChangeEvent(this, updated.getId(), updated.getPath(), updated.getMimeType(), ChangeType.PROPERTIES_UPDATED,
-                                    userContext.getVirtualFileSystemUser()));
-        }
-        if (isProjectAfter && !isProjectBefore) {
-            //For child project project no need to fire event for create project
-            if (virtualFile.getParent().isRoot()) {
-                LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", updated.getName(), ((Project)updated).getProjectType());
-            }
-        }
-        return updated;
+        return fromVirtualFile(virtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("export/{folderId}")
@@ -688,9 +551,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 startPath++;
             }
             String relPath = line.substring(startPath);
-            if (!".project".equals(relPath)) { // skip .project file
-                remote.add(Pair.of(hash, relPath));
-            }
+            remote.add(Pair.of(hash, relPath));
         }
         if (remote.isEmpty()) {
             final ContentStream zip = folder.zip(VirtualFileFilter.ALL);
@@ -781,7 +642,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         if (deleted.length() > 0) {
             responseBuilder.header("x-removed-paths", deleted.toString());
         }
-        return  responseBuilder.build();
+        return responseBuilder.build();
     }
 
 
@@ -792,12 +653,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                           @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite)
             throws VirtualFileSystemException, IOException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        final boolean isProjectBefore = parent.isProject();
         importZip(parent, in, overwrite);
-        final boolean isProjectAfter = parent.isProject();
-        if (!isProjectBefore && isProjectAfter) {
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", parent.getName(), parent.getPropertyValue("vfs:projectType"));
-        }
     }
 
     // For usage from Project API.
@@ -863,15 +719,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 if (!overwrite) {
                     throw new ItemAlreadyExistException("Unable upload file. Item with the same name exists. ");
                 }
-
-                final VirtualFile file = mountPoint.getVirtualFileById(parentId).getChild(name).updateContent(mediaType,
-                                                                                                              contentItem.getInputStream(),
-                                                                                                              null);
-                if (listeners != null) {
-                    listeners.notifyListeners(
-                            new ChangeEvent(this, file.getId(), file.getPath(), file.getMediaType(), ChangeType.CONTENT_UPDATED,
-                                            userContext.getVirtualFileSystemUser()));
-                }
+                mountPoint.getVirtualFileById(parentId).getChild(name).updateContent(mediaType, contentItem.getInputStream(), null);
             }
 
             return Response.ok("", MediaType.TEXT_HTML).build();
@@ -968,39 +816,20 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             }
             item = dtoFile;
         } else {
-            if (virtualFile.isProject()) {
-                final String projectType = virtualFile.getPropertyValue("vfs:projectType");
-                Project dtoProject = (Project)DtoFactory.getInstance().createDto(Project.class)
-                                                        .withProjectType(projectType == null ? "default" : projectType)
-                                                        .withItemType(ItemType.PROJECT)
-                                                        .withParentId(parentId)
-                                                        .withId(id)
-                                                        .withName(name)
-                                                        .withPath(path)
-                                                        .withMimeType(mediaType)
-                                                        .withCreationDate(created)
-                                                        .withVfsId(vfsId)
-                                                        .withProperties(virtualFile.getProperties(propertyFilter));
-                if (addLinks) {
-                    dtoProject.setLinks(LinksHelper.createProjectLinks(baseUri, vfsId, id, parentId));
-                }
-                item = dtoProject;
-            } else {
-                Folder dtoFolder = (Folder)DtoFactory.getInstance().createDto(Folder.class)
-                                                     .withItemType(ItemType.FOLDER)
-                                                     .withParentId(parentId)
-                                                     .withId(id)
-                                                     .withName(name)
-                                                     .withPath(path)
-                                                     .withMimeType(mediaType)
-                                                     .withCreationDate(created)
-                                                     .withVfsId(vfsId)
-                                                     .withProperties(virtualFile.getProperties(propertyFilter));
-                if (addLinks) {
-                    dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, vfsId, id, isRoot, parentId));
-                }
-                item = dtoFolder;
+            Folder dtoFolder = (Folder)DtoFactory.getInstance().createDto(Folder.class)
+                                                 .withItemType(ItemType.FOLDER)
+                                                 .withParentId(parentId)
+                                                 .withId(id)
+                                                 .withName(name)
+                                                 .withPath(path)
+                                                 .withMimeType(mediaType)
+                                                 .withCreationDate(created)
+                                                 .withVfsId(vfsId)
+                                                 .withProperties(virtualFile.getProperties(propertyFilter));
+            if (addLinks) {
+                dtoFolder.setLinks(LinksHelper.createFolderLinks(baseUri, vfsId, id, isRoot, parentId));
             }
+            item = dtoFolder;
         }
 
         if (includePermissions) {

@@ -41,6 +41,9 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -69,6 +72,8 @@ import java.util.List;
 @Path("organization")
 public class OrganizationService extends Service {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OrganizationService.class);
+
     private final OrganizationDao             organizationDao;
     private final UserDao                     userDao;
     private final SubscriptionServiceRegistry registry;
@@ -85,7 +90,8 @@ public class OrganizationService extends Service {
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext, @Required @Description("Organization to create") Organization newOrganization)
+    public Response create(@Context SecurityContext securityContext,
+                           @Required @Description("Organization to create") Organization newOrganization)
             throws OrganizationException, UserException {
         if (newOrganization == null) {
             throw new OrganizationException("Missed organization to create");
@@ -112,20 +118,24 @@ public class OrganizationService extends Service {
 
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_ORGANIZATION)
-    @RolesAllowed("organization/owner")
+    @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public Organization getCurrent(@Context SecurityContext securityContext) throws UserException, OrganizationException {
+    public List<Organization> getCurrent(@Context SecurityContext securityContext) throws UserException, OrganizationException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        final Organization organization = organizationDao.getByOwner(current.getId());
-        if (organization == null) {
-            throw OrganizationNotFoundException.doesNotExistWithOwner(current.getId());
+        List<Organization> currentOrganizations = organizationDao.getByMember(current.getId());
+        if (currentOrganizations == null) {
+            currentOrganizations = new ArrayList<>();
         }
-        injectLinks(organization, securityContext);
-        return organization;
+        final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
+        if (ownedByCurrentUser != null) {
+            currentOrganizations.add(ownedByCurrentUser);
+        }
+        injectLinks(ownedByCurrentUser, securityContext);
+        return currentOrganizations;
     }
 
     @GET
@@ -133,7 +143,8 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_ORGANIZATION_BY_ID)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Organization getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws OrganizationException, UserException {
+    public Organization getById(@Context SecurityContext securityContext, @PathParam("id") String id)
+            throws OrganizationException, UserException {
         final Organization organization = organizationDao.getById(id);
         if (organization == null) {
             throw OrganizationNotFoundException.doesNotExistWithId(id);
@@ -148,7 +159,7 @@ public class OrganizationService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Organization getByName(@Context SecurityContext securityContext,
-                             @Required @Description("Organization name to search") @QueryParam("name") String name)
+                                  @Required @Description("Organization name to search") @QueryParam("name") String name)
             throws OrganizationException, UserException {
         if (name == null) {
             throw new OrganizationException("Missed organization name");
@@ -193,25 +204,26 @@ public class OrganizationService extends Service {
     @GET
     @Path("members")
     @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
-    @RolesAllowed({"organization/owner"})
+    @RolesAllowed({"user"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Member> getMembersOfCurrentOrganization(@Context SecurityContext securityContext) throws UserException, OrganizationException {
+    public List<Member> getMembersOfCurrentOrganization(@Context SecurityContext securityContext)
+            throws UserException, OrganizationException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        final Organization organization = organizationDao.getByOwner(current.getId());
-        if (organization == null) {
+        final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
+        if (ownedByCurrentUser == null) {
             throw OrganizationNotFoundException.doesNotExistWithOwner(current.getId());
         }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final List<Member> members = organizationDao.getMembers(organization.getId());
+        final List<Member> members = organizationDao.getMembers(ownedByCurrentUser.getId());
         //injecting links
         for (Member member : members) {
             member.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
                                                      uriBuilder.clone().path(getClass(), "removeMember")
-                                                               .build(organization.getId(), member.getUserId()).toString())));
+                                                               .build(ownedByCurrentUser.getId(), member.getUserId()).toString())));
         }
         return members;
     }
@@ -261,7 +273,8 @@ public class OrganizationService extends Service {
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public Organization update(@PathParam("id") String id, @Required @Description("Organization to update") Organization organizationToUpdate)
+    public Organization update(@PathParam("id") String id,
+                               @Required @Description("Organization to update") Organization organizationToUpdate)
             throws OrganizationException {
         if (organizationToUpdate == null) {
             throw new OrganizationException("Missed organization to update");
@@ -270,7 +283,8 @@ public class OrganizationService extends Service {
         if (actual == null) {
             throw OrganizationNotFoundException.doesNotExistWithId(id);
         }
-        if (!actual.getOwner().equals(organizationToUpdate.getOwner()) && organizationDao.getByOwner(organizationToUpdate.getOwner()) != null) {
+        if (!actual.getOwner().equals(organizationToUpdate.getOwner()) &&
+            organizationDao.getByOwner(organizationToUpdate.getOwner()) != null) {
             throw OrganizationAlreadyExistsException.existsWithOwner(organizationToUpdate.getOwner());
         }
         if (!actual.getName().equals(organizationToUpdate.getName()) && organizationDao.getByName(organizationToUpdate.getName()) != null) {
@@ -284,20 +298,33 @@ public class OrganizationService extends Service {
     @GET
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
-    @RolesAllowed("organization/owner")
+    @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfCurrentOrganization(@Context SecurityContext securityContext)
+    public List<Subscription> getSubscriptionsOfCurrentOrganizations(@Context SecurityContext securityContext)
             throws UserException, OrganizationException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        final Organization organization = organizationDao.getByOwner(current.getId());
-        if (organization == null) {
-            throw OrganizationNotFoundException.doesNotExistWithOwner(current.getId());
+        List<Organization> currentOrganizations = organizationDao.getByMember(current.getId());
+        if (currentOrganizations == null) {
+            currentOrganizations = new ArrayList<>();
         }
-        return organizationDao.getSubscriptions(organization.getId());
+        final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
+        if (ownedByCurrentUser != null) {
+            currentOrganizations.add(ownedByCurrentUser);
+        }
+        final List<Subscription> allSubscriptions = new ArrayList<>();
+        for (Organization organization : currentOrganizations) {
+            try {
+                allSubscriptions.addAll(organizationDao.getSubscriptions(organization.getId()));
+            } catch (OrganizationException e) {
+                LOG.error(String.format("OrganizationException was occurred when was an attempt to take %s organization subscriptions",
+                                        organization.getId()), e);
+            }
+        }
+        return allSubscriptions;
     }
 
     @GET
@@ -337,7 +364,7 @@ public class OrganizationService extends Service {
             throw new ServiceNotFoundException(subscription.getServiceId());
         }
         organizationDao.addSubscription(subscription, id);
-        service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
+        service.notifyHandlers(new SubscriptionEvent(id, subscription, SubscriptionEvent.EventType.CREATE));
     }
 
     @DELETE
@@ -360,7 +387,7 @@ public class OrganizationService extends Service {
         }
         if (needed != null) {
             organizationDao.removeSubscription(organizationId, serviceId);
-            service.notifyHandlers(new SubscriptionEvent(needed, SubscriptionEvent.EventType.REMOVE));
+            service.notifyHandlers(new SubscriptionEvent(organizationId, needed, SubscriptionEvent.EventType.REMOVE));
         } else {
             throw new SubscriptionNotFoundException(serviceId);
         }
@@ -390,7 +417,7 @@ public class OrganizationService extends Service {
                                                                       .withRequired(true)
                                                                       .withDescription("Organization to update"))));
             links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentOrganization").build().toString()));
+                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentOrganizations").build().toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembersOfCurrentOrganization").build().toString()));
         }
@@ -401,7 +428,8 @@ public class OrganizationService extends Service {
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", organization.getName()).build()
                                            .toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getMembersOfSpecificOrganization").build(organization.getId()).toString()));
+                                 uriBuilder.clone().path(getClass(), "getMembersOfSpecificOrganization").build(organization.getId())
+                                           .toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getSubscriptionsOfSpecificOrganization").build(organization.getId())
                                            .toString()));

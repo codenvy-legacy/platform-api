@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * Factory for RemoteBuilder. See {@link RemoteBuilder} about usage of this class.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see RemoteBuilder
  */
 public class RemoteBuilderFactory extends RemoteServiceDescriptor {
@@ -40,25 +40,42 @@ public class RemoteBuilderFactory extends RemoteServiceDescriptor {
         super(baseUrl);
     }
 
-    public RemoteBuilder getRemoteBuilder(String name) throws IOException, RemoteException, BuilderException {
-        for (BuilderDescriptor builderDescriptor : getAvailableBuilders()) {
-            if (name.equals(builderDescriptor.getName())) {
-                return new RemoteBuilder(baseUrl, builderDescriptor, getLinks());
+    public RemoteBuilder getRemoteBuilder(String name) throws BuilderException {
+        try {
+            for (BuilderDescriptor builderDescriptor : getAvailableBuilders()) {
+                if (name.equals(builderDescriptor.getName())) {
+                    return new RemoteBuilder(baseUrl, builderDescriptor, getLinks());
+                }
             }
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (RemoteException e) {
+            throw new BuilderException(e.getServiceError());
         }
         throw new BuilderException(String.format("Invalid builder name %s", name));
     }
 
-    public RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws IOException, RemoteException {
-        return new RemoteBuilder(baseUrl, descriptor, getLinks());
+    public RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws BuilderException {
+        try {
+            return new RemoteBuilder(baseUrl, descriptor, getLinks());
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (RemoteException e) {
+            throw new BuilderException(e.getServiceError());
+        }
     }
 
-    public List<BuilderDescriptor> getAvailableBuilders() throws IOException, RemoteException, BuilderException {
-        final Link link = getLink(Constants.LINK_REL_AVAILABLE_BUILDERS);
-        if (link == null) {
-            throw new BuilderException("Unable get URL for retrieving list of remote builders");
+    public List<BuilderDescriptor> getAvailableBuilders() throws BuilderException {
+        try {
+            final Link link = getLink(Constants.LINK_REL_AVAILABLE_BUILDERS);
+            if (link == null) {
+                throw new BuilderException("Unable get URL for retrieving list of remote builders");
+            }
+            return HttpJsonHelper.request(BuilderList.class, link).getBuilders();
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (RemoteException e) {
+            throw new BuilderException(e.getServiceError());
         }
-
-        return HttpJsonHelper.request(BuilderList.class, link).getBuilders();
     }
 }

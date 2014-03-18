@@ -20,10 +20,10 @@ package com.codenvy.api.vfs.shared;
 /**
  * Object types.
  *
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public enum ItemType {
-    FILE("file"), FOLDER("folder"), PROJECT("project");
+    FILE("file"), FOLDER("folder");
 
     private final String value;
 

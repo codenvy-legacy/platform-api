@@ -20,7 +20,7 @@ package com.codenvy.api.runner.internal;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.runner.RunnerException;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public interface RunnerProcess extends Cancellable {
     interface Callback {
         void started(RunnerProcess process);

@@ -27,7 +27,7 @@
     </parent>
     <groupId>com.codenvy.platform-api</groupId>
     <artifactId>codenvy-platform-api-parent</artifactId>
-    <version>0.10.1-SNAPSHOT</version>
+    <version>0.11.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Codenvy Platform API :: Parent</name>
     <modules>
@@ -42,7 +42,7 @@
         <module>codenvy-api-analytics</module>
         <module>codenvy-api-user</module>
         <module>codenvy-api-workspace</module>
-        <module>codenvy-api-account</module>
+        <module>codenvy-api-organization</module>
         <module>codenvy-api-auth</module>
         <module>codenvy-infrastructure-local</module>
     </modules>
@@ -53,12 +53,12 @@
         <url>https://fisheye.codenvycorp.com/browse/platform-api</url>
     </scm>
     <properties>
-        <codenvy.commons.version>0.16.0</codenvy.commons.version>
+        <codenvy.commons.version>0.17.0-SNAPSHOT</codenvy.commons.version>
         <commons-codec.version>1.6</commons-codec.version>
         <commons-fileupload.version>1.2.1</commons-fileupload.version>
         <commons-io.version>2.1</commons-io.version>
         <everrest.assured.version>0.17</everrest.assured.version>
-        <everrest.version>1.1.9</everrest.version>
+        <everrest.version>1.1.10-SNAPSHOT</everrest.version>
         <google.gson.version>2.1</google.gson.version>
         <guava.version>12.0.1</guava.version>
         <hamcrest.version>1.2.1</hamcrest.version>
@@ -85,4 +85,11 @@
         <version.animal-sniffer.enforcer-rule>1.8</version.animal-sniffer.enforcer-rule>
         <version.enforcer.plugin>1.2</version.enforcer.plugin>
     </properties>
+    <repositories>
+        <repository>
+            <id>codenvy-public-repo</id>
+            <name>codenvy public</name>
+            <url>https://maven.codenvycorp.com/content/groups/public/</url>
+        </repository>
+    </repositories>
 </project>

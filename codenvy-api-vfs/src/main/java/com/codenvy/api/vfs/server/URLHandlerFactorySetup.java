@@ -18,7 +18,6 @@
 package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +38,7 @@ import java.net.URLStreamHandlerFactory;
 public class URLHandlerFactorySetup {
     private static final Logger LOG = LoggerFactory.getLogger(URLHandlerFactorySetup.class);
 
-    public synchronized static void setup(VirtualFileSystemRegistry registry, EventListenerList listeners) {
+    public synchronized static void setup(VirtualFileSystemRegistry registry) {
         try {
             new URL("ide+vfs", "", "");
         } catch (MalformedURLException mue) {
@@ -60,8 +59,7 @@ public class URLHandlerFactorySetup {
                 }
 
                 //
-                URLStreamHandlerFactory vfsURLFactory = new VirtualFileSystemURLHandlerFactory(currentFactory,
-                                                                                               registry, listeners);
+                URLStreamHandlerFactory vfsURLFactory = new VirtualFileSystemURLHandlerFactory(currentFactory, registry);
                 factoryField.set(null, vfsURLFactory);
             } catch (SecurityException | NoSuchFieldException | IllegalAccessException se) {
                 throw new VirtualFileSystemRuntimeException(se.getMessage(), se);

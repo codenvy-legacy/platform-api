@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
@@ -92,14 +93,16 @@ public class ProjectTest {
 
 
         });
-        MemoryMountPoint mmp = new MemoryMountPoint(null, new VirtualFileSystemUserContext() {
-            @Override
-            public VirtualFileSystemUser getVirtualFileSystemUser() {
-                return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
-            }
-        });
+        final MemoryFileSystemProvider memoryFileSystemProvider =
+                new MemoryFileSystemProvider("my_ws", new EventService(), new VirtualFileSystemUserContext() {
+                    @Override
+                    public VirtualFileSystemUser getVirtualFileSystemUser() {
+                        return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
+                    }
+                });
+        MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
-        vfsRegistry.registerProvider("my_ws", new MemoryFileSystemProvider("my_ws", mmp));
+        vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new ProjectManager(ptr, ptdr, vpf, vfsRegistry);
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(".codenvy").createFile("project", null, null);
@@ -208,7 +211,7 @@ public class ProjectTest {
     @Test
     public void testCreateModule() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        Project myModule = myProject.createModule("my_module", new ProjectDescription(new ProjectType("my_module_type","my_module_type")));
+        Project myModule = myProject.createModule("my_module", new ProjectDescription(new ProjectType("my_module_type", "my_module_type")));
         ProjectDescription myModuleDescription = myModule.getDescription();
         Assert.assertEquals(myModuleDescription.getProjectType().getId(), "my_module_type");
         Assert.assertEquals(myModuleDescription.getProjectType().getName(), "my_module_type");

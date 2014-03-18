@@ -18,7 +18,6 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.impl.EnvironmentContext;
@@ -27,12 +26,11 @@ import org.everrest.test.mock.MockHttpServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class UploadFileTest extends MemoryFileSystemTest {
     private String uploadTestFolderId;
     private String uploadTestFolderPath;
@@ -41,9 +39,9 @@ public class UploadFileTest extends MemoryFileSystemTest {
     public void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile uploadTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
-        uploadTestFolderId = uploadTestProject.getId();
-        uploadTestFolderPath = uploadTestProject.getPath();
+        VirtualFile uploadTestFolder = mountPoint.getRoot().createFolder(name);
+        uploadTestFolderId = uploadTestFolder.getId();
+        uploadTestFolderPath = uploadTestFolder.getPath();
     }
 
     public void testUploadNewFile() throws Exception {

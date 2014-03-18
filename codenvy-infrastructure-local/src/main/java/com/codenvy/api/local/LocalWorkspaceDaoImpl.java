@@ -53,7 +53,7 @@ public class LocalWorkspaceDaoImpl implements WorkspaceDao {
     }
 
     @Override
-    public List<Workspace> getByAccount(String accountId) throws WorkspaceException {
+    public List<Workspace> getByOrganization(String organizationId) throws WorkspaceException {
         return Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class).withId("Workspace1").withName("default").withTemporary(false));
     }
 }

@@ -22,7 +22,7 @@ import com.codenvy.api.builder.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.core.rest.HttpJsonHelper;
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.api.core.util.ProcessUtil;
@@ -46,6 +46,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -91,6 +92,7 @@ public abstract class Builder {
     private final java.io.File                          rootDirectory;
     private final Set<BuildListener>                    buildListeners;
     private final int                                   cleanBuildResultDelay;
+    private final EventService                          eventService;
     private final int                                   queueSize;
     private final int                                   numberOfWorkers;
 
@@ -102,12 +104,13 @@ public abstract class Builder {
     private java.io.File       builds;
     private SourcesManager     sourcesManager;
 
-    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay) {
+    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay, EventService eventService) {
         this.rootDirectory = rootDirectory;
         this.numberOfWorkers = numberOfWorkers;
         this.queueSize = queueSize;
         this.cleanBuildResultDelay = cleanBuildResultDelay;
-        buildListeners = new LinkedHashSet<>();
+        this.eventService = eventService;
+        buildListeners = new CopyOnWriteArraySet<>();
         tasks = new ConcurrentHashMap<>();
         tasksFIFO = new ConcurrentLinkedQueue<>();
         cleanerQueue = new ConcurrentLinkedQueue<>();
@@ -121,7 +124,7 @@ public abstract class Builder {
     public abstract String getName();
 
     /**
-     * Returns the description of builder. Description should help client to recognize correct type of builder for an application.
+     * Returns the description of the builder. Description should help client to recognize correct type of builder for an application.
      *
      * @return the description of builder
      */
@@ -147,8 +150,12 @@ public abstract class Builder {
 
     protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws BuilderException;
 
-    public ExecutorService getExecutor() {
+    protected ExecutorService getExecutor() {
         return executor;
+    }
+
+    protected EventService getEventService() {
+        return eventService;
     }
 
     protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
@@ -158,7 +165,6 @@ public abstract class Builder {
             throw new BuilderException(e);
         }
     }
-
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
@@ -192,7 +198,7 @@ public abstract class Builder {
     }
 
     /**
-     * Stops builder and releases any resources associated with the Builder.
+     * Stops Builder and releases any resources associated with the Builder.
      * <p/>
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
@@ -261,9 +267,7 @@ public abstract class Builder {
      * @return {@code true} if {@code listener} was added
      */
     public boolean addBuildListener(BuildListener listener) {
-        synchronized (buildListeners) {
-            return buildListeners.add(listener);
-        }
+        return buildListeners.add(listener);
     }
 
     /**
@@ -274,9 +278,7 @@ public abstract class Builder {
      * @return {@code true} if {@code listener} was removed
      */
     public boolean removeBuildListener(BuildListener listener) {
-        synchronized (buildListeners) {
-            return buildListeners.remove(listener);
-        }
+        return buildListeners.remove(listener);
     }
 
     /**
@@ -285,9 +287,7 @@ public abstract class Builder {
      * @return all available download plugins
      */
     public Set<BuildListener> getBuildListeners() {
-        synchronized (buildListeners) {
-            return new LinkedHashSet<>(buildListeners);
-        }
+        return new LinkedHashSet<>(buildListeners);
     }
 
     public BuilderConfigurationFactory getBuilderConfigurationFactory() {
@@ -309,8 +309,7 @@ public abstract class Builder {
         final java.io.File workDir = configuration.getWorkDir();
         final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(configuration, logFile);
-        final String webHookUrl = request.getWebHookUrl();
-        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
+        return execute(configuration, logger);
     }
 
     /**
@@ -328,20 +327,25 @@ public abstract class Builder {
         final java.io.File workDir = configuration.getWorkDir();
         final java.io.File logFile = new java.io.File(workDir.getParentFile(), workDir.getName() + ".log");
         final BuildLogger logger = createBuildLogger(configuration, logFile);
-        final String webHookUrl = request.getWebHookUrl();
-        return execute(configuration, webHookUrl == null ? null : new WebHookCallback(webHookUrl), logger);
+        return execute(configuration, logger);
     }
 
-    protected BuildTask execute(BuilderConfiguration configuration, BuildTask.Callback callback, BuildLogger logger)
-            throws BuilderException {
+    protected BuildTask execute(BuilderConfiguration configuration, BuildLogger logger) throws BuilderException {
         final CommandLine commandLine = createCommandLine(configuration);
         final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
-        final FutureBuildTask task =
-                new FutureBuildTask(callable, buildIdSequence.getAndIncrement(), commandLine, getName(), configuration, logger, callback);
+        final Long internalId = buildIdSequence.getAndIncrement();
+        final BuildTask.Callback callback = new BuildTask.Callback() {
+            @Override
+            public void done(BuildTask task) {
+                final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
+                eventService.publish(new BuildDoneEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
+            }
+        };
+        final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, logger, callback);
         final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
         final BuildTaskEntry cachedTask = new BuildTaskEntry(task, expirationTime);
         purgeExpiredTasks();
-        tasks.put(task.getId(), cachedTask);
+        tasks.put(internalId, cachedTask);
         tasksFIFO.offer(cachedTask);
         executor.execute(task);
         return task;
@@ -733,23 +737,6 @@ public abstract class Builder {
             return "BuildTaskEntry{" +
                    "task=" + task +
                    '}';
-        }
-    }
-
-    private static class WebHookCallback implements BuildTask.Callback {
-        final String url;
-
-        WebHookCallback(String url) {
-            this.url = url;
-        }
-
-        @Override
-        public void done(BuildTask task) {
-            try {
-                HttpJsonHelper.post(null, url, null);
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
         }
     }
 }

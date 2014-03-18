@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -45,7 +46,7 @@ public class FolderEntryTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        mmp = new MemoryMountPoint(null, new VirtualFileSystemUserContext() {
+        mmp = new MemoryMountPoint("my_ws", new EventService(), null, new VirtualFileSystemUserContext() {
             @Override
             public VirtualFileSystemUser getVirtualFileSystemUser() {
                 return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);

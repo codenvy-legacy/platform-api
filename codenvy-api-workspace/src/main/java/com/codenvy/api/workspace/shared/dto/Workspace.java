@@ -44,13 +44,13 @@ public interface Workspace {
 
     boolean isTemporary();
 
-    String getAccountId();
-
-    void setAccountId(String accountId);
-
-    Workspace withAccountId(String accountId);
-
     Workspace withTemporary(boolean temporary);
+
+    String getOrganizationId();
+
+    void setOrganizationId(String accountId);
+
+    Workspace withOrganizationId(String accountId);
 
     List<Attribute> getAttributes();
 

@@ -21,7 +21,6 @@ import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectType;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * ProjectDescriptionExtension

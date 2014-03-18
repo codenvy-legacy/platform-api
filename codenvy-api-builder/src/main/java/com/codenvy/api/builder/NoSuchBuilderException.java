@@ -17,7 +17,12 @@
  */
 package com.codenvy.api.builder;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Thrown when particular Builder is request but isn't available in this environment.
+ *
+ * @author andrew00x
+ * @see com.codenvy.api.builder.internal.SlaveBuilderService
+ */
 @SuppressWarnings("serial")
 public final class NoSuchBuilderException extends BuilderException {
     public NoSuchBuilderException(String name) {

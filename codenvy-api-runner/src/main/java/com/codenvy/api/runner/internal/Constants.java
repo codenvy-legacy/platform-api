@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.runner.internal;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class Constants {
     // properties of project which are interesting for runner
     public static final String RUNNER_NAME                        = "runner.name";

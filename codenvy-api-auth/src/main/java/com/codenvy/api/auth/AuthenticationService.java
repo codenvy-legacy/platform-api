@@ -40,14 +40,14 @@ import java.util.Collections;
 public class AuthenticationService {
     private static final Logger LOG = LoggerFactory.getLogger(AuthenticationService.class);
     @Inject
-    protected AuthenticationHandler handler;
+    protected AuthenticationHandlerProvider handlerProvider;
     @Inject
-    protected TicketManager         ticketManager;
+    protected TicketManager                 ticketManager;
     @Inject
-    protected TokenGenerator        uniqueTokenGenerator;
+    protected TokenGenerator                uniqueTokenGenerator;
     @Nullable
     @Inject
-    protected CookieBuilder         cookieBuilder;
+    protected CookieBuilder                 cookieBuilder;
 
     /**
      * Get token to be able to call secure api methods.
@@ -64,6 +64,7 @@ public class AuthenticationService {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("login")
     public Response authenticate(Credentials credentials,
+                                 @QueryParam("authtype") String authType,
                                  @CookieParam("session-access-key") Cookie tokenAccessCookie,
                                  @Context UriInfo uriInfo)
             throws AuthenticationException {
@@ -77,7 +78,17 @@ public class AuthenticationService {
         }
 
         boolean secure = uriInfo.getRequestUri().getScheme().equals("https");
-        Principal principal = handler.authenticate(credentials.getUsername(), credentials.getPassword());
+        AuthenticationHandler handler;
+        if (authType == null) {
+            handler = handlerProvider.getDefaultHandler();
+        } else {
+            handler = handlerProvider.getHandler(authType);
+            if (handler == null) {
+                throw new AuthenticationException("Unknown authentication type " + authType);
+            }
+        }
+
+        UniquePrincipal principal = handler.authenticate(credentials.getUsername(), credentials.getPassword());
         if (principal == null) {
             throw new AuthenticationException("Provided user and password is not valid");
         }
@@ -107,7 +118,7 @@ public class AuthenticationService {
         }
         // If we obtained principal  - authentication is done.
         String token = uniqueTokenGenerator.generate();
-        ticketManager.putAccessTicket(new AccessTicket(token, principal));
+        ticketManager.putAccessTicket(new AccessTicket(token, principal, handler.getType()));
         if (cookieBuilder != null) {
             cookieBuilder.setCookies(builder, token, secure);
         }

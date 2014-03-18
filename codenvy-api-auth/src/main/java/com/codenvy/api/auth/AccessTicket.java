@@ -18,11 +18,6 @@
 package com.codenvy.api.auth;
 
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.security.Principal;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -34,24 +29,21 @@ import java.util.Set;
  * @author Andrey Parfonov
  * @author Sergey Kabashniuk
  */
-public final class AccessTicket implements Externalizable {
-    private final Set<String> registeredClients;
-    private       Principal   principal;
+public final class AccessTicket {
+    private final Set<String>     registeredClients;
+    private final UniquePrincipal principal;
+    private final String          authHandlerType;
     /** Time of ticket creation in milliseconds. */
-    private       long        creationTime;
+    private       long            creationTime;
     /** Value of access cookie associated with this access key. */
-    private       String      accessToken;
+    private       String          accessToken;
 
-    //used for externalization.
-    public AccessTicket() {
-        this.registeredClients = new HashSet<>();
+    public AccessTicket(String accessToken, UniquePrincipal principal, String authHandlerType) {
+        this(accessToken, principal, authHandlerType, System.currentTimeMillis());
     }
 
-    public AccessTicket(String accessToken, Principal principal) {
-        this(accessToken, principal, System.currentTimeMillis());
-    }
 
-    public AccessTicket(String accessToken, Principal principal, long creationTime) {
+    public AccessTicket(String accessToken, UniquePrincipal principal, String authHandlerType, long creationTime) {
 
         if (accessToken == null) {
             throw new IllegalArgumentException("Invalid access token: " + accessToken);
@@ -59,10 +51,15 @@ public final class AccessTicket implements Externalizable {
         if (principal == null) {
             throw new IllegalArgumentException("Invalid principal: " + principal);
         }
+        if (authHandlerType == null) {
+            throw new IllegalArgumentException("Invalid authHandlerType: " + principal);
+        }
         if (creationTime < 0) {
             throw new IllegalArgumentException("Invalid creation time : " + creationTime);
         }
         this.accessToken = accessToken;
+        this.authHandlerType = authHandlerType;
+
         this.principal = principal;
         this.creationTime = creationTime;
         this.registeredClients = new HashSet<>();
@@ -72,13 +69,17 @@ public final class AccessTicket implements Externalizable {
         return accessToken;
     }
 
-    public Principal getPrincipal() {
+    public UniquePrincipal getPrincipal() {
         return principal;
     }
 
-    public void setPrincipal(Principal principal) {
-        this.principal = principal;
+    /**
+     * @return type of authentication handler was used for current user authentication.
+     */
+    public String getAuthHandlerType() {
+        return authHandlerType;
     }
+
 
     /** Get time of token creation. */
     public long getCreationTime() {
@@ -113,15 +114,15 @@ public final class AccessTicket implements Externalizable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AccessTicket)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
 
-        AccessTicket ticket = (AccessTicket)o;
+        AccessTicket that = (AccessTicket)o;
 
-        if (creationTime != ticket.creationTime) return false;
-        if (accessToken != null ? !accessToken.equals(ticket.accessToken) : ticket.accessToken != null) return false;
-        if (principal != null ? !principal.equals(ticket.principal) : ticket.principal != null) return false;
-        if (registeredClients != null ? !registeredClients.equals(ticket.registeredClients) : ticket.registeredClients != null)
-            return false;
+        if (creationTime != that.creationTime) return false;
+        if (accessToken != null ? !accessToken.equals(that.accessToken) : that.accessToken != null) return false;
+        if (authHandlerType != null ? !authHandlerType.equals(that.authHandlerType) : that.authHandlerType != null) return false;
+        if (principal != null ? !principal.equals(that.principal) : that.principal != null) return false;
+        if (registeredClients != null ? !registeredClients.equals(that.registeredClients) : that.registeredClients != null) return false;
 
         return true;
     }
@@ -130,6 +131,7 @@ public final class AccessTicket implements Externalizable {
     public int hashCode() {
         int result = registeredClients != null ? registeredClients.hashCode() : 0;
         result = 31 * result + (principal != null ? principal.hashCode() : 0);
+        result = 31 * result + (authHandlerType != null ? authHandlerType.hashCode() : 0);
         result = 31 * result + (int)(creationTime ^ (creationTime >>> 32));
         result = 31 * result + (accessToken != null ? accessToken.hashCode() : 0);
         return result;
@@ -137,28 +139,15 @@ public final class AccessTicket implements Externalizable {
 
     @Override
     public String toString() {
-        return "AccessTicket{" +
-               "registeredClients=" + registeredClients +
-               ", principal=" + principal +
-               ", creationTime=" + creationTime +
-               ", accessToken='" + accessToken + '\'' +
-               '}';
-    }
-
-    @Override
-    public void writeExternal(final ObjectOutput out) throws IOException {
-        if (principal == null || accessToken == null) {
-            throw new RuntimeException("Object can't be externalized because it is invalid.");
-        }
-        out.writeObject(principal);
-        out.writeLong(creationTime);
-        out.writeUTF(accessToken);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        principal = (Principal)in.readObject();
-        creationTime = in.readLong();
-        accessToken = in.readUTF();
+        final StringBuilder sb = new StringBuilder("AccessTicket{");
+        sb.append("registeredClients=").append(registeredClients);
+        sb.append(", principal=").append(principal);
+        sb.append(", authHandlerType='").append(authHandlerType).append('\'');
+        sb.append(", creationTime=").append(creationTime);
+        sb.append(", accessToken='").append(accessToken).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 }
+
+

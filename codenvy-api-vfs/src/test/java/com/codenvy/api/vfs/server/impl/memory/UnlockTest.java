@@ -18,15 +18,13 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class UnlockTest extends MemoryFileSystemTest {
     private String lockedFileId;
     private String notLockedFileId;
@@ -36,15 +34,15 @@ public class UnlockTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile unlockTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile unlockTestFolder = mountPoint.getRoot().createFolder(name);
 
-        VirtualFile lockedFile = unlockTestProject.createFile("UnlockTest_LOCKED", "text/plain",
-                                                              new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        VirtualFile lockedFile = unlockTestFolder.createFile("UnlockTest_LOCKED", "text/plain",
+                                                             new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileLockToken = lockedFile.lock(0);
         lockedFileId = lockedFile.getId();
 
-        VirtualFile notLockedFile = unlockTestProject.createFile("UnlockTest_NOTLOCKED", "text/plain",
-                                                  new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        VirtualFile notLockedFile = unlockTestFolder.createFile("UnlockTest_NOTLOCKED", "text/plain",
+                                                                new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         notLockedFileId = notLockedFile.getId();
     }
 

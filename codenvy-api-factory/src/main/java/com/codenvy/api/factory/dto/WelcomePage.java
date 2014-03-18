@@ -9,11 +9,22 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface WelcomePage {
-    public WelcomeConfiguration getAuthenticated();
 
-    public void setAuthenticated(WelcomeConfiguration authenticated);
+    /**
+     * @return
+     */
+    WelcomeConfiguration getAuthenticated();
 
-    public WelcomeConfiguration getNonauthenticated();
+    void setAuthenticated(WelcomeConfiguration authenticated);
 
-    public void setNonauthenticated(WelcomeConfiguration nonauthenticated);
+    WelcomePage withAuthenticated(WelcomeConfiguration authenticated);
+
+    /**
+     * @return
+     */
+    WelcomeConfiguration getNonauthenticated();
+
+    void setNonauthenticated(WelcomeConfiguration nonauthenticated);
+
+    WelcomePage withNonauthenticated(WelcomeConfiguration nonauthenticated);
 }

@@ -23,12 +23,18 @@ import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Inject;
 import java.util.Arrays;
 
 public class LocalProfileDaoImpl implements UserProfileDao {
 
     private Profile current;
+    private LocalStorage localStorage;
 
+    @Inject
+    public LocalProfileDaoImpl(LocalStorage localStorage){
+        this.localStorage = localStorage;
+    }
     @Override
     public void create(Profile profile) throws UserProfileException {
         throw new RuntimeException("Not implemented");
@@ -36,7 +42,8 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @Override
     public void update(Profile profile) throws UserProfileException {
-        this.current = profile;
+//        this.current = profile;
+        localStorage.update(profile);
     }
 
     @Override
@@ -46,14 +53,15 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @Override
     public Profile getById(String id) throws UserProfileException {
-        return current != null ? current
-                               : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
-                                       Arrays.asList(
-                                               DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
-                                                         .withDescription("User's first name"),
-                                               DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name")
-                                                         .withValue("Baumgartner")
-                                                         .withDescription("User's last name")));
+        return localStorage.get(id);
+//        return current != null ? current
+//                               : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
+//                                       Arrays.asList(
+//                                               DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
+//                                                         .withDescription("User's first name"),
+//                                               DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name")
+//                                                         .withValue("Baumgartner")
+//                                                         .withDescription("User's last name")));
     }
 
     @Override

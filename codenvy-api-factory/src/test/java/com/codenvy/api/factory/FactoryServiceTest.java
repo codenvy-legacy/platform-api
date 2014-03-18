@@ -34,6 +34,7 @@ import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
 import org.testng.annotations.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.nio.file.*;
@@ -404,8 +405,8 @@ public class FactoryServiceTest {
         factoryUrl.setWelcome(DtoFactory.getInstance().createDto(WelcomePage.class));
         factoryUrl.setOrgid("orgid");
 
-        doThrow(new FactoryUrlException("You are not authorized to use this orgid.")).when(validator).validateObject(
-                Matchers.any(Factory.class), anyBoolean());
+        doThrow(new FactoryUrlException("You are not authorized to use this orgid.")).when(validator)
+                .validateObject(Matchers.any(Factory.class), anyBoolean(), Matchers.any(HttpServletRequest.class));
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 

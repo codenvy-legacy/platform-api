@@ -444,26 +444,21 @@ public class ProjectService extends Service {
                          .withChildren(getTree(workspace, folder, depth));
     }
 
-    // Method temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
-    private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) throws VirtualFileSystemException {
-        if (depth == 0 || !entry.isFolder()) {
+    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) {
+        if (depth == 0) {
             return null;
         }
-        final List<AbstractVirtualFileEntry> children = ((FolderEntry)entry).getChildren();
-        final List<TreeElement> nodes = new ArrayList<>(children.size());
-        for (AbstractVirtualFileEntry child : children) {
+        final List<FolderEntry> childFolders = folder.getChildFolders();
+        final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
+        for (FolderEntry childFolder : childFolders) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
-                                                     // Temporary add id.
-                                                    .withId(child.getVirtualFile().getId())
-                                                    .withName(child.getName())
-                                                    .withPath(child.getPath())
-                                                     // Temporary set 'project' type, since need to rework on the client side.
-                                                    .withType(child.isFile() ? "file" : ((FolderEntry)child).isProjectFolder() ? "project" : "folder")
-                                                    .withMediaType(child.isFile() ? ((FileEntry)child).getMediaType() : "text/directory")
-                                                    .withLinks(child.isFile() ? generateFileLinks(workspace, (FileEntry)child)
-                                                                              : generateFolderLinks(workspace, (FolderEntry)child)))
-                                .withChildren(getTree(workspace, child, depth - 1)));
+                                                    .withName(childFolder.getName())
+                                                    .withPath(childFolder.getPath())
+                                                    .withType("folder")
+                                                    .withMediaType("text/directory")
+                                                    .withLinks(generateFolderLinks(workspace, childFolder)))
+                                .withChildren(getTree(workspace, childFolder, depth - 1)));
         }
         return nodes;
     }

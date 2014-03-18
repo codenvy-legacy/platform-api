@@ -24,6 +24,7 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -59,11 +61,13 @@ public class RunnerService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_RUN)
     @Path("run")
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor run(@PathParam("ws-id") String workspace,
-                                            @Required @Description("project name") @QueryParam("project") String project) throws Exception {
+                                            @Required @Description("project name") @QueryParam("project") String project,
+                                            @Description("build options") RunOptions options) throws Exception {
         final ServiceContext serviceContext = getServiceContext();
-        return runQueue.run(workspace, project, serviceContext).getDescriptor(serviceContext);
+        return runQueue.run(workspace, project, serviceContext, options).getDescriptor(serviceContext);
     }
 
     @GET

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Options to configure build process from client
+ * Options to configure build process.
  *
  * @author Eugene Voevodin
  */

@@ -33,6 +33,9 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.vfs.server.ContentStream;
+import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.dto.server.DtoFactory;
@@ -50,7 +53,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -107,7 +109,7 @@ public class ProjectService extends Service {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, path));
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -125,6 +127,26 @@ public class ProjectService extends Service {
         return toDescriptor(workspace, project);
     }
 
+    @GET
+    @Path("modules/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<ProjectDescriptor> getModules(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
+        final Project project = projectManager.getProject(workspace, path);
+        if (project == null) {
+            final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
+            throw new WebApplicationException(
+                    Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
+        }
+
+        List<Project> modules = project.getModules();
+        List<ProjectDescriptor> result = new ArrayList<>(modules.size());
+        for (Project module : modules) {
+            result.add(toDescriptor(workspace, module));
+        }
+        return result;
+    }
+
     @POST
     @Path("{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -136,7 +158,7 @@ public class ProjectService extends Service {
         final Project project = projectManager.getProject(workspace, parentProject);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, parentProject));
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", parentProject, workspace));
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -154,7 +176,7 @@ public class ProjectService extends Service {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Project '%s' doesn't exist in workspace '%s'. ", workspace, path));
+                    String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -310,22 +332,29 @@ public class ProjectService extends Service {
                               @PathParam("path") String name,
                               InputStream zip) throws Exception {
         final FolderEntry folder = asFolder(workspace, name);
-        folder.unzip(zip);
+        VirtualFileSystemImpl.importZip(folder.getVirtualFile(), zip, true);
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getChildren")
                                                    .build(workspace, folder.getPath().substring(1))).build();
     }
 
+    /** See {@link com.codenvy.api.vfs.server.VirtualFileSystem#exportZip(String)}. */
     @GET
     @Path("export/{path:.*}")
     @Produces("application/zip")
-    public Response exportZip(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
+    public ContentStream exportZip(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
         final FolderEntry folder = asFolder(workspace, path);
-        return Response.ok()
-                       .header(HttpHeaders.CONTENT_TYPE, "application/zip")
-                       .header("Content-Disposition", String.format("attachment; filename=\"%s\"", folder.getName()))
-                       .entity(folder.toZip())
-                       .build();
+        return VirtualFileSystemImpl.exportZip(folder.getVirtualFile());
+    }
+
+    /** See {@link com.codenvy.api.vfs.server.VirtualFileSystem#exportZip(String, java.io.InputStream)}. */
+    @POST
+    @Path("export/{path:.*}")
+    @Consumes("text/plain")
+    @Produces("application/zip")
+    public Response exportDiffZip(@PathParam("ws-id") String workspace, @PathParam("path") String path, InputStream in) throws Exception {
+        final FolderEntry folder = asFolder(workspace, path);
+        return VirtualFileSystemImpl.exportZip(folder.getVirtualFile(), in);
     }
 
     @GET
@@ -370,21 +399,26 @@ public class ProjectService extends Service {
                          .withChildren(getTree(workspace, folder, depth));
     }
 
-    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) {
-        if (depth == 0) {
+    // Method temporary returns list which includes both FolderEntry and FileEntry, since need to rework tree behaviour on the client side.
+    private List<TreeElement> getTree(String workspace, AbstractVirtualFileEntry entry, int depth) throws VirtualFileSystemException {
+        if (depth == 0 || !entry.isFolder()) {
             return null;
         }
-        final List<FolderEntry> childFolders = folder.getChildFolders();
-        final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
-        for (FolderEntry childFolder : childFolders) {
+        final List<AbstractVirtualFileEntry> children = ((FolderEntry)entry).getChildren();
+        final List<TreeElement> nodes = new ArrayList<>(children.size());
+        for (AbstractVirtualFileEntry child : children) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
-                                                    .withName(childFolder.getName())
-                                                    .withPath(childFolder.getPath())
-                                                    .withType("folder")
-                                                    .withMediaType("text/directory")
-                                                    .withLinks(generateFolderLinks(workspace, childFolder)))
-                                .withChildren(getTree(workspace, childFolder, depth - 1)));
+                                                     // Temporary add id.
+                                                    .withId(child.getVirtualFile().getId())
+                                                    .withName(child.getName())
+                                                    .withPath(child.getPath())
+                                                     // Temporary set 'project' type, since need to rework on the client side.
+                                                    .withType(child.isFile() ? "file" : ((FolderEntry)child).isProjectFolder() ? "project" : "folder")
+                                                    .withMediaType(child.isFile() ? ((FileEntry)child).getMediaType() : "text/directory")
+                                                    .withLinks(child.isFile() ? generateFileLinks(workspace, (FileEntry)child)
+                                                                              : generateFolderLinks(workspace, (FolderEntry)child)))
+                                .withChildren(getTree(workspace, child, depth - 1)));
         }
         return nodes;
     }
@@ -497,7 +531,7 @@ public class ProjectService extends Service {
         return projectDescription;
     }
 
-    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException {
+    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException, VirtualFileSystemException {
         final ProjectDescription description = project.getDescription();
         final ProjectType type = description.getProjectType();
         final Map<String, List<String>> attributeValues = new LinkedHashMap<>();
@@ -505,6 +539,9 @@ public class ProjectService extends Service {
             attributeValues.put(attribute.getName(), attribute.getValues());
         }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
+                         .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
+                         // Temporary add virtualFile ID, since need to rework client side.
+                         .withId(project.getBaseFolder().getVirtualFile().getId())
                          .withProjectTypeId(type.getId())
                          .withProjectTypeName(type.getName())
                          .withDescription(description.getDescription())

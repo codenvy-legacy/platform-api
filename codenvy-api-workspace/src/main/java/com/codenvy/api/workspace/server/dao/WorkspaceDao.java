@@ -21,6 +21,8 @@ package com.codenvy.api.workspace.server.dao;
 import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 
+import java.util.List;
+
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.workspace.shared.dto.Workspace} data. The
@@ -84,4 +86,16 @@ public interface WorkspaceDao {
      *         if any issue occurred during performing an operation
      */
     Workspace getByName(String name) throws WorkspaceException;
+
+
+    /**
+     * Gets workspaces from persistent layer related to specified account.
+     *
+     * @param accountId
+     *         - workspace identifier
+     * @return List workspaces
+     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
+     *         if any issue occurred during performing an operation
+     */
+    List<Workspace> getByAccount(String accountId) throws WorkspaceException;
 }

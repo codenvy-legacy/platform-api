@@ -19,6 +19,7 @@ package com.codenvy.api.project.shared;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ public class ProjectTypeDescription {
         setAttributeDescriptions(attributeDescriptions);
     }
 
+
     public ProjectTypeDescription(ProjectType projectType) {
         if (projectType == null) {
             throw new IllegalArgumentException("Project type may not be null. ");
@@ -58,8 +60,6 @@ public class ProjectTypeDescription {
 
     // Probably temporary solution for adding common attributes that are applicable for any type of project.
     protected void addCommonAttributes() {
-        setAttributeDescription(new AttributeDescription("zipball_sources_url"));
-        setAttributeDescription(new AttributeDescription("dockerfile_url"));
     }
 
     /**
@@ -73,6 +73,7 @@ public class ProjectTypeDescription {
     public List<AttributeDescription> getAttributeDescriptions() {
         return new ArrayList<>(attributeDescriptions.values());
     }
+
 
     /** Get unmodifiable list of descriptions of attributes of project which names are started with specified prefix. */
     public List<AttributeDescription> getAttributeDescriptions(String prefix) {

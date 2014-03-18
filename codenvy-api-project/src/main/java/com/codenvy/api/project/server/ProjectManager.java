@@ -68,7 +68,7 @@ public final class ProjectManager {
 
     public Project getProject(String workspace, String projectPath) {
         final FolderEntry myRoot = getProjectsRoot(workspace);
-        final AbstractVirtualFileEntry child = myRoot.getChild(projectPath);
+        final AbstractVirtualFileEntry child = myRoot.getChild(projectPath.startsWith("/") ? projectPath.substring(1) : projectPath);
         if (child != null && child.isFolder() && ((FolderEntry)child).isProjectFolder()) {
             return new Project((FolderEntry)child, this);
         }

@@ -28,7 +28,7 @@ public class Constants {
     public static final String LINK_REL_REGISTER_RUNNER_SERVICE   = "register runner service";
     public static final String LINK_REL_UNREGISTER_RUNNER_SERVICE = "unregister runner service";
     public static final String LINK_REL_AVAILABLE_RUNNERS         = "available runners";
-    public static final String LINK_REL_RUNNER_STATE              = "runners state";
+    public static final String LINK_REL_RUNNER_STATE              = "runner state";
     public static final String LINK_REL_RUN                       = "run";
     public static final String LINK_REL_GET_STATUS                = "get status";
     public static final String LINK_REL_VIEW_LOG                  = "view logs";

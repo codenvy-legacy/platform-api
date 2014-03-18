@@ -29,6 +29,7 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -62,6 +63,11 @@ public class ProjectTypeDescriptionRegistryTest {
             @Override
             public List<ProjectTemplateDescription> getTemplates() {
                 return Collections.emptyList();
+            }
+
+            @Override
+            public Map<String, String> getIconRegistry() {
+                return null;
             }
         });
         ProjectType myType = typeRegistry.getProjectType("my_type");

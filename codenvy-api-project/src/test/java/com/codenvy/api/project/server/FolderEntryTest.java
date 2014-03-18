@@ -27,12 +27,9 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 /**
  * @author andrew00x
@@ -132,30 +129,5 @@ public class FolderEntryTest {
         myFolder.remove();
         Assert.assertFalse(myVfFolder.exists());
         Assert.assertNull(myVfProject.getChild(name));
-    }
-
-    @Test
-    public void testUnzip() throws Exception {
-        byte[] content = "to be or not to be".getBytes();
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ZipOutputStream zipOut = new ZipOutputStream(bout);
-        zipOut.putNextEntry(new ZipEntry("folder1/"));
-        zipOut.putNextEntry(new ZipEntry("folder2/"));
-        zipOut.putNextEntry(new ZipEntry("folder3/"));
-        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
-        zipOut.write(content);
-        zipOut.putNextEntry(new ZipEntry("folder2/file2.txt"));
-        zipOut.write(content);
-        zipOut.putNextEntry(new ZipEntry("folder3/file3.txt"));
-        zipOut.write(content);
-        zipOut.close();
-        byte[] zip = bout.toByteArray();
-        myFolder.unzip(new ByteArrayInputStream(zip));
-        Assert.assertNotNull(myFolder.getChild("folder1"));
-        Assert.assertNotNull(myFolder.getChild("folder1/file1.txt"));
-        Assert.assertNotNull(myFolder.getChild("folder2"));
-        Assert.assertNotNull(myFolder.getChild("folder2/file2.txt"));
-        Assert.assertNotNull(myFolder.getChild("folder3"));
-        Assert.assertNotNull(myFolder.getChild("folder3/file3.txt"));
     }
 }

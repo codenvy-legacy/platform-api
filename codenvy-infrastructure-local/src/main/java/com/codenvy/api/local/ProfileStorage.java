@@ -71,14 +71,18 @@ public class ProfileStorage {
      * @param id
      *         profile identifier
      * @return profile, which contains id, userId, attributes and preference
+     * @throws IOException
+     *         if an i/o error occurs
      */
-    public Profile get(String id) {
+    public Profile get(String id) throws IOException {
         Profile profile = null;
+        File file = new File(storageFile);
+        InputStreamReader inputStreamReader = null;
         try {
-            File file = new File(storageFile);
             if (file.exists()) {
+                inputStreamReader = new InputStreamReader(new FileInputStream(file));
                 profile =
-                        DtoFactory.getInstance().createDtoFromJson(new InputStreamReader(new FileInputStream(file)), Profile.class);
+                        DtoFactory.getInstance().createDtoFromJson(inputStreamReader, Profile.class);
 
             } else {
                 profile = DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
@@ -89,6 +93,10 @@ public class ProfileStorage {
             }
         } catch (IOException e) {
             LOG.error("It is not possible to parse file " + storageFile + " or this file not found", e);
+        } finally {
+            if (inputStreamReader != null) {
+                inputStreamReader.close();
+            }
         }
         return profile;
     }
@@ -99,15 +107,23 @@ public class ProfileStorage {
      *
      * @param profile
      *         - POJO representation of profile entity
+     * @throws IOException
+     *         if an i/o error occurs
      */
-    public void update(Profile profile) {
+    public void update(Profile profile) throws IOException {
         String profileJson = DtoFactory.getInstance().toJson(profile);
+        File file = new File(storageFile);
+        FileWriter fileWriter = null;
         try {
-            FileWriter fileWriter = new FileWriter(new File(storageFile));
+            fileWriter = new FileWriter(file);
             fileWriter.write(profileJson);
             fileWriter.close();
         } catch (IOException e) {
             LOG.error("It is not possible to write file " + storageFile, e);
+        } finally {
+            if (fileWriter != null) {
+                fileWriter.close();
+            }
         }
     }
 }

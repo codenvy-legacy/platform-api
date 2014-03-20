@@ -36,6 +36,9 @@ import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -58,6 +61,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Attributes;
 
 /**
  * User profile API
@@ -65,9 +69,8 @@ import java.util.Map;
  * @author Eugene Voevodin
  * @author Max Shaposhnik
  */
-@Path("/profile")
+@Path("profile")
 public class UserProfileService extends Service {
-
     private final UserProfileDao profileDao;
     private final UserDao        userDao;
 
@@ -98,6 +101,12 @@ public class UserProfileService extends Service {
         if (profile == null) {
             throw new ProfileNotFoundException(user.getId());
         }
+        List<Attribute> attrs = profile.getAttributes();
+        attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
+                            .withDescription("User email")
+                            .withName("email")
+                            .withValue(user.getEmail()));
+        profile.setAttributes(attrs);
         injectLinks(profile, securityContext);
         return profile;
     }
@@ -145,12 +154,24 @@ public class UserProfileService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext) throws UserProfileException {
-        Profile profile = profileDao.getById(profileId);
+    public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext)
+            throws UserProfileException, UserException {
+        final Profile profile = profileDao.getById(profileId);
         if (profile == null) {
             throw new ProfileNotFoundException(profileId);
         }
+        final User user = userDao.getByAlias(profile.getUserId());
+        if (user == null) {
+            throw new UserNotFoundException(profile.getUserId());
+        }
+        //prefs available only for CURRENT user profile
         profile.setPreferences(Collections.<String, String>emptyMap());
+        List<Attribute> attrs = profile.getAttributes();
+        attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
+                            .withDescription("User email")
+                            .withName("email")
+                            .withValue(user.getEmail()));
+        profile.setAttributes(attrs);
         injectLinks(profile, securityContext);
         return profile;
     }

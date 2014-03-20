@@ -733,7 +733,7 @@ public class ProjectServiceTest {
         Assert.assertTrue(names.contains("test.txt"));
     }
 
-    //@Test
+    @Test
     public void testGetTree() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
         FolderEntry a = myProject.getBaseFolder().createFolder("a");

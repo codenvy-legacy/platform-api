@@ -212,6 +212,7 @@ public class UserProfileService extends Service {
         if (prefsToUpdate != null) {
             Map<String, String> currentPrefs = currentProfile.getPreferences();
             currentPrefs.putAll(prefsToUpdate);
+            currentProfile.setPreferences(currentPrefs);
         } else {
             //if given preferences are null - clear profile preferences
             currentProfile.setPreferences(new HashMap<String, String>());

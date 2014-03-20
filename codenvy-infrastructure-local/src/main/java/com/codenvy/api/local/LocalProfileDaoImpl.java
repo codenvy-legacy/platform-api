@@ -19,21 +19,17 @@ package com.codenvy.api.local;
 
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.server.exception.UserProfileException;
-import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
-import java.util.Arrays;
 
 public class LocalProfileDaoImpl implements UserProfileDao {
 
-    private Profile current;
-    private LocalStorage localStorage;
+    private ProfileStorage profileStorage;
 
     @Inject
-    public LocalProfileDaoImpl(LocalStorage localStorage){
-        this.localStorage = localStorage;
+    public LocalProfileDaoImpl(ProfileStorage profileStorage){
+        this.profileStorage = profileStorage;
     }
     @Override
     public void create(Profile profile) throws UserProfileException {
@@ -42,8 +38,7 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @Override
     public void update(Profile profile) throws UserProfileException {
-//        this.current = profile;
-        localStorage.update(profile);
+        profileStorage.update(profile);
     }
 
     @Override
@@ -53,26 +48,11 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @Override
     public Profile getById(String id) throws UserProfileException {
-        return localStorage.get(id);
-//        return current != null ? current
-//                               : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
-//                                       Arrays.asList(
-//                                               DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
-//                                                         .withDescription("User's first name"),
-//                                               DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name")
-//                                                         .withValue("Baumgartner")
-//                                                         .withDescription("User's last name")));
+        return profileStorage.get(id);
     }
 
     @Override
     public Profile getById(String id, String filter) throws UserProfileException {
-        return current != null ? current
-                               : DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
-                                       Arrays.asList(
-                                               DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
-                                                         .withDescription("User's first name"),
-                                               DtoFactory.getInstance().createDto(Attribute.class).withName("Last Name")
-                                                         .withValue("Baumgartner")
-                                                         .withDescription("User's last name")));
+        throw new RuntimeException("Not implemented");
     }
 }

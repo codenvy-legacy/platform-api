@@ -21,6 +21,8 @@ package com.codenvy.api.user.server.dao;
 import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Profile;
 
+import java.io.IOException;
+
 /**
  * DAO interface offers means to perform CRUD operations with {@link Profile} data.
  *

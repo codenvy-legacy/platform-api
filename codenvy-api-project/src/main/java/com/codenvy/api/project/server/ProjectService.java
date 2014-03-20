@@ -411,6 +411,7 @@ public class ProjectService extends Service {
         final ArrayList<ItemReference> result = new ArrayList<>(children.size());
         for (AbstractVirtualFileEntry child : children) {
             final ItemReference itemReference = DtoFactory.getInstance().createDto(ItemReference.class)
+                                                          .withId(child.getVirtualFile().getId())
                                                           .withName(child.getName())
                                                           .withPath(child.getPath());
             if (child.isFile()) {
@@ -420,6 +421,7 @@ public class ProjectService extends Service {
             } else {
                 itemReference.withType("folder")
                              .withMediaType("text/directory")
+                             .withChildrenCount(((FolderEntry)child).getChildren().size())
                              .withLinks(generateFolderLinks(workspace, (FolderEntry)child));
             }
             result.add(itemReference);
@@ -436,15 +438,17 @@ public class ProjectService extends Service {
         final FolderEntry folder = asFolder(workspace, path);
         return DtoFactory.getInstance().createDto(TreeElement.class)
                          .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
+                                             .withId(folder.getVirtualFile().getId())
                                              .withName(folder.getName())
                                              .withPath(folder.getPath())
                                              .withType("folder")
                                              .withMediaType("text/directory")
+                                             .withChildrenCount(folder.getChildren().size())
                                              .withLinks(generateFolderLinks(workspace, folder)))
                          .withChildren(getTree(workspace, folder, depth));
     }
 
-    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) {
+    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) throws VirtualFileSystemException {
         if (depth == 0) {
             return null;
         }
@@ -453,10 +457,12 @@ public class ProjectService extends Service {
         for (FolderEntry childFolder : childFolders) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
+                                                    .withId(childFolder.getVirtualFile().getId())
                                                     .withName(childFolder.getName())
                                                     .withPath(childFolder.getPath())
                                                     .withType("folder")
                                                     .withMediaType("text/directory")
+                                                    .withChildrenCount(childFolder.getChildren().size())
                                                     .withLinks(generateFolderLinks(workspace, childFolder)))
                                 .withChildren(getTree(workspace, childFolder, depth - 1)));
         }

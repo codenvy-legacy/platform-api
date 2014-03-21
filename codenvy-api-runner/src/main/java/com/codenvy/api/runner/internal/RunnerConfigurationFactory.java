@@ -20,7 +20,13 @@ package com.codenvy.api.runner.internal;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Factory for RunnerConfiguration.
+ *
+ * @author andrew00x
+ * @see com.codenvy.api.runner.internal.RunnerConfiguration
+ * @see Runner#getRunnerConfigurationFactory()
+ */
 public interface RunnerConfigurationFactory {
     RunnerConfiguration createRunnerConfiguration(RunRequest request) throws RunnerException;
 }

@@ -19,7 +19,11 @@ package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.runner.RunnerException;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Thrown if allocation of resource (e.g. memory) fails.
+ *
+ * @author andrew00x
+ */
 @SuppressWarnings("serial")
 public class AllocateResourceException extends RunnerException {
     public AllocateResourceException(String message) {

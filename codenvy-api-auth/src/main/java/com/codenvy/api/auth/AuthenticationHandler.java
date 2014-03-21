@@ -17,8 +17,6 @@
  */
 package com.codenvy.api.auth;
 
-import java.security.Principal;
-
 /**
  * Authentication using username and password.
  *
@@ -29,10 +27,10 @@ public interface AuthenticationHandler {
      * Authenticate user.
      *
      * @return - user principal if authentication is done, throw an {@link com.codenvy.api.auth.AuthenticationException}
-     *         otherwise.
+     * otherwise.
      * @throws AuthenticationException
      */
-    Principal authenticate(final String userId, final String password) throws AuthenticationException;
+    UniquePrincipal authenticate(final String login, final String password) throws AuthenticationException;
 
     /** @return - type of authentication handler */
     String getType();

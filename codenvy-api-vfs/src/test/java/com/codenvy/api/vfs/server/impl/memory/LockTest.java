@@ -20,20 +20,18 @@ package com.codenvy.api.vfs.server.impl.memory;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class LockTest extends MemoryFileSystemTest {
     private String folderId;
     private String fileId;
@@ -42,12 +40,12 @@ public class LockTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile lockTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile lockTestFolder = mountPoint.getRoot().createFolder(name);
 
-        VirtualFile folder = lockTestProject.createFolder("LockTest_FOLDER");
+        VirtualFile folder = lockTestFolder.createFolder("LockTest_FOLDER");
         folderId = folder.getId();
 
-        VirtualFile file = lockTestProject.createFile("LockTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        VirtualFile file = lockTestFolder.createFile("LockTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
     }
 

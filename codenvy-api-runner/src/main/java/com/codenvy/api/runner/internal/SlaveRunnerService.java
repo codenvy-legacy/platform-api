@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -47,7 +46,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +54,7 @@ import java.util.Set;
 /**
  * RESTful API for slave-runners.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @Path("internal/runner")
 public class SlaveRunnerService extends Service {
@@ -87,8 +85,7 @@ public class SlaveRunnerService extends Service {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ApplicationProcessDescriptor run(@Description("Parameters for run task in JSON format") RunRequest request)
-            throws RunnerException, IOException, RemoteException {
+    public ApplicationProcessDescriptor run(@Description("Parameters for run task in JSON format") RunRequest request) throws Exception {
         final Runner runner = getRunner(request.getRunner());
         final RunnerProcess process = runner.execute(request);
         return getDescriptor(process, getServiceContext());

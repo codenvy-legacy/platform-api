@@ -17,7 +17,13 @@
  */
 package com.codenvy.api.builder;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/**
+ * Thrown when particular build process is request but isn't available.
+ *
+ * @author andrew00x
+ * @see BuildQueue#getTask(Long)
+ * @see com.codenvy.api.builder.internal.Builder#getBuildTask(Long)
+ */
 @SuppressWarnings("serial")
 public final class NoSuchBuildTaskException extends BuilderException {
     public NoSuchBuildTaskException(Long taskId) {

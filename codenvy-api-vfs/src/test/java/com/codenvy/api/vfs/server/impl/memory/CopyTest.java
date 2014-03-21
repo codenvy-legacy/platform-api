@@ -22,48 +22,42 @@ import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class CopyTest extends MemoryFileSystemTest {
-    private VirtualFile copyTestDestinationProject;
+    private VirtualFile copyTestDestinationFolder;
     private VirtualFile fileForCopy;
     private VirtualFile folderForCopy;
-    private VirtualFile projectForCopy;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile parentProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile parentFolder = mountPoint.getRoot().createFolder(name);
 
-        folderForCopy = parentProject.createFolder("CopyTest_FOLDER");
+        folderForCopy = parentFolder.createFolder("CopyTest_FOLDER");
         // add child in folder
         fileForCopy = folderForCopy.createFile("CopyTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
 
-        projectForCopy = parentProject.createProject("CopyTest_PROJECT", Collections.<Property>emptyList());
-
-        copyTestDestinationProject =
-                mountPoint.getRoot().createProject("CopyTest_DESTINATION", Collections.<Property>emptyList());
+        copyTestDestinationFolder = mountPoint.getRoot().createFolder("CopyTest_DESTINATION");
     }
 
     public void testCopyFile() throws Exception {
         final String originPath = fileForCopy.getPath();
-        String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + copyTestDestinationProject.getId();
+        String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = copyTestDestinationProject.getPath() + '/' + fileForCopy.getName();
+        String expectedPath = copyTestDestinationFolder.getPath() + '/' + fileForCopy.getName();
         try {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
@@ -83,8 +77,8 @@ public class CopyTest extends MemoryFileSystemTest {
 
     public void testCopyFileAlreadyExist() throws Exception {
         final String originPath = fileForCopy.getPath();
-        copyTestDestinationProject.createFile("CopyTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-        String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + copyTestDestinationProject.getId();
+        copyTestDestinationFolder.createFile("CopyTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(400, response.getStatus());
         assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
@@ -117,10 +111,10 @@ public class CopyTest extends MemoryFileSystemTest {
         Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
         permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
         permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
-        copyTestDestinationProject.updateACL(createAcl(permissions), true, null);
+        copyTestDestinationFolder.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-        String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + copyTestDestinationProject.getId();
+        String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         log.info(new String(writer.getBody()));
         assertEquals(403, response.getStatus());
@@ -130,17 +124,17 @@ public class CopyTest extends MemoryFileSystemTest {
             fail("Source file not found. ");
         }
         try {
-            mountPoint.getVirtualFile(copyTestDestinationProject.getPath() + "/CopyTest_FILE");
+            mountPoint.getVirtualFile(copyTestDestinationFolder.getPath() + "/CopyTest_FILE");
             fail("File must not be copied since destination accessible for reading only. ");
         } catch (ItemNotFoundException e) {
         }
     }
 
     public void testCopyFolder() throws Exception {
-        String path = SERVICE_URI + "copy/" + folderForCopy.getId() + '?' + "parentId=" + copyTestDestinationProject.getId();
+        String path = SERVICE_URI + "copy/" + folderForCopy.getId() + '?' + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = copyTestDestinationProject.getPath() + "/" + folderForCopy.getName();
+        String expectedPath = copyTestDestinationFolder.getPath() + "/" + folderForCopy.getName();
         final String originPath = folderForCopy.getPath();
         try {
             mountPoint.getVirtualFile(originPath);
@@ -177,18 +171,18 @@ public class CopyTest extends MemoryFileSystemTest {
         permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
         myFile.updateACL(createAcl(permissions), true, null);
 
-        String path = SERVICE_URI + "copy/" + folderForCopy.getId() + '?' + "parentId=" + copyTestDestinationProject.getId();
+        String path = SERVICE_URI + "copy/" + folderForCopy.getId() + '?' + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(200, response.getStatus());
-        String expectedPath = copyTestDestinationProject.getPath() + "/" + folderForCopy.getName();
+        String expectedPath = copyTestDestinationFolder.getPath() + "/" + folderForCopy.getName();
         // one file must not be copied since permission restriction
         assertNull(mountPoint.getVirtualFile(expectedPath).getChild("file"));
     }
 
     public void testCopyFolderAlreadyExist() throws Exception {
         final String originPath = folderForCopy.getPath();
-        copyTestDestinationProject.createFolder("CopyTest_FOLDER");
-        String path = SERVICE_URI + "copy/" + folderForCopy.getId() + "?" + "parentId=" + copyTestDestinationProject.getId();
+        copyTestDestinationFolder.createFolder("CopyTest_FOLDER");
+        String path = SERVICE_URI + "copy/" + folderForCopy.getId() + "?" + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
         assertEquals(400, response.getStatus());
         assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
@@ -196,31 +190,6 @@ public class CopyTest extends MemoryFileSystemTest {
             mountPoint.getVirtualFile(originPath);
         } catch (ItemNotFoundException e) {
             fail("Source folder not found. ");
-        }
-    }
-
-    public void testCopyProjectToProject() throws Exception {
-        final String originPath = projectForCopy.getPath();
-        String path = SERVICE_URI + "copy/" + projectForCopy.getId() + '?' +
-                      "parentId=" + copyTestDestinationProject.getId();
-
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals("Unexpected status " + response.getStatus(), 200, response.getStatus());
-        String expectedPath = copyTestDestinationProject.getPath() + '/' + projectForCopy.getName();
-        try {
-            mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
-            fail("Source project not found. ");
-        }
-        try {
-            mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
-            fail("Not found project in destination location. ");
-        }
-        try {
-            mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
-        } catch (ItemNotFoundException e) {
-            fail("Copied project not accessible by id. ");
         }
     }
 }

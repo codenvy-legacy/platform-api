@@ -19,8 +19,8 @@ package com.codenvy.api.workspace.server;
 
 import sun.security.acl.PrincipalImpl;
 
-import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.organization.server.dao.OrganizationDao;
+import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
@@ -83,13 +83,13 @@ import static org.testng.Assert.fail;
 @Listeners(value = {MockitoTestNGListener.class})
 public class WorkspaceServiceTest {
 
-    private static final String BASE_URI       = "http://localhost/service";
-    private static final String SERVICE_PATH   = BASE_URI + "/workspace";
-    private static final String WS_ID          = "workspace0xffffffffffffff";
-    private static final String WS_NAME        = "ws1";
-    private static final String USER_ID        = "user0xffffffffffffff";
-    private static final String ACCOUNT_ID     = "account0xffffffffffffff";
-    private static final String PRINCIPAL_NAME = "Yoda@starwars.com";
+    private static final String BASE_URI        = "http://localhost/service";
+    private static final String SERVICE_PATH    = BASE_URI + "/workspace";
+    private static final String WS_ID           = "workspace0xffffffffffffff";
+    private static final String WS_NAME         = "ws1";
+    private static final String USER_ID         = "user0xffffffffffffff";
+    private static final String ORGANIZATION_ID = "organization0xffffffffffffff";
+    private static final String PRINCIPAL_NAME  = "Yoda@starwars.com";
 
     @Mock
     private WorkspaceDao workspaceDao;
@@ -101,7 +101,7 @@ public class WorkspaceServiceTest {
     private MemberDao memberDao;
 
     @Mock
-    AccountDao accountDao;
+    private OrganizationDao organizationDao;
 
     @Mock
     private UserProfileDao userProfileDao;
@@ -132,7 +132,7 @@ public class WorkspaceServiceTest {
         dependencies.addComponent(MemberDao.class, memberDao);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
-        dependencies.addComponent(AccountDao.class, accountDao);
+        dependencies.addComponent(OrganizationDao.class, organizationDao);
         resources.addResource(WorkspaceService.class, null);
         requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
                                                 providers, dependencies, new EverrestConfiguration());
@@ -141,7 +141,7 @@ public class WorkspaceServiceTest {
         workspace = DtoFactory.getInstance().createDto(Workspace.class)
                               .withId(WS_ID)
                               .withName(WS_NAME)
-                              .withAccountId(ACCOUNT_ID);
+                              .withOrganizationId(ORGANIZATION_ID);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(PRINCIPAL_NAME));
     }
@@ -150,9 +150,9 @@ public class WorkspaceServiceTest {
     public void shouldBeAbleToCreateNewWorkspace() throws Exception {
         User current = DtoFactory.getInstance().createDto(User.class)
                                  .withId(USER_ID);
-        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID).withOwner(USER_ID);
+        Organization org = DtoFactory.getInstance().createDto(Organization.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
         when(userDao.getByAlias(PRINCIPAL_NAME)).thenReturn(current);
-        when(accountDao.getById(ACCOUNT_ID)).thenReturn(acc);
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(org);
 
         String[] roles = getRoles(WorkspaceService.class, "create");
         for (String role : roles) {

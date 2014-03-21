@@ -30,11 +30,11 @@ public class SnippetGenerator {
         return UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
     }
 
-    public static String generateHtmlSnippet(String id, URI baseUri) {
+    public static String generateHtmlSnippet(String id, String style, URI baseUri) {
         Formatter formatter = new Formatter();
-        formatter.format("<script type=\"text/javascript\" language=\"javascript\" " +
-                         "src=\"%1$s/factory/resources/embed.js?%2$s\"></script>",
-                         UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id);
+        formatter.format("<script type=\"text/javascript\" style=\"%1$s\" " +
+                         "src=\"%2$s/factory/resources/factory.js?%3$s\"></script>",
+                         style, UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id);
         return formatter.toString();
     }
 

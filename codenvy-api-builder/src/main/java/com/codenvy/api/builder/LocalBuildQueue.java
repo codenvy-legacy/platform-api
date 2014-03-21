@@ -17,12 +17,21 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.builder.internal.BuildDoneEvent;
 import com.codenvy.api.builder.internal.Builder;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
+import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.dto.server.DtoFactory;
+
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
@@ -37,13 +46,16 @@ import java.util.Set;
 
 /**
  * Implementation of BuildQueue that looks up Builder's on startup. Usage of this class assumes {@link
- * com.codenvy.api.builder.internal.SlaveBuilderService} is deployed on the same host with {@link BuilderService}.
+ * com.codenvy.api.builder.internal.SlaveBuilderService} is deployed on the same host with {@link com.codenvy.api.builder.BuilderService}.
  *
  * @author andrew00x
  */
 @Singleton
 public final class LocalBuildQueue extends BuildQueue {
+    private static final Logger LOG = LoggerFactory.getLogger(LocalBuildQueue.class);
+
     private final List<RemoteBuilder> remoteBuilders;
+    private final EventService        eventService;
 
     // work-around to be bale configure port.
     static class SlaveBuilderPortHolder {
@@ -69,9 +81,11 @@ public final class LocalBuildQueue extends BuildQueue {
                            @Named("builder.queue.max_time_in_queue") int maxTimeInQueue,
                            @Named("builder.queue.build_timeout") int timeout,
                            BuilderSelectionStrategy builderSelector,
+                           EventService eventService,
                            SlaveBuilderPortHolder portHolder,
                            Set<Builder> builders) {
         super(baseProjectApiUrl, maxTimeInQueue, timeout, builderSelector);
+        this.eventService = eventService;
         final String baseUrl = String.format("http://localhost:%d/api/internal/builder", portHolder.port);
         final List<Link> links = new ArrayList<>();
         links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -116,6 +130,23 @@ public final class LocalBuildQueue extends BuildQueue {
     public synchronized void start() {
         super.start();
         registerBuilders(null, null, remoteBuilders);
+        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+            @Override
+            public void onEvent(BuildDoneEvent event) {
+                try {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    final long id = event.getTaskId();
+                    final BuildTaskDescriptor taskDescriptor = getTask(id).getDescriptor();
+                    // TODO: do need to have separate channel? Can use builder:status channel for all events?
+                    bm.setChannel(String.format("builder:status:%d", id));
+                    bm.setType(ChannelBroadcastMessage.Type.NONE);
+                    bm.setBody(DtoFactory.getInstance().toJson(taskDescriptor));
+                    WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
     }
 
     @PreDestroy

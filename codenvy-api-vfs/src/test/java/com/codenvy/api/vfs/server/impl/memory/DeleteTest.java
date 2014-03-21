@@ -21,20 +21,18 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class DeleteTest extends MemoryFileSystemTest {
     private String      folderId;
     private String      folderChildId;
@@ -48,9 +46,9 @@ public class DeleteTest extends MemoryFileSystemTest {
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile deleteTestProject = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile deleteTestFolder = mountPoint.getRoot().createFolder(name);
 
-        VirtualFile folder = deleteTestProject.createFolder("DeleteTest_FOLDER");
+        VirtualFile folder = deleteTestFolder.createFolder("DeleteTest_FOLDER");
         // add child in folder
         VirtualFile childFile = folder.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         folderId = folder.getId();
@@ -58,7 +56,7 @@ public class DeleteTest extends MemoryFileSystemTest {
         folderPath = folder.getPath();
         folderChildPath = childFile.getPath();
 
-        file = deleteTestProject.createFile("DeleteTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
+        file = deleteTestFolder.createFile("DeleteTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         fileId = file.getId();
         filePath = file.getPath();
     }

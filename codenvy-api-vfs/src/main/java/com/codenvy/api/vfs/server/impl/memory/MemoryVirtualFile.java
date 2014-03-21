@@ -34,6 +34,13 @@ import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
 import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
+import com.codenvy.api.vfs.server.observation.CreateEvent;
+import com.codenvy.api.vfs.server.observation.DeleteEvent;
+import com.codenvy.api.vfs.server.observation.MoveEvent;
+import com.codenvy.api.vfs.server.observation.RenameEvent;
+import com.codenvy.api.vfs.server.observation.UpdateACLEvent;
+import com.codenvy.api.vfs.server.observation.UpdateContentEvent;
+import com.codenvy.api.vfs.server.observation.UpdatePropertiesEvent;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.NotClosableInputStream;
 import com.codenvy.api.vfs.server.util.ZipContent;
@@ -41,11 +48,9 @@ import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Folder;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.Project;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
-import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.hash.HashFunction;
@@ -85,9 +90,9 @@ import java.util.zip.ZipOutputStream;
  * @author andrew00x
  */
 public class MemoryVirtualFile implements VirtualFile {
-    private static final Logger                       LOG          = LoggerFactory.getLogger(MemoryVirtualFile.class);
-    private static final boolean                      FILE         = false;
-    private static final boolean                      FOLDER       = true;
+    private static final Logger  LOG    = LoggerFactory.getLogger(MemoryVirtualFile.class);
+    private static final boolean FILE   = false;
+    private static final boolean FOLDER = true;
 
     private static MemoryVirtualFile newFile(MemoryVirtualFile parent, String name, InputStream content, String mediaType)
             throws IOException {
@@ -100,10 +105,6 @@ public class MemoryVirtualFile implements VirtualFile {
 
     private static MemoryVirtualFile newFolder(MemoryVirtualFile parent, String name) {
         return new MemoryVirtualFile(parent, ObjectIdGenerator.generateId(), name);
-    }
-
-    private static MemoryVirtualFile newProject(MemoryVirtualFile parent, String name, List<Property> properties) {
-        return new MemoryVirtualFile(parent, ObjectIdGenerator.generateId(), name, properties);
     }
 
     //
@@ -176,31 +177,6 @@ public class MemoryVirtualFile implements VirtualFile {
         children = new HashMap<>();
     }
 
-    // -- Project ---
-    private MemoryVirtualFile(MemoryVirtualFile parent, String id, String name, List<Property> properties) {
-        this.mountPoint = (MemoryMountPoint)parent.getMountPoint();
-        this.parent = parent;
-        this.type = FOLDER;
-        this.id = id;
-        this.name = name;
-        this.permissionsMap = new HashMap<>();
-        this.properties = new HashMap<>();
-        this.creationDate = this.lastModificationDate = System.currentTimeMillis();
-        children = new HashMap<>();
-        if (properties != null) {
-            for (Property property : properties) {
-                String propertyName = property.getName();
-                List<String> propertyValue = property.getValue();
-                if (propertyValue != null) {
-                    List<String> copy = new ArrayList<>(propertyValue.size());
-                    copy.addAll(propertyValue);
-                    this.properties.put(propertyName, copy);
-                }
-            }
-        }
-        this.properties.put("vfs:mimeType", Arrays.asList("text/vnd.ideproject+directory"));
-    }
-
     @Override
     public boolean isFile() throws VirtualFileSystemException {
         checkExist();
@@ -211,12 +187,6 @@ public class MemoryVirtualFile implements VirtualFile {
     public boolean isFolder() throws VirtualFileSystemException {
         checkExist();
         return type == FOLDER;
-    }
-
-    @Override
-    public boolean isProject() throws VirtualFileSystemException {
-        checkExist();
-        return isFolder() && Project.PROJECT_MIME_TYPE.equals(getPropertyValue("vfs:mimeType"));
     }
 
     public VirtualFile getParent() throws VirtualFileSystemException {
@@ -316,6 +286,7 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         permissionsMap.putAll(update);
         lastModificationDate = System.currentTimeMillis();
+        mountPoint.getEventService().publish(new UpdateACLEvent(mountPoint.getWorkspaceId(), getPath()));
         return this;
     }
 
@@ -415,6 +386,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         lastModificationDate = System.currentTimeMillis();
+        mountPoint.getEventService().publish(new UpdatePropertiesEvent(mountPoint.getWorkspaceId(), getPath()));
         return this;
     }
 
@@ -584,6 +556,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         lastModificationDate = System.currentTimeMillis();
+        mountPoint.getEventService().publish(new UpdateContentEvent(mountPoint.getWorkspaceId(), getPath()));
         return this;
     }
 
@@ -636,8 +609,8 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new PermissionDeniedException(String.format("Unable copy item '%s' to %s. Operation not permitted. ",
                                                               getPath(), parent.getPath()));
         }
-        VirtualFile virtualFile = doCopy(parent);
-        mountPoint.putItem((MemoryVirtualFile)virtualFile);
+        VirtualFile copy = doCopy(parent);
+        mountPoint.putItem((MemoryVirtualFile)copy);
         SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
         if (searcherProvider != null) {
             try {
@@ -646,7 +619,8 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        return virtualFile;
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), copy.getPath()));
+        return copy;
     }
 
     private VirtualFile doCopy(VirtualFile parent) throws VirtualFileSystemException {
@@ -738,6 +712,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
+        mountPoint.getEventService().publish(new MoveEvent(mountPoint.getWorkspaceId(), getPath(), myPath));
         return this;
     }
 
@@ -801,6 +776,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
+        mountPoint.getEventService().publish(new RenameEvent(mountPoint.getWorkspaceId(), getPath(), myPath));
         return this;
     }
 
@@ -814,6 +790,7 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new PermissionDeniedException(String.format("Unable delete item '%s'. Operation not permitted. ", getPath()));
         }
         final String myPath = getPath();
+        final boolean isFolder = isFolder();
         if (isFolder()) {
             final List<VirtualFile> toDelete = new ArrayList<>();
             accept(new VirtualFileVisitor() {
@@ -859,6 +836,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
+        mountPoint.getEventService().publish(new DeleteEvent(mountPoint.getWorkspaceId(), myPath));
     }
 
     @Override
@@ -869,10 +847,6 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ZipOutputStream zipOut = new ZipOutputStream(out);
-        if (isProject() && getChild(".project") == null) {
-            zipOut.putNextEntry(new ZipEntry(".project"));
-            zipOut.write(JsonHelper.toJson(getProperties(PropertyFilter.ALL_FILTER)).getBytes());
-        }
         final LinkedList<VirtualFile> q = new LinkedList<>();
         q.add(this);
         final int rootZipPathLength = isRoot() ? 1 : (getPath().length() + 1);
@@ -887,10 +861,6 @@ public class MemoryVirtualFile implements VirtualFile {
                     zipOut.closeEntry();
                 } else if (current.isFolder()) {
                     zipOut.putNextEntry(new ZipEntry(zipEntryName + '/'));
-                    if (current.isProject()) {
-                        zipOut.putNextEntry(new ZipEntry(zipEntryName + "/.project"));
-                        zipOut.write(JsonHelper.toJson(current.getProperties(PropertyFilter.ALL_FILTER)).getBytes());
-                    }
                     q.add(current);
                     zipOut.closeEntry();
                 }
@@ -938,33 +908,6 @@ public class MemoryVirtualFile implements VirtualFile {
                         MemoryVirtualFile folder = newFolder((MemoryVirtualFile)current, name);
                         ((MemoryVirtualFile)current).addChild(folder);
                         mountPoint.putItem(folder);
-                    }
-                } else if (".project".equals(name)) {
-                    @SuppressWarnings("unchecked")
-                    List<Property> properties = DtoFactory.getInstance().createListDtoFromJson(noCloseZip, Property.class);
-                    if (!properties.isEmpty()) {
-                        boolean hasMimeType = false;
-                        for (int i = 0, size = properties.size(); i < size && !hasMimeType; i++) {
-                            Property property = properties.get(i);
-                            if ("vfs:mimeType".equals(property.getName()) &&
-                                !(property.getValue() == null || property.getValue().isEmpty())) {
-                                hasMimeType = true;
-                            }
-                        }
-                        if (!hasMimeType) {
-                            final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class)
-                                                                        .withName("vfs:mimeType")
-                                                                        .withValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
-                            properties.add(mimeTypeProperty);
-                        }
-
-                        current.updateProperties(properties, null);
-                    } else {
-                        final Property mimeTypeProperty = DtoFactory.getInstance().createDto(Property.class)
-                                                                    .withName("vfs:mimeType")
-                                                                    .withValue(Collections.singletonList(Project.PROJECT_MIME_TYPE));
-                        properties.add(mimeTypeProperty);
-                        current.updateProperties(Collections.<Property>singletonList(mimeTypeProperty), null);
                     }
                 } else {
                     current.getChild(name);
@@ -1103,6 +1046,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFile.getPath()));
         return newFile;
     }
 
@@ -1141,26 +1085,8 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         mountPoint.putItem(newFolder);
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFolder.getPath()));
         return newFolder;
-    }
-
-    @Override
-    public VirtualFile createProject(String name, List<Property> properties) throws VirtualFileSystemException {
-        checkExist();
-        checkName(name);
-        if (!isFolder()) {
-            throw new VirtualFileSystemException("Unable create new project. Item specified as parent is not a folder. ");
-        }
-        if (!hasPermission(BasicPermissions.WRITE, true)) {
-            throw new PermissionDeniedException(
-                    String.format("Unable create new project in '%s'. Operation not permitted. ", getPath()));
-        }
-        final MemoryVirtualFile newProject = newProject(this, name, properties);
-        if (!addChild(newProject)) {
-            throw new ItemAlreadyExistException(String.format("Item with the name '%s' already exists. ", name));
-        }
-        mountPoint.putItem(newProject);
-        return newProject;
     }
 
     @Override
@@ -1171,18 +1097,13 @@ public class MemoryVirtualFile implements VirtualFile {
     @Override
     public int compareTo(VirtualFile o) {
         // To get nice order of items:
-        // 1. Projects
-        // 2. Regular folders
-        // 3. Files
+        // 1. Regular folders
+        // 2. Files
         if (o == null) {
             throw new NullPointerException();
         }
         try {
-            if (isProject()) {
-                return o.isProject() ? getName().compareTo(o.getName()) : -1;
-            } else if (o.isProject()) {
-                return 1;
-            } else if (isFolder()) {
+            if (isFolder()) {
                 return o.isFolder() ? getName().compareTo(o.getName()) : -1;
             } else if (o.isFolder()) {
                 return 1;

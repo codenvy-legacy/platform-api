@@ -18,7 +18,6 @@
 package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.observation.EventListenerList;
 import com.codenvy.api.vfs.shared.ItemType;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.File;
@@ -48,8 +47,6 @@ public final class VirtualFileSystemURLConnection extends URLConnection {
 
     private final VirtualFileSystemRegistry registry;
 
-    private final EventListenerList listeners;
-
     private VirtualFileSystem vfs;
 
     private Item item;
@@ -60,12 +57,9 @@ public final class VirtualFileSystemURLConnection extends URLConnection {
      * @param registry
      *         virtual file system registry
      */
-    public VirtualFileSystemURLConnection(URL url,
-                                          VirtualFileSystemRegistry registry,
-                                          EventListenerList listeners) {
+    public VirtualFileSystemURLConnection(URL url, VirtualFileSystemRegistry registry) {
         super(check(url)); // Be sure URL is correct.
         this.registry = registry;
-        this.listeners = listeners;
     }
 
     private static URL check(URL url) {
@@ -83,7 +77,7 @@ public final class VirtualFileSystemURLConnection extends URLConnection {
         final String vfsId =
                 (path == null || "/".equals(path)) ? null : (path.startsWith("/")) ? path.substring(1) : path;
         try {
-            vfs = registry.getProvider(vfsId).newInstance(null, listeners);
+            vfs = registry.getProvider(vfsId).newInstance(null);
             final String itemIdentifier = theUri.getFragment();
             item = (itemIdentifier.startsWith("/")) //
                    ? vfs.getItemByPath(itemIdentifier, null, false, PropertyFilter.NONE_FILTER) //

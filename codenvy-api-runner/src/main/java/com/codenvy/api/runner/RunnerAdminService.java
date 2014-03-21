@@ -24,6 +24,7 @@ import com.codenvy.api.runner.dto.RunnerServiceLocation;
 import com.codenvy.api.runner.dto.RunnerServiceRegistration;
 import com.codenvy.api.runner.internal.Constants;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -35,11 +36,11 @@ import javax.ws.rs.core.Response;
 /**
  * RESTful API for administration.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @Path("runner/admin")
 @Description("Runner API")
-//@RolesAllowed("cloud/admin")
+@RolesAllowed("cloud/admin")
 public class RunnerAdminService extends Service {
     @Inject
     private RunQueue runner;

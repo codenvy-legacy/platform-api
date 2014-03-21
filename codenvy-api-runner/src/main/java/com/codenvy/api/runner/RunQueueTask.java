@@ -17,9 +17,8 @@
  */
 package com.codenvy.api.runner;
 
-import com.codenvy.api.core.rest.ProxyResponse;
+import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.RemoteException;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
@@ -34,27 +33,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Wraps RemoteRunnerProcess.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class RunQueueTask implements Cancellable {
-    private static final AtomicLong sequence = new AtomicLong(1);
-
     private final Long                        id;
     private final RunRequest                  request;
     private final Future<RemoteRunnerProcess> future;
     private final long                        created;
 
+    /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
+    private final UriBuilder uriBuilder;
+
+    private UriBuilder getUriBuilder() {
+        return uriBuilder.clone();
+    }
+    /* ~~~~ */
+
     private RemoteRunnerProcess myRemoteProcess;
 
-    RunQueueTask(RunRequest request, Future<RemoteRunnerProcess> future) {
-        this.id = sequence.getAndIncrement();
+    RunQueueTask(Long id, RunRequest request, Future<RemoteRunnerProcess> future, UriBuilder uriBuilder) {
+        this.id = id;
         this.future = future;
         this.request = request;
+        this.uriBuilder = uriBuilder;
         created = System.currentTimeMillis();
     }
 
@@ -92,15 +97,10 @@ public final class RunQueueTask implements Cancellable {
     /**
      * Get status of this process.
      *
-     * @throws RemoteException
-     *         if an error that we understand occurs when ask remote slave-runner about status
-     * @throws IOException
-     *         if an i/o error occurs when ask remote slave-runner about status
      * @throws RunnerException
-     *         if any other errors
+     *         if an error occurs
      */
-    public ApplicationProcessDescriptor getDescriptor(ServiceContext restfulRequestContext)
-            throws IOException, RemoteException, RunnerException {
+    public ApplicationProcessDescriptor getDescriptor() throws RunnerException {
         if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                              .withProcessId(id)
@@ -108,17 +108,16 @@ public final class RunQueueTask implements Cancellable {
         }
         final RemoteRunnerProcess remoteProcess = getRemoteProcess();
         if (remoteProcess == null) {
-            final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
             final List<Link> links = new ArrayList<>(2);
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_GET_STATUS)
-                                .withHref(servicePathBuilder.clone().path(RunnerService.class, "getStatus")
-                                                            .build(request.getWorkspace(), id).toString()).withMethod("GET")
+                                .withHref(getUriBuilder().path(RunnerService.class, "getStatus")
+                                                         .build(request.getWorkspace(), id).toString()).withMethod("GET")
                                 .withProduces(MediaType.APPLICATION_JSON));
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_STOP)
-                                .withHref(servicePathBuilder.clone().path(RunnerService.class, "stop")
-                                                            .build(request.getWorkspace(), id).toString())
+                                .withHref(getUriBuilder().path(RunnerService.class, "stop")
+                                                         .build(request.getWorkspace(), id).toString())
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
@@ -130,23 +129,23 @@ public final class RunQueueTask implements Cancellable {
         // re-write some parameters, we are working as revers-proxy
         return DtoFactory.getInstance().clone(remoteStatus)
                          .withProcessId(id)
-                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks(), restfulRequestContext.getServiceUriBuilder()));
+                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks()));
     }
 
-    private List<Link> rewriteKnownLinks(List<Link> links, UriBuilder serviceUriBuilder) {
-        final List<Link> rewritten = new ArrayList<>(3);
+    private List<Link> rewriteKnownLinks(List<Link> links) {
+        final List<Link> rewritten = new ArrayList<>();
         for (Link link : links) {
             if (Constants.LINK_REL_GET_STATUS.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "getStatus").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(RunnerService.class, "getStatus").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_STOP.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "stop").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(RunnerService.class, "stop").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else if (Constants.LINK_REL_VIEW_LOG.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
-                copy.setHref(serviceUriBuilder.clone().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
+                copy.setHref(getUriBuilder().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             } else {
                 rewritten.add(DtoFactory.getInstance().clone(link));
@@ -170,7 +169,7 @@ public final class RunQueueTask implements Cancellable {
      *
      * @return {@code true} if process was interrupted and {@code false} otherwise
      */
-    public boolean isCancelled() throws IOException, RemoteException, RunnerException {
+    public boolean isCancelled() throws RunnerException {
         return future.isCancelled();
     }
 
@@ -184,7 +183,7 @@ public final class RunQueueTask implements Cancellable {
     }
 
     /** Stop process. */
-    public void stop() throws RemoteException, IOException, RunnerException {
+    public void stop() throws RunnerException {
         if (future.isCancelled()) {
             return;
         }
@@ -196,15 +195,15 @@ public final class RunQueueTask implements Cancellable {
         }
     }
 
-    public void readLogs(ProxyResponse proxyResponse) throws RemoteException, IOException, RunnerException {
+    public void readLogs(OutputProvider output) throws IOException, RunnerException {
         final RemoteRunnerProcess remoteProcess = getRemoteProcess();
         if (remoteProcess == null) {
             throw new RunnerException("Application isn't started yet, logs aren't available");
         }
-        remoteProcess.readLogs(proxyResponse);
+        remoteProcess.readLogs(output);
     }
 
-    private RemoteRunnerProcess getRemoteProcess() throws RemoteException, IOException, RunnerException {
+    private RemoteRunnerProcess getRemoteProcess() throws RunnerException {
         if (!future.isDone()) {
             return null;
         }
@@ -222,9 +221,7 @@ public final class RunQueueTask implements Cancellable {
                 } else if (cause instanceof RunnerException) {
                     throw (RunnerException)cause;
                 } else if (cause instanceof RemoteException) {
-                    throw (RemoteException)cause;
-                } else if (cause instanceof IOException) {
-                    throw (IOException)cause;
+                    throw new RunnerException(((RemoteException)cause).getServiceError());
                 } else {
                     throw new RunnerException(cause.getMessage(), cause);
                 }

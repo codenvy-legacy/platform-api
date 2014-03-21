@@ -242,8 +242,8 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     }
 
     @Override
-    public void addListener(SourceManagerListener listener) {
-        listeners.add(listener);
+    public boolean addListener(SourceManagerListener listener) {
+        return listeners.add(listener);
     }
 
     @Override

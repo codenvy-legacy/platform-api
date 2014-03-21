@@ -17,20 +17,16 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
-import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.websockets.WSConnectionContext;
-import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +65,7 @@ public final class BuilderService extends Service {
     public BuildTaskDescriptor build(@PathParam("ws-id") String workspace,
                                      @Required @Description("project name") @QueryParam("project") String project,
                                      @Description("build options") BuildOptions options) throws Exception {
-        final ServiceContext serviceContext = getServiceContext();
-        return buildQueue.scheduleBuild(workspace, project, serviceContext, options).getDescriptor(serviceContext);
+        return buildQueue.scheduleBuild(workspace, project, getServiceContext(), options).getDescriptor();
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
@@ -81,15 +76,14 @@ public final class BuilderService extends Service {
                                             @Required @Description("project name") @QueryParam("project") String project,
                                             @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
             throws Exception {
-        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getDescriptor(
-                getServiceContext());
+        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getDescriptor();
     }
 
     @GET
     @Path("status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor getStatus(@PathParam("id") Long id) throws Exception {
-        return buildQueue.getTask(id).getDescriptor(getServiceContext());
+        return buildQueue.getTask(id).getDescriptor();
     }
 
     @POST
@@ -98,7 +92,7 @@ public final class BuilderService extends Service {
     public BuildTaskDescriptor cancel(@PathParam("id") Long id) throws Exception {
         final BuildQueueTask task = buildQueue.getTask(id);
         task.cancel();
-        return task.getDescriptor(getServiceContext());
+        return task.getDescriptor();
     }
 
     @GET
@@ -124,25 +118,5 @@ public final class BuilderService extends Service {
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
         buildQueue.getTask(id).download(path, new HttpServletProxyResponse(httpServletResponse));
-    }
-
-    @POST
-    @Path("webhook/{id}")
-    public void webhook(@PathParam("id") Long id) {
-        final ChannelBroadcastMessage message = new ChannelBroadcastMessage();
-        try {
-            final BuildTaskDescriptor taskDescriptor = buildQueue.getTask(id).getDescriptor(getServiceContext());
-            message.setChannel("builder:status:" + id);
-            message.setType(ChannelBroadcastMessage.Type.NONE);
-            message.setBody(DtoFactory.getInstance().toJson(taskDescriptor));
-        } catch (Exception e) {
-            message.setType(ChannelBroadcastMessage.Type.ERROR);
-            message.setBody(e.getMessage());
-        }
-        try {
-            WSConnectionContext.sendMessage(message);
-        } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
-        }
     }
 }

@@ -17,7 +17,11 @@
  */
 package com.codenvy.api.runner;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * Set of possible statuses of an application.
+ *
+ * @author andrew00x
+ */
 public enum ApplicationStatus {
     NEW,
     RUNNING,

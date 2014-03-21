@@ -22,7 +22,7 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Describes of {@link com.codenvy.api.runner.internal.Runner}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see com.codenvy.api.runner.internal.Runner
  * @see com.codenvy.api.runner.internal.Runner#getName()
  * @see com.codenvy.api.runner.internal.Runner#getDescription()

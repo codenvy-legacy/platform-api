@@ -21,7 +21,11 @@ import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
-/** @author andrew00x */
+/**
+ * Guice Module for initialization runner API components.
+ *
+ * @author andrew00x
+ */
 @DynaModule
 public class RunnerModule extends AbstractModule {
     @Override

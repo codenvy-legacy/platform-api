@@ -18,29 +18,23 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.VirtualFileFilter;
-import com.codenvy.api.vfs.shared.PropertyFilter;
-import com.codenvy.api.vfs.shared.dto.Property;
 
 import org.everrest.core.impl.ContainerResponse;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Collections;
-import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-/** @author <a href="mailto:vparfonov@exoplatform.com">Vitaly Parfonov</a> */
+/** @author andrew00x */
 public class ImportTest extends MemoryFileSystemTest {
     private String importTestRootId;
     private byte[] zipFolder;
-    private byte[] zipProject;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         String name = getClass().getName();
-        VirtualFile importTestRoot = mountPoint.getRoot().createProject(name, Collections.<Property>emptyList());
+        VirtualFile importTestRoot = mountPoint.getRoot().createFolder(name);
         importTestRootId = importTestRoot.getId();
 
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -56,17 +50,6 @@ public class ImportTest extends MemoryFileSystemTest {
         zipOut.write(DEFAULT_CONTENT_BYTES);
         zipOut.close();
         zipFolder = bout.toByteArray();
-
-        bout.reset();
-        zipOut = new ZipOutputStream(bout);
-        zipOut.putNextEntry(new ZipEntry(".project"));
-        String projectProperties = "[{\"name\":\"vfs:projectType\",\"value\":[\"java\"]}," +
-                                   "{\"name\":\"vfs:mimeType\",\"value\":[\"text/vnd.ideproject+directory\"]}]";
-        zipOut.write(projectProperties.getBytes());
-        zipOut.putNextEntry(new ZipEntry("readme.txt"));
-        zipOut.write(DEFAULT_CONTENT_BYTES);
-        zipOut.close();
-        zipProject = bout.toByteArray();
     }
 
     public void testImportFolder() throws Exception {
@@ -89,24 +72,5 @@ public class ImportTest extends MemoryFileSystemTest {
         VirtualFile file3 = folder3.getChild("file3.txt");
         assertNotNull(file3);
         checkFileContext(DEFAULT_CONTENT, "text/plain", file3);
-    }
-
-    public void testImportProject() throws Exception {
-        String path = SERVICE_URI + "import/" + importTestRootId;
-        ContainerResponse response = launcher.service("POST", path, BASE_URI, null, zipProject, null);
-        assertEquals(204, response.getStatus());
-        VirtualFile parent = mountPoint.getVirtualFileById(importTestRootId);
-        List<Property> properties = parent.getProperties(PropertyFilter.ALL_FILTER);
-        for (Property property : properties) {
-            if ("vfs:projectType".equals(property.getName())) {
-                assertEquals("java", property.getValue().get(0));
-            } else if ("vfs:mimeType".equals(property.getName())) {
-                assertEquals("text/vnd.ideproject+directory", property.getValue().get(0));
-            }
-        }
-        assertEquals(1, parent.getChildren(VirtualFileFilter.ALL).size()); // file .project must be store as project properties not like a file
-        VirtualFile readme = parent.getChild("readme.txt");
-        assertNotNull(readme);
-        checkFileContext(DEFAULT_CONTENT, "text/plain", readme);
     }
 }

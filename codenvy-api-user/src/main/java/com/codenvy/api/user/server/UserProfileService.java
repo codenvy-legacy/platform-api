@@ -97,7 +97,7 @@ public class UserProfileService extends Service {
         if (profile == null) {
             throw new ProfileNotFoundException(user.getId());
         }
-        List<Attribute> attrs = profile.getAttributes();
+        List<Attribute> attrs = profile.getAttributes() != null ? profile.getAttributes() : new ArrayList<Attribute>();
         attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
                             .withDescription("User email")
                             .withName("email")
@@ -162,7 +162,7 @@ public class UserProfileService extends Service {
         }
         //prefs available only for CURRENT user profile
         profile.setPreferences(Collections.<String, String>emptyMap());
-        List<Attribute> attrs = profile.getAttributes();
+        List<Attribute> attrs = profile.getAttributes() != null ? profile.getAttributes() : new ArrayList<Attribute>();
         attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
                             .withDescription("User email")
                             .withName("email")

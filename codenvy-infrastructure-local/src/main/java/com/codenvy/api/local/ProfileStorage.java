@@ -34,7 +34,9 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Allows to save the profile data in the file and obtain this data from the file.
@@ -85,10 +87,10 @@ public class ProfileStorage {
                         DtoFactory.getInstance().createDtoFromJson(inputStreamReader, Profile.class);
 
             } else {
-                profile = DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(
-                        Arrays.asList(
-                                DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
-                                          .withDescription("User's first name")));
+                List<Attribute> attributes = new ArrayList<>();
+                attributes.add(DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
+                                         .withDescription("User's first name"));
+                profile = DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(attributes);
                 update(profile);
             }
         } catch (IOException e) {

@@ -64,11 +64,6 @@ public class ProjectTypeDescriptionRegistryTest {
             public List<ProjectTemplateDescription> getTemplates() {
                 return Collections.emptyList();
             }
-
-            @Override
-            public Map<String, String> getIconRegistry() {
-                return null;
-            }
         });
         ProjectType myType = typeRegistry.getProjectType("my_type");
         Assert.assertNotNull(myType);

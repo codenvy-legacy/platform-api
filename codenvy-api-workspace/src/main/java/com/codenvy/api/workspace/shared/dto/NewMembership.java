@@ -17,35 +17,26 @@
  */
 package com.codenvy.api.workspace.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
 
 /**
- * Describes workspace membership
  *
- * @author Eugene Voevodin
- * @see com.codenvy.api.workspace.shared.dto.Workspace
+ *
+ * @author andrew00x
  */
 @DTO
-public interface Membership {
+public interface NewMembership {
+    String getUserId();
 
-    WorkspaceRef getWorkspaceRef();
+    void setUserId(String id);
 
-    void setWorkspaceRef(WorkspaceRef ref);
-
-    Membership withWorkspaceRef(WorkspaceRef ref);
+    NewMembership withUserId(String id);
 
     List<String> getRoles();
 
     void setRoles(List<String> roles);
 
-    Membership withRoles(List<String> roles);
-
-    Link getUserLink();
-
-    void setUserLink(Link link);
-
-    Membership withUserLink(Link link);
+    NewMembership withRoles(List<String> roles);
 }

@@ -19,32 +19,19 @@ package com.codenvy;
 
 
 import com.codenvy.api.auth.*;
-import com.codenvy.api.auth.server.AuthenticationDao;
-import com.codenvy.api.auth.shared.dto.Credentials;
-import com.codenvy.dto.server.DtoFactory;
-import com.jayway.restassured.http.ContentType;
-import com.jayway.restassured.mapper.ObjectMapper;
+import com.codenvy.api.auth.AuthenticationDao;
 
 import org.everrest.assured.EverrestJetty;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
 
-import javax.ws.rs.core.Cookie;
-import javax.ws.rs.core.NewCookie;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.ExceptionMapper;
 
 import static com.jayway.restassured.RestAssured.given;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;

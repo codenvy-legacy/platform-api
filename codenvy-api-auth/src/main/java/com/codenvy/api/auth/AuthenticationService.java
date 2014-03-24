@@ -34,19 +34,13 @@ import javax.ws.rs.core.*;
  */
 @Path("auth")
 public class AuthenticationService {
-//    private static final Logger LOG = LoggerFactory.getLogger(AuthenticationService.class);
-//    @Inject
-//    protected AuthenticationHandlerProvider handlerProvider;
-//    @Inject
-//    protected TicketManager                 ticketManager;
-//    @Inject
-//    protected TokenGenerator                uniqueTokenGenerator;
-//    @Nullable
-//    @Inject
-//    protected CookieBuilder                 cookieBuilder;
+
+    private final AuthenticationDao dao;
 
     @Inject
-    AuthenticationDao dao;
+    public AuthenticationService(AuthenticationDao dao) {
+        this.dao = dao;
+    }
 
     /**
      * Get token to be able to call secure api methods.

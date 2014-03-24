@@ -25,6 +25,7 @@ import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Subscription;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.List;
 /**
  * @author Eugene Voevodin
  */
+@Singleton
 public class LocalOrganizationDaoImpl implements OrganizationDao {
     @Override
     public void create(Organization organization) throws OrganizationException {

@@ -22,9 +22,11 @@ import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.List;
 
+@Singleton
 public class LocalWorkspaceDaoImpl implements WorkspaceDao {
     @Override
     public void create(Workspace workspace) throws WorkspaceException {

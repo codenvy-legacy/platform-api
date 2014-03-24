@@ -22,10 +22,12 @@ import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Singleton
 public class LocalMemberDaoImpl implements MemberDao {
     @Override
     public void create(Member member) throws MembershipException {

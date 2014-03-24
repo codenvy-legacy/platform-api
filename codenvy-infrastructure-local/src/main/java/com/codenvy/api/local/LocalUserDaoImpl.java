@@ -22,6 +22,9 @@ import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
+
+@Singleton
 public class LocalUserDaoImpl implements UserDao {
 
     @Override

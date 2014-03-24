@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.auth;
 
-import com.codenvy.api.auth.AuthenticationException;
 import com.codenvy.api.auth.shared.dto.Credentials;
 
 import javax.ws.rs.core.Cookie;
@@ -32,5 +31,4 @@ public interface AuthenticationDao {
     Response login(Credentials credentials, Cookie tokenAccessCookie, UriInfo uriInfo) throws AuthenticationException;
 
     Response logout(String token, Cookie tokenAccessCookie, UriInfo uriInfo);
-
 }

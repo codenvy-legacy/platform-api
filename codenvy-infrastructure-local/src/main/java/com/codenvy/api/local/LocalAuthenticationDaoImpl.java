@@ -17,16 +17,17 @@
  */
 package com.codenvy.api.local;
 
-
+import com.codenvy.api.auth.AuthenticationDao;
 import com.codenvy.api.auth.AuthenticationException;
-import com.codenvy.api.auth.server.AuthenticationDao;
 import com.codenvy.api.auth.shared.dto.Credentials;
 
+import javax.inject.Singleton;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-public class LocalAuthenticationDaoImpl implements AuthenticationDao{
+@Singleton
+public class LocalAuthenticationDaoImpl implements AuthenticationDao {
     @Override
     public Response login(Credentials credentials, Cookie tokenAccessCookie, UriInfo uriInfo) throws AuthenticationException {
         return Response.ok().entity("{\"value\":\"123123\"}").build();

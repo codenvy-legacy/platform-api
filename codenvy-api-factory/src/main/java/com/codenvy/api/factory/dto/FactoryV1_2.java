@@ -4,7 +4,6 @@ import com.codenvy.api.factory.parameter.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
 import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
-import static com.codenvy.api.factory.parameter.FactoryParameter.Version.V1_2;
 
 /**
  * Factory of version 1.2
@@ -32,17 +31,4 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     void setRestriction(Restriction restriction);
 
     FactoryV1_2 withRestriction(Restriction restriction);
-
-    /**
-     * @return path to the image
-     */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "image", deprecatedSince = V1_2)
-    @Deprecated
-    String getImage();
-
-    @Deprecated
-    void setImage(String image);
-
-    @Deprecated
-    FactoryV1_2 withImage(String image);
 }

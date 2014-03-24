@@ -120,6 +120,16 @@ public interface FactoryV1_0 {
 
     FactoryV1_0 withVcsinfo(boolean vcsinfo);
 
+    /**
+     * @return path of the file to open in the project.
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "openfile")
+    String getOpenfile();
+
+    void setOpenfile(String openfile);
+
+    FactoryV1_0 withOpenfile(String openfile);
+
     @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "wname", ignoredSince = V1_0, deprecatedSince = V1_1)
     String getWname();

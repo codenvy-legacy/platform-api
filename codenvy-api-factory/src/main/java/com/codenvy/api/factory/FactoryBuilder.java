@@ -332,6 +332,13 @@ public class FactoryBuilder {
             builder.append("&wname=").append(factory.getWname());
         }
 
+        if (factory.getVcsinfo()) {
+            builder.append("&vcsinfo=").append(true);
+        }
+
+        if (factory.getOpenfile() != null) {
+            builder.append("&openfile=").append(factory.getOpenfile());
+        }
     }
 
     private void buildNonEncoded(FactoryV1_1 factory, StringBuilder builder) {
@@ -355,10 +362,6 @@ public class FactoryBuilder {
             builder.append("&author=").append(factory.getAuthor());
         }
 
-        if (factory.getOpenfile() != null) {
-            builder.append("&openfile=").append(factory.getOpenfile());
-        }
-
         if (factory.getOrgid() != null) {
             builder.append("&orgid=").append(factory.getOrgid());
         }
@@ -366,16 +369,18 @@ public class FactoryBuilder {
         if (factory.getAffiliateid() != null) {
             builder.append("&affiliateid=").append(factory.getAffiliateid());
         }
-        if (factory.getVcsinfo()) {
-            builder.append("&vcsinfo=true");
-        }
+
         if (factory.getVcsbranch() != null) {
             builder.append("&vcsbranch=").append(factory.getVcsbranch());
         }
+
         if (factory.getVariables() != null) {
             builder.append("&variables=").append(encode(DtoFactory.getInstance().toJson(factory.getVariables())));
         }
 
+        if (factory.getImage() != null) {
+            builder.append("&image=").append(factory.getImage());
+        }
     }
 
     private void buildNonEncoded(FactoryV1_2 factory, StringBuilder builder) {

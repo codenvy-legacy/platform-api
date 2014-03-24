@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.auth;
 
-import com.codenvy.api.auth.server.AuthenticationDao;
 import com.codenvy.api.auth.shared.dto.Credentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

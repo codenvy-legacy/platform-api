@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.auth.server;
+package com.codenvy.api.auth;
 
 import com.codenvy.api.auth.AuthenticationException;
 import com.codenvy.api.auth.shared.dto.Credentials;

@@ -17,11 +17,8 @@
  */
 package com.codenvy.api.local.deploy;
 
-import com.codenvy.api.local.LocalMemberDaoImpl;
-import com.codenvy.api.local.LocalOrganizationDaoImpl;
-import com.codenvy.api.local.LocalProfileDaoImpl;
-import com.codenvy.api.local.LocalUserDaoImpl;
-import com.codenvy.api.local.LocalWorkspaceDaoImpl;
+import com.codenvy.api.auth.server.AuthenticationDao;
+import com.codenvy.api.local.*;
 import com.codenvy.api.organization.server.dao.OrganizationDao;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -40,5 +37,6 @@ public class LocalInfrastructureModule extends AbstractModule {
         bind(UserProfileDao.class).to(LocalProfileDaoImpl.class);
         bind(MemberDao.class).toInstance(new LocalMemberDaoImpl());
         bind(OrganizationDao.class).toInstance(new LocalOrganizationDaoImpl());
+        bind(AuthenticationDao.class).toInstance(new LocalAuthenticationDaoImpl());
     }
 }

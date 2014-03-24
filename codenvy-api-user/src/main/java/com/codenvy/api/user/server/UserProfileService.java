@@ -65,9 +65,8 @@ import java.util.Map;
  * @author Eugene Voevodin
  * @author Max Shaposhnik
  */
-@Path("/profile")
+@Path("profile")
 public class UserProfileService extends Service {
-
     private final UserProfileDao profileDao;
     private final UserDao        userDao;
 
@@ -98,6 +97,15 @@ public class UserProfileService extends Service {
         if (profile == null) {
             throw new ProfileNotFoundException(user.getId());
         }
+        List<Attribute> attrs = new ArrayList<>();
+        if (profile.getAttributes() != null) {
+            attrs.addAll(profile.getAttributes());
+        }
+        attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
+                            .withDescription("User email")
+                            .withName("email")
+                            .withValue(user.getEmail()));
+        profile.setAttributes(attrs);
         injectLinks(profile, securityContext);
         return profile;
     }
@@ -145,12 +153,27 @@ public class UserProfileService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext) throws UserProfileException {
-        Profile profile = profileDao.getById(profileId);
+    public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext)
+            throws UserProfileException, UserException {
+        final Profile profile = profileDao.getById(profileId);
         if (profile == null) {
             throw new ProfileNotFoundException(profileId);
         }
+        final User user = userDao.getByAlias(profile.getUserId());
+        if (user == null) {
+            throw new UserNotFoundException(profile.getUserId());
+        }
+        //prefs available only for CURRENT user profile
         profile.setPreferences(Collections.<String, String>emptyMap());
+        List<Attribute> attrs = new ArrayList<>();
+        if (profile.getAttributes() != null) {
+            attrs.addAll(profile.getAttributes());
+        }
+        attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
+                            .withDescription("User email")
+                            .withName("email")
+                            .withValue(user.getEmail()));
+        profile.setAttributes(attrs);
         injectLinks(profile, securityContext);
         return profile;
     }
@@ -212,6 +235,7 @@ public class UserProfileService extends Service {
         if (prefsToUpdate != null) {
             Map<String, String> currentPrefs = currentProfile.getPreferences();
             currentPrefs.putAll(prefsToUpdate);
+            currentProfile.setPreferences(currentPrefs);
         } else {
             //if given preferences are null - clear profile preferences
             currentProfile.setPreferences(new HashMap<String, String>());

@@ -29,6 +29,7 @@ import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.user.server.UserService;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
@@ -44,7 +45,9 @@ import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.server.exception.WorkspaceNotFoundException;
 import com.codenvy.api.workspace.shared.dto.Membership;
+import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.shared.dto.WorkspaceRef;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -263,14 +266,21 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Workspace> getWorkspacesOfCurrentUser(@Context SecurityContext securityContext)
+    public List<Membership> getMembershipsOfCurrentUser(@Context SecurityContext securityContext)
             throws WorkspaceException, UserException, MembershipException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        final List<Workspace> workspaces = new ArrayList<>();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final Link userLink = createLink("GET",
+                                         com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER,
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         getServiceContext().getBaseUriBuilder().path(UserService.class)
+                                                            .path(UserService.class, "getCurrent").build().toString());
+        final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(user.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
             if (workspace == null) {
@@ -278,10 +288,19 @@ public class WorkspaceService extends Service {
                                         principal.getName()));
                 continue;
             }
-            injectLinks(workspace, securityContext);
-            workspaces.add(workspace);
+            final Link wsLink = createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
+                                           uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString());
+            final WorkspaceRef wsRef = DtoFactory.getInstance().createDto(WorkspaceRef.class)
+                                                 .withName(workspace.getName())
+                                                 .withTemporary(workspace.isTemporary())
+                                                 .withWorkspaceLink(wsLink);
+            final Membership membership = DtoFactory.getInstance().createDto(Membership.class)
+                                                    .withWorkspaceRef(wsRef)
+                                                    .withUserLink(userLink)
+                                                    .withRoles(member.getRoles());
+            memberships.add(membership);
         }
-        return workspaces;
+        return memberships;
     }
 
     @GET
@@ -289,9 +308,9 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Workspace> getWorkspacesOfConcreteUser(@Context SecurityContext securityContext,
-                                                       @Required @Description("user id to find workspaces")
-                                                       @QueryParam("userid") String userId)
+    public List<Membership> getMembershipsOfConcreteUser(@Context SecurityContext securityContext,
+                                                         @Required @Description("user id to find workspaces")
+                                                         @QueryParam("userid") String userId)
             throws WorkspaceException, UserException, MembershipException {
         if (userId == null) {
             throw new WorkspaceException("Missed parameter userid");
@@ -299,17 +318,34 @@ public class WorkspaceService extends Service {
         if (userDao.getById(userId) == null) {
             throw new UserNotFoundException(userId);
         }
-        final List<Workspace> workspaces = new ArrayList<>();
+
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final Link userLink = createLink("GET",
+                                         com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         getServiceContext().getBaseUriBuilder().path(UserService.class)
+                                                            .path(UserService.class, "getById").build(userId).toString());
+        final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(userId)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
             if (workspace == null) {
                 LOG.error(String.format("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(), userId));
                 continue;
             }
-            injectLinks(workspace, securityContext);
-            workspaces.add(workspace);
+            final Link wsLink = createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
+                                           uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString());
+            final WorkspaceRef wsRef = DtoFactory.getInstance().createDto(WorkspaceRef.class)
+                                                 .withName(workspace.getName())
+                                                 .withTemporary(workspace.isTemporary())
+                                                 .withWorkspaceLink(wsLink);
+            final Membership membership = DtoFactory.getInstance().createDto(Membership.class)
+                                                    .withWorkspaceRef(wsRef)
+                                                    .withUserLink(userLink)
+                                                    .withRoles(member.getRoles());
+            memberships.add(membership);
         }
-        return workspaces;
+        return memberships;
     }
 
     @GET
@@ -337,14 +373,15 @@ public class WorkspaceService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Member addMember(@PathParam("id") String wsId,
-                            @Description("describes new workspace member") @Required Membership membership) throws MembershipException {
-        if (membership == null) {
-            throw new MembershipException("Missed membership");
+                            @Description("describes new workspace member") @Required NewMembership newMembership)
+            throws MembershipException {
+        if (newMembership == null) {
+            throw new MembershipException("Missed new membership");
         }
         Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);
-        newMember.setRoles(membership.getRoles());
-        newMember.setUserId(membership.getUserId());
+        newMember.setRoles(newMembership.getRoles());
+        newMember.setUserId(newMembership.getUserId());
         memberDao.create(newMember);
         final List<Link> links = new ArrayList<>(2);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -391,7 +428,7 @@ public class WorkspaceService extends Service {
                                                     .path(ProjectService.class, "getProjects")
                                                     .build(workspace.getId()).toString()));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getWorkspacesOfCurrentUser").build().toString()));
+                                 uriBuilder.clone().path(getClass(), "getMembershipsOfCurrentUser").build().toString()));
         }
         if (securityContext.isUserInRole("workspace/admin")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,

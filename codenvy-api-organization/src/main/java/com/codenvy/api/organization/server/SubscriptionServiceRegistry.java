@@ -19,6 +19,7 @@ package com.codenvy.api.organization.server;
 
 import com.google.inject.Singleton;
 
+import javax.inject.Inject;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -34,8 +35,12 @@ public class SubscriptionServiceRegistry {
 
     private final Map<String, SubscriptionService> services;
 
-    public SubscriptionServiceRegistry() {
-        services = new ConcurrentHashMap<>();
+    @Inject
+    public SubscriptionServiceRegistry(Set<SubscriptionService> services) {
+        this.services = new ConcurrentHashMap<>();
+        for (SubscriptionService service : services) {
+            add(service);
+        }
     }
 
     public void add(SubscriptionService service) {

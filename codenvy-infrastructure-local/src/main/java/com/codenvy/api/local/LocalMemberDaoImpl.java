@@ -42,18 +42,14 @@ public class LocalMemberDaoImpl implements MemberDao {
     @Override
     public List<Member> getWorkspaceMembers(String wsId) throws MembershipException {
         List<Member> members = new ArrayList<>();
-        members.add(
-                DtoFactory.getInstance().createDto(Member.class).withUserId("codenvy").withWorkspaceId("default").withRoles(
-                        Arrays.asList("workspace/admin", "workspace/developer")));
+        members.add(Constants.MEMBER);
         return members;
     }
 
     @Override
     public List<Member> getUserRelationships(String userId) throws MembershipException {
         List<Member> members = new ArrayList<>();
-        members.add(
-                DtoFactory.getInstance().createDto(Member.class).withUserId("codenvy").withWorkspaceId("default").withRoles(
-                        Arrays.asList("workspace/admin", "workspace/developer")));
+        members.add(Constants.MEMBER);
         return members;
 
     }

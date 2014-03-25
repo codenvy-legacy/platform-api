@@ -45,17 +45,17 @@ public class LocalWorkspaceDaoImpl implements WorkspaceDao {
 
     @Override
     public Workspace getById(String id) throws WorkspaceException {
-        return DtoFactory.getInstance().createDto(Workspace.class).withId(id).withName("default").withTemporary(false);
+        return Constants.WORKSPACE;
     }
 
     @Override
     public Workspace getByName(String name) throws WorkspaceException {
-        return DtoFactory.getInstance().createDto(Workspace.class).withId("Workspace1").withName("default").withTemporary(false);
+        return Constants.WORKSPACE;
 
     }
 
     @Override
     public List<Workspace> getByOrganization(String organizationId) throws WorkspaceException {
-        return Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class).withId("Workspace1").withName("default").withTemporary(false));
+        return Arrays.asList(Constants.WORKSPACE);
     }
 }

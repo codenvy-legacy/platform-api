@@ -28,6 +28,6 @@ public class BuilderModule extends AbstractModule {
     protected void configure() {
         // Initialize empty set of Builders.
         Multibinder.newSetBinder(binder(), Builder.class);
-        bind(BuilderRegistryPlugin.class);
+        bind(BuilderRegistryPlugin.class).asEagerSingleton();
     }
 }

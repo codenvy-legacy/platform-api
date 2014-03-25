@@ -236,6 +236,7 @@ public class BuildQueue {
             request.setOptions(buildOptions.getOptions());
             request.setTargets(buildOptions.getTargets());
             request.setIncludeDependencies(buildOptions.isIncludeDependencies());
+            request.setSkipTest(buildOptions.isSkipTest());
         }
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
@@ -316,52 +317,50 @@ public class BuildQueue {
 
     private void addRequestParameters(ProjectDescriptor descriptor, BaseBuilderRequest request) {
         String builder = request.getBuilder();
-        if (builder == null || builder.isEmpty()) {
-            List<String> builderAttribute = descriptor.getAttributes().get(Constants.BUILDER_NAME);
-            if (builderAttribute == null || builderAttribute.isEmpty() || (builder = builderAttribute.get(0)) == null) {
+        final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
+        if (builder == null) {
+            builder = getAttributeValue(Constants.BUILDER_NAME, projectAttributes);
+            if (builder == null) {
                 throw new IllegalStateException(
                         String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
             }
             request.setBuilder(builder);
         }
-
         request.setProjectUrl(descriptor.getBaseUrl());
-
-        final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor);
+        final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
         if (zipballLink != null) {
             request.setSourcesUrl(zipballLink.getHref());
         }
-
-        final String buildTargets = Constants.BUILDER_TARGETS.replace("${builder}", builder);
-        final String buildOptions = Constants.BUILDER_OPTIONS.replace("${builder}", builder);
-
-        for (Map.Entry<String, List<String>> entry : descriptor.getAttributes().entrySet()) {
-            if (buildTargets.equals(entry.getKey()) && request.getTargets().isEmpty()) {
-                if (!entry.getValue().isEmpty()) {
-                    request.setTargets(entry.getValue());
-                }
-            } else if (buildOptions.equals(entry.getKey())) {
-                if (!entry.getValue().isEmpty()) {
-                    final Map<String, String> options = request.getOptions();
-                    for (String str : entry.getValue()) {
-                        if (str != null) {
-                            final String[] pair = str.split("=");
-                            if (!options.containsKey(pair[0])) {
-                                if (pair.length > 1) {
-                                    options.put(pair[0], pair[1]);
-                                } else {
-                                    options.put(pair[0], null);
-                                }
-                            }
-                        }
+        if (request.getTargets().isEmpty()) {
+            final List<String> targetsAttr = projectAttributes.get(Constants.BUILDER_TARGETS.replace("${builder}", builder));
+            if (targetsAttr!=null && !targetsAttr.isEmpty()) {
+                request.getTargets().addAll(targetsAttr);
+            }
+        }
+        final List<String> optionsAttr = projectAttributes.get(Constants.BUILDER_OPTIONS.replace("${builder}", builder));
+        if (optionsAttr != null && !optionsAttr.isEmpty()) {
+            final Map<String, String> options = request.getOptions();
+            for (String str : optionsAttr) {
+                if (str != null) {
+                    final String[] pair = str.split("=");
+                    if (!options.containsKey(pair[0])) {
+                        options.put(pair[0], pair.length > 1 ? pair[1] : null);
                     }
                 }
             }
         }
     }
 
-    private Link getLink(String rel, ProjectDescriptor descriptor) {
-        for (Link link : descriptor.getLinks()) {
+    private static String getAttributeValue(String name, Map<String, List<String>> attributes) {
+        final List<String> list = attributes.get(name);
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.get(0);
+    }
+
+    private static Link getLink(String rel, List<Link> links) {
+        for (Link link : links) {
             if (rel.equals(link.getRel())) {
                 return link;
             }

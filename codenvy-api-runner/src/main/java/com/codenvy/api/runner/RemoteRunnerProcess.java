@@ -1,7 +1,7 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.HttpOutputProvider;
+import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -88,8 +88,8 @@ public class RemoteRunnerProcess {
         conn.setConnectTimeout(30 * 1000);
         conn.setRequestMethod(link.getMethod());
         try {
-            if (output instanceof HttpOutputProvider) {
-                HttpOutputProvider httpOutput = (HttpOutputProvider)output;
+            if (output instanceof HttpOutputMessage) {
+                HttpOutputMessage httpOutput = (HttpOutputMessage)output;
                 httpOutput.setStatus(conn.getResponseCode());
                 final String contentType = conn.getContentType();
                 if (contentType != null) {

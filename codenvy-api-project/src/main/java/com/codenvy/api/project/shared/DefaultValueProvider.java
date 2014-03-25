@@ -64,7 +64,7 @@ public class DefaultValueProvider implements ValueProvider {
     public void setValues(List<String> values) {
         if (this.values == null) {
             if (values != null) {
-                this.values = values;
+                this.values = new ArrayList<>(values);
             }
         } else {
             this.values.clear();

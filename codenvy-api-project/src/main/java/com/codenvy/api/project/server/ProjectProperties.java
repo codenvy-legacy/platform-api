@@ -17,6 +17,11 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.commons.json.JsonParseException;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +29,43 @@ import java.util.List;
  * @author andrew00x
  */
 public class ProjectProperties {
+    public static ProjectProperties load(Project project) throws IOException {
+        final AbstractVirtualFileEntry projectFile = project.getBaseFolder().getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        if (projectFile == null || !projectFile.isFile()) {
+            return new ProjectProperties();
+        }
+        try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
+            return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
+        } catch (JsonParseException e) {
+            throw new ProjectStructureConstraintException("Unable parse project properties. " + e.getMessage());
+        }
+    }
+
+    public void save(Project project) throws IOException {
+        final FolderEntry baseFolder = project.getBaseFolder();
+        AbstractVirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        if (projectFile != null) {
+            if (!projectFile.isFile()) {
+                throw new ProjectStructureConstraintException(
+                        String.format("Unable save project properties. Path %s/%s exists but is not a file.",
+                                      baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
+            }
+            ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes());
+        } else {
+            AbstractVirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
+            if (codenvyDir == null) {
+                codenvyDir = baseFolder.createFolder(Constants.CODENVY_FOLDER);
+            } else if (!codenvyDir.isFolder()) {
+                throw new ProjectStructureConstraintException(
+                        String.format("Unable save project properties. Path %s/%s exists but is not a folder.",
+                                      baseFolder.getPath(), Constants.CODENVY_FOLDER));
+            }
+            ((FolderEntry)codenvyDir).createFile(Constants.CODENVY_PROJECT_FILE,
+                                                 JsonHelper.toJson(this).getBytes(),
+                                                 "application/json");
+        }
+    }
+
     private String                type;
     private String                description;
     private List<ProjectProperty> properties;
@@ -77,6 +119,16 @@ public class ProjectProperties {
     public ProjectProperties withProperties(List<ProjectProperty> properties) {
         this.properties = properties;
         return this;
+    }
+
+    public ProjectProperty findProperty(String name) {
+        List<ProjectProperty> myProperties = this.properties;
+        for (ProjectProperty property : myProperties) {
+            if (name.equals(property.getName())) {
+                return property;
+            }
+        }
+        return null;
     }
 
     @Override

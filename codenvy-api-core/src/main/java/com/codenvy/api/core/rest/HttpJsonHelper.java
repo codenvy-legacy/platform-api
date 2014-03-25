@@ -20,6 +20,8 @@ package com.codenvy.api.core.rest;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.CharStreams;
 import com.google.common.io.InputSupplier;
@@ -82,20 +84,28 @@ public class HttpJsonHelper {
                                     String method,
                                     Object body,
                                     Pair<String, ?>... parameters) throws IOException, RemoteException {
-        if (parameters != null && parameters.length > 0) {
+        final String authToken = getAuthenticationToken();
+        if ((parameters != null && parameters.length > 0) || authToken != null) {
             final StringBuilder sb = new StringBuilder();
             sb.append(url);
             sb.append('?');
-            for (int i = 0, l = parameters.length; i < l; i++) {
-                String name = URLEncoder.encode(parameters[i].first, "UTF-8");
-                String value = parameters[i].second == null ? null : URLEncoder.encode(String.valueOf(parameters[i].second), "UTF-8");
-                if (i > 0) {
-                    sb.append('&');
-                }
-                sb.append(name);
-                if (value != null) {
-                    sb.append('=');
-                    sb.append(value);
+            if (authToken != null) {
+                sb.append("token=");
+                sb.append(authToken);
+                sb.append('&');
+            }
+            if (parameters != null && parameters.length > 0) {
+                for (int i = 0, l = parameters.length; i < l; i++) {
+                    String name = URLEncoder.encode(parameters[i].first, "UTF-8");
+                    String value = parameters[i].second == null ? null : URLEncoder.encode(String.valueOf(parameters[i].second), "UTF-8");
+                    if (i > 0) {
+                        sb.append('&');
+                    }
+                    sb.append(name);
+                    if (value != null) {
+                        sb.append('=');
+                        sb.append(value);
+                    }
                 }
             }
             url = sb.toString();
@@ -151,6 +161,14 @@ public class HttpJsonHelper {
         } finally {
             conn.disconnect();
         }
+    }
+
+    private static String getAuthenticationToken() {
+        User user = EnvironmentContext.getCurrent().getUser();
+        if (user != null) {
+            return user.getToken();
+        }
+        return null;
     }
 
     /**
@@ -239,7 +257,8 @@ public class HttpJsonHelper {
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
-    public static <DTO> DTO options(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters) throws IOException, RemoteException {
+    public static <DTO> DTO options(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters)
+            throws IOException, RemoteException {
         return request(dtoInterface, url, "OPTIONS", null, parameters);
     }
 

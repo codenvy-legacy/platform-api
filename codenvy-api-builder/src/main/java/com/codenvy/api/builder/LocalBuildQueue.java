@@ -137,7 +137,6 @@ public final class LocalBuildQueue extends BuildQueue {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                     final long id = event.getTaskId();
                     final BuildTaskDescriptor taskDescriptor = getTask(id).getDescriptor();
-                    // TODO: do need to have separate channel? Can use builder:status channel for all events?
                     bm.setChannel(String.format("builder:status:%d", id));
                     bm.setType(ChannelBroadcastMessage.Type.NONE);
                     bm.setBody(DtoFactory.getInstance().toJson(taskDescriptor));

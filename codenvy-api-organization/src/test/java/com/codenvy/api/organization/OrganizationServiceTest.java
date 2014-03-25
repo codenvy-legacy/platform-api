@@ -58,6 +58,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -158,9 +159,9 @@ public class OrganizationServiceTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetCurrentOrganizations() throws Exception {
+    public void shouldBeAbleToGetCurrentUserOrganizations() throws Exception {
         when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
-        when(organizationDao.getByMember(USER_ID)).thenReturn(null);
+        when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
 
@@ -213,7 +214,6 @@ public class OrganizationServiceTest {
         when(organizationDao.getSubscriptions(ORGANIZATION_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Subscription.class).withStartDate("22-12-13").withEndDate("22-01-13")
                           .withServiceId(SERVICE_ID).withProperties(Collections.EMPTY_MAP)));
-        prepareSecurityContext("organization/owner");
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/subscriptions", null, null);
 
@@ -380,13 +380,10 @@ public class OrganizationServiceTest {
 
     private List<String> generateRels(String role) {
         final List<String> rels = new LinkedList<>();
+        rels.add(Constants.LINK_REL_GET_CURRENT_ORGANIZATION);
+        rels.add(Constants.LINK_REL_GET_MEMBERS);
+        rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
         switch (role) {
-            case "organization/owner":
-                rels.add(Constants.LINK_REL_GET_CURRENT_ORGANIZATION);
-                rels.add(Constants.LINK_REL_UPDATE_ORGANIZATION);
-                rels.add(Constants.LINK_REL_GET_MEMBERS);
-                rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
-                break;
             case "system/admin":
                 rels.add(Constants.LINK_REL_REMOVE_ORGANIZATION);
             case "system/manager":

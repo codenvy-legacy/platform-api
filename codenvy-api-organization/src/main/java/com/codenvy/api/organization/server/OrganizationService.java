@@ -33,7 +33,6 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.server.exception.UserNotFoundException;
@@ -120,16 +119,14 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_ORGANIZATION)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Organization> getCurrent(@Context SecurityContext securityContext) throws UserException, OrganizationException {
+    public List<Organization> getCurrentUserOrganizations(@Context SecurityContext securityContext)
+            throws UserException, OrganizationException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
         List<Organization> currentOrganizations = organizationDao.getByMember(current.getId());
-        if (currentOrganizations == null) {
-            currentOrganizations = new ArrayList<>();
-        }
         final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
         if (ownedByCurrentUser != null) {
             currentOrganizations.add(ownedByCurrentUser);
@@ -206,7 +203,7 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
     @RolesAllowed({"user"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Member> getMembersOfCurrentOrganization(@Context SecurityContext securityContext)
+    public List<Member> getMembersOfOrganizationOwnedByCurrentUser(@Context SecurityContext securityContext)
             throws UserException, OrganizationException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
@@ -300,7 +297,7 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfCurrentOrganizations(@Context SecurityContext securityContext)
+    public List<Subscription> getSubscriptionsOfCurrentUserOrganizations(@Context SecurityContext securityContext)
             throws UserException, OrganizationException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
@@ -308,9 +305,6 @@ public class OrganizationService extends Service {
             throw new UserNotFoundException(principal.getName());
         }
         List<Organization> currentOrganizations = organizationDao.getByMember(current.getId());
-        if (currentOrganizations == null) {
-            currentOrganizations = new ArrayList<>();
-        }
         final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
         if (ownedByCurrentUser != null) {
             currentOrganizations.add(ownedByCurrentUser);
@@ -407,20 +401,12 @@ public class OrganizationService extends Service {
     private void injectLinks(Organization organization, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        if (securityContext.isUserInRole("organization/owner")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_ORGANIZATION, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_ORGANIZATION, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "update").build(organization.getId()).toString())
-                              .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
-                                                                      .withName("organizationToUpdate")
-                                                                      .withRequired(true)
-                                                                      .withDescription("Organization to update"))));
-            links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentOrganizations").build().toString()));
-            links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getMembersOfCurrentOrganization").build().toString()));
-        }
+        links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_ORGANIZATION, null, MediaType.APPLICATION_JSON,
+                             uriBuilder.clone().path(getClass(), "getCurrentUserOrganizations").build().toString()));
+        links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
+                             uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentUserOrganizations").build().toString()));
+        links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
+                             uriBuilder.clone().path(getClass(), "getMembersOfOrganizationOwnedByCurrentUser").build().toString()));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_ORGANIZATION_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(organization.getId()).toString()));

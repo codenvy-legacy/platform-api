@@ -586,6 +586,7 @@ public class ProjectService extends Service {
         }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withName(project.getName())
+                         .withPath(project.getBaseFolder().getPath())
                          .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
                          // Temporary add virtualFile ID, since need to rework client side.
                          .withId(project.getBaseFolder().getVirtualFile().getId())

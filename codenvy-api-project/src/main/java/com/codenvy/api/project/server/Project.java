@@ -25,12 +25,9 @@ import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.commons.json.JsonParseException;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -83,7 +80,7 @@ public class Project {
     }
 
     protected ProjectDescription doGetDescription() throws IOException {
-        final ProjectProperties projectProperties = getProperties();
+        final ProjectProperties projectProperties = ProjectProperties.load(this);
         final String projectTypeId = projectProperties.getType();
         if (projectTypeId == null) {
             return new ProjectDescription();
@@ -128,62 +125,26 @@ public class Project {
         final ProjectProperties projectProperties = new ProjectProperties();
         projectProperties.setType(projectDescriptionUpdate.getProjectType().getId());
         for (Attribute attributeUpdate : projectDescriptionUpdate.getAttributes()) {
-            final String attributeUpdateName = attributeUpdate.getName();
+            final String attributeName = attributeUpdate.getName();
             Attribute thisAttribute = null;
             if (thisProjectDescription != null) {
-                thisAttribute = thisProjectDescription.getAttribute(attributeUpdateName);
+                thisAttribute = thisProjectDescription.getAttribute(attributeName);
             }
             if (thisAttribute != null) {
                 // Don't store attributes as properties of project if have specific ValueProvider.
-                if (manager.getValueProviderFactories().get(attributeUpdateName) == null) {
+                if (manager.getValueProviderFactories().get(attributeName) == null) {
                     // If don't have special ValueProvider then store attribute as project's property.
-                    projectProperties.getProperties().add(new ProjectProperty(attributeUpdateName, attributeUpdate.getValues()));
+                    projectProperties.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
                 } else {
                     thisAttribute.setValues(attributeUpdate.getValues());
                 }
             } else {
                 // New attribute - save it in properties.
-                projectProperties.getProperties().add(new ProjectProperty(attributeUpdateName, attributeUpdate.getValues()));
+                projectProperties.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
             }
         }
         projectProperties.setDescription(projectDescriptionUpdate.getDescription());
-        setProperties(projectProperties);
-    }
-
-    protected ProjectProperties getProperties() throws IOException {
-        final AbstractVirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
-        if (projectFile == null || !projectFile.isFile()) {
-            return new ProjectProperties();
-        }
-        try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
-            return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
-        } catch (JsonParseException e) {
-            throw new ProjectStructureConstraintException("Unable parse project properties. " + e.getMessage());
-        }
-    }
-
-    protected void setProperties(ProjectProperties properties) throws IOException {
-        AbstractVirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
-        if (projectFile != null) {
-            if (!projectFile.isFile()) {
-                throw new ProjectStructureConstraintException(
-                        String.format("Unable save project properties. Path %s/%s exists but is not a file.",
-                                      baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
-            }
-            ((FileEntry)projectFile).updateContent(JsonHelper.toJson(properties).getBytes());
-        } else {
-            AbstractVirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
-            if (codenvyDir == null) {
-                codenvyDir = baseFolder.createFolder(Constants.CODENVY_FOLDER);
-            } else if (!codenvyDir.isFolder()) {
-                throw new ProjectStructureConstraintException(
-                        String.format("Unable save project properties. Path %s/%s exists but is not a folder.",
-                                      baseFolder.getPath(), Constants.CODENVY_FOLDER));
-            }
-            ((FolderEntry)codenvyDir).createFile(Constants.CODENVY_PROJECT_FILE,
-                                                 JsonHelper.toJson(properties).getBytes(),
-                                                 "application/json");
-        }
+        projectProperties.save(this);
     }
 
     public String getVisibility() {

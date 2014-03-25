@@ -30,12 +30,12 @@ import java.util.Map;
  */
 @DTO
 public interface RunOptions {
-    /** Get name of runner. This parameter has preference over runner name that is configured in properties of project. */
-    String getRunnerName();
+    /** Get memory size (in megabytes) that is required for starting application. */
+    int getMemorySize();
 
-    void setRunnerName(String runnerName);
+    void setMemorySize(int mem);
 
-    RunOptions withRunnerName(String runnerName);
+    RunOptions withMemorySize(int mem);
 
     /** Optional parameter which may be specified by user if need to run application under debug. */
     DebugMode getDebugMode();
@@ -55,8 +55,8 @@ public interface RunOptions {
     void setOptions(Map<String, String> options);
 
     /**
-     * Get name of builder. Make sense only for application that requires build before run.This parameter has preference over builder name
-     * that is configured in properties of project.
+     * Get builder options. Make sense only for application that requires build before run.This parameter has preference over builder
+     * options that is configured in properties of project.
      *
      * @see com.codenvy.api.builder.dto.BuildOptions
      */

@@ -130,20 +130,24 @@ public class ProjectDescription {
     public void setAttributes(List<Attribute> list) {
         if (!(list == null || list.isEmpty())) {
             for (Attribute attribute : list) {
-                this.attributes.put(attribute.getName(), attribute);
+                attributes.put(attribute.getName(), attribute);
             }
         }
     }
 
     /** Set single attribute. New attribute will override exited attribute with the same name. */
     public void setAttribute(Attribute attribute) {
-        this.attributes.put(attribute.getName(), attribute);
+        attributes.put(attribute.getName(), attribute);
     }
 
     /** Set project type and attributes. New attributes will override exited attributes with the same names. */
     public void setProjectTypeAndAttributes(ProjectType projectType, List<Attribute> list) {
         setProjectType(projectType);
         setAttributes(list);
+    }
+
+    public Attribute removeAttribute(String name) {
+        return attributes.remove(name);
     }
 
     public String getDescription() {

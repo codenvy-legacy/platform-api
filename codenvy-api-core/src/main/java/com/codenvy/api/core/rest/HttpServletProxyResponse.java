@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /** @author andrew00x */
-public final class HttpServletProxyResponse implements HttpOutputProvider {
+public final class HttpServletProxyResponse implements HttpOutputMessage {
     private final HttpServletResponse httpServletResponse;
 
     public HttpServletProxyResponse(HttpServletResponse httpServletResponse) {

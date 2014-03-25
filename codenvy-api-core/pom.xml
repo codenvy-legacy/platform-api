@@ -34,6 +34,11 @@
     <dependencies>
         <dependency>
             <groupId>com.codenvy.commons</groupId>
+            <artifactId>codenvy-commons-env</artifactId>
+            <version>${codenvy.commons.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.codenvy.commons</groupId>
             <artifactId>codenvy-commons-inject</artifactId>
             <version>${codenvy.commons.version}</version>
         </dependency>

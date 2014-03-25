@@ -157,10 +157,10 @@ public class ProjectTest {
     @Test
     public void testGetProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        List<ProjectProperty> properties = new ArrayList<>(2);
-        properties.add(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")));
-        properties.add(new ProjectProperty("my_property_2", Arrays.asList("value_3", "value_4")));
-        myProject.setProperties(new ProjectProperties().withType("my_project_type").withProperties(properties));
+        List<ProjectProperty> propertiesList = new ArrayList<>(2);
+        propertiesList.add(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")));
+        propertiesList.add(new ProjectProperty("my_property_2", Arrays.asList("value_3", "value_4")));
+        new ProjectProperties().withType("my_project_type").withProperties(propertiesList).save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         Assert.assertEquals(myProjectDescription.getProjectType().getId(), "my_project_type");
         Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
@@ -183,10 +183,12 @@ public class ProjectTest {
     @Test
     public void testUpdateProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        myProject.setProperties(
-                new ProjectProperties("my_project_type",
-                                      null,
-                                      Arrays.asList(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")))));
+        ProjectProperties properties = new ProjectProperties("my_project_type",
+                                                             null,
+                                                             Arrays.asList(new ProjectProperty("my_property_1",
+                                                                                               Arrays.asList("value_1",
+                                                                                                             "value_2"))));
+        properties.save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type"));
         myProjectDescription.getAttribute("calculated_attribute").setValue("updated calculated_attribute");
@@ -195,7 +197,7 @@ public class ProjectTest {
 
         myProject.updateDescription(myProjectDescription);
 
-        ProjectProperties properties = myProject.getProperties();
+        properties = ProjectProperties.load(myProject);
 
         Assert.assertEquals(properties.getType(), "new_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));

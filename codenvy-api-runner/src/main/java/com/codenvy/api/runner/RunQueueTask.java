@@ -39,7 +39,7 @@ import java.util.concurrent.Future;
  *
  * @author andrew00x
  */
-public final class RunQueueTask implements Cancellable {
+public final class RunQueueTask {
     private final Long                        id;
     private final RunRequest                  request;
     private final Future<RemoteRunnerProcess> future;
@@ -63,11 +63,6 @@ public final class RunQueueTask implements Cancellable {
         created = System.currentTimeMillis();
     }
 
-    /**
-     * Get unique id of this process.
-     *
-     * @return unique id of this process
-     */
     public Long getId() {
         return id;
     }
@@ -76,7 +71,6 @@ public final class RunQueueTask implements Cancellable {
         return request;
     }
 
-    /** Get date when this task was created. */
     public long getCreationTime() {
         return created;
     }
@@ -94,12 +88,6 @@ public final class RunQueueTask implements Cancellable {
         return -1;
     }
 
-    /**
-     * Get status of this process.
-     *
-     * @throws RunnerException
-     *         if an error occurs
-     */
     public ApplicationProcessDescriptor getDescriptor() throws RunnerException {
         if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
@@ -154,35 +142,18 @@ public final class RunQueueTask implements Cancellable {
         return rewritten;
     }
 
-    /**
-     * Stop process.
-     *
-     * @see #stop()
-     */
-    @Override
     public void cancel() throws Exception {
         stop();
     }
 
-    /**
-     * Reports that the process was interrupted.
-     *
-     * @return {@code true} if process was interrupted and {@code false} otherwise
-     */
     public boolean isCancelled() throws RunnerException {
         return future.isCancelled();
     }
 
-    /**
-     * Reports that the task is waiting in the RunQueue.
-     *
-     * @return {@code true} if task is waiting and {@code false} if the process already started on remote slave-runner
-     */
     public boolean isWaiting() {
         return !future.isDone();
     }
 
-    /** Stop process. */
     public void stop() throws RunnerException {
         if (future.isCancelled()) {
             return;

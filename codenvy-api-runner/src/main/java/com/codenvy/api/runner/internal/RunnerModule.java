@@ -32,6 +32,6 @@ public class RunnerModule extends AbstractModule {
     protected void configure() {
         // Initialize empty set of Runners.
         Multibinder.newSetBinder(binder(), Runner.class);
-        bind(RunnerRegistryPlugin.class);
+        bind(RunnerRegistryPlugin.class).asEagerSingleton();
     }
 }

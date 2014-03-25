@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * List of descriptions of slave runners.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface RunnerList {

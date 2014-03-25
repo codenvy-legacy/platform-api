@@ -50,10 +50,10 @@ public abstract class VirtualFileSystemUserContext {
             }
             final User user = context.getUser();
             final Set<String> groups = new HashSet<>(2);
-            if (user.isMemberOf("developer")) {
+            if (user.isMemberOf("workspace/developer")) {
                 groups.add("workspace/developer");
             }
-            if (user.isMemberOf("admin")) {
+            if (user.isMemberOf("workspace/admin")) {
                 groups.add("workspace/admin");
             }
             return new VirtualFileSystemUser(user.getName(), groups);

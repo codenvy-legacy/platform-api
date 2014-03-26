@@ -40,7 +40,7 @@ import javax.ws.rs.core.Response;
  */
 @Path("runner/admin")
 @Description("Runner API")
-@RolesAllowed("cloud/admin")
+@RolesAllowed("system/admin")
 public class RunnerAdminService extends Service {
     @Inject
     private RunQueue runner;

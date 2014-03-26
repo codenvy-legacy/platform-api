@@ -43,7 +43,7 @@ import javax.ws.rs.core.Response;
  */
 @Path("builder/admin")
 @Description("Builder API")
-@RolesAllowed("cloud/admin")
+@RolesAllowed("system/admin")
 public class BuilderAdminService extends Service {
     @Inject
     private BuildQueue buildQueue;

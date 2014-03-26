@@ -24,9 +24,19 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface Token {
-    String getValue();
+    /** Get OAuth token */
+    String getToken();
 
-    void setValue(String value);
+    /** Set OAuth token */
+    void setToken(String token);
 
-    Token withValue(String value);
+    Token withToken(String token);
+
+    /** Get OAuth scope */
+    String getScope();
+
+    /** Set OAuth scope */
+    void setScope(String scope);
+
+    Token withScope(String scope);
 }

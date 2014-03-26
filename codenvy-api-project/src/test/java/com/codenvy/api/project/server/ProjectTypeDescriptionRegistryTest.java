@@ -29,7 +29,6 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author andrew00x
@@ -47,7 +46,7 @@ public class ProjectTypeDescriptionRegistryTest {
 
     @Test
     public void testRegisterProjectType() {
-        final ProjectType type = new ProjectType("my_type", "my_type");
+        final ProjectType type = new ProjectType("my_type", "my_type", "my_category");
         final List<Attribute> attributes = Arrays.asList(new Attribute("name1", "value1"), new Attribute("name2", "value2"));
         descriptionRegistry.registerProjectType(new ProjectTypeExtension() {
             @Override
@@ -69,6 +68,7 @@ public class ProjectTypeDescriptionRegistryTest {
         Assert.assertNotNull(myType);
         Assert.assertEquals(myType.getName(), "my_type");
         Assert.assertEquals(myType.getId(), "my_type");
+        Assert.assertEquals(myType.getCategory(), "my_category");
         ProjectTypeDescription myTypeDescription = descriptionRegistry.getDescription(myType);
         Assert.assertNotNull(myTypeDescription);
         List<Attribute> predefinedAttributes = descriptionRegistry.getPredefinedAttributes(myType);

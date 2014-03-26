@@ -27,10 +27,12 @@ public class ProjectType {
 
     private final String id;
     private final String name;
+    private final String category;
 
-    public ProjectType(String id, String name) {
+    public ProjectType(String id, String name, String category) {
         this.name = name;
         this.id = id;
+        this.category = category;
     }
 
     /** @return type ID supposed to be unique within IDE */
@@ -41,6 +43,12 @@ public class ProjectType {
     /** @return type display name */
     public String getName() {
         return name;
+    }
+
+
+    /** @return the project type category */
+    public String getCategory() {
+        return category;
     }
 
     @Override

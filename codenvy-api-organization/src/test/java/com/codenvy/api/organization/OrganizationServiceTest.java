@@ -239,6 +239,7 @@ public class OrganizationServiceTest {
     @SuppressWarnings("unchecked")
     public void shouldBeAbleToAddSubscription() throws Exception {
         Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
+                                              .withOrganizationId(ORGANIZATION_ID)
                                               .withServiceId(SERVICE_ID)
                                               .withStartDate(System.currentTimeMillis())
                                               .withEndDate(System.currentTimeMillis())
@@ -247,7 +248,7 @@ public class OrganizationServiceTest {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
         ContainerResponse response =
-                makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+                makeRequest("POST", SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(organizationDao, times(1)).addSubscription(any(Subscription.class));

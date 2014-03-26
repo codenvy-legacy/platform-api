@@ -292,12 +292,12 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfSpecificOrganization(@PathParam("id") String id) throws OrganizationException {
-        if (organizationDao.getById(id) == null) {
-            throw OrganizationNotFoundException.doesNotExistWithId(id);
+    public List<Subscription> getSubscriptionsOfSpecificOrganization(@PathParam("id") String organizationId) throws OrganizationException {
+        if (organizationDao.getById(organizationId) == null) {
+            throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
         }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final List<Subscription> subscriptions = organizationDao.getSubscriptions(id);
+        final List<Subscription> subscriptions = organizationDao.getSubscriptions(organizationId);
         for (Subscription subscription : subscriptions) {
             subscription.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
                                                            uriBuilder.clone().path(getClass(), "removeSubscription")
@@ -307,18 +307,17 @@ public class OrganizationService extends Service {
     }
 
     @POST
-    @Path("{id}/subscriptions")
+    @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
-    public void addSubscription(@PathParam("id") String organizationId,
-                                @Required @Description("subscription to add") Subscription subscription)
+    public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
             throws OrganizationException {
         if (subscription == null) {
             throw new OrganizationException("Missed subscription");
         }
-        if (organizationDao.getById(organizationId) == null) {
-            throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
+        if (organizationDao.getById(subscription.getOrganizationId()) == null) {
+            throw OrganizationNotFoundException.doesNotExistWithId(subscription.getOrganizationId());
         }
         SubscriptionService service = registry.get(subscription.getServiceId());
         if (service == null) {
@@ -326,7 +325,6 @@ public class OrganizationService extends Service {
         }
         String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
-        subscription.setOrganizationId(organizationId);
         organizationDao.addSubscription(subscription);
         service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
     }

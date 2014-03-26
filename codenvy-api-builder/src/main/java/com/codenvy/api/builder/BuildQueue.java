@@ -18,7 +18,6 @@
 package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildOptions;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderServiceAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
@@ -38,6 +37,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
@@ -61,8 +61,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -82,15 +83,15 @@ public class BuildQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final BuilderSelectionStrategy                                 builderSelector;
-    private final ConcurrentMap<Long, BuildQueueTask>                      tasks;
-    private final ConcurrentMap<ProjectWithWorkspace, BuilderList>         builderListMapping;
-    private final String                                                   baseProjectApiUrl;
-    private final int                                                      timeout;
-    private final EventService                                             eventService;
+    private final BuilderSelectionStrategy                         builderSelector;
+    private final ConcurrentMap<Long, BuildQueueTask>              tasks;
+    private final ConcurrentMap<ProjectWithWorkspace, BuilderList> builderListMapping;
+    private final String                                           baseProjectApiUrl;
+    private final int                                              timeout;
+    private final EventService                                     eventService;
     /** Max time for request to be in queue in milliseconds. */
-    private final long                                                     maxTimeInQueueMillis;
-    private final ConcurrentMap<ProjectWithWorkspace, BuildTaskDescriptor> successfulBuild;
+    private final long                                             maxTimeInQueueMillis;
+    private final ConcurrentMap<BaseBuilderRequest, RemoteTask>    successfulBuilds;
 
     private ExecutorService executor;
     private boolean         started;
@@ -120,7 +121,7 @@ public class BuildQueue {
         this.builderSelector = builderSelector;
         tasks = new ConcurrentHashMap<>();
         builderListMapping = new ConcurrentHashMap<>();
-        successfulBuild = new ConcurrentHashMap<>();
+        successfulBuilds = new ConcurrentHashMap<>();
     }
 
     /**
@@ -247,10 +248,34 @@ public class BuildQueue {
             request.setSkipTest(buildOptions.isSkipTest());
         }
         addRequestParameters(descriptor, request);
-        request.setTimeout(getBuildTimeout(request));
-        final Callable<RemoteTask> callable = createTaskFor(request);
-        final FutureTask<RemoteTask> future = new FutureTask<>(callable);
+        final RemoteTask successfulTask = successfulBuilds.get(request);
+        Callable<RemoteTask> callable = null;
+        boolean reuse = false;
+        if (successfulTask != null) {
+            try {
+                // check is it available
+                successfulTask.getBuildTaskDescriptor();
+                reuse = true;
+            } catch (Exception ignored) {
+            }
+            if (reuse) {
+                LOG.debug("Reuse successful build {}", successfulTask);
+                callable = new Callable<RemoteTask>() {
+                    @Override
+                    public RemoteTask call() throws Exception {
+                        return successfulTask;
+                    }
+                };
+            } else {
+                successfulBuilds.remove(request);
+            }
+        }
+        if (callable == null) {
+            request.setTimeout(getBuildTimeout(request));
+            callable = createTaskFor(request);
+        }
         final Long id = sequence.getAndIncrement();
+        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, reuse);
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
@@ -298,8 +323,8 @@ public class BuildQueue {
         addRequestParameters(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final Callable<RemoteTask> callable = createTaskFor(request);
-        final FutureTask<RemoteTask> future = new FutureTask<>(callable);
         final Long id = sequence.getAndIncrement();
+        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, false);
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
@@ -470,7 +495,20 @@ public class BuildQueue {
         if (started) {
             throw new IllegalStateException("Already started");
         }
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory("BuildQueue-", true));
+        executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
+                                          new NamedThreadFactory("BuildQueue-", true)) {
+            @Override
+            protected void afterExecute(Runnable runnable, Throwable error) {
+                super.afterExecute(runnable, error);
+                if (runnable instanceof BuildFutureTask) {
+                    final BuildFutureTask buildFutureTask = (BuildFutureTask)runnable;
+                    if (buildFutureTask.reused) {
+                        // Emulate event from remote builder. In fact we didn't send request to remote builder just reuse result from previous build.
+                        eventService.publish(new BuildDoneEvent(buildFutureTask.id, buildFutureTask.workspace, buildFutureTask.project));
+                    }
+                }
+            }
+        };
         eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
             @Override
             public void onEvent(BuildDoneEvent event) {
@@ -478,13 +516,9 @@ public class BuildQueue {
                 try {
                     final BuildQueueTask task = getTask(id);
                     final BaseBuilderRequest request = task.getRequest();
-                    if (request instanceof BuildRequest) {
-                        final BuildTaskDescriptor buildDescriptor = task.getDescriptor();
-                        if (buildDescriptor.getStatus() == BuildStatus.SUCCESSFUL) {
-                            final String project = request.getProject();
-                            final String workspace = request.getWorkspace();
-                            successfulBuild.put(new ProjectWithWorkspace(project, workspace), buildDescriptor);
-                        }
+                    if (task.getDescriptor().getStatus() == BuildStatus.SUCCESSFUL) {
+                        // Clone request and replace its id and timeout with 0.
+                        successfulBuilds.put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
                     }
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
@@ -514,12 +548,27 @@ public class BuildQueue {
         }
         tasks.clear();
         builderListMapping.clear();
-        successfulBuild.clear();
+        successfulBuilds.clear();
         started = false;
     }
 
     protected EventService getEventService() {
         return eventService;
+    }
+
+    private static class BuildFutureTask extends FutureTask<RemoteTask> {
+        final Long    id;
+        final String  workspace;
+        final String  project;
+        final boolean reused;
+
+        BuildFutureTask(Callable<RemoteTask> callable, Long id, String workspace, String project, boolean reused) {
+            super(callable);
+            this.id = id;
+            this.workspace = workspace;
+            this.project = project;
+            this.reused = reused;
+        }
     }
 
     private static class ProjectWithWorkspace {

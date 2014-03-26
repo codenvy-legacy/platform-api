@@ -40,9 +40,6 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -70,8 +67,6 @@ import java.util.List;
  */
 @Path("organization")
 public class OrganizationService extends Service {
-
-    private static final Logger LOG = LoggerFactory.getLogger(OrganizationService.class);
 
     private final OrganizationDao             organizationDao;
     private final UserDao                     userDao;
@@ -116,7 +111,7 @@ public class OrganizationService extends Service {
     }
 
     @GET
-    @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_ORGANIZATION)
+    @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_ORGANIZATIONS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Organization> getCurrentUserOrganizations(@Context SecurityContext securityContext)
@@ -293,98 +288,63 @@ public class OrganizationService extends Service {
     }
 
     @GET
-    @Path("subscriptions")
-    @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
-    @RolesAllowed("user")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfCurrentUserOrganizations(@Context SecurityContext securityContext)
-            throws UserException, OrganizationException {
-        final Principal principal = securityContext.getUserPrincipal();
-        final User current = userDao.getByAlias(principal.getName());
-        if (current == null) {
-            throw new UserNotFoundException(principal.getName());
-        }
-        List<Organization> currentOrganizations = organizationDao.getByMember(current.getId());
-        final Organization ownedByCurrentUser = organizationDao.getByOwner(current.getId());
-        if (ownedByCurrentUser != null) {
-            currentOrganizations.add(ownedByCurrentUser);
-        }
-        final List<Subscription> allSubscriptions = new ArrayList<>();
-        for (Organization organization : currentOrganizations) {
-            try {
-                allSubscriptions.addAll(organizationDao.getSubscriptions(organization.getId()));
-            } catch (OrganizationException e) {
-                LOG.error(String.format("OrganizationException was occurred when was an attempt to take %s organization subscriptions",
-                                        organization.getId()), e);
-            }
-        }
-        return allSubscriptions;
-    }
-
-    @GET
     @Path("{id}/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfSpecificOrganization(@PathParam("id") String id) throws OrganizationException {
-        if (organizationDao.getById(id) == null) {
-            throw OrganizationNotFoundException.doesNotExistWithId(id);
+    public List<Subscription> getSubscriptionsOfSpecificOrganization(@PathParam("id") String organizationId) throws OrganizationException {
+        if (organizationDao.getById(organizationId) == null) {
+            throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
         }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final List<Subscription> subscriptions = organizationDao.getSubscriptions(id);
+        final List<Subscription> subscriptions = organizationDao.getSubscriptions(organizationId);
         for (Subscription subscription : subscriptions) {
             subscription.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
                                                            uriBuilder.clone().path(getClass(), "removeSubscription")
-                                                                     .build(id, subscription.getServiceId()).toString())));
+                                                                     .build(subscription.getId()).toString())));
         }
         return subscriptions;
     }
 
     @POST
-    @Path("{id}/subscriptions")
+    @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
-    public void addSubscription(@PathParam("id") String id, @Required @Description("subscription to add") Subscription subscription)
+    public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
             throws OrganizationException {
         if (subscription == null) {
             throw new OrganizationException("Missed subscription");
         }
-        if (organizationDao.getById(id) == null) {
-            throw OrganizationNotFoundException.doesNotExistWithId(id);
+        if (organizationDao.getById(subscription.getOrganizationId()) == null) {
+            throw OrganizationNotFoundException.doesNotExistWithId(subscription.getOrganizationId());
         }
         SubscriptionService service = registry.get(subscription.getServiceId());
         if (service == null) {
             throw new ServiceNotFoundException(subscription.getServiceId());
         }
-        organizationDao.addSubscription(subscription, id);
-        service.notifyHandlers(new SubscriptionEvent(id, subscription, SubscriptionEvent.EventType.CREATE));
+        String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName(), Constants.ID_LENGTH);
+        subscription.setId(subscriptionId);
+        organizationDao.addSubscription(subscription);
+        service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
     }
 
     @DELETE
-    @Path("{id}/subscriptions/{serviceid}")
+    @Path("subscriptions/{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
-    public void removeSubscription(@PathParam("serviceid") String serviceId, @PathParam("id") String organizationId)
+    public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
             throws OrganizationException {
-        SubscriptionService service = registry.get(serviceId);
+        Subscription toRemove = organizationDao.getSubscriptionById(subscriptionId);
+        if (toRemove == null) {
+            throw new SubscriptionNotFoundException(subscriptionId);
+        }
+        SubscriptionService service = registry.get(toRemove.getServiceId());
         if (service == null) {
-            throw new ServiceNotFoundException(serviceId);
+            throw new ServiceNotFoundException(toRemove.getServiceId());
         }
-        List<Subscription> subscriptions = organizationDao.getSubscriptions(organizationId);
-        Subscription needed = null;
-        for (Subscription subscription : subscriptions) {
-            if (subscription.getServiceId().equals(serviceId)) {
-                needed = subscription;
-                break;
-            }
-        }
-        if (needed != null) {
-            organizationDao.removeSubscription(organizationId, serviceId);
-            service.notifyHandlers(new SubscriptionEvent(organizationId, needed, SubscriptionEvent.EventType.REMOVE));
-        } else {
-            throw new SubscriptionNotFoundException(serviceId);
-        }
+        organizationDao.removeSubscription(subscriptionId);
+        service.notifyHandlers(new SubscriptionEvent(toRemove, SubscriptionEvent.EventType.REMOVE));
     }
 
     @DELETE
@@ -401,12 +361,13 @@ public class OrganizationService extends Service {
     private void injectLinks(Organization organization, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_ORGANIZATION, null, MediaType.APPLICATION_JSON,
+        links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_ORGANIZATIONS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getCurrentUserOrganizations").build().toString()));
-        links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getSubscriptionsOfCurrentUserOrganizations").build().toString()));
         links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMembersOfOrganizationOwnedByCurrentUser").build().toString()));
+        links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
+                             uriBuilder.clone().path(getClass(), "getSubscriptionsOfSpecificOrganization").build(organization.getId())
+                                       .toString()));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_ORGANIZATION_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(organization.getId()).toString()));
@@ -416,10 +377,6 @@ public class OrganizationService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembersOfSpecificOrganization").build(organization.getId())
                                            .toString()));
-            links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscriptionsOfSpecificOrganization").build(organization.getId())
-                                           .toString()));
-
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_ORGANIZATION, null, null,

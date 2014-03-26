@@ -20,7 +20,9 @@ package com.codenvy.api.auth.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * @author gazarenkov
+ * OAuth token.
+ *
+ * @author Sergii Kabashniuk
  */
 @DTO
 public interface OAuthToken {

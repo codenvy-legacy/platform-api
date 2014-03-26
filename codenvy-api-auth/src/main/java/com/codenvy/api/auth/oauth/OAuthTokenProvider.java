@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.auth.oauth;
 
-import com.codenvy.api.auth.shared.dto.Token;
+import com.codenvy.api.auth.shared.dto.OAuthToken;
 
 import java.io.IOException;
 
@@ -34,5 +34,5 @@ public interface OAuthTokenProvider {
      * @throws IOException
      *         if i/o error occurs when try to refresh expired oauth token
      */
-    Token getToken(String oauthProviderName, String userId) throws IOException;
+    OAuthToken getToken(String oauthProviderName, String userId) throws IOException;
 }

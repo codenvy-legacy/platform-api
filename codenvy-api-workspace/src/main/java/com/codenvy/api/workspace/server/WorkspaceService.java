@@ -279,7 +279,7 @@ public class WorkspaceService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getCurrentUserOrganizations").build().toString());
+                                                            .path(UserService.class, "getCurrent").build().toString());
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(user.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());

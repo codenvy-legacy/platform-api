@@ -20,15 +20,25 @@ package com.codenvy.api.auth.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Authentication token.
+ * OAuth token.
  *
- * @author gazarenkov
+ * @author Sergii Kabashniuk
  */
 @DTO
-public interface Token {
-    String getValue();
+public interface OAuthToken {
+    /** Get OAuth token */
+    String getToken();
 
-    void setValue(String value);
+    /** Set OAuth token */
+    void setToken(String token);
 
-    Token withValue(String value);
+    OAuthToken withToken(String token);
+
+    /** Get OAuth scope */
+    String getScope();
+
+    /** Set OAuth scope */
+    void setScope(String scope);
+
+    OAuthToken withScope(String scope);
 }

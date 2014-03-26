@@ -58,6 +58,7 @@ public class ProjectTypeDescriptionService extends Service {
             final ProjectTypeDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectTypeDescriptor.class);
             descriptor.setProjectTypeId(projectType.getId());
             descriptor.setProjectTypeName(projectType.getName());
+            descriptor.setProjectTypeCategory(projectType.getCategory());
             final List<AttributeDescriptor> attributeDescriptors = new ArrayList<>();
             for (AttributeDescription attributeDescription : typeDescription.getAttributeDescriptions()) {
                 attributeDescriptors.add(DtoFactory.getInstance().createDto(AttributeDescriptor.class)

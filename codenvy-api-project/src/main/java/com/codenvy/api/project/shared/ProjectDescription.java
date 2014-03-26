@@ -45,12 +45,12 @@ public class ProjectDescription {
     }
 
     public ProjectDescription() {
-        this(new ProjectType("unknown", "unknown"));
+        this(new ProjectType("unknown", "unknown", "unknown"));
     }
 
     public ProjectDescription(ProjectDescription origin) {
         final ProjectType originProjectType = origin.getProjectType();
-        setProjectType(new ProjectType(originProjectType.getId(), originProjectType.getName()));
+        setProjectType(new ProjectType(originProjectType.getId(), originProjectType.getName(), originProjectType.getCategory()));
         final List<Attribute> originAttributes = origin.getAttributes();
         final List<Attribute> copyAttributes = new ArrayList<>();
         for (Attribute attribute : originAttributes) {

@@ -89,7 +89,7 @@ public class Project {
         if (projectType == null) {
             // TODO : Decide how should we treat such situation?
             // For now just show type what is set in configuration of project.
-            projectType = new ProjectType(projectTypeId, projectTypeId);
+            projectType = new ProjectType(projectTypeId, projectTypeId, projectTypeId);
         }
         final ProjectDescription projectDescription = new ProjectDescription(projectType);
         final ProjectTypeDescription projectTypeDescription = manager.getTypeDescriptionRegistry().getDescription(projectType);

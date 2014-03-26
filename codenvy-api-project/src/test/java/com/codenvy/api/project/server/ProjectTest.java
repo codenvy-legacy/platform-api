@@ -59,6 +59,7 @@ public class ProjectTest {
         ProjectTypeRegistry ptr = new ProjectTypeRegistry();
         ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry(ptr);
         final String projectType = "my_project_type";
+        final String category = "my_category";
         Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
             @Override
             public String getName() {
@@ -83,7 +84,7 @@ public class ProjectTest {
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType(projectType, projectType));
+                return Arrays.asList(new ProjectType(projectType, projectType, category));
             }
 
             @Override
@@ -190,7 +191,7 @@ public class ProjectTest {
                                                                                                              "value_2"))));
         properties.save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
-        myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type"));
+        myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
         myProjectDescription.getAttribute("calculated_attribute").setValue("updated calculated_attribute");
         myProjectDescription.getAttribute("my_property_1").setValue("updated value 1");
         myProjectDescription.setAttributes(Arrays.asList(new Attribute("new_my_property_2", "new value 2")));
@@ -213,9 +214,11 @@ public class ProjectTest {
     @Test
     public void testCreateModule() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        Project myModule = myProject.createModule("my_module", new ProjectDescription(new ProjectType("my_module_type", "my_module_type")));
+        Project myModule = myProject
+                .createModule("my_module", new ProjectDescription(new ProjectType("my_module_type", "my_module_type", "my_module_type")));
         ProjectDescription myModuleDescription = myModule.getDescription();
         Assert.assertEquals(myModuleDescription.getProjectType().getId(), "my_module_type");
         Assert.assertEquals(myModuleDescription.getProjectType().getName(), "my_module_type");
+        Assert.assertEquals(myModuleDescription.getProjectType().getCategory(), "my_module_type");
     }
 }

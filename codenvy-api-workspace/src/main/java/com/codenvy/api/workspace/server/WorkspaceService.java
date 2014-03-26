@@ -129,7 +129,7 @@ public class WorkspaceService extends Service {
             throw new WorkspaceException("Given organization already has associated workspace.");
         }
 
-        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
+        String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         newWorkspace.setTemporary(false);
         workspaceDao.create(newWorkspace);
@@ -279,7 +279,7 @@ public class WorkspaceService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getCurrentUserOrganizations").build().toString());
+                                                            .path(UserService.class, "getCurrent").build().toString());
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(user.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());

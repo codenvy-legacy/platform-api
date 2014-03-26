@@ -259,7 +259,7 @@ public class OrganizationServiceTest {
     @SuppressWarnings("unchecked")
     public void shouldBeAbleToRemoveSubscription() throws Exception {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
-        when(organizationDao.getSubscription(SUBSCRIPTION_ID)).thenReturn(
+        when(organizationDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
                 DtoFactory.getInstance().createDto(Subscription.class)
                           .withId(SUBSCRIPTION_ID)
                           .withStartDate(System.currentTimeMillis())

@@ -337,7 +337,7 @@ public class OrganizationService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
             throws OrganizationException {
-        Subscription toRemove = organizationDao.getSubscription(subscriptionId);
+        Subscription toRemove = organizationDao.getSubscriptionById(subscriptionId);
         if (toRemove == null) {
             throw new SubscriptionNotFoundException(subscriptionId);
         }

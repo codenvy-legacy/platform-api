@@ -106,7 +106,7 @@ public class LocalOrganizationDaoImpl implements OrganizationDao {
     }
 
     @Override
-    public Subscription getSubscription(String subscriptionId) throws OrganizationException {
+    public Subscription getSubscriptionById(String subscriptionId) throws OrganizationException {
         return DtoFactory.getInstance().createDto(Subscription.class)
                          .withId("Subscription0xfffffffff")
                          .withStartDate(System.currentTimeMillis())

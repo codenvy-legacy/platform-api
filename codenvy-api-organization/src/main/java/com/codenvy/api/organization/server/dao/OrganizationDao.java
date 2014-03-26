@@ -138,7 +138,7 @@ public interface OrganizationDao {
      *         subscription identifier
      * @return Subscription POJO
      */
-    Subscription getSubscription(String subscriptionId) throws OrganizationException;
+    Subscription getSubscriptionById(String subscriptionId) throws OrganizationException;
 
     /**
      * Gets list of existing in persistent layer subscriptions related to given organization

@@ -93,7 +93,7 @@ public class FactoryServiceTest {
         // given
         Factory expected = DtoFactory.getInstance().createDto(Factory.class);
         expected.withWname("wname").withPtype("ptype").withPname("pname").withV("1.0").withVcs("git")
-                .withVcsurl("http://github.com/codenvy/platform-api.git");
+                .withVcsurl("http://github.com/codenvy/platform-api.git").withVcsinfo(true);
 
         StringBuilder queryString = new StringBuilder();
         queryString.append("v=").append(expected.getV());
@@ -102,6 +102,7 @@ public class FactoryServiceTest {
         queryString.append("&pname=").append(expected.getPname());
         queryString.append("&ptype=").append(expected.getPtype());
         queryString.append("&wname=").append(expected.getWname());
+        queryString.append("&vcsinfo=").append(expected.getVcsinfo());
 
         // when
         Response response = given().when().get(SERVICE_PATH + "/nonencoded?" + queryString);
@@ -406,7 +407,7 @@ public class FactoryServiceTest {
         factoryUrl.setOrgid("orgid");
 
         doThrow(new FactoryUrlException("You are not authorized to use this orgid.")).when(validator)
-                .validateObject(Matchers.any(Factory.class), anyBoolean(), Matchers.any(HttpServletRequest.class));
+                .validate(Matchers.any(Factory.class), anyBoolean(), Matchers.any(HttpServletRequest.class));
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 

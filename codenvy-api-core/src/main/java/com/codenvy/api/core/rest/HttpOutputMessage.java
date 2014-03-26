@@ -18,12 +18,11 @@
 package com.codenvy.api.core.rest;
 
 /**
- * Proxies response from remote server to the client. It helps to avoid download response from remote server and resend info to the client.
- * Instead implementation of this interface may pump information from the remote server directly to the client.
+ * HTTP output message.
  *
  * @author andrew00x
  */
-public interface HttpOutputProvider extends OutputProvider {
+public interface HttpOutputMessage extends OutputProvider {
     /** Set HTTP status. */
     void setStatus(int status);
 

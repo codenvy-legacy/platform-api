@@ -17,10 +17,18 @@
  */
 package com.codenvy.api.auth;
 
+import com.codenvy.api.auth.shared.dto.Credentials;
 
-/** Generator of tokens based used in authentication. */
+import javax.ws.rs.core.Cookie;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 
-public interface TokenGenerator {
-    /** @return - new token. */
-    public String generate();
+/**
+ * @author gazarenkov
+ */
+public interface AuthenticationDao {
+
+    Response login(Credentials credentials, Cookie tokenAccessCookie, UriInfo uriInfo) throws AuthenticationException;
+
+    Response logout(String token, Cookie tokenAccessCookie, UriInfo uriInfo);
 }

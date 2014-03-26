@@ -121,7 +121,7 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public User getCurrent(@Context SecurityContext securityContext) throws UserException {
+        public User getCurrent(@Context SecurityContext securityContext) throws UserException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {

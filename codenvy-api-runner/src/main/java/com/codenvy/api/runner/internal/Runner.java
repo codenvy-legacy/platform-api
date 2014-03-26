@@ -61,7 +61,6 @@ public abstract class Runner {
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
-    private final ExecutorService               executor;
     private final Map<Long, RunnerProcessEntry> processes;
     private final Map<Long, List<Disposer>>     applicationDisposers;
     private final Object                        applicationDisposersLock;
@@ -72,9 +71,9 @@ public abstract class Runner {
     private final EventService                  eventService;
     private final int                           cleanupDelay;
 
-
-    private java.io.File deployDirectory;
-    private boolean      started;
+    private ExecutorService executor;
+    private java.io.File    deployDirectory;
+    private boolean         started;
 
     public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators, EventService eventService) {
         this.deployDirectoryRoot = deployDirectoryRoot;
@@ -82,7 +81,6 @@ public abstract class Runner {
         this.allocators = allocators;
         this.eventService = eventService;
         processes = new ConcurrentHashMap<>();
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName().toUpperCase(), true));
         applicationDisposers = new ConcurrentHashMap<>();
         applicationDisposersLock = new Object();
         runningAppsCounter = new AtomicInteger(0);
@@ -145,6 +143,7 @@ public abstract class Runner {
         if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
             throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
         }
+        executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName() + "-Runner-", true));
         started = true;
     }
 

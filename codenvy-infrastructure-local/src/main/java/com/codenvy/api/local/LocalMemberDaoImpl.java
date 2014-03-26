@@ -22,10 +22,12 @@ import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Singleton
 public class LocalMemberDaoImpl implements MemberDao {
     @Override
     public void create(Member member) throws MembershipException {
@@ -40,18 +42,14 @@ public class LocalMemberDaoImpl implements MemberDao {
     @Override
     public List<Member> getWorkspaceMembers(String wsId) throws MembershipException {
         List<Member> members = new ArrayList<>();
-        members.add(
-                DtoFactory.getInstance().createDto(Member.class).withUserId("codenvy").withWorkspaceId("default").withRoles(
-                        Arrays.asList("workspace/admin", "workspace/developer")));
+        members.add(Constants.MEMBER);
         return members;
     }
 
     @Override
     public List<Member> getUserRelationships(String userId) throws MembershipException {
         List<Member> members = new ArrayList<>();
-        members.add(
-                DtoFactory.getInstance().createDto(Member.class).withUserId("codenvy").withWorkspaceId("default").withRoles(
-                        Arrays.asList("workspace/admin", "workspace/developer")));
+        members.add(Constants.MEMBER);
         return members;
 
     }

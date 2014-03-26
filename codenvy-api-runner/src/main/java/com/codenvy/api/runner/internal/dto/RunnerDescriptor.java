@@ -19,13 +19,14 @@ package com.codenvy.api.runner.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
+
 /**
- * Describes of {@link com.codenvy.api.runner.internal.Runner}.
+ * Describes capabilities of {@link com.codenvy.api.runner.internal.Runner}.
  *
  * @author andrew00x
  * @see com.codenvy.api.runner.internal.Runner
  * @see com.codenvy.api.runner.internal.Runner#getName()
- * @see com.codenvy.api.runner.internal.Runner#getDescription()
  * @see com.codenvy.api.runner.internal.SlaveRunnerService#availableRunners()
  */
 @DTO

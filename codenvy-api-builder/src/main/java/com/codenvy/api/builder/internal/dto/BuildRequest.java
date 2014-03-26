@@ -22,8 +22,13 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Build request.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface BuildRequest extends BaseBuilderRequest {
+    boolean isSkipTest();
+
+    void setSkipTest(boolean skip);
+
+    BuildRequest withSkipTest(boolean skip);
 }

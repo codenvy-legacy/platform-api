@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,19 +15,18 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.auth;
+package com.codenvy.api.auth.shared.dto;
 
-import javax.ws.rs.core.Response;
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Utility class to helps build response after authentication.
- * <p/>
- * It allow to to set or remove such cookies:
- * <p/>
+ * @author gazarenkov
  */
-public interface CookieBuilder {
+@DTO
+public interface Token {
+    String getValue();
 
-    public void clearCookies(Response.ResponseBuilder builder, String token, boolean secure);
+    void setValue(String value);
 
-    public void setCookies(Response.ResponseBuilder builder, String token, boolean secure);
+    Token withValue(String value);
 }

@@ -141,7 +141,7 @@ public interface OrganizationDao {
      *
      * @param organizationId
      *         organization id
-     * @return list of subscriptions
+     * @return list of subscriptions, or empty list if no subscriptions found
      */
     List<Subscription> getSubscriptions(String organizationId) throws OrganizationException;
 
@@ -150,7 +150,7 @@ public interface OrganizationDao {
      *
      * @param organizationId
      *         organization id
-     * @return list of members
+     * @return list of members, or empty list if no members found
      */
     List<Member> getMembers(String organizationId) throws OrganizationException;
 
@@ -159,8 +159,7 @@ public interface OrganizationDao {
      *
      * @param userId
      *         user identifier to search
-     * @return list of organizations
-     * @throws com.codenvy.api.organization.server.exception.OrganizationException
+     * @return list of organizations, or empty list if no organizations found
      */
     public List<Organization> getByMember(String userId) throws OrganizationException;
 }

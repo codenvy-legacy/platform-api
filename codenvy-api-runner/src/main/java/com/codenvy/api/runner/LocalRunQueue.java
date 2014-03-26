@@ -26,9 +26,10 @@ import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.Runner;
 import com.codenvy.api.runner.internal.RunnerEvent;
+import com.codenvy.api.runner.internal.RunnerRegistry;
+import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -47,7 +48,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Implementation of RunQueue that looks up Runner's on startup. Usage of this class assumes {@link
@@ -55,13 +55,14 @@ import java.util.Set;
  *
  * @author andrew00x
  */
+// DON'T USE IT IN CLOUD INFRASTRUCTURE.
 @Singleton
 public class LocalRunQueue extends RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(LocalRunQueue.class);
 
-    private final List<RemoteRunner> remoteRunners;
-    private final EventService       eventService;
-    private final ProjectManager     projectManager;
+    private final RunnerRegistry runners;
+    private final ProjectManager projectManager;
+    private final int            slaveRunnerPort;
 
     // work-around to be bale configure port.
     static class SlaveRunnerPortHolder {
@@ -97,13 +98,77 @@ public class LocalRunQueue extends RunQueue {
                          RunnerSelectionStrategy runnerSelector,
                          EventService eventService,
                          SlaveRunnerPortHolder portHolder,
-                         Set<Runner> runners,
+                         RunnerRegistry runners,
                          ProjectManager projectManager) {
-        super(baseProjectApiUrl, baseBuilderApiUrl, defMemSize, maxTimeInQueue, appLifetime, runnerSelector);
-        this.eventService = eventService;
+        super(baseProjectApiUrl, baseBuilderApiUrl, defMemSize, maxTimeInQueue, appLifetime, runnerSelector, eventService);
+        this.runners = runners;
         this.projectManager = projectManager;
-        final String baseUrl = String.format("http://localhost:%s/api/internal/runner", portHolder.port);
-        final List<Link> links = new ArrayList<>();
+        this.slaveRunnerPort = portHolder.port;
+    }
+
+    @PostConstruct
+    @Override
+    public synchronized void start() {
+        super.start();
+        getEventService().subscribe(new EventSubscriber<RunnerEvent>() {
+            @Override
+            public void onEvent(RunnerEvent event) {
+                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                final long id = event.getTaskId();
+                bm.setChannel(String.format("runner:status:%d", id));
+                bm.setType(event.getType() == RunnerEvent.EventType.ERROR ? ChannelBroadcastMessage.Type.ERROR
+                                                                          : ChannelBroadcastMessage.Type.NONE);
+                try {
+                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                    bm.setBody(e.getMessage());
+                }
+                try {
+                    WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+        getEventService().subscribe(new EventSubscriber<RunnerEvent>() {
+            @Override
+            public void onEvent(RunnerEvent event) {
+                final RunnerEvent.EventType eventType = event.getType();
+                if (eventType == RunnerEvent.EventType.STARTED || eventType == RunnerEvent.EventType.STOPPED) {
+                    try {
+                        final Project project = projectManager.getProject(event.getWorkspace(), event.getProject());
+                        final ProjectDescription description = project.getDescription();
+                        if (RunnerEvent.EventType.STARTED.equals(eventType)) {
+                            description.setAttribute(new Attribute("runner.running", "true"));
+                        } else if (RunnerEvent.EventType.STOPPED.equals(eventType)) {
+                            description.setAttribute(new Attribute("runner.running", "false"));
+                        }
+                        project.updateDescription(description);
+                    } catch (IOException e) {
+                        LOG.error(e.getMessage(), e);
+                    }
+                }
+            }
+        });
+    }
+
+    @PreDestroy
+    @Override
+    public synchronized void stop() {
+        super.stop();
+    }
+
+    @Override
+    protected RemoteRunner getRunner(RunRequest request) throws RunnerException {
+        // Have all available runners locally. Need to have remote wrapper for it.
+        final Runner runner = runners.get(request.getRunner());
+        if (runner == null) {
+            throw new RunnerException("There is no any runner to process this request. ");
+        }
+        final String baseUrl = String.format("http://localhost:%s/api/internal/runner", slaveRunnerPort);
+        final List<Link> links = new ArrayList<>(3);
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel("runner state")
                             .withProduces("application/json")
@@ -125,64 +190,13 @@ public class LocalRunQueue extends RunQueue {
                             .withConsumes("application/json")
                             .withHref(baseUrl + "/run")
                             .withMethod("POST"));
-        remoteRunners = new ArrayList<>();
-        for (Runner runner : runners) {
-            remoteRunners.add(new RemoteRunner(baseUrl,
-                                               DtoFactory.getInstance().createDto(RunnerDescriptor.class)
-                                                         .withName(runner.getName())
-                                                         .withDescription(runner.getDescription()),
-                                               links));
-        }
-    }
 
-    @PostConstruct
-    @Override
-    public synchronized void start() {
-        super.start();
-        registerRunners(null, null, remoteRunners);
-        // Register listener that resend events from runner to the client (browser).
-        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
-            @Override
-            public void onEvent(RunnerEvent event) {
-                try {
-                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                    final long id = event.getTaskId();
-                    final ApplicationProcessDescriptor processDescriptor = getTask(id).getDescriptor();
-                    // TODO: do need to have separate channel? Can use runner:status channel for all events?
-                    bm.setChannel(String.format("runner:status:%d", id));
-                    bm.setType(event.hasError() ? ChannelBroadcastMessage.Type.ERROR : ChannelBroadcastMessage.Type.NONE);
-                    bm.setBody(DtoFactory.getInstance().toJson(processDescriptor));
-                    WSConnectionContext.sendMessage(bm);
-                } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
-                }
-            }
-        });
-        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
-            @Override
-            public void onEvent(RunnerEvent event) {
-                if (!event.hasError()) {
-                    try {
-                        final Project project = projectManager.getProject(event.getWorkspace(), event.getProject());
-                        final ProjectDescription description = project.getDescription();
-                        if (RunnerEvent.EventType.STARTED.equals(event.getType())) {
-                            description.setAttribute(new Attribute("runner.running", "true"));
-                        } else if (RunnerEvent.EventType.STOPPED.equals(event.getType())) {
-                            description.setAttribute(new Attribute("runner.running", "false"));
-                        }
-                        project.updateDescription(description);
-                    } catch (IOException e) {
-                        LOG.error(e.getMessage(), e);
-                    }
-                }
-            }
-        });
-    }
-
-    @PreDestroy
-    @Override
-    public synchronized void stop() {
-        unregisterRunners(remoteRunners);
-        super.stop();
+        final RemoteRunner rrunner = new RemoteRunner(baseUrl,
+                                                      DtoFactory.getInstance().createDto(RunnerDescriptor.class)
+                                                                .withName(runner.getName())
+                                                                .withDescription(runner.getDescription()),
+                                                      links);
+        LOG.debug("Use slave runner {} at {}", rrunner.getName(), rrunner.getBaseUrl());
+        return rrunner;
     }
 }

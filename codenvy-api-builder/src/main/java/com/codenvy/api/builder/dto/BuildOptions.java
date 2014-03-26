@@ -56,6 +56,12 @@ public interface BuildOptions {
 
     void setOptions(Map<String, String> options);
 
+    boolean isSkipTest();
+
+    void setSkipTest(boolean skip);
+
+    BuildOptions withSkipTest(boolean skip);
+
     boolean isIncludeDependencies();
 
     void setIncludeDependencies(boolean includeDependencies);

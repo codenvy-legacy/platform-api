@@ -78,16 +78,6 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     FactoryV1_1 withAuthor(String author);
 
     /**
-     * @return path of the file to open in the project.
-     */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "openfile")
-    String getOpenfile();
-
-    void setOpenfile(String openfile);
-
-    FactoryV1_1 withOpenfile(String openfile);
-
-    /**
      * @return The orgid will be a field that we use to identify an organization that created the Factory
      * <p/>
      * This will allow us to group together many factories across a single organization.
@@ -188,4 +178,17 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     void setWelcome(WelcomePage welcome);
 
     FactoryV1_1 withWelcome(WelcomePage welcome);
+
+    /**
+     * @return path to the image
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "image", deprecatedSince = V1_1)
+    @Deprecated
+    String getImage();
+
+    @Deprecated
+    void setImage(String image);
+
+    @Deprecated
+    FactoryV1_1 withImage(String image);
 }

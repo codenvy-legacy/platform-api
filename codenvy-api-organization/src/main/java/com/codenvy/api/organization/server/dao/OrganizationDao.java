@@ -119,22 +119,26 @@ public interface OrganizationDao {
      *
      * @param subscription
      *         subscription POJO
-     * @param organizationId
-     *         organization identifier
-     * @throws com.codenvy.api.organization.server.exception.OrganizationException
      */
-    void addSubscription(Subscription subscription, String organizationId) throws OrganizationException;
+    void addSubscription(Subscription subscription) throws OrganizationException;
 
     /**
      * Remove subscription related to existing organization
      *
-     * @param serviceId
-     *         service identifier
-     * @param organizationId
-     *         organization identifier
-     * @throws com.codenvy.api.organization.server.exception.OrganizationException
+     * @param subscriptionId
+     *         subscription identifier for removal
      */
-    void removeSubscription(String organizationId, String serviceId) throws OrganizationException;
+    void removeSubscription(String subscriptionId) throws OrganizationException;
+
+
+    /**
+     * Get subscription from persistent layer, if it doesn't exist {@code null} will be returned
+     *
+     * @param subscriptionId
+     *         subscription identifier
+     * @return Subscription POJO
+     */
+    Subscription getSubscriptionById(String subscriptionId) throws OrganizationException;
 
     /**
      * Gets list of existing in persistent layer subscriptions related to given organization

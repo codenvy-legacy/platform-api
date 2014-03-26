@@ -101,7 +101,7 @@ public class OrganizationService extends Service {
         if (organizationDao.getByName(newOrganization.getName()) != null) {
             throw OrganizationAlreadyExistsException.existsWithName(newOrganization.getName());
         }
-        String organizationId = NameGenerator.generate(Organization.class.getSimpleName(), Constants.ID_LENGTH);
+        String organizationId = NameGenerator.generate(Organization.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newOrganization.setId(organizationId);
         //organization should have owner
         newOrganization.setOwner(current.getId());
@@ -323,7 +323,7 @@ public class OrganizationService extends Service {
         if (service == null) {
             throw new ServiceNotFoundException(subscription.getServiceId());
         }
-        String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName(), Constants.ID_LENGTH);
+        String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
         organizationDao.addSubscription(subscription);
         service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));

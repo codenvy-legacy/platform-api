@@ -94,7 +94,7 @@ public class UserService extends Service {
         }
         final String userEmail = tokenValidator.validateToken(token);
         final User user = DtoFactory.getInstance().createDto(User.class);
-        String userId = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
+        String userId = NameGenerator.generate(User.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         user.setId(userId);
         user.setEmail(userEmail);
         user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
@@ -121,7 +121,7 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-        public User getCurrent(@Context SecurityContext securityContext) throws UserException {
+    public User getCurrent(@Context SecurityContext securityContext) throws UserException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {

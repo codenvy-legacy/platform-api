@@ -89,15 +89,15 @@ public class RunQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final RunnerSelectionStrategy                  runnerSelector;
-    private final ConcurrentMap<RunnerListKey, RunnerList> runnerListMapping;
-    private final ConcurrentMap<Long, RunQueueTask>        tasks;
-    private final int                                      defMemSize;
-    private final EventService                             eventService;
-    private final String                                   baseProjectApiUrl;
-    private final String                                   baseBuilderApiUrl;
-    private final int                                      appLifetime;
-    private final long                                     maxTimeInQueueMillis;
+    private final RunnerSelectionStrategy                         runnerSelector;
+    private final ConcurrentMap<ProjectWithWorkspace, RunnerList> runnerListMapping;
+    private final ConcurrentMap<Long, RunQueueTask>               tasks;
+    private final int                                             defMemSize;
+    private final EventService                                    eventService;
+    private final String                                          baseProjectApiUrl;
+    private final String                                          baseBuilderApiUrl;
+    private final int                                             appLifetime;
+    private final long                                            maxTimeInQueueMillis;
 
     private ExecutorService executor;
     private boolean         started;
@@ -460,6 +460,10 @@ public class RunQueue {
         started = false;
     }
 
+    protected EventService getEventService() {
+        return eventService;
+    }
+
     /**
      * Register remote SlaveRunnerService which can process run application.
      *
@@ -489,7 +493,7 @@ public class RunQueue {
     }
 
     protected boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {
-        final RunnerListKey key = new RunnerListKey(project, workspace);
+        final ProjectWithWorkspace key = new ProjectWithWorkspace(project, workspace);
         RunnerList runnerList = runnerListMapping.get(key);
         if (runnerList == null) {
             final RunnerList newRunnerList = new RunnerList();
@@ -538,16 +542,16 @@ public class RunQueue {
     protected RemoteRunner getRunner(RunRequest request) throws RunnerException {
         final String project = request.getProject();
         final String workspace = request.getWorkspace();
-        RunnerList runnerList = runnerListMapping.get(new RunnerListKey(project, workspace));
+        RunnerList runnerList = runnerListMapping.get(new ProjectWithWorkspace(project, workspace));
         if (runnerList == null) {
             if (project != null || workspace != null) {
                 if (workspace != null) {
                     // have dedicated runners for whole workspace (omit project) ?
-                    runnerList = runnerListMapping.get(new RunnerListKey(null, workspace));
+                    runnerList = runnerListMapping.get(new ProjectWithWorkspace(null, workspace));
                 }
                 if (runnerList == null) {
                     // seems there is no dedicated runners for specified request, use shared one then
-                    runnerList = runnerListMapping.get(new RunnerListKey(null, null));
+                    runnerList = runnerListMapping.get(new ProjectWithWorkspace(null, null));
                 }
             }
         }
@@ -649,11 +653,11 @@ public class RunQueue {
         }
     }
 
-    private static class RunnerListKey {
+    private static class ProjectWithWorkspace {
         final String project;
         final String workspace;
 
-        RunnerListKey(String project, String workspace) {
+        ProjectWithWorkspace(String project, String workspace) {
             this.project = project;
             this.workspace = workspace;
         }
@@ -663,10 +667,10 @@ public class RunQueue {
             if (this == o) {
                 return true;
             }
-            if (!(o instanceof RunnerListKey)) {
+            if (!(o instanceof ProjectWithWorkspace)) {
                 return false;
             }
-            RunnerListKey other = (RunnerListKey)o;
+            ProjectWithWorkspace other = (ProjectWithWorkspace)o;
             return (workspace == null ? other.workspace == null : workspace.equals(other.workspace))
                    && (project == null ? other.project == null : project.equals(other.project));
 
@@ -682,7 +686,7 @@ public class RunQueue {
 
         @Override
         public String toString() {
-            return "RunnerListKey{" +
+            return "ProjectWithWorkspace{" +
                    "workspace='" + workspace + '\'' +
                    ", project='" + project + '\'' +
                    '}';

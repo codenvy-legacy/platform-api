@@ -26,7 +26,6 @@ import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.Runner;
 import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.runner.internal.RunnerRegistry;
@@ -36,7 +35,6 @@ import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.websockets.WSConnectionContext;
 import org.everrest.websockets.message.ChannelBroadcastMessage;
-import org.everrest.websockets.message.MessageConversionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +60,6 @@ import java.util.List;
 public class LocalRunQueue extends RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(LocalRunQueue.class);
 
-    private final EventService   eventService;
     private final RunnerRegistry runners;
     private final ProjectManager projectManager;
     private final int            slaveRunnerPort;
@@ -104,7 +101,6 @@ public class LocalRunQueue extends RunQueue {
                          RunnerRegistry runners,
                          ProjectManager projectManager) {
         super(baseProjectApiUrl, baseBuilderApiUrl, defMemSize, maxTimeInQueue, appLifetime, runnerSelector, eventService);
-        this.eventService = eventService;
         this.runners = runners;
         this.projectManager = projectManager;
         this.slaveRunnerPort = portHolder.port;
@@ -114,7 +110,7 @@ public class LocalRunQueue extends RunQueue {
     @Override
     public synchronized void start() {
         super.start();
-        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
+        getEventService().subscribe(new EventSubscriber<RunnerEvent>() {
             @Override
             public void onEvent(RunnerEvent event) {
                 final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
@@ -136,7 +132,7 @@ public class LocalRunQueue extends RunQueue {
                 }
             }
         });
-        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
+        getEventService().subscribe(new EventSubscriber<RunnerEvent>() {
             @Override
             public void onEvent(RunnerEvent event) {
                 final RunnerEvent.EventType eventType = event.getType();

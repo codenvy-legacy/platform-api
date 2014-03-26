@@ -311,6 +311,7 @@ public final class SlaveBuilderService extends Service {
                          .withTaskId(taskId)
                          .withStatus(status)
                          .withLinks(links)
-                         .withStartTime(task.getStartTime());
+                         .withStartTime(task.getStartTime())
+                         .withEndTime(task.getEndTime());
     }
 }

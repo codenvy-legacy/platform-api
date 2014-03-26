@@ -20,7 +20,6 @@ package com.codenvy.api.runner;
 import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.dto.RunRequest;
@@ -68,7 +67,7 @@ public final class RunQueueTask {
     }
 
     public RunRequest getRequest() {
-        return request;
+        return DtoFactory.getInstance().clone(request);
     }
 
     public long getCreationTime() {

@@ -18,15 +18,19 @@
 package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildOptions;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderServiceAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
+import com.codenvy.api.builder.internal.BuildDoneEvent;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
+import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
@@ -78,16 +82,18 @@ public class BuildQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final BuilderSelectionStrategy                   builderSelector;
-    private final ExecutorService                            executor;
-    private final ConcurrentMap<Long, BuildQueueTask>        tasks;
-    private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
-    private final String                                     baseProjectApiUrl;
-    private final int                                        timeout;
+    private final BuilderSelectionStrategy                                 builderSelector;
+    private final ConcurrentMap<Long, BuildQueueTask>                      tasks;
+    private final ConcurrentMap<ProjectWithWorkspace, BuilderList>         builderListMapping;
+    private final String                                                   baseProjectApiUrl;
+    private final int                                                      timeout;
+    private final EventService                                             eventService;
     /** Max time for request to be in queue in milliseconds. */
-    private final long                                       maxTimeInQueueMillis;
+    private final long                                                     maxTimeInQueueMillis;
+    private final ConcurrentMap<ProjectWithWorkspace, BuildTaskDescriptor> successfulBuild;
 
-    private boolean started;
+    private ExecutorService executor;
+    private boolean         started;
 
     /**
      * @param baseProjectApiUrl
@@ -105,14 +111,16 @@ public class BuildQueue {
     public BuildQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                       @Named("builder.queue.max_time_in_queue") int maxTimeInQueue,
                       @Named("builder.queue.build_timeout") int timeout,
-                      BuilderSelectionStrategy builderSelector) {
+                      BuilderSelectionStrategy builderSelector,
+                      EventService eventService) {
         this.baseProjectApiUrl = baseProjectApiUrl;
         this.timeout = timeout;
+        this.eventService = eventService;
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.builderSelector = builderSelector;
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory("BuildQueue-", true));
         tasks = new ConcurrentHashMap<>();
         builderListMapping = new ConcurrentHashMap<>();
+        successfulBuild = new ConcurrentHashMap<>();
     }
 
     /**
@@ -168,7 +176,7 @@ public class BuildQueue {
     }
 
     protected boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
-        final BuilderListKey key = new BuilderListKey(project, workspace);
+        final ProjectWithWorkspace key = new ProjectWithWorkspace(project, workspace);
         BuilderList builderList = builderListMapping.get(key);
         if (builderList == null) {
             final BuilderList newBuilderList = new BuilderList(builderSelector);
@@ -333,7 +341,7 @@ public class BuildQueue {
         }
         if (request.getTargets().isEmpty()) {
             final List<String> targetsAttr = projectAttributes.get(Constants.BUILDER_TARGETS.replace("${builder}", builder));
-            if (targetsAttr!=null && !targetsAttr.isEmpty()) {
+            if (targetsAttr != null && !targetsAttr.isEmpty()) {
                 request.getTargets().addAll(targetsAttr);
             }
         }
@@ -389,20 +397,20 @@ public class BuildQueue {
     private BuilderList getBuilderList(BaseBuilderRequest request) throws BuilderException {
         final String project = request.getProject();
         final String workspace = request.getWorkspace();
-        BuilderList builderList = builderListMapping.get(new BuilderListKey(project, workspace));
+        BuilderList builderList = builderListMapping.get(new ProjectWithWorkspace(project, workspace));
         if (builderList == null) {
             if (project != null || workspace != null) {
                 if (project != null && workspace != null) {
                     // have dedicated builders for project in some workspace?
-                    builderList = builderListMapping.get(new BuilderListKey(project, workspace));
+                    builderList = builderListMapping.get(new ProjectWithWorkspace(project, workspace));
                 }
                 if (builderList == null && workspace != null) {
                     // have dedicated builders for whole workspace (omit project) ?
-                    builderList = builderListMapping.get(new BuilderListKey(null, workspace));
+                    builderList = builderListMapping.get(new ProjectWithWorkspace(null, workspace));
                 }
                 if (builderList == null) {
                     // seems there is no dedicated builders for specified request, use shared one then
-                    builderList = builderListMapping.get(new BuilderListKey(null, null));
+                    builderList = builderListMapping.get(new ProjectWithWorkspace(null, null));
                 }
             }
         }
@@ -462,6 +470,27 @@ public class BuildQueue {
         if (started) {
             throw new IllegalStateException("Already started");
         }
+        executor = Executors.newCachedThreadPool(new NamedThreadFactory("BuildQueue-", true));
+        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+            @Override
+            public void onEvent(BuildDoneEvent event) {
+                final long id = event.getTaskId();
+                try {
+                    final BuildQueueTask task = getTask(id);
+                    final BaseBuilderRequest request = task.getRequest();
+                    if (request instanceof BuildRequest) {
+                        final BuildTaskDescriptor buildDescriptor = task.getDescriptor();
+                        if (buildDescriptor.getStatus() == BuildStatus.SUCCESSFUL) {
+                            final String project = request.getProject();
+                            final String workspace = request.getWorkspace();
+                            successfulBuild.put(new ProjectWithWorkspace(project, workspace), buildDescriptor);
+                        }
+                    }
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
         started = true;
     }
 
@@ -485,14 +514,19 @@ public class BuildQueue {
         }
         tasks.clear();
         builderListMapping.clear();
+        successfulBuild.clear();
         started = false;
     }
 
-    private static class BuilderListKey {
+    protected EventService getEventService() {
+        return eventService;
+    }
+
+    private static class ProjectWithWorkspace {
         final String project;
         final String workspace;
 
-        BuilderListKey(String project, String workspace) {
+        ProjectWithWorkspace(String project, String workspace) {
             this.project = project;
             this.workspace = workspace;
         }
@@ -502,10 +536,10 @@ public class BuildQueue {
             if (this == o) {
                 return true;
             }
-            if (!(o instanceof BuilderListKey)) {
+            if (!(o instanceof ProjectWithWorkspace)) {
                 return false;
             }
-            BuilderListKey other = (BuilderListKey)o;
+            ProjectWithWorkspace other = (ProjectWithWorkspace)o;
             return (workspace == null ? other.workspace == null : workspace.equals(other.workspace))
                    && (project == null ? other.project == null : project.equals(other.project));
 
@@ -521,7 +555,7 @@ public class BuildQueue {
 
         @Override
         public String toString() {
-            return "BuilderListKey{" +
+            return "ProjectWithWorkspace{" +
                    "workspace='" + workspace + '\'' +
                    ", project='" + project + '\'' +
                    '}';

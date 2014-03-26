@@ -519,6 +519,7 @@ public abstract class Builder {
 
         private BuildResult result;
         private long        startTime;
+        private long        endTime;
 
         protected FutureBuildTask(Callable<Boolean> callable,
                                   Long id,
@@ -535,6 +536,7 @@ public abstract class Builder {
             this.buildLogger = buildLogger;
             this.callback = callback;
             startTime = -1L;
+            endTime = -1L;
         }
 
         @Override
@@ -625,6 +627,15 @@ public abstract class Builder {
         }
 
         @Override
+        public final synchronized long getEndTime() {
+            return endTime;
+        }
+
+        final synchronized void ended() {
+            endTime = System.currentTimeMillis();
+        }
+
+        @Override
         public String toString() {
             return "FutureBuildTask{" +
                    "id=" + id +
@@ -670,6 +681,7 @@ public abstract class Builder {
                         LOG.error(e.getMessage(), e);
                     }
                 }
+                futureBuildTask.ended();
             }
         }
     }

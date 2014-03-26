@@ -55,7 +55,6 @@ public final class LocalBuildQueue extends BuildQueue {
     private static final Logger LOG = LoggerFactory.getLogger(LocalBuildQueue.class);
 
     private final List<RemoteBuilder> remoteBuilders;
-    private final EventService        eventService;
 
     // work-around to be bale configure port.
     static class SlaveBuilderPortHolder {
@@ -84,8 +83,7 @@ public final class LocalBuildQueue extends BuildQueue {
                            EventService eventService,
                            SlaveBuilderPortHolder portHolder,
                            Set<Builder> builders) {
-        super(baseProjectApiUrl, maxTimeInQueue, timeout, builderSelector);
-        this.eventService = eventService;
+        super(baseProjectApiUrl, maxTimeInQueue, timeout, builderSelector, eventService);
         final String baseUrl = String.format("http://localhost:%d/api/internal/builder", portHolder.port);
         final List<Link> links = new ArrayList<>();
         links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -130,16 +128,22 @@ public final class LocalBuildQueue extends BuildQueue {
     public synchronized void start() {
         super.start();
         registerBuilders(null, null, remoteBuilders);
-        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+        getEventService().subscribe(new EventSubscriber<BuildDoneEvent>() {
             @Override
             public void onEvent(BuildDoneEvent event) {
+                final long id = event.getTaskId();
+                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                bm.setType(ChannelBroadcastMessage.Type.NONE);
+                bm.setChannel(String.format("builder:status:%d", id));
                 try {
-                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                    final long id = event.getTaskId();
-                    final BuildTaskDescriptor taskDescriptor = getTask(id).getDescriptor();
-                    bm.setChannel(String.format("builder:status:%d", id));
-                    bm.setType(ChannelBroadcastMessage.Type.NONE);
-                    bm.setBody(DtoFactory.getInstance().toJson(taskDescriptor));
+                    final BuildTaskDescriptor buildDescriptor = getTask(id).getDescriptor();
+                    bm.setBody(DtoFactory.getInstance().toJson(buildDescriptor));
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                    bm.setBody(e.getMessage());
+                }
+                try {
                     WSConnectionContext.sendMessage(bm);
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);

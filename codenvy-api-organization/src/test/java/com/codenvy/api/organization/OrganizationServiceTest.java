@@ -25,6 +25,7 @@ import com.codenvy.api.organization.server.SubscriptionEvent;
 import com.codenvy.api.organization.server.SubscriptionService;
 import com.codenvy.api.organization.server.SubscriptionServiceRegistry;
 import com.codenvy.api.organization.server.dao.OrganizationDao;
+import com.codenvy.api.organization.server.exception.OrganizationException;
 import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
@@ -73,6 +74,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.fail;
 
 /**
@@ -221,6 +223,8 @@ public class OrganizationServiceTest {
                           .withServiceId(SERVICE_ID)
                           .withProperties(Collections.EMPTY_MAP)));
 
+        prepareSecurityContext("system/admin");
+
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions", null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
@@ -233,6 +237,19 @@ public class OrganizationServiceTest {
                                                    .withMethod("DELETE")
                                                    .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID));
         verify(organizationDao, times(1)).getSubscriptions(ORGANIZATION_ID);
+    }
+
+    @Test
+    public void shouldNotBeAbleToGetSubscriptionsFromOrganizationWhereCurrentUserIsNotMember() throws Exception {
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+        when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
+        when(organizationDao.getByOwner(USER_ID)).thenReturn(DtoFactory.getInstance().createDto(Organization.class).withId("NOT_SAME"));
+
+        prepareSecurityContext("user");
+
+        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions", null, null);
+
+        assertNotEquals(Response.Status.OK, response.getStatus());
     }
 
     @Test
@@ -405,7 +422,9 @@ public class OrganizationServiceTest {
 
     protected void prepareSecurityContext(String role) {
         when(securityContext.isUserInRole(anyString())).thenReturn(false);
-        when(securityContext.isUserInRole("user")).thenReturn(true);
+        if (!role.equals("system/admin") && !role.equals("system/manager")) {
+            when(securityContext.isUserInRole("user")).thenReturn(true);
+        }
         when(securityContext.isUserInRole(role)).thenReturn(true);
     }
 }

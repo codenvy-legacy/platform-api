@@ -126,7 +126,9 @@ public class OrganizationService extends Service {
         if (ownedByCurrentUser != null) {
             currentOrganizations.add(ownedByCurrentUser);
         }
-        injectLinks(ownedByCurrentUser, securityContext);
+        for (Organization organization : currentOrganizations) {
+            injectLinks(organization, securityContext);
+        }
         return currentOrganizations;
     }
 
@@ -290,11 +292,23 @@ public class OrganizationService extends Service {
     @GET
     @Path("{id}/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfSpecificOrganization(@PathParam("id") String organizationId) throws OrganizationException {
+    public List<Subscription> getSubscriptionsOfSpecificOrganization(@PathParam("id") String organizationId,
+                                                                     @Context SecurityContext securityContext)
+            throws OrganizationException, UserException {
         if (organizationDao.getById(organizationId) == null) {
             throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
+        }
+        if (securityContext.isUserInRole("user")) {
+            List<Organization> currentUserOrganizations = getCurrentUserOrganizations(securityContext);
+            boolean isOrganizationPresent = false;
+            for (int i = 0; i < currentUserOrganizations.size() && !isOrganizationPresent; ++i) {
+                isOrganizationPresent = currentUserOrganizations.get(i).getId().equals(organizationId);
+            }
+            if (!isOrganizationPresent) {
+                throw new OrganizationException("Access denied");
+            }
         }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Subscription> subscriptions = organizationDao.getSubscriptions(organizationId);

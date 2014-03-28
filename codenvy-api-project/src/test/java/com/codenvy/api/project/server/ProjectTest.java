@@ -59,6 +59,7 @@ public class ProjectTest {
         ProjectTypeRegistry ptr = new ProjectTypeRegistry();
         ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry(ptr);
         final String projectType = "my_project_type";
+        final String category = "my_category";
         Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
             @Override
             public String getName() {
@@ -83,7 +84,7 @@ public class ProjectTest {
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType(projectType, projectType));
+                return Arrays.asList(new ProjectType(projectType, projectType, category));
             }
 
             @Override
@@ -157,10 +158,10 @@ public class ProjectTest {
     @Test
     public void testGetProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        List<ProjectProperty> properties = new ArrayList<>(2);
-        properties.add(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")));
-        properties.add(new ProjectProperty("my_property_2", Arrays.asList("value_3", "value_4")));
-        myProject.setProperties(new ProjectProperties().withType("my_project_type").withProperties(properties));
+        List<ProjectProperty> propertiesList = new ArrayList<>(2);
+        propertiesList.add(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")));
+        propertiesList.add(new ProjectProperty("my_property_2", Arrays.asList("value_3", "value_4")));
+        new ProjectProperties().withType("my_project_type").withProperties(propertiesList).save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         Assert.assertEquals(myProjectDescription.getProjectType().getId(), "my_project_type");
         Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
@@ -183,19 +184,21 @@ public class ProjectTest {
     @Test
     public void testUpdateProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        myProject.setProperties(
-                new ProjectProperties("my_project_type",
-                                      null,
-                                      Arrays.asList(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")))));
+        ProjectProperties properties = new ProjectProperties("my_project_type",
+                                                             null,
+                                                             Arrays.asList(new ProjectProperty("my_property_1",
+                                                                                               Arrays.asList("value_1",
+                                                                                                             "value_2"))));
+        properties.save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
-        myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type"));
+        myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
         myProjectDescription.getAttribute("calculated_attribute").setValue("updated calculated_attribute");
         myProjectDescription.getAttribute("my_property_1").setValue("updated value 1");
         myProjectDescription.setAttributes(Arrays.asList(new Attribute("new_my_property_2", "new value 2")));
 
         myProject.updateDescription(myProjectDescription);
 
-        ProjectProperties properties = myProject.getProperties();
+        properties = ProjectProperties.load(myProject);
 
         Assert.assertEquals(properties.getType(), "new_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
@@ -211,9 +214,11 @@ public class ProjectTest {
     @Test
     public void testCreateModule() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        Project myModule = myProject.createModule("my_module", new ProjectDescription(new ProjectType("my_module_type", "my_module_type")));
+        Project myModule = myProject
+                .createModule("my_module", new ProjectDescription(new ProjectType("my_module_type", "my_module_type", "my_module_type")));
         ProjectDescription myModuleDescription = myModule.getDescription();
         Assert.assertEquals(myModuleDescription.getProjectType().getId(), "my_module_type");
         Assert.assertEquals(myModuleDescription.getProjectType().getName(), "my_module_type");
+        Assert.assertEquals(myModuleDescription.getProjectType().getCategory(), "my_module_type");
     }
 }

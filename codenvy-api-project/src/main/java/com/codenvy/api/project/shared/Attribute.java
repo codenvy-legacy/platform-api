@@ -102,7 +102,8 @@ public class Attribute {
      * @return current value of attribute
      */
     public final List<String> getValues() {
-        return new ArrayList<>(valueProvider.getValues());
+        final List<String> values = valueProvider.getValues();
+        return values == null ? new ArrayList<String>(0) : new ArrayList<>(values);
     }
 
     /**

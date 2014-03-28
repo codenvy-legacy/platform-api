@@ -25,11 +25,12 @@ import com.codenvy.api.organization.server.SubscriptionEvent;
 import com.codenvy.api.organization.server.SubscriptionService;
 import com.codenvy.api.organization.server.SubscriptionServiceRegistry;
 import com.codenvy.api.organization.server.dao.OrganizationDao;
-import com.codenvy.api.organization.shared.dto.Organization;
+import com.codenvy.api.organization.server.exception.OrganizationException;
 import com.codenvy.api.organization.shared.dto.Member;
-import com.codenvy.api.organization.shared.dto.Subscription;
+import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.organization.shared.dto.Subscription;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.json.JsonHelper;
@@ -58,6 +59,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -72,6 +74,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.fail;
 
 /**
@@ -88,6 +91,7 @@ public class OrganizationServiceTest {
     private final String USER_ID           = "user123abc456def";
     private final String USER_EMAIL        = "Cooper@mail.com";
     private final String ORGANIZATION_ID   = "organization0xffffffffff";
+    private final String SUBSCRIPTION_ID   = "Subscription0xffffffffff";
     private final String ORGANIZATION_NAME = "Sheldon";
     private final String SERVICE_ID        = "IDE_SERVICE";
 
@@ -140,27 +144,26 @@ public class OrganizationServiceTest {
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
     }
 
+    //TODO MAKE TEST FOR SYS/ADM & SYS/MAN instead of USER
     @Test
     public void shouldBeAbleToCreateOrganization() throws Exception {
-        String[] availableRoles = new String[]{"organization/owner", "system/manager", "system/admin"};
+        String role = "user";
+        prepareSecurityContext(role);
 
-        for (String role : availableRoles) {
-            prepareSecurityContext(role);
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, organization);
 
-            ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, organization);
-
-            assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-            Organization created = (Organization)response.getEntity();
-            verifyLinksRel(created.getLinks(), generateRels(role));
-        }
-        verify(organizationDao, times(availableRoles.length)).create(any(Organization.class));
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        Organization created = (Organization)response.getEntity();
+        verifyLinksRel(created.getLinks(), generateRels(role));
+        verify(organizationDao, times(1)).create(any(Organization.class));
     }
+
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetCurrentOrganizations() throws Exception {
+    public void shouldBeAbleToGetCurrentUserOrganizations() throws Exception {
         when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
-        when(organizationDao.getByMember(USER_ID)).thenReturn(null);
+        when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
 
@@ -189,6 +192,7 @@ public class OrganizationServiceTest {
         verify(organizationDao, times(roles.length)).getById(ORGANIZATION_ID);
     }
 
+
     @Test
     public void shouldBeAbleToGetOrganizationByName() throws Exception {
         when(organizationDao.getByName(ORGANIZATION_NAME)).thenReturn(organization);
@@ -206,31 +210,20 @@ public class OrganizationServiceTest {
         verify(organizationDao, times(roles.length)).getByName(ORGANIZATION_NAME);
     }
 
-    @Test
-    @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetSubscriptionsOfCurrentOrganization() throws Exception {
-        when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
-        when(organizationDao.getSubscriptions(ORGANIZATION_ID)).thenReturn(Arrays.asList(
-                DtoFactory.getInstance().createDto(Subscription.class).withStartDate("22-12-13").withEndDate("22-01-13")
-                          .withServiceId(SERVICE_ID).withProperties(Collections.EMPTY_MAP)));
-        prepareSecurityContext("organization/owner");
-
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/subscriptions", null, null);
-
-        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<Subscription> subscriptions = (List<Subscription>)response.getEntity();
-        assertEquals(subscriptions.size(), 1);
-        //organization owner should not have possibility to remove any subscriptions
-        assertEquals(subscriptions.get(0).getLinks().size(), 0);
-    }
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldBeAbleToGetSubscriptionsOfSpecificOrganization() throws Exception {
         when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
         when(organizationDao.getSubscriptions(ORGANIZATION_ID)).thenReturn(Arrays.asList(
-                DtoFactory.getInstance().createDto(Subscription.class).withStartDate("22-12-13").withEndDate("22-01-13")
-                          .withServiceId(SERVICE_ID).withProperties(Collections.EMPTY_MAP)));
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withProperties(Collections.EMPTY_MAP)));
+
+        prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions", null, null);
 
@@ -242,26 +235,40 @@ public class OrganizationServiceTest {
         assertEquals(removeSubscription, DtoFactory.getInstance().createDto(Link.class)
                                                    .withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION)
                                                    .withMethod("DELETE")
-                                                   .withHref(SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions/" + SERVICE_ID));
+                                                   .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID));
         verify(organizationDao, times(1)).getSubscriptions(ORGANIZATION_ID);
+    }
+
+    @Test
+    public void shouldNotBeAbleToGetSubscriptionsFromOrganizationWhereCurrentUserIsNotMember() throws Exception {
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+        when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
+        when(organizationDao.getByOwner(USER_ID)).thenReturn(DtoFactory.getInstance().createDto(Organization.class).withId("NOT_SAME"));
+
+        prepareSecurityContext("user");
+
+        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions", null, null);
+
+        assertNotEquals(Response.Status.OK, response.getStatus());
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void shouldBeAbleToAddSubscription() throws Exception {
         Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
+                                              .withOrganizationId(ORGANIZATION_ID)
                                               .withServiceId(SERVICE_ID)
-                                              .withStartDate("22-12-13")
-                                              .withEndDate("22-01-14")
+                                              .withStartDate(System.currentTimeMillis())
+                                              .withEndDate(System.currentTimeMillis())
                                               .withProperties(Collections.EMPTY_MAP);
         when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
         ContainerResponse response =
-                makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+                makeRequest("POST", SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        verify(organizationDao, times(1)).addSubscription(any(Subscription.class), eq(ORGANIZATION_ID));
+        verify(organizationDao, times(1)).addSubscription(any(Subscription.class));
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
         verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
     }
@@ -270,16 +277,20 @@ public class OrganizationServiceTest {
     @SuppressWarnings("unchecked")
     public void shouldBeAbleToRemoveSubscription() throws Exception {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
-        when(organizationDao.getSubscriptions(ORGANIZATION_ID)).thenReturn(Arrays.asList(
-                DtoFactory.getInstance().createDto(Subscription.class).withStartDate("22-12-13").withEndDate("22-01-13")
-                          .withServiceId(SERVICE_ID).withProperties(Collections.EMPTY_MAP)));
+        when(organizationDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withProperties(Collections.EMPTY_MAP));
 
         ContainerResponse response =
-                makeRequest("DELETE", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions/" + SERVICE_ID, null, null);
+                makeRequest("DELETE", SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
-        verify(organizationDao, times(1)).removeSubscription(ORGANIZATION_ID, SERVICE_ID);
+        verify(organizationDao, times(1)).removeSubscription(SUBSCRIPTION_ID);
         verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
     }
 
@@ -356,7 +367,8 @@ public class OrganizationServiceTest {
         assertEquals(links.size(), rels.size());
         for (String rel : rels) {
             boolean linkPresent = false;
-            for (int i = 0; i < links.size() && !linkPresent; i++) {
+            int i = 0;
+            for (; i < links.size() && !linkPresent; i++) {
                 linkPresent = links.get(i).getRel().equals(rel);
             }
             if (!linkPresent) {
@@ -380,20 +392,16 @@ public class OrganizationServiceTest {
 
     private List<String> generateRels(String role) {
         final List<String> rels = new LinkedList<>();
+        rels.add(Constants.LINK_REL_GET_MEMBERS);
+        rels.add(Constants.LINK_REL_GET_CURRENT_ORGANIZATIONS);
+        rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
         switch (role) {
-            case "organization/owner":
-                rels.add(Constants.LINK_REL_GET_CURRENT_ORGANIZATION);
-                rels.add(Constants.LINK_REL_UPDATE_ORGANIZATION);
-                rels.add(Constants.LINK_REL_GET_MEMBERS);
-                rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
-                break;
             case "system/admin":
                 rels.add(Constants.LINK_REL_REMOVE_ORGANIZATION);
             case "system/manager":
                 rels.add(Constants.LINK_REL_GET_MEMBERS);
-                rels.add(Constants.LINK_REL_GET_ORGANIZATION_BY_ID);
                 rels.add(Constants.LINK_REL_GET_ORGANIZATION_BY_NAME);
-                rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
+                rels.add(Constants.LINK_REL_GET_ORGANIZATION_BY_ID);
                 break;
         }
         return rels;
@@ -414,7 +422,9 @@ public class OrganizationServiceTest {
 
     protected void prepareSecurityContext(String role) {
         when(securityContext.isUserInRole(anyString())).thenReturn(false);
-        when(securityContext.isUserInRole("user")).thenReturn(true);
+        if (!role.equals("system/admin") && !role.equals("system/manager")) {
+            when(securityContext.isUserInRole("user")).thenReturn(true);
+        }
         when(securityContext.isUserInRole(role)).thenReturn(true);
     }
 }

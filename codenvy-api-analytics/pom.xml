@@ -23,7 +23,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.12.2-SNAPSHOT</version>
+        <version>0.14.0-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-analytics</artifactId>
     <packaging>jar</packaging>
@@ -97,7 +97,7 @@
                         <package>com.codenvy.api.analytics.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                    <genClassName>com.codenvy.api.builder.server.dto.DtoServerImpls</genClassName>
+                    <genClassName>com.codenvy.api.analytics.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
             </plugin>

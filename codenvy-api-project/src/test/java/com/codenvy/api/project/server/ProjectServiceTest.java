@@ -92,7 +92,7 @@ public class ProjectServiceTest {
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_project_type", "my project type"));
+                return Arrays.asList(new ProjectType("my_project_type", "my project type", "my_category"));
             }
 
             @Override
@@ -111,7 +111,7 @@ public class ProjectServiceTest {
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new ProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry);
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type"));
+        ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
         pm.createProject("my_ws", "my_project", pd);
@@ -162,7 +162,7 @@ public class ProjectServiceTest {
         pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_module_type", "my module type"));
+                return Arrays.asList(new ProjectType("my_module_type", "my module type", "my_category"));
             }
 
             @Override
@@ -172,7 +172,7 @@ public class ProjectServiceTest {
         });
 
         Project myProject = pm.getProject("my_ws", "my_project");
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type"));
+        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
         pd.setDescription("my test module");
         pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
         myProject.createModule("my_module", pd);
@@ -220,7 +220,7 @@ public class ProjectServiceTest {
         pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_module_type", "my module type"));
+                return Arrays.asList(new ProjectType("my_module_type", "my module type", "my_category"));
             }
 
             @Override
@@ -230,7 +230,7 @@ public class ProjectServiceTest {
         });
 
         Project myProject = pm.getProject("my_ws", "my_project");
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type"));
+        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
         pd.setDescription("my test module");
         pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
         myProject.createModule("my_module", pd);
@@ -673,7 +673,8 @@ public class ProjectServiceTest {
 
     @Test
     public void testGenerate() throws Exception {
-        pm.createProject("my_ws", "new_project", new ProjectDescription(new ProjectType("my_project_type", "my project type")));
+        pm.createProject("my_ws", "new_project",
+                         new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
         generatorRegistry.register(new ProjectGenerator() {
             @Override
             public String getId() {

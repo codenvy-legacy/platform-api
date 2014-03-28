@@ -22,6 +22,9 @@ import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
+
+@Singleton
 public class LocalUserDaoImpl implements UserDao {
 
     @Override
@@ -46,15 +49,12 @@ public class LocalUserDaoImpl implements UserDao {
 
     @Override
     public User getByAlias(String alias) throws UserException {
-        return DtoFactory.getInstance().createDto(User.class).withId("codenvy").withEmail("codenvy@codenvy.com")
-                            .withPassword("pass1");
+        return Constants.USER;
 
     }
 
     @Override
     public User getById(String id) throws UserException {
-        return DtoFactory.getInstance().createDto(User.class).withId("codenvy").withEmail("codenvy@codenvy.com")
-                         .withPassword("pass1");
-
+        return Constants.USER;
     }
 }

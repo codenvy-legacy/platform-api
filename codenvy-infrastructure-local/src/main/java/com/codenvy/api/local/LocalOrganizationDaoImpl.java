@@ -25,6 +25,7 @@ import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Subscription;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.List;
 /**
  * @author Eugene Voevodin
  */
+@Singleton
 public class LocalOrganizationDaoImpl implements OrganizationDao {
     @Override
     public void create(Organization organization) throws OrganizationException {
@@ -94,20 +96,31 @@ public class LocalOrganizationDaoImpl implements OrganizationDao {
     }
 
     @Override
-    public void addSubscription(Subscription subscription, String organizationId) throws OrganizationException {
+    public void addSubscription(Subscription subscription) throws OrganizationException {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void removeSubscription(String organizationId, String serviceId) throws OrganizationException {
+    public void removeSubscription(String subscriptionId) throws OrganizationException {
         throw new RuntimeException("Not implemented");
+    }
+
+    @Override
+    public Subscription getSubscriptionById(String subscriptionId) throws OrganizationException {
+        return DtoFactory.getInstance().createDto(Subscription.class)
+                         .withId("Subscription0xfffffffff")
+                         .withStartDate(System.currentTimeMillis())
+                         .withEndDate(System.currentTimeMillis())
+                         .withServiceId("serviceId")
+                         .withProperties(new HashMap<String, String>());
     }
 
     @Override
     public List<Subscription> getSubscriptions(String organizationId) throws OrganizationException {
         return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
-                                       .withStartDate("2013-12-01")
-                                       .withEndDate("2013-12-01")
+                                       .withId("Subscription0xfffffffff")
+                                       .withStartDate(System.currentTimeMillis())
+                                       .withEndDate(System.currentTimeMillis())
                                        .withServiceId("serviceId")
                                        .withProperties(new HashMap<String, String>())
                             );

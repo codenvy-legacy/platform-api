@@ -17,28 +17,18 @@
  */
 package com.codenvy.api.local.deploy;
 
-import com.codenvy.api.local.LocalMemberDaoImpl;
-import com.codenvy.api.local.LocalOrganizationDaoImpl;
-import com.codenvy.api.local.LocalProfileDaoImpl;
-import com.codenvy.api.local.LocalUserDaoImpl;
-import com.codenvy.api.local.LocalWorkspaceDaoImpl;
-import com.codenvy.api.organization.server.dao.OrganizationDao;
-import com.codenvy.api.user.server.dao.MemberDao;
-import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 
 @DynaModule
 public class LocalInfrastructureModule extends AbstractModule {
-
     @Override
     protected void configure() {
-        bind(UserDao.class).toInstance(new LocalUserDaoImpl());
-        bind(WorkspaceDao.class).toInstance(new LocalWorkspaceDaoImpl());
-        bind(UserProfileDao.class).to(LocalProfileDaoImpl.class);
-        bind(MemberDao.class).toInstance(new LocalMemberDaoImpl());
-        bind(OrganizationDao.class).toInstance(new LocalOrganizationDaoImpl());
+        bind(com.codenvy.api.user.server.dao.UserDao.class).to(com.codenvy.api.local.LocalUserDaoImpl.class);
+        bind(com.codenvy.api.workspace.server.dao.WorkspaceDao.class).to(com.codenvy.api.local.LocalWorkspaceDaoImpl.class);
+        bind(com.codenvy.api.user.server.dao.UserProfileDao.class).to(com.codenvy.api.local.LocalProfileDaoImpl.class);
+        bind(com.codenvy.api.user.server.dao.MemberDao.class).to(com.codenvy.api.local.LocalMemberDaoImpl.class);
+        bind(com.codenvy.api.organization.server.dao.OrganizationDao.class).to(com.codenvy.api.local.LocalOrganizationDaoImpl.class);
+        bind(com.codenvy.api.auth.AuthenticationDao.class).to(com.codenvy.api.local.LocalAuthenticationDaoImpl.class);
     }
 }

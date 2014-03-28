@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
@@ -15,23 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.auth;
+package com.codenvy.api.auth.shared.dto;
+
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Authentication using username and password.
+ * Authentication token.
  *
- * @author Sergii Kabashniuk
+ * @author gazarenkov
  */
-public interface AuthenticationHandler {
-    /**
-     * Authenticate user.
-     *
-     * @return - user principal if authentication is done, throw an {@link com.codenvy.api.auth.AuthenticationException}
-     * otherwise.
-     * @throws AuthenticationException
-     */
-    UniquePrincipal authenticate(final String login, final String password) throws AuthenticationException;
+@DTO
+public interface Token {
+    String getValue();
 
-    /** @return - type of authentication handler */
-    String getType();
+    void setValue(String value);
+
+    Token withValue(String value);
 }

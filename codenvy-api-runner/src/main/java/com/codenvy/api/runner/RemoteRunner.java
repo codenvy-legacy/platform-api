@@ -50,11 +50,11 @@ import java.util.List;
  * @see com.codenvy.api.runner.RemoteRunnerFactory
  */
 public class RemoteRunner {
-    private final String     baseUrl;
-    private final String     description;
-    private final String     name;
-    private final List<Link> links;
-    private final int        hashCode;
+    private final String           baseUrl;
+    private final String           name;
+    private final RunnerDescriptor descriptor;
+    private final int              hashCode;
+    private final List<Link>       links;
 
     private volatile long lastUsage = -1;
 
@@ -62,11 +62,11 @@ public class RemoteRunner {
     RemoteRunner(String baseUrl, RunnerDescriptor runnerDescriptor, List<Link> links) {
         this.baseUrl = baseUrl;
         this.name = runnerDescriptor.getName();
-        this.description = runnerDescriptor.getDescription();
+        this.descriptor = DtoFactory.getInstance().clone(runnerDescriptor);
         this.links = new ArrayList<>(links);
         int hashCode = 7;
         hashCode = hashCode * 31 + baseUrl.hashCode();
-        hashCode = hashCode * 31 + name.hashCode();
+        hashCode = hashCode * 31 + this.name.hashCode();
         this.hashCode = hashCode;
     }
 
@@ -85,22 +85,16 @@ public class RemoteRunner {
     }
 
     /**
-     * Get description of this runner.
-     *
-     * @return description of this runner
-     * @see com.codenvy.api.runner.internal.Runner#getDescription()
-     */
-    public final String getDescription() {
-        return description;
-    }
-
-    /**
      * Get last time of usage of this runner.
      *
      * @return last time of usage of this runner
      */
     public long getLastUsageTime() {
         return lastUsage;
+    }
+
+    public RunnerDescriptor getDescriptor() {
+        return DtoFactory.getInstance().clone(descriptor);
     }
 
     /**
@@ -126,7 +120,7 @@ public class RemoteRunner {
             throw new RunnerException(e.getServiceError());
         }
         lastUsage = System.currentTimeMillis();
-        return new RemoteRunnerProcess(baseUrl, request.getRunner(), process.getProcessId());
+        return new RemoteRunnerProcess(baseUrl, getName(), process.getProcessId());
     }
 
     /**
@@ -139,10 +133,11 @@ public class RemoteRunner {
     public RunnerState getRemoteRunnerState() throws RunnerException {
         final Link stateLink = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_STATE);
         if (stateLink == null) {
-            throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'", name, baseUrl));
+            throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'",
+                                                    descriptor.getName(), baseUrl));
         }
         try {
-            return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
+            return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", descriptor.getName()));
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (RemoteException e) {

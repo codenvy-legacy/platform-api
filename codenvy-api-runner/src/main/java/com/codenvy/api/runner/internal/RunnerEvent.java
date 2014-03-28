@@ -103,10 +103,6 @@ public class RunnerEvent {
         this.errorMessage = errorMessage;
     }
 
-    public boolean hasError() {
-        return errorMessage != null;
-    }
-
     @Override
     public String toString() {
         return "RunnerEvent{" +

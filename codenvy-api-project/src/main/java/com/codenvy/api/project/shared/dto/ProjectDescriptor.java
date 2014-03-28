@@ -44,6 +44,14 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withName(String name);
 
+    /** Get path of project. */
+    String getPath();
+
+    /** Set path of project. */
+    void setPath(String path);
+
+    ProjectDescriptor withPath(String path);
+
     String getBaseUrl();
 
     void setBaseUrl(String url);

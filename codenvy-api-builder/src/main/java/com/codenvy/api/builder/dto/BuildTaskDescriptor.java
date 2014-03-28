@@ -44,6 +44,12 @@ public interface BuildTaskDescriptor {
 
     void setStartTime(long startTime);
 
+    long getEndTime();
+
+    BuildTaskDescriptor withEndTime(long endTime);
+
+    void setEndTime(long endTime);
+
     List<Link> getLinks();
 
     BuildTaskDescriptor withLinks(List<Link> links);

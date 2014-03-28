@@ -17,15 +17,11 @@
  */
 package com.codenvy.api.auth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.codenvy.api.auth.shared.dto.Credentials;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
-import java.security.Principal;
-import java.util.Collections;
 
 /**
  * Authenticate user by username and password.
@@ -38,16 +34,13 @@ import java.util.Collections;
  */
 @Path("auth")
 public class AuthenticationService {
-    private static final Logger LOG = LoggerFactory.getLogger(AuthenticationService.class);
+
+    private final AuthenticationDao dao;
+
     @Inject
-    protected AuthenticationHandlerProvider handlerProvider;
-    @Inject
-    protected TicketManager                 ticketManager;
-    @Inject
-    protected TokenGenerator                uniqueTokenGenerator;
-    @Nullable
-    @Inject
-    protected CookieBuilder                 cookieBuilder;
+    public AuthenticationService(AuthenticationDao dao) {
+        this.dao = dao;
+    }
 
     /**
      * Get token to be able to call secure api methods.
@@ -64,66 +57,12 @@ public class AuthenticationService {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("login")
     public Response authenticate(Credentials credentials,
-                                 @QueryParam("authtype") String authType,
                                  @CookieParam("session-access-key") Cookie tokenAccessCookie,
                                  @Context UriInfo uriInfo)
             throws AuthenticationException {
 
-        if (credentials == null
-            || credentials.getPassword() == null
-            || credentials.getPassword().isEmpty()
-            || credentials.getUsername() == null
-            || credentials.getUsername().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
-        }
+        return dao.login(credentials, tokenAccessCookie, uriInfo);
 
-        boolean secure = uriInfo.getRequestUri().getScheme().equals("https");
-        AuthenticationHandler handler;
-        if (authType == null) {
-            handler = handlerProvider.getDefaultHandler();
-        } else {
-            handler = handlerProvider.getHandler(authType);
-            if (handler == null) {
-                throw new AuthenticationException("Unknown authentication type " + authType);
-            }
-        }
-
-        UniquePrincipal principal = handler.authenticate(credentials.getUsername(), credentials.getPassword());
-        if (principal == null) {
-            throw new AuthenticationException("Provided user and password is not valid");
-        }
-
-        // DO NOT REMOVE! This log will be used in statistic analyzing
-        LOG.info("EVENT#user-sso-logged-in# USING#{}# USER#{}# ", handler.getType(), principal.getName());
-        Response.ResponseBuilder builder = Response.ok();
-        if (tokenAccessCookie != null) {
-            AccessTicket accessTicket = ticketManager.getAccessTicket(tokenAccessCookie.getValue());
-            if (accessTicket != null) {
-                if (!principal.equals(accessTicket.getPrincipal())) {
-                    // DO NOT REMOVE! This log will be used in statistic analyzing
-                    LOG.info("EVENT#user-changed-name# OLD-USER#{}# NEW-USER#{}#",
-                             accessTicket.getPrincipal().getName(),
-                             principal.getName());
-                    LOG.info("EVENT#user-sso-logged-out# USER#{}#", accessTicket.getPrincipal().getName());
-                    // DO NOT REMOVE! This log will be used in statistic analyzing
-                    ticketManager.removeTicket(accessTicket.getAccessToken());
-                }
-            } else {
-                //cookie is outdated, clearing
-                if (cookieBuilder != null) {
-                    cookieBuilder.clearCookies(builder, tokenAccessCookie.getValue(), secure);
-                }
-
-            }
-        }
-        // If we obtained principal  - authentication is done.
-        String token = uniqueTokenGenerator.generate();
-        ticketManager.putAccessTicket(new AccessTicket(token, principal, handler.getType()));
-        if (cookieBuilder != null) {
-            cookieBuilder.setCookies(builder, token, secure);
-        }
-        builder.entity(Collections.singletonMap("token", token));
-        return builder.build();
     }
 
     /**
@@ -139,59 +78,10 @@ public class AuthenticationService {
     public Response logout(@QueryParam("token") String token,
                            @CookieParam("session-access-key") Cookie tokenAccessCookie,
                            @Context UriInfo uriInfo) {
-        Response.ResponseBuilder response;
-        String accessToken = token;
-        if (accessToken == null && tokenAccessCookie != null) {
-            accessToken = tokenAccessCookie.getValue();
-        }
 
-        boolean secure = uriInfo.getRequestUri().getScheme().equals("https");
-        if (accessToken != null) {
-            response = Response.ok();
-            AccessTicket accessTicket = ticketManager.removeTicket(accessToken);
-            if (accessTicket != null) {
-                Principal userPrincipal = accessTicket.getPrincipal();
-                // DO NOT REMOVE! This log will be used in statistic analyzing
-                LOG.info("EVENT#user-sso-logged-out# USER#{}#", userPrincipal.getName());
-            } else {
-                LOG.warn("AccessTicket not found. Nothing to do.");
-            }
-        } else {
-            response = Response.status(Response.Status.BAD_REQUEST);
-            LOG.warn("Token not found in request.");
-        }
-        if (cookieBuilder != null) {
-            cookieBuilder.clearCookies(response, accessToken, secure);
-        }
-        return response.build();
+
+        return dao.logout(token, tokenAccessCookie, uriInfo);
+
     }
 
-    public static class Credentials {
-        private String username;
-        private String password;
-
-        public Credentials() {
-        }
-
-        public Credentials(String username, String password) {
-            this.username = username;
-            this.password = password;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
-    }
 }

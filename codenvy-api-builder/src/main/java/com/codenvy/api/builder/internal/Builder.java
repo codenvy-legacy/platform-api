@@ -91,7 +91,7 @@ public abstract class Builder {
     private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
     private final java.io.File                          rootDirectory;
     private final Set<BuildListener>                    buildListeners;
-    private final int                                   cleanBuildResultDelay;
+    private final long                                  cleanBuildResultDelayMillis;
     private final EventService                          eventService;
     private final int                                   queueSize;
     private final int                                   numberOfWorkers;
@@ -108,7 +108,7 @@ public abstract class Builder {
         this.rootDirectory = rootDirectory;
         this.numberOfWorkers = numberOfWorkers;
         this.queueSize = queueSize;
-        this.cleanBuildResultDelay = cleanBuildResultDelay;
+        this.cleanBuildResultDelayMillis = TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
         this.eventService = eventService;
         buildListeners = new CopyOnWriteArraySet<>();
         tasks = new ConcurrentHashMap<>();
@@ -187,7 +187,7 @@ public abstract class Builder {
         sourcesManager = new SourcesManagerImpl(sources);
         executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers, queueSize);
         cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
-        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelay, cleanBuildResultDelay, TimeUnit.SECONDS);
+        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelayMillis, cleanBuildResultDelayMillis, TimeUnit.MILLISECONDS);
         started = true;
     }
 
@@ -342,8 +342,7 @@ public abstract class Builder {
             }
         };
         final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, logger, callback);
-        final long expirationTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
-        final BuildTaskEntry cachedTask = new BuildTaskEntry(task, expirationTime);
+        final BuildTaskEntry cachedTask = new BuildTaskEntry(task);
         purgeExpiredTasks();
         tasks.put(internalId, cachedTask);
         tasksFIFO.offer(cachedTask);
@@ -506,6 +505,7 @@ public abstract class Builder {
         if (e == null) {
             throw new NoSuchBuildTaskException(id);
         }
+        e.setLastUsageTime(System.currentTimeMillis());
         return e.task;
     }
 
@@ -519,6 +519,7 @@ public abstract class Builder {
 
         private BuildResult result;
         private long        startTime;
+        private long        endTime;
 
         protected FutureBuildTask(Callable<Boolean> callable,
                                   Long id,
@@ -535,6 +536,7 @@ public abstract class Builder {
             this.buildLogger = buildLogger;
             this.callback = callback;
             startTime = -1L;
+            endTime = -1L;
         }
 
         @Override
@@ -625,6 +627,15 @@ public abstract class Builder {
         }
 
         @Override
+        public final synchronized long getEndTime() {
+            return endTime;
+        }
+
+        final synchronized void ended() {
+            endTime = System.currentTimeMillis();
+        }
+
+        @Override
         public String toString() {
             return "FutureBuildTask{" +
                    "id=" + id +
@@ -670,6 +681,7 @@ public abstract class Builder {
                         LOG.error(e.getMessage(), e);
                     }
                 }
+                futureBuildTask.ended();
             }
         }
     }
@@ -701,14 +713,15 @@ public abstract class Builder {
         }
     }
 
-    private static final class BuildTaskEntry {
-        private final long            expirationTime;
-        private final int             hash;
-        private final FutureBuildTask task;
+    private class BuildTaskEntry {
+        final int             hash;
+        final FutureBuildTask task;
 
-        private BuildTaskEntry(FutureBuildTask task, long expirationTime) {
+        long lastUsageTime;
+
+        BuildTaskEntry(FutureBuildTask task) {
             this.task = task;
-            this.expirationTime = expirationTime;
+            this.lastUsageTime = System.currentTimeMillis();
             this.hash = 7 * 31 + task.getId().hashCode();
         }
 
@@ -728,8 +741,12 @@ public abstract class Builder {
             return hash;
         }
 
-        boolean isExpired() {
-            return expirationTime < System.currentTimeMillis();
+        synchronized boolean isExpired() {
+            return (lastUsageTime + cleanBuildResultDelayMillis) < System.currentTimeMillis();
+        }
+
+        synchronized void setLastUsageTime(long time) {
+            lastUsageTime = time;
         }
 
         @Override

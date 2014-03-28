@@ -236,7 +236,7 @@ public class BuildQueue {
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
-        final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final ProjectDescriptor projectDescription = getProjectDescription(workspace, project, serviceContext);
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
                                                              .withProject(project);
@@ -247,15 +247,13 @@ public class BuildQueue {
             request.setIncludeDependencies(buildOptions.isIncludeDependencies());
             request.setSkipTest(buildOptions.isSkipTest());
         }
-        addRequestParameters(descriptor, request);
+        addRequestParameters(projectDescription, request);
         final RemoteTask successfulTask = successfulBuilds.get(request);
         Callable<RemoteTask> callable = null;
         boolean reuse = false;
         if (successfulTask != null) {
             try {
-                // check is it available
-                successfulTask.getBuildTaskDescriptor();
-                reuse = true;
+                reuse = projectDescription.getModificationDate() < successfulTask.getBuildTaskDescriptor().getEndTime();
             } catch (Exception ignored) {
             }
             if (reuse) {

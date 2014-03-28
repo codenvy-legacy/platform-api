@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  * 
- *  [2012] - [2014] Codenvy, S.A. 
+ *  [2012] - [2013] Codenvy, S.A. 
  *  All Rights Reserved.
  * 
  * NOTICE:  All information contained herein is, and remains
@@ -20,32 +20,27 @@ package com.codenvy.api.workspace.shared.dto;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * Describes workspace membership
- *
  * @author Eugene Voevodin
- * @see com.codenvy.api.workspace.shared.dto.Workspace
  */
 @DTO
-public interface Membership {
+public interface WorkspaceRef {
 
-    WorkspaceRef getWorkspaceRef();
+    String getName();
 
-    void setWorkspaceRef(WorkspaceRef ref);
+    void setName(String name);
 
-    Membership withWorkspaceRef(WorkspaceRef ref);
+    WorkspaceRef withName(String name);
 
-    List<String> getRoles();
+    boolean isTemporary();
 
-    void setRoles(List<String> roles);
+    void setTemporary(boolean isTemporary);
 
-    Membership withRoles(List<String> roles);
+    WorkspaceRef withTemporary(boolean isTemporary);
 
-    Link getUserLink();
+    Link getWorkspaceLink();
 
-    void setUserLink(Link link);
+    void setWorkspaceLink(Link link);
 
-    Membership withUserLink(Link link);
+    WorkspaceRef withWorkspaceLink(Link link);
 }

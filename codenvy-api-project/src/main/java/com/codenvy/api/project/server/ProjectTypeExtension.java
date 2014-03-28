@@ -36,6 +36,4 @@ public interface ProjectTypeExtension {
 
     List<ProjectTemplateDescription> getTemplates();
 
-    Map<String, String> getIconRegistry();
-
 }

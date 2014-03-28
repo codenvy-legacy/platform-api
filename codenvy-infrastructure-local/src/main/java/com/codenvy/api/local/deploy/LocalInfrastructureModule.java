@@ -37,7 +37,7 @@ public class LocalInfrastructureModule extends AbstractModule {
     protected void configure() {
         bind(UserDao.class).toInstance(new LocalUserDaoImpl());
         bind(WorkspaceDao.class).toInstance(new LocalWorkspaceDaoImpl());
-        bind(UserProfileDao.class).toInstance(new LocalProfileDaoImpl());
+        bind(UserProfileDao.class).to(LocalProfileDaoImpl.class);
         bind(MemberDao.class).toInstance(new LocalMemberDaoImpl());
         bind(OrganizationDao.class).toInstance(new LocalOrganizationDaoImpl());
     }

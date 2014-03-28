@@ -27,7 +27,7 @@
     </parent>
     <groupId>com.codenvy.platform-api</groupId>
     <artifactId>codenvy-platform-api-parent</artifactId>
-    <version>0.11.1-SNAPSHOT</version>
+    <version>0.12.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Codenvy Platform API :: Parent</name>
     <modules>

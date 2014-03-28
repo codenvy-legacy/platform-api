@@ -37,13 +37,18 @@ import java.util.List;
  * @author andrew00x
  */
 public class Project {
-
+    private final String         workspace;
     private final FolderEntry    baseFolder;
     private final ProjectManager manager;
 
-    public Project(FolderEntry baseFolder, ProjectManager manager) {
+    public Project(String workspace, FolderEntry baseFolder, ProjectManager manager) {
+        this.workspace = workspace;
         this.baseFolder = baseFolder;
         this.manager = manager;
+    }
+
+    public String getWorkspace() {
+        return workspace;
     }
 
     public String getName() {
@@ -54,11 +59,15 @@ public class Project {
         return baseFolder;
     }
 
+    public long getModificationDate() {
+        return manager.getProjectMisc(workspace, baseFolder.getPath()).getModificationDate();
+    }
+
     public List<Project> getModules() {
         final List<Project> modules = new ArrayList<>();
         for (FolderEntry child : baseFolder.getChildFolders()) {
             if (child.isProjectFolder()) {
-                modules.add(new Project(child, manager));
+                modules.add(new Project(workspace, child, manager));
             }
         }
         return modules;
@@ -66,7 +75,7 @@ public class Project {
 
     public Project createModule(String name, ProjectDescription projectDescription) throws IOException {
         final FolderEntry projectFolder = baseFolder.createFolder(name);
-        final Project module = new Project(projectFolder, manager);
+        final Project module = new Project(workspace, projectFolder, manager);
         module.updateDescription(projectDescription);
         return module;
     }
@@ -171,7 +180,7 @@ public class Project {
         try {
             switch (projectVisibility) {
                 case "private":
-                    final List<AccessControlEntry> acl = new ArrayList<>(2);
+                    final List<AccessControlEntry> acl = new ArrayList<>(1);
                     final Principal developer = DtoFactory.getInstance().createDto(Principal.class)
                                                           .withName("workspace/developer")
                                                           .withType(Principal.Type.GROUP);

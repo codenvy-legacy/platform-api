@@ -17,12 +17,17 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -55,6 +60,18 @@ public class ProjectProperties {
             AbstractVirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
             if (codenvyDir == null) {
                 codenvyDir = baseFolder.createFolder(Constants.CODENVY_FOLDER);
+                // Need to be able update files in .codenvy folder independently to user actions.
+                final List<AccessControlEntry> acl = new ArrayList<>(1);
+                acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                           .withName("any")
+                                                           .withType(Principal.Type.USER))
+                                  .withPermissions(Arrays.asList("all")));
+                try {
+                    codenvyDir.getVirtualFile().updateACL(acl, true, null);
+                } catch (VirtualFileSystemException e) {
+                    throw new FileSystemLevelException(e.getMessage(), e);
+                }
             } else if (!codenvyDir.isFolder()) {
                 throw new ProjectStructureConstraintException(
                         String.format("Unable save project properties. Path %s/%s exists but is not a folder.",

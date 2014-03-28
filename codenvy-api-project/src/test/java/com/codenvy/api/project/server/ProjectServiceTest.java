@@ -100,8 +100,9 @@ public class ProjectServiceTest {
                 return Collections.emptyList();
             }
         });
+        final EventService eventService = new EventService();
         final MemoryFileSystemProvider memoryFileSystemProvider =
-                new MemoryFileSystemProvider("my_ws", new EventService(), new VirtualFileSystemUserContext() {
+                new MemoryFileSystemProvider("my_ws", eventService, new VirtualFileSystemUserContext() {
                     @Override
                     public VirtualFileSystemUser getVirtualFileSystemUser() {
                         return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
@@ -110,7 +111,7 @@ public class ProjectServiceTest {
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new ProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry);
+        pm = new ProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
         ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
@@ -190,7 +191,6 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectDescriptor_1.getProjectTypeId(), "my_module_type");
         Assert.assertEquals(projectDescriptor_1.getProjectTypeName(), "my module type");
         Assert.assertEquals(projectDescriptor_1.getVisibility(), "public");
-        Assert.assertTrue(projectDescriptor_1.getModificationDate() > 0);
         Map<String, List<String>> attributes = projectDescriptor_1.getAttributes();
         Assert.assertNotNull(attributes);
         Assert.assertEquals(attributes.size(), 1);
@@ -208,7 +208,6 @@ public class ProjectServiceTest {
         Assert.assertEquals(result.getProjectTypeId(), "my_project_type");
         Assert.assertEquals(result.getProjectTypeName(), "my project type");
         Assert.assertEquals(result.getVisibility(), "public");
-        Assert.assertTrue(result.getModificationDate() > 0);
         Map<String, List<String>> attributes = result.getAttributes();
         Assert.assertNotNull(attributes);
         Assert.assertEquals(attributes.size(), 1);
@@ -244,7 +243,6 @@ public class ProjectServiceTest {
         Assert.assertEquals(result.getProjectTypeId(), "my_module_type");
         Assert.assertEquals(result.getProjectTypeName(), "my module type");
         Assert.assertEquals(result.getVisibility(), "public");
-        Assert.assertTrue(result.getModificationDate() > 0);
         Map<String, List<String>> attributes = result.getAttributes();
         Assert.assertNotNull(attributes);
         Assert.assertEquals(attributes.size(), 1);

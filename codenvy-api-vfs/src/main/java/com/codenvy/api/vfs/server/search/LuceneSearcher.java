@@ -18,13 +18,13 @@
 package com.codenvy.api.vfs.server.search;
 
 import com.codenvy.api.vfs.server.LazyIterator;
-import com.codenvy.api.vfs.server.util.MediaTypeFilter;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
+import com.codenvy.api.vfs.server.util.MediaTypeFilter;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.SimpleAnalyzer;
@@ -57,9 +57,9 @@ import java.util.Set;
 /**
  * Lucene based searcher.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
-public abstract class LuceneSearcher implements Searcher{
+public abstract class LuceneSearcher implements Searcher {
     private static final Logger LOG          = LoggerFactory.getLogger(LuceneSearcher.class);
     private static final int    RESULT_LIMIT = 1000;
 
@@ -206,10 +206,12 @@ public abstract class LuceneSearcher implements Searcher{
         } catch (IOException e) {
             throw new VirtualFileSystemException(e.getMessage(), e);
         } finally {
-            try {
-                releaseLuceneSearcher(luceneSearcher);
-            } catch (IOException e) {
-                LOG.error(e.getMessage(), e);
+            if (luceneSearcher != null) {
+                try {
+                    releaseLuceneSearcher(luceneSearcher);
+                } catch (IOException e) {
+                    LOG.error(e.getMessage(), e);
+                }
             }
         }
     }

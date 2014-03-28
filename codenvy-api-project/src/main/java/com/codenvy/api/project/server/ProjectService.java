@@ -118,7 +118,7 @@ public class ProjectService extends Service {
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
-        return toDescriptor(workspace, project);
+        return toDescriptor(project);
     }
 
     @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
@@ -129,7 +129,7 @@ public class ProjectService extends Service {
                                            @Required @Description("project name") @QueryParam("name") String name,
                                            @Description("descriptor of project") ProjectDescriptor descriptor) throws Exception {
         final Project project = projectManager.createProject(workspace, name, toDescription(descriptor));
-        final ProjectDescriptor projectDescriptor = toDescriptor(workspace, project);
+        final ProjectDescriptor projectDescriptor = toDescriptor(project);
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
         return projectDescriptor;
     }
@@ -149,7 +149,7 @@ public class ProjectService extends Service {
         List<Project> modules = project.getModules();
         List<ProjectDescriptor> result = new ArrayList<>(modules.size());
         for (Project module : modules) {
-            result.add(toDescriptor(workspace, module));
+            result.add(toDescriptor(module));
         }
         return result;
     }
@@ -170,7 +170,7 @@ public class ProjectService extends Service {
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         final Project module = project.createModule(name, toDescription(descriptor));
-        final ProjectDescriptor moduleDescriptor = toDescriptor(workspace, module);
+        final ProjectDescriptor moduleDescriptor = toDescriptor(module);
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", moduleDescriptor.getName(), moduleDescriptor.getProjectTypeId());
         return moduleDescriptor;
     }
@@ -194,7 +194,7 @@ public class ProjectService extends Service {
         if (!(newVisibility == null || newVisibility.equals(project.getVisibility()))) {
             project.setVisibility(newVisibility);
         }
-        return toDescriptor(workspace, project);
+        return toDescriptor(project);
     }
 
     @POST
@@ -242,7 +242,7 @@ public class ProjectService extends Service {
     public void delete(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws Exception {
         final AbstractVirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (entry.isFolder() && ((FolderEntry)entry).isProjectFolder()) {
-            Project project = new Project((FolderEntry)entry, projectManager);
+            Project project = new Project(workspace, (FolderEntry)entry, projectManager);
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
@@ -263,7 +263,7 @@ public class ProjectService extends Service {
                                                 .path(getClass(), copy.isFile() ? "getFile" : "getChildren")
                                                 .build(workspace, copy.getPath().substring(1));
         if (copy.isFolder() && ((FolderEntry)copy).isProjectFolder()) {
-            Project project = new Project((FolderEntry)copy, projectManager);
+            Project project = new Project(workspace, (FolderEntry)copy, projectManager);
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
@@ -283,7 +283,7 @@ public class ProjectService extends Service {
                                                 .path(getClass(), entry.isFile() ? "getFile" : "getChildren")
                                                 .build(workspace, entry.getPath().substring(1));
         if (entry.isFolder() && ((FolderEntry)entry).isProjectFolder()) {
-            Project project = new Project((FolderEntry)entry, projectManager);
+            Project project = new Project(workspace, (FolderEntry)entry, projectManager);
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
@@ -333,7 +333,7 @@ public class ProjectService extends Service {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
-        final ProjectDescriptor projectDescriptor = toDescriptor(workspace, project);
+        final ProjectDescriptor projectDescriptor = toDescriptor(project);
         if (newProject) {
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
         }
@@ -360,7 +360,7 @@ public class ProjectService extends Service {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
         generator.generateProject(project.getBaseFolder(), options);
-        final ProjectDescriptor projectDescriptor = toDescriptor(workspace, project);
+        final ProjectDescriptor projectDescriptor = toDescriptor(project);
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
         return projectDescriptor;
     }
@@ -374,7 +374,7 @@ public class ProjectService extends Service {
         final FolderEntry folder = asFolder(workspace, name);
         VirtualFileSystemImpl.importZip(folder.getVirtualFile(), zip, true);
         if (folder.isProjectFolder()) {
-            Project project = new Project(folder, projectManager);
+            Project project = new Project(workspace, folder, projectManager);
             final String projectType = project.getDescription().getProjectType().getId();
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", name, projectType);
         }
@@ -577,7 +577,8 @@ public class ProjectService extends Service {
         return projectDescription;
     }
 
-    private ProjectDescriptor toDescriptor(String workspace, Project project) throws IOException, VirtualFileSystemException {
+    private ProjectDescriptor toDescriptor(Project project) throws IOException, VirtualFileSystemException {
+        final String workspace = project.getWorkspace();
         final ProjectDescription description = project.getDescription();
         final ProjectType type = description.getProjectType();
         final Map<String, List<String>> attributeValues = new LinkedHashMap<>();
@@ -595,7 +596,7 @@ public class ProjectService extends Service {
                          .withDescription(description.getDescription())
                          .withVisibility(project.getVisibility())
                          .withAttributes(attributeValues)
-                         .withModificationDate(project.getBaseFolder().getLastModificationDate())
+                         .withModificationDate(project.getModificationDate())
                          .withLinks(generateProjectLinks(workspace, project));
     }
 

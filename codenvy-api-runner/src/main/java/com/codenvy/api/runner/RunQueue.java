@@ -150,7 +150,9 @@ public class RunQueue {
         if (runOptions != null) {
             request.setMemorySize(runOptions.getMemorySize());
             request.setOptions(runOptions.getOptions());
-            request.setDebugMode(runOptions.getDebugMode());
+            if (runOptions.getDebugMode() != null) {
+                request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(runOptions.getDebugMode().getMode()));
+            }
             buildOptions = runOptions.getBuildOptions();
         }
         final Map<String, List<String>> projectAttributes = descriptor.getAttributes();

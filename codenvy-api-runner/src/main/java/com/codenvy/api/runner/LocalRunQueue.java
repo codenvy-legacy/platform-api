@@ -22,10 +22,7 @@ import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
-import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectManager;
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.runner.internal.Runner;
 import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.runner.internal.RunnerRegistry;
@@ -44,7 +41,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -132,26 +128,20 @@ public class LocalRunQueue extends RunQueue {
                 }
             }
         });
-//        getEventService().subscribe(new EventSubscriber<RunnerEvent>() {
-//            @Override
-//            public void onEvent(RunnerEvent event) {
-//                final RunnerEvent.EventType eventType = event.getType();
-//                if (eventType == RunnerEvent.EventType.STARTED || eventType == RunnerEvent.EventType.STOPPED) {
-//                    try {
-//                        final Project project = projectManager.getProject(event.getWorkspace(), event.getProject());
-//                        final ProjectDescription description = project.getDescription();
-//                        if (RunnerEvent.EventType.STARTED.equals(eventType)) {
-//                            description.setAttribute(new Attribute("runner.running", "true"));
-//                        } else if (RunnerEvent.EventType.STOPPED.equals(eventType)) {
-//                            description.setAttribute(new Attribute("runner.running", "false"));
-//                        }
-//                        project.updateDescription(description);
-//                    } catch (IOException e) {
-//                        LOG.error(e.getMessage(), e);
-//                    }
-//                }
-//            }
-//        });
+        getEventService().subscribe(new EventSubscriber<RunnerEvent>() {
+            @Override
+            public void onEvent(RunnerEvent event) {
+                final RunnerEvent.EventType eventType = event.getType();
+                if (eventType == RunnerEvent.EventType.STARTED || eventType == RunnerEvent.EventType.STOPPED) {
+                    try {
+                        projectManager.getProjectMisc(event.getWorkspace(), event.getProject())
+                                      .setValue("isRunning", RunnerEvent.EventType.STARTED.equals(eventType));
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage(), e);
+                    }
+                }
+            }
+        });
     }
 
     @PreDestroy

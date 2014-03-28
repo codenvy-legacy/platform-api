@@ -80,7 +80,7 @@ import java.util.List;
  * @author Eugene Voevodin
  * @author Max Shaposhnik
  */
-@Path("/workspace")
+@Path("workspace")
 public class WorkspaceService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceService.class);
 
@@ -193,23 +193,26 @@ public class WorkspaceService extends Service {
     @GET
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_ID)
-    @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws WorkspaceException {
+    public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id)
+            throws WorkspaceException, MembershipException, UserException {
         Workspace workspace = workspaceDao.getById(id);
         if (workspace == null) {
             throw new WorkspaceNotFoundException(id);
         }
+        ensureUserHasAccessToWorkspace(id, new String[]{"workspace/admin", "workspace/developer"}, securityContext);
         injectLinks(workspace, securityContext);
         return workspace;
     }
 
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_NAME)
-    @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getByName(@Context SecurityContext securityContext,
-                               @Required @Description("workspace name") @QueryParam("name") String name) throws WorkspaceException {
+                               @Required @Description("workspace name") @QueryParam("name") String name)
+            throws WorkspaceException, MembershipException, UserException {
         if (name == null) {
             throw new WorkspaceException("Missed parameter name");
         }
@@ -217,6 +220,7 @@ public class WorkspaceService extends Service {
         if (workspace == null) {
             throw new WorkspaceNotFoundException(name);
         }
+        ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -224,17 +228,19 @@ public class WorkspaceService extends Service {
     @POST
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID)
-    @RolesAllowed({"system/admin", "workspace/admin"})
+    @RolesAllowed({"user", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace update(@Context SecurityContext securityContext, @PathParam("id") String id,
-                            @Required @Description("workspace to update") Workspace workspaceToUpdate) throws WorkspaceException {
+                            @Required @Description("workspace to update") Workspace workspaceToUpdate)
+            throws WorkspaceException, MembershipException, UserException {
         if (workspaceToUpdate == null) {
             throw new WorkspaceException("Missed workspace to update");
         }
         if (workspaceDao.getById(id) == null) {
             throw new WorkspaceNotFoundException(id);
         }
+        ensureUserHasAccessToWorkspace(id, new String[]{"workspace/admin"}, securityContext);
         workspaceToUpdate.setId(id);
         workspaceDao.update(workspaceToUpdate);
         injectLinks(workspaceToUpdate, securityContext);
@@ -351,9 +357,11 @@ public class WorkspaceService extends Service {
     @GET
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_MEMBERS)
-    @RolesAllowed("workspace/admin")
+    @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Member> getMembers(@PathParam("id") String wsId) throws WorkspaceException, MembershipException {
+    public List<Member> getMembers(@PathParam("id") String wsId, @Context SecurityContext securityContext)
+            throws WorkspaceException, MembershipException, UserException {
+        ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         Link self = createLink("GET", Constants.LINK_REL_GET_WORKSPACE_MEMBERS, null, MediaType.APPLICATION_JSON,
@@ -369,12 +377,14 @@ public class WorkspaceService extends Service {
     @POST
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_WORKSPACE_MEMBER)
-    @RolesAllowed("workspace/admin")
+    @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Member addMember(@PathParam("id") String wsId,
-                            @Description("describes new workspace member") @Required NewMembership newMembership)
-            throws MembershipException {
+                            @Description("describes new workspace member") @Required NewMembership newMembership,
+                            @Context SecurityContext securityContext)
+            throws MembershipException, WorkspaceException, UserException {
+        ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         if (newMembership == null) {
             throw new MembershipException("Missed new membership");
         }
@@ -396,8 +406,13 @@ public class WorkspaceService extends Service {
     @DELETE
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER)
-    @RolesAllowed("workspace/admin")
-    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId) throws MembershipException {
+    @RolesAllowed("user")
+    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId, @Context SecurityContext securityContext)
+            throws MembershipException, WorkspaceException, UserException {
+        if (workspaceDao.getById(wsId) == null) {
+            throw new WorkspaceNotFoundException(wsId);
+        }
+        ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         Member member = DtoFactory.getInstance().createDto(Member.class);
         member.setUserId(userId);
         member.setWorkspaceId(wsId);
@@ -407,11 +422,13 @@ public class WorkspaceService extends Service {
     @DELETE
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE)
-    @RolesAllowed({"system/admin", "workspace/admin"})
-    public void remove(@PathParam("id") String wsId) throws WorkspaceException, MembershipException {
+    @RolesAllowed({"user", "system/admin"})
+    public void remove(@PathParam("id") String wsId, @Context SecurityContext securityContext)
+            throws WorkspaceException, MembershipException, UserException {
         if (workspaceDao.getById(wsId) == null) {
             throw new WorkspaceNotFoundException(wsId);
         }
+        ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
             memberDao.remove(member);
@@ -461,6 +478,23 @@ public class WorkspaceService extends Service {
                                                                       .withType(ParameterType.Object))));
         }
         workspace.setLinks(links);
+    }
+
+    private void ensureUserHasAccessToWorkspace(String wsId, String[] roles, SecurityContext securityContext)
+            throws WorkspaceException, UserException, MembershipException {
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
+        List<Member> members = memberDao.getUserRelationships(user.getId());
+        for (Member member : members) {
+            if (member.getWorkspaceId().equals(wsId)) {
+                for (String role : roles) {
+                    if (member.getRoles().contains(role)) {
+                        return;
+                    }
+                }
+            }
+        }
+        throw new WorkspaceException("Access denied");
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {

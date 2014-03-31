@@ -27,10 +27,10 @@ public class OrganizationAlreadyExistsException extends OrganizationException {
     }
 
     public static OrganizationAlreadyExistsException existsWithOwner(String owner) {
-        return new OrganizationAlreadyExistsException(String.format("Organization which owner is %s already exists!", owner));
+        return new OrganizationAlreadyExistsException(String.format("Organization which owner is %s already exists", owner));
     }
 
     public static OrganizationAlreadyExistsException existsWithName(String name) {
-        return new OrganizationAlreadyExistsException(String.format("Organization with name %s already exists!", name));
+        return new OrganizationAlreadyExistsException(String.format("Organization with name %s already exists", name));
     }
 }

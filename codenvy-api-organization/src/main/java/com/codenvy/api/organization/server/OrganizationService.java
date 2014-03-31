@@ -28,6 +28,7 @@ import com.codenvy.api.organization.server.exception.SubscriptionNotFoundExcepti
 import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.organization.shared.dto.Subscription;
+import com.codenvy.api.organization.shared.dto.Attribute;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -58,7 +59,10 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Organization API
@@ -169,7 +173,7 @@ public class OrganizationService extends Service {
     @POST
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_MEMBER)
-    @RolesAllowed({"organization/owner", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     public void addMember(@Context SecurityContext securityContext, @PathParam("id") String organizationId,
                           @Required @Description("User id to be a new organization member") @QueryParam("userid") String userId)
             throws UserException, OrganizationException {
@@ -180,13 +184,7 @@ public class OrganizationService extends Service {
         if (organization == null) {
             throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
         }
-        final Principal principal = securityContext.getUserPrincipal();
-        if (securityContext.isUserInRole("organization/owner")) {
-            User owner = userDao.getByAlias(principal.getName());
-            if (!organization.getOwner().equals(owner.getId())) {
-                throw new OrganizationIllegalAccessException(organization.getId());
-            }
-        }
+        ensureCurrentUserIsOrganizationOwner(organization, securityContext);
         if (userDao.getById(userId) == null) {
             throw new UserNotFoundException(userId);
         }
@@ -244,32 +242,32 @@ public class OrganizationService extends Service {
     @DELETE
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_MEMBER)
-    @RolesAllowed({"organization/owner", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     public void removeMember(@Context SecurityContext securityContext, @PathParam("id") String organizationId,
                              @PathParam("userid") String userid) throws OrganizationException, UserException {
         final Organization organization = organizationDao.getById(organizationId);
         if (organizationDao.getById(organizationId) == null) {
             throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
         }
-        if (securityContext.isUserInRole("organization/owner")) {
-            final Principal principal = securityContext.getUserPrincipal();
-            final User current = userDao.getByAlias(principal.getName());
-            if (!organization.getOwner().equals(current.getId())) {
-                throw new OrganizationIllegalAccessException(current.getId());
-            }
-        }
+        ensureCurrentUserIsOrganizationOwner(organization, securityContext);
         organizationDao.removeMember(organizationId, userid);
     }
 
     @POST
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_ORGANIZATION)
-    @RolesAllowed("user")
+    @RolesAllowed({"user"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Organization update(@PathParam("id") String id,
-                               @Required @Description("Organization to update") Organization organizationToUpdate)
-            throws OrganizationException {
+                               @Required @Description("Organization to update") Organization organizationToUpdate,
+                               @Context SecurityContext securityContext)
+            throws OrganizationException, UserException {
+        final Principal principal = securityContext.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        if (current == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         if (organizationToUpdate == null) {
             throw new OrganizationException("Missed organization to update");
         }
@@ -277,15 +275,42 @@ public class OrganizationService extends Service {
         if (actual == null) {
             throw OrganizationNotFoundException.doesNotExistWithId(id);
         }
+        if (!actual.getOwner().equals(current.getId())) {
+            throw new OrganizationIllegalAccessException(current.getId());
+        }
+        if (organizationToUpdate.getOwner() == null) {
+            organizationToUpdate.setOwner(actual.getOwner());
+        }
+        if (organizationToUpdate.getName() == null) {
+            organizationToUpdate.setName(actual.getName());
+        }
+        //if organization owner changed
         if (!actual.getOwner().equals(organizationToUpdate.getOwner()) &&
             organizationDao.getByOwner(organizationToUpdate.getOwner()) != null) {
             throw OrganizationAlreadyExistsException.existsWithOwner(organizationToUpdate.getOwner());
         }
+        //if organization name changed
         if (!actual.getName().equals(organizationToUpdate.getName()) && organizationDao.getByName(organizationToUpdate.getName()) != null) {
             throw OrganizationAlreadyExistsException.existsWithName(organizationToUpdate.getName());
         }
-        organizationToUpdate.setId(id);
-        organizationDao.update(organizationToUpdate);
+        //add new attributes and rewrite existed with same name
+        if (organizationToUpdate.getAttributes() != null) {
+            Map<String, Attribute> updates = new LinkedHashMap<>(organizationToUpdate.getAttributes().size());
+            for (Attribute toUpdate : organizationToUpdate.getAttributes()) {
+                updates.put(toUpdate.getName(), toUpdate);
+            }
+            for (Iterator<Attribute> it = actual.getAttributes().iterator(); it.hasNext(); ) {
+                Attribute attribute = it.next();
+                if (updates.containsKey(attribute.getName())) {
+                    it.remove();
+                }
+            }
+            actual.getAttributes().addAll(organizationToUpdate.getAttributes());
+        }
+        actual.setOwner(organizationToUpdate.getOwner());
+        actual.setName(organizationToUpdate.getName());
+        organizationDao.update(actual);
+        injectLinks(actual, securityContext);
         return actual;
     }
 
@@ -370,6 +395,17 @@ public class OrganizationService extends Service {
             throw OrganizationNotFoundException.doesNotExistWithId(id);
         }
         organizationDao.remove(id);
+    }
+
+    private void ensureCurrentUserIsOrganizationOwner(Organization organization, SecurityContext securityContext)
+            throws UserException, OrganizationIllegalAccessException {
+        if (securityContext.isUserInRole("user")) {
+            final Principal principal = securityContext.getUserPrincipal();
+            final User owner = userDao.getByAlias(principal.getName());
+            if (!organization.getOwner().equals(owner.getId())) {
+                throw new OrganizationIllegalAccessException(organization.getId());
+            }
+        }
     }
 
     private void injectLinks(Organization organization, SecurityContext securityContext) {

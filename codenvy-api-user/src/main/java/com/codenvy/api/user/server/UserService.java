@@ -66,7 +66,7 @@ import java.util.List;
  *
  * @author Eugene Voevodin
  */
-@Path("/user")
+@Path("user")
 public class UserService extends Service {
 
     private final UserDao        userDao;

@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.organization;
 
+
 import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.organization.server.OrganizationService;
@@ -25,7 +26,7 @@ import com.codenvy.api.organization.server.SubscriptionEvent;
 import com.codenvy.api.organization.server.SubscriptionService;
 import com.codenvy.api.organization.server.SubscriptionServiceRegistry;
 import com.codenvy.api.organization.server.dao.OrganizationDao;
-import com.codenvy.api.organization.server.exception.OrganizationException;
+import com.codenvy.api.organization.shared.dto.Attribute;
 import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
@@ -69,7 +70,6 @@ import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -133,9 +133,15 @@ public class OrganizationServiceTest {
                                                 providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         launcher = new ResourceLauncher(requestHandler);
-        organization =
-                DtoFactory.getInstance().createDto(Organization.class).withId(ORGANIZATION_ID).withOwner(USER_ID)
-                          .withName(ORGANIZATION_NAME);
+        organization = DtoFactory.getInstance().createDto(Organization.class)
+                                 .withId(ORGANIZATION_ID)
+                                 .withOwner(USER_ID)
+                                 .withName(ORGANIZATION_NAME)
+                                 .withAttributes(new ArrayList<>(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                                                         .withName("secret")
+                                                                                         .withValue("big secret")
+                                                                                         .withDescription(
+                                                                                                 "DON'T TELL ANYONE ABOUT IT!"))));
         User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
@@ -192,6 +198,94 @@ public class OrganizationServiceTest {
         verify(organizationDao, times(roles.length)).getById(ORGANIZATION_ID);
     }
 
+    @Test
+    public void shouldBeAbleToUpdateOrganization() throws Exception {
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+        List<Attribute> attributes = Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                             .withName("newAttribute")
+                                                             .withValue("someValue")
+                                                             .withDescription("Description"));
+        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class)
+                                          .withName("newName")
+                                          .withAttributes(attributes);
+
+        prepareSecurityContext("user");
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Organization actual = (Organization)response.getEntity();
+        assertEquals(actual.getAttributes().size(), 2);
+        assertEquals(actual.getName(), "newName");
+        assertEquals(actual.getOwner(), USER_ID);
+    }
+
+    @Test
+    public void shouldBeAbleToRewriteAttributesWhenUpdatingOrganization() throws Exception {
+        List<Attribute> currentAttributes = new ArrayList<>();
+        currentAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
+                                        .withName("newAttribute")
+                                        .withValue("someValue")
+                                        .withDescription("Description"));
+        currentAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
+                                        .withName("oldAttribute")
+                                        .withValue("oldValue")
+                                        .withDescription("Description"));
+        organization.setAttributes(currentAttributes);
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+
+        List<Attribute> updates = new ArrayList<>(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                                          .withName("newAttribute")
+                                                                          .withValue("OTHER_VALUE")
+                                                                          .withDescription("Description"),
+                                                                DtoFactory.getInstance().createDto(Attribute.class)
+                                                                          .withName("newAttribute2")
+                                                                          .withValue("someValue2")
+                                                                          .withDescription("Description2")));
+
+        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class).withAttributes(updates);
+
+        prepareSecurityContext("user");
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Organization actual = (Organization)response.getEntity();
+        assertEquals(actual.getName(), ORGANIZATION_NAME);
+        assertEquals(actual.getOwner(), USER_ID);
+        assertEquals(actual.getAttributes().size(), 3);
+        for (Attribute attribute : actual.getAttributes()) {
+            if (attribute.getName().equals("newAttribute") && !attribute.getValue().equals("OTHER_VALUE")) {
+                fail("Attribute should be replaced");
+            }
+        }
+    }
+
+    @Test
+    public void shouldNotBeAbleToUpdateOrganizationWithAlreadyExistedName() throws Exception {
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+        when(organizationDao.getByName("TO_UPDATE"))
+                .thenReturn(DtoFactory.getInstance().createDto(Organization.class).withName("TO_UPDATE"));
+
+        prepareSecurityContext("user");
+
+        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class).withName("TO_UPDATE");
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
+        assertNotEquals(response.getStatus(), Response.Status.OK);
+        assertEquals(response.getEntity().toString(), "Organization with name TO_UPDATE already exists");
+    }
+
+    @Test
+    public void shouldNotBeAbleToUpdateOrganizationWithNewOwnerWhoAlreadyOwningAnyOrganization() throws Exception {
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+        when(organizationDao.getByOwner("NEW_OWNER")).thenReturn(DtoFactory.getInstance().createDto(Organization.class).withId("OTHER_ID"));
+
+        prepareSecurityContext("user");
+
+        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class).withOwner("NEW_OWNER");
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
+        assertNotEquals(response.getStatus(), Response.Status.OK);
+        assertEquals(response.getEntity().toString(), "Organization which owner is NEW_OWNER already exists");
+    }
 
     @Test
     public void shouldBeAbleToGetOrganizationByName() throws Exception {

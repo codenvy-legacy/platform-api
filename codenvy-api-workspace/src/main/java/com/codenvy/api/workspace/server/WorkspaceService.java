@@ -482,19 +482,21 @@ public class WorkspaceService extends Service {
 
     private void ensureUserHasAccessToWorkspace(String wsId, String[] roles, SecurityContext securityContext)
             throws WorkspaceException, UserException, MembershipException {
-        final Principal principal = securityContext.getUserPrincipal();
-        final User user = userDao.getByAlias(principal.getName());
-        List<Member> members = memberDao.getUserRelationships(user.getId());
-        for (Member member : members) {
-            if (member.getWorkspaceId().equals(wsId)) {
-                for (String role : roles) {
-                    if (member.getRoles().contains(role)) {
-                        return;
+        if (securityContext.isUserInRole("user")) {
+            final Principal principal = securityContext.getUserPrincipal();
+            final User user = userDao.getByAlias(principal.getName());
+            List<Member> members = memberDao.getUserRelationships(user.getId());
+            for (Member member : members) {
+                if (member.getWorkspaceId().equals(wsId)) {
+                    for (String role : roles) {
+                        if (member.getRoles().contains(role)) {
+                            return;
+                        }
                     }
                 }
             }
+            throw new WorkspaceException("Access denied");
         }
-        throw new WorkspaceException("Access denied");
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {

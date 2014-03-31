@@ -143,7 +143,7 @@ public final class ProjectManager {
         return new FolderEntry(vfsRoot);
     }
 
-    ProjectMisc getProjectMisc(String workspace, String project) {
+    public ProjectMisc getProjectMisc(String workspace, String project) {
         final Pair<String, String> key = Pair.of(workspace, project);
         return cache[key.hashCode() & CACHE_MASK].get(key);
     }
@@ -172,13 +172,22 @@ public final class ProjectManager {
                 final String workspace = event.getWorkspaceId();
                 final String path = event.getPath();
                 final int length = path.length();
-                for (int i = 1; i < length && (i = path.indexOf('/', i)) > 0; i++) {
-                    final String projectPath = path.substring(0, i);
-                    if (getProject(workspace, projectPath) == null) {
+                switch (event.getType()) {
+                    case CONTENT_UPDATED:
+                    case CREATED:
+                    case DELETED:
+                    case MOVED:
+                    case RENAMED: {
+                        for (int i = 1; i < length && (i = path.indexOf('/', i)) > 0; i++) {
+                            final String projectPath = path.substring(0, i);
+                            if (getProject(workspace, projectPath) == null) {
+                                break;
+                            }
+                            final Pair<String, String> key = Pair.of(workspace, projectPath);
+                            cache[key.hashCode() & CACHE_MASK].get(key).data.setLong(ProjectMisc.UPDATED, System.currentTimeMillis());
+                        }
                         break;
                     }
-                    final Pair<String, String> key = Pair.of(workspace, projectPath);
-                    cache[key.hashCode() & CACHE_MASK].get(key).data.setLong("updated", System.currentTimeMillis());
                 }
             }
         });
@@ -224,15 +233,25 @@ public final class ProjectManager {
         }
     }
 
-    static class ProjectMisc {
+    public static class ProjectMisc {
+        static final String UPDATED    = "updated";
+
         private final InternalMisc data;
 
         private ProjectMisc(InternalMisc data) {
             this.data = data;
         }
 
-        long getModificationDate() {
-            return data.getLong("updated", -1L);
+        public long getModificationDate() {
+            return data.getLong(UPDATED, -1L);
+        }
+
+        public void setValue(String name, boolean value) {
+            data.setBoolean(name, value);
+        }
+
+        public boolean getBooleanValue(String name) {
+            return data.getBoolean(name);
         }
     }
 

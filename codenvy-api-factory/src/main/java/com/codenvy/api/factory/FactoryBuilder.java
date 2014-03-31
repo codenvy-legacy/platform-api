@@ -112,6 +112,8 @@ public class FactoryBuilder {
         // there is unsupported parameters in query
         if (!queryParams.isEmpty()) {
             throw new FactoryUrlException(INVALID_PARAMETER_MESSAGE);
+        } else if (null == factory) {
+            throw new FactoryUrlException(MISSING_MANDATORY_MESSAGE);
         }
 
         checkValid(factory, FactoryFormat.NONENCODED);

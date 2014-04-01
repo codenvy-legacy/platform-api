@@ -235,12 +235,9 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToConvertToLatest() throws FactoryUrlException {
-        ((FactoryV1_1)actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname")).withValiduntil(123456)
-                                                                                                               .withValidsince(123456789);
+        actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname");
 
-        expected.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(actual.getValidsince())
-                                           .withValiduntil(actual.getValiduntil())).withProjectattributes(
-                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
+        expected.withProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
                 .withCommitid(actual.getIdcommit()).withV("1.2");
 
         assertEquals(factoryBuilder.convertToLatest(actual), expected);

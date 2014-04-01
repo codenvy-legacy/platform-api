@@ -151,7 +151,7 @@ public class WorkspaceService extends Service {
     public Response createTemporary(@Context SecurityContext securityContext,
                                     @Required @Description("New temporary workspace") Workspace newWorkspace)
             throws WorkspaceException, UserException, UserProfileException, MembershipException {
-        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
+        String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         newWorkspace.setTemporary(true);
         workspaceDao.create(newWorkspace);

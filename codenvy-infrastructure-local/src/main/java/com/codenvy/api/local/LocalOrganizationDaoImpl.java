@@ -63,14 +63,14 @@ public class LocalOrganizationDaoImpl implements OrganizationDao {
     }
 
     @Override
-    public Organization getByOwner(String owner) throws OrganizationException {
-        return DtoFactory.getInstance().createDto(Organization.class)
-                         .withName("org_name")
-                         .withId("org0xffaassdeereqWsss")
-                         .withOwner(owner)
-                         .withAttributes(Arrays.asList(
-                                 DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                           .withDescription("important attribute")));
+    public List<Organization> getByOwner(String owner) throws OrganizationException {
+        return Arrays.asList(DtoFactory.getInstance().createDto(Organization.class)
+                                       .withName("org_name")
+                                       .withId("org0xffaassdeereqWsss")
+                                       .withOwner(owner)
+                                       .withAttributes(Arrays.asList(
+                                               DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
+                                                         .withDescription("important attribute"))));
     }
 
     @Override

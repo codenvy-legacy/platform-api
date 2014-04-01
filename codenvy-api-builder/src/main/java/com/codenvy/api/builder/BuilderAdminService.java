@@ -41,7 +41,7 @@ import javax.ws.rs.core.Response;
  *
  * @author andrew00x
  */
-@Path("builder/admin")
+@Path("admin/builder")
 @Description("Builder API")
 @RolesAllowed("system/admin")
 public class BuilderAdminService extends Service {

@@ -285,8 +285,6 @@ public class FactoryBuilderTest {
                 {"1.0", "setWelcome", DtoFactory.getInstance().createDto(WelcomePage.class), WelcomePage.class, ENCODED},
                 {"1.1", "setWelcome", DtoFactory.getInstance().createDto(WelcomePage.class), WelcomePage.class, NONENCODED},
                 {"1.0", "setImage", "smth", String.class, ENCODED},
-                {"1.1", "setImage", "smth", String.class, ENCODED},
-                {"1.2", "setImage", "smth", String.class, ENCODED},
                 {"1.0", "setRestriction", DtoFactory.getInstance().createDto(Restriction.class), Restriction.class, ENCODED},
                 {"1.1", "setRestriction", DtoFactory.getInstance().createDto(Restriction.class), Restriction.class, ENCODED},
                 {"1.0", "setGit", DtoFactory.getInstance().createDto(Git.class), Git.class, ENCODED},

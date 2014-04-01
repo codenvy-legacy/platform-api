@@ -74,8 +74,6 @@ public class FactoryBuilder {
         l.add(new IdCommitConverter());
         l.add(new ProjectNameConverter());
         l.add(new ProjectTypeConverter());
-        l.add(new ValidSinceConverter());
-        l.add(new ValidUntilConverter());
         l.add(new WorkspacNameConverter());
         LEGACY_CONVERTERS = Collections.unmodifiableList(l);
     }

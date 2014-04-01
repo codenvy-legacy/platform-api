@@ -142,20 +142,16 @@ public class FactoryServiceTest {
     public void shouldBeAbleToReturnLatestFactory() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
-        factoryUrl.withValidsince(123456789).withValiduntil(12345679).withIdcommit("132456").withWname("wname").withPtype("ptype")
-                  .withPname("pname").withV("1.0");
+        factoryUrl.withIdcommit("132456").withWname("wname").withPtype("ptype").withPname("pname").withV("1.0");
         factoryUrl.setId(CORRECT_FACTORY_ID);
 
-        Restriction restriction = DtoFactory.getInstance().createDto(Restriction.class).withValidsince(factoryUrl.getValidsince())
-                                            .withValiduntil(factoryUrl.getValiduntil());
+        ProjectAttributes attributes =
+                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(factoryUrl.getPname()).withPtype(
+                        factoryUrl.getPtype());
 
-        ProjectAttributes attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(factoryUrl.getPname())
-                                                 .withPtype(factoryUrl.getPtype());
-
-        Factory expected =
-                (Factory)DtoFactory.getInstance().createDto(Factory.class).withRestriction(restriction).withProjectattributes(attributes)
-                                   .withId(CORRECT_FACTORY_ID)
-                                   .withV("1.2").withCommitid(factoryUrl.getIdcommit());
+        Factory expected = (Factory)DtoFactory.getInstance().createDto(
+                Factory.class).withProjectattributes(attributes).withId(CORRECT_FACTORY_ID).withV("1.2")
+                                              .withCommitid(factoryUrl.getIdcommit());
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
         when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(Collections.EMPTY_SET);
@@ -681,7 +677,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=html");
 
         assertEquals(response.body().asString(), "<script type=\"text/javascript\" style=\"null\" src=\"" + getServerUrl(context) +
-                                      "/factory/resources/factory.js?" + CORRECT_FACTORY_ID + "\"></script>");
+                                                 "/factory/resources/factory.js?" + CORRECT_FACTORY_ID + "\"></script>");
     }
 
     @Test

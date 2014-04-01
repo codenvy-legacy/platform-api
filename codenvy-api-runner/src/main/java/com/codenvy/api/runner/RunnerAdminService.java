@@ -38,7 +38,7 @@ import javax.ws.rs.core.Response;
  *
  * @author andrew00x
  */
-@Path("runner/admin")
+@Path("admin/runner")
 @Description("Runner API")
 @RolesAllowed("system/admin")
 public class RunnerAdminService extends Service {

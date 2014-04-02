@@ -15,11 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.ws;
+package com.codenvy.api.core.notification;
 
 /**
  * @author andrew00x
  */
-public interface RemoteEventListener<E> {
-    void handleEvent(E event);
+public interface EventPropagatePolicy {
+    boolean isPropagated(Object event);
 }

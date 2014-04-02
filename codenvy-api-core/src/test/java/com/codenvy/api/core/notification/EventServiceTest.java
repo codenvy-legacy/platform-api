@@ -17,10 +17,16 @@
  */
 package com.codenvy.api.core.notification;
 
+import com.google.inject.Binder;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Module;
+
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -163,5 +169,28 @@ public class EventServiceTest {
         events.clear();
         bus.publish(new Event());
         Assert.assertEquals(events.size(), 0);
+
+        Injector i = Guice.createInjector(new Module() {
+            @Override
+            public void configure(Binder binder) {
+                //
+            }
+        });
+        System.err.println(i.getInstance(Service.class));
+    }
+
+    static class Service {
+
+        @Inject
+        ServiceDependency myDependency;
+
+//        @Inject
+        Service(/*ServiceDependency myDependency*/) {
+//            this.myDependency = myDependency;
+        }
+    }
+
+    static class ServiceDependency {
+
     }
 }

@@ -47,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.codenvy.api.runner.internal.RunnerEvent.EventType;
+
 /**
  * Super-class for all implementation of Runner.
  *
@@ -101,7 +103,7 @@ public abstract class Runner {
      */
     public abstract String getDescription();
 
-    /** @see com.codenvy.api.runner.internal.RunnerConfiguration */
+    /** @see RunnerConfiguration */
     public abstract RunnerConfigurationFactory getRunnerConfigurationFactory();
 
     protected abstract ApplicationProcess newApplicationProcess(DeploymentSources toDeploy, RunnerConfiguration runnerCfg)
@@ -221,7 +223,7 @@ public abstract class Runner {
      * @param id
      *         id of process
      * @return runner process with specified id
-     * @throws NoSuchRunnerTaskException
+     * @throws com.codenvy.api.runner.NoSuchRunnerTaskException
      *         if id of RunnerProcess is invalid
      */
     public RunnerProcess getProcess(Long id) throws NoSuchRunnerTaskException {
@@ -241,22 +243,28 @@ public abstract class Runner {
             @Override
             public void started(RunnerProcess process) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                eventService.publish(new RunnerEvent(RunnerEvent.EventType.STARTED, runRequest.getId(), runRequest.getWorkspace(),
-                                                     runRequest.getProject()));
+                notify(new RunnerEvent(EventType.STARTED, runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject()));
             }
 
             @Override
             public void stopped(RunnerProcess process) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                eventService.publish(new RunnerEvent(RunnerEvent.EventType.STOPPED, runRequest.getId(), runRequest.getWorkspace(),
-                                                     runRequest.getProject()));
+                notify(new RunnerEvent(EventType.STOPPED, runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject()));
             }
 
             @Override
             public void error(RunnerProcess process, Throwable t) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                eventService.publish(new RunnerEvent(RunnerEvent.EventType.ERROR, runRequest.getId(), runRequest.getWorkspace(),
-                                                     runRequest.getProject(), t.getMessage()));
+                notify(new RunnerEvent(EventType.ERROR, runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject(),
+                                       t.getMessage()));
+            }
+
+            private void notify(RunnerEvent re) {
+                try {
+                    eventService.publish(re);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
             }
         });
         purgeExpiredProcesses();
@@ -273,7 +281,8 @@ public abstract class Runner {
                     if (!getDeploymentSourcesValidator().isValid(deploymentSources)) {
                         throw new RunnerException(
                                 String.format("Unsupported project. Cannot deploy project %s from workspace %s with runner %s",
-                                              request.getProject(), request.getWorkspace(), getName()));
+                                              request.getProject(), request.getWorkspace(), getName())
+                        );
                     }
                     final ApplicationProcess realProcess = newApplicationProcess(deploymentSources, runnerCfg);
                     realProcess.start();

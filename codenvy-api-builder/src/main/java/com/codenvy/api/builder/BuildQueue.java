@@ -40,6 +40,8 @@ import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -286,13 +288,7 @@ public class BuildQueue {
         return new Callable<RemoteTask>() {
             @Override
             public RemoteTask call() throws BuilderException {
-                final BuilderList builderList = getBuilderList(request);
-                final RemoteBuilder builder = builderList.getBuilder(request);
-                if (builder == null) {
-                    throw new BuilderException("There is no any builder available. ");
-                }
-                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
-                return builder.perform(request);
+                return getBuilder(request).perform(request);
             }
         };
     }
@@ -335,13 +331,7 @@ public class BuildQueue {
         return new Callable<RemoteTask>() {
             @Override
             public RemoteTask call() throws BuilderException {
-                final BuilderList builderList = getBuilderList(request);
-                final RemoteBuilder builder = builderList.getBuilder(request);
-                if (builder == null) {
-                    throw new BuilderException("There is no any builder available. ");
-                }
-                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
-                return builder.perform(request);
+                return getBuilder(request).perform(request);
             }
         };
     }
@@ -417,7 +407,7 @@ public class BuildQueue {
         }
     }
 
-    private BuilderList getBuilderList(BaseBuilderRequest request) throws BuilderException {
+    protected RemoteBuilder getBuilder(BaseBuilderRequest request) throws BuilderException {
         final String project = request.getProject();
         final String workspace = request.getWorkspace();
         BuilderList builderList = builderListMapping.get(new ProjectWithWorkspace(project, workspace));
@@ -441,7 +431,12 @@ public class BuildQueue {
             // Cannot continue, typically should never happen. At least shared builders should be available for everyone.
             throw new BuilderException("There is no any builder to process this request. ");
         }
-        return builderList;
+        final RemoteBuilder builder = builderList.getBuilder(request);
+        if (builder == null) {
+            throw new BuilderException("There is no any builder available. ");
+        }
+        LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
+        return builder;
     }
 
     private long getBuildTimeout(BaseBuilderRequest request) throws BuilderException {
@@ -518,6 +513,20 @@ public class BuildQueue {
                         // Clone request and replace its id and timeout with 0.
                         successfulBuilds.put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
                     }
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+        getEventService().subscribe(new EventSubscriber<BuildDoneEvent>() {
+            @Override
+            public void onEvent(BuildDoneEvent event) {
+                try {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    final long id = event.getTaskId();
+                    bm.setChannel(String.format("builder:status:%d", id));
+                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                    WSConnectionContext.sendMessage(bm);
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
                 }

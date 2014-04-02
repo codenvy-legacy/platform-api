@@ -22,6 +22,7 @@ import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
@@ -44,6 +45,8 @@ import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -436,6 +439,20 @@ public class RunQueue {
                 }
             }
         };
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() {
+            @Override
+            public void onEvent(RunnerEvent event) {
+                try {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    final long id = event.getTaskId();
+                    bm.setChannel(String.format("runner:status:%d", id));
+                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                    WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
         started = true;
     }
 
@@ -473,7 +490,7 @@ public class RunQueue {
      *         RunnerServiceRegistration
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws com.codenvy.api.runner.RunnerException
      *         if other type of error occurs
      */
     public boolean registerRunnerService(RunnerServiceRegistration registration) throws RunnerException {
@@ -486,7 +503,8 @@ public class RunQueue {
             project = accessCriteria.getProject();
         }
 
-        final RemoteRunnerFactory factory = new RemoteRunnerFactory(registration.getRunnerServiceLocation().getUrl());
+        final String url = registration.getRunnerServiceLocation().getUrl();
+        final RemoteRunnerFactory factory = new RemoteRunnerFactory(url);
         final List<RemoteRunner> toAdd = new LinkedList<>();
         for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
             toAdd.add(factory.createRemoteRunner(runnerDescriptor));
@@ -514,12 +532,13 @@ public class RunQueue {
      *         RunnerServiceLocation
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws com.codenvy.api.runner.RunnerException
      *         if other type of error occurs
      */
     public boolean unregisterRunnerService(RunnerServiceLocation location) throws RunnerException {
         checkStarted();
-        final RemoteRunnerFactory factory = new RemoteRunnerFactory(location.getUrl());
+        final String url = location.getUrl();
+        final RemoteRunnerFactory factory = new RemoteRunnerFactory(url);
         final List<RemoteRunner> toRemove = new LinkedList<>();
         for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
             toRemove.add(factory.createRemoteRunner(runnerDescriptor));
@@ -568,79 +587,6 @@ public class RunQueue {
         LOG.debug("Use slave runner {} at {}", runner.getName(), runner.getBaseUrl());
         return runner;
     }
-
-//    private class WebSocketEventBusProvider {
-//        private final String                                  channel          = "runner:internal:eventbus";
-//        private final MessageConverter                        messageConverter = new JsonMessageConverter();
-//        private final ConcurrentMap<String, Future<WSClient>> busMap           = new ConcurrentHashMap<>();
-//
-//        WSClient openEventBus(final String remoteRunnerBaseUrl) throws IOException, InterruptedException {
-//            Future<WSClient> busFuture = busMap.get(remoteRunnerBaseUrl);
-//            if (busFuture == null) {
-//                LOG.debug("Not found EventBus for '{}'. Create new one. ", remoteRunnerBaseUrl);
-//                FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
-//                    @Override
-//                    public WSClient call() throws IOException, MessageConversionException {
-//                        final UriBuilder uriBuilder = UriBuilder.fromUri(remoteRunnerBaseUrl);
-//                        uriBuilder.scheme("ws").replacePath("/api/ws/");
-//                        WSClient bus = new WSClient(uriBuilder.build(), new BaseClientMessageListener() {
-//                            @Override
-//                            public void onClose(int status, String message) {
-//                                busMap.remove(remoteRunnerBaseUrl);
-//                            }
-//
-//                            @Override
-//                            public void onMessage(String data) {
-//                                CallbackEvent event = null;
-//                                try {
-//                                    final String body = messageConverter.fromString(data, RESTfulOutputMessage.class).getBody();
-//                                    event = DtoFactory.getInstance().createDtoFromJson(body, CallbackEvent.class);
-//                                } catch (Exception e) {
-//                                    LOG.error(e.getMessage(), e);
-//                                }
-//                                if (event != null) {
-//                                    for (RunnerCallbackListener listener : callbackListeners) {
-//                                        try {
-//                                            listener.handleEvent(event);
-//                                        } catch (Throwable e) {
-//                                            LOG.error(e.getMessage(), e);
-//                                        }
-//                                    }
-//                                }
-//                            }
-//
-//                            @Override
-//                            public void onOpen(WSClient client) {
-//                                LOG.debug("EventBus for '{}' is created. ", remoteRunnerBaseUrl);
-//                            }
-//                        });
-//                        bus.connect(2000);
-//                        bus.send(messageConverter.toString(
-//                                RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel)));
-//                        return bus;
-//                    }
-//                });
-//                busFuture = busMap.putIfAbsent(remoteRunnerBaseUrl, newFuture);
-//                if (busFuture == null) {
-//                    busFuture = newFuture;
-//                    newFuture.run();
-//                }
-//            }
-//            try {
-//                return busFuture.get();
-//            } catch (ExecutionException e) {
-//                final Throwable cause = e.getCause();
-//                if (cause instanceof Error) {
-//                    throw (Error)cause;
-//                } else if (cause instanceof RuntimeException) {
-//                    throw (RuntimeException)cause;
-//                } else if (cause instanceof IOException) {
-//                    throw (IOException)cause;
-//                }
-//                throw new RuntimeException(e);
-//            }
-//        }
-//    }
 
     private static class RunFutureTask extends FutureTask<RemoteRunnerProcess> {
         final Long   id;

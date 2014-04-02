@@ -17,32 +17,26 @@
  */
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.internal.BuildDoneEvent;
 import com.codenvy.api.builder.internal.Builder;
+import com.codenvy.api.builder.internal.BuilderRegistry;
+import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.websockets.WSConnectionContext;
-import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Implementation of BuildQueue that looks up Builder's on startup. Usage of this class assumes {@link
@@ -50,11 +44,13 @@ import java.util.Set;
  *
  * @author andrew00x
  */
+// DON'T USE IT IN CLOUD INFRASTRUCTURE.
 @Singleton
 public final class LocalBuildQueue extends BuildQueue {
     private static final Logger LOG = LoggerFactory.getLogger(LocalBuildQueue.class);
 
-    private final List<RemoteBuilder> remoteBuilders;
+    private final BuilderRegistry builders;
+    private final int             slaveBuilderPort;
 
     // work-around to be bale configure port.
     static class SlaveBuilderPortHolder {
@@ -82,10 +78,20 @@ public final class LocalBuildQueue extends BuildQueue {
                            BuilderSelectionStrategy builderSelector,
                            EventService eventService,
                            SlaveBuilderPortHolder portHolder,
-                           Set<Builder> builders) {
+                           BuilderRegistry builders) {
         super(baseProjectApiUrl, maxTimeInQueue, timeout, builderSelector, eventService);
-        final String baseUrl = String.format("http://localhost:%d/api/internal/builder", portHolder.port);
-        final List<Link> links = new ArrayList<>();
+        this.builders = builders;
+        this.slaveBuilderPort = portHolder.port;
+    }
+
+    @Override
+    protected RemoteBuilder getBuilder(BaseBuilderRequest request) throws BuilderException {
+        final Builder builder = builders.get(request.getBuilder());
+        if (builder == null) {
+            throw new BuilderException("There is no any builder to process this request. ");
+        }
+        final String baseUrl = String.format("http://localhost:%d/api/internal/builder", slaveBuilderPort);
+        final List<Link> links = new LinkedList<>();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel("builder state")
                             .withProduces("application/json")
@@ -113,49 +119,13 @@ public final class LocalBuildQueue extends BuildQueue {
                             .withConsumes("application/json")
                             .withHref(baseUrl + "/build")
                             .withMethod("POST"));
-        remoteBuilders = new ArrayList<>();
-        for (Builder builder : builders) {
-            remoteBuilders.add(new RemoteBuilder(baseUrl,
-                                                 DtoFactory.getInstance().createDto(BuilderDescriptor.class)
-                                                           .withName(builder.getName())
-                                                           .withDescription(builder.getDescription()),
-                                                 links));
-        }
-    }
-
-    @PostConstruct
-    @Override
-    public synchronized void start() {
-        super.start();
-        registerBuilders(null, null, remoteBuilders);
-        getEventService().subscribe(new EventSubscriber<BuildDoneEvent>() {
-            @Override
-            public void onEvent(BuildDoneEvent event) {
-                final long id = event.getTaskId();
-                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                bm.setType(ChannelBroadcastMessage.Type.NONE);
-                bm.setChannel(String.format("builder:status:%d", id));
-                try {
-                    final BuildTaskDescriptor buildDescriptor = getTask(id).getDescriptor();
-                    bm.setBody(DtoFactory.getInstance().toJson(buildDescriptor));
-                } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
-                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                    bm.setBody(e.getMessage());
-                }
-                try {
-                    WSConnectionContext.sendMessage(bm);
-                } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
-                }
-            }
-        });
-    }
-
-    @PreDestroy
-    @Override
-    public synchronized void stop() {
-        unregisterBuilders(remoteBuilders);
-        super.stop();
+        final RemoteBuilder rbuilder = new RemoteBuilder(baseUrl,
+                                                         DtoFactory.getInstance().createDto(BuilderDescriptor.class)
+                                                                   .withName(builder.getName())
+                                                                   .withDescription(builder.getDescription()),
+                                                         links
+        );
+        LOG.debug("Use slave builder {} at {}", rbuilder.getName(), rbuilder.getBaseUrl());
+        return rbuilder;
     }
 }

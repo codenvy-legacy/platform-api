@@ -31,7 +31,7 @@ import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.organization.shared.dto.OrganizationPresenter;
+import com.codenvy.api.organization.shared.dto.OrganizationMembership;
 import com.codenvy.api.organization.shared.dto.Subscription;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.shared.dto.User;
@@ -168,14 +168,14 @@ public class OrganizationServiceTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetOrganizationsWhereCurrentUserOwnerOrMember() throws Exception {
+    public void shouldBeAbleToGetMemberships() throws Exception {
         when(organizationDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(organization));
         when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<OrganizationPresenter> currentOrganizations = (List<OrganizationPresenter>)response.getEntity();
+        List<OrganizationMembership> currentOrganizations = (List<OrganizationMembership>)response.getEntity();
         assertEquals(currentOrganizations.size(), 1);
         assertEquals(currentOrganizations.get(0).getRoles().get(0), "organization/owner");
         verify(organizationDao, times(1)).getByOwner(USER_ID);

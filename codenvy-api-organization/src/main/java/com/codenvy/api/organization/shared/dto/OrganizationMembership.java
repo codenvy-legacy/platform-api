@@ -23,16 +23,16 @@ import java.util.List;
 
 /**
  * Describes organization with roles. It should be used with
- * {@link com.codenvy.api.organization.server.OrganizationService#getOrganizationsWhereCurrentUserMemberOrOwner(javax.ws.rs.core.SecurityContext)}
+ * {@link com.codenvy.api.organization.server.OrganizationService#getMemberships(javax.ws.rs.core.SecurityContext)}
  *
  * @author Eugene Voevodin
  */
 @DTO
-public interface OrganizationPresenter extends Organization {
+public interface OrganizationMembership extends Organization {
 
     List<String> getRoles();
 
     void setRoles(List<String> roles);
 
-    OrganizationPresenter withRoles(List<String> roles);
+    OrganizationMembership withRoles(List<String> roles);
 }

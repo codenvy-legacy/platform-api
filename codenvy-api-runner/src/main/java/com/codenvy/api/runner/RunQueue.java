@@ -41,8 +41,10 @@ import com.codenvy.api.runner.internal.dto.DebugMode;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerState;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.websockets.WSConnectionContext;
@@ -222,7 +224,10 @@ public class RunQueue {
         } else {
             final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
             if (zipballLink != null) {
-                request.setDeploymentSourcesUrl(zipballLink.getHref());
+                final String zipballLinkHref = zipballLink.getHref();
+                final String token = getAuthenticationToken();
+                request.setDeploymentSourcesUrl(
+                        token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
             }
             callable = createTaskFor(null, request);
         }
@@ -490,7 +495,7 @@ public class RunQueue {
      *         RunnerServiceRegistration
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws com.codenvy.api.runner.RunnerException
+     * @throws RunnerException
      *         if other type of error occurs
      */
     public boolean registerRunnerService(RunnerServiceRegistration registration) throws RunnerException {
@@ -532,7 +537,7 @@ public class RunQueue {
      *         RunnerServiceLocation
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws com.codenvy.api.runner.RunnerException
+     * @throws RunnerException
      *         if other type of error occurs
      */
     public boolean unregisterRunnerService(RunnerServiceLocation location) throws RunnerException {
@@ -587,6 +592,79 @@ public class RunQueue {
         LOG.debug("Use slave runner {} at {}", runner.getName(), runner.getBaseUrl());
         return runner;
     }
+
+//    private class WebSocketEventBusProvider {
+//        private final String                                  channel          = "runner:internal:eventbus";
+//        private final MessageConverter                        messageConverter = new JsonMessageConverter();
+//        private final ConcurrentMap<String, Future<WSClient>> busMap           = new ConcurrentHashMap<>();
+//
+//        WSClient openEventBus(final String remoteRunnerBaseUrl) throws IOException, InterruptedException {
+//            Future<WSClient> busFuture = busMap.get(remoteRunnerBaseUrl);
+//            if (busFuture == null) {
+//                LOG.debug("Not found EventBus for '{}'. Create new one. ", remoteRunnerBaseUrl);
+//                FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
+//                    @Override
+//                    public WSClient call() throws IOException, MessageConversionException {
+//                        final UriBuilder uriBuilder = UriBuilder.fromUri(remoteRunnerBaseUrl);
+//                        uriBuilder.scheme("ws").replacePath("/api/ws/");
+//                        WSClient bus = new WSClient(uriBuilder.build(), new BaseClientMessageListener() {
+//                            @Override
+//                            public void onClose(int status, String message) {
+//                                busMap.remove(remoteRunnerBaseUrl);
+//                            }
+//
+//                            @Override
+//                            public void onMessage(String data) {
+//                                CallbackEvent event = null;
+//                                try {
+//                                    final String body = messageConverter.fromString(data, RESTfulOutputMessage.class).getBody();
+//                                    event = DtoFactory.getInstance().createDtoFromJson(body, CallbackEvent.class);
+//                                } catch (Exception e) {
+//                                    LOG.error(e.getMessage(), e);
+//                                }
+//                                if (event != null) {
+//                                    for (RunnerCallbackListener listener : callbackListeners) {
+//                                        try {
+//                                            listener.handleEvent(event);
+//                                        } catch (Throwable e) {
+//                                            LOG.error(e.getMessage(), e);
+//                                        }
+//                                    }
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void onOpen(WSClient client) {
+//                                LOG.debug("EventBus for '{}' is created. ", remoteRunnerBaseUrl);
+//                            }
+//                        });
+//                        bus.connect(2000);
+//                        bus.send(messageConverter.toString(
+//                                RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel)));
+//                        return bus;
+//                    }
+//                });
+//                busFuture = busMap.putIfAbsent(remoteRunnerBaseUrl, newFuture);
+//                if (busFuture == null) {
+//                    busFuture = newFuture;
+//                    newFuture.run();
+//                }
+//            }
+//            try {
+//                return busFuture.get();
+//            } catch (ExecutionException e) {
+//                final Throwable cause = e.getCause();
+//                if (cause instanceof Error) {
+//                    throw (Error)cause;
+//                } else if (cause instanceof RuntimeException) {
+//                    throw (RuntimeException)cause;
+//                } else if (cause instanceof IOException) {
+//                    throw (IOException)cause;
+//                }
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
 
     private static class RunFutureTask extends FutureTask<RemoteRunnerProcess> {
         final Long   id;

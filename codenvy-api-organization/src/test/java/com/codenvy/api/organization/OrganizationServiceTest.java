@@ -31,6 +31,7 @@ import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.organization.shared.dto.OrganizationMembership;
 import com.codenvy.api.organization.shared.dto.Subscription;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.shared.dto.User;
@@ -167,16 +168,16 @@ public class OrganizationServiceTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetCurrentUserOrganizations() throws Exception {
-        when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
+    public void shouldBeAbleToGetMemberships() throws Exception {
+        when(organizationDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(organization));
         when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<Organization> currentOrganizations = (List<Organization>)response.getEntity();
+        List<OrganizationMembership> currentOrganizations = (List<OrganizationMembership>)response.getEntity();
         assertEquals(currentOrganizations.size(), 1);
-
+        assertEquals(currentOrganizations.get(0).getRoles().get(0), "organization/owner");
         verify(organizationDao, times(1)).getByOwner(USER_ID);
         verify(organizationDao, times(1)).getByMember(USER_ID);
     }
@@ -275,19 +276,6 @@ public class OrganizationServiceTest {
     }
 
     @Test
-    public void shouldNotBeAbleToUpdateOrganizationWithNewOwnerWhoAlreadyOwningAnyOrganization() throws Exception {
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
-        when(organizationDao.getByOwner("NEW_OWNER")).thenReturn(DtoFactory.getInstance().createDto(Organization.class).withId("OTHER_ID"));
-
-        prepareSecurityContext("user");
-
-        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class).withOwner("NEW_OWNER");
-        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
-        assertNotEquals(response.getStatus(), Response.Status.OK);
-        assertEquals(response.getEntity().toString(), "Organization which owner is NEW_OWNER already exists");
-    }
-
-    @Test
     public void shouldBeAbleToGetOrganizationByName() throws Exception {
         when(organizationDao.getByName(ORGANIZATION_NAME)).thenReturn(organization);
 
@@ -337,7 +325,8 @@ public class OrganizationServiceTest {
     public void shouldNotBeAbleToGetSubscriptionsFromOrganizationWhereCurrentUserIsNotMember() throws Exception {
         when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
         when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
-        when(organizationDao.getByOwner(USER_ID)).thenReturn(DtoFactory.getInstance().createDto(Organization.class).withId("NOT_SAME"));
+        when(organizationDao.getByOwner(USER_ID))
+                .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Organization.class).withId("NOT_SAME")));
 
         prepareSecurityContext("user");
 
@@ -386,30 +375,6 @@ public class OrganizationServiceTest {
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
         verify(organizationDao, times(1)).removeSubscription(SUBSCRIPTION_ID);
         verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetMembersOfCurrentOrganization() throws Exception {
-        when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
-        when(organizationDao.getMembers(organization.getId()))
-                .thenReturn(Arrays.asList(
-                        DtoFactory.getInstance().createDto(Member.class).withRoles(Collections.EMPTY_LIST).withUserId(USER_ID)
-                                  .withOrganizationId(organization.getId())));
-
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/members", null, null);
-
-        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        verify(organizationDao, times(1)).getMembers(organization.getId());
-        List<Member> members = (List<Member>)response.getEntity();
-        assertEquals(members.size(), 1);
-        Member member = members.get(0);
-        assertEquals(member.getLinks().size(), 1);
-        Link removeMember = members.get(0).getLinks().get(0);
-        assertEquals(removeMember, DtoFactory.getInstance().createDto(Link.class)
-                                             .withRel(Constants.LINK_REL_REMOVE_MEMBER)
-                                             .withHref(SERVICE_PATH + "/" + member.getOrganizationId() + "/members/" + member.getUserId())
-                                             .withMethod("DELETE"));
     }
 
     @Test
@@ -493,7 +458,6 @@ public class OrganizationServiceTest {
             case "system/admin":
                 rels.add(Constants.LINK_REL_REMOVE_ORGANIZATION);
             case "system/manager":
-                rels.add(Constants.LINK_REL_GET_MEMBERS);
                 rels.add(Constants.LINK_REL_GET_ORGANIZATION_BY_NAME);
                 rels.add(Constants.LINK_REL_GET_ORGANIZATION_BY_ID);
                 break;

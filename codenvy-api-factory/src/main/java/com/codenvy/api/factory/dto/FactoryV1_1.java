@@ -182,7 +182,7 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     /**
      * @return path to the image
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "image", deprecatedSince = V1_1)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "image", ignoredSince = V1_1)
     @Deprecated
     String getImage();
 

@@ -36,8 +36,10 @@ import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.websockets.WSConnectionContext;
@@ -350,7 +352,10 @@ public class BuildQueue {
         request.setProjectUrl(descriptor.getBaseUrl());
         final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
         if (zipballLink != null) {
-            request.setSourcesUrl(zipballLink.getHref());
+            final String zipballLinkHref = zipballLink.getHref();
+            final String token = getAuthenticationToken();
+            request.setSourcesUrl(
+                    token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
         }
         if (request.getTargets().isEmpty()) {
             final List<String> targetsAttr = projectAttributes.get(Constants.BUILDER_TARGETS.replace("${builder}", builder));
@@ -442,6 +447,14 @@ public class BuildQueue {
     private long getBuildTimeout(BaseBuilderRequest request) throws BuilderException {
         // TODO: calculate in different way for different workspace/project.
         return timeout;
+    }
+
+    private String getAuthenticationToken() {
+        User user = EnvironmentContext.getCurrent().getUser();
+        if (user != null) {
+            return user.getToken();
+        }
+        return null;
     }
 
     private void purgeExpiredTasks() {

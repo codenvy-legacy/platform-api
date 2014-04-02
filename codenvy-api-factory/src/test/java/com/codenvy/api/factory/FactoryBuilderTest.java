@@ -235,12 +235,9 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToConvertToLatest() throws FactoryUrlException {
-        ((FactoryV1_1)actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname")).withValiduntil(123456)
-                                                                                                               .withValidsince(123456789);
+        actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname");
 
-        expected.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(actual.getValidsince())
-                                           .withValiduntil(actual.getValiduntil())).withProjectattributes(
-                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
+        expected.withProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
                 .withCommitid(actual.getIdcommit()).withV("1.2");
 
         assertEquals(factoryBuilder.convertToLatest(actual), expected);
@@ -288,8 +285,6 @@ public class FactoryBuilderTest {
                 {"1.0", "setWelcome", DtoFactory.getInstance().createDto(WelcomePage.class), WelcomePage.class, ENCODED},
                 {"1.1", "setWelcome", DtoFactory.getInstance().createDto(WelcomePage.class), WelcomePage.class, NONENCODED},
                 {"1.0", "setImage", "smth", String.class, ENCODED},
-                {"1.1", "setImage", "smth", String.class, ENCODED},
-                {"1.2", "setImage", "smth", String.class, ENCODED},
                 {"1.0", "setRestriction", DtoFactory.getInstance().createDto(Restriction.class), Restriction.class, ENCODED},
                 {"1.1", "setRestriction", DtoFactory.getInstance().createDto(Restriction.class), Restriction.class, ENCODED},
                 {"1.0", "setGit", DtoFactory.getInstance().createDto(Git.class), Git.class, ENCODED},

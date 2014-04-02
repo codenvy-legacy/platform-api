@@ -71,10 +71,10 @@ public interface OrganizationDao {
      *
      * @param owner
      *         owner id
-     * @return organization POJO, or <code>null</code> if nothing is found
+     * @return organization POJO, or empty list if nothing is found
      * @throws com.codenvy.api.organization.server.exception.OrganizationException
      */
-    Organization getByOwner(String owner) throws OrganizationException;
+    List<Organization> getByOwner(String owner) throws OrganizationException;
 
     /**
      * Updates already present in persistent level organization

@@ -277,9 +277,12 @@ public class RunQueue {
                                     throw new RunnerException("Unable start application. Application build is successful but there " +
                                                               "is no URL for download result of build.");
                                 }
+                                final String downloadLinkHref = downloadLink.getHref();
+                                final String token = getAuthenticationToken();
+                                request.withDeploymentSourcesUrl(
+                                        token != null ? String.format("%s?token=%s", downloadLinkHref, token) : downloadLinkHref);
                                 final long lifetime = getApplicationLifetime(request);
-                                return getRunner(request)
-                                        .run(request.withDeploymentSourcesUrl(downloadLink.getHref()).withLifetime(lifetime));
+                                return getRunner(request).run(request.withLifetime(lifetime));
                             case CANCELLED:
                             case FAILED:
                                 String msg = "Unable start application. Build of application is failed or cancelled.";
@@ -593,78 +596,13 @@ public class RunQueue {
         return runner;
     }
 
-//    private class WebSocketEventBusProvider {
-//        private final String                                  channel          = "runner:internal:eventbus";
-//        private final MessageConverter                        messageConverter = new JsonMessageConverter();
-//        private final ConcurrentMap<String, Future<WSClient>> busMap           = new ConcurrentHashMap<>();
-//
-//        WSClient openEventBus(final String remoteRunnerBaseUrl) throws IOException, InterruptedException {
-//            Future<WSClient> busFuture = busMap.get(remoteRunnerBaseUrl);
-//            if (busFuture == null) {
-//                LOG.debug("Not found EventBus for '{}'. Create new one. ", remoteRunnerBaseUrl);
-//                FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
-//                    @Override
-//                    public WSClient call() throws IOException, MessageConversionException {
-//                        final UriBuilder uriBuilder = UriBuilder.fromUri(remoteRunnerBaseUrl);
-//                        uriBuilder.scheme("ws").replacePath("/api/ws/");
-//                        WSClient bus = new WSClient(uriBuilder.build(), new BaseClientMessageListener() {
-//                            @Override
-//                            public void onClose(int status, String message) {
-//                                busMap.remove(remoteRunnerBaseUrl);
-//                            }
-//
-//                            @Override
-//                            public void onMessage(String data) {
-//                                CallbackEvent event = null;
-//                                try {
-//                                    final String body = messageConverter.fromString(data, RESTfulOutputMessage.class).getBody();
-//                                    event = DtoFactory.getInstance().createDtoFromJson(body, CallbackEvent.class);
-//                                } catch (Exception e) {
-//                                    LOG.error(e.getMessage(), e);
-//                                }
-//                                if (event != null) {
-//                                    for (RunnerCallbackListener listener : callbackListeners) {
-//                                        try {
-//                                            listener.handleEvent(event);
-//                                        } catch (Throwable e) {
-//                                            LOG.error(e.getMessage(), e);
-//                                        }
-//                                    }
-//                                }
-//                            }
-//
-//                            @Override
-//                            public void onOpen(WSClient client) {
-//                                LOG.debug("EventBus for '{}' is created. ", remoteRunnerBaseUrl);
-//                            }
-//                        });
-//                        bus.connect(2000);
-//                        bus.send(messageConverter.toString(
-//                                RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel)));
-//                        return bus;
-//                    }
-//                });
-//                busFuture = busMap.putIfAbsent(remoteRunnerBaseUrl, newFuture);
-//                if (busFuture == null) {
-//                    busFuture = newFuture;
-//                    newFuture.run();
-//                }
-//            }
-//            try {
-//                return busFuture.get();
-//            } catch (ExecutionException e) {
-//                final Throwable cause = e.getCause();
-//                if (cause instanceof Error) {
-//                    throw (Error)cause;
-//                } else if (cause instanceof RuntimeException) {
-//                    throw (RuntimeException)cause;
-//                } else if (cause instanceof IOException) {
-//                    throw (IOException)cause;
-//                }
-//                throw new RuntimeException(e);
-//            }
-//        }
-//    }
+    private String getAuthenticationToken() {
+        User user = EnvironmentContext.getCurrent().getUser();
+        if (user != null) {
+            return user.getToken();
+        }
+        return null;
+    }
 
     private static class RunFutureTask extends FutureTask<RemoteRunnerProcess> {
         final Long   id;

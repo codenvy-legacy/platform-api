@@ -18,6 +18,8 @@
 package com.codenvy.api.workspace.server;
 
 
+import sun.print.resources.serviceui;
+
 import com.codenvy.api.organization.server.dao.OrganizationDao;
 import com.codenvy.api.organization.server.exception.OrganizationException;
 import com.codenvy.api.organization.shared.dto.Organization;
@@ -37,7 +39,6 @@ import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.server.exception.UserProfileException;
-import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
@@ -45,6 +46,7 @@ import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.server.exception.WorkspaceNotFoundException;
 import com.codenvy.api.workspace.shared.dto.Membership;
+import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.api.workspace.shared.dto.WorkspaceRef;
@@ -72,6 +74,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -166,7 +169,7 @@ public class WorkspaceService extends Service {
                 Profile profile = DtoFactory.getInstance().createDto(Profile.class);
                 profile.setId(user.getId());
                 profile.setUserId(user.getId());
-                profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(com.codenvy.api.user.shared.dto.Attribute.class)
                                                               .withName("temporary")
                                                               .withValue(String.valueOf(true))
                                                               .withDescription("Indicates user as temporary")));
@@ -374,6 +377,51 @@ public class WorkspaceService extends Service {
         return members;
     }
 
+    //TODO create test
+    @POST
+    @Path("{id}/attribute")
+    @GenerateLink(rel = Constants.LINK_REL_ADD_ATTRIBUTE)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public void addAttribute(@PathParam("id") String wsId, @Required @Description("New attribute") Attribute newAttribute,
+                             @Context SecurityContext securityContext)
+            throws WorkspaceException, MembershipException, UserException {
+        final Workspace workspace = workspaceDao.getById(wsId);
+        if (workspace == null) {
+            throw new WorkspaceNotFoundException(wsId);
+        }
+        if (newAttribute == null) {
+            throw new WorkspaceException("Attribute required");
+        }
+        ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
+        List<Attribute> attributes = workspace.getAttributes();
+        removeAttribute(attributes, newAttribute.getName());
+        attributes.add(newAttribute);
+        workspaceDao.update(workspace);
+    }
+
+    //TODO create test
+    @DELETE
+    @Path("{id}/attribute")
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTE)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public void removeAttribute(@PathParam("id") String wsId,
+                                @Required @Description("The name of attribute that should be removed") String attributeName,
+                                @Context SecurityContext securityContext)
+            throws WorkspaceException, MembershipException, UserException {
+        final Workspace workspace = workspaceDao.getById(wsId);
+        if (workspace == null) {
+            throw new WorkspaceNotFoundException(wsId);
+        }
+        if (attributeName == null) {
+            throw new WorkspaceException("Attribute name required");
+        }
+        ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
+        List<Attribute> attributes = workspace.getAttributes();
+        removeAttribute(attributes, attributeName);
+        workspaceDao.update(workspace);
+    }
+
     @POST
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_WORKSPACE_MEMBER)
@@ -434,6 +482,16 @@ public class WorkspaceService extends Service {
             memberDao.remove(member);
         }
         workspaceDao.remove(wsId);
+    }
+
+    private void removeAttribute(List<Attribute> src, String attributeName) {
+        for (Iterator<Attribute> it = src.iterator(); it.hasNext(); ) {
+            Attribute current = it.next();
+            if (current.getName().equals(attributeName)) {
+                it.remove();
+                break;
+            }
+        }
     }
 
     private void injectLinks(Workspace workspace, SecurityContext securityContext) {

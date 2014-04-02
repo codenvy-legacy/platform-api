@@ -24,9 +24,9 @@ import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderList;
+import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.dto.InstanceState;
-import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -83,7 +83,7 @@ public final class SlaveBuilderService extends Service {
     @GET
     @Path("state")
     @Produces(MediaType.APPLICATION_JSON)
-    public SlaveBuilderState getBuilderState(@Required
+    public BuilderState getBuilderState(@Required
                                              @Description("Name of the builder")
                                              @QueryParam("builder") String builder) throws Exception {
         final Builder myBuilder = getBuilder(builder);
@@ -91,7 +91,7 @@ public final class SlaveBuilderService extends Service {
                                                       .withCpuPercentUsage(SystemInfo.cpu())
                                                       .withTotalMemory(SystemInfo.totalMemory())
                                                       .withFreeMemory(SystemInfo.freeMemory());
-        return DtoFactory.getInstance().createDto(SlaveBuilderState.class)
+        return DtoFactory.getInstance().createDto(BuilderState.class)
                          .withName(myBuilder.getName())
                          .withNumberOfWorkers(myBuilder.getNumberOfWorkers())
                          .withNumberOfActiveWorkers(myBuilder.getNumberOfActiveWorkers())

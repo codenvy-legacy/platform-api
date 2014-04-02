@@ -26,8 +26,8 @@ import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
+import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
@@ -679,7 +679,7 @@ public class BuildQueue {
                     if (Thread.currentThread().isInterrupted()) {
                         return null; // stop immediately
                     }
-                    SlaveBuilderState builderState;
+                    BuilderState builderState;
                     try {
                         builderState = builder.getBuilderState();
                     } catch (Exception e) {

@@ -22,8 +22,8 @@ import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
+import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -161,13 +161,13 @@ public class RemoteBuilder {
      * @throws BuilderException
      *         if an error occurs
      */
-    public SlaveBuilderState getBuilderState() throws BuilderException {
+    public BuilderState getBuilderState() throws BuilderException {
         final Link stateLink = getLink(Constants.LINK_REL_BUILDER_STATE);
         if (stateLink == null) {
             throw new BuilderException("Unable get URL for getting state of a remote builder");
         }
         try {
-            return HttpJsonHelper.request(SlaveBuilderState.class, stateLink, Pair.of("builder", name));
+            return HttpJsonHelper.request(BuilderState.class, stateLink, Pair.of("builder", name));
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (RemoteException e) {

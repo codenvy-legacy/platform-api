@@ -15,28 +15,32 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.dto;
+package com.codenvy.api.runner.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes current state of Builder.
+ * Describes state of computer.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
-public interface BuilderState {
-    /** Get total number of tasks of Builder. */
-    int getTotalNum();
+public interface InstanceState {
+    int getCpuPercentUsage();
 
-    BuilderState withTotalNum(int totalNum);
+    InstanceState withCpuPercentUsage(int cpuPercentUsage);
 
-    void setTotalNum(int totalNum);
+    void setCpuPercentUsage(int cpuPercentUsage);
 
-    /** Get number of waiting tasks of Builder. */
-    int getWaitingNum();
+    long getTotalMemory();
 
-    BuilderState withWaitingNum(int waitingNum);
+    InstanceState withTotalMemory(long totalMemory);
 
-    void setWaitingNum(int waitingNum);
+    void setTotalMemory(long totalMemory);
+
+    long getFreeMemory();
+
+    InstanceState withFreeMemory(long freeMemory);
+
+    void setFreeMemory(long freeMemory);
 }

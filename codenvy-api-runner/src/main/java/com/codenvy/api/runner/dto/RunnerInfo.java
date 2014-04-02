@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
@@ -15,32 +15,42 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes state of computer.
- *
  * @author andrew00x
  */
 @DTO
-public interface InstanceState {
+public interface RunnerInfo {
+    boolean isDedicated();
+
+    void setDedicated(boolean dedicated);
+
+    RunnerInfo withDedicated(boolean dedicated);
+
+    String getWorkspace();
+
+    RunnerInfo withWorkspace(String workspace);
+
+    void setWorkspace(String workspace);
+
     int getCpuPercentUsage();
 
-    InstanceState withCpuPercentUsage(int cpuPercentUsage);
+    RunnerInfo withCpuPercentUsage(int cpuPercentUsage);
 
     void setCpuPercentUsage(int cpuPercentUsage);
 
     long getTotalMemory();
 
-    InstanceState withTotalMemory(long totalMemory);
+    RunnerInfo withTotalMemory(long totalMemory);
 
     void setTotalMemory(long totalMemory);
 
     long getFreeMemory();
 
-    InstanceState withFreeMemory(long freeMemory);
+    RunnerInfo withFreeMemory(long freeMemory);
 
     void setFreeMemory(long freeMemory);
 }

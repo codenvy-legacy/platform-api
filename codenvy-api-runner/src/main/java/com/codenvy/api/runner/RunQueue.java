@@ -441,7 +441,7 @@ public class RunQueue {
                         }
                     }
                     if (error != null) {
-                        eventService.publish(new RunnerEvent(RunnerEvent.EventType.ERROR, runFutureTask.id, runFutureTask.workspace,
+                        eventService.publish(new RunnerEvent(RunnerEvent.EventType.ERROR, null, runFutureTask.id, runFutureTask.workspace,
                                                              runFutureTask.project));
                     }
                 }
@@ -490,6 +490,8 @@ public class RunQueue {
     protected EventService getEventService() {
         return eventService;
     }
+
+//    public
 
     /**
      * Register remote SlaveRunnerService which can process run application.
@@ -713,7 +715,7 @@ public class RunQueue {
                         }
                         continue;
                     }
-                    if (runnerState.getFreeMemory() >= request.getMemorySize()) {
+                    if (runnerState.getInstanceState().getFreeMemory() >= request.getMemorySize()) {
                         available.add(runner);
                     }
                 }

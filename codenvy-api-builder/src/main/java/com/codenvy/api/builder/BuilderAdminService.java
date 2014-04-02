@@ -19,17 +19,14 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuilderServiceLocation;
 import com.codenvy.api.builder.dto.BuilderServiceRegistration;
-import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -47,16 +44,6 @@ import javax.ws.rs.core.Response;
 public class BuilderAdminService extends Service {
     @Inject
     private BuildQueue buildQueue;
-
-    @GenerateLink(rel = Constants.LINK_REL_QUEUE_STATE)
-    @GET
-    @Path("state")
-    @Produces(MediaType.APPLICATION_JSON)
-    public BuilderState state() {
-        return DtoFactory.getInstance().createDto(BuilderState.class)
-                         .withTotalNum(buildQueue.getTotalNum())
-                         .withWaitingNum(buildQueue.getWaitingNum());
-    }
 
     @GenerateLink(rel = Constants.LINK_REL_REGISTER_BUILDER_SERVICE)
     @POST

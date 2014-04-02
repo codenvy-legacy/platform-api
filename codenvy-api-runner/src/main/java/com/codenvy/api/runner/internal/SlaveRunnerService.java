@@ -28,6 +28,7 @@ import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.NoSuchRunnerException;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.runner.internal.dto.InstanceState;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerList;
@@ -63,6 +64,9 @@ public class SlaveRunnerService extends Service {
 
     @Inject
     private ResourceAllocators allocators;
+
+    @Inject
+    private RunnerStats runnerStats;
 
     /** Get list of available Runners which can be accessible over this SlaveRunnerService. */
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)
@@ -128,10 +132,23 @@ public class SlaveRunnerService extends Service {
                                       @Description("Name of the runner")
                                       @QueryParam("runner") String runner) throws Exception {
         final Runner myRunner = getRunner(runner);
+        final InstanceState instanceState = DtoFactory.getInstance().createDto(InstanceState.class)
+                                                      .withCpuPercentUsage(SystemInfo.cpu())
+                                                      .withTotalMemory(allocators.totalMemory())
+                                                      .withFreeMemory(allocators.freeMemory());
         return DtoFactory.getInstance().createDto(RunnerState.class)
                          .withName(myRunner.getName())
                          .withRunningAppsNum(myRunner.getRunningAppsNum())
                          .withTotalAppsNum(myRunner.getTotalAppsNum())
+                         .withInstanceState(instanceState);
+    }
+
+    @GenerateLink(rel = Constants.LINK_REL_INSTANCE_STATE)
+    @GET
+    @Path("instance-state")
+    @Produces(MediaType.APPLICATION_JSON)
+    public InstanceState getInstanceState() {
+        return DtoFactory.getInstance().createDto(InstanceState.class)
                          .withCpuPercentUsage(SystemInfo.cpu())
                          .withTotalMemory(allocators.totalMemory())
                          .withFreeMemory(allocators.freeMemory());

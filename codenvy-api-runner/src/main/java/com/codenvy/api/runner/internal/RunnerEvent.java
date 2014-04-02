@@ -46,21 +46,23 @@ public class RunnerEvent {
     }
 
     private EventType type;
+    private String    runner;
     private long      taskId;
     private String    workspace;
     private String    project;
     private String    errorMessage;
 
-    public RunnerEvent(EventType type, long taskId, String workspace, String project, String errorMessage) {
+    public RunnerEvent(EventType type, String runner, long taskId, String workspace, String project, String errorMessage) {
         this.type = type;
+        this.runner = runner;
         this.taskId = taskId;
         this.workspace = workspace;
         this.project = project;
         this.errorMessage = errorMessage;
     }
 
-    public RunnerEvent(EventType type, long taskId, String workspace, String project) {
-        this(type, taskId, workspace, project, null);
+    public RunnerEvent(EventType type, String runner, long taskId, String workspace, String project) {
+        this(type, runner, taskId, workspace, project, null);
     }
 
     public RunnerEvent() {
@@ -72,6 +74,14 @@ public class RunnerEvent {
 
     public void setType(EventType type) {
         this.type = type;
+    }
+
+    public String getRunner() {
+        return runner;
+    }
+
+    public void setRunner(String runner) {
+        this.runner = runner;
     }
 
     public long getTaskId() {
@@ -110,6 +120,7 @@ public class RunnerEvent {
     public String toString() {
         return "RunnerEvent{" +
                "type=" + type +
+               ", runner='" + runner + '\'' +
                ", taskId=" + taskId +
                ", workspace='" + workspace + '\'' +
                ", project='" + project + '\'' +

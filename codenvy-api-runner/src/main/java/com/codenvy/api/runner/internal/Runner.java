@@ -243,19 +243,21 @@ public abstract class Runner {
             @Override
             public void started(RunnerProcess process) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                notify(new RunnerEvent(EventType.STARTED, runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject()));
+                notify(new RunnerEvent(EventType.STARTED, getName(), runRequest.getId(), runRequest.getWorkspace(),
+                                       runRequest.getProject()));
             }
 
             @Override
             public void stopped(RunnerProcess process) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                notify(new RunnerEvent(EventType.STOPPED, runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject()));
+                notify(new RunnerEvent(EventType.STOPPED, getName(), runRequest.getId(), runRequest.getWorkspace(),
+                                       runRequest.getProject()));
             }
 
             @Override
             public void error(RunnerProcess process, Throwable t) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                notify(new RunnerEvent(EventType.ERROR, runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject(),
+                notify(new RunnerEvent(EventType.ERROR, getName(), runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject(),
                                        t.getMessage()));
             }
 

@@ -40,8 +40,10 @@ import com.codenvy.api.runner.internal.dto.DebugMode;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerState;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
@@ -219,7 +221,10 @@ public class RunQueue {
         } else {
             final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
             if (zipballLink != null) {
-                request.setDeploymentSourcesUrl(zipballLink.getHref());
+                final String zipballLinkHref = zipballLink.getHref();
+                final String token = getAuthenticationToken();
+                request.setDeploymentSourcesUrl(
+                        token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
             }
             callable = createTaskFor(null, request);
         }
@@ -269,9 +274,13 @@ public class RunQueue {
                                     throw new RunnerException("Unable start application. Application build is successful but there " +
                                                               "is no URL for download result of build.");
                                 }
+                                final String downloadLinkHref = downloadLink.getHref();
+                                final String token = getAuthenticationToken();
+                                request.withDeploymentSourcesUrl(
+                                        token != null ? String.format("%s?token=%s", downloadLinkHref, token) : downloadLinkHref);
                                 final long lifetime = getApplicationLifetime(request);
                                 return getRunner(request)
-                                        .run(request.withDeploymentSourcesUrl(downloadLink.getHref()).withLifetime(lifetime));
+                                        .run(request.withLifetime(lifetime));
                             case CANCELLED:
                             case FAILED:
                                 String msg = "Unable start application. Build of application is failed or cancelled.";
@@ -641,6 +650,14 @@ public class RunQueue {
 //            }
 //        }
 //    }
+
+    private String getAuthenticationToken() {
+        User user = EnvironmentContext.getCurrent().getUser();
+        if (user != null) {
+            return user.getToken();
+        }
+        return null;
+    }
 
     private static class RunFutureTask extends FutureTask<RemoteRunnerProcess> {
         final Long   id;

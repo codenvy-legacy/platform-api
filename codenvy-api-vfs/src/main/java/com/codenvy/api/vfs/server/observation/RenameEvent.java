@@ -17,9 +17,12 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
+import com.codenvy.api.core.notification.EventOrigin;
+
 /**
  * @author andrew00x
  */
+@EventOrigin("vfs")
 public class RenameEvent extends VirtualFileEvent {
     private String oldPath;
 

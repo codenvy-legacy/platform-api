@@ -17,9 +17,12 @@
  */
 package com.codenvy.api.runner.internal;
 
+import com.codenvy.api.core.notification.EventOrigin;
+
 /**
  * @author andrew00x
  */
+@EventOrigin("runner")
 public class RunnerEvent {
     public enum EventType {
         STARTED("started"),

@@ -20,6 +20,6 @@ package com.codenvy.api.core.notification;
 /**
  * @author andrew00x
  */
-public interface EventPropagatePolicy {
-    boolean isPropagated(Object event);
+public interface EventPropagationPolicy {
+    boolean shouldPropagated(Object event);
 }

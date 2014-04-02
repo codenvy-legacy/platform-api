@@ -66,8 +66,9 @@ public final class WSocketEventBusClient extends WSocketEventBus {
 
     @Inject
     WSocketEventBusClient(EventService eventService,
-                          @Nullable @Named("notification.remote_event_service") String[] remoteEventServices) {
-        super(eventService);
+                          @Nullable @Named("notification.event_bus_urls") String[] remoteEventServices,
+                          @Nullable EventPropagationPolicy policy) {
+        super(eventService, policy);
         this.eventService = eventService;
         this.remoteEventServices = remoteEventServices;
         messageConverter = new JsonMessageConverter();

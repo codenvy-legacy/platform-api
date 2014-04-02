@@ -17,9 +17,12 @@
  */
 package com.codenvy.api.vfs.server.observation;
 
+import com.codenvy.api.core.notification.EventOrigin;
+
 /**
  * @author andrew00x
  */
+@EventOrigin("vfs")
 public class UpdatePropertiesEvent extends VirtualFileEvent {
     public UpdatePropertiesEvent(String workspaceId, String path) {
         super(workspaceId, path, ChangeType.PROPERTIES_UPDATED);

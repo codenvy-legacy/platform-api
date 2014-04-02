@@ -21,6 +21,7 @@ import org.everrest.websockets.WSConnectionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -32,15 +33,15 @@ import javax.ws.rs.core.MediaType;
  * @author andrew00x
  */
 @Singleton
-@Path("event-service")
+@Path("event-bus")
 public final class WSocketEventBusServer extends WSocketEventBus {
     private static final Logger LOG = LoggerFactory.getLogger(WSocketEventBusServer.class);
 
     private final EventService eventService;
 
     @Inject
-    WSocketEventBusServer(EventService eventService) {
-        super(eventService);
+    WSocketEventBusServer(EventService eventService, @Nullable EventPropagationPolicy policy) {
+        super(eventService, policy);
         this.eventService = eventService;
     }
 

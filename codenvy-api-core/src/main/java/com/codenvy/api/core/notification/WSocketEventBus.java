@@ -19,33 +19,27 @@ package com.codenvy.api.core.notification;
 
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import java.util.Set;
 
 /**
  * @author andrew00x
  */
 public abstract class WSocketEventBus {
-    private final EventService eventService;
+    private final EventService           eventService;
+    private final EventPropagationPolicy policy;
 
-    @Inject
-    @Nullable
-    private Set<EventPropagatePolicy> propagatePolicies;
-
-    protected WSocketEventBus(EventService eventService) {
+    protected WSocketEventBus(EventService eventService, @Nullable EventPropagationPolicy policy) {
         this.eventService = eventService;
+        this.policy = policy;
     }
 
     @PostConstruct
     void start() {
-        if (!(propagatePolicies == null || propagatePolicies.isEmpty())) {
+        if (!(policy == null)) {
             eventService.subscribe(new EventSubscriber<Object>() {
                 @Override
                 public void onEvent(Object event) {
-                    for (EventPropagatePolicy policy : propagatePolicies) {
-                        if (policy.isPropagated(event)) {
-                            propagate(event);
-                        }
+                    if (policy.shouldPropagated(event)) {
+                        propagate(event);
                     }
                 }
             });

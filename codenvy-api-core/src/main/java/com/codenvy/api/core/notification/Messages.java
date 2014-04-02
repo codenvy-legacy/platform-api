@@ -46,7 +46,7 @@ class Messages {
         message.setHeaders(new org.everrest.websockets.message.Pair[]{
                 new org.everrest.websockets.message.Pair("Content-type", "application/json")});
         message.setUuid(NameGenerator.generate(null, 8));
-        message.setPath("/event-service");
+        message.setPath("/event-bus");
         return message;
     }
 

@@ -17,9 +17,12 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.core.notification.EventOrigin;
+
 /**
  * @author andrew00x
  */
+@EventOrigin("builder")
 public class BuildDoneEvent {
     private long   taskId;
     private String workspace;

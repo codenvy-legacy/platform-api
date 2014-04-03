@@ -277,7 +277,7 @@ public class RunQueue {
                                 final String downloadLinkHref = downloadLink.getHref();
                                 final String token = getAuthenticationToken();
                                 request.withDeploymentSourcesUrl(
-                                        token != null ? String.format("%s?token=%s", downloadLinkHref, token) : downloadLinkHref);
+                                        token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
                                 final long lifetime = getApplicationLifetime(request);
                                 return getRunner(request)
                                         .run(request.withLifetime(lifetime));

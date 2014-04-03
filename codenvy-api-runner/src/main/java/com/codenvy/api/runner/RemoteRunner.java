@@ -38,7 +38,7 @@ import java.util.List;
  * <pre>
  *     String baseUrl = ...
  *     String runnerName = ...
- *     RemoteRunnerFactory factory = new RemoteRunnerFactory(baseUrl);
+ *     RemoteRunnerService factory = new RemoteRunnerService(null, baseUrl);
  *     RemoteRunner runner = factory.getRemoteRunner(runnerName);
  *     RunRequest request = ...
  *     RemoteRunnerProcess remote = runner.run(request);
@@ -47,7 +47,7 @@ import java.util.List;
  * </pre>
  *
  * @author andrew00x
- * @see com.codenvy.api.runner.RemoteRunnerFactory
+ * @see RemoteRunnerService
  */
 public class RemoteRunner {
     private final String           baseUrl;
@@ -58,7 +58,7 @@ public class RemoteRunner {
 
     private volatile long lastUsage = -1;
 
-    /* Package visibility, not expected to be created by api users. They should use RemoteRunnerFactory to get an instance of RemoteRunner. */
+    /* Package visibility, not expected to be created by api users. They should use RemoteRunnerService to get an instance of RemoteRunner. */
     RemoteRunner(String baseUrl, RunnerDescriptor runnerDescriptor, List<Link> links) {
         this.baseUrl = baseUrl;
         this.name = runnerDescriptor.getName();
@@ -120,7 +120,7 @@ public class RemoteRunner {
             throw new RunnerException(e.getServiceError());
         }
         lastUsage = System.currentTimeMillis();
-        return new RemoteRunnerProcess(baseUrl, getName(), process.getProcessId());
+        return new RemoteRunnerProcess(baseUrl, name, process.getProcessId());
     }
 
     /**
@@ -134,10 +134,10 @@ public class RemoteRunner {
         final Link stateLink = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_STATE);
         if (stateLink == null) {
             throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'",
-                                                    descriptor.getName(), baseUrl));
+                                                    name, baseUrl));
         }
         try {
-            return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", descriptor.getName()));
+            return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (RemoteException e) {

@@ -94,6 +94,7 @@ public class RunQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
+    private final ConcurrentMap<String, RemoteRunnerService>      runnerServices;
     private final RunnerSelectionStrategy                         runnerSelector;
     private final ConcurrentMap<ProjectWithWorkspace, RunnerList> runnerListMapping;
     private final ConcurrentMap<Long, RunQueueTask>               tasks;
@@ -140,6 +141,7 @@ public class RunQueue {
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.appLifetime = appLifetime;
         this.runnerSelector = runnerSelector;
+        runnerServices = new ConcurrentHashMap<>();
         tasks = new ConcurrentHashMap<>();
         runnerListMapping = new ConcurrentHashMap<>();
     }
@@ -491,8 +493,6 @@ public class RunQueue {
         return eventService;
     }
 
-//    public
-
     /**
      * Register remote SlaveRunnerService which can process run application.
      *
@@ -514,11 +514,12 @@ public class RunQueue {
         }
 
         final String url = registration.getRunnerServiceLocation().getUrl();
-        final RemoteRunnerFactory factory = new RemoteRunnerFactory(url);
+        final RemoteRunnerService runnerService = new RemoteRunnerService(workspace, url);
         final List<RemoteRunner> toAdd = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
-            toAdd.add(factory.createRemoteRunner(runnerDescriptor));
+        for (RunnerDescriptor runnerDescriptor : runnerService.getAvailableRunners()) {
+            toAdd.add(runnerService.createRemoteRunner(runnerDescriptor));
         }
+        runnerServices.putIfAbsent(url, runnerService);
         return registerRunners(workspace, project, toAdd);
     }
 
@@ -548,10 +549,13 @@ public class RunQueue {
     public boolean unregisterRunnerService(RunnerServiceLocation location) throws RunnerException {
         checkStarted();
         final String url = location.getUrl();
-        final RemoteRunnerFactory factory = new RemoteRunnerFactory(url);
+        final RemoteRunnerService runnerService = runnerServices.remove(url);
+        if (runnerService == null) {
+            return false;
+        }
         final List<RemoteRunner> toRemove = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : factory.getAvailableRunners()) {
-            toRemove.add(factory.createRemoteRunner(runnerDescriptor));
+        for (RunnerDescriptor runnerDescriptor : runnerService.getAvailableRunners()) {
+            toRemove.add(runnerService.createRemoteRunner(runnerDescriptor));
         }
         return unregisterRunners(toRemove);
     }

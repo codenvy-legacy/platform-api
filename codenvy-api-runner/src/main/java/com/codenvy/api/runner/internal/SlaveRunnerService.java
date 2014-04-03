@@ -162,7 +162,7 @@ public class SlaveRunnerService extends Service {
         return myRunner;
     }
 
-    public ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws RunnerException {
+    private ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws RunnerException {
         final ApplicationStatus status = process.isStopped() ? ApplicationStatus.STOPPED
                                                              : process.isRunning() ? ApplicationStatus.RUNNING : ApplicationStatus.NEW;
         final List<Link> links = new ArrayList<>(3);

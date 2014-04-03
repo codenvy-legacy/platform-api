@@ -21,6 +21,8 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.runner.internal.Constants;
+import com.codenvy.api.runner.internal.dto.InstanceState;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerList;
 
@@ -32,10 +34,21 @@ import java.util.List;
  *
  * @author andrew00x
  */
-public class RemoteRunnerFactory extends RemoteServiceDescriptor {
+public class RemoteRunnerService extends RemoteServiceDescriptor {
 
-    public RemoteRunnerFactory(String baseUrl) {
+    private final String assignedWorkspace;
+
+    public RemoteRunnerService(String assignedWorkspace, String baseUrl) {
         super(baseUrl);
+        this.assignedWorkspace = assignedWorkspace;
+    }
+
+    public String getWorkspaceAssignedFor() {
+        return assignedWorkspace;
+    }
+
+    public boolean isDedicated() {
+        return assignedWorkspace != null;
     }
 
     public RemoteRunner getRemoteRunner(String name) throws RunnerException {
@@ -65,11 +78,25 @@ public class RemoteRunnerFactory extends RemoteServiceDescriptor {
 
     public List<RunnerDescriptor> getAvailableRunners() throws RunnerException {
         try {
-            final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_AVAILABLE_RUNNERS);
+            final Link link = getLink(Constants.LINK_REL_AVAILABLE_RUNNERS);
             if (link == null) {
                 throw new RunnerException("Unable get URL for retrieving list of remote runners");
             }
             return HttpJsonHelper.request(RunnerList.class, link).getRunners();
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (RemoteException e) {
+            throw new RunnerException(e.getServiceError());
+        }
+    }
+
+    public InstanceState getInstanceState() throws RunnerException {
+        try {
+            final Link stateLink = getLink(Constants.LINK_REL_INSTANCE_STATE);
+            if (stateLink == null) {
+                throw new RunnerException(String.format("Unable get URL for getting state of a remote instance '%s'", baseUrl));
+            }
+            return HttpJsonHelper.request(InstanceState.class, stateLink);
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (RemoteException e) {

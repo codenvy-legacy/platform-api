@@ -377,7 +377,6 @@ public class WorkspaceService extends Service {
         return members;
     }
 
-    //TODO create test
     @POST
     @Path("{id}/attribute")
     @GenerateLink(rel = Constants.LINK_REL_ADD_ATTRIBUTE)
@@ -400,13 +399,12 @@ public class WorkspaceService extends Service {
         workspaceDao.update(workspace);
     }
 
-    //TODO create test
     @DELETE
     @Path("{id}/attribute")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTE)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public void removeAttribute(@PathParam("id") String wsId,
-                                @Required @Description("The name of attribute that should be removed") String attributeName,
+                                @Required @Description("The name of attribute") @QueryParam("name") String attributeName,
                                 @Context SecurityContext securityContext)
             throws WorkspaceException, MembershipException, UserException {
         final Workspace workspace = workspaceDao.getById(wsId);

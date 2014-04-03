@@ -31,6 +31,7 @@ import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.user.server.UserProfileService;
 import com.codenvy.api.user.server.UserService;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -372,7 +373,11 @@ public class WorkspaceService extends Service {
         for (Member member : members) {
             Link remove = createLink("DELETE", Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, null, null,
                                      uriBuilder.clone().path(getClass(), "removeMember").build(wsId, member.getUserId()).toString());
-            member.setLinks(Arrays.asList(self, remove));
+            Link profile = createLink("GET", com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null,
+                                      MediaType.APPLICATION_JSON,
+                                      getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
+                                                         .path(UserProfileService.class, "getById").build(member.getUserId()).toString());
+            member.setLinks(Arrays.asList(self, remove, profile));
         }
         return members;
     }

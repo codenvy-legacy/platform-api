@@ -364,7 +364,8 @@ public class WorkspaceServiceTest {
         assertEquals(actualMembers.size(), 1);
         verify(memberDao, times(1)).getWorkspaceMembers(WS_ID);
         verifyLinksRel(actualMembers.get(0).getLinks(),
-                       Arrays.asList(Constants.LINK_REL_GET_WORKSPACE_MEMBERS, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER));
+                       Arrays.asList(Constants.LINK_REL_GET_WORKSPACE_MEMBERS, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
+                                     com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID));
     }
 
 

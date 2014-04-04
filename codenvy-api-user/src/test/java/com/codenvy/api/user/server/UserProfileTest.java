@@ -178,8 +178,11 @@ public class UserProfileTest {
 
     @Test
     public void shouldBeAbleToGETProfileById() throws Exception {
-        Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(USER_ID);
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class)
+                                    .withId(USER_ID)
+                                    .withUserId(USER_ID);
         when(userProfileDao.getById(USER_ID)).thenReturn(profile);
+        when(userDao.getById(USER_ID)).thenReturn(user);
 
         String[] s = getRoles(UserProfileService.class, "getById");
         for (String one : s) {

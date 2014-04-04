@@ -25,6 +25,7 @@ import com.codenvy.api.runner.dto.RunnerServer;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
+import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -83,16 +84,28 @@ public class RunnerAdminService extends Service {
     public List<RunnerServer> getRegisterRunnerService() throws Exception {
         final List<RemoteRunnerServer> runnerServers = runner.getRegisterRunnerServices();
         final List<RunnerServer> result = new LinkedList<>();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (RemoteRunnerServer runnerServer : runnerServers) {
             final ServerState serverState = runnerServer.getServerState();
             final List<Link> adminLinks = new LinkedList<>();
             for (String linkRel : SERVER_LINK_RELS) {
                 final Link link = runnerServer.getLink(linkRel);
                 if (link != null) {
-                    adminLinks.add(link);
+                    if (Constants.LINK_REL_RUNNER_STATE.equals(linkRel)) {
+                        for (RunnerDescriptor runnerImpl : runnerServer.getAvailableRunners()) {
+                            final String href = link.getHref();
+                            final String hrefWithRunner = href + ((href.indexOf('?') > 0 ? '&' : '?') + "runner=" + runnerImpl.getName());
+                            final Link linkCopy = dtoFactory.clone(link);
+                            linkCopy.getParameters().clear();
+                            linkCopy.setHref(hrefWithRunner);
+                            adminLinks.add(linkCopy);
+                        }
+                    } else {
+                        adminLinks.add(link);
+                    }
                 }
             }
-            result.add(DtoFactory.getInstance().createDto(RunnerServer.class)
+            result.add(dtoFactory.createDto(RunnerServer.class)
                                  .withUrl(runnerServer.getBaseUrl())
                                  .withDescription(runnerServer.getServiceDescriptor().getDescription())
                                  .withDedicated(runnerServer.isDedicated())

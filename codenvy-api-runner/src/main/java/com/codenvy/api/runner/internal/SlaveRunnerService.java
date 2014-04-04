@@ -133,15 +133,11 @@ public class SlaveRunnerService extends Service {
                                       @Description("Name of the runner")
                                       @QueryParam("runner") String runner) throws Exception {
         final Runner myRunner = getRunner(runner);
-        final ServerState serverState = DtoFactory.getInstance().createDto(ServerState.class)
-                                                  .withCpuPercentUsage(SystemInfo.cpu())
-                                                  .withTotalMemory(allocators.totalMemory())
-                                                  .withFreeMemory(allocators.freeMemory());
         return DtoFactory.getInstance().createDto(RunnerState.class)
                          .withName(myRunner.getName())
                          .withRunningAppsNum(myRunner.getRunningAppsNum())
                          .withTotalAppsNum(myRunner.getTotalAppsNum())
-                         .withServerState(serverState);
+                         .withServerState(getServerState());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_SERVER_STATE)
@@ -152,7 +148,8 @@ public class SlaveRunnerService extends Service {
         return DtoFactory.getInstance().createDto(ServerState.class)
                          .withCpuPercentUsage(SystemInfo.cpu())
                          .withTotalMemory(allocators.totalMemory())
-                         .withFreeMemory(allocators.freeMemory());
+                         .withFreeMemory(allocators.freeMemory())
+                         .withTotalRunningAppsNum(runnerStats.getRunningAppsNum());
     }
 
     private Runner getRunner(String name) throws NoSuchRunnerException {

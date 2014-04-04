@@ -18,6 +18,7 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.runner.internal.dto.ServerState;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -57,23 +58,11 @@ public interface RunnerServer {
 
     void setProject(String project);
 
-    int getCpuPercentUsage();
+    ServerState getServerState();
 
-    RunnerServer withCpuPercentUsage(int cpuPercentUsage);
+    RunnerServer withServerState(ServerState serverState);
 
-    void setCpuPercentUsage(int cpuPercentUsage);
-
-    long getTotalMemory();
-
-    RunnerServer withTotalMemory(long totalMemory);
-
-    void setTotalMemory(long totalMemory);
-
-    long getFreeMemory();
-
-    RunnerServer withFreeMemory(long freeMemory);
-
-    void setFreeMemory(long freeMemory);
+    void setServerState(ServerState serverState);
 
     List<Link> getLinks();
 

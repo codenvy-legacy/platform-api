@@ -86,7 +86,6 @@ public class RunnerAdminService extends Service {
         final List<RunnerServer> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (RemoteRunnerServer runnerServer : runnerServers) {
-            final ServerState serverState = runnerServer.getServerState();
             final List<Link> adminLinks = new LinkedList<>();
             for (String linkRel : SERVER_LINK_RELS) {
                 final Link link = runnerServer.getLink(linkRel);
@@ -111,12 +110,12 @@ public class RunnerAdminService extends Service {
                                  .withDedicated(runnerServer.isDedicated())
                                  .withWorkspace(runnerServer.getAssignedWorkspace())
                                  .withProject(runnerServer.getAssignedProject())
-                                 .withCpuPercentUsage(serverState.getCpuPercentUsage())
-                                 .withTotalMemory(serverState.getTotalMemory())
-                                 .withFreeMemory(serverState.getFreeMemory())
+                                 .withServerState(runnerServer.getServerState())
                                  .withLinks(adminLinks));
         }
 
         return result;
     }
+
+
 }

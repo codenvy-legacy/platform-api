@@ -43,4 +43,10 @@ public interface ServerState {
     ServerState withFreeMemory(long freeMemory);
 
     void setFreeMemory(long freeMemory);
+
+    int getTotalRunningAppsNum();
+
+    ServerState withTotalRunningAppsNum(int num);
+
+    void setTotalRunningAppsNum(int num);
 }

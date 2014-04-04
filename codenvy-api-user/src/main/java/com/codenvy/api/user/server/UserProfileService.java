@@ -159,7 +159,7 @@ public class UserProfileService extends Service {
         if (profile == null) {
             throw new ProfileNotFoundException(profileId);
         }
-        final User user = userDao.getByAlias(profile.getUserId());
+        final User user = userDao.getById(profile.getUserId());
         if (user == null) {
             throw new UserNotFoundException(profile.getUserId());
         }

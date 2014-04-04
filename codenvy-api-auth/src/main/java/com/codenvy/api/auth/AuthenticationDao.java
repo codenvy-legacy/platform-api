@@ -15,20 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.auth;
 
-import com.codenvy.dto.shared.DTO;
+import com.codenvy.api.auth.shared.dto.Credentials;
+
+import javax.ws.rs.core.Cookie;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 
 /**
- * Build request.
- *
- * @author andrew00x
+ * @author gazarenkov
  */
-@DTO
-public interface BuildRequest extends BaseBuilderRequest {
-    boolean isSkipTest();
+public interface AuthenticationDao {
 
-    void setSkipTest(boolean skip);
+    Response login(Credentials credentials, Cookie tokenAccessCookie, UriInfo uriInfo) throws AuthenticationException;
 
-    BuildRequest withSkipTest(boolean skip);
+    Response logout(String token, Cookie tokenAccessCookie, UriInfo uriInfo);
 }

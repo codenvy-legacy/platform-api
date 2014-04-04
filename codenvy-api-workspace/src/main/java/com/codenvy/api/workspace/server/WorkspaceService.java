@@ -129,7 +129,7 @@ public class WorkspaceService extends Service {
             throw new WorkspaceException("Given organization already has associated workspace.");
         }
 
-        String wsId = NameGenerator.generate(Workspace.class.getSimpleName(), Constants.ID_LENGTH);
+        String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         newWorkspace.setTemporary(false);
         workspaceDao.create(newWorkspace);

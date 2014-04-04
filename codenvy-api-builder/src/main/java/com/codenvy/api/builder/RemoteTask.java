@@ -20,7 +20,7 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.HttpOutputProvider;
+import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -171,8 +171,8 @@ public class RemoteTask {
         conn.setConnectTimeout(30 * 1000);
         conn.setRequestMethod(method);
         try {
-            if (output instanceof HttpOutputProvider) {
-                HttpOutputProvider httpOutput = (HttpOutputProvider)output;
+            if (output instanceof HttpOutputMessage) {
+                HttpOutputMessage httpOutput = (HttpOutputMessage)output;
                 httpOutput.setStatus(conn.getResponseCode());
                 final String contentType = conn.getContentType();
                 if (contentType != null) {

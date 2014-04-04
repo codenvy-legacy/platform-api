@@ -82,6 +82,16 @@ public interface BuildTask {
     long getStartTime() throws BuilderException;
 
     /**
+     * Get time when task was done (successfully ends, fails, cancelled).
+     *
+     * @return time when task was started or {@code -1} if task is not done yet
+     * @throws BuilderException
+     *         if an error occurs when try to check status of build process
+     * @see #isStarted()
+     */
+    long getEndTime() throws BuilderException;
+
+    /**
      * Reports whether build task is done (successfully ends, fails, cancelled) or not.
      *
      * @return {@code true} if task is done and {@code false} otherwise

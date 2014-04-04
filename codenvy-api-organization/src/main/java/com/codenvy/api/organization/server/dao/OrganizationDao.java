@@ -119,29 +119,33 @@ public interface OrganizationDao {
      *
      * @param subscription
      *         subscription POJO
-     * @param organizationId
-     *         organization identifier
-     * @throws com.codenvy.api.organization.server.exception.OrganizationException
      */
-    void addSubscription(Subscription subscription, String organizationId) throws OrganizationException;
+    void addSubscription(Subscription subscription) throws OrganizationException;
 
     /**
      * Remove subscription related to existing organization
      *
-     * @param serviceId
-     *         service identifier
-     * @param organizationId
-     *         organization identifier
-     * @throws com.codenvy.api.organization.server.exception.OrganizationException
+     * @param subscriptionId
+     *         subscription identifier for removal
      */
-    void removeSubscription(String organizationId, String serviceId) throws OrganizationException;
+    void removeSubscription(String subscriptionId) throws OrganizationException;
+
+
+    /**
+     * Get subscription from persistent layer, if it doesn't exist {@code null} will be returned
+     *
+     * @param subscriptionId
+     *         subscription identifier
+     * @return Subscription POJO
+     */
+    Subscription getSubscriptionById(String subscriptionId) throws OrganizationException;
 
     /**
      * Gets list of existing in persistent layer subscriptions related to given organization
      *
      * @param organizationId
      *         organization id
-     * @return list of subscriptions
+     * @return list of subscriptions, or empty list if no subscriptions found
      */
     List<Subscription> getSubscriptions(String organizationId) throws OrganizationException;
 
@@ -150,7 +154,7 @@ public interface OrganizationDao {
      *
      * @param organizationId
      *         organization id
-     * @return list of members
+     * @return list of members, or empty list if no members found
      */
     List<Member> getMembers(String organizationId) throws OrganizationException;
 
@@ -159,8 +163,7 @@ public interface OrganizationDao {
      *
      * @param userId
      *         user identifier to search
-     * @return list of organizations
-     * @throws com.codenvy.api.organization.server.exception.OrganizationException
+     * @return list of organizations, or empty list if no organizations found
      */
     public List<Organization> getByMember(String userId) throws OrganizationException;
 }

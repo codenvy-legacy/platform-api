@@ -32,23 +32,35 @@ import java.util.Map;
 @DTO
 public interface Subscription {
 
+    String getId();
+
+    void setId(String id);
+
+    Subscription withId(String id);
+
+    String getOrganizationId();
+
+    void setOrganizationId(String orgId);
+
+    Subscription withOrganizationId(String orgId);
+
     String getServiceId();
 
     void setServiceId(String id);
 
     Subscription withServiceId(String id);
 
-    String getStartDate();
+    long getStartDate();
 
-    void setStartDate(String date);
+    void setStartDate(long date);
 
-    Subscription withStartDate(String date);
+    Subscription withStartDate(long date);
 
-    String getEndDate();
+    long getEndDate();
 
-    void setEndDate(String date);
+    void setEndDate(long date);
 
-    Subscription withEndDate(String date);
+    Subscription withEndDate(long date);
 
     Map<String, String> getProperties();
 

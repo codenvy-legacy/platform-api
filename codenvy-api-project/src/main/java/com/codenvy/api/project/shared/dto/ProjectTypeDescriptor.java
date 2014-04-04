@@ -45,6 +45,14 @@ public interface ProjectTypeDescriptor {
 
     ProjectTypeDescriptor withProjectTypeName(String name);
 
+    /** Get project type category. */
+    String getProjectTypeCategory();
+
+    /** Set project type category. */
+    void setProjectTypeCategory(String category);
+
+    ProjectTypeDescriptor withProjectTypeCategory(String category);
+
     List<AttributeDescriptor> getAttributeDescriptors();
 
     void setAttributeDescriptors(List<AttributeDescriptor> attributeDescriptors);

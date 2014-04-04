@@ -49,6 +49,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -245,7 +246,7 @@ public final class SlaveBuilderService extends Service {
                                    ? (task.isCancelled() ? BuildStatus.CANCELLED
                                                          : (result.isSuccessful() ? BuildStatus.SUCCESSFUL : BuildStatus.FAILED))
                                    : (task.isStarted() ? BuildStatus.IN_PROGRESS : BuildStatus.IN_QUEUE);
-        final List<Link> links = new ArrayList<>();
+        final List<Link> links = new LinkedList<>();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel(Constants.LINK_REL_GET_STATUS)
                             .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "getStatus").build(builder, taskId).toString())
@@ -311,6 +312,7 @@ public final class SlaveBuilderService extends Service {
                          .withTaskId(taskId)
                          .withStatus(status)
                          .withLinks(links)
-                         .withStartTime(task.getStartTime());
+                         .withStartTime(task.getStartTime())
+                         .withEndTime(task.getEndTime());
     }
 }

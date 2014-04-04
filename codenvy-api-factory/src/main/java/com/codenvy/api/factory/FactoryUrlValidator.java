@@ -34,19 +34,26 @@ public interface FactoryUrlValidator {
      * Implementation should throw {@link com.codenvy.api.factory.FactoryUrlException}
      * if factory url object is invalid or can not be retrieved.
      *
-     * @param factoryUrl factory url to validate
-     * @param request request to retrieve additional information
+     * @param factoryUrl
+     *         factory url to validate
+     * @param request
+     *         request to retrieve additional information
+     * @return - Factory object represented by factoryUrl in case if factory is valid.
      * @throws FactoryUrlException
+     *         - in case if factory is not valid
      */
-    void validateUrl(URI factoryUrl, HttpServletRequest request) throws FactoryUrlException;
+    Factory validate(URI factoryUrl, HttpServletRequest request) throws FactoryUrlException;
 
     /**
      * Validates factory url object. Implementation should throw
      * {@link com.codenvy.api.factory.FactoryUrlException} if factory url object is invalid.
      *
-     * @param factory factory object to validate
-     * @param request request to retrieve additional information
+     * @param factory
+     *         factory object to validate
+     * @param request
+     *         request to retrieve additional information
      * @throws FactoryUrlException
+     *         - in case if factory is not valid
      */
-    void validateObject(Factory factory, boolean encoded, HttpServletRequest request) throws FactoryUrlException;
+    void validate(Factory factory, boolean encoded, HttpServletRequest request) throws FactoryUrlException;
 }

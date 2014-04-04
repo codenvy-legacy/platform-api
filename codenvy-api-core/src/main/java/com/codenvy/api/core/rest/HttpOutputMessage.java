@@ -15,12 +15,24 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.auth;
+package com.codenvy.api.core.rest;
 
+/**
+ * HTTP output message.
+ *
+ * @author andrew00x
+ */
+public interface HttpOutputMessage extends OutputProvider {
+    /** Set HTTP status. */
+    void setStatus(int status);
 
-/** Generator of tokens based used in authentication. */
-
-public interface TokenGenerator {
-    /** @return - new token. */
-    public String generate();
+    /**
+     * Add HTTP header.
+     *
+     * @param name
+     *         name of header
+     * @param value
+     *         value of header
+     */
+    void addHttpHeader(String name, String value);
 }

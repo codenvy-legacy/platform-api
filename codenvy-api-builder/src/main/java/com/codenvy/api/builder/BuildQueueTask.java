@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -71,7 +72,7 @@ public final class BuildQueueTask implements Cancellable {
     }
 
     public BaseBuilderRequest getRequest() {
-        return request;
+        return DtoFactory.getInstance().clone(request);
     }
 
     /**
@@ -161,23 +162,25 @@ public final class BuildQueueTask implements Cancellable {
                              .withTaskId(id)
                              .withStatus(BuildStatus.IN_QUEUE)
                              .withLinks(links)
-                             .withStartTime(-1);
+                             .withEndTime(-1);
         } else if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
                              .withTaskId(id)
                              .withStatus(BuildStatus.CANCELLED)
-                             .withStartTime(-1);
+                             .withStartTime(-1)
+                             .withEndTime(-1);
         }
         final BuildTaskDescriptor remoteStatus = getRemoteTask().getBuildTaskDescriptor();
         return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
                          .withTaskId(id)
                          .withStatus(remoteStatus.getStatus())
                          .withLinks(rewriteKnownLinks(remoteStatus.getLinks()))
-                         .withStartTime(remoteStatus.getStartTime());
+                         .withStartTime(remoteStatus.getStartTime())
+                         .withEndTime(remoteStatus.getEndTime());
     }
 
     private List<Link> rewriteKnownLinks(List<Link> links) {
-        final List<Link> rewritten = new ArrayList<>(5);
+        final List<Link> rewritten = new LinkedList<>();
         for (Link link : links) {
             if (Constants.LINK_REL_GET_STATUS.equals(link.getRel())) {
                 final Link copy = DtoFactory.getInstance().clone(link);
@@ -214,7 +217,7 @@ public final class BuildQueueTask implements Cancellable {
         return rewritten;
     }
 
-    private RemoteTask getRemoteTask() throws BuilderException {
+    RemoteTask getRemoteTask() throws BuilderException {
         if (!future.isDone()) {
             return null;
         }
@@ -226,7 +229,7 @@ public final class BuildQueueTask implements Cancellable {
             } catch (ExecutionException e) {
                 final Throwable cause = e.getCause();
                 if (cause instanceof Error) {
-                    throw (Error)cause; // lets caller to get Error as is
+                    throw (Error)cause;
                 } else if (cause instanceof RuntimeException) {
                     throw (RuntimeException)cause;
                 } else if (cause instanceof RemoteException) {

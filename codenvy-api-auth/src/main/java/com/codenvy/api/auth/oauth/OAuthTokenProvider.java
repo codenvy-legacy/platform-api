@@ -15,25 +15,24 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.rest;
+package com.codenvy.api.auth.oauth;
 
-/**
- * Proxies response from remote server to the client. It helps to avoid download response from remote server and resend info to the client.
- * Instead implementation of this interface may pump information from the remote server directly to the client.
- *
- * @author andrew00x
- */
-public interface HttpOutputProvider extends OutputProvider {
-    /** Set HTTP status. */
-    void setStatus(int status);
+import com.codenvy.api.auth.shared.dto.OAuthToken;
 
+import java.io.IOException;
+
+/** Retrieves user token from OAuth providers. */
+public interface OAuthTokenProvider {
     /**
-     * Add HTTP header.
+     * Get oauth token.
      *
-     * @param name
-     *         name of header
-     * @param value
-     *         value of header
+     * @param oauthProviderName
+     *         - name of provider.
+     * @param userId
+     *         - user
+     * @return oauth token or <code>null</code>
+     * @throws IOException
+     *         if i/o error occurs when try to refresh expired oauth token
      */
-    void addHttpHeader(String name, String value);
+    OAuthToken getToken(String oauthProviderName, String userId) throws IOException;
 }

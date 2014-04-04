@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
+ *  [2012] - [2014] Codenvy, S.A.
  *  All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
@@ -15,20 +15,30 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.auth.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Build request.
+ * OAuth token.
  *
- * @author andrew00x
+ * @author Sergii Kabashniuk
  */
 @DTO
-public interface BuildRequest extends BaseBuilderRequest {
-    boolean isSkipTest();
+public interface OAuthToken {
+    /** Get OAuth token */
+    String getToken();
 
-    void setSkipTest(boolean skip);
+    /** Set OAuth token */
+    void setToken(String token);
 
-    BuildRequest withSkipTest(boolean skip);
+    OAuthToken withToken(String token);
+
+    /** Get OAuth scope */
+    String getScope();
+
+    /** Set OAuth scope */
+    void setScope(String scope);
+
+    OAuthToken withScope(String scope);
 }

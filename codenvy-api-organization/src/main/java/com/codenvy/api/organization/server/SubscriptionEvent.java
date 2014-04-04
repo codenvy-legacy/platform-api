@@ -32,12 +32,10 @@ public class SubscriptionEvent {
 
     private final Subscription subscription;
     private final EventType    eventType;
-    private final String       organizationId;
 
-    public SubscriptionEvent(String organizationId, Subscription subscription, EventType eventType) {
+    public SubscriptionEvent(Subscription subscription, EventType eventType) {
         this.eventType = eventType;
         this.subscription = subscription;
-        this.organizationId = organizationId;
     }
 
     public Subscription getSubscription() {
@@ -46,9 +44,5 @@ public class SubscriptionEvent {
 
     public EventType getEventType() {
         return eventType;
-    }
-
-    public String getOrganizationId() {
-        return organizationId;
     }
 }

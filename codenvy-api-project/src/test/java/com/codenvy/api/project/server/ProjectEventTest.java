@@ -56,7 +56,7 @@ public class ProjectEventTest {
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_project_type", "my project type"));
+                return Arrays.asList(new ProjectType("my_project_type", "my project type", "my_category"));
             }
 
             @Override
@@ -74,7 +74,7 @@ public class ProjectEventTest {
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new ProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry);
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type"));
+        ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
         pm.createProject("my_ws", "my_project", pd);

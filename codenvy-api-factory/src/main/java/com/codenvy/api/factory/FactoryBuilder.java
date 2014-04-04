@@ -64,9 +64,7 @@ public class FactoryBuilder {
     private static final String PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE   =
             "The parameter %s has a value submitted %s with a value that is unexpected. For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
-    /**
-     * List contains all possible implementation of factory legacy converters.
-     */
+    /** List contains all possible implementation of factory legacy converters. */
     static final List<LegacyConverter> LEGACY_CONVERTERS;
 
     static {
@@ -109,7 +107,8 @@ public class FactoryBuilder {
 
         // there is unsupported parameters in query
         if (!queryParams.isEmpty()) {
-            throw new FactoryUrlException(INVALID_PARAMETER_MESSAGE);
+            String nameInvalidParams = queryParams.keySet().iterator().next();
+            throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, nameInvalidParams, factory.getV()));
         } else if (null == factory) {
             throw new FactoryUrlException(MISSING_MANDATORY_MESSAGE);
         }
@@ -455,10 +454,18 @@ public class FactoryBuilder {
         for (Method method : cl.getMethods()) {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
             try {
-                if (factoryParameter != null && factoryParameter.format() != FactoryFormat.ENCODED) {
+                if (factoryParameter != null) {
                     // define full queryParameterName of parameter to be able retrieving nested parameters
                     String fullName = (parentName.isEmpty() ? "" : parentName + ".") + factoryParameter.queryParameterName();
                     Class<?> returnClass = method.getReturnType();
+
+                    if (factoryParameter.format() == FactoryFormat.ENCODED) {
+                        if (queryParams.containsKey(fullName)) {
+                            throw new FactoryUrlException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
+                        } else {
+                            continue;
+                        }
+                    }
 
                     //PrimitiveTypeProducer
                     Object param = null;

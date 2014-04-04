@@ -31,6 +31,7 @@ import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
+import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.json.JsonHelper;
@@ -67,6 +68,7 @@ import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.contains;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -140,10 +142,17 @@ public class WorkspaceServiceTest {
                                                 providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         launcher = new ResourceLauncher(requestHandler);
+        //count of attributes should be > 0
+        List<Attribute> attributes = new ArrayList<>(1);
+        attributes.add(DtoFactory.getInstance().createDto(Attribute.class)
+                                 .withName("default_attribute")
+                                 .withValue("default_value")
+                                 .withDescription("default_description"));
         workspace = DtoFactory.getInstance().createDto(Workspace.class)
                               .withId(WS_ID)
                               .withName(WS_NAME)
-                              .withOrganizationId(ORGANIZATION_ID);
+                              .withOrganizationId(ORGANIZATION_ID)
+                              .withAttributes(attributes);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(PRINCIPAL_NAME));
         when(workspaceDao.getById(WS_ID)).thenReturn(workspace);
@@ -235,6 +244,75 @@ public class WorkspaceServiceTest {
     }
 
     @Test
+    public void shouldBeAbleToAddNewAttribute() throws Exception {
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
+                DtoFactory.getInstance().createDto(Member.class)
+                          .withUserId(USER_ID)
+                          .withWorkspaceId(WS_ID)
+                          .withRoles(Arrays.asList("workspace/admin"))));
+        prepareSecurityContext("user");
+        Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
+                                           .withName("newAttribute")
+                                           .withValue("value")
+                                           .withDescription("description");
+        int countBefore = workspace.getAttributes().size();
+
+        ContainerResponse response =
+                makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(workspace.getAttributes().size(), countBefore + 1);
+        verify(workspaceDao, times(1)).update(workspace);
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveAttribute() throws Exception {
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
+                DtoFactory.getInstance().createDto(Member.class)
+                          .withUserId(USER_ID)
+                          .withWorkspaceId(WS_ID)
+                          .withRoles(Arrays.asList("workspace/admin"))));
+        prepareSecurityContext("user");
+        int countBefore = workspace.getAttributes().size();
+        assertTrue(countBefore > 0);
+        Attribute defaultAttribute = workspace.getAttributes().get(0);
+
+        ContainerResponse response =
+                makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/attribute?name=" + defaultAttribute.getName(), null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(workspace.getAttributes().size(), countBefore - 1);
+        verify(workspaceDao, times(1)).update(workspace);
+    }
+
+    @Test
+    public void shouldBeAbleToReplaceExistedAttribute() throws Exception {
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
+                DtoFactory.getInstance().createDto(Member.class)
+                          .withUserId(USER_ID)
+                          .withWorkspaceId(WS_ID)
+                          .withRoles(Arrays.asList("workspace/admin"))));
+        prepareSecurityContext("user");
+        int countBefore = workspace.getAttributes().size();
+        assertTrue(countBefore > 0);
+        Attribute defaultAttribute = workspace.getAttributes().get(0);
+        Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
+                                           .withName(defaultAttribute.getName())
+                                           .withValue("other_value")
+                                           .withDescription("nobody cares about it");
+
+        ContainerResponse response =
+                makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(workspace.getAttributes().size(), 1);
+        Attribute actual = workspace.getAttributes().get(0);
+        assertEquals(actual.getName(), newAttribute.getName());
+        assertEquals(actual.getValue(), newAttribute.getValue());
+        assertEquals(actual.getDescription(), newAttribute.getDescription());
+    }
+
+    @Test
     public void shouldNotBeAbleToGetWorkspaceIfUserHasNotAccessToDoIt() throws Exception {
         prepareSecurityContext("user");
 
@@ -286,7 +364,8 @@ public class WorkspaceServiceTest {
         assertEquals(actualMembers.size(), 1);
         verify(memberDao, times(1)).getWorkspaceMembers(WS_ID);
         verifyLinksRel(actualMembers.get(0).getLinks(),
-                       Arrays.asList(Constants.LINK_REL_GET_WORKSPACE_MEMBERS, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER));
+                       Arrays.asList(Constants.LINK_REL_GET_WORKSPACE_MEMBERS, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
+                                     com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID));
     }
 
 

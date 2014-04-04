@@ -150,7 +150,7 @@ public class UserProfileService extends Service {
 
     @GET
     @Path("{id}")
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
     public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext)
@@ -159,7 +159,7 @@ public class UserProfileService extends Service {
         if (profile == null) {
             throw new ProfileNotFoundException(profileId);
         }
-        final User user = userDao.getByAlias(profile.getUserId());
+        final User user = userDao.getById(profile.getUserId());
         if (user == null) {
             throw new UserNotFoundException(profile.getUserId());
         }

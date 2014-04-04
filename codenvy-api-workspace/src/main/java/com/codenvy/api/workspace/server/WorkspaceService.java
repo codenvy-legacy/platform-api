@@ -206,10 +206,11 @@ public class WorkspaceService extends Service {
 
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_NAME)
-    @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getByName(@Context SecurityContext securityContext,
-                               @Required @Description("workspace name") @QueryParam("name") String name) throws WorkspaceException {
+                               @Required @Description("workspace name") @QueryParam("name") String name)
+            throws WorkspaceException, MembershipException, UserException {
         if (name == null) {
             throw new WorkspaceException("Missed parameter name");
         }
@@ -217,6 +218,7 @@ public class WorkspaceService extends Service {
         if (workspace == null) {
             throw new WorkspaceNotFoundException(name);
         }
+        ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -417,6 +419,25 @@ public class WorkspaceService extends Service {
             memberDao.remove(member);
         }
         workspaceDao.remove(wsId);
+    }
+
+    private void ensureUserHasAccessToWorkspace(String wsId, String[] roles, SecurityContext securityContext)
+            throws WorkspaceException, UserException, MembershipException {
+        if (securityContext.isUserInRole("user")) {
+            final Principal principal = securityContext.getUserPrincipal();
+            final User user = userDao.getByAlias(principal.getName());
+            List<Member> members = memberDao.getUserRelationships(user.getId());
+            for (Member member : members) {
+                if (member.getWorkspaceId().equals(wsId)) {
+                    for (String role : roles) {
+                        if (member.getRoles().contains(role)) {
+                            return;
+                        }
+                    }
+                }
+            }
+            throw new WorkspaceException("Access denied");
+        }
     }
 
     private void injectLinks(Workspace workspace, SecurityContext securityContext) {

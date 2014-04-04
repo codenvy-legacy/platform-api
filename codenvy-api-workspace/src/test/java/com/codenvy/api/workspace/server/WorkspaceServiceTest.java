@@ -213,9 +213,16 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToGetWorkspaceByName() throws Exception {
+        when(userDao.getByAlias(PRINCIPAL_NAME)).thenReturn(DtoFactory.getInstance().createDto(User.class).withId(USER_ID));
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
+                DtoFactory.getInstance().createDto(Member.class)
+                          .withUserId(USER_ID)
+                          .withWorkspaceId(WS_ID)
+                          .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
+        when(workspaceDao.getById(WS_ID)).thenReturn(workspace);
         when(workspaceDao.getByName(WS_NAME)).thenReturn(workspace);
 
-        String[] roles = getRoles(WorkspaceService.class, "getByName");
+        String[] roles = new String[]{"user", "system/admin", "system/developer"};
         for (String role : roles) {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("GET", SERVICE_PATH + "?name=" + WS_NAME, null, null);
@@ -314,8 +321,8 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldBeAbleToAddWorkspaceMember() throws Exception {
         NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
-                                          .withRoles(Arrays.asList("workspace/developer"))
-                                          .withUserId(USER_ID);
+                                             .withRoles(Arrays.asList("workspace/developer"))
+                                             .withUserId(USER_ID);
         prepareSecurityContext("workspace/admin");
 
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);

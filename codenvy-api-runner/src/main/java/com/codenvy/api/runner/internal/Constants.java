@@ -20,21 +20,23 @@ package com.codenvy.api.runner.internal;
 /** @author andrew00x */
 public class Constants {
     // properties of project which are interesting for runner
-    public static final String RUNNER_NAME                        = "runner.name";
-    public static final String RUNNER_CUSTOM_LAUNCHER             = "runner.user_defined_launcher";
-    public static final String RUNNER_MEMORY_SIZE                 = "runner.${runner}.memsize";
-    public static final String RUNNER_DEBUG_MODE                  = "runner.${runner}.debugmode";
-    public static final String RUNNER_OPTIONS                     = "runner.${runner}.options";
+    public static final String RUNNER_NAME                       = "runner.name";
+    public static final String RUNNER_CUSTOM_LAUNCHER            = "runner.user_defined_launcher";
+    public static final String RUNNER_MEMORY_SIZE                = "runner.${runner}.memsize";
+    public static final String RUNNER_DEBUG_MODE                 = "runner.${runner}.debugmode";
+    public static final String RUNNER_OPTIONS                    = "runner.${runner}.options";
     // rels for known runner links
-    public static final String LINK_REL_REGISTER_RUNNER_SERVICE   = "register runner service";
-    public static final String LINK_REL_UNREGISTER_RUNNER_SERVICE = "unregister runner service";
-    public static final String LINK_REL_AVAILABLE_RUNNERS         = "available runners";
-    public static final String LINK_REL_INSTANCE_STATE            = "instance state";
-    public static final String LINK_REL_RUNNER_STATE              = "runner state";
-    public static final String LINK_REL_RUN                       = "run";
-    public static final String LINK_REL_GET_STATUS                = "get status";
-    public static final String LINK_REL_VIEW_LOG                  = "view logs";
-    public static final String LINK_REL_STOP                      = "stop";
+    public static final String LINK_REL_REGISTER_RUNNER_SERVER   = "register runner server";
+    public static final String LINK_REL_UNREGISTER_RUNNER_SERVER = "unregister runner server";
+    public static final String LINK_REL_REGISTERED_RUNNER_SERVER = "registered runner server";
+    public static final String LINK_REL_AVAILABLE_RUNNERS        = "available runners";
+    public static final String LINK_REL_SERVER_STATE             = "server state";
+    public static final String LINK_REL_RUNNER_STATE             = "runner state";
+    public static final String LINK_REL_RUN                      = "run";
+    public static final String LINK_REL_GET_STATUS               = "get status";
+    public static final String LINK_REL_VIEW_LOG                 = "view logs";
+    public static final String LINK_REL_WEB_URL                  = "web url";
+    public static final String LINK_REL_STOP                     = "stop";
 
     private Constants() {
     }

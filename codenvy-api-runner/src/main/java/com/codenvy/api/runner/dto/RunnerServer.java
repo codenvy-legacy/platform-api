@@ -17,40 +17,67 @@
  */
 package com.codenvy.api.runner.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+
+import java.util.List;
 
 /**
  * @author andrew00x
  */
 @DTO
-public interface RunnerInfo {
+public interface RunnerServer {
+    String getUrl();
+
+    void setUrl(String url);
+
+    RunnerServer withUrl(String url);
+
+    String getDescription();
+
+    void setDescription(String description);
+
+    RunnerServer withDescription(String description);
+
     boolean isDedicated();
 
     void setDedicated(boolean dedicated);
 
-    RunnerInfo withDedicated(boolean dedicated);
+    RunnerServer withDedicated(boolean dedicated);
 
     String getWorkspace();
 
-    RunnerInfo withWorkspace(String workspace);
+    RunnerServer withWorkspace(String workspace);
 
     void setWorkspace(String workspace);
 
+    String getProject();
+
+    RunnerServer withProject(String project);
+
+    void setProject(String project);
+
     int getCpuPercentUsage();
 
-    RunnerInfo withCpuPercentUsage(int cpuPercentUsage);
+    RunnerServer withCpuPercentUsage(int cpuPercentUsage);
 
     void setCpuPercentUsage(int cpuPercentUsage);
 
     long getTotalMemory();
 
-    RunnerInfo withTotalMemory(long totalMemory);
+    RunnerServer withTotalMemory(long totalMemory);
 
     void setTotalMemory(long totalMemory);
 
     long getFreeMemory();
 
-    RunnerInfo withFreeMemory(long freeMemory);
+    RunnerServer withFreeMemory(long freeMemory);
 
     void setFreeMemory(long freeMemory);
+
+    List<Link> getLinks();
+
+    RunnerServer withLinks(List<Link> links);
+
+    void setLinks(List<Link> links);
 }

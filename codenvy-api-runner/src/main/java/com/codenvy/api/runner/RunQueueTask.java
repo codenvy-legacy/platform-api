@@ -109,7 +109,7 @@ public final class RunQueueTask {
                                 .withProduces(MediaType.APPLICATION_JSON));
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                              .withProcessId(id)
-                             .withStatus(ApplicationStatus.STOPPED)
+                             .withStatus(ApplicationStatus.NEW)
                              .withLinks(links);
         }
         final ApplicationProcessDescriptor remoteStatus = remoteProcess.getApplicationProcessDescriptor();

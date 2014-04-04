@@ -93,6 +93,11 @@ public class LocalRunQueue extends RunQueue {
     }
 
     @Override
+    boolean hasRunner(RunRequest request) {
+        return runners.get(request.getRunner()) != null;
+    }
+
+    @Override
     protected RemoteRunner getRunner(RunRequest request) throws RunnerException {
         // Have all available runners locally. Need to have remote wrapper for it.
         final Runner runner = runners.get(request.getRunner());

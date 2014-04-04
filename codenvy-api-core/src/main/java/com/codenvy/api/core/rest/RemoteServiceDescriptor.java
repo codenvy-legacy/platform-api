@@ -34,10 +34,8 @@ import java.util.List;
  * <li>Set of {@link com.codenvy.api.core.rest.shared.dto.Link Link} to access {@code Service} functionality</li>
  * </ul>
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see Service
- * @see #getHref()
- * @see #getDescription()
  * @see #getLinks()
  */
 public class RemoteServiceDescriptor {
@@ -51,19 +49,8 @@ public class RemoteServiceDescriptor {
         this.baseUrl = baseUrl;
     }
 
-    /** @see ServiceDescriptor#getHref() */
-    public String getHref() throws RemoteException, IOException {
-        return getServiceDescriptor().getHref();
-    }
-
-    /** @see ServiceDescriptor#getDescription() */
-    public String getDescription() throws RemoteException, IOException {
-        return getServiceDescriptor().getDescription();
-    }
-
-    /** @see ServiceDescriptor#getVersion() */
-    public String getVersion() throws RemoteException, IOException {
-        return getServiceDescriptor().getVersion();
+    public String getBaseUrl() {
+        return baseUrl;
     }
 
     /** @see ServiceDescriptor#getLinks() */

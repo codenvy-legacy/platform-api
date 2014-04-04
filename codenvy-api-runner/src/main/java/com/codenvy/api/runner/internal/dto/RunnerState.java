@@ -44,9 +44,9 @@ public interface RunnerState {
 
     void setTotalAppsNum(int num);
 
-    InstanceState getInstanceState();
+    ServerState getServerState();
 
-    RunnerState withInstanceState(InstanceState instanceState);
+    RunnerState withServerState(ServerState serverState);
 
-    void setInstanceState(InstanceState instanceState);
+    void setServerState(ServerState serverState);
 }

@@ -15,32 +15,32 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.dto;
+package com.codenvy.api.runner.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Location of {@code SlaveRunnerService} resource.
+ * Describes state of computer.
  *
  * @author andrew00x
- * @see com.codenvy.api.runner.internal.SlaveRunnerService
  */
 @DTO
-public interface RunnerServiceLocation {
-    /**
-     * Get URL of this SlaveRunnerService. This URL may be used for direct access to the {@code SlaveRunnerService} functionality.
-     *
-     * @return resource URL
-     */
-    String getUrl();
+public interface ServerState {
+    int getCpuPercentUsage();
 
-    /**
-     * Set URL of this SlaveRunnerService. This URL may be used for direct access to the {@code SlaveRunnerService} functionality.
-     *
-     * @param url
-     *         resource URL
-     */
-    void setUrl(String url);
+    ServerState withCpuPercentUsage(int cpuPercentUsage);
 
-    RunnerServiceLocation withUrl(String url);
+    void setCpuPercentUsage(int cpuPercentUsage);
+
+    long getTotalMemory();
+
+    ServerState withTotalMemory(long totalMemory);
+
+    void setTotalMemory(long totalMemory);
+
+    long getFreeMemory();
+
+    ServerState withFreeMemory(long freeMemory);
+
+    void setFreeMemory(long freeMemory);
 }

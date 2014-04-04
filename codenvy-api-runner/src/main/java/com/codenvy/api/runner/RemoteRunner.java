@@ -38,8 +38,8 @@ import java.util.List;
  * <pre>
  *     String baseUrl = ...
  *     String runnerName = ...
- *     RemoteRunnerService factory = new RemoteRunnerService(null, baseUrl);
- *     RemoteRunner runner = factory.getRemoteRunner(runnerName);
+ *     RemoteRunnerServer runnerServer = new RemoteRunnerServer(baseUrl);
+ *     RemoteRunner runner = runnerServer.getRemoteRunner(runnerName);
  *     RunRequest request = ...
  *     RemoteRunnerProcess remote = runner.run(request);
  *     // do something with RemoteRunnerProcess, e.g. check status
@@ -47,7 +47,7 @@ import java.util.List;
  * </pre>
  *
  * @author andrew00x
- * @see RemoteRunnerService
+ * @see RemoteRunnerServer
  */
 public class RemoteRunner {
     private final String           baseUrl;
@@ -58,7 +58,7 @@ public class RemoteRunner {
 
     private volatile long lastUsage = -1;
 
-    /* Package visibility, not expected to be created by api users. They should use RemoteRunnerService to get an instance of RemoteRunner. */
+    /* Package visibility, not expected to be created by api users. They should use RemoteRunnerServer to get an instance of RemoteRunner. */
     RemoteRunner(String baseUrl, RunnerDescriptor runnerDescriptor, List<Link> links) {
         this.baseUrl = baseUrl;
         this.name = runnerDescriptor.getName();

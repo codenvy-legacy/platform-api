@@ -32,9 +32,9 @@ import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
-import com.codenvy.api.runner.dto.RunnerServiceAccessCriteria;
-import com.codenvy.api.runner.dto.RunnerServiceLocation;
-import com.codenvy.api.runner.dto.RunnerServiceRegistration;
+import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
+import com.codenvy.api.runner.dto.RunnerServerLocation;
+import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.runner.internal.dto.DebugMode;
@@ -94,7 +94,7 @@ public class RunQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final ConcurrentMap<String, RemoteRunnerService>      runnerServices;
+    private final ConcurrentMap<String, RemoteRunnerServer>       runnerServices;
     private final RunnerSelectionStrategy                         runnerSelector;
     private final ConcurrentMap<ProjectWithWorkspace, RunnerList> runnerListMapping;
     private final ConcurrentMap<Long, RunQueueTask>               tasks;
@@ -174,6 +174,9 @@ public class RunQueue {
                         String.format("Name of runner is not specified, be sure property of project %s is set", Constants.RUNNER_NAME));
             }
             request.setRunner(runner);
+        }
+        if (!hasRunner(request)) {
+            throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
         if (request.getDebugMode() == null) {
             final String debugAttr = getAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
@@ -282,7 +285,7 @@ public class RunQueue {
                                 final String downloadLinkHref = downloadLink.getHref();
                                 final String token = getAuthenticationToken();
                                 request.withDeploymentSourcesUrl(
-                                        token != null ? String.format("%s?token=%s", downloadLinkHref, token) : downloadLinkHref);
+                                        token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
                                 final long lifetime = getApplicationLifetime(request);
                                 return getRunner(request).run(request.withLifetime(lifetime));
                             case CANCELLED:
@@ -493,33 +496,43 @@ public class RunQueue {
         return eventService;
     }
 
+    public List<RemoteRunnerServer> getRegisterRunnerServices() {
+        return new ArrayList<>(runnerServices.values());
+    }
+
     /**
      * Register remote SlaveRunnerService which can process run application.
      *
      * @param registration
-     *         RunnerServiceRegistration
+     *         RunnerServerRegistration
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
      * @throws RunnerException
      *         if other type of error occurs
      */
-    public boolean registerRunnerService(RunnerServiceRegistration registration) throws RunnerException {
+    public boolean registerRunnerServer(RunnerServerRegistration registration) throws RunnerException {
         checkStarted();
         String workspace = null;
         String project = null;
-        final RunnerServiceAccessCriteria accessCriteria = registration.getRunnerServiceAccessCriteria();
+        final RunnerServerAccessCriteria accessCriteria = registration.getRunnerServerAccessCriteria();
         if (accessCriteria != null) {
             workspace = accessCriteria.getWorkspace();
             project = accessCriteria.getProject();
         }
 
-        final String url = registration.getRunnerServiceLocation().getUrl();
-        final RemoteRunnerService runnerService = new RemoteRunnerService(workspace, url);
-        final List<RemoteRunner> toAdd = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : runnerService.getAvailableRunners()) {
-            toAdd.add(runnerService.createRemoteRunner(runnerDescriptor));
+        final String url = registration.getRunnerServerLocation().getUrl();
+        final RemoteRunnerServer runnerServer = new RemoteRunnerServer(url);
+        if (workspace != null) {
+            runnerServer.setAssignedWorkspace(workspace);
+            if (project != null) {
+                runnerServer.setAssignedProject(project);
+            }
         }
-        runnerServices.putIfAbsent(url, runnerService);
+        final List<RemoteRunner> toAdd = new LinkedList<>();
+        for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
+            toAdd.add(runnerServer.createRemoteRunner(runnerDescriptor));
+        }
+        runnerServices.put(url, runnerServer);
         return registerRunners(workspace, project, toAdd);
     }
 
@@ -540,16 +553,16 @@ public class RunQueue {
      * Unregister remote SlaveRunnerService.
      *
      * @param location
-     *         RunnerServiceLocation
+     *         RunnerServerLocation
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
      * @throws RunnerException
      *         if other type of error occurs
      */
-    public boolean unregisterRunnerService(RunnerServiceLocation location) throws RunnerException {
+    public boolean unregisterRunnerServer(RunnerServerLocation location) throws RunnerException {
         checkStarted();
         final String url = location.getUrl();
-        final RemoteRunnerService runnerService = runnerServices.remove(url);
+        final RemoteRunnerServer runnerService = runnerServices.remove(url);
         if (runnerService == null) {
             return false;
         }
@@ -574,9 +587,12 @@ public class RunQueue {
         return modified;
     }
 
-    protected RemoteRunner getRunner(RunRequest request) throws RunnerException {
-        final String project = request.getProject();
-        final String workspace = request.getWorkspace();
+    boolean hasRunner(RunRequest request) {
+        final RunnerList runnerList = getRunnerList(request.getWorkspace(), request.getProject());
+        return runnerList != null && runnerList.hasRunner(request.getRunner());
+    }
+
+    private RunnerList getRunnerList(String workspace, String project) {
         RunnerList runnerList = runnerListMapping.get(new ProjectWithWorkspace(project, workspace));
         if (runnerList == null) {
             if (project != null || workspace != null) {
@@ -590,6 +606,11 @@ public class RunQueue {
                 }
             }
         }
+        return runnerList;
+    }
+
+    protected RemoteRunner getRunner(RunRequest request) throws RunnerException {
+        RunnerList runnerList = getRunnerList(request.getWorkspace(), request.getProject());
         if (runnerList == null) {
             // Can't continue, typically should never happen. At least shared runners should be available for everyone.
             throw new RunnerException("There is no any runner to process this request. ");
@@ -670,6 +691,15 @@ public class RunQueue {
             runners = new LinkedHashSet<>();
         }
 
+        synchronized boolean hasRunner(String name) {
+            for (RemoteRunner runner : runners) {
+                if (name.equals(runner.getName())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         synchronized boolean addRunners(Collection<? extends RemoteRunner> list) {
             if (runners.addAll(list)) {
                 notifyAll();
@@ -719,7 +749,7 @@ public class RunQueue {
                         }
                         continue;
                     }
-                    if (runnerState.getInstanceState().getFreeMemory() >= request.getMemorySize()) {
+                    if (runnerState.getServerState().getFreeMemory() >= request.getMemorySize()) {
                         available.add(runner);
                     }
                 }

@@ -28,11 +28,11 @@ import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.NoSuchRunnerException;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.internal.dto.InstanceState;
 import com.codenvy.api.runner.internal.dto.RunRequest;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerList;
 import com.codenvy.api.runner.internal.dto.RunnerState;
+import com.codenvy.api.runner.internal.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
@@ -48,7 +48,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.PrintWriter;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -57,6 +57,7 @@ import java.util.Set;
  *
  * @author andrew00x
  */
+@Description("Internal Runner REST API")
 @Path("internal/runner")
 public class SlaveRunnerService extends Service {
     @Inject
@@ -75,7 +76,7 @@ public class SlaveRunnerService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public RunnerList availableRunners() {
         final Set<Runner> all = runners.getAll();
-        final List<RunnerDescriptor> list = new ArrayList<>(all.size());
+        final List<RunnerDescriptor> list = new LinkedList<>();
         for (Runner runner : all) {
             list.add(DtoFactory.getInstance().createDto(RunnerDescriptor.class)
                                .withName(runner.getName())
@@ -132,23 +133,23 @@ public class SlaveRunnerService extends Service {
                                       @Description("Name of the runner")
                                       @QueryParam("runner") String runner) throws Exception {
         final Runner myRunner = getRunner(runner);
-        final InstanceState instanceState = DtoFactory.getInstance().createDto(InstanceState.class)
-                                                      .withCpuPercentUsage(SystemInfo.cpu())
-                                                      .withTotalMemory(allocators.totalMemory())
-                                                      .withFreeMemory(allocators.freeMemory());
+        final ServerState serverState = DtoFactory.getInstance().createDto(ServerState.class)
+                                                  .withCpuPercentUsage(SystemInfo.cpu())
+                                                  .withTotalMemory(allocators.totalMemory())
+                                                  .withFreeMemory(allocators.freeMemory());
         return DtoFactory.getInstance().createDto(RunnerState.class)
                          .withName(myRunner.getName())
                          .withRunningAppsNum(myRunner.getRunningAppsNum())
                          .withTotalAppsNum(myRunner.getTotalAppsNum())
-                         .withInstanceState(instanceState);
+                         .withServerState(serverState);
     }
 
-    @GenerateLink(rel = Constants.LINK_REL_INSTANCE_STATE)
+    @GenerateLink(rel = Constants.LINK_REL_SERVER_STATE)
     @GET
-    @Path("instance-state")
+    @Path("server-state")
     @Produces(MediaType.APPLICATION_JSON)
-    public InstanceState getInstanceState() {
-        return DtoFactory.getInstance().createDto(InstanceState.class)
+    public ServerState getServerState() {
+        return DtoFactory.getInstance().createDto(ServerState.class)
                          .withCpuPercentUsage(SystemInfo.cpu())
                          .withTotalMemory(allocators.totalMemory())
                          .withFreeMemory(allocators.freeMemory());
@@ -165,7 +166,7 @@ public class SlaveRunnerService extends Service {
     private ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws RunnerException {
         final ApplicationStatus status = process.isStopped() ? ApplicationStatus.STOPPED
                                                              : process.isRunning() ? ApplicationStatus.RUNNING : ApplicationStatus.NEW;
-        final List<Link> links = new ArrayList<>(3);
+        final List<Link> links = new LinkedList<>();
         final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel(Constants.LINK_REL_GET_STATUS)
@@ -179,7 +180,7 @@ public class SlaveRunnerService extends Service {
                                                         .build(process.getRunner(), process.getId()).toString())
                             .withMethod("GET")
                             .withProduces(process.getLogger().getContentType()));
-        if (ApplicationStatus.RUNNING == status) {
+        if (status == ApplicationStatus.RUNNING) {
             links.add(DtoFactory.getInstance().createDto(Link.class)
                                 .withRel(Constants.LINK_REL_STOP)
                                 .withHref(servicePathBuilder.clone().path(getClass(), "stop")
@@ -187,11 +188,7 @@ public class SlaveRunnerService extends Service {
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
         }
-
-        for (Link link : process.getConfiguration().getLinks()) {
-            links.add(link);
-        }
-
+        links.addAll(process.getConfiguration().getLinks());
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())
                          .withStatus(status)

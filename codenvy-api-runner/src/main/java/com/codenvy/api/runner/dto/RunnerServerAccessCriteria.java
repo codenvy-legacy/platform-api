@@ -25,16 +25,16 @@ import com.codenvy.dto.shared.DTO;
  * @author andrew00x
  */
 @DTO
-public interface RunnerServiceAccessCriteria {
+public interface RunnerServerAccessCriteria {
     String getWorkspace();
 
-    RunnerServiceAccessCriteria withWorkspace(String workspace);
+    RunnerServerAccessCriteria withWorkspace(String workspace);
 
     void setWorkspace(String workspace);
 
     String getProject();
 
-    RunnerServiceAccessCriteria withProject(String project);
+    RunnerServerAccessCriteria withProject(String project);
 
     void setProject(String project);
 }

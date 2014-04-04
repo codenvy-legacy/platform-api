@@ -44,7 +44,7 @@ import javax.ws.rs.core.MediaType;
  * @author andrew00x
  */
 @Path("runner/{ws-id}")
-@Description("Runner API")
+@Description("Runner REST API")
 public class RunnerService extends Service {
     @Inject
     private RunQueue runQueue;

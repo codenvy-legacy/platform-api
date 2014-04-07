@@ -24,19 +24,21 @@ package com.codenvy.api.organization.server;
  */
 public final class Constants {
 
-    public static final String LINK_REL_CREATE_ORGANIZATION       = "create";
-    public static final String LINK_REL_GET_ORGANIZATION_BY_ID    = "get by id";
-    public static final String LINK_REL_GET_ORGANIZATION_BY_NAME  = "get by name";
-    public static final String LINK_REL_UPDATE_ORGANIZATION       = "update";
-    public static final String LINK_REL_GET_SUBSCRIPTIONS         = "subscriptions";
-    public static final String LINK_REL_ADD_SUBSCRIPTION          = "add subscription";
-    public static final String LINK_REL_REMOVE_SUBSCRIPTION       = "remove subscription";
-    public static final String LINK_REL_REMOVE_ORGANIZATION       = "remove";
-    public static final String LINK_REL_GET_MEMBERS               = "members";
-    public static final String LINK_REL_ADD_MEMBER                = "add member";
-    public static final String LINK_REL_REMOVE_MEMBER             = "remove member";
-    public static final String LINK_REL_GET_CURRENT_ORGANIZATIONS = "get organizations";
-    public static final int    ID_LENGTH                          = 16;
+    public static final String LINK_REL_CREATE_ORGANIZATION      = "create";
+    public static final String LINK_REL_GET_ORGANIZATION_BY_ID   = "get by id";
+    public static final String LINK_REL_GET_ORGANIZATION_BY_NAME = "get by name";
+    public static final String LINK_REL_UPDATE_ORGANIZATION      = "update";
+    public static final String LINK_REL_GET_SUBSCRIPTIONS        = "subscriptions";
+    public static final String LINK_REL_ADD_SUBSCRIPTION         = "add subscription";
+    public static final String LINK_REL_REMOVE_SUBSCRIPTION      = "remove subscription";
+    public static final String LINK_REL_REMOVE_ORGANIZATION      = "remove";
+    public static final String LINK_REL_GET_MEMBERS              = "members";
+    public static final String LINK_REL_ADD_MEMBER               = "add member";
+    public static final String LINK_REL_REMOVE_MEMBER            = "remove member";
+    public static final String LINK_REL_GET_ORGANIZATIONS        = "get organizations";
+    public static final String LINK_REL_ADD_ATTRIBUTE            = "add attribute";
+    public static final String LINK_REL_REMOVE_ATTRIBUTE         = "remove attribute";
+    public static final int    ID_LENGTH                         = 16;
 
     private Constants() {
     }

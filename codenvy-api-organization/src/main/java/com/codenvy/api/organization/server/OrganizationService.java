@@ -106,6 +106,11 @@ public class OrganizationService extends Service {
         if (organizationDao.getByName(newOrganization.getName()) != null) {
             throw OrganizationAlreadyExistsException.existsWithName(newOrganization.getName());
         }
+        if (newOrganization.getAttributes() != null) {
+            for (Attribute attribute : newOrganization.getAttributes()) {
+                validateAttributeName(attribute.getName());
+            }
+        }
         String organizationId = NameGenerator.generate(Organization.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newOrganization.setId(organizationId);
         //organization should have owner
@@ -116,7 +121,7 @@ public class OrganizationService extends Service {
     }
 
     @GET
-    @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_ORGANIZATIONS)
+    @GenerateLink(rel = Constants.LINK_REL_GET_ORGANIZATIONS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<OrganizationMembership> getMemberships(@Context SecurityContext securityContext)
@@ -132,6 +137,71 @@ public class OrganizationService extends Service {
             injectLinks(organization, securityContext);
         }
         return result;
+    }
+
+    @GET
+    @Path("list")
+    @GenerateLink(rel = Constants.LINK_REL_GET_ORGANIZATIONS)
+    @RolesAllowed({"system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<OrganizationMembership> getMembershipsOfSpecificUser(
+            @Required @Description("User id to get organizations") @QueryParam("userid") String userId,
+            @Context SecurityContext securityContext)
+            throws UserException, OrganizationException {
+        if (userId == null) {
+            throw new OrganizationException("Missed userid to search");
+        }
+        final User user = userDao.getById(userId);
+        if (user == null) {
+            throw new UserNotFoundException(userId);
+        }
+        final List<OrganizationMembership> result = convert(organizationDao.getByMember(user.getId()), "organization/member");
+        result.addAll(convert(organizationDao.getByOwner(user.getId()), "organization/owner"));
+        for (Organization organization : result) {
+            injectLinks(organization, securityContext);
+        }
+        return result;
+    }
+
+    @POST
+    @Path("{id}/attribute")
+    @GenerateLink(rel = Constants.LINK_REL_ADD_ATTRIBUTE)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void addAttribute(@PathParam("id") String organizationId, @Required @Description("New attribute") Attribute newAttribute,
+                             @Context SecurityContext securityContext)
+            throws OrganizationException, UserException {
+        final Organization organization = organizationDao.getById(organizationId);
+        if (organization == null) {
+            throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
+        }
+        if (newAttribute == null) {
+            throw new OrganizationException("Attribute required");
+        }
+        ensureCurrentUserIsOrganizationOwner(organization, securityContext);
+        validateAttributeName(newAttribute.getName());
+        final List<Attribute> actual = organization.getAttributes();
+        removeAttribute(actual, newAttribute.getName());
+        actual.add(newAttribute);
+        organizationDao.update(organization);
+    }
+
+    @DELETE
+    @Path("{id}/attribute")
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTE)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public void removeAttribute(@PathParam("id") String organizationId,
+                                @Required @Description("The name of attribute") @QueryParam("name") String attributeName,
+                                @Context SecurityContext securityContext)
+            throws OrganizationException, UserException {
+        final Organization organization = organizationDao.getById(organizationId);
+        if (organization == null) {
+            throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
+        }
+        ensureCurrentUserIsOrganizationOwner(organization, securityContext);
+        validateAttributeName(attributeName);
+        removeAttribute(organization.getAttributes(), attributeName);
+        organizationDao.update(organization);
     }
 
     @GET
@@ -196,7 +266,7 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Member> getMembersOfSpecificOrganization(@PathParam("id") String id, @Context SecurityContext securityContext)
+    public List<Member> getMembers(@PathParam("id") String id, @Context SecurityContext securityContext)
             throws OrganizationException, UserException {
         final Organization organization = organizationDao.getById(id);
         if (organization == null) {
@@ -260,10 +330,10 @@ public class OrganizationService extends Service {
         }
         //TODO replace with subscriptions check later
         //if organization owner changed
-//        if (!actual.getOwner().equals(organizationToUpdate.getOwner()) &&
-//            organizationDao.getByOwner(organizationToUpdate.getOwner()) != null) {
-//            throw new OrganizationException("For now one user may be owner of one organization");
-//        }
+        if (!actual.getOwner().equals(organizationToUpdate.getOwner()) &&
+            organizationDao.getByOwner(organizationToUpdate.getOwner()) != null) {
+            throw new OrganizationException("For now one user may be owner of one organization");
+        }
         //if organization name changed
         if (!actual.getName().equals(organizationToUpdate.getName()) && organizationDao.getByName(organizationToUpdate.getName()) != null) {
             throw OrganizationAlreadyExistsException.existsWithName(organizationToUpdate.getName());
@@ -272,6 +342,7 @@ public class OrganizationService extends Service {
         if (organizationToUpdate.getAttributes() != null) {
             Map<String, Attribute> updates = new LinkedHashMap<>(organizationToUpdate.getAttributes().size());
             for (Attribute toUpdate : organizationToUpdate.getAttributes()) {
+                validateAttributeName(toUpdate.getName());
                 updates.put(toUpdate.getName(), toUpdate);
             }
             for (Iterator<Attribute> it = actual.getAttributes().iterator(); it.hasNext(); ) {
@@ -294,8 +365,8 @@ public class OrganizationService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Subscription> getSubscriptionsOfSpecificOrganization(@PathParam("id") String organizationId,
-                                                                     @Context SecurityContext securityContext)
+    public List<Subscription> getSubscriptions(@PathParam("id") String organizationId,
+                                               @Context SecurityContext securityContext)
             throws OrganizationException, UserException {
         if (organizationDao.getById(organizationId) == null) {
             throw OrganizationNotFoundException.doesNotExistWithId(organizationId);
@@ -372,6 +443,22 @@ public class OrganizationService extends Service {
         organizationDao.remove(id);
     }
 
+    private void validateAttributeName(String attributeName) throws OrganizationException {
+        if (attributeName == null || attributeName.isEmpty() || attributeName.toLowerCase().startsWith("codenvy")) {
+            throw new OrganizationException(String.format("Attribute name '%s' is not valid", attributeName));
+        }
+    }
+
+    private void removeAttribute(List<Attribute> src, String attributeName) {
+        for (Iterator<Attribute> it = src.iterator(); it.hasNext(); ) {
+            Attribute current = it.next();
+            if (current.getName().equals(attributeName)) {
+                it.remove();
+                break;
+            }
+        }
+    }
+
     private void ensureCurrentUserIsOrganizationOwner(Organization organization, SecurityContext securityContext)
             throws UserException, OrganizationIllegalAccessException {
         if (securityContext.isUserInRole("user")) {
@@ -386,13 +473,13 @@ public class OrganizationService extends Service {
     private List<OrganizationMembership> convert(List<Organization> organizations, String role) {
         final List<OrganizationMembership> result = new ArrayList<>(organizations.size());
         for (Organization organization : organizations) {
-            OrganizationMembership presenter = DtoFactory.getInstance().createDto(OrganizationMembership.class);
-            presenter.setName(organization.getName());
-            presenter.setId(organization.getId());
-            presenter.setAttributes(organization.getAttributes());
-            presenter.setOwner(organization.getOwner());
-            presenter.setRoles(Arrays.asList(role));
-            result.add(presenter);
+            OrganizationMembership membership = DtoFactory.getInstance().createDto(OrganizationMembership.class);
+            membership.setName(organization.getName());
+            membership.setId(organization.getId());
+            membership.setAttributes(organization.getAttributes());
+            membership.setOwner(organization.getOwner());
+            membership.setRoles(Arrays.asList(role));
+            result.add(membership);
         }
         return result;
     }
@@ -400,13 +487,13 @@ public class OrganizationService extends Service {
     private void injectLinks(Organization organization, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_ORGANIZATIONS, null, MediaType.APPLICATION_JSON,
+        links.add(createLink("GET", Constants.LINK_REL_GET_ORGANIZATIONS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMemberships").build().toString()));
         links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getSubscriptionsOfSpecificOrganization").build(organization.getId())
+                             uriBuilder.clone().path(getClass(), "getSubscriptions").build(organization.getId())
                                        .toString()));
         links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getMembersOfSpecificOrganization").build(organization.getId())
+                             uriBuilder.clone().path(getClass(), "getMembers").build(organization.getId())
                                        .toString()));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_ORGANIZATION_BY_ID, null, MediaType.APPLICATION_JSON,

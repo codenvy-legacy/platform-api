@@ -29,6 +29,7 @@ public class Constants {
     public static final String LINK_REL_REGISTER_RUNNER_SERVER   = "register runner server";
     public static final String LINK_REL_UNREGISTER_RUNNER_SERVER = "unregister runner server";
     public static final String LINK_REL_REGISTERED_RUNNER_SERVER = "registered runner server";
+    public static final String LINK_REL_RUNNER_TASKS             = "runner tasks";
     public static final String LINK_REL_AVAILABLE_RUNNERS        = "available runners";
     public static final String LINK_REL_SERVER_STATE             = "server state";
     public static final String LINK_REL_RUNNER_STATE             = "runner state";

@@ -21,12 +21,12 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunnerServer;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
-import com.codenvy.api.runner.internal.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;
@@ -117,5 +117,15 @@ public class RunnerAdminService extends Service {
         return result;
     }
 
-
+    @GenerateLink(rel = Constants.LINK_REL_RUNNER_TASKS)
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("queue")
+    public List<ApplicationProcessDescriptor> getTasks() throws Exception {
+        final List<ApplicationProcessDescriptor> result = new LinkedList<>();
+        for (RunQueueTask queueTask : runner.getTasks()) {
+            result.add(queueTask.getDescriptor());
+        }
+        return result;
+    }
 }

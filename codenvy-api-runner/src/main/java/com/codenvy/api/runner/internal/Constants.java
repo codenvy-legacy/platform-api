@@ -22,6 +22,7 @@ public class Constants {
     // properties of project which are interesting for runner
     public static final String RUNNER_NAME                       = "runner.name";
     public static final String RUNNER_CUSTOM_LAUNCHER            = "runner.user_defined_launcher";
+    public static final String RUNNER_SCRIPT_FILE                = "runner.run_script";
     public static final String RUNNER_MEMORY_SIZE                = "runner.${runner}.memsize";
     public static final String RUNNER_DEBUG_MODE                 = "runner.${runner}.debugmode";
     public static final String RUNNER_OPTIONS                    = "runner.${runner}.options";

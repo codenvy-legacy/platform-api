@@ -55,6 +55,13 @@ public interface RunRequest {
 
     RunRequest withRunner(String runner);
 
+    /** Location of file that contains run script. */
+    String getRunnerScriptUrl();
+
+    void setRunnerScriptUrl(String script);
+
+    RunRequest withRunnerScriptUrl(String script);
+
     /** Optional parameter which may be specified by user if need to run application under debug. */
     DebugMode getDebugMode();
 

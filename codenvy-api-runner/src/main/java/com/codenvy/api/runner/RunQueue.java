@@ -28,6 +28,7 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -178,6 +179,7 @@ public class RunQueue {
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
+        request.setRunnerScriptUrl(getRunnerScript(descriptor));
         if (request.getDebugMode() == null) {
             final String debugAttr = getAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
             if (debugAttr != null) {
@@ -309,6 +311,16 @@ public class RunQueue {
                 }
             }
         };
+    }
+
+    private String getRunnerScript(ProjectDescriptor projectDescriptor) {
+        final String script = getAttributeValue(Constants.RUNNER_SCRIPT_FILE, projectDescriptor.getAttributes());
+        if (script == null) {
+            return null;
+        }
+        final String projectUrl = projectDescriptor.getBaseUrl();
+        final String projectPath = projectDescriptor.getPath();
+        return projectUrl.replace(projectPath, String.format("/file%s/%s?token=%s", projectPath, script, getAuthenticationToken()));
     }
 
     private RemoteServiceDescriptor getBuilderServiceDescriptor(String workspace, ServiceContext serviceContext) {
@@ -459,7 +471,12 @@ public class RunQueue {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                     final long id = event.getTaskId();
                     bm.setChannel(String.format("runner:status:%d", id));
-                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                    try {
+                        bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                    } catch (RunnerException re) {
+                        bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                        bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                    }
                     WSConnectionContext.sendMessage(bm);
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);

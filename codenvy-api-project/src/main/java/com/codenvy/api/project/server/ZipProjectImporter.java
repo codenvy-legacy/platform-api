@@ -22,9 +22,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.URL;
 
 /**
  * @author Vitaly Parfonov
@@ -38,22 +36,25 @@ public class ZipProjectImporter implements ProjectImporter {
 
     @Override
     public void importSources(FolderEntry baseFolder, String location) throws IOException {
-        InputStream zip = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
-        if (zip == null) {
-            final Path path = Paths.get(location);
-            if (Files.isReadable(path)) {
-                zip = Files.newInputStream(path);
+        URL url;
+        if (location.startsWith("http://") || location.startsWith("https://")) {
+            url = new URL(location);
+        } else {
+            url = Thread.currentThread().getContextClassLoader().getResource(location);
+            if (url == null) {
+                final java.io.File file = new java.io.File(location);
+                if (file.exists()) {
+                    url = file.toURI().toURL();
+                }
             }
         }
-        if (zip == null) {
+        if (url == null) {
             throw new IOException(String.format("Can't find %s", location));
         }
-        try {
+        try (InputStream zip = url.openStream()) {
             baseFolder.getVirtualFile().unzip(zip, true);
         } catch (VirtualFileSystemException e) {
             throw new IOException(e.getMessage(), e);
-        } finally {
-            zip.close();
         }
     }
 }

@@ -18,8 +18,6 @@
 package com.codenvy.api.workspace.server;
 
 
-import sun.print.resources.serviceui;
-
 import com.codenvy.api.organization.server.dao.OrganizationDao;
 import com.codenvy.api.organization.server.exception.OrganizationException;
 import com.codenvy.api.organization.shared.dto.Organization;
@@ -318,7 +316,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Membership> getMembershipsOfConcreteUser(@Context SecurityContext securityContext,
+    public List<Membership> getMembershipsOfSpecificUser(@Context SecurityContext securityContext,
                                                          @Required @Description("user id to find workspaces")
                                                          @QueryParam("userid") String userId)
             throws WorkspaceException, UserException, MembershipException {

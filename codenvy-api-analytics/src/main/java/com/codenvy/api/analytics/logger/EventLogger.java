@@ -44,8 +44,8 @@ public class EventLogger {
     private static final String USER_PARAM         = "USER";
     private static final String SOURCE_PARAM       = "SOURCE";
     private static final String ACTION_PARAM       = "ACTION";
-    private static final String PROJECT_NAME_PARAM = "PROJECT_NAME";
-    private static final String PROJECT_TYPE_PARAM = "PROJECT_TYPE";
+    private static final String PROJECT_NAME_PARAM = "PROJECT";
+    private static final String PROJECT_TYPE_PARAM = "TYPE";
     private static final String PARAMETERS_PARAM   = "PARAMETERS";
 
     public static final String IDE_USAGE_EVENT = "ide-usage";

@@ -26,7 +26,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Anatoliy Bazko
@@ -55,12 +54,16 @@ public class EventLogger {
         add(IDE_USAGE_EVENT);
     }};
 
-    private final AtomicLong    ignoredEvents;
     private final Queue<String> queue;
+
+    /**
+     * Stores the number of ignored events due to maximum queue capacity
+     */
+    private long ignoredEvents;
 
     public EventLogger() {
         this.queue = new LinkedBlockingQueue<>(QUEUE_MAX_CAPACITY);
-        this.ignoredEvents = new AtomicLong();
+        this.ignoredEvents = 0;
 
         Thread logThread = new LogThread();
         logThread.setDaemon(true);
@@ -75,8 +78,8 @@ public class EventLogger {
 
             String message = createMessage(event, parameters);
             if (!offerEvent(message)) {
-                if (ignoredEvents.incrementAndGet() % 1000 == 0) {
-                    LOG.warn("Ignored " + ignoredEvents.get() + " events due to maximum queue capacity");
+                if (ignoredEvents++ % 1000 == 0) {
+                    LOG.warn("Ignored " + ignoredEvents + " events due to maximum queue capacity");
                 }
             }
         }
@@ -158,6 +161,10 @@ public class EventLogger {
         }
     }
 
+    /**
+     * Is responsible for logging events.
+     * Rate-limit is 50 messages per second.
+     */
     private class LogThread extends Thread {
         private LogThread() {
             super("Analytics Event Logger");
@@ -172,7 +179,7 @@ public class EventLogger {
                 try {
                     if (message != null) {
                         LOG.info(message);
-                        sleep(10);
+                        sleep(20);
                     } else {
                         sleep(1000);
                     }

@@ -22,20 +22,20 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Provides info for registration new SlaveBuilderService.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
- * @see com.codenvy.api.builder.BuilderAdminService#register(BuilderServiceRegistration)
+ * @author andrew00[
+ * @see com.codenvy.api.builder.BuilderAdminService#register(BuilderServerRegistration)
  */
 @DTO
-public interface BuilderServiceRegistration {
-    BuilderServiceLocation getBuilderServiceLocation();
+public interface BuilderServerRegistration {
+    BuilderServerLocation getBuilderServerLocation();
 
-    BuilderServiceRegistration withBuilderServiceLocation(BuilderServiceLocation builderServiceLocation);
+    BuilderServerRegistration withBuilderServerLocation(BuilderServerLocation builderServerLocation);
 
-    void setBuilderServiceLocation(BuilderServiceLocation builderServiceLocation);
+    void setBuilderServerLocation(BuilderServerLocation builderServerLocation);
 
-    BuilderServiceAccessCriteria getBuilderServiceAccessCriteria();
+    BuilderServerAccessCriteria getBuilderServerAccessCriteria();
 
-    BuilderServiceRegistration withBuilderServiceAccessCriteria(BuilderServiceAccessCriteria builderServiceAccessCriteria);
+    BuilderServerRegistration withBuilderServerAccessCriteria(BuilderServerAccessCriteria builderServerAccessCriteria);
 
-    void setBuilderServiceAccessCriteria(BuilderServiceAccessCriteria builderServiceAccessCriteria);
+    void setBuilderServerAccessCriteria(BuilderServerAccessCriteria builderServerAccessCriteria);
 }

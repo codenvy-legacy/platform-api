@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.dto.BuilderServiceLocation;
-import com.codenvy.api.builder.dto.BuilderServiceRegistration;
+import com.codenvy.api.builder.dto.BuilderServerLocation;
+import com.codenvy.api.builder.dto.BuilderServerRegistration;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -47,21 +47,21 @@ public class BuilderAdminService extends Service {
 
     @GenerateLink(rel = Constants.LINK_REL_REGISTER_BUILDER_SERVICE)
     @POST
-    @Path("register")
+    @Path("server/register")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response register(BuilderServiceRegistration registration) throws Exception {
-        buildQueue.registerBuilderService(registration);
+    public Response register(BuilderServerRegistration registration) throws Exception {
+        buildQueue.registerBuilderServer(registration);
         return Response.status(Response.Status.OK).build();
     }
 
     @GenerateLink(rel = Constants.LINK_REL_UNREGISTER_BUILDER_SERVICE)
     @POST
-    @Path("unregister")
+    @Path("server/unregister")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response unregister(BuilderServiceLocation location) throws Exception {
-        buildQueue.unregisterBuilderService(location);
+    public Response unregister(BuilderServerLocation location) throws Exception {
+        buildQueue.unregisterBuilderServer(location);
         return Response.status(Response.Status.OK).build();
     }
 }

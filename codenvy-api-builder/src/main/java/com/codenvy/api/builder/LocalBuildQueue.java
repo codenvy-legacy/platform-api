@@ -85,6 +85,11 @@ public final class LocalBuildQueue extends BuildQueue {
     }
 
     @Override
+    boolean hasBuilder(BaseBuilderRequest request) {
+        return builders.get(request.getBuilder()) != null;
+    }
+
+    @Override
     protected RemoteBuilder getBuilder(BaseBuilderRequest request) throws BuilderException {
         final Builder builder = builders.get(request.getBuilder());
         if (builder == null) {

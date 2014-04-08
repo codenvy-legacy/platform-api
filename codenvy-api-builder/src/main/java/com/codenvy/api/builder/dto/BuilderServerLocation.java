@@ -22,11 +22,11 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Location of {@code SlaveBuilderService} resource.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see com.codenvy.api.builder.internal.SlaveBuilderService
  */
 @DTO
-public interface BuilderServiceLocation {
+public interface BuilderServerLocation {
     /**
      * Get URL of this SlaveBuilderService. This URL may be used for direct access to the {@code SlaveBuilderService} functionality.
      *
@@ -42,5 +42,5 @@ public interface BuilderServiceLocation {
      */
     void setUrl(String url);
 
-    BuilderServiceLocation withUrl(String url);
+    BuilderServerLocation withUrl(String url);
 }

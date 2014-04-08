@@ -41,7 +41,7 @@ import java.util.List;
  * <pre>
  *     String baseUrl = ...
  *     String builderName = ... // e.g. 'maven'
- *     RemoteBuilderFactory factory = new RemoteBuilderFactory(baseUrl);
+ *     RemoteBuilderServer factory = new RemoteBuilderServer(baseUrl);
  *     RemoteBuilder builder = factory.getRemoteBuilder(builderName);
  *     BuildRequest request = ...
  *     RemoteTask remote = builder.perform(request);
@@ -51,7 +51,7 @@ import java.util.List;
  * </pre>
  *
  * @author andrew00x
- * @see com.codenvy.api.builder.RemoteBuilderFactory
+ * @see RemoteBuilderServer
  */
 public class RemoteBuilder {
     private final String     baseUrl;
@@ -62,7 +62,7 @@ public class RemoteBuilder {
 
     private volatile long lastUsage = -1;
 
-    /* Package visibility, not expected to be created by api users. They should use RemoteBuilderFactory to get an instance of RemoteBuilder. */
+    /* Package visibility, not expected to be created by api users. They should use RemoteBuilderServer to get an instance of RemoteBuilder. */
     RemoteBuilder(String baseUrl, BuilderDescriptor builderDescriptor, List<Link> links) {
         this.baseUrl = baseUrl;
         name = builderDescriptor.getName();

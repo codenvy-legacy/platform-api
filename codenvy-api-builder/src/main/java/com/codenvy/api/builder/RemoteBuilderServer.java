@@ -34,10 +34,35 @@ import java.util.List;
  * @author andrew00x
  * @see RemoteBuilder
  */
-public class RemoteBuilderFactory extends RemoteServiceDescriptor {
+public class RemoteBuilderServer extends RemoteServiceDescriptor {
 
-    public RemoteBuilderFactory(String baseUrl) {
+    /** Name of IDE workspace this server used for. */
+    private String assignedWorkspace;
+    /** Name of project inside IDE workspace this server used for. */
+    private String assignedProject;
+
+    public RemoteBuilderServer(String baseUrl) {
         super(baseUrl);
+    }
+
+    public String getAssignedWorkspace() {
+        return assignedWorkspace;
+    }
+
+    public void setAssignedWorkspace(String assignedWorkspace) {
+        this.assignedWorkspace = assignedWorkspace;
+    }
+
+    public String getAssignedProject() {
+        return assignedProject;
+    }
+
+    public void setAssignedProject(String assignedProject) {
+        this.assignedProject = assignedProject;
+    }
+
+    public boolean isDedicated() {
+        return assignedWorkspace != null;
     }
 
     public RemoteBuilder getRemoteBuilder(String name) throws BuilderException {

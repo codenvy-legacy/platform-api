@@ -28,7 +28,6 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -171,7 +170,7 @@ public class RunQueue {
                 runner = getAttributeValue(Constants.RUNNER_NAME, projectAttributes);
             }
             if (runner == null) {
-                throw new IllegalStateException(
+                throw new RunnerException(
                         String.format("Name of runner is not specified, be sure property of project %s is set", Constants.RUNNER_NAME));
             }
             request.setRunner(runner);
@@ -513,7 +512,7 @@ public class RunQueue {
         return eventService;
     }
 
-    public List<RemoteRunnerServer> getRegisterRunnerServices() {
+    public List<RemoteRunnerServer> getRegisterRunnerServers() {
         return new ArrayList<>(runnerServices.values());
     }
 
@@ -579,6 +578,9 @@ public class RunQueue {
     public boolean unregisterRunnerServer(RunnerServerLocation location) throws RunnerException {
         checkStarted();
         final String url = location.getUrl();
+        if (url == null) {
+            return false;
+        }
         final RemoteRunnerServer runnerService = runnerServices.remove(url);
         if (runnerService == null) {
             return false;

@@ -26,7 +26,6 @@ import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
-import com.codenvy.api.runner.internal.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;
@@ -81,8 +80,8 @@ public class RunnerAdminService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("server")
-    public List<RunnerServer> getRegisterRunnerService() throws Exception {
-        final List<RemoteRunnerServer> runnerServers = runner.getRegisterRunnerServices();
+    public List<RunnerServer> getRegisterRunnerServers() throws Exception {
+        final List<RemoteRunnerServer> runnerServers = runner.getRegisterRunnerServers();
         final List<RunnerServer> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (RemoteRunnerServer runnerServer : runnerServers) {

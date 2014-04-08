@@ -55,6 +55,8 @@ import java.util.concurrent.FutureTask;
 public final class WSocketEventBusClient extends WSocketEventBus {
     private static final Logger LOG = LoggerFactory.getLogger(WSocketEventBusClient.class);
 
+    private static final long wsConnectionTimeout = 2000;
+
     private final EventService                         eventService;
     private final String[]                             remoteEventServices;
     private final MessageConverter                     messageConverter;
@@ -83,32 +85,12 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         }
         if (remoteEventServices != null && remoteEventServices.length > 0) {
             executor = Executors.newCachedThreadPool(new NamedThreadFactory("WSocketEventBusClient", true));
-            for (final String service : remoteEventServices) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (; ; ) {
-                            try {
-                                try {
-                                    connect(new URI(service));
-                                } catch (URISyntaxException e) {
-                                    LOG.error(e.getMessage(), e);
-                                }
-                                return;
-                            } catch (IOException e) {
-                                LOG.error(String.format("Failed connect to %s", service), e);
-                                synchronized (this) {
-                                    try {
-                                        wait(2000); // wait and try again
-                                    } catch (InterruptedException ie) {
-                                        Thread.currentThread().interrupt();
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+            for (String service : remoteEventServices) {
+                try {
+                    executor.execute(new ConnectTask(new URI(service)));
+                } catch (URISyntaxException e) {
+                    LOG.error(e.getMessage(), e);
+                }
             }
         }
         started = true;
@@ -141,46 +123,8 @@ public final class WSocketEventBusClient extends WSocketEventBus {
             FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
                 @Override
                 public WSClient call() throws IOException, MessageConversionException {
-                    WSClient wsClient = new WSClient(wsUri, new BaseClientMessageListener() {
-                        @Override
-                        public void onClose(int status, String message) {
-                            connections.remove(wsUri);
-                            LOG.debug("Close connection to {}. ", wsUri);
-                            synchronized (WSocketEventBusClient.this) {
-                                if (!stop) {
-                                    try {
-                                        connect(wsUri);
-                                    } catch (IOException e) {
-                                        LOG.error(e.getMessage(), e);
-                                    }
-                                }
-                            }
-                        }
-
-                        @Override
-                        public void onMessage(String data) {
-                            try {
-                                final Object event = Messages
-                                        .restoreEventFromBroadcastMessage(messageConverter.fromString(data, RESTfulOutputMessage.class));
-                                if (event != null) {
-                                    eventService.publish(event);
-                                }
-                            } catch (Exception e) {
-                                LOG.error(e.getMessage(), e);
-                            }
-                        }
-
-                        @Override
-                        public void onOpen(WSClient client) {
-                            LOG.debug("Open connection to {}. ", wsUri);
-                            try {
-                                client.send(messageConverter.toString(Messages.subscribeChannelMessage()));
-                            } catch (Exception e) {
-                                LOG.error(e.getMessage(), e);
-                            }
-                        }
-                    });
-                    wsClient.connect(2000);
+                    WSClient wsClient = new WSClient(wsUri, new WSocketListener(wsUri));
+                    wsClient.connect(wsConnectionTimeout);
                     return wsClient;
                 }
             });
@@ -211,6 +155,76 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         } finally {
             if (!connected) {
                 connections.remove(wsUri);
+            }
+        }
+    }
+
+    private class WSocketListener extends BaseClientMessageListener {
+        final URI wsUri;
+
+        WSocketListener(URI wsUri) {
+            this.wsUri = wsUri;
+        }
+
+        @Override
+        public void onClose(int status, String message) {
+            connections.remove(wsUri);
+            LOG.debug("Close connection to {}. ", wsUri);
+            synchronized (WSocketEventBusClient.this) {
+                if (stop) {
+                    return;
+                }
+                executor.execute(new ConnectTask(wsUri));
+            }
+        }
+
+        @Override
+        public void onMessage(String data) {
+            try {
+                final Object event = Messages
+                        .restoreEventFromBroadcastMessage(messageConverter.fromString(data, RESTfulOutputMessage.class));
+                if (event != null) {
+                    eventService.publish(event);
+                }
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void onOpen(WSClient client) {
+            LOG.debug("Open connection to {}. ", wsUri);
+            try {
+                client.send(messageConverter.toString(Messages.subscribeChannelMessage()));
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+    }
+
+    private class ConnectTask implements Runnable {
+        final URI wsUri;
+
+        ConnectTask(URI wsUri) {
+            this.wsUri = wsUri;
+        }
+
+        @Override
+        public void run() {
+            for (; ; ) {
+                try {
+                    connect(wsUri);
+                } catch (IOException e) {
+                    LOG.error(String.format("Failed connect to %s", wsUri), e);
+                    synchronized (this) {
+                        try {
+                            wait(wsConnectionTimeout * 2);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
+                }
             }
         }
     }

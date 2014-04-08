@@ -63,7 +63,7 @@ public class TestEventLogger {
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void shouldThrowExceptionIfValidationFailedForValue() throws UnsupportedEncodingException {
         Map<String, String> parameters = new HashMap<String, String>() {{
-            put("PARAM", "0123456789012345678901234567890123456789");
+            put("PARAM", "012345678901234567890123456789012345678901234567891");
         }};
 
         eventLogger.log(EventLogger.IDE_USAGE_EVENT, parameters);

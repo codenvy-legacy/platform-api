@@ -89,6 +89,8 @@ public class EventLogger {
     private String createMessage(String event, Map<String, String> parameters) throws UnsupportedEncodingException {
         StringBuilder message = new StringBuilder();
 
+        addParam(message, EVENT_PARAM, event);
+
         addParam(message, WS_PARAM, parameters);
         addParam(message, USER_PARAM, parameters);
         addParam(message, PROJECT_NAME_PARAM, parameters);
@@ -96,7 +98,6 @@ public class EventLogger {
         addParam(message, SOURCE_PARAM, parameters);
         addParam(message, ACTION_PARAM, parameters);
 
-        addParam(message, EVENT_PARAM, event);
         addParam(message, PARAMETERS_PARAM, getParametersAsString(parameters));
 
         return message.toString();

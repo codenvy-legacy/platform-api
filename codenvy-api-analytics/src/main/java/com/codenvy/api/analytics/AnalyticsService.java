@@ -23,14 +23,15 @@ import com.codenvy.api.analytics.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.dto.MetricValueDTO;
 import com.codenvy.api.analytics.dto.MetricValueListDTO;
+import com.codenvy.api.analytics.logger.EventLogger;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.google.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
@@ -50,8 +51,14 @@ public class AnalyticsService extends Service {
 
     private static final Logger LOG = LoggerFactory.getLogger(AnalyticsService.class);
 
+    private final MetricHandler metricHandler;
+    private final EventLogger   eventLogger;
+
     @Inject
-    private MetricHandler metricHandler;
+    public AnalyticsService(MetricHandler metricHandler, EventLogger eventLogger) {
+        this.metricHandler = metricHandler;
+        this.eventLogger = eventLogger;
+    }
 
     @GenerateLink(rel = "metric value")
     @GET
@@ -140,6 +147,22 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
+
+    @GenerateLink(rel = "log analytics event")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("log/{event}")
+    @RolesAllowed({"user"})
+    public Response logEvent(@PathParam("event") String event, Map<String, String> parameters) {
+        try {
+            eventLogger.log(event, parameters);
+            return Response.status(Response.Status.ACCEPTED).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        }
+    }
+
 
     private Map<String, String> extractContext(UriInfo info,
                                                String page,

@@ -35,7 +35,7 @@ public class EventLogger {
     private static final Logger LOG = LoggerFactory.getLogger(EventLogger.class);
 
     private static final int MAX_PARAMS_NUMBER      = 3;
-    private static final int MAX_PARAM_NAME_LENGTH  = 10;
+    private static final int MAX_PARAM_NAME_LENGTH  = 20;
     private static final int MAX_PARAM_VALUE_LENGTH = 50;
     private static final int QUEUE_MAX_CAPACITY     = 10000;
 

@@ -30,5 +30,6 @@ public class LocalInfrastructureModule extends AbstractModule {
         bind(com.codenvy.api.user.server.dao.MemberDao.class).to(com.codenvy.api.local.LocalMemberDaoImpl.class);
         bind(com.codenvy.api.organization.server.dao.OrganizationDao.class).to(com.codenvy.api.local.LocalOrganizationDaoImpl.class);
         bind(com.codenvy.api.auth.AuthenticationDao.class).to(com.codenvy.api.local.LocalAuthenticationDaoImpl.class);
+        bind(com.codenvy.api.factory.FactoryStore.class).to(com.codenvy.api.local.InMemoryFactoryStore.class);
     }
 }

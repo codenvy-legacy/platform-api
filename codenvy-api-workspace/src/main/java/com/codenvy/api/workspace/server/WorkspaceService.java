@@ -74,7 +74,9 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Workspace API
@@ -126,11 +128,15 @@ public class WorkspaceService extends Service {
         if (!currentOrg.getOwner().equals(user.getId())) {
             throw new WorkspaceException("You can only create workspace associated to your own organization.");
         }
-//        TODO change with subscription check later
-        if (workspaceDao.getByOrganization(organizationId).size() > 0) {
-            throw new WorkspaceException("Given organization already has associated workspace.");
+        if (securityContext.isUserInRole("user")) {
+            boolean isMultipleWorkspaceAvailable = false;
+            for (int i = 0; i < currentOrg.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
+                isMultipleWorkspaceAvailable = currentOrg.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
+            }
+            if (!isMultipleWorkspaceAvailable && workspaceDao.getByOrganization(organizationId).size() > 0) {
+                throw new WorkspaceException("You have not access to create more workspaces");
+            }
         }
-
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         newWorkspace.setTemporary(false);
@@ -239,14 +245,33 @@ public class WorkspaceService extends Service {
         if (workspaceToUpdate == null) {
             throw new WorkspaceException("Missed workspace to update");
         }
-        if (workspaceDao.getById(id) == null) {
+        final Workspace workspace = workspaceDao.getById(id);
+        if (workspace == null) {
             throw new WorkspaceNotFoundException(id);
         }
         ensureUserHasAccessToWorkspace(id, new String[]{"workspace/admin"}, securityContext);
-        workspaceToUpdate.setId(id);
-        workspaceDao.update(workspaceToUpdate);
-        injectLinks(workspaceToUpdate, securityContext);
-        return workspaceToUpdate;
+        final List<Attribute> actualAttributes = workspace.getAttributes();
+        if (workspaceToUpdate.getAttributes() != null) {
+            Map<String, Attribute> updates = new LinkedHashMap<>(workspaceToUpdate.getAttributes().size());
+            for (Attribute attribute : workspaceToUpdate.getAttributes()) {
+                updates.put(attribute.getName(), attribute);
+            }
+            for (Iterator<Attribute> it = actualAttributes.iterator(); it.hasNext(); ) {
+                Attribute attribute = it.next();
+                if (updates.containsKey(attribute.getName())) {
+                    it.remove();
+                }
+            }
+            actualAttributes.addAll(updates.values());
+        }
+        if (workspaceToUpdate.getName() != null && !workspaceToUpdate.getName().equals(workspace.getName()) &&
+            workspaceDao.getByName(workspaceToUpdate.getName()) == null) {
+            workspace.setName(workspaceToUpdate.getName());
+        }
+        //todo what about organizationId ? should it be possible to change organization?
+        workspaceDao.update(workspace);
+        injectLinks(workspace, securityContext);
+        return workspace;
     }
 
     @GET

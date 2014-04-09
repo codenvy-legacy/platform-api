@@ -155,7 +155,6 @@ public class OrganizationServiceTest {
         when(organizationDao.getByName(ORGANIZATION_NAME)).thenReturn(organization);
     }
 
-    //TODO MAKE TEST FOR SYS/ADM & SYS/MAN instead of USER
     @Test
     public void shouldBeAbleToCreateOrganization() throws Exception {
         when(organizationDao.getByName(organization.getName())).thenReturn(null);
@@ -169,7 +168,6 @@ public class OrganizationServiceTest {
         verifyLinksRel(created.getLinks(), generateRels(role));
         verify(organizationDao, times(1)).create(any(Organization.class));
     }
-
 
     @Test
     public void shouldBeAbleToGetMemberships() throws Exception {

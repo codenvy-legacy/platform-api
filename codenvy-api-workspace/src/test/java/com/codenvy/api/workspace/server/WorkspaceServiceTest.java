@@ -20,6 +20,7 @@ package com.codenvy.api.workspace.server;
 import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.organization.server.dao.OrganizationDao;
+import com.codenvy.api.organization.server.exception.OrganizationException;
 import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -31,6 +32,7 @@ import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
+import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
@@ -225,6 +227,18 @@ public class WorkspaceServiceTest {
         verify(memberDao, times(1)).create(any(Member.class));
     }
 
+    @Test
+    public void shouldNotBeAbleToCreateWorkspaceIfOrganizationNotSubscribedOnMultipleWorkspaces()
+            throws Exception {
+        Organization org = DtoFactory.getInstance().createDto(Organization.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(org);
+        when(workspaceDao.getByOrganization(ORGANIZATION_ID))
+                .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class)));
+
+        prepareSecurityContext("user");
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, workspace);
+        assertEquals(response.getEntity().toString(), "You have not access to create more workspaces");
+    }
 
     @Test
     public void shouldBeAbleToGetWorkspaceByName() throws Exception {
@@ -326,9 +340,14 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToUpdateWorkspaceById() throws Exception {
-        Workspace workspaceToUpdate = DtoFactory.getInstance().createDto(Workspace.class)
-                                                .withName("ws2");
+    public void shouldBeAbleToUpdateWorkspace() throws Exception {
+        Workspace workspaceToUpdate = DtoFactory.getInstance().createDto(Workspace.class).withName("ws2");
+        assertTrue(workspace.getAttributes().size() > 0);
+        Attribute old = workspace.getAttributes().get(0);
+        workspaceToUpdate.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                                .withName(old.getName())
+                                                                .withValue("other_attribute_value")));
+
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Member.class)
                           .withUserId(USER_ID)
@@ -338,15 +357,18 @@ public class WorkspaceServiceTest {
         for (String role : roles) {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID, MediaType.APPLICATION_JSON, workspaceToUpdate);
-            Workspace result = (Workspace)response.getEntity();
+            Workspace actual = (Workspace)response.getEntity();
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-            verifyLinksRel(result.getLinks(), generateRels(role));
+            assertEquals(actual.getName(), workspaceToUpdate.getName());
+            assertEquals(actual.getAttributes().size(), 1);
+            Attribute attribute = actual.getAttributes().get(0);
+            assertEquals(attribute.getName(), old.getName());
+            assertEquals(attribute.getValue(), "other_attribute_value");
+            verifyLinksRel(actual.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).update(any(Workspace.class));
     }
 
-
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldBeAbleToGetWorkspaceMembers() throws Exception {
         List<Member> members = Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
@@ -358,8 +380,8 @@ public class WorkspaceServiceTest {
         prepareSecurityContext("workspace/admin");
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID + "/members", null, null);
-        List<Member> actualMembers = (List<Member>)response.getEntity();
-
+        //safe cast cause WorkspaceService#getMembers always return List<Member>
+        @SuppressWarnings("unchecked") List<Member> actualMembers = (List<Member>)response.getEntity();
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         assertEquals(actualMembers.size(), 1);
         verify(memberDao, times(1)).getWorkspaceMembers(WS_ID);
@@ -471,7 +493,7 @@ public class WorkspaceServiceTest {
 
     protected void prepareSecurityContext(String role) {
         when(securityContext.isUserInRole(anyString())).thenReturn(false);
-        if (!securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/developer")) {
+        if (!securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager")) {
             when(securityContext.isUserInRole("user")).thenReturn(true);
         }
         when(securityContext.isUserInRole(role)).thenReturn(true);

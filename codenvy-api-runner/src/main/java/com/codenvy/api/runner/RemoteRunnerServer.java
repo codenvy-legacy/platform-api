@@ -117,4 +117,8 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
             throw new RunnerException(e.getServiceError());
         }
     }
+
+    public boolean isOnline() {
+        return false; // TODO
+    }
 }

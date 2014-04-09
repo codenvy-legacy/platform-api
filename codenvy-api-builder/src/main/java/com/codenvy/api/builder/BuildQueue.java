@@ -559,14 +559,19 @@ public class BuildQueue {
                 }
             }
         });
-        getEventService().subscribe(new EventSubscriber<BuildDoneEvent>() {
+        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
             @Override
             public void onEvent(BuildDoneEvent event) {
                 try {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                     final long id = event.getTaskId();
                     bm.setChannel(String.format("builder:status:%d", id));
-                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                    try {
+                        bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                    } catch (BuilderException re) {
+                        bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                        bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                    }
                     WSConnectionContext.sendMessage(bm);
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);

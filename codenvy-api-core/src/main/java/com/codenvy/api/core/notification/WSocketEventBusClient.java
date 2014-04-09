@@ -117,7 +117,7 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         }
     }
 
-    private WSClient connect(final URI wsUri) throws IOException {
+    private void connect(final URI wsUri) throws IOException {
         Future<WSClient> clientFuture = connections.get(wsUri);
         if (clientFuture == null) {
             FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
@@ -136,9 +136,8 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         }
         boolean connected = false;
         try {
-            final WSClient wsClient = clientFuture.get();
+            clientFuture.get(); // wait for connection
             connected = true;
-            return wsClient;
         } catch (ExecutionException e) {
             final Throwable cause = e.getCause();
             if (cause instanceof Error) {
@@ -214,6 +213,7 @@ public final class WSocketEventBusClient extends WSocketEventBus {
             for (; ; ) {
                 try {
                     connect(wsUri);
+                    return;
                 } catch (IOException e) {
                     LOG.error(String.format("Failed connect to %s", wsUri), e);
                     synchronized (this) {

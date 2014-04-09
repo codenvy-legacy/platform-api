@@ -196,7 +196,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             }
             conn = (HttpURLConnection)new URL(downloadUrl).openConnection();
             conn.setConnectTimeout(30 * 1000);
-            conn.setConnectTimeout(30 * 1000);
+            conn.setReadTimeout(30 * 1000);
             if (!md5sums.isEmpty()) {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-type", "text/plain");

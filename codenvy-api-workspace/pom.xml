@@ -4,7 +4,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.15.0</version>
+        <version>0.15.1-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-workspace</artifactId>
     <properties>

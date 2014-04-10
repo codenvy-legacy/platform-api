@@ -115,9 +115,9 @@ public class WorkspaceService extends Service {
         if (newWorkspace == null) {
             throw new WorkspaceException("Missed workspace to create");
         }
-        String organizationId = newWorkspace.getOrganizationId();
+        String accountId = newWorkspace.getAccountId();
         Account currentOrg;
-        if (organizationId == null || organizationId.isEmpty() || (currentOrg = accountDao.getById(organizationId)) == null) {
+        if (accountId == null || accountId.isEmpty() || (currentOrg = accountDao.getById(accountId)) == null) {
             throw new WorkspaceException("Incorrect account to associate workspace with.");
         }
         final Principal principal = securityContext.getUserPrincipal();
@@ -133,7 +133,7 @@ public class WorkspaceService extends Service {
             for (int i = 0; i < currentOrg.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
                 isMultipleWorkspaceAvailable = currentOrg.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
             }
-            if (!isMultipleWorkspaceAvailable && workspaceDao.getByAccount(organizationId).size() > 0) {
+            if (!isMultipleWorkspaceAvailable && workspaceDao.getByAccount(accountId).size() > 0) {
                 throw new WorkspaceException("You have not access to create more workspaces");
             }
         }
@@ -276,18 +276,18 @@ public class WorkspaceService extends Service {
 
     @GET
     @Path("find/account")
-    @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACES_BY_ORGANIZATION)
+    @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACES_BY_ACCOUNT)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Workspace> getWorkspacesByOrganization(@Context SecurityContext securityContext,
-                                                       @Required @Description("Account id to get workspaces")
-                                                       @QueryParam("id") String organizationId)
+    public List<Workspace> getWorkspacesByAccount(@Context SecurityContext securityContext,
+                                                  @Required @Description("Account id to get workspaces")
+                                                  @QueryParam("id") String accountId)
             throws WorkspaceException, UserException, MembershipException {
-        if (organizationId == null) {
+        if (accountId == null) {
             throw new WorkspaceException("Account id required");
         }
         final List<Workspace> workspaces = new ArrayList<>();
-        for (Workspace workspace : workspaceDao.getByAccount(organizationId)) {
+        for (Workspace workspace : workspaceDao.getByAccount(accountId)) {
             injectLinks(workspace, securityContext);
             workspaces.add(workspace);
         }

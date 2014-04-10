@@ -82,13 +82,13 @@ import static org.testng.Assert.fail;
 @Listeners(value = {MockitoTestNGListener.class})
 public class WorkspaceServiceTest {
 
-    private static final String BASE_URI        = "http://localhost/service";
-    private static final String SERVICE_PATH    = BASE_URI + "/workspace";
-    private static final String WS_ID           = "workspace0xffffffffffffff";
-    private static final String WS_NAME         = "ws1";
-    private static final String USER_ID         = "user0xffffffffffffff";
-    private static final String ORGANIZATION_ID = "organization0xffffffffffffff";
-    private static final String PRINCIPAL_NAME  = "Yoda@starwars.com";
+    private static final String BASE_URI       = "http://localhost/service";
+    private static final String SERVICE_PATH   = BASE_URI + "/workspace";
+    private static final String WS_ID          = "workspace0xffffffffffffff";
+    private static final String WS_NAME        = "ws1";
+    private static final String USER_ID        = "user0xffffffffffffff";
+    private static final String ACCOUNT_ID     = "account0xffffffffffffff";
+    private static final String PRINCIPAL_NAME = "Yoda@starwars.com";
 
     @Mock
     private WorkspaceDao workspaceDao;
@@ -146,7 +146,7 @@ public class WorkspaceServiceTest {
         workspace = DtoFactory.getInstance().createDto(Workspace.class)
                               .withId(WS_ID)
                               .withName(WS_NAME)
-                              .withOrganizationId(ORGANIZATION_ID)
+                              .withAccountId(ACCOUNT_ID)
                               .withAttributes(attributes);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(PRINCIPAL_NAME));
@@ -175,8 +175,8 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToCreateNewWorkspace() throws Exception {
-        Account org = DtoFactory.getInstance().createDto(Account.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
-        when(accountDao.getById(ORGANIZATION_ID)).thenReturn(org);
+        Account org = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID).withOwner(USER_ID);
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(org);
 
         String[] roles = new String[]{"user", "system/admin"};
         for (String role : roles) {
@@ -221,11 +221,11 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldNotBeAbleToCreateWorkspaceIfOrganizationNotSubscribedOnMultipleWorkspaces()
+    public void shouldNotBeAbleToCreateWorkspaceIfAccountNotSubscribedOnMultipleWorkspaces()
             throws Exception {
-        Account org = DtoFactory.getInstance().createDto(Account.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
-        when(accountDao.getById(ORGANIZATION_ID)).thenReturn(org);
-        when(workspaceDao.getByAccount(ORGANIZATION_ID))
+        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID).withOwner(USER_ID);
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(acc);
+        when(workspaceDao.getByAccount(ACCOUNT_ID))
                 .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class)));
 
         prepareSecurityContext("user");

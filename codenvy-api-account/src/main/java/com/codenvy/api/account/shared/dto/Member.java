@@ -40,11 +40,11 @@ public interface Member {
 
     Member withUserId(String id);
 
-    String getOrganizationId();
+    String getAccountId();
 
-    void setOrganizationId(String id);
+    void setAccountId(String id);
 
-    Member withOrganizationId(String id);
+    Member withAccountId(String id);
 
     List<Link> getLinks();
 

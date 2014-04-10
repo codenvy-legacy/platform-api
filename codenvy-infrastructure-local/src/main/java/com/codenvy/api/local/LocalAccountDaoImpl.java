@@ -128,9 +128,9 @@ public class LocalAccountDaoImpl implements AccountDao {
 
     @Override
     public List<Member> getMembers(String accountId) throws AccountException {
-        return Arrays.asList(DtoFactory.getInstance().createDto(Member.class).withOrganizationId(accountId)
+        return Arrays.asList(DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
                                        .withUserId("userId122332133123").withRoles(Arrays.asList("account/owner")),
-                             DtoFactory.getInstance().createDto(Member.class).withOrganizationId(accountId)
+                             DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
                                        .withUserId("userId112233322239").withRoles(Arrays.asList("account/member")));
     }
 

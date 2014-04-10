@@ -85,7 +85,7 @@ public class AccountService extends Service {
     }
 
     @POST
-    @GenerateLink(rel = Constants.LINK_REL_CREATE_ORGANIZATION)
+    @GenerateLink(rel = Constants.LINK_REL_CREATE_ACCOUNT)
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -121,7 +121,7 @@ public class AccountService extends Service {
     }
 
     @GET
-    @GenerateLink(rel = Constants.LINK_REL_GET_ORGANIZATIONS)
+    @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<AccountMembership> getMemberships(@Context SecurityContext securityContext)
@@ -141,7 +141,7 @@ public class AccountService extends Service {
 
     @GET
     @Path("list")
-    @GenerateLink(rel = Constants.LINK_REL_GET_ORGANIZATIONS)
+    @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<AccountMembership> getMembershipsOfSpecificUser(
@@ -206,7 +206,7 @@ public class AccountService extends Service {
 
     @GET
     @Path("{id}")
-    @GenerateLink(rel = Constants.LINK_REL_GET_ORGANIZATION_BY_ID)
+    @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_ID)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Account getById(@Context SecurityContext securityContext, @PathParam("id") String id)
@@ -221,7 +221,7 @@ public class AccountService extends Service {
 
     @GET
     @Path("find")
-    @GenerateLink(rel = Constants.LINK_REL_GET_ORGANIZATION_BY_NAME)
+    @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_NAME)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Account getByName(@Context SecurityContext securityContext,
@@ -256,7 +256,7 @@ public class AccountService extends Service {
         if (userDao.getById(userId) == null) {
             throw new UserNotFoundException(userId);
         }
-        Member newMember = DtoFactory.getInstance().createDto(Member.class).withOrganizationId(accountId).withUserId(userId);
+        Member newMember = DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId).withUserId(userId);
         newMember.setRoles(Arrays.asList("account/member"));
         accountDao.addMember(newMember);
     }
@@ -299,7 +299,7 @@ public class AccountService extends Service {
 
     @POST
     @Path("{id}")
-    @GenerateLink(rel = Constants.LINK_REL_UPDATE_ORGANIZATION)
+    @GenerateLink(rel = Constants.LINK_REL_UPDATE_ACCOUNT)
     @RolesAllowed({"user"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -372,10 +372,10 @@ public class AccountService extends Service {
             throw AccountNotFoundException.doesNotExistWithId(accountId);
         }
         if (securityContext.isUserInRole("user")) {
-            List<AccountMembership> currentUserOrganizations = getMemberships(securityContext);
+            List<AccountMembership> currentUserAccounts = getMemberships(securityContext);
             boolean isAccountExists = false;
-            for (int i = 0; i < currentUserOrganizations.size() && !isAccountExists; ++i) {
-                isAccountExists = currentUserOrganizations.get(i).getId().equals(accountId);
+            for (int i = 0; i < currentUserAccounts.size() && !isAccountExists; ++i) {
+                isAccountExists = currentUserAccounts.get(i).getId().equals(accountId);
             }
             if (!isAccountExists) {
                 throw new AccountException("Access denied");
@@ -401,8 +401,8 @@ public class AccountService extends Service {
         if (subscription == null) {
             throw new AccountException("Missed subscription");
         }
-        if (accountDao.getById(subscription.getOrganizationId()) == null) {
-            throw AccountNotFoundException.doesNotExistWithId(subscription.getOrganizationId());
+        if (accountDao.getById(subscription.getAccountId()) == null) {
+            throw AccountNotFoundException.doesNotExistWithId(subscription.getAccountId());
         }
         SubscriptionService service = registry.get(subscription.getServiceId());
         if (service == null) {
@@ -434,7 +434,7 @@ public class AccountService extends Service {
 
     @DELETE
     @Path("{id}")
-    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ORGANIZATION)
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ACCOUNT)
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws AccountException {
         if (accountDao.getById(id) == null) {
@@ -487,7 +487,7 @@ public class AccountService extends Service {
     private void injectLinks(Account account, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(createLink("GET", Constants.LINK_REL_GET_ORGANIZATIONS, null, MediaType.APPLICATION_JSON,
+        links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNTS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMemberships").build().toString()));
         links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getSubscriptions").build(account.getId())
@@ -496,15 +496,15 @@ public class AccountService extends Service {
                              uriBuilder.clone().path(getClass(), "getMembers").build(account.getId())
                                        .toString()));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_ORGANIZATION_BY_ID, null, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(account.getId()).toString()));
-            links.add(createLink("GET", Constants.LINK_REL_GET_ORGANIZATION_BY_NAME, null, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_NAME, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", account.getName()).build()
                                            .toString()));
 
         }
         if (securityContext.isUserInRole("system/admin")) {
-            links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_ORGANIZATION, null, null,
+            links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_ACCOUNT, null, null,
                                  uriBuilder.clone().path(getClass(), "remove").build(account.getId()).toString()));
         }
         account.setLinks(links);

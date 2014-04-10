@@ -38,11 +38,11 @@ public interface Subscription {
 
     Subscription withId(String id);
 
-    String getOrganizationId();
+    String getAccountId();
 
-    void setOrganizationId(String orgId);
+    void setAccountId(String orgId);
 
-    Subscription withOrganizationId(String orgId);
+    Subscription withAccountId(String orgId);
 
     String getServiceId();
 

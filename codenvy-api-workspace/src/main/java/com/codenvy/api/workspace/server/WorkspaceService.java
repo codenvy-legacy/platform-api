@@ -133,7 +133,7 @@ public class WorkspaceService extends Service {
             for (int i = 0; i < currentOrg.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
                 isMultipleWorkspaceAvailable = currentOrg.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
             }
-            if (!isMultipleWorkspaceAvailable && workspaceDao.getByOrganization(organizationId).size() > 0) {
+            if (!isMultipleWorkspaceAvailable && workspaceDao.getByAccount(organizationId).size() > 0) {
                 throw new WorkspaceException("You have not access to create more workspaces");
             }
         }
@@ -287,7 +287,7 @@ public class WorkspaceService extends Service {
             throw new WorkspaceException("Account id required");
         }
         final List<Workspace> workspaces = new ArrayList<>();
-        for (Workspace workspace : workspaceDao.getByOrganization(organizationId)) {
+        for (Workspace workspace : workspaceDao.getByAccount(organizationId)) {
             injectLinks(workspace, securityContext);
             workspaces.add(workspace);
         }

@@ -225,7 +225,7 @@ public class WorkspaceServiceTest {
             throws Exception {
         Account org = DtoFactory.getInstance().createDto(Account.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
         when(accountDao.getById(ORGANIZATION_ID)).thenReturn(org);
-        when(workspaceDao.getByOrganization(ORGANIZATION_ID))
+        when(workspaceDao.getByAccount(ORGANIZATION_ID))
                 .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class)));
 
         prepareSecurityContext("user");

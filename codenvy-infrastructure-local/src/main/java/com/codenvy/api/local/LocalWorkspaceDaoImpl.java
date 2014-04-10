@@ -55,7 +55,7 @@ public class LocalWorkspaceDaoImpl implements WorkspaceDao {
     }
 
     @Override
-    public List<Workspace> getByOrganization(String organizationId) throws WorkspaceException {
+    public List<Workspace> getByAccount(String accountId) throws WorkspaceException {
         return Arrays.asList(Constants.WORKSPACE);
     }
 }

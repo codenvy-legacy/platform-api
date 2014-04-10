@@ -20,22 +20,27 @@ package com.codenvy.api.runner.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Provides info for registration new SlaveRunnerService.
+ * Location of {@code SlaveRunnerService} resource.
  *
  * @author andrew00x
- * @see com.codenvy.api.runner.RunnerAdminService#register(com.codenvy.api.runner.dto.RunnerServiceRegistration)
+ * @see com.codenvy.api.runner.internal.SlaveRunnerService
  */
 @DTO
-public interface RunnerServiceRegistration {
-    RunnerServiceLocation getRunnerServiceLocation();
+public interface RunnerServerLocation {
+    /**
+     * Get URL of this SlaveRunnerService. This URL may be used for direct access to the {@code SlaveRunnerService} functionality.
+     *
+     * @return resource URL
+     */
+    String getUrl();
 
-    RunnerServiceRegistration withRunnerServiceLocation(RunnerServiceLocation runnerServiceLocation);
+    /**
+     * Set URL of this SlaveRunnerService. This URL may be used for direct access to the {@code SlaveRunnerService} functionality.
+     *
+     * @param url
+     *         resource URL
+     */
+    void setUrl(String url);
 
-    void setRunnerServiceLocation(RunnerServiceLocation runnerServiceLocation);
-
-    RunnerServiceAccessCriteria getRunnerServiceAccessCriteria();
-
-    RunnerServiceRegistration withRunnerServiceAccessCriteria(RunnerServiceAccessCriteria runnerServiceAccessCriteria);
-
-    void setRunnerServiceAccessCriteria(RunnerServiceAccessCriteria runnerServiceAccessCriteria);
+    RunnerServerLocation withUrl(String url);
 }

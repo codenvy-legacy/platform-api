@@ -42,7 +42,7 @@ public interface Constants {
     public static final Member MEMBER = DtoFactory.getInstance().createDto(Member.class).
             withUserId("codenvy")
             .withWorkspaceId("default")
-            .withRoles(Arrays.asList("workspace/admin", "workspace/developer", "system/admin"));
+            .withRoles(Arrays.asList("workspace/admin", "workspace/developer"));
 
     public static final Workspace WORKSPACE = DtoFactory.getInstance().createDto(Workspace.class)
             .withId("default")

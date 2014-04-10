@@ -22,7 +22,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 /**
  * Filter for virtual files.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface VirtualFileFilter {
     /** Tests whether specified file should be included in result. */

@@ -20,23 +20,22 @@ package com.codenvy.api.builder.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes current state of Builder.
+ * Provides info for registration new SlaveBuilderService.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00[
+ * @see com.codenvy.api.builder.BuilderAdminService#register(BuilderServerRegistration)
  */
 @DTO
-public interface BuilderState {
-    /** Get total number of tasks of Builder. */
-    int getTotalNum();
+public interface BuilderServerRegistration {
+    BuilderServerLocation getBuilderServerLocation();
 
-    BuilderState withTotalNum(int totalNum);
+    BuilderServerRegistration withBuilderServerLocation(BuilderServerLocation builderServerLocation);
 
-    void setTotalNum(int totalNum);
+    void setBuilderServerLocation(BuilderServerLocation builderServerLocation);
 
-    /** Get number of waiting tasks of Builder. */
-    int getWaitingNum();
+    BuilderServerAccessCriteria getBuilderServerAccessCriteria();
 
-    BuilderState withWaitingNum(int waitingNum);
+    BuilderServerRegistration withBuilderServerAccessCriteria(BuilderServerAccessCriteria builderServerAccessCriteria);
 
-    void setWaitingNum(int waitingNum);
+    void setBuilderServerAccessCriteria(BuilderServerAccessCriteria builderServerAccessCriteria);
 }

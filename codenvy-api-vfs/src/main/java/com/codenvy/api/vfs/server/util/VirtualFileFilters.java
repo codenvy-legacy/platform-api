@@ -24,7 +24,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 /**
  * Provides factory method to create AND, OR filters based on set of VirtualFileFilter.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class VirtualFileFilters {
 
@@ -34,13 +34,13 @@ public class VirtualFileFilters {
         }
         VirtualFileFilter[] copy = new VirtualFileFilter[filters.length];
         System.arraycopy(filters, 0, copy, 0, filters.length);
-        return new AndChangeEventFilter(copy);
+        return new AndFilter(copy);
     }
 
-    private static class AndChangeEventFilter implements VirtualFileFilter {
+    private static class AndFilter implements VirtualFileFilter {
         final VirtualFileFilter[] filters;
 
-        AndChangeEventFilter(VirtualFileFilter[] filters) {
+        AndFilter(VirtualFileFilter[] filters) {
             this.filters = filters;
         }
 
@@ -61,13 +61,13 @@ public class VirtualFileFilters {
         }
         VirtualFileFilter[] copy = new VirtualFileFilter[filters.length];
         System.arraycopy(filters, 0, copy, 0, filters.length);
-        return new OrChangeEventFilter(copy);
+        return new OrFilter(copy);
     }
 
-    private static class OrChangeEventFilter implements VirtualFileFilter {
+    private static class OrFilter implements VirtualFileFilter {
         final VirtualFileFilter[] filters;
 
-        OrChangeEventFilter(VirtualFileFilter[] filters) {
+        OrFilter(VirtualFileFilter[] filters) {
             this.filters = filters;
         }
 

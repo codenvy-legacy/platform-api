@@ -15,32 +15,38 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.runner.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes state of computer. Provided as part of state of slave builder.
+ * Describes state of computer.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
-public interface InstanceState {
+public interface ServerState {
     int getCpuPercentUsage();
 
-    InstanceState withCpuPercentUsage(int cpuPercentUsage);
+    ServerState withCpuPercentUsage(int cpuPercentUsage);
 
     void setCpuPercentUsage(int cpuPercentUsage);
 
     long getTotalMemory();
 
-    InstanceState withTotalMemory(long totalMemory);
+    ServerState withTotalMemory(long totalMemory);
 
     void setTotalMemory(long totalMemory);
 
     long getFreeMemory();
 
-    InstanceState withFreeMemory(long freeMemory);
+    ServerState withFreeMemory(long freeMemory);
 
     void setFreeMemory(long freeMemory);
+
+    int getTotalRunningAppsNum();
+
+    ServerState withTotalRunningAppsNum(int num);
+
+    void setTotalRunningAppsNum(int num);
 }

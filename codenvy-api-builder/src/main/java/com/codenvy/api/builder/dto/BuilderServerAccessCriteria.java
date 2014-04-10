@@ -23,19 +23,19 @@ import com.codenvy.dto.shared.DTO;
  * Resource access criteria. Basically resource may be assigned to {@code workspace}, {@code project} in some workspace or {@code
  * username}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
-public interface BuilderServiceAccessCriteria {
+public interface BuilderServerAccessCriteria {
     String getWorkspace();
 
-    BuilderServiceAccessCriteria withWorkspace(String workspace);
+    BuilderServerAccessCriteria withWorkspace(String workspace);
 
     void setWorkspace(String workspace);
 
     String getProject();
 
-    BuilderServiceAccessCriteria withProject(String project);
+    BuilderServerAccessCriteria withProject(String project);
 
     void setProject(String project);
 }

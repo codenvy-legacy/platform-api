@@ -20,27 +20,21 @@ package com.codenvy.api.runner.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Location of {@code SlaveRunnerService} resource.
+ * Resource access criteria. Basically resource may be assigned to {@code workspace}, {@code project} in some workspace.
  *
  * @author andrew00x
- * @see com.codenvy.api.runner.internal.SlaveRunnerService
  */
 @DTO
-public interface RunnerServiceLocation {
-    /**
-     * Get URL of this SlaveRunnerService. This URL may be used for direct access to the {@code SlaveRunnerService} functionality.
-     *
-     * @return resource URL
-     */
-    String getUrl();
+public interface RunnerServerAccessCriteria {
+    String getWorkspace();
 
-    /**
-     * Set URL of this SlaveRunnerService. This URL may be used for direct access to the {@code SlaveRunnerService} functionality.
-     *
-     * @param url
-     *         resource URL
-     */
-    void setUrl(String url);
+    RunnerServerAccessCriteria withWorkspace(String workspace);
 
-    RunnerServiceLocation withUrl(String url);
+    void setWorkspace(String workspace);
+
+    String getProject();
+
+    RunnerServerAccessCriteria withProject(String project);
+
+    void setProject(String project);
 }

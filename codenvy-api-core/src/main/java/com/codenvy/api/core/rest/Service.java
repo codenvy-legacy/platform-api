@@ -105,7 +105,7 @@ public abstract class Service {
         }
         final Description description = service.getAnnotation(Description.class);
         final ServiceDescriptor dto = DtoFactory.getInstance().createDto(ServiceDescriptor.class)
-                                                .withHref(uriInfo.getRequestUri().toString())
+                                                .withHref(uriInfo.getRequestUriBuilder().replaceQuery(null).build().toString())
                                                 .withLinks(links)
                                                 .withVersion(Constants.API_VERSION);
         if (description != null) {

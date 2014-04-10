@@ -15,11 +15,24 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.ws;
+package com.codenvy.api.organization.shared.dto;
+
+import com.codenvy.dto.shared.DTO;
+
+import java.util.List;
 
 /**
- * @author andrew00x
+ * Describes organization with roles. It should be used with
+ * {@link com.codenvy.api.organization.server.OrganizationService#getMemberships(javax.ws.rs.core.SecurityContext)}
+ *
+ * @author Eugene Voevodin
  */
-public interface RemoteEventListener<E> {
-    void handleEvent(E event);
+@DTO
+public interface OrganizationMembership extends Organization {
+
+    List<String> getRoles();
+
+    void setRoles(List<String> roles);
+
+    OrganizationMembership withRoles(List<String> roles);
 }

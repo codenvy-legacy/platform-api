@@ -20,45 +20,45 @@ package com.codenvy.api.builder.internal.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Provides information about state of slave builder.
+ * Describes current state of {@link com.codenvy.api.builder.internal.Builder}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
-public interface SlaveBuilderState {
+public interface BuilderState {
     String getName();
 
-    SlaveBuilderState withName(String name);
+    BuilderState withName(String name);
 
     void setName(String name);
 
     int getNumberOfWorkers();
 
-    SlaveBuilderState withNumberOfWorkers(int numberOfWorkers);
+    BuilderState withNumberOfWorkers(int numberOfWorkers);
 
     void setNumberOfWorkers(int numberOfWorkers);
 
     int getNumberOfActiveWorkers();
 
-    SlaveBuilderState withNumberOfActiveWorkers(int numberOfActiveWorkers);
+    BuilderState withNumberOfActiveWorkers(int numberOfActiveWorkers);
 
     void setNumberOfActiveWorkers(int numberOfActiveWorkers);
 
     int getInternalQueueSize();
 
-    SlaveBuilderState withInternalQueueSize(int internalQueueSize);
+    BuilderState withInternalQueueSize(int internalQueueSize);
 
     void setInternalQueueSize(int internalQueueSize);
 
     int getMaxInternalQueueSize();
 
-    SlaveBuilderState withMaxInternalQueueSize(int maxInternalQueueSize);
+    BuilderState withMaxInternalQueueSize(int maxInternalQueueSize);
 
     void setMaxInternalQueueSize(int maxInternalQueueSize);
 
-    InstanceState getInstanceState();
+    ServerState getServerState();
 
-    SlaveBuilderState withInstanceState(InstanceState instanceState);
+    BuilderState withServerState(ServerState serverState);
 
-    void setInstanceState(InstanceState instanceState);
+    void setServerState(ServerState serverState);
 }

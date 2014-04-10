@@ -35,9 +35,7 @@ import static com.codenvy.api.factory.FactoryFormat.ENCODED;
 import static com.codenvy.api.factory.FactoryFormat.NONENCODED;
 import static org.testng.Assert.assertEquals;
 
-/**
- * @author Sergii Kabashniuk
- */
+/** @author Sergii Kabashniuk */
 @Listeners(MockitoTestNGListener.class)
 public class FactoryBuilderTest {
 
@@ -160,7 +158,7 @@ public class FactoryBuilderTest {
     @Test
     public void shouldBeAbleToValidateNonEncodedFactory1_2() throws FactoryUrlException {
         ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsurl("vcsurl").withVcsinfo(true).withCommitid("commitid").withOpenfile(
-                "openfile")                            .withAction("action"))                .withContactmail("contactmail").withAuthor(
+                "openfile").withAction("action")).withContactmail("contactmail").withAuthor(
                 "author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch");
 
         actual.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
@@ -191,6 +189,16 @@ public class FactoryBuilderTest {
         Factory.class.getMethod(methodName, argClass).invoke(actual, arg);
 
         factoryBuilder.checkValid(actual, ENCODED);
+    }
+
+    @Test(expectedExceptions = FactoryUrlException.class)
+    public void shouldNotAllowInNonencodedVersionUsingParamsOnlyForEncodedVersion() throws FactoryUrlException, URISyntaxException {
+        StringBuilder sb = new StringBuilder("?");
+        sb.append("v=").append("1.0").append("&");
+        sb.append("vcs=").append("git").append("&");
+        sb.append("welcome=").append("welcome").append("&");
+
+        factoryBuilder.buildNonEncoded(new URI(sb.toString()));
     }
 
     @DataProvider(name = "TFParamsProvider")
@@ -237,7 +245,8 @@ public class FactoryBuilderTest {
     public void shouldBeAbleToConvertToLatest() throws FactoryUrlException {
         actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname");
 
-        expected.withProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
+        expected.withProjectattributes(
+                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
                 .withCommitid(actual.getIdcommit()).withV("1.2");
 
         assertEquals(factoryBuilder.convertToLatest(actual), expected);
@@ -316,7 +325,8 @@ public class FactoryBuilderTest {
         sb.append("openfile=").append("openfile").append("&");
 
         expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withCommitid("7896464674879")
-                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true).withOpenfile("openfile");
+                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true)
+                .withOpenfile("openfile");
 
         Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);

@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.organization;
 
+
 import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.organization.server.OrganizationService;
@@ -26,10 +27,12 @@ import com.codenvy.api.organization.server.SubscriptionService;
 import com.codenvy.api.organization.server.SubscriptionServiceRegistry;
 import com.codenvy.api.organization.server.dao.OrganizationDao;
 import com.codenvy.api.organization.server.exception.OrganizationException;
+import com.codenvy.api.organization.shared.dto.Attribute;
 import com.codenvy.api.organization.shared.dto.Member;
 import com.codenvy.api.organization.shared.dto.Organization;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.organization.shared.dto.OrganizationMembership;
 import com.codenvy.api.organization.shared.dto.Subscription;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.shared.dto.User;
@@ -69,12 +72,12 @@ import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotEquals;
+import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 /**
@@ -89,10 +92,9 @@ public class OrganizationServiceTest {
     private final String BASE_URI          = "http://localhost/service";
     private final String SERVICE_PATH      = BASE_URI + "/organization";
     private final String USER_ID           = "user123abc456def";
-    private final String USER_EMAIL        = "Cooper@mail.com";
     private final String ORGANIZATION_ID   = "organization0xffffffffff";
     private final String SUBSCRIPTION_ID   = "Subscription0xffffffffff";
-    private final String ORGANIZATION_NAME = "Sheldon";
+    private final String ORGANIZATION_NAME = "codenvy";
     private final String SERVICE_ID        = "IDE_SERVICE";
 
     @Mock
@@ -133,20 +135,29 @@ public class OrganizationServiceTest {
                                                 providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         launcher = new ResourceLauncher(requestHandler);
-        organization =
-                DtoFactory.getInstance().createDto(Organization.class).withId(ORGANIZATION_ID).withOwner(USER_ID)
-                          .withName(ORGANIZATION_NAME);
+        organization = DtoFactory.getInstance().createDto(Organization.class)
+                                 .withId(ORGANIZATION_ID)
+                                 .withOwner(USER_ID)
+                                 .withName(ORGANIZATION_NAME)
+                                 .withAttributes(new ArrayList<>(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                                                         .withName("secret")
+                                                                                         .withValue("big secret")
+                                                                                         .withDescription(
+                                                                                                 "DON'T TELL ANYONE ABOUT IT!"))));
+        String USER_EMAIL = "organization@mail.com";
         User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(USER_EMAIL));
         when(userDao.getById(USER_ID)).thenReturn(user);
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
+        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+        when(organizationDao.getByName(ORGANIZATION_NAME)).thenReturn(organization);
     }
 
-    //TODO MAKE TEST FOR SYS/ADM & SYS/MAN instead of USER
     @Test
     public void shouldBeAbleToCreateOrganization() throws Exception {
+        when(organizationDao.getByName(organization.getName())).thenReturn(null);
         String role = "user";
         prepareSecurityContext(role);
 
@@ -158,26 +169,44 @@ public class OrganizationServiceTest {
         verify(organizationDao, times(1)).create(any(Organization.class));
     }
 
-
     @Test
-    @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetCurrentUserOrganizations() throws Exception {
-        when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
+    public void shouldBeAbleToGetMemberships() throws Exception {
+        when(organizationDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(organization));
         when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<Organization> currentOrganizations = (List<Organization>)response.getEntity();
+        //safe cast cause OrganizationService#getMemberships always returns List<OrganizationMembership
+        @SuppressWarnings("unchecked") List<OrganizationMembership> currentOrganizations =
+                (List<OrganizationMembership>)response.getEntity();
         assertEquals(currentOrganizations.size(), 1);
+        assertEquals(currentOrganizations.get(0).getRoles().get(0), "organization/owner");
+        verify(organizationDao, times(1)).getByOwner(USER_ID);
+        verify(organizationDao, times(1)).getByMember(USER_ID);
+    }
 
+    @Test
+    public void shouldBeAbleToGetMembershipsOfSpecificUser() throws Exception {
+        when(organizationDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(organization));
+        when(organizationDao.getByMember(USER_ID)).thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Organization.class)
+                                                                                      .withId("fake_id")
+                                                                                      .withName("fake_name")
+                                                                                      .withOwner("fake_user")));
+
+        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/list?userid=" + USER_ID, null, null);
+        //safe cast cause OrganizationService#getMembershipsOfSpecificUser always returns List<OrganizationMembership>
+        @SuppressWarnings("unchecked") List<OrganizationMembership> currentOrganizations =
+                (List<OrganizationMembership>)response.getEntity();
+        assertEquals(currentOrganizations.size(), 2);
+        assertEquals(currentOrganizations.get(0).getRoles().get(0), "organization/member");
+        assertEquals(currentOrganizations.get(1).getRoles().get(0), "organization/owner");
         verify(organizationDao, times(1)).getByOwner(USER_ID);
         verify(organizationDao, times(1)).getByMember(USER_ID);
     }
 
     @Test
     public void shouldBeAbleToGetOrganizationById() throws Exception {
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
         String[] roles = getRoles(OrganizationService.class, "getById");
 
         for (String role : roles) {
@@ -192,11 +221,136 @@ public class OrganizationServiceTest {
         verify(organizationDao, times(roles.length)).getById(ORGANIZATION_ID);
     }
 
+    @Test
+    public void shouldBeAbleToUpdateOrganization() throws Exception {
+        List<Attribute> attributes = Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                             .withName("newAttribute")
+                                                             .withValue("someValue")
+                                                             .withDescription("Description"));
+        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class)
+                                          .withName("newName")
+                                          .withAttributes(attributes);
+
+        prepareSecurityContext("user");
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Organization actual = (Organization)response.getEntity();
+        assertEquals(actual.getAttributes().size(), 2);
+        assertEquals(actual.getName(), "newName");
+        assertEquals(actual.getOwner(), USER_ID);
+    }
+
+    @Test
+    public void shouldBeAbleToRewriteAttributesWhenUpdatingOrganization() throws Exception {
+        List<Attribute> currentAttributes = new ArrayList<>();
+        currentAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
+                                        .withName("newAttribute")
+                                        .withValue("someValue")
+                                        .withDescription("Description"));
+        currentAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
+                                        .withName("oldAttribute")
+                                        .withValue("oldValue")
+                                        .withDescription("Description"));
+        organization.setAttributes(currentAttributes);
+
+        List<Attribute> updates = new ArrayList<>(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                                          .withName("newAttribute")
+                                                                          .withValue("OTHER_VALUE")
+                                                                          .withDescription("Description"),
+                                                                DtoFactory.getInstance().createDto(Attribute.class)
+                                                                          .withName("newAttribute2")
+                                                                          .withValue("someValue2")
+                                                                          .withDescription("Description2")));
+
+        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class).withAttributes(updates);
+
+        prepareSecurityContext("user");
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Organization actual = (Organization)response.getEntity();
+        assertEquals(actual.getName(), ORGANIZATION_NAME);
+        assertEquals(actual.getOwner(), USER_ID);
+        assertEquals(actual.getAttributes().size(), 3);
+        for (Attribute attribute : actual.getAttributes()) {
+            if (attribute.getName().equals("newAttribute") && !attribute.getValue().equals("OTHER_VALUE")) {
+                fail("Attribute should be replaced");
+            }
+        }
+    }
+
+    @Test
+    public void shouldBeAbleToAddNewAttribute() throws Exception {
+        Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
+                                           .withName("newAttribute")
+                                           .withValue("someValue")
+                                           .withDescription("Description");
+        int countBefore = organization.getAttributes().size();
+
+        ContainerResponse response =
+                makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(organization.getAttributes().size(), countBefore + 1);
+        verify(organizationDao, times(1)).update(organization);
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddAttributeWithIncorrectName() throws Exception {
+        Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
+                                           .withName("codenvy_newAttribute")
+                                           .withValue("someValue")
+                                           .withDescription("Description");
+        ContainerResponse response =
+                makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+
+        assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy_newAttribute' is not valid");
+
+        newAttribute.setName("");
+
+        response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+
+        assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Attribute name '' is not valid");
+
+        newAttribute.setName(null);
+
+        response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+
+        assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Attribute name 'null' is not valid");
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveAttribute() throws Exception {
+        int countBefore = organization.getAttributes().size();
+        assertTrue(countBefore > 0);
+        Attribute existed = organization.getAttributes().get(0);
+        ContainerResponse response =
+                makeRequest("DELETE", SERVICE_PATH + "/" + ORGANIZATION_ID + "/attribute?name=" + existed.getName(), null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(organization.getAttributes().size(), countBefore - 1);
+    }
+
+    @Test
+    public void shouldNotBeAbleToUpdateOrganizationWithAlreadyExistedName() throws Exception {
+        when(organizationDao.getByName("TO_UPDATE"))
+                .thenReturn(DtoFactory.getInstance().createDto(Organization.class).withName("TO_UPDATE"));
+
+        prepareSecurityContext("user");
+
+        Organization toUpdate = DtoFactory.getInstance().createDto(Organization.class).withName("TO_UPDATE");
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ORGANIZATION_ID, MediaType.APPLICATION_JSON, toUpdate);
+        assertNotEquals(response.getStatus(), Response.Status.OK);
+        assertEquals(response.getEntity().toString(), "Organization with name TO_UPDATE already exists");
+    }
 
     @Test
     public void shouldBeAbleToGetOrganizationByName() throws Exception {
-        when(organizationDao.getByName(ORGANIZATION_NAME)).thenReturn(organization);
-
         String[] roles = getRoles(OrganizationService.class, "getByName");
         for (String role : roles) {
             prepareSecurityContext(role);
@@ -210,25 +364,23 @@ public class OrganizationServiceTest {
         verify(organizationDao, times(roles.length)).getByName(ORGANIZATION_NAME);
     }
 
-
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldBeAbleToGetSubscriptionsOfSpecificOrganization() throws Exception {
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
         when(organizationDao.getSubscriptions(ORGANIZATION_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Subscription.class)
                           .withId(SUBSCRIPTION_ID)
                           .withStartDate(System.currentTimeMillis())
                           .withEndDate(System.currentTimeMillis())
                           .withServiceId(SERVICE_ID)
-                          .withProperties(Collections.EMPTY_MAP)));
+                          .withProperties(Collections.<String, String>emptyMap())));
 
         prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ORGANIZATION_ID + "/subscriptions", null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<Subscription> subscriptions = (List<Subscription>)response.getEntity();
+        //safe cast cause OrganizationService#getSubscriptions always returns List<Subscription>
+        @SuppressWarnings("unchecked") List<Subscription> subscriptions = (List<Subscription>)response.getEntity();
         assertEquals(subscriptions.size(), 1);
         assertEquals(subscriptions.get(0).getLinks().size(), 1);
         Link removeSubscription = subscriptions.get(0).getLinks().get(0);
@@ -241,9 +393,9 @@ public class OrganizationServiceTest {
 
     @Test
     public void shouldNotBeAbleToGetSubscriptionsFromOrganizationWhereCurrentUserIsNotMember() throws Exception {
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
         when(organizationDao.getByMember(USER_ID)).thenReturn(new ArrayList<Organization>());
-        when(organizationDao.getByOwner(USER_ID)).thenReturn(DtoFactory.getInstance().createDto(Organization.class).withId("NOT_SAME"));
+        when(organizationDao.getByOwner(USER_ID))
+                .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Organization.class).withId("NOT_SAME")));
 
         prepareSecurityContext("user");
 
@@ -253,15 +405,13 @@ public class OrganizationServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldBeAbleToAddSubscription() throws Exception {
         Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
                                               .withOrganizationId(ORGANIZATION_ID)
                                               .withServiceId(SERVICE_ID)
                                               .withStartDate(System.currentTimeMillis())
                                               .withEndDate(System.currentTimeMillis())
-                                              .withProperties(Collections.EMPTY_MAP);
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
+                                              .withProperties(Collections.<String, String>emptyMap());
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
         ContainerResponse response =
@@ -274,7 +424,6 @@ public class OrganizationServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldBeAbleToRemoveSubscription() throws Exception {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(organizationDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
@@ -283,7 +432,7 @@ public class OrganizationServiceTest {
                           .withStartDate(System.currentTimeMillis())
                           .withEndDate(System.currentTimeMillis())
                           .withServiceId(SERVICE_ID)
-                          .withProperties(Collections.EMPTY_MAP));
+                          .withProperties(Collections.<String, String>emptyMap()));
 
         ContainerResponse response =
                 makeRequest("DELETE", SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -295,43 +444,18 @@ public class OrganizationServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetMembersOfCurrentOrganization() throws Exception {
-        when(organizationDao.getByOwner(USER_ID)).thenReturn(organization);
+    public void shouldBeAbleToGetOrganizationMembers() throws Exception {
         when(organizationDao.getMembers(organization.getId()))
                 .thenReturn(Arrays.asList(
-                        DtoFactory.getInstance().createDto(Member.class).withRoles(Collections.EMPTY_LIST).withUserId(USER_ID)
-                                  .withOrganizationId(organization.getId())));
-
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/members", null, null);
-
-        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        verify(organizationDao, times(1)).getMembers(organization.getId());
-        List<Member> members = (List<Member>)response.getEntity();
-        assertEquals(members.size(), 1);
-        Member member = members.get(0);
-        assertEquals(member.getLinks().size(), 1);
-        Link removeMember = members.get(0).getLinks().get(0);
-        assertEquals(removeMember, DtoFactory.getInstance().createDto(Link.class)
-                                             .withRel(Constants.LINK_REL_REMOVE_MEMBER)
-                                             .withHref(SERVICE_PATH + "/" + member.getOrganizationId() + "/members/" + member.getUserId())
-                                             .withMethod("DELETE"));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void shouldBeAbleToGetMembersOfSpecificOrganization() throws Exception {
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
-        when(organizationDao.getMembers(organization.getId()))
-                .thenReturn(Arrays.asList(
-                        DtoFactory.getInstance().createDto(Member.class).withRoles(Collections.EMPTY_LIST).withUserId(USER_ID)
+                        DtoFactory.getInstance().createDto(Member.class).withRoles(Collections.<String>emptyList()).withUserId(USER_ID)
                                   .withOrganizationId(organization.getId())));
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + organization.getId() + "/members", null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         verify(organizationDao, times(1)).getMembers(organization.getId());
-        List<Member> members = (List<Member>)response.getEntity();
+        //safe cast cause OrganizationService#getMembers always returns List<Member>
+        @SuppressWarnings("unchecked") List<Member> members = (List<Member>)response.getEntity();
         assertEquals(members.size(), 1);
         Member member = members.get(0);
         assertEquals(member.getLinks().size(), 1);
@@ -344,8 +468,6 @@ public class OrganizationServiceTest {
 
     @Test
     public void shouldBeAbleToAddMember() throws Exception {
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
-
         ContainerResponse response =
                 makeRequest("POST", SERVICE_PATH + "/" + organization.getId() + "/members?userid=" + USER_ID, null, null);
 
@@ -355,8 +477,6 @@ public class OrganizationServiceTest {
 
     @Test
     public void shouldBeAbleToRemoveMember() throws Exception {
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(organization);
-
         ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ORGANIZATION_ID + "/members/" + USER_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
@@ -393,13 +513,12 @@ public class OrganizationServiceTest {
     private List<String> generateRels(String role) {
         final List<String> rels = new LinkedList<>();
         rels.add(Constants.LINK_REL_GET_MEMBERS);
-        rels.add(Constants.LINK_REL_GET_CURRENT_ORGANIZATIONS);
+        rels.add(Constants.LINK_REL_GET_ORGANIZATIONS);
         rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
         switch (role) {
             case "system/admin":
                 rels.add(Constants.LINK_REL_REMOVE_ORGANIZATION);
             case "system/manager":
-                rels.add(Constants.LINK_REL_GET_MEMBERS);
                 rels.add(Constants.LINK_REL_GET_ORGANIZATION_BY_NAME);
                 rels.add(Constants.LINK_REL_GET_ORGANIZATION_BY_ID);
                 break;

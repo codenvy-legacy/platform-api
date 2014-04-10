@@ -91,11 +91,10 @@ public class ProjectTest {
             public List<AttributeDescription> getAttributeDescriptions() {
                 return Arrays.asList(new AttributeDescription("calculated_attribute"));
             }
-
-
         });
+        final EventService eventService = new EventService();
         final MemoryFileSystemProvider memoryFileSystemProvider =
-                new MemoryFileSystemProvider("my_ws", new EventService(), new VirtualFileSystemUserContext() {
+                new MemoryFileSystemProvider("my_ws", eventService, new VirtualFileSystemUserContext() {
                     @Override
                     public VirtualFileSystemUser getVirtualFileSystemUser() {
                         return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
@@ -104,7 +103,7 @@ public class ProjectTest {
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new ProjectManager(ptr, ptdr, vpf, vfsRegistry);
+        pm = new ProjectManager(ptr, ptdr, vpf, vfsRegistry, eventService);
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(".codenvy").createFile("project", null, null);
     }

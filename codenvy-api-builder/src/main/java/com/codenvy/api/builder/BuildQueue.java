@@ -18,16 +18,16 @@
 package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildOptions;
-import com.codenvy.api.builder.dto.BuilderServiceAccessCriteria;
-import com.codenvy.api.builder.dto.BuilderServiceLocation;
-import com.codenvy.api.builder.dto.BuilderServiceRegistration;
+import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
+import com.codenvy.api.builder.dto.BuilderServerLocation;
+import com.codenvy.api.builder.dto.BuilderServerRegistration;
 import com.codenvy.api.builder.internal.BuildDoneEvent;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
+import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.builder.internal.dto.SlaveBuilderState;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
@@ -36,10 +36,14 @@ import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -83,6 +88,7 @@ public class BuildQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
+    private final ConcurrentMap<String, RemoteBuilderServer>       builderServices;
     private final BuilderSelectionStrategy                         builderSelector;
     private final ConcurrentMap<Long, BuildQueueTask>              tasks;
     private final ConcurrentMap<ProjectWithWorkspace, BuilderList> builderListMapping;
@@ -95,6 +101,11 @@ public class BuildQueue {
 
     private ExecutorService executor;
     private boolean         started;
+
+    /** Optional pre-configured slave builders. */
+    @com.google.inject.Inject(optional = true)
+    @Named("builder.slave_builders")
+    private String[] slaves = new String[0];
 
     /**
      * @param baseProjectApiUrl
@@ -122,6 +133,7 @@ public class BuildQueue {
         tasks = new ConcurrentHashMap<>();
         builderListMapping = new ConcurrentHashMap<>();
         successfulBuilds = new ConcurrentHashMap<>();
+        builderServices = new ConcurrentHashMap<>();
     }
 
     /**
@@ -150,30 +162,46 @@ public class BuildQueue {
         return count;
     }
 
+    public List<RemoteBuilderServer> getRegisterBuilderServers() {
+        return new ArrayList<>(builderServices.values());
+    }
+
     /**
      * Register remote SlaveBuildService which can process builds.
      *
      * @param registration
-     *         BuilderServiceRegistration
+     *         BuilderServerRegistration
      * @return {@code true} if set of available Builders changed as result of the call
      * @throws BuilderException
      *         if an error occurs
      */
-    public boolean registerBuilderService(BuilderServiceRegistration registration) throws BuilderException {
+    public boolean registerBuilderServer(BuilderServerRegistration registration) throws BuilderException {
         checkStarted();
+        final String url = registration.getBuilderServerLocation().getUrl();
+        final RemoteBuilderServer builderServer = new RemoteBuilderServer(url);
         String workspace = null;
         String project = null;
-        final BuilderServiceAccessCriteria accessCriteria = registration.getBuilderServiceAccessCriteria();
+        final BuilderServerAccessCriteria accessCriteria = registration.getBuilderServerAccessCriteria();
         if (accessCriteria != null) {
             workspace = accessCriteria.getWorkspace();
             project = accessCriteria.getProject();
         }
-        final RemoteBuilderFactory factory = new RemoteBuilderFactory(registration.getBuilderServiceLocation().getUrl());
-        final List<RemoteBuilder> toAdd = new ArrayList<>();
-        for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
-            toAdd.add(factory.createRemoteBuilder(builderDescriptor));
+        if (workspace != null) {
+            builderServer.setAssignedWorkspace(workspace);
+            if (project != null) {
+                builderServer.setAssignedProject(project);
+            }
         }
-        return registerBuilders(workspace, project, toAdd);
+        return doRegisterBuilderServer(builderServer);
+    }
+
+    private boolean doRegisterBuilderServer(RemoteBuilderServer builderServer) throws BuilderException {
+        final List<RemoteBuilder> toAdd = new LinkedList<>();
+        for (BuilderDescriptor builderDescriptor : builderServer.getAvailableBuilders()) {
+            toAdd.add(builderServer.createRemoteBuilder(builderDescriptor));
+        }
+        builderServices.put(builderServer.getBaseUrl(), builderServer);
+        return registerBuilders(builderServer.getAssignedWorkspace(), builderServer.getAssignedProject(), toAdd);
     }
 
     protected boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
@@ -193,17 +221,24 @@ public class BuildQueue {
      * Unregister remote SlaveBuildService.
      *
      * @param location
-     *         BuilderServiceLocation
+     *         BuilderServerLocation
      * @return {@code true} if set of available Builders changed as result of the call
      * @throws BuilderException
      *         if an error occurs
      */
-    public boolean unregisterBuilderService(BuilderServiceLocation location) throws BuilderException {
+    public boolean unregisterBuilderServer(BuilderServerLocation location) throws BuilderException {
         checkStarted();
-        final RemoteBuilderFactory factory = new RemoteBuilderFactory(location.getUrl());
-        final List<RemoteBuilder> toRemove = new ArrayList<>();
-        for (BuilderDescriptor builderDescriptor : factory.getAvailableBuilders()) {
-            toRemove.add(factory.createRemoteBuilder(builderDescriptor));
+        final String url = location.getUrl();
+        if (url == null) {
+            return false;
+        }
+        final RemoteBuilderServer builderServer = builderServices.remove(url);
+        if (builderServer == null) {
+            return false;
+        }
+        final List<RemoteBuilder> toRemove = new LinkedList<>();
+        for (BuilderDescriptor builderDescriptor : builderServer.getAvailableBuilders()) {
+            toRemove.add(builderServer.createRemoteBuilder(builderDescriptor));
         }
         return unregisterBuilders(toRemove);
     }
@@ -236,7 +271,7 @@ public class BuildQueue {
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
-        final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final ProjectDescriptor projectDescription = getProjectDescription(workspace, project, serviceContext);
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
                                                              .withProject(project);
@@ -247,15 +282,13 @@ public class BuildQueue {
             request.setIncludeDependencies(buildOptions.isIncludeDependencies());
             request.setSkipTest(buildOptions.isSkipTest());
         }
-        addRequestParameters(descriptor, request);
+        addParametersFromProjectDescriptor(projectDescription, request);
         final RemoteTask successfulTask = successfulBuilds.get(request);
         Callable<RemoteTask> callable = null;
         boolean reuse = false;
         if (successfulTask != null) {
             try {
-                // check is it available
-                successfulTask.getBuildTaskDescriptor();
-                reuse = true;
+                reuse = projectDescription.getModificationDate() < successfulTask.getBuildTaskDescriptor().getEndTime();
             } catch (Exception ignored) {
             }
             if (reuse) {
@@ -288,13 +321,7 @@ public class BuildQueue {
         return new Callable<RemoteTask>() {
             @Override
             public RemoteTask call() throws BuilderException {
-                final BuilderList builderList = getBuilderList(request);
-                final RemoteBuilder builder = builderList.getBuilder(request);
-                if (builder == null) {
-                    throw new BuilderException("There is no any builder available. ");
-                }
-                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
-                return builder.perform(request);
+                return getBuilder(request).perform(request);
             }
         };
     }
@@ -320,7 +347,7 @@ public class BuildQueue {
                                                                        .withType(type)
                                                                        .withWorkspace(workspace)
                                                                        .withProject(project);
-        addRequestParameters(descriptor, request);
+        addParametersFromProjectDescriptor(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final Callable<RemoteTask> callable = createTaskFor(request);
         final Long id = sequence.getAndIncrement();
@@ -337,32 +364,31 @@ public class BuildQueue {
         return new Callable<RemoteTask>() {
             @Override
             public RemoteTask call() throws BuilderException {
-                final BuilderList builderList = getBuilderList(request);
-                final RemoteBuilder builder = builderList.getBuilder(request);
-                if (builder == null) {
-                    throw new BuilderException("There is no any builder available. ");
-                }
-                LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
-                return builder.perform(request);
+                return getBuilder(request).perform(request);
             }
         };
     }
 
-    private void addRequestParameters(ProjectDescriptor descriptor, BaseBuilderRequest request) {
-        String builder = request.getBuilder();
+    private void addParametersFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
         final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
+        String builder = request.getBuilder();
         if (builder == null) {
             builder = getAttributeValue(Constants.BUILDER_NAME, projectAttributes);
             if (builder == null) {
-                throw new IllegalStateException(
+                throw new BuilderException(
                         String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
             }
             request.setBuilder(builder);
         }
+        if (!hasBuilder(request)) {
+            throw new BuilderException(String.format("Builder '%s' is not available. ", builder));
+        }
         request.setProjectUrl(descriptor.getBaseUrl());
         final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
         if (zipballLink != null) {
-            request.setSourcesUrl(zipballLink.getHref());
+            final String zipballLinkHref = zipballLink.getHref();
+            final String token = getAuthenticationToken();
+            request.setSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
         }
         if (request.getTargets().isEmpty()) {
             final List<String> targetsAttr = projectAttributes.get(Constants.BUILDER_TARGETS.replace("${builder}", builder));
@@ -419,17 +445,16 @@ public class BuildQueue {
         }
     }
 
-    private BuilderList getBuilderList(BaseBuilderRequest request) throws BuilderException {
-        final String project = request.getProject();
-        final String workspace = request.getWorkspace();
+    boolean hasBuilder(BaseBuilderRequest request) {
+        final BuilderList builderList = getBuilderList(request.getWorkspace(), request.getProject());
+        return builderList != null && builderList.hasBuilder(request.getBuilder());
+    }
+
+    protected BuilderList getBuilderList(String workspace, String project) {
         BuilderList builderList = builderListMapping.get(new ProjectWithWorkspace(project, workspace));
         if (builderList == null) {
             if (project != null || workspace != null) {
-                if (project != null && workspace != null) {
-                    // have dedicated builders for project in some workspace?
-                    builderList = builderListMapping.get(new ProjectWithWorkspace(project, workspace));
-                }
-                if (builderList == null && workspace != null) {
+                if (workspace != null) {
                     // have dedicated builders for whole workspace (omit project) ?
                     builderList = builderListMapping.get(new ProjectWithWorkspace(null, workspace));
                 }
@@ -439,16 +464,34 @@ public class BuildQueue {
                 }
             }
         }
+        return builderList;
+    }
+
+    protected RemoteBuilder getBuilder(BaseBuilderRequest request) throws BuilderException {
+        final BuilderList builderList = getBuilderList(request.getWorkspace(), request.getProject());
         if (builderList == null) {
             // Cannot continue, typically should never happen. At least shared builders should be available for everyone.
             throw new BuilderException("There is no any builder to process this request. ");
         }
-        return builderList;
+        final RemoteBuilder builder = builderList.getBuilder(request);
+        if (builder == null) {
+            throw new BuilderException("There is no any builder available. ");
+        }
+        LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
+        return builder;
     }
 
     private long getBuildTimeout(BaseBuilderRequest request) throws BuilderException {
         // TODO: calculate in different way for different workspace/project.
         return timeout;
+    }
+
+    private String getAuthenticationToken() {
+        User user = EnvironmentContext.getCurrent().getUser();
+        if (user != null) {
+            return user.getToken();
+        }
+        return null;
     }
 
     private void purgeExpiredTasks() {
@@ -525,6 +568,74 @@ public class BuildQueue {
                 }
             }
         });
+        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+            @Override
+            public void onEvent(BuildDoneEvent event) {
+                try {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    final long id = event.getTaskId();
+                    bm.setChannel(String.format("builder:status:%d", id));
+                    try {
+                        bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                    } catch (BuilderException re) {
+                        bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                        bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                    }
+                    WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+        if (slaves.length > 0) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    final LinkedList<RemoteBuilderServer> servers = new LinkedList<>();
+                    for (String slave : slaves) {
+                        try {
+                            servers.add(new RemoteBuilderServer(slave));
+                        } catch (IllegalArgumentException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                    final LinkedList<RemoteBuilderServer> offline = new LinkedList<>();
+                    for (; ; ) {
+                        while (!servers.isEmpty()) {
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
+                            final RemoteBuilderServer server = servers.pop();
+                            if (server.isAvailable()) {
+                                try {
+                                    doRegisterBuilderServer(server);
+                                    LOG.debug("Pre-configured slave builder server {} registered. ", server.getBaseUrl());
+                                } catch (BuilderException e) {
+                                    LOG.error(e.getMessage(), e);
+                                }
+                            } else {
+                                LOG.warn("Pre-configured slave builder server {} isn't responding. ", server.getBaseUrl());
+                                offline.add(server);
+                            }
+                        }
+                        if (offline.isEmpty()) {
+                            return;
+                        } else {
+                            servers.addAll(offline);
+                            offline.clear();
+                            synchronized (this) {
+                                try {
+                                    wait(5000);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
         started = true;
     }
 
@@ -539,7 +650,7 @@ public class BuildQueue {
         checkStarted();
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {
@@ -621,6 +732,15 @@ public class BuildQueue {
             builders = new LinkedHashSet<>();
         }
 
+        synchronized boolean hasBuilder(String name) {
+            for (RemoteBuilder builder : builders) {
+                if (name.equals(builder.getName())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         synchronized boolean addBuilders(Collection<? extends RemoteBuilder> list) {
             if (builders.addAll(list)) {
                 notifyAll();
@@ -659,7 +779,7 @@ public class BuildQueue {
                     if (Thread.currentThread().isInterrupted()) {
                         return null; // stop immediately
                     }
-                    SlaveBuilderState builderState;
+                    BuilderState builderState;
                     try {
                         builderState = builder.getBuilderState();
                     } catch (Exception e) {

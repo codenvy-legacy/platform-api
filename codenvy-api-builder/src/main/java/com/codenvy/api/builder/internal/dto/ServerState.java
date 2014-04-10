@@ -15,26 +15,32 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.dto;
+package com.codenvy.api.builder.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Resource access criteria. Basically resource may be assigned to {@code workspace}, {@code project} in some workspace.
+ * Describes state of computer.
  *
  * @author andrew00x
  */
 @DTO
-public interface RunnerServiceAccessCriteria {
-    String getWorkspace();
+public interface ServerState {
+    int getCpuPercentUsage();
 
-    RunnerServiceAccessCriteria withWorkspace(String workspace);
+    ServerState withCpuPercentUsage(int cpuPercentUsage);
 
-    void setWorkspace(String workspace);
+    void setCpuPercentUsage(int cpuPercentUsage);
 
-    String getProject();
+    long getTotalMemory();
 
-    RunnerServiceAccessCriteria withProject(String project);
+    ServerState withTotalMemory(long totalMemory);
 
-    void setProject(String project);
+    void setTotalMemory(long totalMemory);
+
+    long getFreeMemory();
+
+    ServerState withFreeMemory(long freeMemory);
+
+    void setFreeMemory(long freeMemory);
 }

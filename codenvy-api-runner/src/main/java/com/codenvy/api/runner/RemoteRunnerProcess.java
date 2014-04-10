@@ -85,7 +85,7 @@ public class RemoteRunnerProcess {
         }
         final HttpURLConnection conn = (HttpURLConnection)new URL(link.getHref()).openConnection();
         conn.setConnectTimeout(30 * 1000);
-        conn.setConnectTimeout(30 * 1000);
+        conn.setReadTimeout(30 * 1000);
         conn.setRequestMethod(link.getMethod());
         try {
             if (output instanceof HttpOutputMessage) {

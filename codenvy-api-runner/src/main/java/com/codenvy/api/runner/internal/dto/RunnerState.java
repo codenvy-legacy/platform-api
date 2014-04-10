@@ -20,9 +20,9 @@ package com.codenvy.api.runner.internal.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes state of computer. Provided as part of state of slave runner.
+ * Describes current state of {@link com.codenvy.api.runner.internal.Runner}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface RunnerState {
@@ -44,21 +44,9 @@ public interface RunnerState {
 
     void setTotalAppsNum(int num);
 
-    int getCpuPercentUsage();
+    ServerState getServerState();
 
-    RunnerState withCpuPercentUsage(int cpuPercentUsage);
+    RunnerState withServerState(ServerState serverState);
 
-    void setCpuPercentUsage(int cpuPercentUsage);
-
-    long getTotalMemory();
-
-    RunnerState withTotalMemory(long totalMemory);
-
-    void setTotalMemory(long totalMemory);
-
-    long getFreeMemory();
-
-    RunnerState withFreeMemory(long freeMemory);
-
-    void setFreeMemory(long freeMemory);
+    void setServerState(ServerState serverState);
 }

@@ -19,20 +19,16 @@ package com.codenvy.api.workspace.server;
 
 import sun.security.acl.PrincipalImpl;
 
-import com.codenvy.api.organization.server.dao.OrganizationDao;
-import com.codenvy.api.organization.server.exception.OrganizationException;
-import com.codenvy.api.organization.shared.dto.Organization;
-import com.codenvy.api.core.rest.Service;
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
@@ -56,12 +52,10 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
-import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -70,7 +64,6 @@ import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.contains;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -107,7 +100,7 @@ public class WorkspaceServiceTest {
     private MemberDao memberDao;
 
     @Mock
-    private OrganizationDao organizationDao;
+    private AccountDao accountDao;
 
     @Mock
     private UserProfileDao userProfileDao;
@@ -138,7 +131,7 @@ public class WorkspaceServiceTest {
         dependencies.addComponent(MemberDao.class, memberDao);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
-        dependencies.addComponent(OrganizationDao.class, organizationDao);
+        dependencies.addComponent(AccountDao.class, accountDao);
         resources.addResource(WorkspaceService.class, null);
         requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
                                                 providers, dependencies, new EverrestConfiguration());
@@ -182,8 +175,8 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToCreateNewWorkspace() throws Exception {
-        Organization org = DtoFactory.getInstance().createDto(Organization.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(org);
+        Account org = DtoFactory.getInstance().createDto(Account.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
+        when(accountDao.getById(ORGANIZATION_ID)).thenReturn(org);
 
         String[] roles = new String[]{"user", "system/admin"};
         for (String role : roles) {
@@ -230,8 +223,8 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldNotBeAbleToCreateWorkspaceIfOrganizationNotSubscribedOnMultipleWorkspaces()
             throws Exception {
-        Organization org = DtoFactory.getInstance().createDto(Organization.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
-        when(organizationDao.getById(ORGANIZATION_ID)).thenReturn(org);
+        Account org = DtoFactory.getInstance().createDto(Account.class).withId(ORGANIZATION_ID).withOwner(USER_ID);
+        when(accountDao.getById(ORGANIZATION_ID)).thenReturn(org);
         when(workspaceDao.getByOrganization(ORGANIZATION_ID))
                 .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class)));
 

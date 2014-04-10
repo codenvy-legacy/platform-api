@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.local.deploy;
 
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.local.LocalAccountDaoImpl;
 import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 
@@ -28,7 +30,7 @@ public class LocalInfrastructureModule extends AbstractModule {
         bind(com.codenvy.api.workspace.server.dao.WorkspaceDao.class).to(com.codenvy.api.local.LocalWorkspaceDaoImpl.class);
         bind(com.codenvy.api.user.server.dao.UserProfileDao.class).to(com.codenvy.api.local.LocalProfileDaoImpl.class);
         bind(com.codenvy.api.user.server.dao.MemberDao.class).to(com.codenvy.api.local.LocalMemberDaoImpl.class);
-        bind(com.codenvy.api.organization.server.dao.OrganizationDao.class).to(com.codenvy.api.local.LocalOrganizationDaoImpl.class);
+        bind(AccountDao.class).to(LocalAccountDaoImpl.class);
         bind(com.codenvy.api.auth.AuthenticationDao.class).to(com.codenvy.api.local.LocalAuthenticationDaoImpl.class);
         bind(com.codenvy.api.factory.FactoryStore.class).to(com.codenvy.api.local.InMemoryFactoryStore.class);
     }

@@ -26,7 +26,7 @@ public final class Constants {
 
     public static final String LINK_REL_CREATE_WORKSPACE               = "create workspace";
     public static final String LINK_REL_GET_CURRENT_USER_WORKSPACES    = "current user workspaces";
-    public static final String LINK_REL_GET_WORKSPACES_BY_ORGANIZATION = "all workspaces of given organization";
+    public static final String LINK_REL_GET_WORKSPACES_BY_ORGANIZATION = "all workspaces of given account";
     public static final String LINK_REL_GET_CONCRETE_USER_WORKSPACES   = "concrete user workspaces";
     public static final String LINK_REL_GET_WORKSPACE_BY_ID            = "workspace by id";
     public static final String LINK_REL_GET_WORKSPACE_BY_NAME          = "workspace by name";

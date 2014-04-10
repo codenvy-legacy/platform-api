@@ -6,16 +6,11 @@
         <groupId>com.codenvy.platform-api</groupId>
         <version>0.15.0-SNAPSHOT</version>
     </parent>
-    <artifactId>codenvy-api-workspace</artifactId>
+    <artifactId>codenvy-api-account</artifactId>
     <properties>
         <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
     </properties>
     <dependencies>
-        <dependency>
-            <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-account</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
             <artifactId>codenvy-api-core</artifactId>
@@ -23,24 +18,8 @@
         </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-project</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.codenvy.platform-api</groupId>
             <artifactId>codenvy-api-user</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-dto</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.ws.rs</groupId>
-            <artifactId>jsr311-api</artifactId>
-            <version>${javax.ws.rs.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.everrest</groupId>
@@ -93,16 +72,16 @@
                 <dependencies>
                     <dependency>
                         <groupId>com.codenvy.platform-api</groupId>
-                        <artifactId>codenvy-api-workspace</artifactId>
+                        <artifactId>codenvy-api-account</artifactId>
                         <version>${project.version}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
                     <dtoPackages>
-                        <package>com.codenvy.api.workspace.shared.dto</package>
+                        <package>com.codenvy.api.account.shared.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                    <genClassName>com.codenvy.api.workspace.server.dto.DtoServerImpls</genClassName>
+                    <genClassName>com.codenvy.api.account.server.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
             </plugin>

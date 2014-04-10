@@ -18,9 +18,9 @@
 package com.codenvy.api.workspace.server;
 
 
-import com.codenvy.api.organization.server.dao.OrganizationDao;
-import com.codenvy.api.organization.server.exception.OrganizationException;
-import com.codenvy.api.organization.shared.dto.Organization;
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.exception.AccountException;
+import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -88,20 +88,20 @@ import java.util.Map;
 public class WorkspaceService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceService.class);
 
-    private final WorkspaceDao    workspaceDao;
-    private final UserDao         userDao;
-    private final MemberDao       memberDao;
-    private final UserProfileDao  userProfileDao;
-    private final OrganizationDao organizationDao;
+    private final WorkspaceDao   workspaceDao;
+    private final UserDao        userDao;
+    private final MemberDao      memberDao;
+    private final UserProfileDao userProfileDao;
+    private final AccountDao     accountDao;
 
     @Inject
     public WorkspaceService(WorkspaceDao workspaceDao, UserDao userDao, MemberDao memberDao,
-                            UserProfileDao userProfileDao, OrganizationDao organizationDao) {
+                            UserProfileDao userProfileDao, AccountDao accountDao) {
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
         this.userProfileDao = userProfileDao;
-        this.organizationDao = organizationDao;
+        this.accountDao = accountDao;
     }
 
     @POST
@@ -111,14 +111,14 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext,
                            @Required @Description("new workspace") Workspace newWorkspace)
-            throws WorkspaceException, UserException, MembershipException, OrganizationException {
+            throws WorkspaceException, UserException, MembershipException, AccountException {
         if (newWorkspace == null) {
             throw new WorkspaceException("Missed workspace to create");
         }
         String organizationId = newWorkspace.getOrganizationId();
-        Organization currentOrg;
-        if (organizationId == null || organizationId.isEmpty() || (currentOrg = organizationDao.getById(organizationId)) == null) {
-            throw new WorkspaceException("Incorrect organization to associate workspace with.");
+        Account currentOrg;
+        if (organizationId == null || organizationId.isEmpty() || (currentOrg = accountDao.getById(organizationId)) == null) {
+            throw new WorkspaceException("Incorrect account to associate workspace with.");
         }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
@@ -126,7 +126,7 @@ public class WorkspaceService extends Service {
             throw new UserNotFoundException(principal.getName());
         }
         if (!currentOrg.getOwner().equals(user.getId())) {
-            throw new WorkspaceException("You can only create workspace associated to your own organization.");
+            throw new WorkspaceException("You can only create workspace associated to your own account.");
         }
         if (securityContext.isUserInRole("user")) {
             boolean isMultipleWorkspaceAvailable = false;
@@ -268,23 +268,23 @@ public class WorkspaceService extends Service {
             workspaceDao.getByName(workspaceToUpdate.getName()) == null) {
             workspace.setName(workspaceToUpdate.getName());
         }
-        //todo what about organizationId ? should it be possible to change organization?
+        //todo what about organizationId ? should it be possible to change account?
         workspaceDao.update(workspace);
         injectLinks(workspace, securityContext);
         return workspace;
     }
 
     @GET
-    @Path("find/organization")
+    @Path("find/account")
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACES_BY_ORGANIZATION)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Workspace> getWorkspacesByOrganization(@Context SecurityContext securityContext,
-                                                       @Required @Description("Organization id to get workspaces")
+                                                       @Required @Description("Account id to get workspaces")
                                                        @QueryParam("id") String organizationId)
             throws WorkspaceException, UserException, MembershipException {
         if (organizationId == null) {
-            throw new WorkspaceException("Organization id required");
+            throw new WorkspaceException("Account id required");
         }
         final List<Workspace> workspaces = new ArrayList<>();
         for (Workspace workspace : workspaceDao.getByOrganization(organizationId)) {

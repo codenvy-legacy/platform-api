@@ -89,10 +89,10 @@ public interface WorkspaceDao {
 
 
     /**
-     * Gets workspaces from persistent layer related to specified organization.
+     * Gets workspaces from persistent layer related to specified account.
      *
      * @param organizationId
-     *         - organization identifier
+     *         - account identifier
      * @return List of workspaces
      * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
      *         if any issue occurred during performing an operation

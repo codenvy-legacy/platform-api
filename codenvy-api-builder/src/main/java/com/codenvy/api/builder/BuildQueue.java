@@ -102,6 +102,11 @@ public class BuildQueue {
     private ExecutorService executor;
     private boolean         started;
 
+    /** Optional pre-configured slave builders. */
+    @com.google.inject.Inject(optional = true)
+    @Named("builder.slave_builders")
+    private String[] slaves = new String[0];
+
     /**
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
@@ -172,6 +177,8 @@ public class BuildQueue {
      */
     public boolean registerBuilderServer(BuilderServerRegistration registration) throws BuilderException {
         checkStarted();
+        final String url = registration.getBuilderServerLocation().getUrl();
+        final RemoteBuilderServer builderServer = new RemoteBuilderServer(url);
         String workspace = null;
         String project = null;
         final BuilderServerAccessCriteria accessCriteria = registration.getBuilderServerAccessCriteria();
@@ -179,20 +186,22 @@ public class BuildQueue {
             workspace = accessCriteria.getWorkspace();
             project = accessCriteria.getProject();
         }
-        final String url = registration.getBuilderServerLocation().getUrl();
-        final RemoteBuilderServer builderServer = new RemoteBuilderServer(url);
         if (workspace != null) {
             builderServer.setAssignedWorkspace(workspace);
             if (project != null) {
                 builderServer.setAssignedProject(project);
             }
         }
+        return doRegisterBuilderServer(builderServer);
+    }
+
+    private boolean doRegisterBuilderServer(RemoteBuilderServer builderServer) throws BuilderException {
         final List<RemoteBuilder> toAdd = new LinkedList<>();
         for (BuilderDescriptor builderDescriptor : builderServer.getAvailableBuilders()) {
             toAdd.add(builderServer.createRemoteBuilder(builderDescriptor));
         }
-        builderServices.put(url, builderServer);
-        return registerBuilders(workspace, project, toAdd);
+        builderServices.put(builderServer.getBaseUrl(), builderServer);
+        return registerBuilders(builderServer.getAssignedWorkspace(), builderServer.getAssignedProject(), toAdd);
     }
 
     protected boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
@@ -578,6 +587,55 @@ public class BuildQueue {
                 }
             }
         });
+        if (slaves.length > 0) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    final LinkedList<RemoteBuilderServer> servers = new LinkedList<>();
+                    for (String slave : slaves) {
+                        try {
+                            servers.add(new RemoteBuilderServer(slave));
+                        } catch (IllegalArgumentException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                    final LinkedList<RemoteBuilderServer> offline = new LinkedList<>();
+                    for (; ; ) {
+                        while (!servers.isEmpty()) {
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
+                            final RemoteBuilderServer server = servers.pop();
+                            if (server.isAvailable()) {
+                                try {
+                                    doRegisterBuilderServer(server);
+                                    LOG.debug("Pre-configured slave builder server {} registered. ", server.getBaseUrl());
+                                } catch (BuilderException e) {
+                                    LOG.error(e.getMessage(), e);
+                                }
+                            } else {
+                                LOG.warn("Pre-configured slave builder server {} isn't responding. ", server.getBaseUrl());
+                                offline.add(server);
+                            }
+                        }
+                        if (offline.isEmpty()) {
+                            return;
+                        } else {
+                            servers.addAll(offline);
+                            offline.clear();
+                            synchronized (this) {
+                                try {
+                                    wait(5000);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
         started = true;
     }
 
@@ -592,7 +650,7 @@ public class BuildQueue {
         checkStarted();
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {

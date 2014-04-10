@@ -20,6 +20,7 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderList;
+import com.codenvy.api.builder.internal.dto.ServerState;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
@@ -97,6 +98,20 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
                 throw new BuilderException("Unable get URL for retrieving list of remote builders");
             }
             return HttpJsonHelper.request(BuilderList.class, link).getBuilders();
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (RemoteException e) {
+            throw new BuilderException(e.getServiceError());
+        }
+    }
+
+    public ServerState getServerState() throws BuilderException {
+        try {
+            final Link stateLink = getLink(Constants.LINK_REL_SERVER_STATE);
+            if (stateLink == null) {
+                throw new BuilderException(String.format("Unable get URL for getting state of a remote server '%s'", baseUrl));
+            }
+            return HttpJsonHelper.request(ServerState.class, stateLink);
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (RemoteException e) {

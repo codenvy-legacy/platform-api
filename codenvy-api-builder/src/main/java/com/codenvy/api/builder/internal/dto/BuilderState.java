@@ -56,9 +56,9 @@ public interface BuilderState {
 
     void setMaxInternalQueueSize(int maxInternalQueueSize);
 
-    InstanceState getInstanceState();
+    ServerState getServerState();
 
-    BuilderState withInstanceState(InstanceState instanceState);
+    BuilderState withServerState(ServerState serverState);
 
-    void setInstanceState(InstanceState instanceState);
+    void setServerState(ServerState serverState);
 }

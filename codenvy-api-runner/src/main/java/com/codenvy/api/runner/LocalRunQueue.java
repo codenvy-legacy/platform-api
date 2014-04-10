@@ -46,6 +46,7 @@ import java.util.List;
  */
 // DON'T USE IT IN CLOUD INFRASTRUCTURE.
 @Singleton
+@Deprecated
 public class LocalRunQueue extends RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(LocalRunQueue.class);
 

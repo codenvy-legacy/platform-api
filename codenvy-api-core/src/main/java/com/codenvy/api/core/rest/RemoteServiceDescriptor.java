@@ -22,6 +22,9 @@ import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,12 +44,28 @@ import java.util.List;
 public class RemoteServiceDescriptor {
 
     protected final String baseUrl;
+    private final   URL    baseUrlURL;
 
     // will be initialized when it is needed
     private volatile ServiceDescriptor serviceDescriptor;
 
-    public RemoteServiceDescriptor(String baseUrl) {
+    /**
+     * Creates new descriptor of remote RESTful service.
+     *
+     * @throws java.lang.IllegalArgumentException
+     *         if URL is invalid
+     */
+    public RemoteServiceDescriptor(String baseUrl) throws IllegalArgumentException {
         this.baseUrl = baseUrl;
+        try {
+            baseUrlURL = new URL(baseUrl);
+            final String protocol = baseUrlURL.getProtocol();
+            if (!(protocol.equals("http") || protocol.equals("https"))) {
+                throw new IllegalArgumentException(String.format("Invalid URL: %s", baseUrl));
+            }
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(String.format("Invalid URL: %s", baseUrl));
+        }
     }
 
     public String getBaseUrl() {
@@ -84,5 +103,23 @@ public class RemoteServiceDescriptor {
             }
         }
         return myServiceDescriptor;
+    }
+
+    /** Checks service availability. */
+    public boolean isAvailable() {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection)baseUrlURL.openConnection();
+            conn.setConnectTimeout(3 * 1000);
+            conn.setReadTimeout(3 * 1000);
+            conn.setRequestMethod("OPTIONS");
+            return 200 == conn.getResponseCode();
+        } catch (IOException e) {
+            return false;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
     }
 }

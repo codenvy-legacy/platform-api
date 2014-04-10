@@ -108,6 +108,11 @@ public class RunQueue {
     private ExecutorService executor;
     private boolean         started;
 
+    /** Optional pre-configured slave runners. */
+    @com.google.inject.Inject(optional = true)
+    @Named("runner.slave_runners")
+    private String[] slaves = new String[0];
+
     /**
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
@@ -482,6 +487,55 @@ public class RunQueue {
                 }
             }
         });
+        if (slaves.length > 0) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    final LinkedList<RemoteRunnerServer> servers = new LinkedList<>();
+                    for (String slave : slaves) {
+                        try {
+                            servers.add(new RemoteRunnerServer(slave));
+                        } catch (IllegalArgumentException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                    final LinkedList<RemoteRunnerServer> offline = new LinkedList<>();
+                    for (; ; ) {
+                        while (!servers.isEmpty()) {
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
+                            final RemoteRunnerServer server = servers.pop();
+                            if (server.isAvailable()) {
+                                try {
+                                    doRegisterRunnerServer(server);
+                                    LOG.debug("Pre-configured slave runner server {} registered. ", server.getBaseUrl());
+                                } catch (RunnerException e) {
+                                    LOG.error(e.getMessage(), e);
+                                }
+                            } else {
+                                LOG.warn("Pre-configured slave runner server {} isn't responding. ", server.getBaseUrl());
+                                offline.add(server);
+                            }
+                        }
+                        if (offline.isEmpty()) {
+                            return;
+                        } else {
+                            servers.addAll(offline);
+                            offline.clear();
+                            synchronized (this) {
+                                try {
+                                    wait(5000);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
         started = true;
     }
 
@@ -496,7 +550,7 @@ public class RunQueue {
         checkStarted();
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {
@@ -528,6 +582,8 @@ public class RunQueue {
      */
     public boolean registerRunnerServer(RunnerServerRegistration registration) throws RunnerException {
         checkStarted();
+        final String url = registration.getRunnerServerLocation().getUrl();
+        final RemoteRunnerServer runnerServer = new RemoteRunnerServer(url);
         String workspace = null;
         String project = null;
         final RunnerServerAccessCriteria accessCriteria = registration.getRunnerServerAccessCriteria();
@@ -535,21 +591,22 @@ public class RunQueue {
             workspace = accessCriteria.getWorkspace();
             project = accessCriteria.getProject();
         }
-
-        final String url = registration.getRunnerServerLocation().getUrl();
-        final RemoteRunnerServer runnerServer = new RemoteRunnerServer(url);
         if (workspace != null) {
             runnerServer.setAssignedWorkspace(workspace);
             if (project != null) {
                 runnerServer.setAssignedProject(project);
             }
         }
+        return doRegisterRunnerServer(runnerServer);
+    }
+
+    private boolean doRegisterRunnerServer(RemoteRunnerServer runnerServer) throws RunnerException {
         final List<RemoteRunner> toAdd = new LinkedList<>();
         for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
             toAdd.add(runnerServer.createRemoteRunner(runnerDescriptor));
         }
-        runnerServices.put(url, runnerServer);
-        return registerRunners(workspace, project, toAdd);
+        runnerServices.put(runnerServer.getBaseUrl(), runnerServer);
+        return registerRunners(runnerServer.getAssignedWorkspace(), runnerServer.getAssignedProject(), toAdd);
     }
 
     protected boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {

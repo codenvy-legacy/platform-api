@@ -62,6 +62,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -183,7 +184,7 @@ public class RunQueue {
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
-        request.setRunnerScriptUrl(getRunnerScript(descriptor));
+        request.setRunnerScriptUrls(getRunnerScript(descriptor));
         if (request.getDebugMode() == null) {
             final String debugAttr = getAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
             if (debugAttr != null) {
@@ -317,14 +318,19 @@ public class RunQueue {
         };
     }
 
-    private String getRunnerScript(ProjectDescriptor projectDescriptor) {
-        final String script = getAttributeValue(Constants.RUNNER_SCRIPT_FILE, projectDescriptor.getAttributes());
-        if (script == null) {
-            return null;
-        }
+    private List<String> getRunnerScript(ProjectDescriptor projectDescriptor) {
         final String projectUrl = projectDescriptor.getBaseUrl();
         final String projectPath = projectDescriptor.getPath();
-        return projectUrl.replace(projectPath, String.format("/file%s/%s?token=%s", projectPath, script, getAuthenticationToken()));
+        final String authToken = getAuthenticationToken();
+        final List<String> attrs = projectDescriptor.getAttributes().get(Constants.RUNNER_SCRIPT_FILES);
+        if (attrs == null) {
+            return Collections.emptyList();
+        }
+        final List<String> scripts = new ArrayList<>(attrs.size());
+        for (String attr : attrs) {
+            scripts.add(projectUrl.replace(projectPath, String.format("/file%s/%s?token=%s", projectPath, attr, authToken)));
+        }
+        return scripts;
     }
 
     private RemoteServiceDescriptor getBuilderServiceDescriptor(String workspace, ServiceContext serviceContext) {

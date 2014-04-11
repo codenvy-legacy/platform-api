@@ -237,6 +237,7 @@ public abstract class Runner {
 
     public RunnerProcess execute(final RunRequest request) throws RunnerException {
         checkStarted();
+        final long startTime = System.currentTimeMillis();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final Long internalId = processIdSequence.getAndIncrement();
         final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, new RunnerProcess.Callback() {
@@ -295,6 +296,8 @@ public abstract class Runner {
                     watcher.start(process);
                     runningAppsCounter.incrementAndGet();
                     LOG.debug("Started {}", process);
+                    final long endTime = System.currentTimeMillis();
+                    LOG.debug("Application startup in {} ms", (endTime - startTime));
                     realProcess.waitFor();
                     process.stopped();
                     LOG.debug("Stopped {}", process);

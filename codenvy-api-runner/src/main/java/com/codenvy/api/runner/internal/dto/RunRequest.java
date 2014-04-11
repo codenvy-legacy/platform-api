@@ -20,6 +20,7 @@ package com.codenvy.api.runner.internal.dto;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,12 +56,12 @@ public interface RunRequest {
 
     RunRequest withRunner(String runner);
 
-    /** Location of file that contains run script. */
-    String getRunnerScriptUrl();
+    /** Location of files that contains run scripts. */
+    List<String> getRunnerScriptUrls();
 
-    void setRunnerScriptUrl(String script);
+    void setRunnerScriptUrls(List<String> scripts);
 
-    RunRequest withRunnerScriptUrl(String script);
+    RunRequest withRunnerScriptUrls(List<String> scripts);
 
     /** Optional parameter which may be specified by user if need to run application under debug. */
     DebugMode getDebugMode();

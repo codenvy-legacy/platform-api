@@ -296,6 +296,10 @@ public class BuildQueue {
                 callable = new Callable<RemoteTask>() {
                     @Override
                     public RemoteTask call() throws Exception {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ignored) {
+                        }
                         return successfulTask;
                     }
                 };

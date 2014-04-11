@@ -148,6 +148,8 @@ public class WorkspaceService extends Service {
                           .withWorkspaceId(wsId);
         memberDao.create(member);
         injectLinks(newWorkspace, securityContext);
+
+        LOG.info("EVENT#workspace-created# WS#{}# USER#{}#", newWorkspace.getName(), user.getEmail());
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }
 
@@ -195,6 +197,8 @@ public class WorkspaceService extends Service {
                                   .withWorkspaceId(wsId)
                                   .withRoles(Arrays.asList("workspace/developer"));
         memberDao.create(member);
+
+        LOG.info("EVENT#workspace-created# WS#{}# USER#{}#", newWorkspace.getName(), user.getEmail());
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }
 
@@ -499,7 +503,8 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"user", "system/admin"})
     public void remove(@PathParam("id") String wsId, @Context SecurityContext securityContext)
             throws WorkspaceException, MembershipException, UserException {
-        if (workspaceDao.getById(wsId) == null) {
+        Workspace workspace = workspaceDao.getById(wsId);
+        if (workspace == null) {
             throw new WorkspaceNotFoundException(wsId);
         }
         ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
@@ -508,6 +513,8 @@ public class WorkspaceService extends Service {
             memberDao.remove(member);
         }
         workspaceDao.remove(wsId);
+
+        LOG.info("EVENT#workspace-destroyed# WS#{}#", workspace.getName());
     }
 
     private void removeAttribute(List<Attribute> src, String attributeName) {

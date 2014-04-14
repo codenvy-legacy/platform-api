@@ -119,8 +119,6 @@ public class UserService extends Service {
         }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
-
-        LOG.info("EVENT#user-created# ALIASES#{}# USER-ID#{}#", userEmail, userId);
         return Response.status(Response.Status.CREATED).entity(user).build();
     }
 
@@ -207,8 +205,6 @@ public class UserService extends Service {
         }
         profileDao.remove(user.getId());
         userDao.remove(id);
-
-        LOG.info("EVENT#user-removed# ALIASES#{}# USER-ID#{}#", user.getAliases(), id);
     }
 
     private void injectLinks(User user, SecurityContext securityContext) {

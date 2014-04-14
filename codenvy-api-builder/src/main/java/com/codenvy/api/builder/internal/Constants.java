@@ -26,10 +26,12 @@ public class Constants {
     // rels for known builder links
     public static final String LINK_REL_REGISTER_BUILDER_SERVICE   = "register builder service";
     public static final String LINK_REL_UNREGISTER_BUILDER_SERVICE = "unregister builder service";
+    public static final String LINK_REL_REGISTERED_BUILDER_SERVER  = "registered runner server";
     public static final String LINK_REL_QUEUE_STATE                = "queue state";
 
     public static final String LINK_REL_AVAILABLE_BUILDERS    = "available builders";
     public static final String LINK_REL_BUILDER_STATE         = "builder state";
+    public static final String LINK_REL_SERVER_STATE          = "server state";
     public static final String LINK_REL_BUILD                 = "build";
     public static final String LINK_REL_DEPENDENCIES_ANALYSIS = "analyze dependencies";
 

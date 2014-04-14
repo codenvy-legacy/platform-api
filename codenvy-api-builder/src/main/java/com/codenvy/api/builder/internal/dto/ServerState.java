@@ -25,22 +25,22 @@ import com.codenvy.dto.shared.DTO;
  * @author andrew00x
  */
 @DTO
-public interface InstanceState {
+public interface ServerState {
     int getCpuPercentUsage();
 
-    InstanceState withCpuPercentUsage(int cpuPercentUsage);
+    ServerState withCpuPercentUsage(int cpuPercentUsage);
 
     void setCpuPercentUsage(int cpuPercentUsage);
 
     long getTotalMemory();
 
-    InstanceState withTotalMemory(long totalMemory);
+    ServerState withTotalMemory(long totalMemory);
 
     void setTotalMemory(long totalMemory);
 
     long getFreeMemory();
 
-    InstanceState withFreeMemory(long freeMemory);
+    ServerState withFreeMemory(long freeMemory);
 
     void setFreeMemory(long freeMemory);
 }

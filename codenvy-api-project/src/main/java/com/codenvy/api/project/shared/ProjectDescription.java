@@ -45,7 +45,7 @@ public class ProjectDescription {
     }
 
     public ProjectDescription() {
-        this(new ProjectType("unknown", "unknown", "unknown"));
+        this(new ProjectType("nameless", "nameless", "nameless"));
     }
 
     public ProjectDescription(ProjectDescription origin) {

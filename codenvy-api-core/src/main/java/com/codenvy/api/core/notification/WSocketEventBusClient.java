@@ -211,6 +211,9 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         @Override
         public void run() {
             for (; ; ) {
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 try {
                     connect(wsUri);
                     return;

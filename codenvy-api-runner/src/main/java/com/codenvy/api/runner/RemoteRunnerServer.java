@@ -22,9 +22,9 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.internal.Constants;
-import com.codenvy.api.runner.internal.dto.ServerState;
 import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.dto.RunnerList;
+import com.codenvy.api.runner.internal.dto.ServerState;
 
 import java.io.IOException;
 import java.util.List;
@@ -116,9 +116,5 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
         } catch (RemoteException e) {
             throw new RunnerException(e.getServiceError());
         }
-    }
-
-    public boolean isOnline() {
-        return false; // TODO
     }
 }

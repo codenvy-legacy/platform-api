@@ -41,6 +41,9 @@ import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -68,6 +71,8 @@ import java.util.List;
  */
 @Path("user")
 public class UserService extends Service {
+
+    private static final Logger LOG = LoggerFactory.getLogger(UserService.class);
 
     private final UserDao        userDao;
     private final UserProfileDao profileDao;

@@ -26,7 +26,7 @@ import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderList;
 import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.builder.internal.dto.InstanceState;
+import com.codenvy.api.builder.internal.dto.ServerState;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -84,20 +84,27 @@ public final class SlaveBuilderService extends Service {
     @Path("state")
     @Produces(MediaType.APPLICATION_JSON)
     public BuilderState getBuilderState(@Required
-                                             @Description("Name of the builder")
-                                             @QueryParam("builder") String builder) throws Exception {
+                                        @Description("Name of the builder")
+                                        @QueryParam("builder") String builder) throws Exception {
         final Builder myBuilder = getBuilder(builder);
-        final InstanceState instanceState = DtoFactory.getInstance().createDto(InstanceState.class)
-                                                      .withCpuPercentUsage(SystemInfo.cpu())
-                                                      .withTotalMemory(SystemInfo.totalMemory())
-                                                      .withFreeMemory(SystemInfo.freeMemory());
         return DtoFactory.getInstance().createDto(BuilderState.class)
                          .withName(myBuilder.getName())
                          .withNumberOfWorkers(myBuilder.getNumberOfWorkers())
                          .withNumberOfActiveWorkers(myBuilder.getNumberOfActiveWorkers())
                          .withInternalQueueSize(myBuilder.getInternalQueueSize())
                          .withMaxInternalQueueSize(myBuilder.getMaxInternalQueueSize())
-                         .withInstanceState(instanceState);
+                         .withServerState(getServerState());
+    }
+
+    @GenerateLink(rel = Constants.LINK_REL_SERVER_STATE)
+    @GET
+    @Path("server-state")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ServerState getServerState() {
+        return DtoFactory.getInstance().createDto(ServerState.class)
+                         .withCpuPercentUsage(SystemInfo.cpu())
+                         .withTotalMemory(SystemInfo.totalMemory())
+                         .withFreeMemory(SystemInfo.freeMemory());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_BUILD)
@@ -172,21 +179,24 @@ public final class SlaveBuilderService extends Service {
                         buff.write(String.format("<a target='_blank' href='%s'>open</a>",
                                                  serviceUriBuilder.clone().path(getClass(), "view")
                                                                   .replaceQueryParam("path", path + '/' + name)
-                                                                  .build(task.getBuilder(), task.getId()).toString()));
+                                                                  .build(task.getBuilder(), task.getId()).toString()
+                                                ));
                         buff.write("</span>");
                         buff.write("&nbsp;");
                         buff.write("<span class='file-browser-file-download'>");
                         buff.write(String.format("<a href='%s'>download</a>",
                                                  serviceUriBuilder.clone().path(getClass(), "download")
                                                                   .replaceQueryParam("path", path + '/' + name)
-                                                                  .build(task.getBuilder(), task.getId()).toString()));
+                                                                  .build(task.getBuilder(), task.getId()).toString()
+                                                ));
                         buff.write("</span>");
                     } else if (file.isDirectory()) {
                         buff.write("<span class='file-browser-directory-open'>");
                         buff.write(String.format("<a href='%s'>open</a>",
                                                  serviceUriBuilder.clone().path(getClass(), "browse")
                                                                   .replaceQueryParam("path", path + '/' + name)
-                                                                  .build(task.getBuilder(), task.getId()).toString()));
+                                                                  .build(task.getBuilder(), task.getId()).toString()
+                                                ));
                         buff.write("</span>");
                         buff.write("&nbsp;");
                     }

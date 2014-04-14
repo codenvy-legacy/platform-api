@@ -62,6 +62,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -107,6 +108,11 @@ public class RunQueue {
 
     private ExecutorService executor;
     private boolean         started;
+
+    /** Optional pre-configured slave runners. */
+    @com.google.inject.Inject(optional = true)
+    @Named("runner.slave_runners")
+    private String[] slaves = new String[0];
 
     /**
      * @param baseProjectApiUrl
@@ -178,7 +184,7 @@ public class RunQueue {
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
-        request.setRunnerScriptUrl(getRunnerScript(descriptor));
+        request.setRunnerScriptUrls(getRunnerScript(descriptor));
         if (request.getDebugMode() == null) {
             final String debugAttr = getAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
             if (debugAttr != null) {
@@ -312,14 +318,19 @@ public class RunQueue {
         };
     }
 
-    private String getRunnerScript(ProjectDescriptor projectDescriptor) {
-        final String script = getAttributeValue(Constants.RUNNER_SCRIPT_FILE, projectDescriptor.getAttributes());
-        if (script == null) {
-            return null;
-        }
+    private List<String> getRunnerScript(ProjectDescriptor projectDescriptor) {
         final String projectUrl = projectDescriptor.getBaseUrl();
         final String projectPath = projectDescriptor.getPath();
-        return projectUrl.replace(projectPath, String.format("/file%s/%s?token=%s", projectPath, script, getAuthenticationToken()));
+        final String authToken = getAuthenticationToken();
+        final List<String> attrs = projectDescriptor.getAttributes().get(Constants.RUNNER_SCRIPT_FILES);
+        if (attrs == null) {
+            return Collections.emptyList();
+        }
+        final List<String> scripts = new ArrayList<>(attrs.size());
+        for (String attr : attrs) {
+            scripts.add(projectUrl.replace(projectPath, String.format("/file%s/%s?token=%s", projectPath, attr, authToken)));
+        }
+        return scripts;
     }
 
     private RemoteServiceDescriptor getBuilderServiceDescriptor(String workspace, ServiceContext serviceContext) {
@@ -482,6 +493,55 @@ public class RunQueue {
                 }
             }
         });
+        if (slaves.length > 0) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    final LinkedList<RemoteRunnerServer> servers = new LinkedList<>();
+                    for (String slave : slaves) {
+                        try {
+                            servers.add(new RemoteRunnerServer(slave));
+                        } catch (IllegalArgumentException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                    final LinkedList<RemoteRunnerServer> offline = new LinkedList<>();
+                    for (; ; ) {
+                        while (!servers.isEmpty()) {
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
+                            final RemoteRunnerServer server = servers.pop();
+                            if (server.isAvailable()) {
+                                try {
+                                    doRegisterRunnerServer(server);
+                                    LOG.debug("Pre-configured slave runner server {} registered. ", server.getBaseUrl());
+                                } catch (RunnerException e) {
+                                    LOG.error(e.getMessage(), e);
+                                }
+                            } else {
+                                LOG.warn("Pre-configured slave runner server {} isn't responding. ", server.getBaseUrl());
+                                offline.add(server);
+                            }
+                        }
+                        if (offline.isEmpty()) {
+                            return;
+                        } else {
+                            servers.addAll(offline);
+                            offline.clear();
+                            synchronized (this) {
+                                try {
+                                    wait(5000);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
         started = true;
     }
 
@@ -496,7 +556,7 @@ public class RunQueue {
         checkStarted();
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {
@@ -528,6 +588,8 @@ public class RunQueue {
      */
     public boolean registerRunnerServer(RunnerServerRegistration registration) throws RunnerException {
         checkStarted();
+        final String url = registration.getRunnerServerLocation().getUrl();
+        final RemoteRunnerServer runnerServer = new RemoteRunnerServer(url);
         String workspace = null;
         String project = null;
         final RunnerServerAccessCriteria accessCriteria = registration.getRunnerServerAccessCriteria();
@@ -535,21 +597,22 @@ public class RunQueue {
             workspace = accessCriteria.getWorkspace();
             project = accessCriteria.getProject();
         }
-
-        final String url = registration.getRunnerServerLocation().getUrl();
-        final RemoteRunnerServer runnerServer = new RemoteRunnerServer(url);
         if (workspace != null) {
             runnerServer.setAssignedWorkspace(workspace);
             if (project != null) {
                 runnerServer.setAssignedProject(project);
             }
         }
+        return doRegisterRunnerServer(runnerServer);
+    }
+
+    private boolean doRegisterRunnerServer(RemoteRunnerServer runnerServer) throws RunnerException {
         final List<RemoteRunner> toAdd = new LinkedList<>();
         for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
             toAdd.add(runnerServer.createRemoteRunner(runnerDescriptor));
         }
-        runnerServices.put(url, runnerServer);
-        return registerRunners(workspace, project, toAdd);
+        runnerServices.put(runnerServer.getBaseUrl(), runnerServer);
+        return registerRunners(runnerServer.getAssignedWorkspace(), runnerServer.getAssignedProject(), toAdd);
     }
 
     protected boolean registerRunners(String workspace, String project, List<RemoteRunner> toAdd) {

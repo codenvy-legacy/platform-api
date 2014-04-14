@@ -237,6 +237,7 @@ public abstract class Runner {
 
     public RunnerProcess execute(final RunRequest request) throws RunnerException {
         checkStarted();
+        final long startTime = System.currentTimeMillis();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final Long internalId = processIdSequence.getAndIncrement();
         final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, new RunnerProcess.Callback() {
@@ -278,9 +279,12 @@ public abstract class Runner {
             @Override
             public void run() {
                 try {
-                    final DeploymentSources deploymentSources = downloadApplication(request.getDeploymentSourcesUrl());
-                    process.setDeploymentSources(deploymentSources);
+                    final java.io.File downloadDir =
+                            Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
+                    final DeploymentSources deploymentSources = downloadApplication(request.getDeploymentSourcesUrl(), downloadDir);
+                    process.addToCleanupList(downloadDir);
                     if (!getDeploymentSourcesValidator().isValid(deploymentSources)) {
+                        // TODO:
                         throw new RunnerException(
                                 String.format("Unsupported project. Cannot deploy project %s from workspace %s with runner %s",
                                               request.getProject(), request.getWorkspace(), getName())
@@ -292,6 +296,8 @@ public abstract class Runner {
                     watcher.start(process);
                     runningAppsCounter.incrementAndGet();
                     LOG.debug("Started {}", process);
+                    final long endTime = System.currentTimeMillis();
+                    LOG.debug("Application startup in {} ms", (endTime - startTime));
                     realProcess.waitFor();
                     process.stopped();
                     LOG.debug("Stopped {}", process);
@@ -309,13 +315,12 @@ public abstract class Runner {
 
     private static final DeploymentSources NO_SOURCES = new DeploymentSources(null);
 
-    protected DeploymentSources downloadApplication(String url) throws IOException {
+    private DeploymentSources downloadApplication(String url, java.io.File downloadDir) throws IOException {
         if (url == null) {
             return NO_SOURCES;
         }
         final ValueHolder<IOException> errorHolder = new ValueHolder<>();
         final ValueHolder<DeploymentSources> resultHolder = new ValueHolder<>();
-        final java.io.File downloadDir = Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
         downloadPlugin.download(url, downloadDir, new DownloadPlugin.Callback() {
             @Override
             public void done(java.io.File downloaded) {
@@ -378,10 +383,9 @@ public abstract class Runner {
                         }
                     }
                 }
-                final DeploymentSources deploymentSources = next.process.getDeploymentSources();
-                if (deploymentSources != null) {
-                    final java.io.File file = deploymentSources.getFile();
-                    if (file != null) {
+                final List<java.io.File> cleanupList = next.process.getCleanupList();
+                if (cleanupList != null) {
+                    for (java.io.File file : cleanupList) {
                         if (!IoUtil.deleteRecursive(file)) {
                             LOG.warn("Failed delete {}", file);
                         }
@@ -409,7 +413,7 @@ public abstract class Runner {
         private long               startTime;
         private long               stopTime;
         private Throwable          error;
-        private DeploymentSources  deploymentSources;
+        private List<java.io.File> forCleanup;
 
         RunnerProcessImpl(Long id, String runner, RunnerConfiguration configuration, Callback callback) {
             this.id = id;
@@ -513,12 +517,15 @@ public abstract class Runner {
             }
         }
 
-        synchronized void setDeploymentSources(DeploymentSources deploymentSources) {
-            this.deploymentSources = deploymentSources;
+        synchronized void addToCleanupList(java.io.File file) {
+            if (forCleanup == null) {
+                forCleanup = new LinkedList<>();
+            }
+            forCleanup.add(file);
         }
 
-        synchronized DeploymentSources getDeploymentSources() {
-            return deploymentSources;
+        synchronized List<java.io.File> getCleanupList() {
+            return forCleanup;
         }
 
         @Override

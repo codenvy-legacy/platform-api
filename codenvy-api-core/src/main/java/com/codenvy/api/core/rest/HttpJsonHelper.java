@@ -23,14 +23,11 @@ import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.dto.shared.JsonArray;
 import com.google.common.io.CharStreams;
 import com.google.common.io.InputSupplier;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -61,7 +58,7 @@ public class HttpJsonHelper {
     /**
      * Sends HTTP request to specified {@code url}.
      *
-     * @param dtoInterface
+     *
      *         type of expected response. If server returns some content we try parse it and restore object of the specified type from it.
      *         Specified interface must be annotated with &#064DTO.
      * @param url
@@ -79,7 +76,7 @@ public class HttpJsonHelper {
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
-    public static <DTO> DTO request(Class<DTO> dtoInterface,
+    public static String requestBody(
                                     String url,
                                     String method,
                                     Object body,
@@ -152,12 +149,10 @@ public class HttpJsonHelper {
             if (!(contentType == null || contentType.startsWith("application/json"))) {
                 throw new IOException("Unsupported type of response from remote server, 'application/json' expected. ");
             }
-            if (dtoInterface != null) {
-                try (InputStream input = conn.getInputStream()) {
-                    return DtoFactory.getInstance().createDtoFromJson(input, dtoInterface);
-                }
-            }
-            return null;
+
+
+            return inputStreamToString(conn.getInputStream());
+
         } finally {
             conn.disconnect();
         }
@@ -170,6 +165,49 @@ public class HttpJsonHelper {
         }
         return null;
     }
+
+
+    private static String inputStreamToString(InputStream input) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader br = new BufferedReader(new InputStreamReader(input));
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line);
+        }
+        return sb.toString();
+
+    }
+
+
+
+    public static <DTO> DTO request(Class<DTO> dtoInterface,
+                                    String url,
+                                    String method,
+                                    Object body,
+                                    Pair<String, ?>... parameters) throws IOException, RemoteException {
+
+
+        if (dtoInterface != null) {
+            return DtoFactory.getInstance().createDtoFromJson(requestBody(url, method, body, parameters), dtoInterface);
+        }
+        return null;
+
+    }
+
+    public static <T>JsonArray<T> requestArray(Class<T> dtoInterface,
+                                    String url,
+                                    String method,
+                                    Object body,
+                                    Pair<String, ?>... parameters) throws IOException, RemoteException {
+
+
+        if (dtoInterface != null) {
+            return DtoFactory.getInstance().createListDtoFromJson(requestBody(url, method, body, parameters), dtoInterface);
+        }
+        return null;
+
+    }
+
 
     /**
      * Sends GET request to specified {@code url}.

@@ -92,7 +92,7 @@ public abstract class LuceneSearcher implements Searcher {
      * @throws com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException
      *         if any virtual filesystem error
      */
-    public void init(MountPoint mountPoint) throws VirtualFileSystemException {
+    public synchronized void init(MountPoint mountPoint) throws VirtualFileSystemException {
         final long start = System.currentTimeMillis();
         try {
             luceneIndexDirectory = makeDirectory();

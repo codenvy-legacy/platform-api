@@ -208,9 +208,11 @@ public class RunQueue {
                 }
             }
         }
+        boolean skipBuild = runOptions != null && runOptions.getSkipBuild();
         final Callable<RemoteRunnerProcess> callable;
-        if ((buildOptions != null && buildOptions.getBuilderName() != null)
-            || getAttributeValue(com.codenvy.api.builder.internal.Constants.BUILDER_NAME, descriptor.getAttributes()) != null) {
+        if (!skipBuild
+            && ((buildOptions != null && buildOptions.getBuilderName() != null)
+                || getAttributeValue(com.codenvy.api.builder.internal.Constants.BUILDER_NAME, descriptor.getAttributes()) != null)) {
             LOG.debug("Need build project first");
             if (buildOptions == null) {
                 buildOptions = DtoFactory.getInstance().createDto(BuildOptions.class);

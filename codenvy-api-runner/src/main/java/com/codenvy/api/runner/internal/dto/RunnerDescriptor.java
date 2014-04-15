@@ -19,8 +19,6 @@ package com.codenvy.api.runner.internal.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
  * Describes capabilities of {@link com.codenvy.api.runner.internal.Runner}.
  *

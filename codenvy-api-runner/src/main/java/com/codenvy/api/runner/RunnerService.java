@@ -56,7 +56,7 @@ public class RunnerService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor run(@PathParam("ws-id") String workspace,
                                             @Required @Description("project name") @QueryParam("project") String project,
-                                            @Description("build options") RunOptions options) throws Exception {
+                                            @Description("run options") RunOptions options) throws Exception {
         return runQueue.run(workspace, project, getServiceContext(), options).getDescriptor();
     }
 

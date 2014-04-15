@@ -54,6 +54,13 @@ public interface RunOptions {
 
     void setOptions(Map<String, String> options);
 
+    /** Force skip build before run. Build stage is skipped even project has configuration for builder. */
+    boolean getSkipBuild();
+
+    void setSkipBuild(boolean skipBuild);
+
+    RunOptions withSkipBuild(boolean skipBuild);
+
     /**
      * Get builder options. Make sense only for application that requires build before run.This parameter has preference over builder
      * options that is configured in properties of project.

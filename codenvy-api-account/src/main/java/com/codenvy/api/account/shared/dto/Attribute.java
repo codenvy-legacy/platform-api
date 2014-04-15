@@ -16,51 +16,30 @@
  * from Codenvy S.A..
  */
 
-package com.codenvy.api.workspace.shared.dto;
+package com.codenvy.api.account.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
-
-import java.util.List;
 
 /**
  * @author andrew00x
  */
 @DTO
-public interface Workspace {
-    String getId();
-
-    void setId(String id);
-
-    Workspace withId(String id);
-
+public interface Attribute {
     String getName();
 
     void setName(String name);
 
-    Workspace withName(String name);
+    Attribute withName(String name);
 
-    void setTemporary(boolean temporary);
+    String getValue();
 
-    boolean isTemporary();
+    void setValue(String value);
 
-    Workspace withTemporary(boolean temporary);
+    Attribute withValue(String value);
 
-    String getAccountId();
+    String getDescription();
 
-    void setAccountId(String accountId);
+    void setDescription(String description);
 
-    Workspace withAccountId(String accountId);
-
-    List<Attribute> getAttributes();
-
-    void setAttributes(List<Attribute> attributes);
-
-    Workspace withAttributes(List<Attribute> attributes);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    Workspace withLinks(List<Link> links);
+    Attribute withDescription(String description);
 }

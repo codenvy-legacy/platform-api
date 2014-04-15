@@ -31,6 +31,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.List;
 
 /**
  * Provides helper method to send HTTP requests with JSON content.
@@ -194,7 +195,7 @@ public class HttpJsonHelper {
 
     }
 
-    public static <T>JsonArray<T> requestArray(Class<T> dtoInterface,
+    public static <T>List<T> requestArray(Class<T> dtoInterface,
                                     String url,
                                     String method,
                                     Object body,

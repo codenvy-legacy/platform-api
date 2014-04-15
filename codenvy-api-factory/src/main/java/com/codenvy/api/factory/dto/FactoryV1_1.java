@@ -78,9 +78,9 @@ public interface FactoryV1_1 extends FactoryV1_0 {
     FactoryV1_1 withAuthor(String author);
 
     /**
-     * @return The orgid will be a field that we use to identify an organization that created the Factory
+     * @return The orgid will be a field that we use to identify an account that created the Factory
      * <p/>
-     * This will allow us to group together many factories across a single organization.
+     * This will allow us to group together many factories across a single account.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "orgid")
     String getOrgid();

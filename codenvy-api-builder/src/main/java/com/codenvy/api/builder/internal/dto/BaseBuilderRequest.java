@@ -119,4 +119,10 @@ public interface BaseBuilderRequest {
     BaseBuilderRequest withProjectUrl(String url);
 
     void setProjectUrl(String url);
+
+    String getUserName();
+
+    BaseBuilderRequest withUserName(String userName);
+
+    void setUserName(String userName);
 }

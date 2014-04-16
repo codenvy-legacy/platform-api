@@ -272,10 +272,12 @@ public class BuildQueue {
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
+        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
         final ProjectDescriptor projectDescription = getProjectDescription(workspace, project, serviceContext);
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
-                                                             .withProject(project);
+                                                             .withProject(project)
+                                                             .withUserName(user);
         if (buildOptions != null) {
             request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
@@ -318,8 +320,7 @@ public class BuildQueue {
         final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         purgeExpiredTasks();
-        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
-        LOG.info("EVENT#build-started# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectDescription.getProjectTypeId());
+        LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectDescription.getProjectTypeId());
         executor.execute(future);
         return task;
     }
@@ -350,10 +351,12 @@ public class BuildQueue {
             throws BuilderException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
                                                                        .withType(type)
                                                                        .withWorkspace(workspace)
-                                                                       .withProject(project);
+                                                                       .withProject(project)
+                                                                       .withUserName(user);
         addParametersFromProjectDescriptor(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final Callable<RemoteTask> callable = createTaskFor(request);
@@ -601,13 +604,14 @@ public class BuildQueue {
             @Override
             public void onEvent(BuildDoneEvent event) {
                 try {
-                    String project = event.getProject();
-                    String workspace = event.getWorkspace();
-                    long taskId = event.getTaskId();
-                    BuildQueueTask task = getTask(taskId);
-                    String projectTypeId = task.getRequest().getProjectDescriptor().getProjectTypeId();
-                    final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
-                    LOG.info("EVENT#build-finished# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                    final String project = event.getProject();
+                    final String workspace = event.getWorkspace();
+                    final long taskId = event.getTaskId();
+                    final BuildQueueTask task = getTask(taskId);
+                    final BaseBuilderRequest request = task.getRequest();
+                    final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                    final String user = request.getUserName();
+                    LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
 
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);

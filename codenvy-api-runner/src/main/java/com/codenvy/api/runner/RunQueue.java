@@ -156,10 +156,12 @@ public class RunQueue {
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
                                              .withWorkspace(workspace)
                                              .withProject(project)
-                                             .withProjectDescriptor(descriptor);
+                                             .withProjectDescriptor(descriptor)
+                                             .withUserName(user);
         BuildOptions buildOptions = null;
         if (runOptions != null) {
             request.setMemorySize(runOptions.getMemorySize());
@@ -506,21 +508,22 @@ public class RunQueue {
                     final String workspace = event.getWorkspace();
                     final long id = event.getTaskId();
                     final RunQueueTask task = getTask(id);
-                    final String projectTypeId = task.getRequest().getProjectDescriptor().getProjectTypeId();
-                    boolean debug = task.getRequest().getDebugMode() != null;
-                    final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
+                    final RunRequest request = task.getRequest();
+                    final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                    boolean debug = request.getDebugMode() != null;
+                    final String user = request.getUserName();
                     switch (event.getType()) {
                         case STARTED:
                             if (debug)
-                               LOG.info("EVENT#debug-started# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                               LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
                             else
-                               LOG.info("EVENT#run-started# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                               LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
                             break;
                         case STOPPED:
                             if (debug)
-                                LOG.info("EVENT#debug-finished# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                                LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
                             else
-                                LOG.info("EVENT#run-finished# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                                LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
                             break;
                     }
                 } catch (Exception e) {

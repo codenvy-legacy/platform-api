@@ -37,10 +37,10 @@ import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
-import com.codenvy.api.runner.internal.dto.DebugMode;
-import com.codenvy.api.runner.internal.dto.RunRequest;
-import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
-import com.codenvy.api.runner.internal.dto.RunnerState;
+import com.codenvy.api.runner.dto.DebugMode;
+import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
@@ -163,6 +163,7 @@ public class RunQueue {
         if (runOptions != null) {
             request.setMemorySize(runOptions.getMemorySize());
             request.setOptions(runOptions.getOptions());
+            request.setEnvironmentId(runOptions.getEnvironmentId());
             if (runOptions.getDebugMode() != null) {
                 request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(runOptions.getDebugMode().getMode()));
             }

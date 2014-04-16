@@ -21,10 +21,9 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.ServerState;
 import com.codenvy.api.runner.internal.Constants;
-import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
-import com.codenvy.api.runner.internal.dto.RunnerList;
-import com.codenvy.api.runner.internal.dto.ServerState;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,9 +35,9 @@ import java.util.List;
  */
 public class RemoteRunnerServer extends RemoteServiceDescriptor {
 
-    /** Name of IDE workspace this server used for. */
+    /** Name of IDE workspace this server is used for. */
     private String assignedWorkspace;
-    /** Name of project inside IDE workspace this server used for. */
+    /** Name of project inside IDE workspace this server is used for. */
     private String assignedProject;
 
     public RemoteRunnerServer(String baseUrl) {
@@ -96,7 +95,7 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
             if (link == null) {
                 throw new RunnerException("Unable get URL for retrieving list of remote runners");
             }
-            return HttpJsonHelper.request(RunnerList.class, link).getRunners();
+            return HttpJsonHelper.requestArray(RunnerDescriptor.class, link);
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (RemoteException e) {

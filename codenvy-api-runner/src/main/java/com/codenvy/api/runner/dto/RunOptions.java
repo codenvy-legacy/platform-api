@@ -18,7 +18,6 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.api.builder.dto.BuildOptions;
-import com.codenvy.api.runner.internal.dto.DebugMode;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.Map;
@@ -60,6 +59,19 @@ public interface RunOptions {
     void setSkipBuild(boolean skipBuild);
 
     RunOptions withSkipBuild(boolean skipBuild);
+
+    /**
+     * Get id of environment that should be used for running an application. If this parameter is omitted then runner will use default
+     * environment.
+     *
+     * @see RunnerDescriptor#getEnvironments()
+     * @see com.codenvy.api.runner.dto.RunnerEnvironment
+     */
+    String getEnvironmentId();
+
+    void setEnvironmentId(String environmentId);
+
+    RunOptions withEnvironmentId(String environmentId);
 
     /**
      * Get builder options. Make sense only for application that requires build before run.This parameter has preference over builder

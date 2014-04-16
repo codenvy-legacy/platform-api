@@ -15,9 +15,11 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
+
+import java.util.Map;
 
 /**
  * Describes capabilities of {@link com.codenvy.api.runner.internal.Runner}.
@@ -62,4 +64,10 @@ public interface RunnerDescriptor {
     void setDescription(String description);
 
     RunnerDescriptor withDescription(String description);
+
+    Map<String, RunnerEnvironment> getEnvironments();
+
+    void setEnvironments(Map<String, RunnerEnvironment> environments);
+
+    RunnerDescriptor withEnvironments(Map<String, RunnerEnvironment> environments);
 }

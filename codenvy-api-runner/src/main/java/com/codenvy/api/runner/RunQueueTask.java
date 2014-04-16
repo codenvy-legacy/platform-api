@@ -22,7 +22,7 @@ import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.internal.Constants;
-import com.codenvy.api.runner.internal.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;

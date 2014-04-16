@@ -116,22 +116,22 @@ public class WorkspaceService extends Service {
             throw new WorkspaceException("Missed workspace to create");
         }
         String accountId = newWorkspace.getAccountId();
-        Account currentOrg;
-        if (accountId == null || accountId.isEmpty() || (currentOrg = accountDao.getById(accountId)) == null) {
-            throw new WorkspaceException("Incorrect account to associate workspace with.");
+        Account actualAcc;
+        if (accountId == null || accountId.isEmpty() || (actualAcc = accountDao.getById(accountId)) == null) {
+            throw new WorkspaceException("Incorrect account to associate workspace with");
         }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        if (!currentOrg.getOwner().equals(user.getId())) {
-            throw new WorkspaceException("You can only create workspace associated to your own account.");
+        if (!actualAcc.getOwner().equals(user.getId())) {
+            throw new WorkspaceException("You can only create workspace associated to your own account");
         }
         if (securityContext.isUserInRole("user")) {
             boolean isMultipleWorkspaceAvailable = false;
-            for (int i = 0; i < currentOrg.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
-                isMultipleWorkspaceAvailable = currentOrg.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
+            for (int i = 0; i < actualAcc.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
+                isMultipleWorkspaceAvailable = actualAcc.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
             }
             if (!isMultipleWorkspaceAvailable && workspaceDao.getByAccount(accountId).size() > 0) {
                 throw new WorkspaceException("You have not access to create more workspaces");

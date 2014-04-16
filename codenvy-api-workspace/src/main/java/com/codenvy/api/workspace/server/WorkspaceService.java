@@ -272,7 +272,7 @@ public class WorkspaceService extends Service {
             workspaceDao.getByName(workspaceToUpdate.getName()) == null) {
             workspace.setName(workspaceToUpdate.getName());
         }
-        //todo what about organizationId ? should it be possible to change account?
+        //todo what about accountId ? should it be possible to change account?
         workspaceDao.update(workspace);
         injectLinks(workspace, securityContext);
         return workspace;

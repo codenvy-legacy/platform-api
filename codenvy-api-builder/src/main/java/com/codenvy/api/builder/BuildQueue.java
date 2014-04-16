@@ -18,6 +18,7 @@
 package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildOptions;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
@@ -317,6 +318,8 @@ public class BuildQueue {
         final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         purgeExpiredTasks();
+        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
+        LOG.info("EVENT#build-started# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectDescription.getProjectTypeId());
         executor.execute(future);
         return task;
     }
@@ -387,6 +390,7 @@ public class BuildQueue {
         if (!hasBuilder(request)) {
             throw new BuilderException(String.format("Builder '%s' is not available. ", builder));
         }
+        request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
         final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
         if (zipballLink != null) {
@@ -591,6 +595,27 @@ public class BuildQueue {
                 }
             }
         });
+
+
+        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+            @Override
+            public void onEvent(BuildDoneEvent event) {
+                try {
+                    String project = event.getProject();
+                    String workspace = event.getWorkspace();
+                    long taskId = event.getTaskId();
+                    BuildQueueTask task = getTask(taskId);
+                    String projectTypeId = task.getRequest().getProjectDescriptor().getProjectTypeId();
+                    final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
+                    LOG.info("EVENT#build-finished# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+
+
         if (slaves.length > 0) {
             executor.execute(new Runnable() {
                 @Override

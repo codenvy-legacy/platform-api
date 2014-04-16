@@ -117,7 +117,8 @@ public class RunQueue {
     /**
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
-     *         the same base URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy.com/api/runner/my_workspace</i>,
+     *         the same base URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy
+     *         .com/api/runner/my_workspace</i>,
      *         in this case base URL is <i>http://codenvy.com/api</i> so we will try to find project API at URL:
      *         <i>http://codenvy.com/api/project/my_workspace</i>
      * @param baseBuilderApiUrl
@@ -495,6 +496,38 @@ public class RunQueue {
                 }
             }
         });
+
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() { //Log events for analitics
+            @Override
+            public void onEvent(RunnerEvent event) {
+                try {
+                    final String project = event.getProject();
+                    final String workspace = event.getWorkspace();
+                    final long id = event.getTaskId();
+                    final RunQueueTask task = getTask(id);
+                    final String projectTypeId = task.getRequest().getProjectDescriptor().getProjectTypeId();
+                    boolean debug = task.getRequest().getDebugMode() != null;
+                    final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
+                    switch (event.getType()) {
+                        case STARTED:
+                            if (debug)
+                               LOG.info("EVENT#debug-started# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                            else
+                               LOG.info("EVENT#run-started# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                            break;
+                        case STOPPED:
+                            if (debug)
+                                LOG.info("EVENT#debug-finished# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                            else
+                                LOG.info("EVENT#run-finished# WS#ws# USER#user# PROJECT#project# TYPE#type#", workspace, user, project, projectTypeId);
+                            break;
+                    }
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+
         if (slaves.length > 0) {
             executor.execute(new Runnable() {
                 @Override

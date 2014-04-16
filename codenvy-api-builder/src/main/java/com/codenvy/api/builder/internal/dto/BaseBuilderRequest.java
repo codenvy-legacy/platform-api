@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal.dto;
 
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -100,6 +101,12 @@ public interface BaseBuilderRequest {
     BaseBuilderRequest withProject(String project);
 
     void setProject(String project);
+
+    ProjectDescriptor getProjectDescriptor();
+
+    void setProjectDescriptor(ProjectDescriptor project);
+
+    BaseBuilderRequest withProjectDescriptor(ProjectDescriptor project);
 
     boolean isIncludeDependencies();
 

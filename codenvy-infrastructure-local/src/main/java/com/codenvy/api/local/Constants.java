@@ -45,7 +45,7 @@ public interface Constants {
             .withRoles(Arrays.asList("workspace/admin", "workspace/developer"));
 
     public static final Workspace WORKSPACE = DtoFactory.getInstance().createDto(Workspace.class)
-            .withId("default")
+            .withId("1q2w3e")
             .withName("default")
             .withTemporary(false);
 

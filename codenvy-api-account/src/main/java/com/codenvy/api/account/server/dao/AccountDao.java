@@ -106,13 +106,13 @@ public interface AccountDao {
     /**
      * Removes member from existing account
      *
-     * @param organizationId
+     * @param accountId
      *         account identifier
      * @param userId
      *         user identifier
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    void removeMember(String organizationId, String userId) throws AccountException;
+    void removeMember(String accountId, String userId) throws AccountException;
 
     /**
      * Adds new subscription to account that already exists in persistent layer
@@ -143,27 +143,27 @@ public interface AccountDao {
     /**
      * Gets list of existing in persistent layer subscriptions related to given account
      *
-     * @param organizationId
+     * @param accountId
      *         account id
      * @return list of subscriptions, or empty list if no subscriptions found
      */
-    List<Subscription> getSubscriptions(String organizationId) throws AccountException;
+    List<Subscription> getSubscriptions(String accountId) throws AccountException;
 
     /**
      * Gets list of existing in persistent layer members related to given account
      *
-     * @param organizationId
+     * @param accountId
      *         account id
      * @return list of members, or empty list if no members found
      */
-    List<Member> getMembers(String organizationId) throws AccountException;
+    List<Member> getMembers(String accountId) throws AccountException;
 
     /**
-     * Gets list of existing in persistent layer Organizations where given member is member
+     * Gets list of existing in persistent layer Account where given member is member
      *
      * @param userId
      *         user identifier to search
-     * @return list of organizations, or empty list if no organizations found
+     * @return list of accounts, or empty list if no accounts found
      */
     public List<Account> getByMember(String userId) throws AccountException;
 }

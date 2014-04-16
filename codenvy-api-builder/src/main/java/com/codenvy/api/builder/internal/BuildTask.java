@@ -27,8 +27,10 @@ import com.codenvy.api.core.util.CommandLine;
  */
 public interface BuildTask {
 
-    /** Will be notified when processing of {@code BuildTask} is done (successfully, failed or cancelled). */
+    /** Will be notified when processing of {@code BuildTask} is started or done (successfully, failed or cancelled). */
     interface Callback {
+        void begin(BuildTask task);
+
         void done(BuildTask task);
     }
 

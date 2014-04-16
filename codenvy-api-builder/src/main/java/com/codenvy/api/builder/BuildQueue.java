@@ -18,11 +18,10 @@
 package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildOptions;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
-import com.codenvy.api.builder.internal.BuildDoneEvent;
+import com.codenvy.api.builder.internal.BuilderEvent;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
@@ -272,12 +271,12 @@ public class BuildQueue {
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
-        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
         final ProjectDescriptor projectDescription = getProjectDescription(workspace, project, serviceContext);
+        final User user = EnvironmentContext.getCurrent().getUser();
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
                                                              .withProject(project)
-                                                             .withUserName(user);
+                                                             .withUserName(user == null ? "" : user.getName());
         if (buildOptions != null) {
             request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
@@ -320,7 +319,6 @@ public class BuildQueue {
         final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         purgeExpiredTasks();
-        LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectDescription.getProjectTypeId());
         executor.execute(future);
         return task;
     }
@@ -351,12 +349,12 @@ public class BuildQueue {
             throws BuilderException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
-        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
+        final User user = EnvironmentContext.getCurrent().getUser();
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
                                                                        .withType(type)
                                                                        .withWorkspace(workspace)
                                                                        .withProject(project)
-                                                                       .withUserName(user);
+                                                                       .withUserName(user == null ? "" : user.getName());
         addParametersFromProjectDescriptor(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final Callable<RemoteTask> callable = createTaskFor(request);
@@ -558,14 +556,16 @@ public class BuildQueue {
                     final BuildFutureTask buildFutureTask = (BuildFutureTask)runnable;
                     if (buildFutureTask.reused) {
                         // Emulate event from remote builder. In fact we didn't send request to remote builder just reuse result from previous build.
-                        eventService.publish(new BuildDoneEvent(buildFutureTask.id, buildFutureTask.workspace, buildFutureTask.project));
+                        eventService.publish(BuilderEvent.doneEvent(buildFutureTask.id,
+                                                                    buildFutureTask.workspace,
+                                                                    buildFutureTask.project));
                     }
                 }
             }
         };
-        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+        eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
-            public void onEvent(BuildDoneEvent event) {
+            public void onEvent(BuilderEvent event) {
                 final long id = event.getTaskId();
                 try {
                     final BuildQueueTask task = getTask(id);
@@ -579,9 +579,9 @@ public class BuildQueue {
                 }
             }
         });
-        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+        eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
-            public void onEvent(BuildDoneEvent event) {
+            public void onEvent(BuilderEvent event) {
                 try {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                     final long id = event.getTaskId();
@@ -598,28 +598,33 @@ public class BuildQueue {
                 }
             }
         });
-
-
-        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+        eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
-            public void onEvent(BuildDoneEvent event) {
+            public void onEvent(BuilderEvent event) {
                 try {
-                    final String project = event.getProject();
-                    final String workspace = event.getWorkspace();
                     final long taskId = event.getTaskId();
-                    final BuildQueueTask task = getTask(taskId);
-                    final BaseBuilderRequest request = task.getRequest();
-                    final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
-                    final String user = request.getUserName();
-                    LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
-
+                    final BaseBuilderRequest request = getTask(taskId).getRequest();
+                    if (request instanceof BuildRequest) {
+                        final String project = event.getProject();
+                        final String workspace = event.getWorkspace();
+                        final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                        final String user = request.getUserName();
+                        switch (event.getType()) {
+                            case BEGIN:
+                                LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
+                                         projectTypeId);
+                                break;
+                            case DONE:
+                                LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
+                                         projectTypeId);
+                                break;
+                        }
+                    }
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
                 }
             }
         });
-
-
         if (slaves.length > 0) {
             executor.execute(new Runnable() {
                 @Override

@@ -31,16 +31,16 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.runner.dto.DebugMode;
 import com.codenvy.api.runner.dto.RunOptions;
+import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
+import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
-import com.codenvy.api.runner.dto.DebugMode;
-import com.codenvy.api.runner.dto.RunRequest;
-import com.codenvy.api.runner.dto.RunnerDescriptor;
-import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
@@ -156,12 +156,12 @@ public class RunQueue {
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
-        final String user = EnvironmentContext.getCurrent() != null ? EnvironmentContext.getCurrent().getUser().getName() : "";
+        final User user = EnvironmentContext.getCurrent().getUser();
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
                                              .withWorkspace(workspace)
                                              .withProject(project)
                                              .withProjectDescriptor(descriptor)
-                                             .withUserName(user);
+                                             .withUserName(user == null ? "" : user.getName());
         BuildOptions buildOptions = null;
         if (runOptions != null) {
             request.setMemorySize(runOptions.getMemorySize());
@@ -504,26 +504,31 @@ public class RunQueue {
             @Override
             public void onEvent(RunnerEvent event) {
                 try {
+                    final long id = event.getTaskId();
+                    final RunRequest request = getTask(id).getRequest();
                     final String project = event.getProject();
                     final String workspace = event.getWorkspace();
-                    final long id = event.getTaskId();
-                    final RunQueueTask task = getTask(id);
-                    final RunRequest request = task.getRequest();
                     final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
-                    boolean debug = request.getDebugMode() != null;
+                    final boolean debug = request.getDebugMode() != null;
                     final String user = request.getUserName();
                     switch (event.getType()) {
                         case STARTED:
-                            if (debug)
-                               LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
-                            else
-                               LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
+                            if (debug) {
+                                LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
+                                         projectTypeId);
+                            } else {
+                                LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
+                                         projectTypeId);
+                            }
                             break;
                         case STOPPED:
-                            if (debug)
-                                LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
-                            else
-                                LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project, projectTypeId);
+                            if (debug) {
+                                LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
+                                         projectTypeId);
+                            } else {
+                                LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
+                                         projectTypeId);
+                            }
                             break;
                     }
                 } catch (Exception e) {

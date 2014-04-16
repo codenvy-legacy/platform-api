@@ -336,9 +336,15 @@ public abstract class Builder {
         final Long internalId = buildIdSequence.getAndIncrement();
         final BuildTask.Callback callback = new BuildTask.Callback() {
             @Override
+            public void begin(BuildTask task) {
+                final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
+                eventService.publish(BuilderEvent.beginEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
+            }
+
+            @Override
             public void done(BuildTask task) {
                 final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
-                eventService.publish(new BuildDoneEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
+                eventService.publish(BuilderEvent.doneEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
             }
         };
         final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, logger, callback);
@@ -385,9 +391,7 @@ public abstract class Builder {
                         output.stop();
                     }
                 }
-                if (LOG.isDebugEnabled()) {
-                    LOG.info("Done: {}, exit code: {}", commandLine, result);
-                }
+                LOG.debug("Done: {}, exit code: {}", commandLine, result);
                 return result == 0;
             }
         };
@@ -564,19 +568,6 @@ public abstract class Builder {
         }
 
         @Override
-        protected void done() {
-            if (callback != null) {
-                // NOTE: important to do it in separate thread!
-                getExecutor().execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.done(FutureBuildTask.this);
-                    }
-                });
-            }
-        }
-
-        @Override
         public final BuildResult getResult() throws BuilderException {
             if (!isDone()) {
                 return null;
@@ -624,6 +615,15 @@ public abstract class Builder {
 
         final synchronized void started() {
             startTime = System.currentTimeMillis();
+            if (callback != null) {
+                // NOTE: important to do it in separate thread!
+                getExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.begin(FutureBuildTask.this);
+                    }
+                });
+            }
         }
 
         @Override
@@ -633,6 +633,15 @@ public abstract class Builder {
 
         final synchronized void ended() {
             endTime = System.currentTimeMillis();
+            if (callback != null) {
+                // NOTE: important to do it in separate thread!
+                getExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.done(FutureBuildTask.this);
+                    }
+                });
+            }
         }
 
         @Override

@@ -121,4 +121,11 @@ public interface RunRequest {
     void setProject(String project);
 
     RunRequest withProject(String project);
+
+
+    String getUserName();
+
+    RunRequest withUserName(String userName);
+
+    void setUserName(String userName);
 }

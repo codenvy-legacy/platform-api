@@ -23,18 +23,56 @@ import com.codenvy.api.core.notification.EventOrigin;
  * @author andrew00x
  */
 @EventOrigin("builder")
-public class BuildDoneEvent {
-    private long   taskId;
-    private String workspace;
-    private String project;
+public class BuilderEvent {
+    public enum EventType {
+        BEGIN("begin"),
+        DONE("done");
 
-    public BuildDoneEvent(long taskId, String workspace, String project) {
+        private final String value;
+
+        private EventType(String value) {
+            this.value = value;
+        }
+
+        public String value() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+    }
+
+    public static BuilderEvent beginEvent(long taskId, String workspace, String project) {
+        return new BuilderEvent(EventType.BEGIN, taskId, workspace, project);
+    }
+
+    public static BuilderEvent doneEvent(long taskId, String workspace, String project) {
+        return new BuilderEvent(EventType.DONE, taskId, workspace, project);
+    }
+
+    private EventType type;
+    private long      taskId;
+    private String    workspace;
+    private String    project;
+
+    public BuilderEvent(EventType type, long taskId, String workspace, String project) {
+        this.type = type;
         this.taskId = taskId;
         this.workspace = workspace;
         this.project = project;
     }
 
-    public BuildDoneEvent() {
+    public BuilderEvent() {
+    }
+
+    public EventType getType() {
+        return type;
+    }
+
+    public void setType(EventType type) {
+        this.type = type;
     }
 
     public long getTaskId() {
@@ -63,8 +101,9 @@ public class BuildDoneEvent {
 
     @Override
     public String toString() {
-        return "BuildDoneEvent{" +
-               "taskId=" + taskId +
+        return "BuilderEvent{" +
+               "type=" + type +
+               ", taskId=" + taskId +
                ", workspace='" + workspace + '\'' +
                ", project='" + project + '\'' +
                '}';

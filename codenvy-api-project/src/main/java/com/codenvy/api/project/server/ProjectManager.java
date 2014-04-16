@@ -130,7 +130,7 @@ public final class ProjectManager {
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(workspace, projectFolder, this);
         project.updateDescription(projectDescription);
-        getProjectMisc(workspace, name).setCreationDate(System.currentTimeMillis());
+        getProjectMisc(workspace, projectFolder.getPath()).setCreationDate(System.currentTimeMillis());
         return project;
     }
 

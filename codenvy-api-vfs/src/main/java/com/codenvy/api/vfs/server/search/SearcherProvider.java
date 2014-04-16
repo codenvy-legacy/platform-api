@@ -23,7 +23,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 /**
  * Manages instances of Searcher.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface SearcherProvider {
     /**

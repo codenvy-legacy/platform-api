@@ -18,7 +18,6 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.runner.internal.dto.ServerState;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;

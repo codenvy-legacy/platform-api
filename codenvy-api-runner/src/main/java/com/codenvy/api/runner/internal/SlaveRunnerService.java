@@ -28,11 +28,10 @@ import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.NoSuchRunnerException;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.internal.dto.RunRequest;
-import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
-import com.codenvy.api.runner.internal.dto.RunnerList;
-import com.codenvy.api.runner.internal.dto.RunnerState;
-import com.codenvy.api.runner.internal.dto.ServerState;
+import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerState;
+import com.codenvy.api.runner.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
@@ -74,15 +73,17 @@ public class SlaveRunnerService extends Service {
     @GET
     @Path("available")
     @Produces(MediaType.APPLICATION_JSON)
-    public RunnerList availableRunners() {
+    public List<RunnerDescriptor> availableRunners() {
         final Set<Runner> all = runners.getAll();
         final List<RunnerDescriptor> list = new LinkedList<>();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (Runner runner : all) {
-            list.add(DtoFactory.getInstance().createDto(RunnerDescriptor.class)
+            list.add(dtoFactory.createDto(RunnerDescriptor.class)
                                .withName(runner.getName())
-                               .withDescription(runner.getDescription()));
+                               .withDescription(runner.getDescription())
+                               .withEnvironments(runner.getEnvironments()));
         }
-        return DtoFactory.getInstance().createDto(RunnerList.class).withRunners(list);
+        return list;
     }
 
     @GenerateLink(rel = Constants.LINK_REL_RUN)

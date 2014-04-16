@@ -58,13 +58,29 @@ public interface ProjectReference {
 
     ProjectReference withUrl(String url);
 
+    /** Get URL for opening project in Codenvy IDE. */
+    String getIdeUrl();
+
+    /** Set URL for  opening project in Codenvy IDE. */
+    void setIdeUrl(String url);
+
+    ProjectReference withIdeUrl(String url);
+
+    /** Get id of workspace this project belongs to. */
+    String getWorkspaceId();
+
+    /** Set id of workspace this project belongs to. */
+    void setWorkspaceId(String id);
+
+    ProjectReference withWorkspaceId(String id);
+
     /** Get name of workspace this project belongs to. */
-    String getWorkspace();
+    String getWorkspaceName();
 
     /** Set name of workspace this project belongs to. */
-    void setWorkspace(String workspace);
+    void setWorkspaceName(String name);
 
-    ProjectReference withWorkspace(String workspace);
+    ProjectReference withWorkspaceName(String name);
 
     /** Get project visibility, e.g. private or public. */
     String getVisibility();
@@ -73,6 +89,22 @@ public interface ProjectReference {
     void setVisibility(String visibility);
 
     ProjectReference withVisibility(String visibility);
+
+    /** Get creation date of project. */
+    long getCreationDate();
+
+    /** Set creation date of project. */
+    void setCreationDate(long date);
+
+    ProjectReference withCreationDate(long date);
+
+    /** Get modification date of project. */
+    long getModificationDate();
+
+    /** Set modification date of project. */
+    void setModificationDate(long date);
+
+    ProjectReference withModificationDate(long date);
 
     /** Get optional description of project. */
     String getDescription();

@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.runner.dto;
 
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.dto.shared.DTO;
@@ -55,6 +55,20 @@ public interface RunRequest {
     void setRunner(String runner);
 
     RunRequest withRunner(String runner);
+
+    /**
+     * Get id of environment that should be used for running an application. If this parameter is omitted then runner will use default
+     * environment.
+     *
+     * @see RunnerDescriptor#getEnvironments()
+     * @see com.codenvy.api.runner.dto.RunnerEnvironment
+     * @see com.codenvy.api.runner.dto.RunOptions
+     */
+    String getEnvironmentId();
+
+    void setEnvironmentId(String environmentId);
+
+    RunRequest withEnvironmentId(String environmentId);
 
     /** Location of files that contains run scripts. */
     List<String> getRunnerScriptUrls();

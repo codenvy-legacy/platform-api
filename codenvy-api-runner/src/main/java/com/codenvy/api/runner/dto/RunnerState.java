@@ -15,22 +15,38 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * List of descriptions of slave runners.
+ * Describes current state of {@link com.codenvy.api.runner.internal.Runner}.
  *
  * @author andrew00x
  */
 @DTO
-public interface RunnerList {
-    List<RunnerDescriptor> getRunners();
+public interface RunnerState {
+    String getName();
 
-    RunnerList withRunners(List<RunnerDescriptor> runners);
+    RunnerState withName(String name);
 
-    void setRunners(List<RunnerDescriptor> runners);
+    void setName(String name);
+
+    int getRunningAppsNum();
+
+    RunnerState withRunningAppsNum(int num);
+
+    void setRunningAppsNum(int num);
+
+    int getTotalAppsNum();
+
+    RunnerState withTotalAppsNum(int num);
+
+    void setTotalAppsNum(int num);
+
+    ServerState getServerState();
+
+    RunnerState withServerState(ServerState serverState);
+
+    void setServerState(ServerState serverState);
 }

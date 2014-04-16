@@ -15,38 +15,22 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes current state of {@link com.codenvy.api.runner.internal.Runner}.
+ * Describes debug mode of an application.
  *
  * @author andrew00x
+ * @see #getMode()
  */
 @DTO
-public interface RunnerState {
-    String getName();
+public interface DebugMode {
+    /** Debugger mode. If {@code null} Runner uses default debug mode. Default mode depends to Runner implementation. */
+    String getMode();
 
-    RunnerState withName(String name);
+    void setMode(String mode);
 
-    void setName(String name);
-
-    int getRunningAppsNum();
-
-    RunnerState withRunningAppsNum(int num);
-
-    void setRunningAppsNum(int num);
-
-    int getTotalAppsNum();
-
-    RunnerState withTotalAppsNum(int num);
-
-    void setTotalAppsNum(int num);
-
-    ServerState getServerState();
-
-    RunnerState withServerState(ServerState serverState);
-
-    void setServerState(ServerState serverState);
+    DebugMode withMode(String mode);
 }

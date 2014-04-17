@@ -28,5 +28,7 @@ import java.lang.String;import java.util.Map;
 public interface EventParameters {
     Map<String, String> getParams();
 
+    void setParams(Map<String, String> params);
+
     EventParameters withParams(Map<String, String> params);
 }

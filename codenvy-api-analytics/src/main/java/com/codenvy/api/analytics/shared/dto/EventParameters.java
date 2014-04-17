@@ -2,8 +2,8 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
- *  All Rights Reserved.
+ * [2012] - [2013] Codenvy, S.A.
+ * All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
@@ -15,28 +15,18 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.analytics.dto;
+package com.codenvy.api.analytics.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.lang.String;import java.util.Map;
+
 /**
- * Simple interface to contain metric value.
- *
- * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
+ * @author Anatoliy Bazko
  */
 @DTO
-public interface MetricValueDTO {
-    
-    String getName();
+public interface EventParameters {
+    Map<String, String> getParams();
 
-    void setName(String name);
-    
-    String getValue();
-
-    void setValue(String name);
-    
-    String getType();
-
-    void setType(String type);
+    EventParameters withParams(Map<String, String> params);
 }
-

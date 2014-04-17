@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.analytics.dto;
+package com.codenvy.api.analytics;
 
 /**
  * Set of constants for an {@link com.codenvy.api.analytics.AnalyticsService}

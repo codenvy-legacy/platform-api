@@ -15,38 +15,28 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.analytics.dto;
+package com.codenvy.api.analytics.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * Simple interface to contain metric info.
+ * Simple interface to contain metric value.
  *
  * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
 @DTO
-public interface MetricInfoDTO {
+public interface MetricValueDTO {
+    
     String getName();
 
     void setName(String name);
+    
+    String getValue();
 
-    String getDescription();
-
-    void setDescription(String description);
+    void setValue(String name);
     
     String getType();
 
     void setType(String type);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    List<String> getRolesAllowed();
-
-    void setRolesAllowed(List<String> rolesAllowed);
 }
 

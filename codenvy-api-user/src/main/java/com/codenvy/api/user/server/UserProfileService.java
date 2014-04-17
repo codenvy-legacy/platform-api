@@ -41,26 +41,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 
@@ -123,7 +110,8 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update current")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateCurrent(@Context SecurityContext securityContext, @Description("updates for profile") List<Attribute> updates)
+    public Profile updateCurrent(@Context SecurityContext securityContext,
+                                 @Description("updates for profile") List<Attribute> updates)
             throws UserException, UserProfileException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
@@ -195,7 +183,8 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile update(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
+    public Profile update(@PathParam("id") String profileId,
+                          @Required @Description("updates for profile") List<Attribute> updates,
                           @Context SecurityContext securityContext)
             throws UserProfileException, UserException {
         Profile profile = profileDao.getById(profileId);
@@ -273,7 +262,8 @@ public class UserProfileService extends Service {
                                                                       .withDescription("update profile")
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFS, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFS, MediaType.APPLICATION_JSON,
+                                 MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "updatePrefs").build().toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
@@ -305,15 +295,12 @@ public class UserProfileService extends Service {
             m.put(attribute.getName(), attribute.getValue());
         }
 
-        for (String email : user.getAliases()) {
-            LOG.info(
-                    "EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}#",
-                    email,
-                    nullToEmpty(m.get("firstName")),
-                    nullToEmpty(m.get("lastName")),
-                    nullToEmpty(m.get("employer")),
-                    nullToEmpty(m.get("phone")),
-                    nullToEmpty(m.get("jobtitle")));
-        }
+        LOG.info("EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}#",
+                 user.getEmail(),
+                 nullToEmpty(m.get("firstName")),
+                 nullToEmpty(m.get("lastName")),
+                 nullToEmpty(m.get("employer")),
+                 nullToEmpty(m.get("phone")),
+                 nullToEmpty(m.get("jobtitle")));
     }
 }

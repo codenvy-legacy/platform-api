@@ -15,38 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.analytics.dto;
-
-import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.dto.shared.DTO;
-
-import java.util.List;
+package com.codenvy.api.analytics;
 
 /**
- * Simple interface to contain metric info.
+ * Set of constants for an {@link com.codenvy.api.analytics.AnalyticsService}
  *
  * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
-@DTO
-public interface MetricInfoDTO {
-    String getName();
+public class Constants {
 
-    void setName(String name);
+    /**
+        Get metric value method short description
+     */
+    public static final String LINK_REL_GET_METRIC_VALUE = "get metric value";
 
-    String getDescription();
-
-    void setDescription(String description);
-    
-    String getType();
-
-    void setType(String type);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    List<String> getRolesAllowed();
-
-    void setRolesAllowed(List<String> rolesAllowed);
+    private Constants() {
+    }
 }
-

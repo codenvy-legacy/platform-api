@@ -19,10 +19,11 @@
 package com.codenvy.api.analytics;
 
 
-import com.codenvy.api.analytics.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.dto.MetricValueListDTO;
+import com.codenvy.api.analytics.shared.dto.EventParameters;
+import com.codenvy.api.analytics.shared.dto.MetricInfoDTO;
+import com.codenvy.api.analytics.shared.dto.MetricInfoListDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueListDTO;
 import com.codenvy.api.analytics.logger.EventLogger;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -153,16 +154,15 @@ public class AnalyticsService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/{event}")
     @RolesAllowed({"user"})
-    public Response logEvent(@PathParam("event") String event, Map<String, String> parameters) {
+    public Response logEvent(@PathParam("event") String event, EventParameters parameters) {
         try {
-            eventLogger.log(event, parameters);
+            eventLogger.log(event, parameters.getParams());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
-
 
     private Map<String, String> extractContext(UriInfo info,
                                                String page,

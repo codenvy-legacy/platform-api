@@ -73,6 +73,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -213,7 +214,11 @@ public class WorkspaceService extends Service {
         if (workspace == null) {
             throw new WorkspaceNotFoundException(id);
         }
-        ensureUserHasAccessToWorkspace(id, new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        try {
+            ensureUserHasAccessToWorkspace(id, new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        } catch (WorkspaceException ex) {
+            workspace.setAttributes(Collections.<Attribute>emptyList());
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -232,7 +237,11 @@ public class WorkspaceService extends Service {
         if (workspace == null) {
             throw new WorkspaceNotFoundException(name);
         }
-        ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        try {
+            ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        } catch (WorkspaceException ex) {
+            workspace.setAttributes(Collections.<Attribute>emptyList());
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -316,7 +325,8 @@ public class WorkspaceService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getCurrent").build().toString());
+                                                            .path(UserService.class, "getCurrent").build().toString()
+                                        );
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(user.getId())) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
@@ -362,7 +372,8 @@ public class WorkspaceService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getById").build(userId).toString());
+                                                            .path(UserService.class, "getById").build(userId).toString()
+                                        );
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(userId)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
@@ -403,7 +414,8 @@ public class WorkspaceService extends Service {
             Link profile = createLink("GET", com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null,
                                       MediaType.APPLICATION_JSON,
                                       getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
-                                                         .path(UserProfileService.class, "getById").build(member.getUserId()).toString());
+                                                         .path(UserProfileService.class, "getById").build(member.getUserId()).toString()
+                                     );
             member.setLinks(Arrays.asList(self, remove, profile));
         }
         return members;
@@ -534,7 +546,8 @@ public class WorkspaceService extends Service {
             links.add(createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null, MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
                                                     .path(ProjectService.class, "getProjects")
-                                                    .build(workspace.getId()).toString()));
+                                                    .build(workspace.getId()).toString()
+                                ));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembershipsOfCurrentUser").build().toString()));
         }
@@ -553,7 +566,8 @@ public class WorkspaceService extends Service {
             securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", workspace.getName()).build()
-                                           .toString()));
+                                           .toString()
+                                ));
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_NAME, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString()));
         }

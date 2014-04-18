@@ -18,7 +18,7 @@
 package com.codenvy.api.user.server;
 
 
-import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -93,9 +93,9 @@ public class UserService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext, @Required @QueryParam("token") String token,
                            @Description("is user temporary") @QueryParam("temporary") boolean isTemporary)
-            throws ApiException {
+            throws UnauthorizedException, ConflictException, ServerException {
         if (token == null) {
-            throw new UserException("Missed token parameter");
+            throw new UnauthorizedException("Missed token parameter");
         }
         final String userEmail = tokenValidator.validateToken(token);
         final User user = DtoFactory.getInstance().createDto(User.class);
@@ -104,7 +104,7 @@ public class UserService extends Service {
         user.setEmail(userEmail);
         user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
-        try {
+//        try {
             Profile profile = DtoFactory.getInstance().createDto(Profile.class);
             profile.setId(userId);
             profile.setUserId(userId);
@@ -112,11 +112,15 @@ public class UserService extends Service {
                                                           .withName("temporary")
                                                           .withValue(String.valueOf(isTemporary))
                                                           .withDescription("Indicates is this user is temporary")));
-            profileDao.create(profile);
-        } catch (UserProfileException e) {
-            userDao.remove(userId);
-            throw e;
-        }
+
+//        } catch (ConflictException e) {
+//            userDao.remove(userId);
+//            throw e;
+//        }
+
+
+        profileDao.create(profile);
+
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return Response.status(Response.Status.CREATED).entity(user).build();
@@ -126,11 +130,11 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public User getCurrent(@Context SecurityContext securityContext) throws UserException {
+    public User getCurrent(@Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
-            throw new UserNotFoundException(principal.getName());
+            throw new NotFoundException(String.format("User %s doesn't exist.", principal.getName()));
         }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
@@ -143,14 +147,14 @@ public class UserService extends Service {
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public void updatePassword(@Context SecurityContext securityContext, @FormParam("password") String password)
-            throws UserException {
+            throws ForbiddenException, NotFoundException, ServerException {
         if (password == null) {
-            throw new UserException("Password required");
+            throw new ForbiddenException("Password required");
         }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         if (user == null) {
-            throw new UserNotFoundException(principal.getName());
+            throw new NotFoundException(String.format("User %s doesn't exist.", principal.getName()));
         }
         user.setPassword(password);
         userDao.update(user);
@@ -161,10 +165,11 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_USER_BY_ID)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public User getById(@Context SecurityContext securityContext, @PathParam("id") String id) throws UserException {
+    public User getById(@Context SecurityContext securityContext, @PathParam("id") String id)
+            throws NotFoundException, ServerException {
         final User user = userDao.getById(id);
         if (user == null) {
-            throw new UserNotFoundException(id);
+            throw new NotFoundException(String.format("User %s doesn't exist.", id));
         }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
@@ -177,13 +182,13 @@ public class UserService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public User getByEmail(@Context SecurityContext securityContext, @Required @Description("user email") @QueryParam("email") String email)
-            throws UserException {
+            throws ForbiddenException, NotFoundException, ServerException {
         if (email == null) {
-            throw new UserException("Missed parameter email");
+            throw new ForbiddenException("Missed parameter email");
         }
         final User user = userDao.getByAlias(email);
         if (user == null) {
-            throw new UserNotFoundException(email);
+            throw new NotFoundException(String.format("User %s doesn't exist.", email));
         }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
@@ -194,10 +199,10 @@ public class UserService extends Service {
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_USER_BY_ID)
     @RolesAllowed("system/admin")
-    public void remove(@PathParam("id") String id) throws UserException, MembershipException, UserProfileException {
+    public void remove(@PathParam("id") String id) throws NotFoundException, ServerException {
         final User user = userDao.getById(id);
         if (user == null) {
-            throw new UserNotFoundException(id);
+            throw new NotFoundException(String.format("User %s doesn't exist.", id));
         }
         List<Member> members = memberDao.getUserRelationships(id);
         for (Member member : members) {

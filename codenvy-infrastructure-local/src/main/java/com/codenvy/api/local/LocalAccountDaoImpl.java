@@ -18,7 +18,6 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
@@ -36,12 +35,12 @@ import java.util.List;
 @Singleton
 public class LocalAccountDaoImpl implements AccountDao {
     @Override
-    public void create(Account account) throws AccountException {
+    public void create(Account account) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public Account getById(String id) throws AccountException {
+    public Account getById(String id) {
         return DtoFactory.getInstance().createDto(Account.class)
                          .withName("acc_name")
                          .withId(id)
@@ -52,7 +51,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public Account getByName(String name) throws AccountException {
+    public Account getByName(String name) {
         return DtoFactory.getInstance().createDto(Account.class)
                          .withName(name)
                          .withId("acc0xffaassdeereqWsss")
@@ -63,7 +62,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Account> getByOwner(String owner) throws AccountException {
+    public List<Account> getByOwner(String owner) {
         return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
                                        .withName("acc_name")
                                        .withId("acc0xffaassdeereqWsss")
@@ -74,39 +73,39 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void update(Account account) throws AccountException {
+    public void update(Account account)  {
         throw new RuntimeException("Not implemented");
 
     }
 
     @Override
-    public void remove(String id) throws AccountException {
+    public void remove(String id)  {
         throw new RuntimeException("Not implemented");
 
     }
 
     @Override
-    public void addMember(Member member) throws AccountException {
+    public void addMember(Member member)  {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void removeMember(String accountId, String userId) throws AccountException {
+    public void removeMember(String accountId, String userId)  {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void addSubscription(Subscription subscription) throws AccountException {
+    public void addSubscription(Subscription subscription)  {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void removeSubscription(String subscriptionId) throws AccountException {
+    public void removeSubscription(String subscriptionId)  {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public Subscription getSubscriptionById(String subscriptionId) throws AccountException {
+    public Subscription getSubscriptionById(String subscriptionId) {
         return DtoFactory.getInstance().createDto(Subscription.class)
                          .withId("Subscription0xfffffffff")
                          .withStartDate(System.currentTimeMillis())
@@ -116,7 +115,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Subscription> getSubscriptions(String accountId) throws AccountException {
+    public List<Subscription> getSubscriptions(String accountId)  {
         return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
                                        .withId("Subscription0xfffffffff")
                                        .withStartDate(System.currentTimeMillis())
@@ -127,7 +126,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Member> getMembers(String accountId) throws AccountException {
+    public List<Member> getMembers(String accountId) {
         return Arrays.asList(DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
                                        .withUserId("userId122332133123").withRoles(Arrays.asList("account/owner")),
                              DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
@@ -135,7 +134,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Account> getByMember(String userId) throws AccountException {
+    public List<Account> getByMember(String userId) {
         return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
                                        .withName("acc_name")
                                        .withId("cc0xffaassdeereqWsss")

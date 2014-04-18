@@ -20,6 +20,7 @@ package com.codenvy.api.local;
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
@@ -47,7 +48,8 @@ public class LocalAccountDaoImpl implements AccountDao {
                          .withId(id)
                          .withAttributes(Arrays.asList(
                                  DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                           .withDescription("important attribute")));
+                                           .withDescription("important attribute")
+                                                      ));
     }
 
     @Override
@@ -57,7 +59,8 @@ public class LocalAccountDaoImpl implements AccountDao {
                          .withId("acc0xffaassdeereqWsss")
                          .withAttributes(Arrays.asList(
                                  DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                           .withDescription("important attribute")));
+                                           .withDescription("important attribute")
+                                                      ));
     }
 
     @Override
@@ -67,7 +70,8 @@ public class LocalAccountDaoImpl implements AccountDao {
                                        .withId("acc0xffaassdeereqWsss")
                                        .withAttributes(Arrays.asList(
                                                DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                                         .withDescription("important attribute"))));
+                                                         .withDescription("important attribute")
+                                                                    )));
     }
 
     @Override
@@ -128,16 +132,20 @@ public class LocalAccountDaoImpl implements AccountDao {
         return Arrays.asList(DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
                                        .withUserId("userId122332133123").withRoles(Arrays.asList("account/owner")),
                              DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
-                                       .withUserId("userId112233322239").withRoles(Arrays.asList("account/member")));
+                                       .withUserId("userId112233322239").withRoles(Arrays.asList("account/member"))
+                            );
     }
 
     @Override
-    public List<Account> getByMember(String userId) throws AccountException {
-        return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
-                                       .withName("acc_name")
-                                       .withId("cc0xffaassdeereqWsss")
-                                       .withAttributes(Arrays.asList(
-                                               DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                                         .withDescription("important attribute"))));
+    public List<AccountMembership> getByMember(String userId) throws AccountException {
+        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
+        am.setId("cc0xffaassdeereqWsss");
+        am.setName("acc_name");
+        am.setRoles(Arrays.asList("account/member"));
+        am.setAttributes(Arrays.asList(
+                DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
+                          .withDescription("important attribute")
+                                      ));
+        return Arrays.asList(am);
     }
 }

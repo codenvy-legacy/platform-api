@@ -142,6 +142,13 @@ public class AccountServiceTest {
                                                                                     .withDescription(
                                                                                             "DON'T TELL ANYONE ABOUT IT!"))));
         when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(account));
+        ArrayList<AccountMembership> memberships = new ArrayList<>(1);
+        AccountMembership ownerMembership = DtoFactory.getInstance().createDto(AccountMembership.class);
+        ownerMembership.setName(account.getName());
+        ownerMembership.setId(account.getId());
+        ownerMembership.setRoles(Arrays.asList("account/owner"));
+        memberships.add(ownerMembership);
+        when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         String USER_EMAIL = "account@mail.com";
         User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
 
@@ -197,7 +204,6 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetMemberships() throws Exception {
         when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(account));
-        when(accountDao.getByMember(USER_ID)).thenReturn(new ArrayList<Account>());
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
 
@@ -207,26 +213,29 @@ public class AccountServiceTest {
                 (List<AccountMembership>)response.getEntity();
         assertEquals(currentAccounts.size(), 1);
         assertEquals(currentAccounts.get(0).getRoles().get(0), "account/owner");
-        verify(accountDao, times(1)).getByOwner(USER_ID);
         verify(accountDao, times(1)).getByMember(USER_ID);
     }
 
     @Test
     public void shouldBeAbleToGetMembershipsOfSpecificUser() throws Exception {
         when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(account));
-        when(accountDao.getByMember(USER_ID)).thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
-                                                                                 .withId("fake_id")
-                                                                                 .withName("fake_name")));
+        ArrayList<AccountMembership> memberships = new ArrayList<>();
+        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
+        am.setId("fake_id");
+        am.setName("fake_name");
+        am.setRoles(Arrays.asList("account/member"));
+        //get default owner membership
+        memberships.addAll(accountDao.getByMember(USER_ID));
+        memberships.add(am);
+        when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
 
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/list?userid=" + USER_ID, null, null);
         //safe cast cause AccountService#getMembershipsOfSpecificUser always returns List<AccountMembership>
-        @SuppressWarnings("unchecked") List<AccountMembership> currentAccountss =
+        @SuppressWarnings("unchecked") List<AccountMembership> currentAccounts =
                 (List<AccountMembership>)response.getEntity();
-        assertEquals(currentAccountss.size(), 2);
-        assertEquals(currentAccountss.get(0).getRoles().get(0), "account/member");
-        assertEquals(currentAccountss.get(1).getRoles().get(0), "account/owner");
-        verify(accountDao, times(1)).getByOwner(USER_ID);
-        verify(accountDao, times(1)).getByMember(USER_ID);
+        assertEquals(currentAccounts.size(), 2);
+        assertEquals(currentAccounts.get(1).getRoles().get(0), "account/member");
+        assertEquals(currentAccounts.get(0).getRoles().get(0), "account/owner");
     }
 
     @Test
@@ -416,7 +425,7 @@ public class AccountServiceTest {
 
     @Test
     public void shouldNotBeAbleToGetSubscriptionsFromAccountWhereCurrentUserIsNotMember() throws Exception {
-        when(accountDao.getByMember(USER_ID)).thenReturn(new ArrayList<Account>());
+        when(accountDao.getByMember(USER_ID)).thenReturn(new ArrayList<AccountMembership>());
         when(accountDao.getByOwner(USER_ID))
                 .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Account.class).withId("NOT_SAME")));
 

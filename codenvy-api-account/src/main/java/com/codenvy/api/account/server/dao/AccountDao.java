@@ -19,6 +19,7 @@ package com.codenvy.api.account.server.dao;
 
 import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
 
@@ -165,5 +166,5 @@ public interface AccountDao {
      *         user identifier to search
      * @return list of accounts, or empty list if no accounts found
      */
-    public List<Account> getByMember(String userId) throws AccountException;
+    public List<AccountMembership> getByMember(String userId) throws AccountException;
 }

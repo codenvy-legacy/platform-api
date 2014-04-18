@@ -138,8 +138,7 @@ public class AccountService extends Service {
         if (current == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        final List<AccountMembership> result = convertToMembership(accountDao.getByMember(current.getId()), "account/member");
-        result.addAll(convertToMembership(accountDao.getByOwner(current.getId()), "account/owner"));
+        final List<AccountMembership> result = accountDao.getByMember(current.getId());
         for (Account account : result) {
             injectLinks(account, securityContext);
         }
@@ -162,8 +161,7 @@ public class AccountService extends Service {
         if (user == null) {
             throw new UserNotFoundException(userId);
         }
-        final List<AccountMembership> result = convertToMembership(accountDao.getByMember(user.getId()), "account/member");
-        result.addAll(convertToMembership(accountDao.getByOwner(user.getId()), "account/owner"));
+        final List<AccountMembership> result = accountDao.getByMember(user.getId());
         for (Account account : result) {
             injectLinks(account, securityContext);
         }

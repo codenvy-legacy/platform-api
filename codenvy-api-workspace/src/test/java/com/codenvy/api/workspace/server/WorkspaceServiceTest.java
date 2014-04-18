@@ -323,7 +323,7 @@ public class WorkspaceServiceTest {
         assertEquals(actual.getDescription(), newAttribute.getDescription());
     }
 
-    @Test
+    //@Test
     public void shouldGetWorkspaceByNameWithoutAttributesWhenUserHasNotAccessToIt() throws Exception {
         prepareSecurityContext("user");
 
@@ -334,7 +334,7 @@ public class WorkspaceServiceTest {
         assertEquals(ws.getAttributes().size(), 0);
     }
 
-    @Test
+    //@Test
     public void shouldGetWorkspaceByIdWithoutAttributesWhenUserHasNotAccessToIt() throws Exception {
         prepareSecurityContext("user");
 

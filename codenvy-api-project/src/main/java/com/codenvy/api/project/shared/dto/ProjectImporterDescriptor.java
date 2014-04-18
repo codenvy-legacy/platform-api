@@ -15,34 +15,27 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.project.server;
+package com.codenvy.api.project.shared.dto;
 
-import java.io.IOException;
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Provide possibility for importing source from some resource e.g. VCS (like Git or SVN) or from ZIP archive
- *
  * @author Vitaly Parfonov
  */
-public interface ProjectImporter {
-    /**
-     * @return unique id of importer e.g git, zip
-     */
+@DTO
+public interface ProjectImporterDescriptor {
+
     String getId();
 
+    void setId(String id);
 
-    /**
-     * @return human readable description about this importer
-     */
+    ProjectImporterDescriptor withId(String id);
+
+    /** Get description of project importer. */
     String getDescription();
 
-    /**
-     * Imports source from the given {@code location} to the specified folder.
-     *
-     * @param baseFolder
-     *         base project folder
-     * @param location
-     *         location to the import sources
-     */
-    void importSources(FolderEntry baseFolder, String location) throws IOException;
+    /** Set description of project importer. */
+    void setDescription(String description);
+
+    ProjectImporterDescriptor withDescription(String description);
 }

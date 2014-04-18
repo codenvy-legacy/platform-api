@@ -618,6 +618,9 @@ public class ProjectServiceTest {
             }
 
             @Override
+            public String getDescription() { return "Chuck importer"; }
+
+            @Override
             public void importSources(FolderEntry baseFolder, String location) throws IOException {
                 // Don't really use location in this test.
                 try {

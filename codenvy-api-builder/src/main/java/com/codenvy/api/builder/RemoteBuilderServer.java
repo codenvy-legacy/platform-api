@@ -21,8 +21,8 @@ import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderList;
 import com.codenvy.api.builder.internal.dto.ServerState;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
 
@@ -66,7 +66,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
         return assignedWorkspace != null;
     }
 
-    public RemoteBuilder getRemoteBuilder(String name) throws BuilderException {
+    public RemoteBuilder getRemoteBuilder(String name) throws ApiException {
         try {
             for (BuilderDescriptor builderDescriptor : getAvailableBuilders()) {
                 if (name.equals(builderDescriptor.getName())) {
@@ -74,48 +74,40 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
                 }
             }
         } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (RemoteException e) {
-            throw new BuilderException(e.getServiceError());
+            throw new ApiException(e);
         }
-        throw new BuilderException(String.format("Invalid builder name %s", name));
+        throw new ApiException(String.format("Invalid builder name %s", name));
     }
 
-    public RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws BuilderException {
+    public RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws ApiException {
         try {
             return new RemoteBuilder(baseUrl, descriptor, getLinks());
         } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (RemoteException e) {
-            throw new BuilderException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
-    public List<BuilderDescriptor> getAvailableBuilders() throws BuilderException {
+    public List<BuilderDescriptor> getAvailableBuilders() throws ApiException {
         try {
             final Link link = getLink(Constants.LINK_REL_AVAILABLE_BUILDERS);
             if (link == null) {
-                throw new BuilderException("Unable get URL for retrieving list of remote builders");
+                throw new ApiException("Unable get URL for retrieving list of remote builders");
             }
             return HttpJsonHelper.request(BuilderList.class, link).getBuilders();
         } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (RemoteException e) {
-            throw new BuilderException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
-    public ServerState getServerState() throws BuilderException {
+    public ServerState getServerState() throws ApiException {
         try {
             final Link stateLink = getLink(Constants.LINK_REL_SERVER_STATE);
             if (stateLink == null) {
-                throw new BuilderException(String.format("Unable get URL for getting state of a remote server '%s'", baseUrl));
+                throw new ApiException(String.format("Unable get URL for getting state of a remote server '%s'", baseUrl));
             }
             return HttpJsonHelper.request(ServerState.class, stateLink);
         } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (RemoteException e) {
-            throw new BuilderException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 }

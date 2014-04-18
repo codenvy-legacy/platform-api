@@ -17,10 +17,10 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
+import com.codenvy.api.core.ApiException;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public interface BuilderConfigurationFactory {
-    BuilderConfiguration createBuilderConfiguration(BaseBuilderRequest request) throws BuilderException;
+    BuilderConfiguration createBuilderConfiguration(BaseBuilderRequest request) throws ApiException;
 }

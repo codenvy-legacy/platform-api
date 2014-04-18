@@ -24,8 +24,8 @@ import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.dto.server.DtoFactory;
@@ -113,13 +113,13 @@ public class RemoteBuilder {
      * @param request
      *         build request
      * @return build task
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs
      */
-    public RemoteTask perform(BuildRequest request) throws BuilderException {
+    public RemoteTask perform(BuildRequest request) throws ApiException {
         final Link link = getLink(Constants.LINK_REL_BUILD);
         if (link == null) {
-            throw new BuilderException("Unable get URL for starting remote process");
+            throw new ApiException("Unable get URL for starting remote process");
         }
         return perform(link, request);
     }
@@ -130,25 +130,23 @@ public class RemoteBuilder {
      * @param request
      *         analysis dependencies request
      * @return analysis dependencies task
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs
      */
-    public RemoteTask perform(DependencyRequest request) throws BuilderException {
+    public RemoteTask perform(DependencyRequest request) throws ApiException {
         final Link link = getLink(Constants.LINK_REL_DEPENDENCIES_ANALYSIS);
         if (link == null) {
-            throw new BuilderException("Unable get URL for starting remote process");
+            throw new ApiException("Unable get URL for starting remote process");
         }
         return perform(link, request);
     }
 
-    private RemoteTask perform(Link link, BaseBuilderRequest request) throws BuilderException {
+    private RemoteTask perform(Link link, BaseBuilderRequest request) throws ApiException {
         final BuildTaskDescriptor build;
         try {
             build = HttpJsonHelper.request(BuildTaskDescriptor.class, link, request);
         } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (RemoteException e) {
-            throw new BuilderException(e.getServiceError());
+            throw new ApiException(e);
         }
         lastUsage = System.currentTimeMillis();
         return new RemoteTask(baseUrl, request.getBuilder(), build.getTaskId());
@@ -158,20 +156,18 @@ public class RemoteBuilder {
      * Get description of current state of {@link com.codenvy.api.builder.internal.Builder}.
      *
      * @return description of current state of {@link com.codenvy.api.builder.internal.Builder}
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs
      */
-    public BuilderState getBuilderState() throws BuilderException {
+    public BuilderState getBuilderState() throws ApiException {
         final Link stateLink = getLink(Constants.LINK_REL_BUILDER_STATE);
         if (stateLink == null) {
-            throw new BuilderException("Unable get URL for getting state of a remote builder");
+            throw new ApiException("Unable get URL for getting state of a remote builder");
         }
         try {
             return HttpJsonHelper.request(BuilderState.class, stateLink, Pair.of("builder", name));
         } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (RemoteException e) {
-            throw new BuilderException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 

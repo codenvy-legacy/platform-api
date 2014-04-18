@@ -17,12 +17,12 @@
  */
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.OutputProvider;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
@@ -87,7 +87,7 @@ public final class RunQueueTask {
         return -1;
     }
 
-    public ApplicationProcessDescriptor getDescriptor() throws RunnerException {
+    public ApplicationProcessDescriptor getDescriptor() throws ApiException {
         if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                              .withProcessId(id)
@@ -145,7 +145,7 @@ public final class RunQueueTask {
         stop();
     }
 
-    public boolean isCancelled() throws RunnerException {
+    public boolean isCancelled() throws ApiException {
         return future.isCancelled();
     }
 
@@ -153,7 +153,7 @@ public final class RunQueueTask {
         return !future.isDone();
     }
 
-    public void stop() throws RunnerException {
+    public void stop() throws ApiException {
         if (future.isCancelled()) {
             return;
         }
@@ -165,15 +165,15 @@ public final class RunQueueTask {
         }
     }
 
-    public void readLogs(OutputProvider output) throws IOException, RunnerException {
+    public void readLogs(OutputProvider output) throws IOException, ApiException {
         final RemoteRunnerProcess remoteProcess = getRemoteProcess();
         if (remoteProcess == null) {
-            throw new RunnerException("Application isn't started yet, logs aren't available");
+            throw new ApiException("Application isn't started yet, logs aren't available");
         }
         remoteProcess.readLogs(output);
     }
 
-    private RemoteRunnerProcess getRemoteProcess() throws RunnerException {
+    private RemoteRunnerProcess getRemoteProcess() throws ApiException {
         if (!future.isDone()) {
             return null;
         }
@@ -188,12 +188,10 @@ public final class RunQueueTask {
                     throw (Error)cause; // lets caller to get Error as is
                 } else if (cause instanceof RuntimeException) {
                     throw (RuntimeException)cause;
-                } else if (cause instanceof RunnerException) {
-                    throw (RunnerException)cause;
-                } else if (cause instanceof RemoteException) {
-                    throw new RunnerException(((RemoteException)cause).getServiceError());
+                } else if (cause instanceof ApiException) {
+                    throw (ApiException)cause;
                 } else {
-                    throw new RunnerException(cause.getMessage(), cause);
+                    throw new ApiException(cause.getMessage(), cause);
                 }
             }
         }

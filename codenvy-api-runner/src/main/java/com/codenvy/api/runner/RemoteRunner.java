@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
@@ -103,21 +103,19 @@ public class RemoteRunner {
      * @param request
      *         build request
      * @return build task
-     * @throws RunnerException
+     * @throws ApiException
      *         if an error occurs
      */
-    public RemoteRunnerProcess run(RunRequest request) throws RunnerException {
+    public RemoteRunnerProcess run(RunRequest request) throws ApiException {
         final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUN);
         if (link == null) {
-            throw new RunnerException("Unable get URL for starting application's process");
+            throw new ApiException("Unable get URL for starting application's process");
         }
         final ApplicationProcessDescriptor process;
         try {
             process = HttpJsonHelper.request(ApplicationProcessDescriptor.class, link, request);
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
         lastUsage = System.currentTimeMillis();
         return new RemoteRunnerProcess(baseUrl, name, process.getProcessId());
@@ -127,21 +125,18 @@ public class RemoteRunner {
      * Get current state of remote runner.
      *
      * @return current state of remote runner.
-     * @throws RunnerException
+     * @throws ApiException
      *         if an error occurs
      */
-    public RunnerState getRemoteRunnerState() throws RunnerException {
+    public RunnerState getRemoteRunnerState() throws ApiException {
         final Link stateLink = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_STATE);
         if (stateLink == null) {
-            throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'",
-                                                    name, baseUrl));
+            throw new ApiException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'", name, baseUrl));
         }
         try {
             return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 

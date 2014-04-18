@@ -28,10 +28,11 @@ import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
@@ -66,7 +67,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -99,8 +102,9 @@ public class BuildQueue {
     private final long                                             maxTimeInQueueMillis;
     private final ConcurrentMap<BaseBuilderRequest, RemoteTask>    successfulBuilds;
 
-    private ExecutorService executor;
-    private boolean         started;
+    private ExecutorService          executor;
+    private ScheduledExecutorService scheduler;
+    private boolean                  started;
 
     /** Optional pre-configured slave builders. */
     @com.google.inject.Inject(optional = true)
@@ -172,10 +176,10 @@ public class BuildQueue {
      * @param registration
      *         BuilderServerRegistration
      * @return {@code true} if set of available Builders changed as result of the call
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs
      */
-    public boolean registerBuilderServer(BuilderServerRegistration registration) throws BuilderException {
+    public boolean registerBuilderServer(BuilderServerRegistration registration) throws ApiException {
         checkStarted();
         final String url = registration.getBuilderServerLocation().getUrl();
         final RemoteBuilderServer builderServer = new RemoteBuilderServer(url);
@@ -195,7 +199,7 @@ public class BuildQueue {
         return doRegisterBuilderServer(builderServer);
     }
 
-    private boolean doRegisterBuilderServer(RemoteBuilderServer builderServer) throws BuilderException {
+    private boolean doRegisterBuilderServer(RemoteBuilderServer builderServer) throws ApiException {
         final List<RemoteBuilder> toAdd = new LinkedList<>();
         for (BuilderDescriptor builderDescriptor : builderServer.getAvailableBuilders()) {
             toAdd.add(builderServer.createRemoteBuilder(builderDescriptor));
@@ -223,10 +227,10 @@ public class BuildQueue {
      * @param location
      *         BuilderServerLocation
      * @return {@code true} if set of available Builders changed as result of the call
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs
      */
-    public boolean unregisterBuilderServer(BuilderServerLocation location) throws BuilderException {
+    public boolean unregisterBuilderServer(BuilderServerLocation location) throws ApiException {
         checkStarted();
         final String url = location.getUrl();
         if (url == null) {
@@ -269,7 +273,7 @@ public class BuildQueue {
      * @return BuildQueueTask
      */
     public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
-            throws BuilderException {
+            throws ApiException {
         checkStarted();
         final ProjectDescriptor projectDescription = getProjectDescription(workspace, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
@@ -294,7 +298,7 @@ public class BuildQueue {
             } catch (Exception ignored) {
             }
             if (reuse) {
-                LOG.debug("Reuse successful build {}", successfulTask);
+                LOG.debug("Reuse successful build {}, created {}", successfulTask.getId(), successfulTask.getCreationTime());
                 callable = new Callable<RemoteTask>() {
                     @Override
                     public RemoteTask call() throws Exception {
@@ -318,7 +322,6 @@ public class BuildQueue {
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
-        purgeExpiredTasks();
         executor.execute(future);
         return task;
     }
@@ -326,7 +329,7 @@ public class BuildQueue {
     protected Callable<RemoteTask> createTaskFor(final BuildRequest request) {
         return new Callable<RemoteTask>() {
             @Override
-            public RemoteTask call() throws BuilderException {
+            public RemoteTask call() throws ApiException {
                 return getBuilder(request).perform(request);
             }
         };
@@ -346,7 +349,7 @@ public class BuildQueue {
      * @return BuildQueueTask
      */
     public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
-            throws BuilderException {
+            throws ApiException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
@@ -363,7 +366,6 @@ public class BuildQueue {
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
-        purgeExpiredTasks();
         executor.execute(future);
         return task;
     }
@@ -371,25 +373,25 @@ public class BuildQueue {
     protected Callable<RemoteTask> createTaskFor(final DependencyRequest request) {
         return new Callable<RemoteTask>() {
             @Override
-            public RemoteTask call() throws BuilderException {
+            public RemoteTask call() throws ApiException {
                 return getBuilder(request).perform(request);
             }
         };
     }
 
-    private void addParametersFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
+    private void addParametersFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws ApiException {
         final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
         String builder = request.getBuilder();
         if (builder == null) {
             builder = getAttributeValue(Constants.BUILDER_NAME, projectAttributes);
             if (builder == null) {
-                throw new BuilderException(
+                throw new ApiException(
                         String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
             }
             request.setBuilder(builder);
         }
         if (!hasBuilder(request)) {
-            throw new BuilderException(String.format("Builder '%s' is not available. ", builder));
+            throw new ApiException(String.format("Builder '%s' is not available. ", builder));
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
@@ -437,7 +439,7 @@ public class BuildQueue {
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
-            throws BuilderException {
+            throws ApiException {
         final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
                                                  ? serviceContext.getBaseUriBuilder()
                                                  : UriBuilder.fromUri(baseProjectApiUrl);
@@ -448,9 +450,7 @@ public class BuildQueue {
         try {
             return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
         } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (RemoteException e) {
-            throw new BuilderException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
@@ -476,21 +476,21 @@ public class BuildQueue {
         return builderList;
     }
 
-    protected RemoteBuilder getBuilder(BaseBuilderRequest request) throws BuilderException {
+    protected RemoteBuilder getBuilder(BaseBuilderRequest request) throws ApiException {
         final BuilderList builderList = getBuilderList(request.getWorkspace(), request.getProject());
         if (builderList == null) {
             // Cannot continue, typically should never happen. At least shared builders should be available for everyone.
-            throw new BuilderException("There is no any builder to process this request. ");
+            throw new ApiException("There is no any builder to process this request. ");
         }
         final RemoteBuilder builder = builderList.getBuilder(request);
         if (builder == null) {
-            throw new BuilderException("There is no any builder available. ");
+            throw new ApiException("There is no any builder available. ");
         }
         LOG.debug("Use slave builder {} at {}", builder.getName(), builder.getBaseUrl());
         return builder;
     }
 
-    private long getBuildTimeout(BaseBuilderRequest request) throws BuilderException {
+    private long getBuildTimeout(BaseBuilderRequest request) throws ApiException {
         // TODO: calculate in different way for different workspace/project.
         return timeout;
     }
@@ -503,41 +503,11 @@ public class BuildQueue {
         return null;
     }
 
-    private void purgeExpiredTasks() {
-        final long timestamp = System.currentTimeMillis();
-        int num = 0;
-        int waitingNum = 0;
-        for (Iterator<BuildQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
-            final BuildQueueTask task = i.next();
-            boolean waiting;
-            long sendTime;
-            if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
-                || ((sendTime = task.getSendToRemoteBuilderTime()) > 0
-                    && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getTimeout())) < timestamp)) {
-                try {
-                    task.cancel();
-                } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
-                    continue; // try next time
-                }
-                if (waiting) {
-                    waitingNum++;
-                }
-                i.remove();
-                tasks.remove(task.getId());
-                num++;
-            }
-        }
-        if (num > 0) {
-            LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
-        }
-    }
-
-    public BuildQueueTask getTask(Long id) throws NoSuchBuildTaskException {
+    public BuildQueueTask getTask(Long id) throws ApiException {
         checkStarted();
         final BuildQueueTask task = tasks.get(id);
         if (task == null) {
-            throw new NoSuchBuildTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
+            throw new ApiException(String.format("Not found task %d. It may be cancelled by timeout.", id));
         }
         return task;
     }
@@ -563,6 +533,44 @@ public class BuildQueue {
                 }
             }
         };
+        scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("BuildQueueScheduler-", true));
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                final long timestamp = System.currentTimeMillis();
+                int num = 0;
+                int waitingNum = 0;
+                for (Iterator<BuildQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    final BuildQueueTask task = i.next();
+                    boolean waiting;
+                    long sendTime;
+                    if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
+                        || ((sendTime = task.getSendToRemoteBuilderTime()) > 0
+                            && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getTimeout())) < timestamp)) {
+                        try {
+                            task.cancel();
+                        } catch (NotFoundException ignored) {
+                            // can't find task on remote builder
+                        } catch (Exception e) {
+                            LOG.error(e.getMessage(), e);
+                            continue; // try next time
+                        }
+                        if (waiting) {
+                            waitingNum++;
+                        }
+                        i.remove();
+                        num++;
+                    }
+                }
+                if (num > 0) {
+                    LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
+                }
+            }
+        }, 1, 1, TimeUnit.MINUTES);
+
         eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
             public void onEvent(BuilderEvent event) {
@@ -579,6 +587,7 @@ public class BuildQueue {
                 }
             }
         });
+
         eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
             public void onEvent(BuilderEvent event) {
@@ -588,7 +597,7 @@ public class BuildQueue {
                     bm.setChannel(String.format("builder:status:%d", id));
                     try {
                         bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
-                    } catch (BuilderException re) {
+                    } catch (ApiException re) {
                         bm.setType(ChannelBroadcastMessage.Type.ERROR);
                         bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
                     }
@@ -598,6 +607,7 @@ public class BuildQueue {
                 }
             }
         });
+
         eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
             public void onEvent(BuilderEvent event) {
@@ -626,6 +636,7 @@ public class BuildQueue {
                 }
             }
         });
+
         if (slaves.length > 0) {
             executor.execute(new Runnable() {
                 @Override
@@ -649,7 +660,7 @@ public class BuildQueue {
                                 try {
                                     doRegisterBuilderServer(server);
                                     LOG.debug("Pre-configured slave builder server {} registered. ", server.getBaseUrl());
-                                } catch (BuilderException e) {
+                                } catch (ApiException e) {
                                     LOG.error(e.getMessage(), e);
                                 }
                             } else {
@@ -687,19 +698,33 @@ public class BuildQueue {
     @PreDestroy
     public synchronized void stop() {
         checkStarted();
+        boolean interrupted = false;
+        scheduler.shutdownNow();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Unable terminate scheduler");
+            }
+        } catch (InterruptedException e) {
+            interrupted = true;
+        }
         executor.shutdown();
         try {
             if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate main pool");
+                }
             }
         } catch (InterruptedException e) {
+            interrupted |= true;
             executor.shutdownNow();
-            Thread.currentThread().interrupt();
         }
         tasks.clear();
         builderListMapping.clear();
         successfulBuilds.clear();
-        started = false;
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     protected EventService getEventService() {

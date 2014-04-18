@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.runner.RunnerException;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.runner.dto.RunRequest;
 
 /**
@@ -28,5 +28,5 @@ import com.codenvy.api.runner.dto.RunRequest;
  * @see Runner#getRunnerConfigurationFactory()
  */
 public interface RunnerConfigurationFactory {
-    RunnerConfiguration createRunnerConfiguration(RunRequest request) throws RunnerException;
+    RunnerConfiguration createRunnerConfiguration(RunRequest request) throws ApiException;
 }

@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.runner.internal;
 
+import com.codenvy.api.core.ApiException;
+
 /**
  * Abstraction for allocation and releasing resources.
  *
@@ -27,10 +29,10 @@ public interface ResourceAllocator {
      * Allocate type resource managed by this instance.
      *
      * @return this instance
-     * @throws AllocateResourceException
+     * @throws ApiException
      *         if it is not possible to allocate resource
      */
-    ResourceAllocator allocate() throws AllocateResourceException;
+    ResourceAllocator allocate() throws ApiException;
 
     /** Release type resource managed by this instance */
     void release();

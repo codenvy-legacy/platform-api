@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.core.rest;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.dto.server.DtoFactory;
@@ -73,7 +74,7 @@ public class RemoteServiceDescriptor {
     }
 
     /** @see ServiceDescriptor#getLinks() */
-    public List<Link> getLinks() throws RemoteException, IOException {
+    public List<Link> getLinks() throws ApiException, IOException {
         final List<Link> links = getServiceDescriptor().getLinks();
         // always copy list and links itself!
         final List<Link> copy = new ArrayList<>(links.size());
@@ -83,7 +84,7 @@ public class RemoteServiceDescriptor {
         return copy;
     }
 
-    public Link getLink(String rel) throws IOException, RemoteException {
+    public Link getLink(String rel) throws IOException, ApiException {
         for (Link link : getServiceDescriptor().getLinks()) {
             if (rel.equals(link.getRel())) {
                 return DtoFactory.getInstance().clone(link);
@@ -92,7 +93,7 @@ public class RemoteServiceDescriptor {
         return null;
     }
 
-    public ServiceDescriptor getServiceDescriptor() throws IOException, RemoteException {
+    public ServiceDescriptor getServiceDescriptor() throws IOException, ApiException {
         ServiceDescriptor myServiceDescriptor = serviceDescriptor;
         if (myServiceDescriptor == null) {
             synchronized (this) {

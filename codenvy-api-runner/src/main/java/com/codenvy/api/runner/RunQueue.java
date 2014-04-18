@@ -21,10 +21,11 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -75,7 +76,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -106,8 +109,9 @@ public class RunQueue {
     private final int                                             appLifetime;
     private final long                                            maxTimeInQueueMillis;
 
-    private ExecutorService executor;
-    private boolean         started;
+    private ExecutorService          executor;
+    private ScheduledExecutorService scheduler;
+    private boolean                  started;
 
     /** Optional pre-configured slave runners. */
     @com.google.inject.Inject(optional = true)
@@ -153,7 +157,7 @@ public class RunQueue {
         runnerListMapping = new ConcurrentHashMap<>();
     }
 
-    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
+    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws ApiException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
@@ -180,13 +184,13 @@ public class RunQueue {
                 runner = getAttributeValue(Constants.RUNNER_NAME, projectAttributes);
             }
             if (runner == null) {
-                throw new RunnerException(
+                throw new ApiException(
                         String.format("Name of runner is not specified, be sure property of project %s is set", Constants.RUNNER_NAME));
             }
             request.setRunner(runner);
         }
         if (!hasRunner(request)) {
-            throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
+            throw new ApiException(String.format("Runner '%s' is not available. ", runner));
         }
         request.setRunnerScriptUrls(getRunnerScript(descriptor));
         if (request.getDebugMode() == null) {
@@ -230,13 +234,11 @@ public class RunQueue {
             try {
                 final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
                 if (buildLink == null) {
-                    throw new RunnerException("Unable get URL for starting build of the application");
+                    throw new ApiException("Unable get URL for starting build of the application");
                 }
                 buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
             } catch (IOException e) {
-                throw new RunnerException(e);
-            } catch (RemoteException e) {
-                throw new RunnerException(e.getServiceError());
+                throw new ApiException(e);
             }
             callable = createTaskFor(buildDescriptor, request);
         } else {
@@ -253,7 +255,6 @@ public class RunQueue {
         final RunFutureTask future = new RunFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project);
         request.setId(id); // for getting callback events from remote runner
         final RunQueueTask task = new RunQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
-        purgeExpiredTasks();
         tasks.put(id, task);
         executor.execute(future);
         return task;
@@ -267,7 +268,7 @@ public class RunQueue {
                     final Link buildStatusLink = getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS,
                                                          buildDescriptor.getLinks());
                     if (buildStatusLink == null) {
-                        throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
+                        throw new ApiException("Invalid response from builder service. Unable get URL for checking build status");
                     }
                     for (; ; ) {
                         if (Thread.currentThread().isInterrupted()) {
@@ -292,8 +293,8 @@ public class RunQueue {
                                 final Link downloadLink = getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT,
                                                                   buildDescriptor.getLinks());
                                 if (downloadLink == null) {
-                                    throw new RunnerException("Unable start application. Application build is successful but there " +
-                                                              "is no URL for download result of build.");
+                                    throw new ApiException("Unable start application. Application build is successful but there " +
+                                                           "is no URL for download result of build.");
                                 }
                                 final String downloadLinkHref = downloadLink.getHref();
                                 final String token = getAuthenticationToken();
@@ -309,7 +310,7 @@ public class RunQueue {
                                 if (logLink != null) {
                                     msg += (" Build logs: " + logLink.getHref());
                                 }
-                                throw new RunnerException(msg);
+                                throw new ApiException(msg);
                             case IN_PROGRESS:
                             case IN_QUEUE:
                                 // wait
@@ -348,7 +349,7 @@ public class RunQueue {
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
-            throws RunnerException {
+            throws ApiException {
         final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
                                                  ? serviceContext.getBaseUriBuilder()
                                                  : UriBuilder.fromUri(baseProjectApiUrl);
@@ -359,9 +360,7 @@ public class RunQueue {
         try {
             return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
@@ -406,42 +405,11 @@ public class RunQueue {
         return appLifetime;
     }
 
-    private void purgeExpiredTasks() {
-        final long timestamp = System.currentTimeMillis();
-        int num = 0;
-        int waitingNum = 0;
-        for (Iterator<RunQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
-            final RunQueueTask task = i.next();
-            boolean waiting;
-            long sendTime;
-            // 1. not started, may be because too long build process
-            // 2. running longer then expect
-            if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
-                || ((sendTime = task.getSendToRemoteRunnerTime()) > 0
-                    && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getLifetime())) < timestamp)) {
-                try {
-                    task.cancel();
-                } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
-                    continue; // try next time
-                }
-                if (waiting) {
-                    waitingNum++;
-                }
-                i.remove();
-                num++;
-            }
-        }
-        if (num > 0) {
-            LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
-        }
-    }
-
-    public RunQueueTask getTask(Long id) throws NoSuchRunnerTaskException {
+    public RunQueueTask getTask(Long id) throws NotFoundException {
         checkStarted();
         final RunQueueTask task = tasks.get(id);
         if (task == null) {
-            throw new NoSuchRunnerTaskException(String.format("Not found task %d. It may be cancelled by timeout.", id));
+            throw new NotFoundException(String.format("Not found task %d. It may be cancelled by timeout.", id));
         }
         return task;
     }
@@ -480,6 +448,46 @@ public class RunQueue {
                 }
             }
         };
+        scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("RunQueueScheduler-", true));
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                final long timestamp = System.currentTimeMillis();
+                int num = 0;
+                int waitingNum = 0;
+                for (Iterator<RunQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    final RunQueueTask task = i.next();
+                    boolean waiting;
+                    long sendTime;
+                    // 1. not started, may be because too long build process
+                    // 2. running longer then expect
+                    if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
+                        || ((sendTime = task.getSendToRemoteRunnerTime()) > 0
+                            && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getLifetime())) < timestamp)) {
+                        try {
+                            task.cancel();
+                        } catch (NotFoundException ignored) {
+                            // can't find task on remote builder
+                        } catch (Exception e) {
+                            LOG.error(e.getMessage(), e);
+                            continue; // try next time
+                        }
+                        if (waiting) {
+                            waitingNum++;
+                        }
+                        i.remove();
+                        num++;
+                    }
+                }
+                if (num > 0) {
+                    LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
+                }
+            }
+        }, 1, 1, TimeUnit.MINUTES);
+
         eventService.subscribe(new EventSubscriber<RunnerEvent>() {
             @Override
             public void onEvent(RunnerEvent event) {
@@ -489,7 +497,7 @@ public class RunQueue {
                     bm.setChannel(String.format("runner:status:%d", id));
                     try {
                         bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
-                    } catch (RunnerException re) {
+                    } catch (ApiException re) {
                         bm.setType(ChannelBroadcastMessage.Type.ERROR);
                         bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
                     }
@@ -500,7 +508,7 @@ public class RunQueue {
             }
         });
 
-        eventService.subscribe(new EventSubscriber<RunnerEvent>() { //Log events for analitics
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() { //Log events for analytics
             @Override
             public void onEvent(RunnerEvent event) {
                 try {
@@ -516,7 +524,7 @@ public class RunQueue {
                         case STARTED:
                             if (debug) {
                                 LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                         projectTypeId,analyticsID);
+                                         projectTypeId, analyticsID);
                             } else {
                                 LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
                                          projectTypeId, analyticsID);
@@ -561,7 +569,7 @@ public class RunQueue {
                                 try {
                                     doRegisterRunnerServer(server);
                                     LOG.debug("Pre-configured slave runner server {} registered. ", server.getBaseUrl());
-                                } catch (RunnerException e) {
+                                } catch (ApiException e) {
                                     LOG.error(e.getMessage(), e);
                                 }
                             } else {
@@ -599,18 +607,33 @@ public class RunQueue {
     @PreDestroy
     public synchronized void stop() {
         checkStarted();
+        boolean interrupted = false;
+        scheduler.shutdownNow();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Unable terminate scheduler");
+            }
+        } catch (InterruptedException e) {
+            interrupted = true;
+        }
         executor.shutdown();
         try {
             if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate main pool");
+                }
             }
         } catch (InterruptedException e) {
+            interrupted |= true;
             executor.shutdownNow();
-            Thread.currentThread().interrupt();
         }
         tasks.clear();
         runnerListMapping.clear();
         started = false;
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     protected EventService getEventService() {
@@ -628,10 +651,10 @@ public class RunQueue {
      *         RunnerServerRegistration
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws ApiException
      *         if other type of error occurs
      */
-    public boolean registerRunnerServer(RunnerServerRegistration registration) throws RunnerException {
+    public boolean registerRunnerServer(RunnerServerRegistration registration) throws ApiException {
         checkStarted();
         final String url = registration.getRunnerServerLocation().getUrl();
         final RemoteRunnerServer runnerServer = new RemoteRunnerServer(url);
@@ -651,7 +674,7 @@ public class RunQueue {
         return doRegisterRunnerServer(runnerServer);
     }
 
-    private boolean doRegisterRunnerServer(RemoteRunnerServer runnerServer) throws RunnerException {
+    private boolean doRegisterRunnerServer(RemoteRunnerServer runnerServer) throws ApiException {
         final List<RemoteRunner> toAdd = new LinkedList<>();
         for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
             toAdd.add(runnerServer.createRemoteRunner(runnerDescriptor));
@@ -680,10 +703,10 @@ public class RunQueue {
      *         RunnerServerLocation
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws ApiException
      *         if other type of error occurs
      */
-    public boolean unregisterRunnerServer(RunnerServerLocation location) throws RunnerException {
+    public boolean unregisterRunnerServer(RunnerServerLocation location) throws ApiException {
         checkStarted();
         final String url = location.getUrl();
         if (url == null) {
@@ -736,15 +759,15 @@ public class RunQueue {
         return runnerList;
     }
 
-    protected RemoteRunner getRunner(RunRequest request) throws RunnerException {
+    protected RemoteRunner getRunner(RunRequest request) throws ApiException {
         RunnerList runnerList = getRunnerList(request.getWorkspace(), request.getProject());
         if (runnerList == null) {
             // Can't continue, typically should never happen. At least shared runners should be available for everyone.
-            throw new RunnerException("There is no any runner to process this request. ");
+            throw new ApiException("There is no any runner to process this request. ");
         }
         final RemoteRunner runner = runnerList.getRunner(request);
         if (runner == null) {
-            throw new RunnerException("There is no any runner to process this request. ");
+            throw new ApiException("There is no any runner to process this request. ");
         }
         LOG.debug("Use slave runner {} at {}", runner.getName(), runner.getBaseUrl());
         return runner;

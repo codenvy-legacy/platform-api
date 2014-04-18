@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.runner.internal;
 
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -25,8 +27,6 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.SystemInfo;
 import com.codenvy.api.runner.ApplicationStatus;
-import com.codenvy.api.runner.NoSuchRunnerException;
-import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -153,15 +153,15 @@ public class SlaveRunnerService extends Service {
                          .withTotalRunningAppsNum(runnerStats.getRunningAppsNum());
     }
 
-    private Runner getRunner(String name) throws NoSuchRunnerException {
+    private Runner getRunner(String name) throws NotFoundException {
         final Runner myRunner = runners.get(name);
         if (myRunner == null) {
-            throw new NoSuchRunnerException(name);
+            throw new NotFoundException(String.format("Unknown runner %s", name));
         }
         return myRunner;
     }
 
-    private ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws RunnerException {
+    private ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws ApiException {
         final ApplicationStatus status = process.isStopped() ? ApplicationStatus.STOPPED
                                                              : process.isRunning() ? ApplicationStatus.RUNNING : ApplicationStatus.NEW;
         final List<Link> links = new LinkedList<>();

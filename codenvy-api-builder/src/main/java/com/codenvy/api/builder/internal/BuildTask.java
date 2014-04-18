@@ -17,13 +17,13 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.builder.BuilderException;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.util.CommandLine;
 
 /**
  * Build task abstraction.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface BuildTask {
 
@@ -68,69 +68,69 @@ public interface BuildTask {
      * Reports whether build task is started or not.
      *
      * @return {@code true} if task is started and {@code false} otherwise
-     * @throws com.codenvy.api.builder.BuilderException
+     * @throws ApiException
      *         if an error occurs when try to check status of build process
      */
-    boolean isStarted() throws BuilderException;
+    boolean isStarted() throws ApiException;
 
     /**
      * Get time when task was started.
      *
      * @return time when task was started or {@code -1} if task is not started yet
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs when try to check status of build process
      * @see #isStarted()
      */
-    long getStartTime() throws BuilderException;
+    long getStartTime() throws ApiException;
 
     /**
      * Get time when task was done (successfully ends, fails, cancelled).
      *
      * @return time when task was started or {@code -1} if task is not done yet
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs when try to check status of build process
      * @see #isStarted()
      */
-    long getEndTime() throws BuilderException;
+    long getEndTime() throws ApiException;
 
     /**
      * Reports whether build task is done (successfully ends, fails, cancelled) or not.
      *
      * @return {@code true} if task is done and {@code false} otherwise
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs when try to check status of build process
      */
-    boolean isDone() throws BuilderException;
+    boolean isDone() throws ApiException;
 
     /**
      * Reports that the process was interrupted.
      *
      * @return {@code true} if task was interrupted and {@code false} otherwise
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs when try to check status of build process
      */
-    boolean isCancelled() throws BuilderException;
+    boolean isCancelled() throws ApiException;
 
     /**
      * Interrupt build process.
      *
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs when try to interrupt build process
      */
-    void cancel() throws BuilderException;
+    void cancel() throws ApiException;
 
     /**
      * Get build result.
      *
      * @return build result or {@code null} if task is not done yet
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs when try to start build process or get its result.
      *         <p/>
      *         <strong>Note</strong> Throwing of this exception is typically should not be related to failed build process itself. Builder
      *         should always provide result of build process with BuildResult instance. Throwing of this exception means something going
      *         wrong with build system itself and it is not possible to start build process or getting result of a build
      */
-    BuildResult getResult() throws BuilderException;
+    BuildResult getResult() throws ApiException;
 
     /**
      * Get configuration of this task.

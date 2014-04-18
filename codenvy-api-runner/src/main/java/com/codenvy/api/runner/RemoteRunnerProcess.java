@@ -1,9 +1,9 @@
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
@@ -46,17 +46,15 @@ public class RemoteRunnerProcess {
         return created;
     }
 
-    public ApplicationProcessDescriptor getApplicationProcessDescriptor() throws RunnerException {
+    public ApplicationProcessDescriptor getApplicationProcessDescriptor() throws ApiException {
         try {
             return HttpJsonHelper.get(ApplicationProcessDescriptor.class, baseUrl + "/status/" + runner + '/' + processId);
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
-    public ApplicationProcessDescriptor stop() throws RunnerException {
+    public ApplicationProcessDescriptor stop() throws ApiException {
         final ValueHolder<ApplicationProcessDescriptor> holder = new ValueHolder<>();
         final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_STOP, holder);
         if (link == null) {
@@ -66,22 +64,20 @@ public class RemoteRunnerProcess {
                     LOG.debug("Can't stop process, status is {}", holder.get().getStatus());
                     return holder.get();
                 default:
-                    throw new RunnerException("Can't stop application. Link for stop application is not available");
+                    throw new ApiException("Can't stop application. Link for stop application is not available");
             }
         }
         try {
             return HttpJsonHelper.request(ApplicationProcessDescriptor.class, link);
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
-    public void readLogs(final OutputProvider output) throws IOException, RunnerException {
+    public void readLogs(final OutputProvider output) throws IOException, ApiException {
         final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_VIEW_LOG, null);
         if (link == null) {
-            throw new RunnerException("Logs are not available.");
+            throw new ApiException("Logs are not available.");
         }
         final HttpURLConnection conn = (HttpURLConnection)new URL(link.getHref()).openConnection();
         conn.setConnectTimeout(30 * 1000);
@@ -114,7 +110,7 @@ public class RemoteRunnerProcess {
         }
     }
 
-    private Link getLink(String rel, ValueHolder<ApplicationProcessDescriptor> statusHolder) throws RunnerException {
+    private Link getLink(String rel, ValueHolder<ApplicationProcessDescriptor> statusHolder) throws ApiException {
         final ApplicationProcessDescriptor descriptor = getApplicationProcessDescriptor();
         if (statusHolder != null) {
             statusHolder.set(descriptor);

@@ -17,11 +17,11 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.builder.BuilderException;
-import com.codenvy.api.builder.NoSuchBuildTaskException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
@@ -44,7 +44,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
@@ -86,34 +85,29 @@ public abstract class Builder {
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
-    private final ConcurrentMap<Long, BuildTaskEntry>   tasks;
-    private final ConcurrentLinkedQueue<BuildTaskEntry> tasksFIFO;
-    private final ConcurrentLinkedQueue<java.io.File>   cleanerQueue;
-    private final java.io.File                          rootDirectory;
-    private final Set<BuildListener>                    buildListeners;
-    private final long                                  cleanBuildResultDelayMillis;
-    private final EventService                          eventService;
-    private final int                                   queueSize;
-    private final int                                   numberOfWorkers;
+    private final ConcurrentMap<Long, BuildTaskEntry> tasks;
+    private final java.io.File                        rootDirectory;
+    private final Set<BuildListener>                  buildListeners;
+    private final long                                cleanupDelayMillis;
+    private final EventService                        eventService;
+    private final int                                 queueSize;
+    private final int                                 numberOfWorkers;
 
     private boolean                  started;
-    private ScheduledExecutorService cleaner;
+    private ThreadPoolExecutor       executor;
+    private ScheduledExecutorService scheduler;
+    private java.io.File             repository;
+    private java.io.File             builds;
+    private SourcesManager           sourcesManager;
 
-    private ThreadPoolExecutor executor;
-    private java.io.File       repository;
-    private java.io.File       builds;
-    private SourcesManager     sourcesManager;
-
-    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanBuildResultDelay, EventService eventService) {
+    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanupDelay, EventService eventService) {
         this.rootDirectory = rootDirectory;
         this.numberOfWorkers = numberOfWorkers;
         this.queueSize = queueSize;
-        this.cleanBuildResultDelayMillis = TimeUnit.SECONDS.toMillis(cleanBuildResultDelay);
+        this.cleanupDelayMillis = TimeUnit.SECONDS.toMillis(cleanupDelay);
         this.eventService = eventService;
         buildListeners = new CopyOnWriteArraySet<>();
         tasks = new ConcurrentHashMap<>();
-        tasksFIFO = new ConcurrentLinkedQueue<>();
-        cleanerQueue = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -142,13 +136,13 @@ public abstract class Builder {
      *         Note: {@code true} is not indicated successful build but only normal process termination. Build itself may be unsuccessful
      *         because to compilation error, failed tests, etc.
      * @return BuildResult
-     * @throws com.codenvy.api.builder.BuilderException
+     * @throws ApiException
      *         if an error occurs when try to get result
      * @see BuildTask#getResult()
      */
-    protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws BuilderException;
+    protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws ApiException;
 
-    protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws BuilderException;
+    protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws ApiException;
 
     protected ExecutorService getExecutor() {
         return executor;
@@ -158,11 +152,11 @@ public abstract class Builder {
         return eventService;
     }
 
-    protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
+    protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws ApiException {
         try {
             return new DefaultBuildLogger(logFile, "text/plain");
         } catch (IOException e) {
-            throw new BuilderException(e);
+            throw new ApiException(e);
         }
     }
 
@@ -186,8 +180,38 @@ public abstract class Builder {
         }
         sourcesManager = new SourcesManagerImpl(sources);
         executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers, queueSize);
-        cleaner = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderCleaner-", true));
-        cleaner.scheduleAtFixedRate(new CleanTask(), cleanBuildResultDelayMillis, cleanBuildResultDelayMillis, TimeUnit.MILLISECONDS);
+        scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderSchedulerPool-", true));
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            public void run() {
+                int num = 0;
+                for (Iterator<BuildTaskEntry> i = tasks.values().iterator(); i.hasNext(); ) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    final BuildTaskEntry next = i.next();
+                    if (next.isExpired()) {
+                        if (!next.task.isDone()) {
+                            try {
+                                next.task.cancel();
+                            } catch (RuntimeException e) {
+                                LOG.error(e.getMessage(), e);
+                                continue; // try next time
+                            }
+                        }
+                        i.remove();
+                        try {
+                            cleanup(next.task);
+                        } catch (RuntimeException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                        num++;
+                    }
+                }
+                if (num > 0) {
+                    LOG.debug("Remove {} expired tasks", num);
+                }
+            }
+        }, 1, 1, TimeUnit.MINUTES);
         started = true;
     }
 
@@ -205,38 +229,47 @@ public abstract class Builder {
     @PreDestroy
     public synchronized void stop() {
         checkStarted();
-        executor.shutdown();
+        boolean interrupted = false;
+        scheduler.shutdownNow();
         try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Unable terminate scheduler");
             }
         } catch (InterruptedException e) {
+            interrupted = true;
+        }
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate main pool");
+                }
+            }
+        } catch (InterruptedException e) {
+            interrupted |= true;
             executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        } finally {
-            cleaner.shutdownNow();
-
-            // Remove all build results.
-            final java.io.File[] files = getRepository().listFiles();
-            if (files != null && files.length > 0) {
-                for (java.io.File f : files) {
-                    boolean deleted;
-                    if (f.isDirectory()) {
-                        deleted = IoUtil.deleteRecursive(f);
-                    } else {
-                        deleted = f.delete();
-                    }
-                    if (!deleted) {
-                        LOG.warn("Failed delete {}", f);
-                    }
+        }
+        final java.io.File[] files = getRepository().listFiles();
+        if (files != null && files.length > 0) {
+            for (java.io.File f : files) {
+                boolean deleted;
+                if (f.isDirectory()) {
+                    deleted = IoUtil.deleteRecursive(f);
+                } else {
+                    deleted = f.delete();
+                }
+                if (!deleted) {
+                    LOG.warn("Failed delete {}", f);
                 }
             }
         }
         tasks.clear();
-        tasksFIFO.clear();
-        cleanerQueue.clear();
         buildListeners.clear();
         started = false;
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public java.io.File getRepository() {
@@ -300,10 +333,10 @@ public abstract class Builder {
      * @param request
      *         build request
      * @return build task
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs
      */
-    public BuildTask perform(BuildRequest request) throws BuilderException {
+    public BuildTask perform(BuildRequest request) throws ApiException {
         checkStarted();
         final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
         final java.io.File workDir = configuration.getWorkDir();
@@ -318,10 +351,10 @@ public abstract class Builder {
      * @param request
      *         build request
      * @return build task
-     * @throws BuilderException
+     * @throws ApiException
      *         if an error occurs
      */
-    public BuildTask perform(DependencyRequest request) throws BuilderException {
+    public BuildTask perform(DependencyRequest request) throws ApiException {
         checkStarted();
         final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
         final java.io.File workDir = configuration.getWorkDir();
@@ -330,7 +363,7 @@ public abstract class Builder {
         return execute(configuration, logger);
     }
 
-    protected BuildTask execute(BuilderConfiguration configuration, BuildLogger logger) throws BuilderException {
+    protected BuildTask execute(BuilderConfiguration configuration, BuildLogger logger) throws ApiException {
         final CommandLine commandLine = createCommandLine(configuration);
         final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
         final Long internalId = buildIdSequence.getAndIncrement();
@@ -349,9 +382,7 @@ public abstract class Builder {
         };
         final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, logger, callback);
         final BuildTaskEntry cachedTask = new BuildTaskEntry(task);
-        purgeExpiredTasks();
         tasks.put(internalId, cachedTask);
-        tasksFIFO.offer(cachedTask);
         executor.execute(task);
         return task;
     }
@@ -417,37 +448,6 @@ public abstract class Builder {
         return queueSize;
     }
 
-    /** Removes expired tasks. */
-    private void purgeExpiredTasks() {
-        int num = 0;
-        for (Iterator<BuildTaskEntry> i = tasksFIFO.iterator(); i.hasNext(); ) {
-            final BuildTaskEntry next = i.next();
-            if (!next.isExpired()) {
-                // Don't need to check other tasks if find first one that is not expired yet.
-                break;
-            }
-            if (!next.task.isDone()) {
-                try {
-                    next.task.cancel();
-                } catch (RuntimeException e) {
-                    LOG.error(e.getMessage(), e);
-                    continue; // try next time
-                }
-            }
-            i.remove();
-            tasks.remove(next.task.getId());
-            try {
-                cleanup(next.task);
-            } catch (RuntimeException e) {
-                LOG.error(e.getMessage(), e);
-            }
-            num++;
-        }
-        if (num > 0) {
-            LOG.debug("Remove {} expired tasks", num);
-        }
-    }
-
     /**
      * Cleanup task. Cleanup means removing all local files which were created by build process, e.g logs, sources, build reports, etc.
      * <p/>
@@ -459,16 +459,20 @@ public abstract class Builder {
     protected void cleanup(BuildTask task) {
         final java.io.File workDir = task.getConfiguration().getWorkDir();
         if (workDir != null && workDir.exists()) {
-            cleanerQueue.offer(workDir);
+            if (!IoUtil.deleteRecursive(workDir)) {
+                LOG.warn("Unable delete directory {}", workDir);
+            }
         }
         final java.io.File log = task.getBuildLogger().getFile();
         if (log != null && log.exists()) {
-            cleanerQueue.offer(log);
+            if (!log.delete()) {
+                LOG.warn("Unable delete file {}", workDir);
+            }
         }
         BuildResult result = null;
         try {
             result = task.getResult();
-        } catch (BuilderException e) {
+        } catch (ApiException e) {
             LOG.error("Skip cleanup of the task {}. Unable get task result.", task);
         }
         if (result != null) {
@@ -476,14 +480,18 @@ public abstract class Builder {
             if (!artifacts.isEmpty()) {
                 for (java.io.File artifact : artifacts) {
                     if (artifact.exists()) {
-                        cleanerQueue.offer(artifact);
+                        if (!artifact.delete()) {
+                            LOG.warn("Unable delete file {}", workDir);
+                        }
                     }
                 }
             }
             if (result.hasBuildReport()) {
                 java.io.File report = result.getBuildReport();
                 if (report != null && report.exists()) {
-                    cleanerQueue.offer(report);
+                    if (!report.delete()) {
+                        LOG.warn("Unable delete file {}", workDir);
+                    }
                 }
             }
         }
@@ -498,16 +506,16 @@ public abstract class Builder {
      * @param id
      *         id of BuildTask
      * @return BuildTask
-     * @throws com.codenvy.api.builder.NoSuchBuildTaskException
+     * @throws NotFoundException
      *         if id of BuildTask is invalid
      * @see #addBuildListener(BuildListener)
      * @see #removeBuildListener(BuildListener)
      */
-    public final BuildTask getBuildTask(Long id) throws NoSuchBuildTaskException {
+    public final BuildTask getBuildTask(Long id) throws NotFoundException {
         checkStarted();
         final BuildTaskEntry e = tasks.get(id);
         if (e == null) {
-            throw new NoSuchBuildTaskException(id);
+            throw new NotFoundException(String.format("Invalid build task id: %d", id));
         }
         e.setLastUsageTime(System.currentTimeMillis());
         return e.task;
@@ -568,7 +576,7 @@ public abstract class Builder {
         }
 
         @Override
-        public final BuildResult getResult() throws BuilderException {
+        public final BuildResult getResult() throws ApiException {
             if (!isDone()) {
                 return null;
             }
@@ -584,10 +592,10 @@ public abstract class Builder {
                     final Throwable cause = e.getCause();
                     if (cause instanceof Error) {
                         throw (Error)cause; // lets caller to get Error as is
-                    } else if (cause instanceof BuilderException) {
-                        throw (BuilderException)cause;
+                    } else if (cause instanceof ApiException) {
+                        throw (ApiException)cause;
                     } else {
-                        throw new BuilderException(cause.getMessage(), cause);
+                        throw new ApiException(cause.getMessage(), cause);
                     }
                 } catch (CancellationException ce) {
                     successful = false;
@@ -695,33 +703,6 @@ public abstract class Builder {
         }
     }
 
-    private class CleanTask implements Runnable {
-        public void run() {
-            LOG.debug("clean {}: remove {} files", new java.util.Date(), cleanerQueue.size());
-            Set<java.io.File> failToDelete = new LinkedHashSet<>();
-            java.io.File f;
-            while ((f = cleanerQueue.poll()) != null) {
-                if (f.isDirectory()) {
-                    if (!IoUtil.deleteRecursive(f)) {
-                        if (f.exists()) {
-                            failToDelete.add(f);
-                        }
-                    }
-                } else {
-                    if (!f.delete()) {
-                        if (f.exists()) {
-                            failToDelete.add(f);
-                        }
-                    }
-                }
-            }
-            if (!failToDelete.isEmpty()) {
-                LOG.debug("clean: could remove {} files, try next time", failToDelete.size());
-                cleanerQueue.addAll(failToDelete);
-            }
-        }
-    }
-
     private class BuildTaskEntry {
         final int             hash;
         final FutureBuildTask task;
@@ -751,7 +732,7 @@ public abstract class Builder {
         }
 
         synchronized boolean isExpired() {
-            return (lastUsageTime + cleanBuildResultDelayMillis) < System.currentTimeMillis();
+            return (lastUsageTime + cleanupDelayMillis) < System.currentTimeMillis();
         }
 
         synchronized void setLastUsageTime(long time) {

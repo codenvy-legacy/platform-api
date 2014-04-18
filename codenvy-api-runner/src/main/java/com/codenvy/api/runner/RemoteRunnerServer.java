@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -64,7 +64,7 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
         return assignedWorkspace != null;
     }
 
-    public RemoteRunner getRemoteRunner(String name) throws RunnerException {
+    public RemoteRunner getRemoteRunner(String name) throws ApiException {
         try {
             for (RunnerDescriptor runnerDescriptor : getAvailableRunners()) {
                 if (name.equals(runnerDescriptor.getName())) {
@@ -72,48 +72,40 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
                 }
             }
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
-        throw new RunnerException(String.format("Invalid runner name %s", name));
+        throw new ApiException(String.format("Invalid runner name %s", name));
     }
 
-    public RemoteRunner createRemoteRunner(RunnerDescriptor descriptor) throws RunnerException {
+    public RemoteRunner createRemoteRunner(RunnerDescriptor descriptor) throws ApiException {
         try {
             return new RemoteRunner(baseUrl, descriptor, getLinks());
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
-    public List<RunnerDescriptor> getAvailableRunners() throws RunnerException {
+    public List<RunnerDescriptor> getAvailableRunners() throws ApiException {
         try {
             final Link link = getLink(Constants.LINK_REL_AVAILABLE_RUNNERS);
             if (link == null) {
-                throw new RunnerException("Unable get URL for retrieving list of remote runners");
+                throw new ApiException("Unable get URL for retrieving list of remote runners");
             }
             return HttpJsonHelper.requestArray(RunnerDescriptor.class, link);
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 
-    public ServerState getServerState() throws RunnerException {
+    public ServerState getServerState() throws ApiException {
         try {
             final Link stateLink = getLink(Constants.LINK_REL_SERVER_STATE);
             if (stateLink == null) {
-                throw new RunnerException(String.format("Unable get URL for getting state of a remote server '%s'", baseUrl));
+                throw new ApiException(String.format("Unable get URL for getting state of a remote server '%s'", baseUrl));
             }
             return HttpJsonHelper.request(ServerState.class, stateLink);
         } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (RemoteException e) {
-            throw new RunnerException(e.getServiceError());
+            throw new ApiException(e);
         }
     }
 }

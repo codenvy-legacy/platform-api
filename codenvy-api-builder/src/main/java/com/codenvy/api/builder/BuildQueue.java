@@ -605,18 +605,19 @@ public class BuildQueue {
                     final long taskId = event.getTaskId();
                     final BaseBuilderRequest request = getTask(taskId).getRequest();
                     if (request instanceof BuildRequest) {
+                        final String analyticsID = getTask(taskId).getCreationTime() + "-" + taskId;
                         final String project = event.getProject();
                         final String workspace = event.getWorkspace();
                         final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                         final String user = request.getUserName();
                         switch (event.getType()) {
                             case BEGIN:
-                                LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
-                                         projectTypeId);
+                                LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
                                 break;
                             case DONE:
-                                LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
-                                         projectTypeId);
+                                LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
                                 break;
                         }
                     }

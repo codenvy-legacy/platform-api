@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
- *  All Rights Reserved.
- *
+ * 
+ * [2012] - [$today.year] Codenvy, S.A. 
+ * All Rights Reserved.
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,22 +15,27 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.analytics.dto;
+package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * Simple interface to contain list of metric infos.
- *
- * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
+ * @author Vitaly Parfonov
  */
 @DTO
-public interface MetricInfoListDTO {
+public interface ProjectImporterDescriptor {
 
-    List<MetricInfoDTO> getMetrics();
+    String getId();
 
-    void setMetrics(List<MetricInfoDTO> metricInfoDTOs);
+    void setId(String id);
+
+    ProjectImporterDescriptor withId(String id);
+
+    /** Get description of project importer. */
+    String getDescription();
+
+    /** Set description of project importer. */
+    void setDescription(String description);
+
+    ProjectImporterDescriptor withDescription(String description);
 }
-

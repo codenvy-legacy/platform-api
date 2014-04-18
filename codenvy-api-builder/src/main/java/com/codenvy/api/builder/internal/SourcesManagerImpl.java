@@ -29,7 +29,6 @@ import com.google.common.hash.Hashing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,8 +36,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.attribute.FileTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -62,22 +59,14 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private static final Logger LOG = LoggerFactory.getLogger(SourcesManagerImpl.class);
 
-    /**
-     * Time of files life estimating settings.
-     * For example: if ESTIMATE_OF_FILE_LIFE_UNIT is TimeUnit.DAYS
-     * and ESTIMATE_OF_FILE_LIFE is 1, then all files that was not modified in 1d
-     * will be deleted by next scheduler wave.
-     */
-    private static final TimeUnit ESTIMATE_OF_FILE_LIFE_UNIT = TimeUnit.DAYS;
-    private static final long     ESTIMATE_OF_FILE_LIFE      = 2;
-    /** Scheduler tasks executing settings */
-    private static final TimeUnit TASK_EXECUTION_PERIOD_UNIT = TimeUnit.HOURS;
-    private static final long     TASK_EXECUTION_PERIOD      = 2;
-
     private final java.io.File                        directory;
     private final ConcurrentMap<String, Future<Void>> tasks;
     private final AtomicReference<String>             projectKeyHolder;
     private final Set<SourceManagerListener>          listeners;
+
+    private static final long KEEP_PROJECT_TIME = TimeUnit.HOURS.toMillis(4);
+    private static final int  CONNECT_TIMEOUT   = (int)TimeUnit.MINUTES.toMillis(3);
+    private static final int  READ_TIMEOUT      = (int)TimeUnit.MINUTES.toMillis(3);
 
     public SourcesManagerImpl(java.io.File directory) {
         this.directory = directory;
@@ -85,13 +74,9 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         projectKeyHolder = new AtomicReference<>();
         ScheduledExecutorService executor =
                 Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getClass().getSimpleName() + "_FileCleaner", true));
-        executor.scheduleAtFixedRate(createSchedulerTask(),
-                                     TASK_EXECUTION_PERIOD,
-                                     TASK_EXECUTION_PERIOD,
-                                     TASK_EXECUTION_PERIOD_UNIT);
+        executor.scheduleAtFixedRate(createSchedulerTask(), 1, 1, TimeUnit.HOURS);
         listeners = new CopyOnWriteArraySet<>();
     }
-
 
     public void getSources(BuilderConfiguration configuration) throws IOException {
         final BaseBuilderRequest request = configuration.getRequest();
@@ -99,14 +84,18 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     }
 
     @Override
-    public void getSources(String workspace, String project, final String sourcesUrl, File workDir) throws IOException {
+    public void getSources(String workspace, String project, final String sourcesUrl, java.io.File workDir) throws IOException {
         // Directory for sources. Keep sources to avoid download whole project before build.
         // This directory is not permanent and may be removed at any time.
         final java.io.File srcDir = new java.io.File(directory, workspace + java.io.File.separatorChar + project);
         // Temporary directory where we copy sources before build.
         final String key = workspace + project;
         try {
-            waitIfNeedToCheckProject(key);
+            synchronized (this) {
+                while (key.equals(projectKeyHolder.get())) {
+                    wait();
+                }
+            }
         } catch (InterruptedException e) {
             LOG.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
@@ -145,10 +134,8 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 throw ioError;
             }
             IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
-            try {
-                Files.setLastModifiedTime(srcDir.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
-            } catch (IOException e) {
-                LOG.error(e.getMessage(), e);
+            if (!srcDir.setLastModified(System.currentTimeMillis())) {
+                LOG.error("Unable update modification date of {} ", srcDir);
             }
             for (SourceManagerListener listener : listeners) {
                 listener.afterDownload(new SourceManagerEvent(workspace, project, sourcesUrl, workDir));
@@ -195,8 +182,8 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 LOG.debug("count md5sums of {} files, time: {}ms", md5sums.size(), (end - start));
             }
             conn = (HttpURLConnection)new URL(downloadUrl).openConnection();
-            conn.setConnectTimeout(30 * 1000);
-            conn.setReadTimeout(30 * 1000);
+            conn.setConnectTimeout(CONNECT_TIMEOUT);
+            conn.setReadTimeout(READ_TIMEOUT);
             if (!md5sums.isEmpty()) {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-type", "text/plain");
@@ -220,7 +207,9 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 if (removeHeader != null) {
                     for (String item : removeHeader.split(",")) {
                         java.io.File f = new java.io.File(downloadTo, item);
-                        Files.delete(f.toPath());
+                        if (!f.delete()) {
+                            throw new IOException(String.format("Unable delete %s", item));
+                        }
                     }
                 }
             } else if (responseCode != HttpURLConnection.HTTP_NO_CONTENT) {
@@ -252,8 +241,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     }
 
     /**
-     * Create runnable task that will check last files modifications and remove any of them
-     * if it needed.
+     * Create runnable task that will check last files modifications and remove any of them if it needed.
      *
      * @return runnable task for scheduler
      */
@@ -262,18 +250,20 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             @Override
             public void run() {
                 //get list of workspaces
-                File[] workspaces = directory.listFiles();
-                for (File workspace : workspaces) {
+                java.io.File[] workspaces = directory.listFiles();
+                for (java.io.File workspace : workspaces) {
                     //get list of workspace projects
-                    File[] projects = workspace.listFiles();
-                    for (File project : projects) {
+                    java.io.File[] projects = workspace.listFiles();
+                    for (java.io.File project : projects) {
                         String key = workspace.getName() + project.getName();
                         //if project is not downloading
                         if (tasks.get(key) == null) {
                             projectKeyHolder.set(key);
                             try {
-                                if (isFileShouldBeRemoved(project)) {
+                                final long lastModifiedMillis = project.lastModified();
+                                if ((System.currentTimeMillis() - lastModifiedMillis) >= KEEP_PROJECT_TIME) {
                                     IoUtil.deleteRecursive(project);
+                                    LOG.debug("Remove project {} that is unused since {}", project, lastModifiedMillis);
                                 }
                             } finally {
                                 projectKeyHolder.set(null);
@@ -282,42 +272,9 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                                 }
                             }
                         }
-
                     }
                 }
             }
         };
-    }
-
-    /**
-     * Wait if project is checking with scheduler
-     *
-     * @param key
-     *         project key
-     * @throws InterruptedException
-     *         when it is not possible to wait
-     */
-    private synchronized void waitIfNeedToCheckProject(String key) throws InterruptedException {
-        while (key.equals(projectKeyHolder.get())) {
-            wait();
-        }
-    }
-
-    /**
-     * Check file remaining estimate
-     *
-     * @param file
-     *         file that will be checked
-     * @return <code>true</code> if file has last modification time more than time that was estimated
-     */
-    private boolean isFileShouldBeRemoved(File file) {
-        try {
-            long lastModifiedTimeInMilliseconds = Files.getLastModifiedTime(file.toPath()).toMillis();
-            return ESTIMATE_OF_FILE_LIFE_UNIT.convert(System.currentTimeMillis() - lastModifiedTimeInMilliseconds,
-                                                      TimeUnit.MILLISECONDS) >= ESTIMATE_OF_FILE_LIFE;
-        } catch (IOException e) {
-            LOG.error(e.getMessage(), e);
-            return false;
-        }
     }
 }

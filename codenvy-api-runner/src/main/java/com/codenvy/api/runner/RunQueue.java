@@ -506,6 +506,7 @@ public class RunQueue {
                 try {
                     final long id = event.getTaskId();
                     final RunRequest request = getTask(id).getRequest();
+                    final String analyticsID = getTask(id).getCreationTime() + "-" + id;
                     final String project = event.getProject();
                     final String workspace = event.getWorkspace();
                     final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
@@ -514,20 +515,20 @@ public class RunQueue {
                     switch (event.getType()) {
                         case STARTED:
                             if (debug) {
-                                LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
-                                         projectTypeId);
+                                LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId,analyticsID);
                             } else {
-                                LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
-                                         projectTypeId);
+                                LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
                             }
                             break;
                         case STOPPED:
                             if (debug) {
-                                LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
-                                         projectTypeId);
+                                LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
                             } else {
-                                LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}#", workspace, user, project,
-                                         projectTypeId);
+                                LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
                             }
                             break;
                     }

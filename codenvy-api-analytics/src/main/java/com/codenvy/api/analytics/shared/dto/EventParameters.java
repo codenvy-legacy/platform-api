@@ -1,13 +1,13 @@
 /*
- *
  * CODENVY CONFIDENTIAL
- * ________________
+ * __________________
  *
- * [2012] - [2014] Codenvy, S.A.
+ * [2012] - [2013] Codenvy, S.A.
  * All Rights Reserved.
- * NOTICE: All information contained herein is, and remains
+ *
+ * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
- * if any. The intellectual and technical concepts contained
+ * if any.  The intellectual and technical concepts contained
  * herein are proprietary to Codenvy S.A.
  * and its suppliers and may be covered by U.S. and Foreign Patents,
  * patents in process, and are protected by trade secret or copyright law.
@@ -15,16 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.analytics.dto;
-
-import java.util.List;
+package com.codenvy.api.analytics.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-/** @author Alexander Reshetnyak */
-@DTO
-public interface MetricValueListDTO {
-    List<MetricValueDTO> getMetrics();
+import java.lang.String;import java.util.Map;
 
-    void setMetrics(List<MetricValueDTO> metricValueDTOs);
+/**
+ * @author Anatoliy Bazko
+ */
+@DTO
+public interface EventParameters {
+    Map<String, String> getParams();
+
+    void setParams(Map<String, String> params);
+
+    EventParameters withParams(Map<String, String> params);
 }

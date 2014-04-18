@@ -18,6 +18,9 @@
 package com.codenvy.api.user.server.dao;
 
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Profile;
 
@@ -39,7 +42,7 @@ public interface UserProfileDao {
      * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    void create(Profile profile) throws UserProfileException;
+    void create(Profile profile) throws ConflictException, ServerException;
 
     /**
      * Updates already present in persistent layer profile.
@@ -49,7 +52,7 @@ public interface UserProfileDao {
      * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    void update(Profile profile) throws UserProfileException;
+    void update(Profile profile) throws NotFoundException, ServerException;
 
     /**
      * Removes profile from persistent layer.
@@ -59,7 +62,7 @@ public interface UserProfileDao {
      * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    void remove(String id) throws UserProfileException;
+    void remove(String id) throws NotFoundException, ServerException;
 
     /**
      * Gets profile from persistent layer.
@@ -70,7 +73,7 @@ public interface UserProfileDao {
      * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    Profile getById(String id) throws UserProfileException;
+    Profile getById(String id) throws NotFoundException, ServerException;
 
     /**
      * @param id
@@ -81,5 +84,5 @@ public interface UserProfileDao {
      * @throws UserProfileException
      *         if any issue occurred during performing an operation
      */
-    Profile getById(String id, String filter) throws UserProfileException;
+    Profile getById(String id, String filter) throws NotFoundException, ServerException;
 }

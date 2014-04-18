@@ -18,6 +18,9 @@
 package com.codenvy.api.user.server.dao;
 
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.shared.dto.Member;
 
@@ -42,7 +45,7 @@ public interface MemberDao {
      * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    void create(Member member) throws MembershipException;
+    void create(Member member) throws ConflictException, NotFoundException, ServerException;
 
 
     /**
@@ -52,7 +55,7 @@ public interface MemberDao {
      *         - POJO representation of workspace member
      * @throws com.codenvy.api.user.server.exception.MembershipException
      */
-    void update(Member member) throws MembershipException;
+    void update(Member member) throws NotFoundException, ServerException, ConflictException;
 
     /**
      * Gets a list of all members of the given workspace.
@@ -63,7 +66,7 @@ public interface MemberDao {
      * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    List<Member> getWorkspaceMembers(String wsId) throws MembershipException;
+    List<Member> getWorkspaceMembers(String wsId) throws NotFoundException, ServerException;
 
 
     /**
@@ -75,7 +78,7 @@ public interface MemberDao {
      * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    public List<Member> getUserRelationships(String userId) throws MembershipException;
+    public List<Member> getUserRelationships(String userId) throws NotFoundException, ServerException;
 
     /**
      * Removes a given member from specified workspace.
@@ -85,5 +88,5 @@ public interface MemberDao {
      * @throws com.codenvy.api.user.server.exception.MembershipException
      */
 
-    void remove(Member member) throws MembershipException;
+    void remove(Member member) throws NotFoundException, ServerException;
 }

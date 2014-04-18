@@ -19,10 +19,10 @@
 package com.codenvy.api.analytics.impl;
 
 import com.codenvy.api.analytics.MetricHandler;
-import com.codenvy.api.analytics.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.dto.MetricValueListDTO;
+import com.codenvy.api.analytics.shared.dto.MetricInfoDTO;
+import com.codenvy.api.analytics.shared.dto.MetricInfoListDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueListDTO;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.UriInfo;

@@ -34,10 +34,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class EventLogger {
     private static final Logger LOG = LoggerFactory.getLogger(EventLogger.class);
 
-    private static final int MAX_PARAMS_NUMBER      = 3;
-    private static final int MAX_PARAM_NAME_LENGTH  = 20;
-    private static final int MAX_PARAM_VALUE_LENGTH = 50;
-    private static final int QUEUE_MAX_CAPACITY     = 10000;
+    private static final int MAX_EXTENDED_PARAMS_NUMBER = 3;
+    private static final int RESERVED_PARAMS_NUMBER     = 6;
+    private static final int MAX_PARAM_NAME_LENGTH      = 20;
+    private static final int MAX_PARAM_VALUE_LENGTH     = 50;
+    private static final int QUEUE_MAX_CAPACITY         = 10000;
 
     private static final String EVENT_PARAM        = "EVENT";
     private static final String WS_PARAM           = "WS";
@@ -140,8 +141,9 @@ public class EventLogger {
     }
 
     private void validate(Map<String, String> additionalParams) throws IllegalArgumentException {
-        if (additionalParams.size() > MAX_PARAMS_NUMBER) {
-            throw new IllegalArgumentException("The number of parameters exceeded the limit in " + MAX_PARAMS_NUMBER);
+        if (additionalParams.size() > MAX_EXTENDED_PARAMS_NUMBER + RESERVED_PARAMS_NUMBER) {
+            throw new IllegalArgumentException("The number of parameters exceeded the limit in " +
+                                               MAX_EXTENDED_PARAMS_NUMBER);
         }
 
         for (Map.Entry<String, String> entry : additionalParams.entrySet()) {

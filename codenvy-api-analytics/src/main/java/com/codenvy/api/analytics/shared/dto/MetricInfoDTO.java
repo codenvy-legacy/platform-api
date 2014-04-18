@@ -15,18 +15,38 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal;
+package com.codenvy.api.analytics.shared.dto;
 
-import com.codenvy.api.runner.RunnerException;
-import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.dto.shared.DTO;
+
+import java.util.List;
 
 /**
- * Factory for RunnerConfiguration.
+ * Simple interface to contain metric info.
  *
- * @author andrew00x
- * @see com.codenvy.api.runner.internal.RunnerConfiguration
- * @see Runner#getRunnerConfigurationFactory()
+ * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
-public interface RunnerConfigurationFactory {
-    RunnerConfiguration createRunnerConfiguration(RunRequest request) throws RunnerException;
+@DTO
+public interface MetricInfoDTO {
+    String getName();
+
+    void setName(String name);
+
+    String getDescription();
+
+    void setDescription(String description);
+    
+    String getType();
+
+    void setType(String type);
+
+    List<Link> getLinks();
+
+    void setLinks(List<Link> links);
+
+    List<String> getRolesAllowed();
+
+    void setRolesAllowed(List<String> rolesAllowed);
 }
+

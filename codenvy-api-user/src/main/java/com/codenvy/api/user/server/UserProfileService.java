@@ -18,8 +18,6 @@
 package com.codenvy.api.user.server;
 
 
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -92,21 +90,21 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile getCurrent(@Context SecurityContext securityContext,
                               @Description("Preferences path filter") @QueryParam("filter") String filter)
-            throws NotFoundException, ServerException {
+            throws UserException, UserProfileException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-//        if (user == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
+        if (user == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         Profile profile;
         if (filter == null) {
             profile = profileDao.getById(user.getId());
         } else {
             profile = profileDao.getById(user.getId(), filter);
         }
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(user.getId());
-//        }
+        if (profile == null) {
+            throw new ProfileNotFoundException(user.getId());
+        }
         List<Attribute> attrs = new ArrayList<>();
         if (profile.getAttributes() != null) {
             attrs.addAll(profile.getAttributes());
@@ -126,16 +124,16 @@ public class UserProfileService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updateCurrent(@Context SecurityContext securityContext, @Description("updates for profile") List<Attribute> updates)
-            throws NotFoundException, ServerException {
+            throws UserException, UserProfileException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-//        if (user == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
+        if (user == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         Profile profile = profileDao.getById(user.getId());
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(user.getId());
-//        }
+        if (profile == null) {
+            throw new ProfileNotFoundException(user.getId());
+        }
         //if updates are not null, append it to existed attributes
         if (updates != null) {
             Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
@@ -167,15 +165,15 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
     public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException {
+            throws UserProfileException, UserException {
         final Profile profile = profileDao.getById(profileId);
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(profileId);
-//        }
+        if (profile == null) {
+            throw new ProfileNotFoundException(profileId);
+        }
         final User user = userDao.getById(profile.getUserId());
-//        if (user == null) {
-//            throw new UserNotFoundException(profile.getUserId());
-//        }
+        if (user == null) {
+            throw new UserNotFoundException(profile.getUserId());
+        }
         //prefs available only for CURRENT user profile
         profile.setPreferences(Collections.<String, String>emptyMap());
         List<Attribute> attrs = new ArrayList<>();
@@ -199,11 +197,11 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile update(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
                           @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException {
+            throws UserProfileException, UserException {
         Profile profile = profileDao.getById(profileId);
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(profileId);
-//        }
+        if (profile == null) {
+            throw new ProfileNotFoundException(profileId);
+        }
         //if updates are not null, append it to existed attributes
         if (updates != null) {
             Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
@@ -238,16 +236,16 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updatePrefs(@Context SecurityContext securityContext,
                                @Description("preferences to update") Map<String, String> prefsToUpdate)
-            throws NotFoundException, ServerException {
+            throws UserException, UserProfileException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
-//        if (current == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
+        if (current == null) {
+            throw new UserNotFoundException(principal.getName());
+        }
         final Profile currentProfile = profileDao.getById(current.getId());
-//        if (currentProfile == null) {
-//            throw new ProfileNotFoundException(current.getId());
-//        }
+        if (currentProfile == null) {
+            throw new ProfileNotFoundException(current.getId());
+        }
         //if given preferences are not null append it to existed preferences
         if (prefsToUpdate != null) {
             Map<String, String> currentPrefs = currentProfile.getPreferences();

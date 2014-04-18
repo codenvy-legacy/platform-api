@@ -20,7 +20,11 @@ package com.codenvy.api.analytics.impl;
 
 import com.codenvy.api.analytics.AnalyticsService;
 import com.codenvy.api.analytics.MetricHandler;
-import com.codenvy.api.analytics.dto.*;
+import com.codenvy.api.analytics.Constants;
+import com.codenvy.api.analytics.shared.dto.MetricInfoDTO;
+import com.codenvy.api.analytics.shared.dto.MetricInfoListDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueListDTO;
 import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;

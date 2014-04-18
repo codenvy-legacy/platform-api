@@ -72,6 +72,17 @@
         </dependency>
     </dependencies>
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${dto-generator-out-directory}</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>com.codenvy.platform-api</groupId>
@@ -105,10 +116,10 @@
                 </dependencies>
                 <configuration>
                     <dtoPackages>
-                        <package>com.codenvy.api.analytics.dto</package>
+                        <package>com.codenvy.api.analytics.shared.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                    <genClassName>com.codenvy.api.analytics.dto.DtoServerImpls</genClassName>
+                    <genClassName>com.codenvy.api.analytics.shared.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
             </plugin>

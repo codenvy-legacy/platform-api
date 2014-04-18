@@ -55,7 +55,6 @@ import org.testng.annotations.Test;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -69,7 +68,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -121,7 +119,6 @@ public class WorkspaceServiceTest {
 
     protected ResourceLauncher launcher;
 
-
     @BeforeMethod
     public void setUp() throws Exception {
         resources = new ResourceBinderImpl();
@@ -161,14 +158,16 @@ public class WorkspaceServiceTest {
     public void shouldBeAbleToGetWorkspaceById() throws Exception {
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
-
+                          .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))
+                                                                              ));
         String[] roles = new String[]{"workspace/admin", "workspace/developer", "system/admin", "system/manager"};
         for (String role : roles) {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID, null, null);
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-            verifyLinksRel(((Workspace)response.getEntity()).getLinks(), generateRels(role));
+            Workspace ws = (Workspace)response.getEntity();
+            assertEquals(ws, workspace);
+            verifyLinksRel(ws.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).getById(WS_ID);
     }
@@ -190,7 +189,6 @@ public class WorkspaceServiceTest {
         verify(workspaceDao, times(roles.length)).create(any(Workspace.class));
         verify(memberDao, times(roles.length)).create(any(Member.class));
     }
-
 
     @Test
     public void shouldBeAbleToCreateNewTemporaryWorkspaceWithExistedUser() throws Exception {
@@ -239,13 +237,16 @@ public class WorkspaceServiceTest {
                 DtoFactory.getInstance().createDto(Member.class)
                           .withUserId(USER_ID)
                           .withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
+                          .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))
+                                                                              ));
         String[] roles = new String[]{"workspace/admin", "workspace/developer", "system/admin", "system/developer"};
         for (String role : roles) {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("GET", SERVICE_PATH + "?name=" + WS_NAME, null, null);
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-            verifyLinksRel(((Workspace)response.getEntity()).getLinks(), generateRels(role));
+            Workspace ws = (Workspace)response.getEntity();
+            assertEquals(ws, workspace);
+            verifyLinksRel(ws.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).getByName(WS_NAME);
     }
@@ -256,7 +257,8 @@ public class WorkspaceServiceTest {
                 DtoFactory.getInstance().createDto(Member.class)
                           .withUserId(USER_ID)
                           .withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))));
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
         prepareSecurityContext("user");
         Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
                                            .withName("newAttribute")
@@ -278,7 +280,8 @@ public class WorkspaceServiceTest {
                 DtoFactory.getInstance().createDto(Member.class)
                           .withUserId(USER_ID)
                           .withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))));
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
         prepareSecurityContext("user");
         int countBefore = workspace.getAttributes().size();
         assertTrue(countBefore > 0);
@@ -298,7 +301,8 @@ public class WorkspaceServiceTest {
                 DtoFactory.getInstance().createDto(Member.class)
                           .withUserId(USER_ID)
                           .withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))));
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
         prepareSecurityContext("user");
         int countBefore = workspace.getAttributes().size();
         assertTrue(countBefore > 0);
@@ -320,16 +324,25 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldNotBeAbleToGetWorkspaceIfUserHasNotAccessToDoIt() throws Exception {
+    public void shouldGetWorkspaceByNameWithoutAttributesWhenUserHasNotAccessToIt() throws Exception {
         prepareSecurityContext("user");
 
+        assertTrue(workspace.getAttributes().size() > 0);
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "?name=" + WS_NAME, null, null);
-        assertNotEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Access denied");
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Workspace ws = (Workspace)response.getEntity();
+        assertEquals(ws.getAttributes().size(), 0);
+    }
 
-        response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID, null, null);
-        assertNotEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Access denied");
+    @Test
+    public void shouldGetWorkspaceByIdWithoutAttributesWhenUserHasNotAccessToIt() throws Exception {
+        prepareSecurityContext("user");
+
+        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Workspace ws = (Workspace)response.getEntity();
+        assertEquals(ws.getAttributes().size(), 0);
     }
 
     @Test
@@ -345,7 +358,8 @@ public class WorkspaceServiceTest {
                 DtoFactory.getInstance().createDto(Member.class)
                           .withUserId(USER_ID)
                           .withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))));
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
         String[] roles = new String[]{"workspace/admin", "system/admin"};
         for (String role : roles) {
             prepareSecurityContext(role);
@@ -380,7 +394,8 @@ public class WorkspaceServiceTest {
         verify(memberDao, times(1)).getWorkspaceMembers(WS_ID);
         verifyLinksRel(actualMembers.get(0).getLinks(),
                        Arrays.asList(Constants.LINK_REL_GET_WORKSPACE_MEMBERS, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                     com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID));
+                                     com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID)
+                      );
     }
 
 
@@ -388,7 +403,8 @@ public class WorkspaceServiceTest {
     public void shouldBeAbleToAddWorkspaceMember() throws Exception {
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))));
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
         NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
                                              .withRoles(Arrays.asList("workspace/developer"))
                                              .withUserId(USER_ID);
@@ -411,7 +427,8 @@ public class WorkspaceServiceTest {
     public void shouldBeAbleToRemoveWorkspaceMember() throws Exception {
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))));
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
         prepareSecurityContext("workspace/admin");
 
         ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/members/" + USER_ID, null, null);
@@ -425,7 +442,8 @@ public class WorkspaceServiceTest {
     public void shouldBeAbleToRemoveWorkspace() throws Exception {
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))));
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
         when(memberDao.getWorkspaceMembers(WS_ID)).thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
                                                                                       .withWorkspaceId(WS_ID)
                                                                                       .withUserId(USER_ID)));

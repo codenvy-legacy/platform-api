@@ -38,6 +38,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
@@ -89,20 +90,28 @@ public class ProjectService extends Service {
     public List<ProjectReference> getProjects(@PathParam("ws-id") String workspace) throws Exception {
         final List<Project> projects = projectManager.getProjects(workspace);
         final List<ProjectReference> projectRefs = new ArrayList<>();
-        final UriBuilder thisServiceUriBuilder = getServiceContext().getServiceUriBuilder();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final String wsName = EnvironmentContext.getCurrent().getWorkspaceName();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (Project project : projects) {
             final ProjectDescription description = project.getDescription();
             final ProjectType type = description.getProjectType();
             final String name = project.getName();
-            projectRefs.add(DtoFactory.getInstance().createDto(ProjectReference.class)
+            final String path = project.getBaseFolder().getPath();
+            projectRefs.add(dtoFactory.createDto(ProjectReference.class)
                                       .withName(name)
-                                      .withWorkspace(workspace)
+                                      .withWorkspaceId(workspace)
+                                      .withWorkspaceName(wsName)
                                       .withProjectTypeId(type.getId())
                                       .withProjectTypeName(type.getName())
-                                      .withDescription(description.getDescription())
                                       .withVisibility(project.getVisibility())
-                                      .withUrl(thisServiceUriBuilder.clone().path(getClass(), "getProject").build(workspace, name)
-                                                                    .toString()));
+                                      .withCreationDate(project.getCreationDate())
+                                      .withModificationDate(project.getModificationDate())
+                                      .withDescription(description.getDescription())
+                                      .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspace, name).toString())
+                                      .withIdeUrl(wsName != null
+                                                  ? uriBuilder.clone().replacePath("ide").path(wsName).path(path).build().toString()
+                                                  : null));
         }
         return projectRefs;
     }
@@ -588,16 +597,18 @@ public class ProjectService extends Service {
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withName(project.getName())
                          .withPath(project.getBaseFolder().getPath())
-                         .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
-                         // Temporary add virtualFile ID, since need to rework client side.
-                         .withId(project.getBaseFolder().getVirtualFile().getId())
-                         .withProjectTypeId(type.getId())
-                         .withProjectTypeName(type.getName())
-                         .withDescription(description.getDescription())
-                         .withVisibility(project.getVisibility())
-                         .withAttributes(attributeValues)
-                         .withModificationDate(project.getModificationDate())
-                         .withLinks(generateProjectLinks(workspace, project));
+                .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace)
+                                                .toString())
+                        // Temporary add virtualFile ID, since need to rework client side.
+                .withId(project.getBaseFolder().getVirtualFile().getId())
+                .withProjectTypeId(type.getId())
+                .withProjectTypeName(type.getName())
+                .withDescription(description.getDescription())
+                .withVisibility(project.getVisibility())
+                .withAttributes(attributeValues)
+                .withCreationDate(project.getCreationDate())
+                .withModificationDate(project.getModificationDate())
+                .withLinks(generateProjectLinks(workspace, project));
     }
 
     private List<Link> generateProjectLinks(String workspace, Project project) {

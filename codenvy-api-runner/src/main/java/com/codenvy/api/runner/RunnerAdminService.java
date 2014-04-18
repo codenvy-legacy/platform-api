@@ -26,7 +26,7 @@ import com.codenvy.api.runner.dto.RunnerServer;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
-import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;

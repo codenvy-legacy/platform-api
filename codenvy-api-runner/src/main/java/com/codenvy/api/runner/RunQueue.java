@@ -31,16 +31,16 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.runner.dto.DebugMode;
 import com.codenvy.api.runner.dto.RunOptions;
+import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
+import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
-import com.codenvy.api.runner.internal.dto.DebugMode;
-import com.codenvy.api.runner.internal.dto.RunRequest;
-import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
-import com.codenvy.api.runner.internal.dto.RunnerState;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
@@ -117,7 +117,8 @@ public class RunQueue {
     /**
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
-     *         the same base URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy.com/api/runner/my_workspace</i>,
+     *         the same base URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy
+     *         .com/api/runner/my_workspace</i>,
      *         in this case base URL is <i>http://codenvy.com/api</i> so we will try to find project API at URL:
      *         <i>http://codenvy.com/api/project/my_workspace</i>
      * @param baseBuilderApiUrl
@@ -155,14 +156,17 @@ public class RunQueue {
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final User user = EnvironmentContext.getCurrent().getUser();
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
                                              .withWorkspace(workspace)
                                              .withProject(project)
-                                             .withProjectDescriptor(descriptor);
+                                             .withProjectDescriptor(descriptor)
+                                             .withUserName(user == null ? "" : user.getName());
         BuildOptions buildOptions = null;
         if (runOptions != null) {
             request.setMemorySize(runOptions.getMemorySize());
             request.setOptions(runOptions.getOptions());
+            request.setEnvironmentId(runOptions.getEnvironmentId());
             if (runOptions.getDebugMode() != null) {
                 request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(runOptions.getDebugMode().getMode()));
             }
@@ -495,6 +499,45 @@ public class RunQueue {
                 }
             }
         });
+
+        eventService.subscribe(new EventSubscriber<RunnerEvent>() { //Log events for analitics
+            @Override
+            public void onEvent(RunnerEvent event) {
+                try {
+                    final long id = event.getTaskId();
+                    final RunRequest request = getTask(id).getRequest();
+                    final String analyticsID = getTask(id).getCreationTime() + "-" + id;
+                    final String project = event.getProject();
+                    final String workspace = event.getWorkspace();
+                    final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                    final boolean debug = request.getDebugMode() != null;
+                    final String user = request.getUserName();
+                    switch (event.getType()) {
+                        case STARTED:
+                            if (debug) {
+                                LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId,analyticsID);
+                            } else {
+                                LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
+                            }
+                            break;
+                        case STOPPED:
+                            if (debug) {
+                                LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
+                            } else {
+                                LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
+                            }
+                            break;
+                    }
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+
         if (slaves.length > 0) {
             executor.execute(new Runnable() {
                 @Override

@@ -15,38 +15,38 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes state of computer.
+ * Describes current state of {@link com.codenvy.api.runner.internal.Runner}.
  *
  * @author andrew00x
  */
 @DTO
-public interface ServerState {
-    int getCpuPercentUsage();
+public interface RunnerState {
+    String getName();
 
-    ServerState withCpuPercentUsage(int cpuPercentUsage);
+    RunnerState withName(String name);
 
-    void setCpuPercentUsage(int cpuPercentUsage);
+    void setName(String name);
 
-    long getTotalMemory();
+    int getRunningAppsNum();
 
-    ServerState withTotalMemory(long totalMemory);
+    RunnerState withRunningAppsNum(int num);
 
-    void setTotalMemory(long totalMemory);
+    void setRunningAppsNum(int num);
 
-    long getFreeMemory();
+    int getTotalAppsNum();
 
-    ServerState withFreeMemory(long freeMemory);
+    RunnerState withTotalAppsNum(int num);
 
-    void setFreeMemory(long freeMemory);
+    void setTotalAppsNum(int num);
 
-    int getTotalRunningAppsNum();
+    ServerState getServerState();
 
-    ServerState withTotalRunningAppsNum(int num);
+    RunnerState withServerState(ServerState serverState);
 
-    void setTotalRunningAppsNum(int num);
+    void setServerState(ServerState serverState);
 }

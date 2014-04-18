@@ -63,6 +63,10 @@ public class Project {
         return manager.getProjectMisc(workspace, baseFolder.getPath()).getModificationDate();
     }
 
+    public long getCreationDate() {
+        return manager.getProjectMisc(workspace, baseFolder.getPath()).getCreationDate();
+    }
+
     public List<Project> getModules() {
         final List<Project> modules = new ArrayList<>();
         for (FolderEntry child : baseFolder.getChildFolders()) {

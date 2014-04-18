@@ -24,6 +24,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.Constants;
 
 import javax.inject.Inject;
@@ -37,6 +38,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * RESTful API for RunQueue.
@@ -78,9 +83,30 @@ public class RunnerService extends Service {
 
     @GET
     @Path("logs/{id}")
-    public void getLogs(@PathParam("id") Long id,
-                        @Context HttpServletResponse httpServletResponse) throws Exception {
-        // Response write directly to the servlet request stream
+    public void getLogs(@PathParam("id") Long id, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // Response is written directly to the servlet request stream
         runQueue.getTask(id).readLogs(new HttpServletProxyResponse(httpServletResponse));
+    }
+
+    @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)
+    @GET
+    @Path("available")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<RunnerDescriptor> getRunners(@PathParam("ws-id") String workspace,
+                                             @Description("project name") @QueryParam("project") String project) throws Exception {
+        final Map<String, RunnerDescriptor> all = new HashMap<>();
+        for (RemoteRunnerServer runnerServer : runQueue.getRegisterRunnerServers()) {
+            if ((!runnerServer.isDedicated() || runnerServer.getAssignedWorkspace().equals(workspace))
+                && (project == null || project.equals(runnerServer.getAssignedProject()))) {
+                for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
+                    if (all.containsKey(runnerDescriptor.getName())) {
+                        all.get(runnerDescriptor.getName()).getEnvironments().putAll(runnerDescriptor.getEnvironments());
+                    } else {
+                        all.put(runnerDescriptor.getName(), runnerDescriptor);
+                    }
+                }
+            }
+        }
+        return new ArrayList<>(all.values());
     }
 }

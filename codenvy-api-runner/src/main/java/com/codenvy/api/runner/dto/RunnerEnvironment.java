@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,38 +15,40 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.analytics.dto;
+package com.codenvy.api.runner.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * Simple interface to contain metric info.
- *
- * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
+ * @author andrew00x
  */
 @DTO
-public interface MetricInfoDTO {
-    String getName();
+public interface RunnerEnvironment {
+    /**
+     * Get unique id of RunnerEnvironment.
+     *
+     * @return unique id of RunnerEnvironment
+     */
+    String getId();
 
-    void setName(String name);
+    void setId(String id);
 
+    RunnerEnvironment withId(String id);
+
+    /**
+     * Get description of RunnerEnvironment.
+     *
+     * @return description of RunnerEnvironment
+     */
     String getDescription();
 
     void setDescription(String description);
-    
-    String getType();
 
-    void setType(String type);
+    RunnerEnvironment withDescription(String description);
 
-    List<Link> getLinks();
+    boolean getIsDefault();
 
-    void setLinks(List<Link> links);
+    void setIsDefault(boolean isDefault);
 
-    List<String> getRolesAllowed();
-
-    void setRolesAllowed(List<String> rolesAllowed);
+    RunnerEnvironment withIsDefault(boolean isDefault);
 }
-

@@ -21,7 +21,7 @@ import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
-import com.codenvy.api.builder.internal.BuildDoneEvent;
+import com.codenvy.api.builder.internal.BuilderEvent;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
@@ -272,9 +272,11 @@ public class BuildQueue {
             throws BuilderException {
         checkStarted();
         final ProjectDescriptor projectDescription = getProjectDescription(workspace, project, serviceContext);
+        final User user = EnvironmentContext.getCurrent().getUser();
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(workspace)
-                                                             .withProject(project);
+                                                             .withProject(project)
+                                                             .withUserName(user == null ? "" : user.getName());
         if (buildOptions != null) {
             request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
@@ -347,10 +349,12 @@ public class BuildQueue {
             throws BuilderException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final User user = EnvironmentContext.getCurrent().getUser();
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
                                                                        .withType(type)
                                                                        .withWorkspace(workspace)
-                                                                       .withProject(project);
+                                                                       .withProject(project)
+                                                                       .withUserName(user == null ? "" : user.getName());
         addParametersFromProjectDescriptor(descriptor, request);
         request.setTimeout(getBuildTimeout(request));
         final Callable<RemoteTask> callable = createTaskFor(request);
@@ -387,6 +391,7 @@ public class BuildQueue {
         if (!hasBuilder(request)) {
             throw new BuilderException(String.format("Builder '%s' is not available. ", builder));
         }
+        request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
         final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
         if (zipballLink != null) {
@@ -551,14 +556,16 @@ public class BuildQueue {
                     final BuildFutureTask buildFutureTask = (BuildFutureTask)runnable;
                     if (buildFutureTask.reused) {
                         // Emulate event from remote builder. In fact we didn't send request to remote builder just reuse result from previous build.
-                        eventService.publish(new BuildDoneEvent(buildFutureTask.id, buildFutureTask.workspace, buildFutureTask.project));
+                        eventService.publish(BuilderEvent.doneEvent(buildFutureTask.id,
+                                                                    buildFutureTask.workspace,
+                                                                    buildFutureTask.project));
                     }
                 }
             }
         };
-        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+        eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
-            public void onEvent(BuildDoneEvent event) {
+            public void onEvent(BuilderEvent event) {
                 final long id = event.getTaskId();
                 try {
                     final BuildQueueTask task = getTask(id);
@@ -572,9 +579,9 @@ public class BuildQueue {
                 }
             }
         });
-        eventService.subscribe(new EventSubscriber<BuildDoneEvent>() {
+        eventService.subscribe(new EventSubscriber<BuilderEvent>() {
             @Override
-            public void onEvent(BuildDoneEvent event) {
+            public void onEvent(BuilderEvent event) {
                 try {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                     final long id = event.getTaskId();
@@ -586,6 +593,34 @@ public class BuildQueue {
                         bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
                     }
                     WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        });
+        eventService.subscribe(new EventSubscriber<BuilderEvent>() {
+            @Override
+            public void onEvent(BuilderEvent event) {
+                try {
+                    final long taskId = event.getTaskId();
+                    final BaseBuilderRequest request = getTask(taskId).getRequest();
+                    if (request instanceof BuildRequest) {
+                        final String analyticsID = getTask(taskId).getCreationTime() + "-" + taskId;
+                        final String project = event.getProject();
+                        final String workspace = event.getWorkspace();
+                        final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                        final String user = request.getUserName();
+                        switch (event.getType()) {
+                            case BEGIN:
+                                LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
+                                break;
+                            case DONE:
+                                LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                         projectTypeId, analyticsID);
+                                break;
+                        }
+                    }
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
                 }

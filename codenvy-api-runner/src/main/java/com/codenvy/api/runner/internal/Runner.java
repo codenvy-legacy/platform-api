@@ -24,7 +24,8 @@ import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.NoSuchRunnerTaskException;
 import com.codenvy.api.runner.RunnerException;
-import com.codenvy.api.runner.internal.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerEnvironment;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
@@ -36,6 +37,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -102,6 +104,15 @@ public abstract class Runner {
      * @return the description of this runner
      */
     public abstract String getDescription();
+
+    /**
+     * Get environments that are supported by the runner. Each environment presupposes an existing some embedded pre-configured environment
+     * for running application, e.g. type of server or its configuration. By default this method returns empty list that means usage of one
+     * runtime environment for running an application.
+     */
+    public Map<String, RunnerEnvironment> getEnvironments() {
+        return Collections.emptyMap();
+    }
 
     /** @see RunnerConfiguration */
     public abstract RunnerConfigurationFactory getRunnerConfigurationFactory();

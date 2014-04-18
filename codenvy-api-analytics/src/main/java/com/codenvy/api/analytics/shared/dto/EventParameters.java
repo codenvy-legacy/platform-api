@@ -2,8 +2,8 @@
  * CODENVY CONFIDENTIAL
  * __________________
  *
- *  [2012] - [2013] Codenvy, S.A.
- *  All Rights Reserved.
+ * [2012] - [2013] Codenvy, S.A.
+ * All Rights Reserved.
  *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
@@ -15,22 +15,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.internal.dto;
+package com.codenvy.api.analytics.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
+import java.lang.String;import java.util.Map;
 
 /**
- * List of descriptions of slave runners.
- *
- * @author andrew00x
+ * @author Anatoliy Bazko
  */
 @DTO
-public interface RunnerList {
-    List<RunnerDescriptor> getRunners();
+public interface EventParameters {
+    Map<String, String> getParams();
 
-    RunnerList withRunners(List<RunnerDescriptor> runners);
+    void setParams(Map<String, String> params);
 
-    void setRunners(List<RunnerDescriptor> runners);
+    EventParameters withParams(Map<String, String> params);
 }

@@ -23,7 +23,6 @@ import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.dto.shared.JsonArray;
 import com.google.common.io.CharStreams;
 import com.google.common.io.InputSupplier;
 
@@ -59,9 +58,6 @@ public class HttpJsonHelper {
     /**
      * Sends HTTP request to specified {@code url}.
      *
-     *
-     *         type of expected response. If server returns some content we try parse it and restore object of the specified type from it.
-     *         Specified interface must be annotated with &#064DTO.
      * @param url
      *         URL to send request
      * @param method
@@ -70,18 +66,17 @@ public class HttpJsonHelper {
      *         body of request. Object must implements DTO interface (interface must be annotated with &#064DTO).
      * @param parameters
      *         additional query parameters.
-     * @return instance of {@code dtoInterface} which represents JSON response from the server
+     * @return JSON string
      * @throws RemoteException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
      * @throws IOException
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
-    public static String requestBody(
-                                    String url,
-                                    String method,
-                                    Object body,
-                                    Pair<String, ?>... parameters) throws IOException, RemoteException {
+    public static String requestBody(String url,
+                                     String method,
+                                     Object body,
+                                     Pair<String, ?>... parameters) throws IOException, RemoteException {
         final String authToken = getAuthenticationToken();
         if ((parameters != null && parameters.length > 0) || authToken != null) {
             final StringBuilder sb = new StringBuilder();
@@ -151,7 +146,6 @@ public class HttpJsonHelper {
                 throw new IOException("Unsupported type of response from remote server, 'application/json' expected. ");
             }
 
-
             return inputStreamToString(conn.getInputStream());
 
         } finally {
@@ -179,7 +173,27 @@ public class HttpJsonHelper {
 
     }
 
-
+    /**
+     * Sends HTTP request to specified {@code url}.
+     *
+     * @param dtoInterface
+     *         type of expected response. If server returns some content we try parse it and restore object of the specified type from it.
+     *         Specified interface must be annotated with &#064DTO.
+     * @param url
+     *         URL to send request
+     * @param method
+     *         HTTP method
+     * @param body
+     *         body of request. Object must implements DTO interface (interface must be annotated with &#064DTO).
+     * @param parameters
+     *         additional query parameters.
+     * @return instance of {@code dtoInterface} which represents JSON response from the server
+     * @throws com.codenvy.api.core.rest.RemoteException
+     *         if server returns error response in supported JSON format, see {@link com.codenvy.api.core.rest.shared.dto.ServiceError}
+     * @throws java.io.IOException
+     *         if any other error occurs
+     * @see com.codenvy.dto.shared.DTO
+     **/
 
     public static <DTO> DTO request(Class<DTO> dtoInterface,
                                     String url,
@@ -195,6 +209,27 @@ public class HttpJsonHelper {
 
     }
 
+    /**
+     * Sends HTTP request to specified {@code url}.
+     *
+     * @param dtoInterface
+     *         type of expected response. If server returns some content we try parse it and restore object of the specified type from it.
+     *         Specified interface must be annotated with &#064DTO.
+     * @param url
+     *         URL to send request
+     * @param method
+     *         HTTP method
+     * @param body
+     *         body of request. Object must implements DTO interface (interface must be annotated with &#064DTO).
+     * @param parameters
+     *         additional query parameters.
+     * @return list of {@code dtoInterface} objects
+     * @throws com.codenvy.api.core.rest.RemoteException
+     *         if server returns error response in supported JSON format, see {@link com.codenvy.api.core.rest.shared.dto.ServiceError}
+     * @throws java.io.IOException
+     *         if any other error occurs
+     * @see com.codenvy.dto.shared.DTO
+     **/
     public static <T>List<T> requestArray(Class<T> dtoInterface,
                                     String url,
                                     String method,

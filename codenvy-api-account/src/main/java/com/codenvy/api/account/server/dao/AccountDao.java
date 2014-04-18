@@ -21,6 +21,9 @@ import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 
 import java.util.List;
 
@@ -44,7 +47,7 @@ public interface AccountDao {
      *         POJO representation of account
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    void create(Account account) throws AccountException;
+    void create(Account account) throws ConflictException, ServerException;
 
     /**
      * Gets account from persistent layer by it identifier
@@ -54,7 +57,7 @@ public interface AccountDao {
      * @return account POJO, or <code>null</code> if nothing is found
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    Account getById(String id) throws AccountException;
+    Account getById(String id) throws NotFoundException, ServerException;
 
     /**
      * Gets user from persistent layer it  name
@@ -64,7 +67,7 @@ public interface AccountDao {
      * @return account POJO, or <code>null</code> if nothing is found
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    Account getByName(String name) throws AccountException;
+    Account getByName(String name) throws NotFoundException, ServerException;
 
     /**
      * Gets account from persistent level by owner
@@ -74,7 +77,7 @@ public interface AccountDao {
      * @return account POJO, or empty list if nothing is found
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    List<Account> getByOwner(String owner) throws AccountException;
+    List<Account> getByOwner(String owner) throws ServerException;
 
     /**
      * Updates already present in persistent level account
@@ -83,7 +86,7 @@ public interface AccountDao {
      *         account POJO to update
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    void update(Account account) throws AccountException;
+    void update(Account account) throws NotFoundException, ServerException;
 
     /**
      * Removes account from persistent layer
@@ -92,7 +95,7 @@ public interface AccountDao {
      *         account identifier
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    void remove(String id) throws AccountException;
+    void remove(String id) throws NotFoundException,ServerException, ConflictException;
 
     /**
      * Adds new member to already present in persistent level account
@@ -101,7 +104,7 @@ public interface AccountDao {
      *         new member
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    void addMember(Member member) throws AccountException;
+    void addMember(Member member) throws NotFoundException, ConflictException, ServerException;
 
     /**
      * Removes member from existing account
@@ -112,7 +115,7 @@ public interface AccountDao {
      *         user identifier
      * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    void removeMember(String accountId, String userId) throws AccountException;
+    void removeMember(String accountId, String userId) throws NotFoundException, ServerException;
 
     /**
      * Adds new subscription to account that already exists in persistent layer
@@ -120,7 +123,7 @@ public interface AccountDao {
      * @param subscription
      *         subscription POJO
      */
-    void addSubscription(Subscription subscription) throws AccountException;
+    void addSubscription(Subscription subscription) throws NotFoundException, ConflictException, ServerException;
 
     /**
      * Remove subscription related to existing account
@@ -128,7 +131,7 @@ public interface AccountDao {
      * @param subscriptionId
      *         subscription identifier for removal
      */
-    void removeSubscription(String subscriptionId) throws AccountException;
+    void removeSubscription(String subscriptionId) throws NotFoundException, ServerException;
 
 
     /**
@@ -138,7 +141,7 @@ public interface AccountDao {
      *         subscription identifier
      * @return Subscription POJO
      */
-    Subscription getSubscriptionById(String subscriptionId) throws AccountException;
+    Subscription getSubscriptionById(String subscriptionId) throws NotFoundException, ServerException;
 
     /**
      * Gets list of existing in persistent layer subscriptions related to given account
@@ -147,7 +150,7 @@ public interface AccountDao {
      *         account id
      * @return list of subscriptions, or empty list if no subscriptions found
      */
-    List<Subscription> getSubscriptions(String accountId) throws AccountException;
+    List<Subscription> getSubscriptions(String accountId) throws ServerException;
 
     /**
      * Gets list of existing in persistent layer members related to given account
@@ -156,7 +159,7 @@ public interface AccountDao {
      *         account id
      * @return list of members, or empty list if no members found
      */
-    List<Member> getMembers(String accountId) throws AccountException;
+    List<Member> getMembers(String accountId) throws ServerException;
 
     /**
      * Gets list of existing in persistent layer Account where given member is member
@@ -165,5 +168,5 @@ public interface AccountDao {
      *         user identifier to search
      * @return list of accounts, or empty list if no accounts found
      */
-    public List<Account> getByMember(String userId) throws AccountException;
+    List<Account> getByMember(String userId) throws NotFoundException, ServerException;
 }

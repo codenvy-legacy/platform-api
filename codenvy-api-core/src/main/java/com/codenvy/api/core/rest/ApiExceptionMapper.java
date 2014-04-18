@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.core.rest;
 
-import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.*;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
@@ -30,7 +30,34 @@ import javax.ws.rs.ext.Provider;
 public class ApiExceptionMapper implements ExceptionMapper<ApiException> {
     @Override
     public Response toResponse(ApiException exception) {
-        return Response.serverError()
+
+        if(exception instanceof ForbiddenException)
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+        else if (exception instanceof NotFoundException)
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+        else if (exception instanceof UnauthorizedException)
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+        else if (exception instanceof ConflictException)
+            return Response.status(Response.Status.CONFLICT)
+                    .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+        else if (exception instanceof ServerException)
+            return Response.status(500)
+                    .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+        else
+            return Response.serverError()
                        .entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
                        .type(MediaType.APPLICATION_JSON)
                        .build();

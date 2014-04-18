@@ -45,7 +45,6 @@ public class LocalAccountDaoImpl implements AccountDao {
         return DtoFactory.getInstance().createDto(Account.class)
                          .withName("acc_name")
                          .withId(id)
-                         .withOwner("userId122332133123")
                          .withAttributes(Arrays.asList(
                                  DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
                                            .withDescription("important attribute")));
@@ -56,7 +55,6 @@ public class LocalAccountDaoImpl implements AccountDao {
         return DtoFactory.getInstance().createDto(Account.class)
                          .withName(name)
                          .withId("acc0xffaassdeereqWsss")
-                         .withOwner("userId122332133123")
                          .withAttributes(Arrays.asList(
                                  DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
                                            .withDescription("important attribute")));
@@ -67,7 +65,6 @@ public class LocalAccountDaoImpl implements AccountDao {
         return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
                                        .withName("acc_name")
                                        .withId("acc0xffaassdeereqWsss")
-                                       .withOwner(owner)
                                        .withAttributes(Arrays.asList(
                                                DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
                                                          .withDescription("important attribute"))));
@@ -139,7 +136,6 @@ public class LocalAccountDaoImpl implements AccountDao {
         return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
                                        .withName("acc_name")
                                        .withId("cc0xffaassdeereqWsss")
-                                       .withOwner("owner")
                                        .withAttributes(Arrays.asList(
                                                DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
                                                          .withDescription("important attribute"))));

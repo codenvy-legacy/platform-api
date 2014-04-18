@@ -126,8 +126,13 @@ public class WorkspaceService extends Service {
         if (user == null) {
             throw new UserNotFoundException(principal.getName());
         }
-        if (!actualAcc.getOwner().equals(user.getId())) {
-            throw new WorkspaceException("You can only create workspace associated to your own account");
+        List<Account> accounts = accountDao.getByOwner(user.getId());
+        boolean isCurrentUserAccountOwner = false;
+        for (int i = 0; i < accounts.size() && !isCurrentUserAccountOwner; ++i) {
+            isCurrentUserAccountOwner = accounts.get(i).getId().equals(actualAcc.getId());
+        }
+        if (!isCurrentUserAccountOwner) {
+            throw new WorkspaceException("You can create workspace associated only to your own account");
         }
         if (securityContext.isUserInRole("user")) {
             boolean isMultipleWorkspaceAvailable = false;

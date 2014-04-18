@@ -27,11 +27,6 @@ import java.util.List;
  */
 @DTO
 public interface Account {
-    String getOwner();
-
-    void setOwner(String owner);
-
-    Account withOwner(String owner);
 
     List<Attribute> getAttributes();
 
@@ -56,6 +51,4 @@ public interface Account {
     void setLinks(List<Link> links);
 
     Account withLinks(List<Link> links);
-
-
 }

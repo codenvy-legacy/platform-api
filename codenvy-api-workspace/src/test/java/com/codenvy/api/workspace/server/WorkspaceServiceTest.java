@@ -174,8 +174,9 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToCreateNewWorkspace() throws Exception {
-        Account org = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID).withOwner(USER_ID);
-        when(accountDao.getById(ACCOUNT_ID)).thenReturn(org);
+        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID);
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(acc);
+        when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(acc));
 
         String[] roles = new String[]{"user", "system/admin"};
         for (String role : roles) {
@@ -202,7 +203,6 @@ public class WorkspaceServiceTest {
         verify(memberDao, times(1)).create(any(Member.class));
     }
 
-
     @Test
     public void shouldBeAbleToCreateNewTemporaryWorkspaceWhenUserDoesNotExist() throws Exception {
         when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -221,7 +221,8 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldNotBeAbleToCreateWorkspaceIfAccountNotSubscribedOnMultipleWorkspaces()
             throws Exception {
-        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID).withOwner(USER_ID);
+        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID);
+        when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(acc));
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(acc);
         when(workspaceDao.getByAccount(ACCOUNT_ID))
                 .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Workspace.class)));

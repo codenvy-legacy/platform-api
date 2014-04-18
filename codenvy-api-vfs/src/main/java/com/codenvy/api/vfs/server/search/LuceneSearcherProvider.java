@@ -32,7 +32,7 @@ import java.util.Set;
 /**
  * SearcherProvider for Lucene based Searchers.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class LuceneSearcherProvider implements SearcherProvider {
 

@@ -214,24 +214,27 @@ public final class ProjectManager {
                 return new ProjectMisc(properties);
             }
         }
-        return new ProjectMisc(new Properties());
+        return new ProjectMisc();
     }
 
     private void save(String workspace, String projectPath, ProjectMisc misc) throws IOException {
-        final Project project = getProject(workspace, projectPath);
-        if (project != null) {
-            final ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            misc.asProperties().storeToXML(bout, null);
-            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
-            if (miscFile != null) {
-                miscFile.updateContent(bout.toByteArray(), "application/xml");
-            } else {
-                final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER);
-                if (codenvy != null) {
-                    codenvy.createFile("misc.xml", bout.toByteArray(), "application/xml");
+        if (misc.isUpdated()) {
+            final Project project = getProject(workspace, projectPath);
+            // be sure project exists
+            if (project != null) {
+                final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                misc.asProperties().storeToXML(bout, null);
+                final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
+                if (miscFile != null) {
+                    miscFile.updateContent(bout.toByteArray(), "application/xml");
+                } else {
+                    final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER);
+                    if (codenvy != null) {
+                        codenvy.createFile("misc.xml", bout.toByteArray(), "application/xml");
+                    }
                 }
+                LOG.debug("Save misc file of project {} in {}", projectPath, workspace);
             }
         }
     }
-
 }

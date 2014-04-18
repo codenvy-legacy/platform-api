@@ -35,6 +35,11 @@ public class ZipProjectImporter implements ProjectImporter {
     }
 
     @Override
+    public String getDescription() {
+        return "Add possibility to import project from zip archive located by public URL";
+    }
+
+    @Override
     public void importSources(FolderEntry baseFolder, String location) throws IOException {
         URL url;
         if (location.startsWith("http://") || location.startsWith("https://")) {

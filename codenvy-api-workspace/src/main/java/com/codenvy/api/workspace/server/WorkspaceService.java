@@ -77,6 +77,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -214,10 +215,11 @@ public class WorkspaceService extends Service {
     public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id)
             throws NotFoundException, ServerException, ForbiddenException {
         Workspace workspace = workspaceDao.getById(id);
-//        if (workspace == null) {
-//            throw new WorkspaceNotFoundException(id);
-//        }
-        ensureUserHasAccessToWorkspace(id, new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        try {
+            ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        } catch (ForbiddenException e) {
+            workspace.setAttributes(Collections.<Attribute>emptyList());
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }
@@ -233,10 +235,11 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Missed parameter name");
         }
         Workspace workspace = workspaceDao.getByName(name);
-//        if (workspace == null) {
-//            throw new WorkspaceNotFoundException(name);
-//        }
-        ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        try {
+            ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
+        } catch (ForbiddenException e) {
+            workspace.setAttributes(Collections.<Attribute>emptyList());
+        }
         injectLinks(workspace, securityContext);
         return workspace;
     }

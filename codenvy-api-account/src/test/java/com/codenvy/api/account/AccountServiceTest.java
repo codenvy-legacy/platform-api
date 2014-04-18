@@ -166,6 +166,11 @@ public class AccountServiceTest {
         Account created = (Account)response.getEntity();
         verifyLinksRel(created.getLinks(), generateRels(role));
         verify(accountDao, times(1)).create(any(Account.class));
+        Member expected = DtoFactory.getInstance().createDto(Member.class)
+                                    .withAccountId(created.getId())
+                                    .withUserId(USER_ID)
+                                    .withRoles(Arrays.asList("account/owner"));
+        verify(accountDao, times(1)).addMember(expected);
     }
 
     @Test

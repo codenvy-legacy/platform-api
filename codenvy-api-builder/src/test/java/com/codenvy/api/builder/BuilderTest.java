@@ -27,7 +27,6 @@ import com.codenvy.api.builder.internal.DelegateBuildLogger;
 import com.codenvy.api.builder.internal.SourceManagerListener;
 import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;
@@ -73,7 +72,7 @@ public class BuilderTest {
         }
 
         @Override
-        protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws ApiException {
+        protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
             return logger = new MyDelegateBuildLogger(super.createBuildLogger(buildConfiguration, logFile));
         }
 

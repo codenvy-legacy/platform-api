@@ -17,10 +17,10 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.core.ApiException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,7 +38,7 @@ public class DefaultBuilderConfigurationFactory implements BuilderConfigurationF
     }
 
     @Override
-    public BuilderConfiguration createBuilderConfiguration(BaseBuilderRequest request) throws ApiException {
+    public BuilderConfiguration createBuilderConfiguration(BaseBuilderRequest request) throws BuilderException {
         if (request instanceof BuildRequest) {
             return new BuilderConfiguration(createWorkDir(request), BuilderTaskType.DEFAULT, request);
         } else if (request instanceof DependencyRequest) {
@@ -56,20 +56,20 @@ public class DefaultBuilderConfigurationFactory implements BuilderConfigurationF
                     taskType = BuilderTaskType.LIST_DEPS;
                     break;
                 default:
-                    throw new ApiException(
+                    throw new BuilderException(
                             String.format("Unsupported type of an analysis task: %s. Should be either 'list' or 'copy'", type));
             }
             return new BuilderConfiguration(createWorkDir(request), taskType, myRequest);
 
         }
-        throw new ApiException("Unsupported type of request");
+        throw new BuilderException("Unsupported type of request");
     }
 
-    protected java.io.File createWorkDir(BaseBuilderRequest request) throws ApiException {
+    protected java.io.File createWorkDir(BaseBuilderRequest request) throws BuilderException {
         try {
             return Files.createTempDirectory(builder.getBuildDirectory().toPath(), "build-").toFile();
         } catch (IOException e) {
-            throw new ApiException(e);
+            throw new BuilderException(e);
         }
     }
 }

@@ -21,7 +21,6 @@ package com.codenvy.api.workspace.server.dao;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 
 import java.util.List;
@@ -43,8 +42,6 @@ public interface WorkspaceDao {
      *
      * @param workspace
      *         - POJO representation of workspace entity
-     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
-     *         if any issue occurred during performing an operation
      */
     void create(Workspace workspace) throws ConflictException, ServerException;
 
@@ -53,8 +50,6 @@ public interface WorkspaceDao {
      *
      * @param workspace
      *         - POJO representation of workspace entity
-     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
-     *         if any issue occurred during performing an operation
      */
     void update(Workspace workspace) throws NotFoundException, ConflictException, ServerException;
 
@@ -63,8 +58,6 @@ public interface WorkspaceDao {
      *
      * @param id
      *         - workspace identifier
-     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
-     *         if any issue occurred during performing an operation
      */
     void remove(String id) throws NotFoundException, ServerException;
 
@@ -74,8 +67,6 @@ public interface WorkspaceDao {
      * @param id
      *         - workspace identifier
      * @return workspace POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
-     *         if any issue occurred during performing an operation
      */
     Workspace getById(String id) throws NotFoundException, ServerException;
 
@@ -85,8 +76,6 @@ public interface WorkspaceDao {
      * @param name
      *         - workspace identifier
      * @return workspace POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
-     *         if any issue occurred during performing an operation
      */
     Workspace getByName(String name) throws NotFoundException, ServerException;
 
@@ -97,8 +86,6 @@ public interface WorkspaceDao {
      * @param accountId
      *         - account identifier
      * @return List of workspaces
-     * @throws com.codenvy.api.workspace.server.exception.WorkspaceException
-     *         if any issue occurred during performing an operation
      */
     List<Workspace> getByAccount(String accountId) throws ServerException;
 }

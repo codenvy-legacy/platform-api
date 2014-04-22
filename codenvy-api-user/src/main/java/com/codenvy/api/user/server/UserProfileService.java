@@ -91,19 +91,13 @@ public class UserProfileService extends Service {
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-//        if (user == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
-        Profile profile;
+        final Profile profile;
         if (filter == null) {
             profile = profileDao.getById(user.getId());
         } else {
             profile = profileDao.getById(user.getId(), filter);
         }
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(user.getId());
-//        }
-        List<Attribute> attrs = new ArrayList<>();
+        final List<Attribute> attrs = new ArrayList<>();
         if (profile.getAttributes() != null) {
             attrs.addAll(profile.getAttributes());
         }
@@ -125,14 +119,7 @@ public class UserProfileService extends Service {
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-//        if (user == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
-        Profile profile = profileDao.getById(user.getId());
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(user.getId());
-//        }
-        //if updates are not null, append it to existed attributes
+        final Profile profile = profileDao.getById(user.getId());
         if (updates != null) {
             Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
             for (Attribute attribute : updates) {
@@ -165,14 +152,7 @@ public class UserProfileService extends Service {
     public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(profileId);
-//        }
         final User user = userDao.getById(profile.getUserId());
-//        if (user == null) {
-//            throw new UserNotFoundException(profile.getUserId());
-//        }
-        //prefs available only for CURRENT user profile
         profile.setPreferences(Collections.<String, String>emptyMap());
         List<Attribute> attrs = new ArrayList<>();
         if (profile.getAttributes() != null) {
@@ -197,9 +177,6 @@ public class UserProfileService extends Service {
                           @Context SecurityContext securityContext)
             throws NotFoundException, ServerException {
         Profile profile = profileDao.getById(profileId);
-//        if (profile == null) {
-//            throw new ProfileNotFoundException(profileId);
-//        }
         //if updates are not null, append it to existed attributes
         if (updates != null) {
             Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
@@ -237,13 +214,7 @@ public class UserProfileService extends Service {
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
-//        if (current == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
         final Profile currentProfile = profileDao.getById(current.getId());
-//        if (currentProfile == null) {
-//            throw new ProfileNotFoundException(current.getId());
-//        }
         //if given preferences are not null append it to existed preferences
         if (prefsToUpdate != null) {
             Map<String, String> currentPrefs = currentProfile.getPreferences();

@@ -17,7 +17,11 @@
  */
 package com.codenvy.api.core.rest;
 
-import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.dto.server.DtoFactory;
@@ -74,7 +78,7 @@ public class RemoteServiceDescriptor {
     }
 
     /** @see ServiceDescriptor#getLinks() */
-    public List<Link> getLinks() throws ApiException, IOException {
+    public List<Link> getLinks() throws ServerException, IOException {
         final List<Link> links = getServiceDescriptor().getLinks();
         // always copy list and links itself!
         final List<Link> copy = new ArrayList<>(links.size());
@@ -84,7 +88,7 @@ public class RemoteServiceDescriptor {
         return copy;
     }
 
-    public Link getLink(String rel) throws IOException, ApiException {
+    public Link getLink(String rel) throws ServerException, IOException {
         for (Link link : getServiceDescriptor().getLinks()) {
             if (rel.equals(link.getRel())) {
                 return DtoFactory.getInstance().clone(link);
@@ -93,13 +97,17 @@ public class RemoteServiceDescriptor {
         return null;
     }
 
-    public ServiceDescriptor getServiceDescriptor() throws IOException, ApiException {
+    public ServiceDescriptor getServiceDescriptor() throws IOException, ServerException {
         ServiceDescriptor myServiceDescriptor = serviceDescriptor;
         if (myServiceDescriptor == null) {
             synchronized (this) {
                 myServiceDescriptor = serviceDescriptor;
                 if (myServiceDescriptor == null) {
-                    myServiceDescriptor = serviceDescriptor = HttpJsonHelper.options(ServiceDescriptor.class, baseUrl);
+                    try {
+                        myServiceDescriptor = serviceDescriptor = HttpJsonHelper.options(ServiceDescriptor.class, baseUrl);
+                    } catch (NotFoundException | ConflictException | UnauthorizedException | ForbiddenException e) {
+                        throw new ServerException(e.getServiceError());
+                    }
                 }
             }
         }

@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.account.server.dao;
 
-import com.codenvy.api.account.server.exception.AccountException;
 import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
@@ -45,7 +44,6 @@ public interface AccountDao {
      *
      * @param account
      *         POJO representation of account
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
     void create(Account account) throws ConflictException, ServerException;
 
@@ -55,7 +53,6 @@ public interface AccountDao {
      * @param id
      *         account identifier
      * @return account POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
     Account getById(String id) throws NotFoundException, ServerException;
 
@@ -65,7 +62,6 @@ public interface AccountDao {
      * @param name
      *         account name
      * @return account POJO, or <code>null</code> if nothing is found
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
     Account getByName(String name) throws NotFoundException, ServerException;
 
@@ -75,7 +71,6 @@ public interface AccountDao {
      * @param owner
      *         owner id
      * @return account POJO, or empty list if nothing is found
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
     List<Account> getByOwner(String owner) throws ServerException;
 
@@ -84,7 +79,6 @@ public interface AccountDao {
      *
      * @param account
      *         account POJO to update
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
     void update(Account account) throws NotFoundException, ServerException;
 
@@ -93,16 +87,14 @@ public interface AccountDao {
      *
      * @param id
      *         account identifier
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
-    void remove(String id) throws NotFoundException,ServerException, ConflictException;
+    void remove(String id) throws NotFoundException, ServerException, ConflictException;
 
     /**
      * Adds new member to already present in persistent level account
      *
      * @param member
      *         new member
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
     void addMember(Member member) throws NotFoundException, ConflictException, ServerException;
 
@@ -113,7 +105,6 @@ public interface AccountDao {
      *         account identifier
      * @param userId
      *         user identifier
-     * @throws com.codenvy.api.account.server.exception.AccountException
      */
     void removeMember(String accountId, String userId) throws NotFoundException, ServerException;
 

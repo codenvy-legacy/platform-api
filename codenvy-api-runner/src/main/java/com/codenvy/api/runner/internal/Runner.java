@@ -17,13 +17,13 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
+import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerEnvironment;
 import com.codenvy.commons.lang.IoUtil;
@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -75,22 +76,24 @@ public abstract class Runner {
     private final ResourceAllocators            allocators;
     private final EventService                  eventService;
     private final long                          cleanupDelayMillis;
+    private final AtomicBoolean                 started;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
     private java.io.File             deployDirectory;
-    private boolean                  started;
 
     public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators, EventService eventService) {
         this.deployDirectoryRoot = deployDirectoryRoot;
         this.cleanupDelayMillis = TimeUnit.SECONDS.toMillis(cleanupDelay);
         this.allocators = allocators;
         this.eventService = eventService;
+
         processes = new ConcurrentHashMap<>();
         applicationDisposers = new ConcurrentHashMap<>();
         applicationDisposersLock = new Object();
         runningAppsCounter = new AtomicInteger(0);
         downloadPlugin = new HttpDownloadPlugin();
+        started = new AtomicBoolean(false);
     }
 
     /**
@@ -120,7 +123,7 @@ public abstract class Runner {
     public abstract RunnerConfigurationFactory getRunnerConfigurationFactory();
 
     protected abstract ApplicationProcess newApplicationProcess(DeploymentSources toDeploy, RunnerConfiguration runnerCfg)
-            throws ApiException;
+            throws RunnerException;
 
     protected ExecutorService getExecutor() {
         return executor;
@@ -150,69 +153,69 @@ public abstract class Runner {
 
     /** Initialize Runner. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
-    public synchronized void start() {
-        if (started) {
-            throw new IllegalStateException("Already started");
-        }
-        deployDirectory = new java.io.File(deployDirectoryRoot, getName());
-        if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
-            throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
-        }
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName() + "-Runner-", true));
-        scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerSchedulerPool-", true));
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            public void run() {
-                for (Iterator<RunnerProcessEntry> i = processes.values().iterator(); i.hasNext(); ) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        return;
-                    }
-                    final RunnerProcessEntry next = i.next();
-                    if (next.isExpired()) {
-                        try {
-                            if (next.process.isRunning()) {
-                                next.process.cancel();
-                            }
-                        } catch (Exception e) {
-                            LOG.error(e.getMessage(), e);
-                            continue; // try next time
+    public void start() {
+        if (started.compareAndSet(false, true)) {
+            deployDirectory = new java.io.File(deployDirectoryRoot, getName());
+            if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
+                throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
+            }
+            executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName() + "-Runner-", true));
+            scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerSchedulerPool-", true));
+            scheduler.scheduleAtFixedRate(new Runnable() {
+                public void run() {
+                    for (Iterator<RunnerProcessEntry> i = processes.values().iterator(); i.hasNext(); ) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
                         }
-                        i.remove();
-                        Disposer[] appDisposers = null;
-                        final ApplicationProcess realProcess = next.process.realProcess;
-                        if (realProcess != null) {
-                            synchronized (applicationDisposersLock) {
-                                final List<Disposer> disposers = applicationDisposers.remove(realProcess.getId());
-                                if (disposers != null) {
-                                    appDisposers = disposers.toArray(new Disposer[disposers.size()]);
+                        final RunnerProcessEntry next = i.next();
+                        if (next.isExpired()) {
+                            try {
+                                if (next.process.isRunning()) {
+                                    next.process.cancel();
+                                }
+                            } catch (Exception e) {
+                                LOG.error(e.getMessage(), e);
+                                continue; // try next time
+                            }
+                            i.remove();
+                            Disposer[] appDisposers = null;
+                            final ApplicationProcess realProcess = next.process.realProcess;
+                            if (realProcess != null) {
+                                synchronized (applicationDisposersLock) {
+                                    final List<Disposer> disposers = applicationDisposers.remove(realProcess.getId());
+                                    if (disposers != null) {
+                                        appDisposers = disposers.toArray(new Disposer[disposers.size()]);
+                                    }
                                 }
                             }
-                        }
-                        if (appDisposers != null) {
-                            for (Disposer disposer : appDisposers) {
-                                try {
-                                    disposer.dispose();
-                                } catch (RuntimeException e) {
-                                    LOG.error(e.getMessage(), e);
+                            if (appDisposers != null) {
+                                for (Disposer disposer : appDisposers) {
+                                    try {
+                                        disposer.dispose();
+                                    } catch (RuntimeException e) {
+                                        LOG.error(e.getMessage(), e);
+                                    }
                                 }
                             }
-                        }
-                        final List<java.io.File> cleanupList = next.process.getCleanupList();
-                        if (cleanupList != null) {
-                            for (java.io.File file : cleanupList) {
-                                if (!IoUtil.deleteRecursive(file)) {
-                                    LOG.warn("Failed delete {}", file);
+                            final List<java.io.File> cleanupList = next.process.getCleanupList();
+                            if (cleanupList != null) {
+                                for (java.io.File file : cleanupList) {
+                                    if (!IoUtil.deleteRecursive(file)) {
+                                        LOG.warn("Failed delete {}", file);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        }, 1, 1, TimeUnit.MINUTES);
-        started = true;
+            }, 1, 1, TimeUnit.MINUTES);
+        } else {
+            throw new IllegalStateException("Already started");
+        }
     }
 
-    protected synchronized void checkStarted() {
-        if (!started) {
+    protected void checkStarted() {
+        if (!started.get()) {
             throw new IllegalStateException("Is not started yet.");
         }
     }
@@ -223,63 +226,65 @@ public abstract class Runner {
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
     @PreDestroy
-    public synchronized void stop() {
-        checkStarted();
-        boolean interrupted = false;
-        scheduler.shutdownNow();
-        try {
-            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                LOG.warn("Unable terminate scheduler");
-            }
-        } catch (InterruptedException e) {
-            interrupted = true;
-        }
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
-                    LOG.warn("Unable terminate main pool");
-                }
-            }
-        } catch (InterruptedException e) {
-            interrupted |= true;
-            executor.shutdownNow();
-        }
-        final List<Disposer> allDisposers = new LinkedList<>();
-        synchronized (applicationDisposersLock) {
-            for (List<Disposer> disposers : applicationDisposers.values()) {
-                if (disposers != null) {
-                    allDisposers.addAll(disposers);
-                }
-            }
-            applicationDisposers.clear();
-        }
-        for (Disposer disposer : allDisposers) {
+    public void stop() {
+        if (started.compareAndSet(true, false)) {
+            boolean interrupted = false;
+            scheduler.shutdownNow();
             try {
-                disposer.dispose();
-            } catch (RuntimeException e) {
-                LOG.error(e.getMessage(), e);
-            }
-        }
-        final java.io.File[] files = getDeployDirectory().listFiles();
-        if (files != null && files.length > 0) {
-            for (java.io.File f : files) {
-                boolean deleted;
-                if (f.isDirectory()) {
-                    deleted = IoUtil.deleteRecursive(f);
-                } else {
-                    deleted = f.delete();
+                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate scheduler");
                 }
-                if (!deleted) {
-                    LOG.warn("Failed delete {}", f);
+            } catch (InterruptedException e) {
+                interrupted = true;
+            }
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                    if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                        LOG.warn("Unable terminate main pool");
+                    }
+                }
+            } catch (InterruptedException e) {
+                interrupted |= true;
+                executor.shutdownNow();
+            }
+            final List<Disposer> allDisposers = new LinkedList<>();
+            synchronized (applicationDisposersLock) {
+                for (List<Disposer> disposers : applicationDisposers.values()) {
+                    if (disposers != null) {
+                        allDisposers.addAll(disposers);
+                    }
+                }
+                applicationDisposers.clear();
+            }
+            for (Disposer disposer : allDisposers) {
+                try {
+                    disposer.dispose();
+                } catch (RuntimeException e) {
+                    LOG.error(e.getMessage(), e);
                 }
             }
-        }
-        processes.clear();
-        started = false;
-        if (interrupted) {
-            Thread.currentThread().interrupt();
+            final java.io.File[] files = getDeployDirectory().listFiles();
+            if (files != null && files.length > 0) {
+                for (java.io.File f : files) {
+                    boolean deleted;
+                    if (f.isDirectory()) {
+                        deleted = IoUtil.deleteRecursive(f);
+                    } else {
+                        deleted = f.delete();
+                    }
+                    if (!deleted) {
+                        LOG.warn("Failed delete {}", f);
+                    }
+                }
+            }
+            processes.clear();
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        } else {
+            throw new IllegalStateException("Is not started yet.");
         }
     }
 
@@ -302,15 +307,14 @@ public abstract class Runner {
      *         if id of RunnerProcess is invalid
      */
     public RunnerProcess getProcess(Long id) throws NotFoundException {
-        checkStarted();
-        final RunnerProcessEntry wrapper = processes.get(id);
-        if (wrapper == null) {
+        final RunnerProcessEntry e = processes.get(id);
+        if (e == null) {
             throw new NotFoundException(String.format("Invalid run task id: %d", id));
         }
-        return wrapper.process;
+        return e.process;
     }
 
-    public RunnerProcess execute(final RunRequest request) throws ApiException {
+    public RunnerProcess execute(final RunRequest request) throws RunnerException {
         checkStarted();
         final long startTime = System.currentTimeMillis();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
@@ -358,7 +362,7 @@ public abstract class Runner {
                     final DeploymentSources deploymentSources = downloadApplication(request.getDeploymentSourcesUrl(), downloadDir);
                     process.addToCleanupList(downloadDir);
                     if (!getDeploymentSourcesValidator().isValid(deploymentSources)) {
-                        throw new ApiException(
+                        throw new RunnerException(
                                 String.format("Unsupported project. Cannot deploy project %s from workspace %s with runner %s",
                                               request.getProject(), request.getWorkspace(), getName())
                         );
@@ -370,7 +374,7 @@ public abstract class Runner {
                     runningAppsCounter.incrementAndGet();
                     LOG.debug("Started {}", process);
                     final long endTime = System.currentTimeMillis();
-                    LOG.debug("Application startup in {} ms", (endTime - startTime));
+                    LOG.debug("Application {}/{} startup in {} ms", request.getWorkspace(), request.getProject(), (endTime - startTime));
                     realProcess.waitFor();
                     process.stopped();
                     LOG.debug("Stopped {}", process);
@@ -496,19 +500,19 @@ public abstract class Runner {
         }
 
         @Override
-        public synchronized boolean isRunning() throws ApiException {
+        public synchronized boolean isRunning() throws RunnerException {
             return realProcess != null && realProcess.isRunning();
         }
 
         @Override
-        public synchronized boolean isStopped() throws ApiException {
-            return realProcess != null && !realProcess.isRunning();
+        public synchronized boolean isStopped() throws RunnerException {
+            return !(realProcess == null || realProcess.isRunning());
         }
 
         @Override
-        public synchronized ApplicationLogger getLogger() throws ApiException {
+        public synchronized ApplicationLogger getLogger() throws RunnerException {
             if (error != null) {
-                throw new ApiException(error);
+                throw new RunnerException(error);
             }
             if (realProcess != null) {
                 return realProcess.getLogger();

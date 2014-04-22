@@ -19,12 +19,15 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.util.ValueHolder;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.InputSupplier;
 import com.google.common.io.OutputSupplier;
@@ -77,14 +80,18 @@ public class RemoteTask {
      * Get actual status of remote build process.
      *
      * @return status of remote build process
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs
+     * @throws NotFoundException
+     *         if can't get status of remote task because isn't available anymore, e.g. its already removed on remote server
      */
-    public BuildTaskDescriptor getBuildTaskDescriptor() throws ApiException {
+    public BuildTaskDescriptor getBuildTaskDescriptor() throws BuilderException, NotFoundException {
         try {
             return HttpJsonHelper.get(BuildTaskDescriptor.class, String.format("%s/status/%s/%d", baseUrl, builder, taskId));
         } catch (IOException e) {
-            throw new ApiException(e);
+            throw new BuilderException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | ConflictException e) {
+            throw new BuilderException(e.getServiceError());
         }
     }
 
@@ -92,27 +99,31 @@ public class RemoteTask {
      * Cancel a remote build process.
      *
      * @return status of remote build process after the call
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs
+     * @throws NotFoundException
+     *         if can't cancel remote task because isn't available anymore, e.g. its already removed on remote server
      */
-    public BuildTaskDescriptor cancel() throws ApiException {
-        final ValueHolder<BuildTaskDescriptor> holder = new ValueHolder<>();
-        final Link link = getLink(Constants.LINK_REL_CANCEL, holder);
+    public BuildTaskDescriptor cancel() throws BuilderException, NotFoundException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        final Link link = getLink(Constants.LINK_REL_CANCEL, descriptor);
         if (link == null) {
-            switch (holder.get().getStatus()) {
+            switch (descriptor.getStatus()) {
                 case SUCCESSFUL:
                 case FAILED:
                 case CANCELLED:
-                    LOG.debug("Can't cancel build, status is {}", holder.get().getStatus());
-                    return holder.get();
+                    LOG.debug("Can't cancel build, status is {}", descriptor.getStatus());
+                    return descriptor;
                 default:
-                    throw new ApiException("Can't cancel task. Cancellation link is not available");
+                    throw new BuilderException("Can't cancel task. Cancellation link is not available");
             }
         }
         try {
             return HttpJsonHelper.request(BuildTaskDescriptor.class, link);
         } catch (IOException e) {
-            throw new ApiException(e);
+            throw new BuilderException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | ConflictException e) {
+            throw new BuilderException(e.getServiceError());
         }
     }
 
@@ -123,13 +134,14 @@ public class RemoteTask {
      *         output for logs content
      * @throws IOException
      *         if an i/o error occurs
-     * @throws ApiException
+     * @throws BuilderException
      *         if other error occurs
      */
-    public void readLogs(OutputProvider output) throws IOException, ApiException {
-        final Link link = getLink(Constants.LINK_REL_VIEW_LOG, null);
+    public void readLogs(OutputProvider output) throws IOException, BuilderException, NotFoundException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        final Link link = getLink(Constants.LINK_REL_VIEW_LOG, descriptor);
         if (link == null) {
-            throw new ApiException("Logs are not available.");
+            throw new BuilderException("Logs are not available.");
         }
         doRequest(link.getHref(), link.getMethod(), output);
     }
@@ -141,14 +153,15 @@ public class RemoteTask {
      *         output for report
      * @throws IOException
      *         if an i/o error occurs
-     * @throws ApiException
+     * @throws BuilderException
      *         if other error occurs
      * @see com.codenvy.api.builder.internal.BuildResult#getBuildReport()
      */
-    public void readReport(OutputProvider output) throws IOException, ApiException {
-        final Link link = getLink(Constants.LINK_REL_VIEW_REPORT, null);
+    public void readReport(OutputProvider output) throws IOException, BuilderException, NotFoundException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        final Link link = getLink(Constants.LINK_REL_VIEW_REPORT, descriptor);
         if (link == null) {
-            throw new ApiException("Report is not available.");
+            throw new BuilderException("Report is not available.");
         }
         doRequest(link.getHref(), link.getMethod(), output);
     }
@@ -162,11 +175,11 @@ public class RemoteTask {
      *         output for download content
      * @throws IOException
      *         if an i/o error occurs
-     * @throws ApiException
+     * @throws BuilderException
      *         if other error occurs
      * @see com.codenvy.api.builder.internal.BuildResult#getResults()
      */
-    public void readFile(String path, OutputProvider output) throws IOException, ApiException {
+    public void readFile(String path, OutputProvider output) throws IOException, BuilderException {
         doRequest(String.format("%s/download/%s/%d?path=%s", baseUrl, builder, taskId, path), "GET", output);
     }
 
@@ -207,11 +220,7 @@ public class RemoteTask {
         }
     }
 
-    private Link getLink(String rel, ValueHolder<BuildTaskDescriptor> statusHolder) throws ApiException {
-        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        if (statusHolder != null) {
-            statusHolder.set(descriptor);
-        }
+    private Link getLink(String rel, BuildTaskDescriptor descriptor) {
         for (Link link : descriptor.getLinks()) {
             if (rel.equals(link.getRel())) {
                 return link;

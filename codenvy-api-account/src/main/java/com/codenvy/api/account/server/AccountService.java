@@ -19,17 +19,11 @@ package com.codenvy.api.account.server;
 
 
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.server.exception.AccountAlreadyExistsException;
-import com.codenvy.api.account.server.exception.AccountException;
-import com.codenvy.api.account.server.exception.AccountIllegalAccessException;
-import com.codenvy.api.account.server.exception.AccountNotFoundException;
-import com.codenvy.api.account.server.exception.ServiceNotFoundException;
-import com.codenvy.api.account.server.exception.SubscriptionNotFoundException;
 import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.AccountMembership;
+import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
-import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -40,8 +34,6 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.exception.UserException;
-import com.codenvy.api.user.server.exception.UserNotFoundException;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -101,15 +93,6 @@ public class AccountService extends Service {
         }
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
-//        if (current == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
-//        if (accountDao.getByOwner(current.getId()).size() != 0) {
-//            throw AccountAlreadyExistsException.existsWithOwner(current.getId());
-//        }
-//        if (accountDao.getByName(newAccount.getName()) != null) {
-//            throw AccountAlreadyExistsException.existsWithName(newAccount.getName());
-//        }
         if (newAccount.getAttributes() != null) {
             for (Attribute attribute : newAccount.getAttributes()) {
                 validateAttributeName(attribute.getName());
@@ -132,9 +115,6 @@ public class AccountService extends Service {
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
-//        if (current == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
         final List<AccountMembership> result = convert(accountDao.getByMember(current.getId()), "account/member");
         result.addAll(convert(accountDao.getByOwner(current.getId()), "account/owner"));
         for (Account account : result) {
@@ -156,9 +136,6 @@ public class AccountService extends Service {
             throw new ConflictException("Missed userid to search");
         }
         final User user = userDao.getById(userId);
-//        if (user == null) {
-//            throw new UserNotFoundException(userId);
-//        }
         final List<AccountMembership> result = convert(accountDao.getByMember(user.getId()), "account/member");
         result.addAll(convert(accountDao.getByOwner(user.getId()), "account/owner"));
         for (Account account : result) {
@@ -176,9 +153,6 @@ public class AccountService extends Service {
                              @Context SecurityContext securityContext)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final Account account = accountDao.getById(accountId);
-//        if (account == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(accountId);
-//        }
         if (newAttribute == null) {
             throw new ConflictException("Attribute required");
         }
@@ -199,9 +173,6 @@ public class AccountService extends Service {
                                 @Context SecurityContext securityContext)
             throws ConflictException, NotFoundException, ForbiddenException, ServerException {
         final Account account = accountDao.getById(accountId);
-//        if (account == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(accountId);
-//        }
         ensureCurrentUserIsAccountOwner(account, securityContext);
         validateAttributeName(attributeName);
         removeAttribute(account.getAttributes(), attributeName);
@@ -216,9 +187,6 @@ public class AccountService extends Service {
     public Account getById(@Context SecurityContext securityContext, @PathParam("id") String id)
             throws NotFoundException, ServerException {
         final Account account = accountDao.getById(id);
-//        if (account == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(id);
-//        }
         injectLinks(account, securityContext);
         return account;
     }
@@ -235,9 +203,6 @@ public class AccountService extends Service {
             throw new ConflictException("Missed account name");
         }
         final Account account = accountDao.getByName(name);
-//        if (account == null) {
-//            throw AccountNotFoundException.doesNotExistWithName(name);
-//        }
         injectLinks(account, securityContext);
         return account;
     }
@@ -253,13 +218,7 @@ public class AccountService extends Service {
             throw new ConflictException("Missed user id");
         }
         final Account account = accountDao.getById(accountId);
-//        if (account == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(accountId);
-//        }
         ensureCurrentUserIsAccountOwner(account, securityContext);
-//        if (userDao.getById(userId) == null) {
-//            throw new UserNotFoundException(userId);
-//        }
         Member newMember = DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId).withUserId(userId);
         newMember.setRoles(Arrays.asList("account/member"));
         accountDao.addMember(newMember);
@@ -273,9 +232,6 @@ public class AccountService extends Service {
     public List<Member> getMembers(@PathParam("id") String id, @Context SecurityContext securityContext)
             throws NotFoundException, ForbiddenException, ServerException {
         final Account account = accountDao.getById(id);
-//        if (account == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(id);
-//        }
         ensureCurrentUserIsAccountOwner(account, securityContext);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Member> members = accountDao.getMembers(id);
@@ -295,9 +251,6 @@ public class AccountService extends Service {
                              @PathParam("userid") String userid) throws NotFoundException, ForbiddenException,
             ServerException {
         final Account account = accountDao.getById(accountId);
-//        if (accountDao.getById(accountId) == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(accountId);
-//        }
         ensureCurrentUserIsAccountOwner(account, securityContext);
         accountDao.removeMember(accountId, userid);
     }
@@ -314,16 +267,10 @@ public class AccountService extends Service {
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
-//        if (current == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
         if (accountToUpdate == null) {
             throw new ConflictException("Missed account to update");
         }
         final Account actual = accountDao.getById(id);
-//        if (actual == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(id);
-//        }
         if (!actual.getOwner().equals(current.getId())) {
             throw new ForbiddenException(current.getId());
         }
@@ -373,9 +320,6 @@ public class AccountService extends Service {
     public List<Subscription> getSubscriptions(@PathParam("id") String accountId,
                                                @Context SecurityContext securityContext)
             throws NotFoundException, ForbiddenException, ServerException {
-//        if (accountDao.getById(accountId) == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(accountId);
-//        }
         if (securityContext.isUserInRole("user")) {
             List<AccountMembership> currentUserAccounts = getMemberships(securityContext);
             boolean isAccountExists = false;
@@ -406,13 +350,7 @@ public class AccountService extends Service {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
         }
-//        if (accountDao.getById(subscription.getAccountId()) == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(subscription.getAccountId());
-//        }
         SubscriptionService service = registry.get(subscription.getServiceId());
-//        if (service == null) {
-//            throw new ServiceNotFoundException(subscription.getServiceId());
-//        }
         String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
         accountDao.addSubscription(subscription);
@@ -426,13 +364,7 @@ public class AccountService extends Service {
     public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
             throws NotFoundException, ServerException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
-//        if (toRemove == null) {
-//            throw new SubscriptionNotFoundException(subscriptionId);
-//        }
         SubscriptionService service = registry.get(toRemove.getServiceId());
-//        if (service == null) {
-//            throw new ServiceNotFoundException(toRemove.getServiceId());
-//        }
         accountDao.removeSubscription(subscriptionId);
         service.notifyHandlers(new SubscriptionEvent(toRemove, SubscriptionEvent.EventType.REMOVE));
     }
@@ -442,9 +374,6 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ACCOUNT)
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
-//        if (accountDao.getById(id) == null) {
-//            throw AccountNotFoundException.doesNotExistWithId(id);
-//        }
         accountDao.remove(id);
     }
 

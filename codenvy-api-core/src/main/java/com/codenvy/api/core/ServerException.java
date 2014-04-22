@@ -2,9 +2,9 @@ package com.codenvy.api.core;
 
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 @SuppressWarnings("serial")
-public final class ServerException extends ApiException {
+public class ServerException extends ApiException {
 
     public ServerException(String message) {
         super(message);
@@ -12,6 +12,10 @@ public final class ServerException extends ApiException {
 
     public ServerException(ServiceError serviceError) {
         super(serviceError);
+    }
+
+    public ServerException(Throwable cause) {
+        super(cause);
     }
 
     public ServerException(String message, Throwable cause) {

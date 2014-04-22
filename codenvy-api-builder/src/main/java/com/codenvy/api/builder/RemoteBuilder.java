@@ -24,7 +24,11 @@ import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderState;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
@@ -113,13 +117,13 @@ public class RemoteBuilder {
      * @param request
      *         build request
      * @return build task
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs
      */
-    public RemoteTask perform(BuildRequest request) throws ApiException {
+    public RemoteTask perform(BuildRequest request) throws BuilderException {
         final Link link = getLink(Constants.LINK_REL_BUILD);
         if (link == null) {
-            throw new ApiException("Unable get URL for starting remote process");
+            throw new BuilderException("Unable get URL for starting remote process");
         }
         return perform(link, request);
     }
@@ -130,23 +134,25 @@ public class RemoteBuilder {
      * @param request
      *         analysis dependencies request
      * @return analysis dependencies task
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs
      */
-    public RemoteTask perform(DependencyRequest request) throws ApiException {
+    public RemoteTask perform(DependencyRequest request) throws BuilderException {
         final Link link = getLink(Constants.LINK_REL_DEPENDENCIES_ANALYSIS);
         if (link == null) {
-            throw new ApiException("Unable get URL for starting remote process");
+            throw new BuilderException("Unable get URL for starting remote process");
         }
         return perform(link, request);
     }
 
-    private RemoteTask perform(Link link, BaseBuilderRequest request) throws ApiException {
+    private RemoteTask perform(Link link, BaseBuilderRequest request) throws BuilderException {
         final BuildTaskDescriptor build;
         try {
             build = HttpJsonHelper.request(BuildTaskDescriptor.class, link, request);
         } catch (IOException e) {
-            throw new ApiException(e);
+            throw new BuilderException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new BuilderException(e.getServiceError());
         }
         lastUsage = System.currentTimeMillis();
         return new RemoteTask(baseUrl, request.getBuilder(), build.getTaskId());
@@ -156,18 +162,20 @@ public class RemoteBuilder {
      * Get description of current state of {@link com.codenvy.api.builder.internal.Builder}.
      *
      * @return description of current state of {@link com.codenvy.api.builder.internal.Builder}
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs
      */
-    public BuilderState getBuilderState() throws ApiException {
+    public BuilderState getBuilderState() throws BuilderException {
         final Link stateLink = getLink(Constants.LINK_REL_BUILDER_STATE);
         if (stateLink == null) {
-            throw new ApiException("Unable get URL for getting state of a remote builder");
+            throw new BuilderException("Unable get URL for getting state of a remote builder");
         }
         try {
             return HttpJsonHelper.request(BuilderState.class, stateLink, Pair.of("builder", name));
         } catch (IOException e) {
-            throw new ApiException(e);
+            throw new BuilderException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new BuilderException(e.getServiceError());
         }
     }
 

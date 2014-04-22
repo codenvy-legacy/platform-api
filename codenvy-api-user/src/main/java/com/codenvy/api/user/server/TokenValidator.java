@@ -17,9 +17,7 @@
  */
 package com.codenvy.api.user.server;
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.user.server.exception.UserException;
 
 /**
  * Validates token.
@@ -33,7 +31,7 @@ public interface TokenValidator {
      * Validates {@param token}
      *
      * @return user email
-     * @throws UserException
+     * @throws ConflictException
      *         when token is not valid
      */
     String validateToken(String token) throws ConflictException;

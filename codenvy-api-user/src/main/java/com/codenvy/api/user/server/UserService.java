@@ -18,7 +18,11 @@
 package com.codenvy.api.user.server;
 
 
-import com.codenvy.api.core.*;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -29,10 +33,6 @@ import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.server.exception.MembershipException;
-import com.codenvy.api.user.server.exception.UserException;
-import com.codenvy.api.user.server.exception.UserNotFoundException;
-import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
@@ -104,21 +104,13 @@ public class UserService extends Service {
         user.setEmail(userEmail);
         user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
-//        try {
-            Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-            profile.setId(userId);
-            profile.setUserId(userId);
-            profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-                                                          .withName("temporary")
-                                                          .withValue(String.valueOf(isTemporary))
-                                                          .withDescription("Indicates is this user is temporary")));
-
-//        } catch (ConflictException e) {
-//            userDao.remove(userId);
-//            throw e;
-//        }
-
-
+        Profile profile = DtoFactory.getInstance().createDto(Profile.class);
+        profile.setId(userId);
+        profile.setUserId(userId);
+        profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                      .withName("temporary")
+                                                      .withValue(String.valueOf(isTemporary))
+                                                      .withDescription("Indicates is this user is temporary")));
         profileDao.create(profile);
 
         user.setPassword("<none>");
@@ -218,7 +210,8 @@ public class UserService extends Service {
         if (securityContext.isUserInRole("user")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_PROFILE, null, MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().path(UserProfileService.class)
-                                                    .path(UserProfileService.class, "getCurrent").build().toString()));
+                                                    .path(UserProfileService.class, "getCurrent").build().toString()
+                                ));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_PASSWORD, MediaType.APPLICATION_FORM_URLENCODED, null,
@@ -235,10 +228,12 @@ public class UserService extends Service {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().path(UserProfileService.class).path(
                                          UserProfileService.class, "getById")
-                                                    .build(user.getId()).toString()));
+                                                    .build(user.getId()).toString()
+                                ));
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_EMAIL, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByEmail").queryParam("email", user.getEmail()).build()
-                                           .toString()));
+                                           .toString()
+                                ));
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_USER_BY_ID, null, null,

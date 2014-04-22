@@ -18,8 +18,10 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.internal.Constants;
@@ -38,7 +40,7 @@ import java.util.concurrent.Future;
  *
  * @author andrew00x
  */
-public final class RunQueueTask {
+public final class RunQueueTask implements Cancellable {
     private final Long                        id;
     private final RunRequest                  request;
     private final Future<RemoteRunnerProcess> future;
@@ -87,7 +89,7 @@ public final class RunQueueTask {
         return -1;
     }
 
-    public ApplicationProcessDescriptor getDescriptor() throws ApiException {
+    public ApplicationProcessDescriptor getDescriptor() throws RunnerException, NotFoundException {
         if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                              .withProcessId(id)
@@ -141,11 +143,15 @@ public final class RunQueueTask {
         return rewritten;
     }
 
+    @Override
     public void cancel() throws Exception {
-        stop();
+        if (future.isCancelled()) {
+            return;
+        }
+        doStop(getRemoteProcess());
     }
 
-    public boolean isCancelled() throws ApiException {
+    public boolean isCancelled() throws RunnerException {
         return future.isCancelled();
     }
 
@@ -153,11 +159,7 @@ public final class RunQueueTask {
         return !future.isDone();
     }
 
-    public void stop() throws ApiException {
-        if (future.isCancelled()) {
-            return;
-        }
-        final RemoteRunnerProcess remoteProcess = getRemoteProcess();
+    private void doStop(RemoteRunnerProcess remoteProcess) throws RunnerException, NotFoundException {
         if (remoteProcess != null) {
             remoteProcess.stop();
         } else {
@@ -165,15 +167,15 @@ public final class RunQueueTask {
         }
     }
 
-    public void readLogs(OutputProvider output) throws IOException, ApiException {
+    public void readLogs(OutputProvider output) throws IOException, RunnerException, NotFoundException {
         final RemoteRunnerProcess remoteProcess = getRemoteProcess();
         if (remoteProcess == null) {
-            throw new ApiException("Application isn't started yet, logs aren't available");
+            throw new RunnerException("Application isn't started yet, logs aren't available");
         }
         remoteProcess.readLogs(output);
     }
 
-    private RemoteRunnerProcess getRemoteProcess() throws ApiException {
+    private RemoteRunnerProcess getRemoteProcess() throws RunnerException, NotFoundException {
         if (!future.isDone()) {
             return null;
         }
@@ -188,10 +190,14 @@ public final class RunQueueTask {
                     throw (Error)cause; // lets caller to get Error as is
                 } else if (cause instanceof RuntimeException) {
                     throw (RuntimeException)cause;
+                } else if (cause instanceof RunnerException) {
+                    throw (RunnerException)cause;
+                } else if (cause instanceof NotFoundException) {
+                    throw (NotFoundException)cause;
                 } else if (cause instanceof ApiException) {
-                    throw (ApiException)cause;
+                    throw new RunnerException(((ApiException)cause).getServiceError());
                 } else {
-                    throw new ApiException(cause.getMessage(), cause);
+                    throw new RunnerException(cause.getMessage(), cause);
                 }
             }
         }

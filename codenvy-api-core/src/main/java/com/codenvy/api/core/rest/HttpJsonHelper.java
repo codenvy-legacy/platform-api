@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.core.rest;
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -55,36 +54,40 @@ public class HttpJsonHelper {
 
 
     public static <DTO> DTO request(Class<DTO> dtoInterface, Link link, Object body, Pair<String, ?>... parameters)
-            throws IOException, ApiException {
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, link.getHref(), link.getMethod(), body, parameters);
     }
 
-    public static <DTO> DTO request(Class<DTO> dtoInterface, Link link, Pair<String, ?>... parameters) throws IOException, ApiException {
+    public static <DTO> DTO request(Class<DTO> dtoInterface, Link link, Pair<String, ?>... parameters)
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
         return request(dtoInterface, link, null, parameters);
     }
 
-    public static <DTO> DTO request(Class<DTO> dtoInterface, Link link) throws IOException, ApiException {
+    public static <DTO> DTO request(Class<DTO> dtoInterface, Link link)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, link, EMPTY);
     }
 
     public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, Link link, Object body, Pair<String, ?>... parameters)
-            throws IOException, ApiException {
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return requestArray(dtoInterface, link.getHref(), link.getMethod(), body, parameters);
     }
 
     public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, Link link, Pair<String, ?>... parameters)
-            throws IOException, ApiException {
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
         return requestArray(dtoInterface, link, null, parameters);
     }
 
-    public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, Link link) throws IOException, ApiException {
+    public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, Link link)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return requestArray(dtoInterface, link, EMPTY);
     }
 
     public static String requestString(String url,
                                        String method,
                                        Object body,
-                                       Pair<String, ?>... parameters) throws IOException, ApiException {
+                                       Pair<String, ?>... parameters)
+            throws IOException, ServerException, ForbiddenException, NotFoundException, UnauthorizedException, ConflictException {
         final String authToken = getAuthenticationToken();
         if ((parameters != null && parameters.length > 0) || authToken != null) {
             final StringBuilder sb = new StringBuilder();
@@ -142,18 +145,14 @@ public class HttpJsonHelper {
                     final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
                     if (serviceError.getMessage() != null) {
                         if (responseCode == Response.Status.FORBIDDEN.getStatusCode()) {
-                             throw new ForbiddenException(serviceError);
-                        }
-                        else if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {
+                            throw new ForbiddenException(serviceError);
+                        } else if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {
                             throw new NotFoundException(serviceError);
-                        }
-                        else if (responseCode == Response.Status.UNAUTHORIZED.getStatusCode()) {
+                        } else if (responseCode == Response.Status.UNAUTHORIZED.getStatusCode()) {
                             throw new UnauthorizedException(serviceError);
-                        }
-                        else if (responseCode == Response.Status.CONFLICT.getStatusCode()) {
+                        } else if (responseCode == Response.Status.CONFLICT.getStatusCode()) {
                             throw new ConflictException(serviceError);
-                        }
-                        else if (responseCode == Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
+                        } else if (responseCode == Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
                             throw new ServerException(serviceError);
                         }
                         throw new ServerException(serviceError);
@@ -203,7 +202,7 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws ApiException
+     * @throws ServerException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
      * @throws IOException
      *         if any other error occurs
@@ -213,7 +212,8 @@ public class HttpJsonHelper {
                                     String url,
                                     String method,
                                     Object body,
-                                    Pair<String, ?>... parameters) throws IOException, ApiException {
+                                    Pair<String, ?>... parameters)
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
         final String str = requestString(url, method, body, parameters);
         if (dtoInterface != null) {
             return DtoFactory.getInstance().createDtoFromJson(str, dtoInterface);
@@ -226,7 +226,8 @@ public class HttpJsonHelper {
                                                String url,
                                                String method,
                                                Object body,
-                                               Pair<String, ?>... parameters) throws IOException, ApiException {
+                                               Pair<String, ?>... parameters)
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
         final String str = requestString(url, method, body, parameters);
         if (dtoInterface != null) {
             return DtoFactory.getInstance().createListDtoFromJson(str, dtoInterface);
@@ -246,13 +247,14 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws ApiException
+     * @throws ServerException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
      * @throws IOException
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
-    public static <DTO> DTO get(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters) throws IOException, ApiException {
+    public static <DTO> DTO get(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, url, "GET", null, parameters);
     }
 
@@ -269,14 +271,14 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws ApiException
+     * @throws ServerException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
      * @throws IOException
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
     public static <DTO> DTO post(Class<DTO> dtoInterface, String url, Object body, Pair<String, ?>... parameters)
-            throws IOException, ApiException {
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, url, "POST", body, parameters);
     }
 
@@ -293,14 +295,14 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws ApiException
+     * @throws ServerException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
      * @throws IOException
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
     public static <DTO> DTO put(Class<DTO> dtoInterface, String url, Object body, Pair<String, ?>... parameters)
-            throws IOException, ApiException {
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, url, "PUT", body, parameters);
     }
 
@@ -315,14 +317,14 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws ApiException
+     * @throws ServerException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
      * @throws IOException
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
     public static <DTO> DTO options(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters)
-            throws IOException, ApiException {
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, url, "OPTIONS", null, parameters);
     }
 
@@ -337,13 +339,14 @@ public class HttpJsonHelper {
      * @param parameters
      *         additional query parameters.
      * @return instance of {@code dtoInterface} which represents JSON response from the server
-     * @throws ApiException
+     * @throws ServerException
      *         if server returns error response in supported JSON format, see {@link ServiceError}
      * @throws IOException
      *         if any other error occurs
      * @see com.codenvy.dto.shared.DTO
      */
-    public static <DTO> DTO delete(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters) throws IOException, ApiException {
+    public static <DTO> DTO delete(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, url, "DELETE", null, parameters);
     }
 

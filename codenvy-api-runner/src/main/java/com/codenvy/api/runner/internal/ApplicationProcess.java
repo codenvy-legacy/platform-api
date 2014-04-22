@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.ApiException;
+import com.codenvy.api.runner.RunnerException;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -47,49 +47,49 @@ public abstract class ApplicationProcess {
     /**
      * Starts application process.
      *
-     * @throws ApiException
+     * @throws RunnerException
      *         if an error occurs when start process
      * @throws IllegalStateException
      *         if process is already started
      */
-    public abstract void start() throws ApiException;
+    public abstract void start() throws RunnerException;
 
     /**
      * Stops application process.
      *
-     * @throws ApiException
+     * @throws RunnerException
      *         if an error occurs when stop process
      * @throws IllegalStateException
      *         if process isn't started yet
      */
-    public abstract void stop() throws ApiException;
+    public abstract void stop() throws RunnerException;
 
     /**
      * Wait, if necessary, until this process stops, then returns exit code.
      *
      * @throws IllegalStateException
      *         if process isn't started yet
-     * @throws ApiException
+     * @throws RunnerException
      *         if any other error occurs
      */
-    public abstract int waitFor() throws ApiException;
+    public abstract int waitFor() throws RunnerException;
 
     /**
      * Get exit code of application process. Returns {@code -1} if application is not started or still running.
      *
-     * @throws ApiException
+     * @throws RunnerException
      *         if an error occurs when try getting process' exit code
      */
-    public abstract int exitCode() throws ApiException;
+    public abstract int exitCode() throws RunnerException;
 
     /**
      * Reports whether application process is running or not.
      *
-     * @throws ApiException
+     * @throws RunnerException
      *         if an error occurs when try getting process' status
      */
-    public abstract boolean isRunning() throws ApiException;
+    public abstract boolean isRunning() throws RunnerException;
 
     /** Get application logger. */
-    public abstract ApplicationLogger getLogger() throws ApiException;
+    public abstract ApplicationLogger getLogger() throws RunnerException;
 }

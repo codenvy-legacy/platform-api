@@ -17,8 +17,8 @@
  */
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.util.Cancellable;
+import com.codenvy.api.runner.RunnerException;
 
 /** @author andrew00x */
 public interface RunnerProcess extends Cancellable {
@@ -55,27 +55,27 @@ public interface RunnerProcess extends Cancellable {
      * Reports whether process is running or not.
      *
      * @return {@code true} if process is running and {@code false} otherwise
-     * @throws ApiException
+     * @throws RunnerException
      *         if an error occurs when try to check status of application
      */
-    boolean isRunning() throws ApiException;
+    boolean isRunning() throws RunnerException;
 
     /**
      * Reports whether process was started and stopped successfully.
      *
-     * @throws ApiException
+     * @throws RunnerException
      *         if an error occurs when try to check status of application
      */
-    boolean isStopped() throws ApiException;
+    boolean isStopped() throws RunnerException;
 
     /**
      * Get application logger.
      *
      * @return application logger
-     * @throws ApiException
+     * @throws RunnerException
      *         if an error occurs when try to get logger of application
      */
-    ApplicationLogger getLogger() throws ApiException;
+    ApplicationLogger getLogger() throws RunnerException;
 
     /**
      * Get name of runner which owns this process.

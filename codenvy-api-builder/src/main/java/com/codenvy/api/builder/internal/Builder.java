@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
+import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.internal.dto.BuildRequest;
 import com.codenvy.api.builder.internal.dto.DependencyRequest;
@@ -54,6 +55,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -92,8 +94,8 @@ public abstract class Builder {
     private final EventService                        eventService;
     private final int                                 queueSize;
     private final int                                 numberOfWorkers;
+    private final AtomicBoolean                       started;
 
-    private boolean                  started;
     private ThreadPoolExecutor       executor;
     private ScheduledExecutorService scheduler;
     private java.io.File             repository;
@@ -106,8 +108,10 @@ public abstract class Builder {
         this.queueSize = queueSize;
         this.cleanupDelayMillis = TimeUnit.SECONDS.toMillis(cleanupDelay);
         this.eventService = eventService;
+
         buildListeners = new CopyOnWriteArraySet<>();
         tasks = new ConcurrentHashMap<>();
+        started = new AtomicBoolean(false);
     }
 
     /**
@@ -136,13 +140,13 @@ public abstract class Builder {
      *         Note: {@code true} is not indicated successful build but only normal process termination. Build itself may be unsuccessful
      *         because to compilation error, failed tests, etc.
      * @return BuildResult
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs when try to get result
      * @see BuildTask#getResult()
      */
-    protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws ApiException;
+    protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws BuilderException;
 
-    protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws ApiException;
+    protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws BuilderException;
 
     protected ExecutorService getExecutor() {
         return executor;
@@ -152,71 +156,72 @@ public abstract class Builder {
         return eventService;
     }
 
-    protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws ApiException {
+    protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
         try {
             return new DefaultBuildLogger(logFile, "text/plain");
         } catch (IOException e) {
-            throw new ApiException(e);
+            throw new BuilderException(e);
         }
     }
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
-    public synchronized void start() {
-        if (started) {
-            throw new IllegalStateException("Already started");
-        }
-        repository = new java.io.File(rootDirectory, getName());
-        if (!(repository.exists() || repository.mkdirs())) {
-            throw new IllegalStateException(String.format("Unable create directory %s", repository.getAbsolutePath()));
-        }
-        final java.io.File sources = new java.io.File(repository, "sources");
-        if (!(sources.exists() || sources.mkdirs())) {
-            throw new IllegalStateException(String.format("Unable create directory %s", sources.getAbsolutePath()));
-        }
-        builds = new java.io.File(repository, "builds");
-        if (!(builds.exists() || builds.mkdirs())) {
-            throw new IllegalStateException(String.format("Unable create directory %s", builds.getAbsolutePath()));
-        }
-        sourcesManager = new SourcesManagerImpl(sources);
-        executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers, queueSize);
-        scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderSchedulerPool-", true));
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            public void run() {
-                int num = 0;
-                for (Iterator<BuildTaskEntry> i = tasks.values().iterator(); i.hasNext(); ) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        return;
-                    }
-                    final BuildTaskEntry next = i.next();
-                    if (next.isExpired()) {
-                        if (!next.task.isDone()) {
+    public void start() {
+        if (started.compareAndSet(false, true)) {
+            repository = new java.io.File(rootDirectory, getName());
+            if (!(repository.exists() || repository.mkdirs())) {
+                throw new IllegalStateException(String.format("Unable create directory %s", repository.getAbsolutePath()));
+            }
+            final java.io.File sources = new java.io.File(repository, "sources");
+            if (!(sources.exists() || sources.mkdirs())) {
+                throw new IllegalStateException(String.format("Unable create directory %s", sources.getAbsolutePath()));
+            }
+            builds = new java.io.File(repository, "builds");
+            if (!(builds.exists() || builds.mkdirs())) {
+                throw new IllegalStateException(String.format("Unable create directory %s", builds.getAbsolutePath()));
+            }
+            sourcesManager = new SourcesManagerImpl(sources);
+            executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers,
+                                                queueSize);
+            scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderSchedulerPool-", true));
+            scheduler.scheduleAtFixedRate(new Runnable() {
+                public void run() {
+                    int num = 0;
+                    for (Iterator<BuildTaskEntry> i = tasks.values().iterator(); i.hasNext(); ) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
+                        final BuildTaskEntry next = i.next();
+                        if (next.isExpired()) {
+                            if (!next.task.isDone()) {
+                                try {
+                                    next.task.cancel();
+                                } catch (RuntimeException e) {
+                                    LOG.error(e.getMessage(), e);
+                                    continue; // try next time
+                                }
+                            }
+                            i.remove();
                             try {
-                                next.task.cancel();
+                                cleanup(next.task);
                             } catch (RuntimeException e) {
                                 LOG.error(e.getMessage(), e);
-                                continue; // try next time
                             }
+                            num++;
                         }
-                        i.remove();
-                        try {
-                            cleanup(next.task);
-                        } catch (RuntimeException e) {
-                            LOG.error(e.getMessage(), e);
-                        }
-                        num++;
+                    }
+                    if (num > 0) {
+                        LOG.debug("Remove {} expired tasks", num);
                     }
                 }
-                if (num > 0) {
-                    LOG.debug("Remove {} expired tasks", num);
-                }
-            }
-        }, 1, 1, TimeUnit.MINUTES);
-        started = true;
+            }, 1, 1, TimeUnit.MINUTES);
+        } else {
+            throw new IllegalStateException("Already started");
+        }
     }
 
-    protected synchronized void checkStarted() {
-        if (!started) {
+    protected void checkStarted() {
+        if (!started.get()) {
             throw new IllegalStateException("Is not started yet.");
         }
     }
@@ -227,48 +232,50 @@ public abstract class Builder {
      * Sub-classes should invoke {@code super.stop} at the end of this method.
      */
     @PreDestroy
-    public synchronized void stop() {
-        checkStarted();
-        boolean interrupted = false;
-        scheduler.shutdownNow();
-        try {
-            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                LOG.warn("Unable terminate scheduler");
+    public void stop() {
+        if (started.compareAndSet(true, false)) {
+            boolean interrupted = false;
+            scheduler.shutdownNow();
+            try {
+                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate scheduler");
+                }
+            } catch (InterruptedException e) {
+                interrupted = true;
             }
-        } catch (InterruptedException e) {
-            interrupted = true;
-        }
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
+            executor.shutdown();
+            try {
                 if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
-                    LOG.warn("Unable terminate main pool");
+                    executor.shutdownNow();
+                    if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                        LOG.warn("Unable terminate main pool");
+                    }
+                }
+            } catch (InterruptedException e) {
+                interrupted |= true;
+                executor.shutdownNow();
+            }
+            final java.io.File[] files = getRepository().listFiles();
+            if (files != null && files.length > 0) {
+                for (java.io.File f : files) {
+                    boolean deleted;
+                    if (f.isDirectory()) {
+                        deleted = IoUtil.deleteRecursive(f);
+                    } else {
+                        deleted = f.delete();
+                    }
+                    if (!deleted) {
+                        LOG.warn("Failed delete {}", f);
+                    }
                 }
             }
-        } catch (InterruptedException e) {
-            interrupted |= true;
-            executor.shutdownNow();
-        }
-        final java.io.File[] files = getRepository().listFiles();
-        if (files != null && files.length > 0) {
-            for (java.io.File f : files) {
-                boolean deleted;
-                if (f.isDirectory()) {
-                    deleted = IoUtil.deleteRecursive(f);
-                } else {
-                    deleted = f.delete();
-                }
-                if (!deleted) {
-                    LOG.warn("Failed delete {}", f);
-                }
+            tasks.clear();
+            buildListeners.clear();
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
-        }
-        tasks.clear();
-        buildListeners.clear();
-        started = false;
-        if (interrupted) {
-            Thread.currentThread().interrupt();
+        } else {
+            throw new IllegalStateException("Is not started yet.");
         }
     }
 
@@ -333,10 +340,10 @@ public abstract class Builder {
      * @param request
      *         build request
      * @return build task
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs
      */
-    public BuildTask perform(BuildRequest request) throws ApiException {
+    public BuildTask perform(BuildRequest request) throws BuilderException {
         checkStarted();
         final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
         final java.io.File workDir = configuration.getWorkDir();
@@ -351,10 +358,10 @@ public abstract class Builder {
      * @param request
      *         build request
      * @return build task
-     * @throws ApiException
+     * @throws BuilderException
      *         if an error occurs
      */
-    public BuildTask perform(DependencyRequest request) throws ApiException {
+    public BuildTask perform(DependencyRequest request) throws BuilderException {
         checkStarted();
         final BuilderConfiguration configuration = getBuilderConfigurationFactory().createBuilderConfiguration(request);
         final java.io.File workDir = configuration.getWorkDir();
@@ -363,7 +370,7 @@ public abstract class Builder {
         return execute(configuration, logger);
     }
 
-    protected BuildTask execute(BuilderConfiguration configuration, BuildLogger logger) throws ApiException {
+    protected BuildTask execute(BuilderConfiguration configuration, BuildLogger logger) throws BuilderException {
         final CommandLine commandLine = createCommandLine(configuration);
         final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
         final Long internalId = buildIdSequence.getAndIncrement();
@@ -472,7 +479,7 @@ public abstract class Builder {
         BuildResult result = null;
         try {
             result = task.getResult();
-        } catch (ApiException e) {
+        } catch (BuilderException e) {
             LOG.error("Skip cleanup of the task {}. Unable get task result.", task);
         }
         if (result != null) {
@@ -512,7 +519,6 @@ public abstract class Builder {
      * @see #removeBuildListener(BuildListener)
      */
     public final BuildTask getBuildTask(Long id) throws NotFoundException {
-        checkStarted();
         final BuildTaskEntry e = tasks.get(id);
         if (e == null) {
             throw new NotFoundException(String.format("Invalid build task id: %d", id));
@@ -576,7 +582,7 @@ public abstract class Builder {
         }
 
         @Override
-        public final BuildResult getResult() throws ApiException {
+        public final BuildResult getResult() throws BuilderException {
             if (!isDone()) {
                 return null;
             }
@@ -591,16 +597,17 @@ public abstract class Builder {
                 } catch (ExecutionException e) {
                     final Throwable cause = e.getCause();
                     if (cause instanceof Error) {
-                        throw (Error)cause; // lets caller to get Error as is
+                        throw (Error)cause;
+                    } else if (cause instanceof BuilderException) {
+                        throw (BuilderException)cause;
                     } else if (cause instanceof ApiException) {
-                        throw (ApiException)cause;
+                        throw new BuilderException(((BuilderException)cause).getServiceError());
                     } else {
-                        throw new ApiException(cause.getMessage(), cause);
+                        throw new BuilderException(cause.getMessage(), cause);
                     }
                 } catch (CancellationException ce) {
                     successful = false;
                 }
-
                 result = Builder.this.getTaskResult(this, successful);
             }
             return result;

@@ -31,6 +31,7 @@ import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -162,7 +163,7 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToCreateAccount() throws Exception {
-        when(accountDao.getByName(account.getName())).thenReturn(null);
+        when(accountDao.getByName(account.getName())).thenThrow(new NotFoundException("Account not found"));
         when(accountDao.getByOwner(USER_ID)).thenReturn(Collections.<Account>emptyList());
         String role = "user";
         prepareSecurityContext(role);

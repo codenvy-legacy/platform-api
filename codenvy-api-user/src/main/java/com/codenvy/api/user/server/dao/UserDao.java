@@ -71,7 +71,9 @@ public interface UserDao {
      *
      * @param alias
      *         - user name or alias
-     * @return user POJO, or <code>null</code> if nothing is found
+     * @return user POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when user doesn't exist
      */
     User getByAlias(String alias) throws NotFoundException, ServerException;
 
@@ -80,7 +82,9 @@ public interface UserDao {
      *
      * @param id
      *         - user name or identifier
-     * @return user POJO, or <code>null</code> if nothing is found
+     * @return user POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when user doesn't exist
      */
     User getById(String id) throws NotFoundException, ServerException;
 }

@@ -60,7 +60,9 @@ public interface UserProfileDao {
      *
      * @param id
      *         profile identifier
-     * @return profile POJO, or <code>null</code> if nothing is found
+     * @return profile POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when profile doesn't exist
      */
     Profile getById(String id) throws NotFoundException, ServerException;
 
@@ -69,7 +71,9 @@ public interface UserProfileDao {
      *         profile identifier
      * @param filter
      *         reg-exp for filtering preferences keys
-     * @return profile POJO, or <code>null</code> if profile not found
+     * @return profile POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when profile doesn't exist
      */
     Profile getById(String id, String filter) throws NotFoundException, ServerException;
 }

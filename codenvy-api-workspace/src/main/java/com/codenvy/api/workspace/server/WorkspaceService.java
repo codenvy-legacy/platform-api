@@ -20,6 +20,7 @@ package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -114,22 +115,24 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Missed workspace to create");
         }
         String accountId = newWorkspace.getAccountId();
-        Account currentOrg;
-        if (accountId == null || accountId.isEmpty() || (currentOrg = accountDao.getById(accountId)) == null) {
-            throw new ConflictException("Incorrect account to associate workspace with.");
+        Account actualAcc;
+        if (accountId == null || accountId.isEmpty() || (actualAcc = accountDao.getById(accountId)) == null) {
+            throw new ConflictException("Incorrect account to associate workspace with");
         }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-//        if (user == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
-        if (!currentOrg.getOwner().equals(user.getId())) {
-            throw new ConflictException("You can only create workspace associated to your own account.");
+        List<Account> accounts = accountDao.getByOwner(user.getId());
+        boolean isCurrentUserAccountOwner = false;
+        for (int i = 0; i < accounts.size() && !isCurrentUserAccountOwner; ++i) {
+            isCurrentUserAccountOwner = accounts.get(i).getId().equals(actualAcc.getId());
+        }
+        if (!isCurrentUserAccountOwner) {
+            throw new ConflictException("You can create workspace associated only to your own account");
         }
         if (securityContext.isUserInRole("user")) {
             boolean isMultipleWorkspaceAvailable = false;
-            for (int i = 0; i < currentOrg.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
-                isMultipleWorkspaceAvailable = currentOrg.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
+            for (int i = 0; i < actualAcc.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
+                isMultipleWorkspaceAvailable = actualAcc.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
             }
             if (!isMultipleWorkspaceAvailable && workspaceDao.getByAccount(accountId).size() > 0) {
                 throw new ForbiddenException("You have not access to create more workspaces");
@@ -170,7 +173,7 @@ public class WorkspaceService extends Service {
             user = DtoFactory.getInstance().createDto(User.class)
                              .withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
             userDao.create(user);
-//            try {
+            try {
                 Profile profile = DtoFactory.getInstance().createDto(Profile.class);
                 profile.setId(user.getId());
                 profile.setUserId(user.getId());
@@ -179,16 +182,12 @@ public class WorkspaceService extends Service {
                                                               .withValue(String.valueOf(true))
                                                               .withDescription("Indicates user as temporary")));
                 userProfileDao.create(profile);
-//            } catch (UserProfileException e) {
-//                userDao.remove(user.getId());
-//                throw e;
-//            }
+            } catch (ApiException e) {
+                userDao.remove(user.getId());
+                throw e;
+            }
         } else {
-            //if user exists we don't need to create it
             user = userDao.getByAlias(principal.getName());
-//            if (user == null) {
-//                throw new UserNotFoundException(principal.getName());
-//            }
         }
         Member member = DtoFactory.getInstance().createDto(Member.class)
                                   .withUserId(user.getId())
@@ -250,9 +249,6 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Missed workspace to update");
         }
         final Workspace workspace = workspaceDao.getById(id);
-//        if (workspace == null) {
-//            throw new WorkspaceNotFoundException(id);
-//        }
         ensureUserHasAccessToWorkspace(id, new String[]{"workspace/admin"}, securityContext);
         final List<Attribute> actualAttributes = workspace.getAttributes();
         if (workspaceToUpdate.getAttributes() != null) {
@@ -307,20 +303,21 @@ public class WorkspaceService extends Service {
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-//        if (user == null) {
-//            throw new UserNotFoundException(principal.getName());
-//        }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final Link userLink = createLink("GET",
                                          com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER,
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getCurrent").build().toString());
+                                                            .path(UserService.class, "getCurrent").build().toString()
+                                        );
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(user.getId())) {
-            Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
-            if (workspace == null) {
+            //todo
+            Workspace workspace;
+            try {
+                workspace = workspaceDao.getById(member.getWorkspaceId());
+            } catch (NotFoundException ex) {
                 LOG.error(String.format("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(),
                                         principal.getName()));
                 continue;
@@ -352,19 +349,18 @@ public class WorkspaceService extends Service {
         if (userId == null) {
             throw new ConflictException("Missed parameter userid");
         }
-
         userDao.getById(userId);
-//        if (userDao.getById(userId) == null) {
-//            throw new UserNotFoundException(userId);
-//        }
-
+        if (userDao.getById(userId) == null) {
+            throw new NotFoundException(String.format("User with id %s not found", userId));
+        }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final Link userLink = createLink("GET",
                                          com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getById").build(userId).toString());
+                                                            .path(UserService.class, "getById").build(userId).toString()
+                                        );
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(userId)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
@@ -405,7 +401,8 @@ public class WorkspaceService extends Service {
             Link profile = createLink("GET", com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null,
                                       MediaType.APPLICATION_JSON,
                                       getServiceContext().getBaseUriBuilder().clone().path(UserProfileService.class)
-                                                         .path(UserProfileService.class, "getById").build(member.getUserId()).toString());
+                                                         .path(UserProfileService.class, "getById").build(member.getUserId()).toString()
+                                     );
             member.setLinks(Arrays.asList(self, remove, profile));
         }
         return members;
@@ -420,9 +417,6 @@ public class WorkspaceService extends Service {
                              @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ConflictException, ForbiddenException {
         final Workspace workspace = workspaceDao.getById(wsId);
-//        if (workspace == null) {
-//            throw new WorkspaceNotFoundException(wsId);
-//        }
         if (newAttribute == null) {
             throw new ConflictException("Attribute required");
         }
@@ -442,9 +436,6 @@ public class WorkspaceService extends Service {
                                 @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ConflictException, ForbiddenException {
         final Workspace workspace = workspaceDao.getById(wsId);
-//        if (workspace == null) {
-//            throw new WorkspaceNotFoundException(wsId);
-//        }
         if (attributeName == null) {
             throw new ConflictException("Attribute name required");
         }
@@ -487,13 +478,10 @@ public class WorkspaceService extends Service {
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER)
     @RolesAllowed("user")
-    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId, @Context SecurityContext securityContext)
+    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId, @Context SecurityContext
+            securityContext)
             throws NotFoundException, ServerException, ForbiddenException {
-
         workspaceDao.getById(wsId);
-//        if (workspaceDao.getById(wsId) == null) {
-//            throw new WorkspaceNotFoundException(wsId);
-//        }
         ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         Member member = DtoFactory.getInstance().createDto(Member.class);
         member.setUserId(userId);
@@ -508,9 +496,6 @@ public class WorkspaceService extends Service {
     public void remove(@PathParam("id") String wsId, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ForbiddenException {
         Workspace workspace = workspaceDao.getById(wsId);
-//        if (workspace == null) {
-//            throw new WorkspaceNotFoundException(wsId);
-//        }
         ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
@@ -538,7 +523,8 @@ public class WorkspaceService extends Service {
             links.add(createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null, MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
                                                     .path(ProjectService.class, "getProjects")
-                                                    .build(workspace.getId()).toString()));
+                                                    .build(workspace.getId()).toString()
+                                ));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembershipsOfCurrentUser").build().toString()));
         }
@@ -557,7 +543,8 @@ public class WorkspaceService extends Service {
             securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", workspace.getName()).build()
-                                           .toString()));
+                                           .toString()
+                                ));
             links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_NAME, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString()));
         }

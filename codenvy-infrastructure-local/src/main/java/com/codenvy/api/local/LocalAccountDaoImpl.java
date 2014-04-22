@@ -19,6 +19,7 @@ package com.codenvy.api.local;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
@@ -44,10 +45,10 @@ public class LocalAccountDaoImpl implements AccountDao {
         return DtoFactory.getInstance().createDto(Account.class)
                          .withName("acc_name")
                          .withId(id)
-                         .withOwner("userId122332133123")
                          .withAttributes(Arrays.asList(
                                  DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                           .withDescription("important attribute")));
+                                           .withDescription("important attribute")
+                                                      ));
     }
 
     @Override
@@ -55,10 +56,10 @@ public class LocalAccountDaoImpl implements AccountDao {
         return DtoFactory.getInstance().createDto(Account.class)
                          .withName(name)
                          .withId("acc0xffaassdeereqWsss")
-                         .withOwner("userId122332133123")
                          .withAttributes(Arrays.asList(
                                  DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                           .withDescription("important attribute")));
+                                           .withDescription("important attribute")
+                                                      ));
     }
 
     @Override
@@ -66,41 +67,41 @@ public class LocalAccountDaoImpl implements AccountDao {
         return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
                                        .withName("acc_name")
                                        .withId("acc0xffaassdeereqWsss")
-                                       .withOwner(owner)
                                        .withAttributes(Arrays.asList(
                                                DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                                         .withDescription("important attribute"))));
+                                                         .withDescription("important attribute")
+                                                                    )));
     }
 
     @Override
-    public void update(Account account)  {
+    public void update(Account account) {
         throw new RuntimeException("Not implemented");
 
     }
 
     @Override
-    public void remove(String id)  {
+    public void remove(String id) {
         throw new RuntimeException("Not implemented");
 
     }
 
     @Override
-    public void addMember(Member member)  {
+    public void addMember(Member member) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void removeMember(String accountId, String userId)  {
+    public void removeMember(String accountId, String userId) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void addSubscription(Subscription subscription)  {
+    public void addSubscription(Subscription subscription) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void removeSubscription(String subscriptionId)  {
+    public void removeSubscription(String subscriptionId) {
         throw new RuntimeException("Not implemented");
     }
 
@@ -115,7 +116,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Subscription> getSubscriptions(String accountId)  {
+    public List<Subscription> getSubscriptions(String accountId) {
         return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
                                        .withId("Subscription0xfffffffff")
                                        .withStartDate(System.currentTimeMillis())
@@ -130,17 +131,20 @@ public class LocalAccountDaoImpl implements AccountDao {
         return Arrays.asList(DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
                                        .withUserId("userId122332133123").withRoles(Arrays.asList("account/owner")),
                              DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
-                                       .withUserId("userId112233322239").withRoles(Arrays.asList("account/member")));
+                                       .withUserId("userId112233322239").withRoles(Arrays.asList("account/member"))
+                            );
     }
 
     @Override
-    public List<Account> getByMember(String userId) {
-        return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
-                                       .withName("acc_name")
-                                       .withId("cc0xffaassdeereqWsss")
-                                       .withOwner("owner")
-                                       .withAttributes(Arrays.asList(
-                                               DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                                         .withDescription("important attribute"))));
+    public List<AccountMembership> getByMember(String userId) {
+        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
+        am.setId("cc0xffaassdeereqWsss");
+        am.setName("acc_name");
+        am.setRoles(Arrays.asList("account/member"));
+        am.setAttributes(Arrays.asList(
+                DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
+                          .withDescription("important attribute")
+                                      ));
+        return Arrays.asList(am);
     }
 }

@@ -18,6 +18,7 @@
 package com.codenvy.api.account.server.dao;
 
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.ConflictException;
@@ -52,7 +53,9 @@ public interface AccountDao {
      *
      * @param id
      *         account identifier
-     * @return account POJO, or <code>null</code> if nothing is found
+     * @return account POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when account doesn't exist
      */
     Account getById(String id) throws NotFoundException, ServerException;
 
@@ -61,7 +64,9 @@ public interface AccountDao {
      *
      * @param name
      *         account name
-     * @return account POJO, or <code>null</code> if nothing is found
+     * @return account POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when account doesn't exist
      */
     Account getByName(String name) throws NotFoundException, ServerException;
 
@@ -131,6 +136,8 @@ public interface AccountDao {
      * @param subscriptionId
      *         subscription identifier
      * @return Subscription POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when subscription doesn't exist
      */
     Subscription getSubscriptionById(String subscriptionId) throws NotFoundException, ServerException;
 
@@ -159,5 +166,5 @@ public interface AccountDao {
      *         user identifier to search
      * @return list of accounts, or empty list if no accounts found
      */
-    List<Account> getByMember(String userId) throws NotFoundException, ServerException;
+    public List<AccountMembership> getByMember(String userId) throws NotFoundException, ServerException;
 }

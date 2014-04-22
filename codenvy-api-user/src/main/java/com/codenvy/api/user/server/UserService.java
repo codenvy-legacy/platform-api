@@ -41,9 +41,6 @@ import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.inject.Inject;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -71,8 +68,6 @@ import java.util.List;
  */
 @Path("user")
 public class UserService extends Service {
-
-    private static final Logger LOG = LoggerFactory.getLogger(UserService.class);
 
     private final UserDao        userDao;
     private final UserProfileDao profileDao;
@@ -125,9 +120,6 @@ public class UserService extends Service {
     public User getCurrent(@Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-        if (user == null) {
-            throw new NotFoundException(String.format("User %s doesn't exist.", principal.getName()));
-        }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return user;
@@ -145,9 +137,6 @@ public class UserService extends Service {
         }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-        if (user == null) {
-            throw new NotFoundException(String.format("User %s doesn't exist.", principal.getName()));
-        }
         user.setPassword(password);
         userDao.update(user);
     }
@@ -160,9 +149,6 @@ public class UserService extends Service {
     public User getById(@Context SecurityContext securityContext, @PathParam("id") String id)
             throws NotFoundException, ServerException {
         final User user = userDao.getById(id);
-        if (user == null) {
-            throw new NotFoundException(String.format("User %s doesn't exist.", id));
-        }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return user;
@@ -179,9 +165,6 @@ public class UserService extends Service {
             throw new ForbiddenException("Missed parameter email");
         }
         final User user = userDao.getByAlias(email);
-        if (user == null) {
-            throw new NotFoundException(String.format("User %s doesn't exist.", email));
-        }
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return user;
@@ -193,9 +176,6 @@ public class UserService extends Service {
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws NotFoundException, ServerException {
         final User user = userDao.getById(id);
-        if (user == null) {
-            throw new NotFoundException(String.format("User %s doesn't exist.", id));
-        }
         List<Member> members = memberDao.getUserRelationships(id);
         for (Member member : members) {
             memberDao.remove(member);

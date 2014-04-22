@@ -66,7 +66,9 @@ public interface WorkspaceDao {
      *
      * @param id
      *         - workspace identifier
-     * @return workspace POJO, or <code>null</code> if nothing is found
+     * @return workspace POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when workspace doesn't exist
      */
     Workspace getById(String id) throws NotFoundException, ServerException;
 
@@ -75,7 +77,9 @@ public interface WorkspaceDao {
      *
      * @param name
      *         - workspace identifier
-     * @return workspace POJO, or <code>null</code> if nothing is found
+     * @return workspace POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when workspace doesn't exist
      */
     Workspace getByName(String name) throws NotFoundException, ServerException;
 

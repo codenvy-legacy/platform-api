@@ -100,8 +100,10 @@ public class AccountService extends Service {
         if (newAccount.getName() == null) {
             throw new ConflictException("Account name required");
         }
-        if (accountDao.getByName(newAccount.getName()) != null) {
+        try {
+            accountDao.getByName(newAccount.getName());
             throw new ConflictException(String.format("Account with name %s already exists", newAccount.getName()));
+        } catch (NotFoundException ignored) {
         }
         if (newAccount.getAttributes() != null) {
             for (Attribute attribute : newAccount.getAttributes()) {
@@ -411,22 +413,9 @@ public class AccountService extends Service {
                 isCurrentUserAccountOwner = accounts.get(i).getId().equals(account.getId());
             }
             if (!isCurrentUserAccountOwner) {
-                throw new ForbiddenException(String.format("Cej account tobi ne nalejyt bro %s", current.getId()));
+                throw new ForbiddenException(current.getId());
             }
         }
-    }
-
-    private List<AccountMembership> convertToMembership(List<Account> accounts, String role) {
-        final List<AccountMembership> result = new ArrayList<>(accounts.size());
-        for (Account account : accounts) {
-            AccountMembership membership = DtoFactory.getInstance().createDto(AccountMembership.class);
-            membership.setName(account.getName());
-            membership.setId(account.getId());
-            membership.setAttributes(account.getAttributes());
-            membership.setRoles(Arrays.asList(role));
-            result.add(membership);
-        }
-        return result;
     }
 
     private void injectLinks(Account account, SecurityContext securityContext) {

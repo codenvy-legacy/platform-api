@@ -28,7 +28,7 @@ import java.nio.file.Files;
 /**
  * Base implementation of BuilderConfigurationFactory.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class DefaultBuilderConfigurationFactory implements BuilderConfigurationFactory {
     private final Builder builder;

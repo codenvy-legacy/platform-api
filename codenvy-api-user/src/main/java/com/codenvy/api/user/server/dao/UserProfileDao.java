@@ -18,10 +18,10 @@
 package com.codenvy.api.user.server.dao;
 
 
-import com.codenvy.api.user.server.exception.UserProfileException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.user.shared.dto.Profile;
-
-import java.io.IOException;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Profile} data.
@@ -36,30 +36,24 @@ public interface UserProfileDao {
      *
      * @param profile
      *         - POJO representation of profile entity
-     * @throws UserProfileException
-     *         if any issue occurred during performing an operation
      */
-    void create(Profile profile) throws UserProfileException;
+    void create(Profile profile) throws ConflictException, ServerException;
 
     /**
      * Updates already present in persistent layer profile.
      *
      * @param profile
      *         - POJO representation of profile entity
-     * @throws UserProfileException
-     *         if any issue occurred during performing an operation
      */
-    void update(Profile profile) throws UserProfileException;
+    void update(Profile profile) throws NotFoundException, ServerException;
 
     /**
      * Removes profile from persistent layer.
      *
      * @param id
      *         - profile identifier
-     * @throws UserProfileException
-     *         if any issue occurred during performing an operation
      */
-    void remove(String id) throws UserProfileException;
+    void remove(String id) throws NotFoundException, ServerException;
 
     /**
      * Gets profile from persistent layer.
@@ -67,10 +61,8 @@ public interface UserProfileDao {
      * @param id
      *         profile identifier
      * @return profile POJO, or <code>null</code> if nothing is found
-     * @throws UserProfileException
-     *         if any issue occurred during performing an operation
      */
-    Profile getById(String id) throws UserProfileException;
+    Profile getById(String id) throws NotFoundException, ServerException;
 
     /**
      * @param id
@@ -78,8 +70,6 @@ public interface UserProfileDao {
      * @param filter
      *         reg-exp for filtering preferences keys
      * @return profile POJO, or <code>null</code> if profile not found
-     * @throws UserProfileException
-     *         if any issue occurred during performing an operation
      */
-    Profile getById(String id, String filter) throws UserProfileException;
+    Profile getById(String id, String filter) throws NotFoundException, ServerException;
 }

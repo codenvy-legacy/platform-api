@@ -21,8 +21,12 @@ import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.dto.BuilderList;
 import com.codenvy.api.builder.internal.dto.ServerState;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
 
@@ -75,7 +79,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
             }
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException e) {
             throw new BuilderException(e.getServiceError());
         }
         throw new BuilderException(String.format("Invalid builder name %s", name));
@@ -86,7 +90,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
             return new RemoteBuilder(baseUrl, descriptor, getLinks());
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException e) {
             throw new BuilderException(e.getServiceError());
         }
     }
@@ -100,7 +104,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
             return HttpJsonHelper.request(BuilderList.class, link).getBuilders();
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new BuilderException(e.getServiceError());
         }
     }
@@ -114,7 +118,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
             return HttpJsonHelper.request(ServerState.class, stateLink);
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new BuilderException(e.getServiceError());
         }
     }

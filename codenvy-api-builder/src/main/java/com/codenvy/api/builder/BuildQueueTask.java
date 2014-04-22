@@ -20,8 +20,9 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.OutputProvider;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.dto.server.DtoFactory;
@@ -80,13 +81,8 @@ public final class BuildQueueTask implements Cancellable {
      *
      * @return {@code true} if task was interrupted and {@code false} otherwise
      */
-    public boolean isCancelled() throws IOException, RemoteException, BuilderException {
-        if (future.isCancelled()) {
-            return true;
-        }
-        final RemoteTask task = getRemoteTask();
-        // if task is not started yet it is not cancelled
-        return task != null && task.getBuildTaskDescriptor().getStatus() == BuildStatus.CANCELLED;
+    public boolean isCancelled() throws IOException, BuilderException {
+        return future.isCancelled();
     }
 
     /**
@@ -122,11 +118,11 @@ public final class BuildQueueTask implements Cancellable {
     /**
      * Cancel this task.
      *
-     * @throws BuilderException
+     * @throws Exception
      *         if other error occurs
      */
     @Override
-    public void cancel() throws BuilderException {
+    public void cancel() throws Exception {
         if (future.isCancelled()) {
             return;
         }
@@ -144,7 +140,7 @@ public final class BuildQueueTask implements Cancellable {
      * @throws BuilderException
      *         if an error occurs
      */
-    public BuildTaskDescriptor getDescriptor() throws BuilderException {
+    public BuildTaskDescriptor getDescriptor() throws BuilderException, NotFoundException {
         if (isWaiting()) {
             final List<Link> links = new ArrayList<>(2);
             links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -217,7 +213,7 @@ public final class BuildQueueTask implements Cancellable {
         return rewritten;
     }
 
-    RemoteTask getRemoteTask() throws BuilderException {
+    RemoteTask getRemoteTask() throws NotFoundException, BuilderException {
         if (!future.isDone()) {
             return null;
         }
@@ -232,8 +228,10 @@ public final class BuildQueueTask implements Cancellable {
                     throw (Error)cause;
                 } else if (cause instanceof RuntimeException) {
                     throw (RuntimeException)cause;
-                } else if (cause instanceof RemoteException) {
-                    throw new BuilderException(((RemoteException)cause).getServiceError());
+                } else if (cause instanceof NotFoundException) {
+                    throw (NotFoundException)cause;
+                } else if (cause instanceof ApiException) {
+                    throw new BuilderException(((ApiException)cause).getServiceError());
                 } else {
                     throw new BuilderException(cause.getMessage(), cause);
                 }
@@ -250,7 +248,7 @@ public final class BuildQueueTask implements Cancellable {
                '}';
     }
 
-    public void readLogs(OutputProvider output) throws BuilderException, IOException {
+    public void readLogs(OutputProvider output) throws BuilderException, IOException, NotFoundException {
         if (isWaiting()) {
             // Logs aren't available until build starts
             throw new BuilderException("Logs are not available. Task is not started yet.");
@@ -258,7 +256,7 @@ public final class BuildQueueTask implements Cancellable {
         getRemoteTask().readLogs(output);
     }
 
-    public void readReport(OutputProvider output) throws BuilderException, IOException {
+    public void readReport(OutputProvider output) throws BuilderException, IOException, NotFoundException {
         if (isWaiting()) {
             // Logs aren't available until build starts
             throw new BuilderException("Report is not available. Task is not started yet.");
@@ -266,7 +264,7 @@ public final class BuildQueueTask implements Cancellable {
         getRemoteTask().readReport(output);
     }
 
-    public void download(String path, OutputProvider output) throws BuilderException, IOException {
+    public void download(String path, OutputProvider output) throws BuilderException, IOException, NotFoundException {
         if (isWaiting()) {
             // There is nothing for download until build ends
             throw new BuilderException("Downloads are not available. Task is not started yet.");

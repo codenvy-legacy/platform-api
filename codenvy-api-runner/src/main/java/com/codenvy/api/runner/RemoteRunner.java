@@ -17,8 +17,12 @@
  */
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
@@ -116,7 +120,7 @@ public class RemoteRunner {
             process = HttpJsonHelper.request(ApplicationProcessDescriptor.class, link, request);
         } catch (IOException e) {
             throw new RunnerException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new RunnerException(e.getServiceError());
         }
         lastUsage = System.currentTimeMillis();
@@ -133,14 +137,13 @@ public class RemoteRunner {
     public RunnerState getRemoteRunnerState() throws RunnerException {
         final Link stateLink = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_STATE);
         if (stateLink == null) {
-            throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'",
-                                                    name, baseUrl));
+            throw new RunnerException(String.format("Unable get URL for getting state of a remote runner '%s' at '%s'", name, baseUrl));
         }
         try {
             return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
         } catch (IOException e) {
             throw new RunnerException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new RunnerException(e.getServiceError());
         }
     }

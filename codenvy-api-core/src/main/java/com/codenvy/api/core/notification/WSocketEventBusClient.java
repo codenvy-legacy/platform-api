@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Receives event over websocket and publish them to the local EventsService.
@@ -61,10 +62,9 @@ public final class WSocketEventBusClient extends WSocketEventBus {
     private final String[]                             remoteEventServices;
     private final MessageConverter                     messageConverter;
     private final ConcurrentMap<URI, Future<WSClient>> connections;
+    private final AtomicBoolean                        start;
 
     private ExecutorService executor;
-    private boolean         started;
-    private boolean         stop;
 
     @Inject
     WSocketEventBusClient(EventService eventService,
@@ -73,27 +73,27 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         super(eventService, policy);
         this.eventService = eventService;
         this.remoteEventServices = remoteEventServices;
+
         messageConverter = new JsonMessageConverter();
         connections = new ConcurrentHashMap<>();
+        start = new AtomicBoolean(false);
     }
 
     @PostConstruct
-    synchronized void start() {
-        super.start();
-        if (started) {
-            return;
-        }
-        if (remoteEventServices != null && remoteEventServices.length > 0) {
-            executor = Executors.newCachedThreadPool(new NamedThreadFactory("WSocketEventBusClient", true));
-            for (String service : remoteEventServices) {
-                try {
-                    executor.execute(new ConnectTask(new URI(service)));
-                } catch (URISyntaxException e) {
-                    LOG.error(e.getMessage(), e);
+    void start() {
+        if (start.compareAndSet(false, true)) {
+            super.start();
+            if (remoteEventServices != null && remoteEventServices.length > 0) {
+                executor = Executors.newCachedThreadPool(new NamedThreadFactory("WSocketEventBusClient", true));
+                for (String service : remoteEventServices) {
+                    try {
+                        executor.execute(new ConnectTask(new URI(service)));
+                    } catch (URISyntaxException e) {
+                        LOG.error(e.getMessage(), e);
+                    }
                 }
             }
         }
-        started = true;
     }
 
     @Override
@@ -110,9 +110,8 @@ public final class WSocketEventBusClient extends WSocketEventBus {
     }
 
     @PreDestroy
-    synchronized void stop() {
-        stop = true;
-        if (started && remoteEventServices != null && remoteEventServices.length > 0) {
+    void stop() {
+        if (start.compareAndSet(true, false) && remoteEventServices != null && remoteEventServices.length > 0) {
             executor.shutdownNow();
         }
     }
@@ -169,10 +168,7 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         public void onClose(int status, String message) {
             connections.remove(wsUri);
             LOG.debug("Close connection to {}. ", wsUri);
-            synchronized (WSocketEventBusClient.this) {
-                if (stop) {
-                    return;
-                }
+            if (start.get()) {
                 executor.execute(new ConnectTask(wsUri));
             }
         }

@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.runner.internal;
 
+import com.codenvy.api.runner.RunnerException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,18 +114,18 @@ public class ResourceAllocators {
         }
 
         @Override
-        public MemoryAllocator allocate() throws AllocateResourceException {
+        public MemoryAllocator allocate() throws RunnerException {
             if (!memSemaphore.tryAcquire(size)) {
-                throw new AllocateResourceException(String.format("Couldn't allocate %dM for starting application", size));
+                throw new RunnerException(String.format("Couldn't allocate %dM for starting application", size));
             }
-            LOG.info("allocate memory: {}M, available: {}M", size, memSemaphore.availablePermits()); // TODO: debug
+            LOG.debug("allocate memory: {}M, available: {}M", size, memSemaphore.availablePermits()); // TODO: debug
             return this;
         }
 
         @Override
         public void release() {
             memSemaphore.release(size);
-            LOG.info("release memory: {}M, available: {}M", size, memSemaphore.availablePermits());  // TODO: debug
+            LOG.debug("release memory: {}M, available: {}M", size, memSemaphore.availablePermits());  // TODO: debug
         }
     }
 }

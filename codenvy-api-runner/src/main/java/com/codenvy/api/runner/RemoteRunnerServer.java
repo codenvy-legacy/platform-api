@@ -17,8 +17,12 @@
  */
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -73,7 +77,7 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
             }
         } catch (IOException e) {
             throw new RunnerException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException e) {
             throw new RunnerException(e.getServiceError());
         }
         throw new RunnerException(String.format("Invalid runner name %s", name));
@@ -84,7 +88,7 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
             return new RemoteRunner(baseUrl, descriptor, getLinks());
         } catch (IOException e) {
             throw new RunnerException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException e) {
             throw new RunnerException(e.getServiceError());
         }
     }
@@ -98,7 +102,7 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
             return HttpJsonHelper.requestArray(RunnerDescriptor.class, link);
         } catch (IOException e) {
             throw new RunnerException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new RunnerException(e.getServiceError());
         }
     }
@@ -112,7 +116,7 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
             return HttpJsonHelper.request(ServerState.class, stateLink);
         } catch (IOException e) {
             throw new RunnerException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new RunnerException(e.getServiceError());
         }
     }

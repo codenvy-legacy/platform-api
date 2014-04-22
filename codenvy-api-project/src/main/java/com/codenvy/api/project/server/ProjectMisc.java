@@ -33,6 +33,10 @@ class ProjectMisc {
         this.data = new InternalMisc(properties);
     }
 
+    ProjectMisc() {
+        this.data = new InternalMisc();
+    }
+
     long getModificationDate() {
         return data.getLong(UPDATED, -1L);
     }
@@ -49,12 +53,23 @@ class ProjectMisc {
         data.setLong(CREATED, date);
     }
 
+    boolean isUpdated() {
+        return data.isUpdated();
+    }
+
     Properties asProperties() {
         return data.properties;
     }
 
     private static class InternalMisc {
         final Properties properties;
+        boolean updated;
+
+        boolean isUpdated() {
+            synchronized (properties) {
+                return updated;
+            }
+        }
 
         InternalMisc() {
             this(new Properties());
@@ -77,11 +92,8 @@ class ProjectMisc {
             } else {
                 properties.setProperty(name, value);
             }
-        }
-
-        void setIfNotSet(String name, String value) {
-            if (get(name) == null) {
-                set(name, value);
+            synchronized (properties) {
+                updated = true;
             }
         }
 
@@ -177,14 +189,6 @@ class ProjectMisc {
 
         Set<String> getNames() {
             return properties.stringPropertyNames();
-        }
-
-        int size() {
-            return properties.size();
-        }
-
-        void clear() {
-            properties.clear();
         }
     }
 }

@@ -77,7 +77,7 @@ public class RunnerService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor stop(@PathParam("id") Long id) throws Exception {
         final RunQueueTask task = runQueue.getTask(id);
-        task.stop();
+        task.cancel();
         return task.getDescriptor();
     }
 

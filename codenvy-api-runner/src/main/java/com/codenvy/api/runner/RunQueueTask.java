@@ -76,19 +76,6 @@ public final class RunQueueTask implements Cancellable {
         return created;
     }
 
-    /** Get date when request for start application was sent to remote runner. Returns {@code -1} if process is still in the queue. */
-    public long getSendToRemoteRunnerTime() {
-        try {
-            final RemoteRunnerProcess remoteProcess = getRemoteProcess();
-            if (remoteProcess != null) {
-                return remoteProcess.getCreationTime();
-            }
-        } catch (Exception ignored) {
-            // If get exception then process is not started.
-        }
-        return -1;
-    }
-
     public ApplicationProcessDescriptor getDescriptor() throws RunnerException, NotFoundException {
         if (future.isCancelled()) {
             return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
@@ -175,7 +162,7 @@ public final class RunQueueTask implements Cancellable {
         remoteProcess.readLogs(output);
     }
 
-    private RemoteRunnerProcess getRemoteProcess() throws RunnerException, NotFoundException {
+    RemoteRunnerProcess getRemoteProcess() throws RunnerException, NotFoundException {
         if (!future.isDone()) {
             return null;
         }

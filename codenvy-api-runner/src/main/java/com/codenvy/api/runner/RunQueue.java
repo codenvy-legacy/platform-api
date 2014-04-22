@@ -113,6 +113,7 @@ public class RunQueue {
     private final int                                             appLifetime;
     private final long                                            maxTimeInQueueMillis;
     private final AtomicBoolean                                   started;
+    private final long                                            keepStoppedTasks;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -161,6 +162,7 @@ public class RunQueue {
         tasks = new ConcurrentHashMap<>();
         runnerListMapping = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
+        keepStoppedTasks = TimeUnit.MINUTES.toMillis(1);
     }
 
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
@@ -457,10 +459,9 @@ public class RunQueue {
                 }
             };
             scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("RunQueueScheduler-", true));
-            /*scheduler.scheduleAtFixedRate(new Runnable() {
+            scheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    final long timestamp = System.currentTimeMillis();
                     int num = 0;
                     int waitingNum = 0;
                     for (Iterator<RunQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
@@ -468,32 +469,36 @@ public class RunQueue {
                             return;
                         }
                         final RunQueueTask task = i.next();
-                        boolean waiting;
-                        long sendTime;
-                        // 1. not started, may be because too long build process
-                        // 2. running longer then expect
-                        if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
-                            || ((sendTime = task.getSendToRemoteRunnerTime()) > 0
-                                && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getLifetime())) < timestamp)) {
-                            try {
-                                task.cancel();
-                            } catch (NotFoundException ignored) {
-                                // can't find task on remote builder
-                            } catch (Exception e) {
-                                LOG.warn(e.getMessage(), e);
-                            }
-                            if (waiting) {
+                        final boolean waiting = task.isWaiting();
+                        if (waiting) {
+                            if ((task.getCreationTime() + maxTimeInQueueMillis) < System.currentTimeMillis()) {
+                                try {
+                                    task.cancel();
+                                } catch (Exception e) {
+                                    LOG.warn(e.getMessage(), e);
+                                }
+                                i.remove();
                                 waitingNum++;
+                                num++;
                             }
-                            i.remove();
-                            num++;
+                        } else {
+                            try {
+                                final long stopTime = task.getDescriptor().getStopTime();
+                                if (stopTime > 0 && (stopTime + keepStoppedTasks) < System.currentTimeMillis()) {
+                                    i.remove();
+                                    num++;
+                                }
+                            } catch (RunnerException e) {
+                                LOG.warn(e.getMessage(), e);
+                            } catch (NotFoundException ignored) {
+                            }
                         }
                     }
                     if (num > 0) {
                         LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
                     }
                 }
-            }, 1, 1, TimeUnit.MINUTES);*/
+            }, 1, 1, TimeUnit.MINUTES);
 
             eventService.subscribe(new EventSubscriber<RunnerEvent>() {
                 @Override

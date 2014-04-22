@@ -52,14 +52,12 @@ public class RemoteTask {
     private final String baseUrl;
     private final String builder;
     private final Long   taskId;
-    private final long   created;
 
     /* Package visibility, not expected to be created by api users. They should use RemoteBuilder instead and get an instance of remote task. */
     RemoteTask(String baseUrl, String builder, Long taskId) {
         this.baseUrl = baseUrl;
         this.builder = builder;
         this.taskId = taskId;
-        created = System.currentTimeMillis();
     }
 
     /**
@@ -69,11 +67,6 @@ public class RemoteTask {
      */
     public Long getId() {
         return taskId;
-    }
-
-    /** Get date when this remote build task was started. */
-    public long getCreationTime() {
-        return created;
     }
 
     /**

@@ -23,11 +23,11 @@ import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
 import com.codenvy.api.builder.internal.BuilderEvent;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
-import com.codenvy.api.builder.internal.dto.BuilderState;
-import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
+import com.codenvy.api.builder.dto.BuilderState;
+import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -106,6 +106,7 @@ public class BuildQueue {
     private final long                                             maxTimeInQueueMillis;
     private final ConcurrentMap<BaseBuilderRequest, RemoteTask>    successfulBuilds;
     private final AtomicBoolean                                    started;
+    private final long                                             keepEndedTasks;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -144,6 +145,7 @@ public class BuildQueue {
         successfulBuilds = new ConcurrentHashMap<>();
         builderServices = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
+        keepEndedTasks = TimeUnit.MINUTES.toMillis(1);
     }
 
     /**
@@ -304,7 +306,7 @@ public class BuildQueue {
             } catch (Exception ignored) {
             }
             if (reuse) {
-                LOG.debug("Reuse successful build {}, created {}", successfulTask.getId(), successfulTask.getCreationTime());
+                LOG.debug("Reuse successful build {}", successfulTask.getId());
                 callable = new Callable<RemoteTask>() {
                     @Override
                     public RemoteTask call() throws Exception {
@@ -542,7 +544,6 @@ public class BuildQueue {
             scheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    final long timestamp = System.currentTimeMillis();
                     int num = 0;
                     int waitingNum = 0;
                     for (Iterator<BuildQueueTask> i = tasks.values().iterator(); i.hasNext(); ) {
@@ -550,23 +551,29 @@ public class BuildQueue {
                             return;
                         }
                         final BuildQueueTask task = i.next();
-                        boolean waiting;
-                        long sendTime;
-                        if ((waiting = task.isWaiting()) && ((task.getCreationTime() + maxTimeInQueueMillis) < timestamp)
-                            || ((sendTime = task.getSendToRemoteBuilderTime()) > 0
-                                && (sendTime + TimeUnit.SECONDS.toMillis(task.getRequest().getTimeout())) < timestamp)) {
-                            try {
-                                task.cancel();
-                            } catch (NotFoundException ignored) {
-                                // can't find task on remote builder
-                            } catch (Exception e) {
-                                LOG.warn(e.getMessage(), e);
-                            }
-                            if (waiting) {
+                        final boolean waiting = task.isWaiting();
+                        if (waiting) {
+                            if ((task.getCreationTime() + maxTimeInQueueMillis) < System.currentTimeMillis()) {
+                                try {
+                                    task.cancel();
+                                } catch (Exception e) {
+                                    LOG.warn(e.getMessage(), e);
+                                }
+                                i.remove();
                                 waitingNum++;
+                                num++;
                             }
-                            i.remove();
-                            num++;
+                        } else {
+                            try {
+                                final long endTime = task.getDescriptor().getEndTime();
+                                if (endTime > 0 && (endTime + keepEndedTasks) < System.currentTimeMillis()) {
+                                    i.remove();
+                                    num++;
+                                }
+                            } catch (BuilderException e) {
+                                LOG.warn(e.getMessage(), e);
+                            } catch (NotFoundException ignored) {
+                            }
                         }
                     }
                     if (num > 0) {

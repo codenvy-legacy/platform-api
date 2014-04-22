@@ -18,9 +18,9 @@
 package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.BuilderException;
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.DependencyRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -18,9 +18,9 @@
 package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.BuilderException;
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
@@ -87,14 +87,14 @@ public abstract class Builder {
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
-    private final ConcurrentMap<Long, BuildTaskEntry> tasks;
-    private final java.io.File                        rootDirectory;
-    private final Set<BuildListener>                  buildListeners;
-    private final long                                cleanupDelayMillis;
-    private final EventService                        eventService;
-    private final int                                 queueSize;
-    private final int                                 numberOfWorkers;
-    private final AtomicBoolean                       started;
+    private final ConcurrentMap<Long, FutureBuildTask> tasks;
+    private final java.io.File                         rootDirectory;
+    private final Set<BuildListener>                   buildListeners;
+    private final long                                 cleanupDelayMillis;
+    private final EventService                         eventService;
+    private final int                                  queueSize;
+    private final int                                  numberOfWorkers;
+    private final AtomicBoolean                        started;
 
     private ThreadPoolExecutor       executor;
     private ScheduledExecutorService scheduler;
@@ -187,15 +187,15 @@ public abstract class Builder {
             scheduler.scheduleAtFixedRate(new Runnable() {
                 public void run() {
                     int num = 0;
-                    for (Iterator<BuildTaskEntry> i = tasks.values().iterator(); i.hasNext(); ) {
+                    for (Iterator<FutureBuildTask> i = tasks.values().iterator(); i.hasNext(); ) {
                         if (Thread.currentThread().isInterrupted()) {
                             return;
                         }
-                        final BuildTaskEntry next = i.next();
-                        if (next.isExpired()) {
-                            if (!next.task.isDone()) {
+                        final FutureBuildTask task = i.next();
+                        if (task.isExpired()) {
+                            if (!task.isDone()) {
                                 try {
-                                    next.task.cancel();
+                                    task.cancel();
                                 } catch (RuntimeException e) {
                                     LOG.error(e.getMessage(), e);
                                     continue; // try next time
@@ -203,7 +203,7 @@ public abstract class Builder {
                             }
                             i.remove();
                             try {
-                                cleanup(next.task);
+                                cleanup(task);
                             } catch (RuntimeException e) {
                                 LOG.error(e.getMessage(), e);
                             }
@@ -388,8 +388,7 @@ public abstract class Builder {
             }
         };
         final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, logger, callback);
-        final BuildTaskEntry cachedTask = new BuildTaskEntry(task);
-        tasks.put(internalId, cachedTask);
+        tasks.put(internalId, task);
         executor.execute(task);
         return task;
     }
@@ -519,12 +518,12 @@ public abstract class Builder {
      * @see #removeBuildListener(BuildListener)
      */
     public final BuildTask getBuildTask(Long id) throws NotFoundException {
-        final BuildTaskEntry e = tasks.get(id);
-        if (e == null) {
+        final FutureBuildTask task = tasks.get(id);
+        if (task == null) {
             throw new NotFoundException(String.format("Invalid build task id: %d", id));
         }
-        e.setLastUsageTime(System.currentTimeMillis());
-        return e.task;
+        task.setLastUsageTime(System.currentTimeMillis());
+        return task;
     }
 
     protected class FutureBuildTask extends FutureTask<Boolean> implements BuildTask {
@@ -538,6 +537,7 @@ public abstract class Builder {
         private BuildResult result;
         private long        startTime;
         private long        endTime;
+        private long        lastUsageTime;
 
         protected FutureBuildTask(Callable<Boolean> callable,
                                   Long id,
@@ -555,6 +555,7 @@ public abstract class Builder {
             this.callback = callback;
             startTime = -1L;
             endTime = -1L;
+            lastUsageTime = System.currentTimeMillis();
         }
 
         @Override
@@ -659,6 +660,14 @@ public abstract class Builder {
             }
         }
 
+        synchronized boolean isExpired() {
+            return (lastUsageTime + cleanupDelayMillis) < System.currentTimeMillis();
+        }
+
+        synchronized void setLastUsageTime(long time) {
+            lastUsageTime = time;
+        }
+
         @Override
         public String toString() {
             return "FutureBuildTask{" +
@@ -707,50 +716,6 @@ public abstract class Builder {
                 }
                 futureBuildTask.ended();
             }
-        }
-    }
-
-    private class BuildTaskEntry {
-        final int             hash;
-        final FutureBuildTask task;
-
-        long lastUsageTime;
-
-        BuildTaskEntry(FutureBuildTask task) {
-            this.task = task;
-            this.lastUsageTime = System.currentTimeMillis();
-            this.hash = 7 * 31 + task.getId().hashCode();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o instanceof BuildTaskEntry) {
-                return task.getId().equals(((BuildTaskEntry)o).task.getId());
-            }
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            return hash;
-        }
-
-        synchronized boolean isExpired() {
-            return (lastUsageTime + cleanupDelayMillis) < System.currentTimeMillis();
-        }
-
-        synchronized void setLastUsageTime(long time) {
-            lastUsageTime = time;
-        }
-
-        @Override
-        public String toString() {
-            return "BuildTaskEntry{" +
-                   "task=" + task +
-                   '}';
         }
     }
 }

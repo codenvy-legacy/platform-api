@@ -29,6 +29,7 @@ import com.codenvy.api.runner.dto.RunnerEnvironment;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
+import com.google.common.io.CharStreams;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Iterator;
@@ -67,16 +69,17 @@ public abstract class Runner {
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
-    private final Map<Long, RunnerProcessEntry> processes;
-    private final Map<Long, List<Disposer>>     applicationDisposers;
-    private final Object                        applicationDisposersLock;
-    private final AtomicInteger                 runningAppsCounter;
-    private final java.io.File                  deployDirectoryRoot;
-    private final DownloadPlugin                downloadPlugin;
-    private final ResourceAllocators            allocators;
-    private final EventService                  eventService;
-    private final long                          cleanupDelayMillis;
-    private final AtomicBoolean                 started;
+    private final Map<Long, RunnerProcessImpl> processes;
+    private final Map<Long, List<Disposer>>    applicationDisposers;
+    private final Object                       applicationDisposersLock;
+    private final AtomicInteger                runningAppsCounter;
+    private final java.io.File                 deployDirectoryRoot;
+    private final DownloadPlugin               downloadPlugin;
+    private final ResourceAllocators           allocators;
+    private final EventService                 eventService;
+    private final long                         cleanupDelayMillis;
+    private final AtomicBoolean                started;
+    private final long                         maxStartTime;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -85,6 +88,7 @@ public abstract class Runner {
     public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators, EventService eventService) {
         this.deployDirectoryRoot = deployDirectoryRoot;
         this.cleanupDelayMillis = TimeUnit.SECONDS.toMillis(cleanupDelay);
+        this.maxStartTime = TimeUnit.MINUTES.toMillis(10); // TODO: configurable
         this.allocators = allocators;
         this.eventService = eventService;
 
@@ -163,15 +167,15 @@ public abstract class Runner {
             scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerSchedulerPool-", true));
             scheduler.scheduleAtFixedRate(new Runnable() {
                 public void run() {
-                    for (Iterator<RunnerProcessEntry> i = processes.values().iterator(); i.hasNext(); ) {
+                    for (Iterator<RunnerProcessImpl> i = processes.values().iterator(); i.hasNext(); ) {
                         if (Thread.currentThread().isInterrupted()) {
                             return;
                         }
-                        final RunnerProcessEntry next = i.next();
-                        if (next.isExpired()) {
+                        final RunnerProcessImpl process = i.next();
+                        if (process.isExpired()) {
                             try {
-                                if (next.process.isRunning()) {
-                                    next.process.cancel();
+                                if (process.isRunning()) {
+                                    process.cancel();
                                 }
                             } catch (Exception e) {
                                 LOG.error(e.getMessage(), e);
@@ -179,7 +183,7 @@ public abstract class Runner {
                             }
                             i.remove();
                             Disposer[] appDisposers = null;
-                            final ApplicationProcess realProcess = next.process.realProcess;
+                            final ApplicationProcess realProcess = process.realProcess;
                             if (realProcess != null) {
                                 synchronized (applicationDisposersLock) {
                                     final List<Disposer> disposers = applicationDisposers.remove(realProcess.getId());
@@ -197,7 +201,7 @@ public abstract class Runner {
                                     }
                                 }
                             }
-                            final List<java.io.File> cleanupList = next.process.getCleanupList();
+                            final List<java.io.File> cleanupList = process.getCleanupList();
                             if (cleanupList != null) {
                                 for (java.io.File file : cleanupList) {
                                     if (!IoUtil.deleteRecursive(file)) {
@@ -307,11 +311,11 @@ public abstract class Runner {
      *         if id of RunnerProcess is invalid
      */
     public RunnerProcess getProcess(Long id) throws NotFoundException {
-        final RunnerProcessEntry e = processes.get(id);
-        if (e == null) {
+        final RunnerProcessImpl process = processes.get(id);
+        if (process == null) {
             throw new NotFoundException(String.format("Invalid run task id: %d", id));
         }
-        return e.process;
+        return process;
     }
 
     public RunnerProcess execute(final RunRequest request) throws RunnerException {
@@ -349,7 +353,7 @@ public abstract class Runner {
                 }
             }
         });
-        processes.put(internalId, new RunnerProcessEntry(process, System.currentTimeMillis() + cleanupDelayMillis));
+        processes.put(internalId, process);
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem).allocate();
@@ -441,6 +445,7 @@ public abstract class Runner {
         private final String              runner;
         private final RunnerConfiguration configuration;
         private final Callback            callback;
+        private final long                created;
 
         private ApplicationProcess realProcess;
         private long               startTime;
@@ -453,8 +458,9 @@ public abstract class Runner {
             this.runner = runner;
             this.configuration = configuration;
             this.callback = callback;
-            startTime = -1;
-            stopTime = -1;
+            created = System.currentTimeMillis();
+            startTime = -1L;
+            stopTime = -1L;
         }
 
         @Override
@@ -506,13 +512,31 @@ public abstract class Runner {
 
         @Override
         public synchronized boolean isStopped() throws RunnerException {
-            return !(realProcess == null || realProcess.isRunning());
+            return error != null || !(realProcess == null || realProcess.isRunning());
         }
 
         @Override
         public synchronized ApplicationLogger getLogger() throws RunnerException {
             if (error != null) {
-                throw new RunnerException(error);
+                return new ApplicationLogger() {
+                    @Override
+                    public void getLogs(Appendable output) throws IOException {
+                        error.printStackTrace(new PrintWriter(CharStreams.asWriter(output)));
+                    }
+
+                    @Override
+                    public String getContentType() {
+                        return "text/plain";
+                    }
+
+                    @Override
+                    public void writeLine(String line) throws IOException {
+                    }
+
+                    @Override
+                    public void close() throws IOException {
+                    }
+                };
             }
             if (realProcess != null) {
                 return realProcess.getLogger();
@@ -532,6 +556,7 @@ public abstract class Runner {
 
         synchronized void setError(final Throwable error) {
             this.error = error;
+            stopTime = System.currentTimeMillis();
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
                 getExecutor().execute(ThreadLocalPropagateContext.wrap(new Runnable() {
@@ -561,30 +586,22 @@ public abstract class Runner {
             return forCleanup;
         }
 
+        synchronized boolean isExpired() {
+            return (startTime < 0 && ((created + maxStartTime) < System.currentTimeMillis())) ||
+                   (stopTime > 0 && ((stopTime + cleanupDelayMillis) < System.currentTimeMillis()));
+        }
+
         @Override
         public String toString() {
             return "RunnerProcessImpl{" +
                    "\nworkspace='" + configuration.getRequest().getWorkspace() + '\'' +
                    "\nproject='" + configuration.getRequest().getProject() + '\'' +
                    "\nrunner='" + runner + '\'' +
+                   "\ncreated=" + created +
                    "\nstartTime=" + startTime +
                    "\nstopTime=" + stopTime +
                    "\nid=" + id +
                    "\n}";
-        }
-    }
-
-    private static class RunnerProcessEntry {
-        final RunnerProcessImpl process;
-        final long              expirationTime;
-
-        RunnerProcessEntry(RunnerProcessImpl process, long expirationTime) {
-            this.process = process;
-            this.expirationTime = expirationTime;
-        }
-
-        boolean isExpired() {
-            return expirationTime < System.currentTimeMillis();
         }
     }
 }

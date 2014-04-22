@@ -18,9 +18,8 @@
 package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
-import com.codenvy.api.builder.internal.dto.BuilderList;
-import com.codenvy.api.builder.internal.dto.ServerState;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
+import com.codenvy.api.builder.dto.ServerState;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -101,7 +100,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
             if (link == null) {
                 throw new BuilderException("Unable get URL for retrieving list of remote builders");
             }
-            return HttpJsonHelper.request(BuilderList.class, link).getBuilders();
+            return HttpJsonHelper.requestArray(BuilderDescriptor.class, link);
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {

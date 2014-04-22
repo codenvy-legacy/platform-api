@@ -19,7 +19,7 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.OutputProvider;
@@ -97,22 +97,6 @@ public final class BuildQueueTask implements Cancellable {
     /** Get date when this task was created. */
     public long getCreationTime() {
         return created;
-    }
-
-    /** Get date when request for start application was sent to slave builder. Returns {@code -1} if process is still in the queue. */
-    public long getSendToRemoteBuilderTime() {
-        if (isWaiting()) {
-            return -1;
-        }
-        try {
-            final RemoteTask task = getRemoteTask();
-            if (task != null) {
-                return task.getCreationTime();
-            }
-        } catch (Exception ignored) {
-            // If get exception then process is not started.
-        }
-        return -1;
     }
 
     /**

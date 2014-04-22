@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.builder.internal;
 
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.ValueHolder;

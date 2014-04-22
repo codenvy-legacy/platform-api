@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.builder.internal.dto;
+package com.codenvy.api.builder.dto;
 
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.dto.shared.DTO;

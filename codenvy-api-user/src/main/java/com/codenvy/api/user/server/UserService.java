@@ -180,10 +180,6 @@ public class UserService extends Service {
         //check it is no workspaces present
         List<Member> members = memberDao.getUserRelationships(id);
         for (Member member : members) {
-        }
-
-        for (Member member : members) {
-
             memberDao.remove(member);
         }
         profileDao.remove(user.getId());

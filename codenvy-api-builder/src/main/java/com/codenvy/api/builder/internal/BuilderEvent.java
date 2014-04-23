@@ -25,8 +25,16 @@ import com.codenvy.api.core.notification.EventOrigin;
 @EventOrigin("builder")
 public class BuilderEvent {
     public enum EventType {
+        /** Build starts. */
         BEGIN("begin"),
-        DONE("done");
+        /** Build ends. */
+        DONE("done"),
+        /**
+         * Gets new logged message fro the builder.
+         *
+         * @see BuildLogger
+         */
+        MESSAGE_LOGGED("messageLogged");
 
         private final String value;
 
@@ -52,10 +60,28 @@ public class BuilderEvent {
         return new BuilderEvent(EventType.DONE, taskId, workspace, project);
     }
 
+    public static BuilderEvent messageLoggedEvent(long taskId, String workspace, String project, String message) {
+        return new BuilderEvent(EventType.MESSAGE_LOGGED, taskId, workspace, project, message);
+    }
+
+    /** Event type. */
     private EventType type;
+    /** Id of build task that produces the event. */
     private long      taskId;
+    /** Id of workspace that produces the event. */
     private String    workspace;
+    /** Name of project that produces the event. */
     private String    project;
+    /** Message associated with this event. Makes sense only for {@link EventType#MESSAGE_LOGGED} events. */
+    private String    message;
+
+    public BuilderEvent(EventType type, long taskId, String workspace, String project, String message) {
+        this.type = type;
+        this.taskId = taskId;
+        this.workspace = workspace;
+        this.project = project;
+        this.message = message;
+    }
 
     public BuilderEvent(EventType type, long taskId, String workspace, String project) {
         this.type = type;
@@ -99,6 +125,14 @@ public class BuilderEvent {
         this.project = project;
     }
 
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
     @Override
     public String toString() {
         return "BuilderEvent{" +
@@ -106,6 +140,7 @@ public class BuilderEvent {
                ", taskId=" + taskId +
                ", workspace='" + workspace + '\'' +
                ", project='" + project + '\'' +
+               ", message='" + message + '\'' +
                '}';
     }
 }

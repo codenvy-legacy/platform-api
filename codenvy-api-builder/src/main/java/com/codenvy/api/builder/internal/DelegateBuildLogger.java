@@ -23,10 +23,10 @@ import java.io.Reader;
 /**
  * Implementation of the {@code BuildLogger} which delegates log messages to underlying {@code BuildLogger}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public abstract class DelegateBuildLogger implements BuildLogger {
-    private final BuildLogger delegate;
+    protected final BuildLogger delegate;
 
     public DelegateBuildLogger(BuildLogger delegate) {
         this.delegate = delegate;

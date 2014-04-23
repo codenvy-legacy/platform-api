@@ -17,17 +17,17 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
-import com.codenvy.api.builder.internal.BuilderEvent;
-import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.dto.BuildRequest;
-import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.dto.DependencyRequest;
+import com.codenvy.api.builder.internal.BuilderEvent;
+import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -42,6 +42,9 @@ import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.cache.Cache;
+import com.codenvy.commons.lang.cache.SLRUCache;
+import com.codenvy.commons.lang.cache.SynchronizedCache;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
@@ -104,7 +107,7 @@ public class BuildQueue {
     private final EventService                                     eventService;
     /** Max time for request to be in queue in milliseconds. */
     private final long                                             maxTimeInQueueMillis;
-    private final ConcurrentMap<BaseBuilderRequest, RemoteTask>    successfulBuilds;
+    private final Cache<BaseBuilderRequest, RemoteTask>            successfulBuilds;
     private final AtomicBoolean                                    started;
     private final long                                             keepEndedTasks;
 
@@ -142,7 +145,7 @@ public class BuildQueue {
 
         tasks = new ConcurrentHashMap<>();
         builderListMapping = new ConcurrentHashMap<>();
-        successfulBuilds = new ConcurrentHashMap<>();
+        successfulBuilds = new SynchronizedCache<>(new SLRUCache<BaseBuilderRequest, RemoteTask>(200, 400));
         builderServices = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
         keepEndedTasks = TimeUnit.MINUTES.toMillis(1);
@@ -605,12 +608,21 @@ public class BuildQueue {
                     try {
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                         final long id = event.getTaskId();
-                        bm.setChannel(String.format("builder:status:%d", id));
-                        try {
-                            bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
-                        } catch (BuilderException re) {
-                            bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                            bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                        switch (event.getType()) {
+                            case BEGIN:
+                            case DONE:
+                                bm.setChannel(String.format("builder:status:%d", id));
+                                try {
+                                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                                } catch (BuilderException re) {
+                                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                                    bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                                }
+                                break;
+                            case MESSAGE_LOGGED:
+                                bm.setChannel(String.format("builder:output:%d", id));
+                                bm.setBody(String.format("{\"line\":\"%s\"}", event.getMessage()));
+                                break;
                         }
                         WSConnectionContext.sendMessage(bm);
                     } catch (Exception e) {

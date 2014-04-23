@@ -372,7 +372,10 @@ public abstract class Builder {
 
     protected BuildTask execute(BuilderConfiguration configuration, BuildLogger logger) throws BuilderException {
         final CommandLine commandLine = createCommandLine(configuration);
-        final Callable<Boolean> callable = createTaskFor(commandLine, logger, configuration.getRequest().getTimeout(), configuration);
+        final BaseBuilderRequest request = configuration.getRequest();
+        final BuildLogger myLogger =
+                new BuildLogsPublisher(logger, eventService, request.getId(), request.getWorkspace(), request.getProject());
+        final Callable<Boolean> callable = createTaskFor(commandLine, myLogger, request.getTimeout(), configuration);
         final Long internalId = buildIdSequence.getAndIncrement();
         final BuildTask.Callback callback = new BuildTask.Callback() {
             @Override
@@ -387,7 +390,7 @@ public abstract class Builder {
                 eventService.publish(BuilderEvent.doneEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
             }
         };
-        final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, logger, callback);
+        final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, myLogger, callback);
         tasks.put(internalId, task);
         executor.execute(task);
         return task;

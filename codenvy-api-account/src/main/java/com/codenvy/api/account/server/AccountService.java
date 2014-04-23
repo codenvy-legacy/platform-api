@@ -117,8 +117,8 @@ public class AccountService extends Service {
                                  .withAccountId(accountId)
                                  .withUserId(current.getId())
                                  .withRoles(Arrays.asList("account/owner"));
-        accountDao.addMember(owner);
         accountDao.create(newAccount);
+        accountDao.addMember(owner);
         injectLinks(newAccount, securityContext);
         return Response.status(Response.Status.CREATED).entity(newAccount).build();
     }

@@ -175,17 +175,6 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_USER_BY_ID)
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws NotFoundException, ServerException {
-
-    /*
-    *ну видалення юзера буде таким:
-перевіряємо чи можна видалити мембершипи(з вище вказаними правилами, тобто якщо він останній в воркспейсі то ок поітм і воркспейс видалимо, якщо там ще хтось є то конфілк)
-перевіряємо чи можна видалити акаунт( якщо користувач є його овнером і там є ще хтось то конфлікт)
-видалення мембершипів з воркспейсами.
-видалення акаунта.
-видалення профілю.
-видалення юзера.
-     */
-
         //todo remove consistently
         final User user = userDao.getById(id);
         //check it is no workspaces present

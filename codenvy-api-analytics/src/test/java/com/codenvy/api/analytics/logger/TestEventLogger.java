@@ -66,7 +66,7 @@ public class TestEventLogger {
             put("PARAM", "012345678901234567890123456789012345678901234567891");
         }};
 
-        eventLogger.log(EventLogger.IDE_USAGE_EVENT, parameters);
+        eventLogger.log(EventLogger.IDE_USAGE, parameters);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
@@ -75,14 +75,14 @@ public class TestEventLogger {
             put("0123456789012345678901234567890123456789", "value");
         }};
 
-        eventLogger.log(EventLogger.IDE_USAGE_EVENT, parameters);
+        eventLogger.log(EventLogger.IDE_USAGE, parameters);
     }
 
     @Test
     public void shouldLogEventWithoutParameters() throws UnsupportedEncodingException {
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
 
-        eventLogger.log(EventLogger.IDE_USAGE_EVENT, null);
+        eventLogger.log(EventLogger.IDE_USAGE, null);
 
         verify(eventLogger, times(1)).offerEvent(message.capture());
         assertEquals(message.getValue(), "EVENT#ide-usage# PARAMETERS##");
@@ -95,7 +95,7 @@ public class TestEventLogger {
             put("file", "myfile.txt");
         }};
 
-        eventLogger.log(EventLogger.IDE_USAGE_EVENT, parameters);
+        eventLogger.log(EventLogger.IDE_USAGE, parameters);
 
         verify(eventLogger, times(1)).offerEvent(message.capture());
         assertEquals(message.getValue(), "EVENT#ide-usage# PARAMETERS#file=myfile.txt#");
@@ -110,7 +110,7 @@ public class TestEventLogger {
             put("p3", "#");
         }};
 
-        eventLogger.log(EventLogger.IDE_USAGE_EVENT, parameters);
+        eventLogger.log(EventLogger.IDE_USAGE, parameters);
 
         verify(eventLogger, times(1)).offerEvent(message.capture());
         assertEquals(message.getValue(), "EVENT#ide-usage# PARAMETERS#p1=%2C,p2=%3D,p3=%23#");
@@ -125,7 +125,7 @@ public class TestEventLogger {
             put("p5", "+");
         }};
 
-        eventLogger.log(EventLogger.IDE_USAGE_EVENT, parameters);
+        eventLogger.log(EventLogger.IDE_USAGE, parameters);
 
         verify(eventLogger, times(1)).offerEvent(message.capture());
         assertEquals(message.getValue(), "EVENT#ide-usage# PARAMETERS#p4=+,p5=%2B#");

@@ -77,7 +77,7 @@ public interface AccountDao {
      *         owner id
      * @return account POJO, or empty list if nothing is found
      */
-    List<Account> getByOwner(String owner) throws ServerException;
+    List<Account> getByOwner(String owner) throws ServerException, NotFoundException;
 
     /**
      * Updates already present in persistent level account

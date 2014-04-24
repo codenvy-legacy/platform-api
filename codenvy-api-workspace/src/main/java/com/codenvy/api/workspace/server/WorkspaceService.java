@@ -480,7 +480,7 @@ public class WorkspaceService extends Service {
     @RolesAllowed("user")
     public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId, @Context SecurityContext
             securityContext)
-            throws NotFoundException, ServerException, ForbiddenException {
+            throws NotFoundException, ServerException, ForbiddenException, ConflictException {
         workspaceDao.getById(wsId);
         ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         Member member = DtoFactory.getInstance().createDto(Member.class);
@@ -494,7 +494,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE)
     @RolesAllowed({"user", "system/admin"})
     public void remove(@PathParam("id") String wsId, @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException, ForbiddenException {
+            throws NotFoundException, ServerException, ForbiddenException, ConflictException {
         Workspace workspace = workspaceDao.getById(wsId);
         ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);

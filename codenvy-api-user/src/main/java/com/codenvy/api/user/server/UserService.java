@@ -174,7 +174,7 @@ public class UserService extends Service {
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_USER_BY_ID)
     @RolesAllowed("system/admin")
-    public void remove(@PathParam("id") String id) throws NotFoundException, ServerException {
+    public void remove(@PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
         //todo remove consistently
         final User user = userDao.getById(id);
         //check it is no workspaces present

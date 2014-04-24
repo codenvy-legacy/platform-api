@@ -78,5 +78,5 @@ public interface MemberDao {
      * @param member
      *         member to remove
      */
-    void remove(Member member) throws NotFoundException, ServerException;
+    void remove(Member member) throws NotFoundException, ConflictException, ServerException;
 }

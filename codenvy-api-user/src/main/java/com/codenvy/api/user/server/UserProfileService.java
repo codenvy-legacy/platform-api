@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -227,6 +228,25 @@ public class UserProfileService extends Service {
         profileDao.update(currentProfile);
         injectLinks(currentProfile, securityContext);
         return currentProfile;
+    }
+
+    @DELETE
+    @Path("prefs")
+    @RolesAllowed("user")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void removePreference(@Required List<String> prefNames, @Context SecurityContext securityContext)
+            throws NotFoundException, ServerException {
+        final Principal principal = securityContext.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        final Profile currentProfile = profileDao.getById(current.getId());
+        if (prefNames == null) {
+            throw new ServerException("Preferences names required");
+        }
+        Map<String, String> currentPrefs = currentProfile.getPreferences();
+        for (String pref : prefNames) {
+            currentPrefs.remove(pref);
+        }
+        profileDao.update(currentProfile);
     }
 
     private void injectLinks(Profile profile, SecurityContext securityContext) {

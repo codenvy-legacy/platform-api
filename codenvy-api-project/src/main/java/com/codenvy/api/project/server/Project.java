@@ -162,13 +162,13 @@ public class Project {
 
     public String getVisibility() {
         try {
-            final Principal guest = DtoFactory.getInstance().createDto(Principal.class)
-                                              .withName("any")
-                                              .withType(Principal.Type.USER);
             final List<AccessControlEntry> acl = baseFolder.getVirtualFile().getACL();
             if (acl.isEmpty()) {
                 return "public";
             }
+            final Principal guest = DtoFactory.getInstance().createDto(Principal.class)
+                                              .withName("any")
+                                              .withType(Principal.Type.USER);
             for (AccessControlEntry ace : acl) {
                 if (guest.equals(ace.getPrincipal()) && ace.getPermissions().contains("read")) {
                     return "public";

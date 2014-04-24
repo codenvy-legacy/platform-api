@@ -19,13 +19,17 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
-import com.codenvy.api.builder.internal.dto.BuilderState;
-import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
+import com.codenvy.api.builder.dto.BuilderState;
+import com.codenvy.api.builder.dto.DependencyRequest;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.dto.server.DtoFactory;
@@ -41,7 +45,7 @@ import java.util.List;
  * <pre>
  *     String baseUrl = ...
  *     String builderName = ... // e.g. 'maven'
- *     RemoteBuilderFactory factory = new RemoteBuilderFactory(baseUrl);
+ *     RemoteBuilderServer factory = new RemoteBuilderServer(baseUrl);
  *     RemoteBuilder builder = factory.getRemoteBuilder(builderName);
  *     BuildRequest request = ...
  *     RemoteTask remote = builder.perform(request);
@@ -51,7 +55,7 @@ import java.util.List;
  * </pre>
  *
  * @author andrew00x
- * @see com.codenvy.api.builder.RemoteBuilderFactory
+ * @see RemoteBuilderServer
  */
 public class RemoteBuilder {
     private final String     baseUrl;
@@ -62,7 +66,7 @@ public class RemoteBuilder {
 
     private volatile long lastUsage = -1;
 
-    /* Package visibility, not expected to be created by api users. They should use RemoteBuilderFactory to get an instance of RemoteBuilder. */
+    /* Package visibility, not expected to be created by api users. They should use RemoteBuilderServer to get an instance of RemoteBuilder. */
     RemoteBuilder(String baseUrl, BuilderDescriptor builderDescriptor, List<Link> links) {
         this.baseUrl = baseUrl;
         name = builderDescriptor.getName();
@@ -147,7 +151,7 @@ public class RemoteBuilder {
             build = HttpJsonHelper.request(BuildTaskDescriptor.class, link, request);
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new BuilderException(e.getServiceError());
         }
         lastUsage = System.currentTimeMillis();
@@ -170,7 +174,7 @@ public class RemoteBuilder {
             return HttpJsonHelper.request(BuilderState.class, stateLink, Pair.of("builder", name));
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new BuilderException(e.getServiceError());
         }
     }

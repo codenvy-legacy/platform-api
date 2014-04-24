@@ -17,25 +17,34 @@
  */
 package com.codenvy.api.core.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
 
 /**
  * DownloadPlugin that downloads single file.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class HttpDownloadPlugin implements DownloadPlugin {
+    private static final Logger LOG = LoggerFactory.getLogger(HttpDownloadPlugin.class);
+
+    private static final int CONNECT_TIMEOUT = (int)TimeUnit.MINUTES.toMillis(3);
+    private static final int READ_TIMEOUT    = (int)TimeUnit.MINUTES.toMillis(3);
+
     @Override
     public void download(String downloadUrl, java.io.File downloadTo, Callback callback) {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection)new URL(downloadUrl).openConnection();
-            conn.setConnectTimeout(30 * 1000);
-            conn.setConnectTimeout(30 * 1000);
+            conn.setConnectTimeout(CONNECT_TIMEOUT);
+            conn.setReadTimeout(READ_TIMEOUT);
             final int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
                 throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
@@ -61,6 +70,7 @@ public final class HttpDownloadPlugin implements DownloadPlugin {
             }
             callback.done(tempFile);
         } catch (IOException e) {
+            LOG.debug(String.format("Failed access: %s, error: %s", downloadUrl, e.getMessage()), e);
             callback.error(e);
         } finally {
             if (conn != null) {

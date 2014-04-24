@@ -18,9 +18,8 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.server.exception.WorkspaceException;
 import com.codenvy.api.workspace.shared.dto.Workspace;
-import com.codenvy.dto.server.DtoFactory;
+
 
 import javax.inject.Singleton;
 import java.util.Arrays;
@@ -29,33 +28,33 @@ import java.util.List;
 @Singleton
 public class LocalWorkspaceDaoImpl implements WorkspaceDao {
     @Override
-    public void create(Workspace workspace) throws WorkspaceException {
+    public void create(Workspace workspace) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void update(Workspace workspace) throws WorkspaceException {
+    public void update(Workspace workspace) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void remove(String id) throws WorkspaceException {
+    public void remove(String id) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public Workspace getById(String id) throws WorkspaceException {
+    public Workspace getById(String id) {
         return Constants.WORKSPACE;
     }
 
     @Override
-    public Workspace getByName(String name) throws WorkspaceException {
+    public Workspace getByName(String name) {
         return Constants.WORKSPACE;
 
     }
 
     @Override
-    public List<Workspace> getByOrganization(String organizationId) throws WorkspaceException {
+    public List<Workspace> getByAccount(String accountId) {
         return Arrays.asList(Constants.WORKSPACE);
     }
 }

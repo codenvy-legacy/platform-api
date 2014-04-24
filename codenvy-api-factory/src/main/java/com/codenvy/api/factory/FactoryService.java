@@ -44,7 +44,7 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
 
 /** Service for factory rest api features */
-@Path("/factory")
+@Path("factory")
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 

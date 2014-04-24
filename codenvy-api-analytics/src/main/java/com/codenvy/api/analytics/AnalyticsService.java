@@ -19,11 +19,8 @@
 package com.codenvy.api.analytics;
 
 
-import com.codenvy.api.analytics.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.dto.MetricValueDTO;
-import com.codenvy.api.analytics.dto.MetricValueListDTO;
 import com.codenvy.api.analytics.logger.EventLogger;
+import com.codenvy.api.analytics.shared.dto.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.google.inject.Inject;
@@ -43,7 +40,7 @@ import java.util.Map;
 /**
  * Service is responsible for processing REST requests for analytics data.
  *
- * @author <a href="mailto:abazko@codenvy.com">Anatoliy Bazko</a>
+ * @author Anatoliy Bazko
  */
 @Path("analytics")
 @Singleton
@@ -152,17 +149,16 @@ public class AnalyticsService extends Service {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/{event}")
-    @RolesAllowed({"user"})
-    public Response logEvent(@PathParam("event") String event, Map<String, String> parameters) {
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public Response logEvent(@PathParam("event") String event, EventParameters parameters) {
         try {
-            eventLogger.log(event, parameters);
+            eventLogger.log(event, parameters.getParams());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
-
 
     private Map<String, String> extractContext(UriInfo info,
                                                String page,

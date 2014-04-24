@@ -18,6 +18,8 @@
 package com.codenvy.api.user.server;
 
 
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -27,14 +29,13 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.server.exception.ProfileNotFoundException;
-import com.codenvy.api.user.server.exception.UserException;
-import com.codenvy.api.user.server.exception.UserNotFoundException;
-import com.codenvy.api.user.server.exception.UserProfileException;
 import com.codenvy.api.user.shared.dto.Attribute;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -59,6 +60,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.codenvy.commons.lang.Strings.nullToEmpty;
+
 /**
  * User profile API
  *
@@ -67,6 +70,9 @@ import java.util.Map;
  */
 @Path("profile")
 public class UserProfileService extends Service {
+
+    private static final Logger LOG = LoggerFactory.getLogger(UserProfileService.class);
+
     private final UserProfileDao profileDao;
     private final UserDao        userDao;
 
@@ -82,22 +88,16 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile getCurrent(@Context SecurityContext securityContext,
                               @Description("Preferences path filter") @QueryParam("filter") String filter)
-            throws UserException, UserProfileException {
+            throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-        if (user == null) {
-            throw new UserNotFoundException(principal.getName());
-        }
-        Profile profile;
+        final Profile profile;
         if (filter == null) {
             profile = profileDao.getById(user.getId());
         } else {
             profile = profileDao.getById(user.getId(), filter);
         }
-        if (profile == null) {
-            throw new ProfileNotFoundException(user.getId());
-        }
-        List<Attribute> attrs = new ArrayList<>();
+        final List<Attribute> attrs = new ArrayList<>();
         if (profile.getAttributes() != null) {
             attrs.addAll(profile.getAttributes());
         }
@@ -116,17 +116,10 @@ public class UserProfileService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updateCurrent(@Context SecurityContext securityContext, @Description("updates for profile") List<Attribute> updates)
-            throws UserException, UserProfileException {
+            throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-        if (user == null) {
-            throw new UserNotFoundException(principal.getName());
-        }
-        Profile profile = profileDao.getById(user.getId());
-        if (profile == null) {
-            throw new ProfileNotFoundException(user.getId());
-        }
-        //if updates are not null, append it to existed attributes
+        final Profile profile = profileDao.getById(user.getId());
         if (updates != null) {
             Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
             for (Attribute attribute : updates) {
@@ -145,6 +138,9 @@ public class UserProfileService extends Service {
         }
         profileDao.update(profile);
         injectLinks(profile, securityContext);
+
+        logEventUserUpdateProfile(user, profile.getAttributes());
+
         return profile;
     }
 
@@ -154,16 +150,9 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
     public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext)
-            throws UserProfileException, UserException {
+            throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
-        if (profile == null) {
-            throw new ProfileNotFoundException(profileId);
-        }
         final User user = userDao.getById(profile.getUserId());
-        if (user == null) {
-            throw new UserNotFoundException(profile.getUserId());
-        }
-        //prefs available only for CURRENT user profile
         profile.setPreferences(Collections.<String, String>emptyMap());
         List<Attribute> attrs = new ArrayList<>();
         if (profile.getAttributes() != null) {
@@ -186,11 +175,8 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile update(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
                           @Context SecurityContext securityContext)
-            throws UserProfileException {
+            throws NotFoundException, ServerException {
         Profile profile = profileDao.getById(profileId);
-        if (profile == null) {
-            throw new ProfileNotFoundException(profileId);
-        }
         //if updates are not null, append it to existed attributes
         if (updates != null) {
             Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
@@ -210,6 +196,10 @@ public class UserProfileService extends Service {
         }
         profileDao.update(profile);
         injectLinks(profile, securityContext);
+
+        final User user = userDao.getById(profile.getUserId());
+        logEventUserUpdateProfile(user, profile.getAttributes());
+
         return profile;
     }
 
@@ -221,16 +211,10 @@ public class UserProfileService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updatePrefs(@Context SecurityContext securityContext,
                                @Description("preferences to update") Map<String, String> prefsToUpdate)
-            throws UserException, UserProfileException {
+            throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
-        if (current == null) {
-            throw new UserNotFoundException(principal.getName());
-        }
         final Profile currentProfile = profileDao.getById(current.getId());
-        if (currentProfile == null) {
-            throw new ProfileNotFoundException(current.getId());
-        }
         //if given preferences are not null append it to existed preferences
         if (prefsToUpdate != null) {
             Map<String, String> currentPrefs = currentProfile.getPreferences();
@@ -282,5 +266,23 @@ public class UserProfileService extends Service {
                          .withProduces(produces)
                          .withConsumes(consumes)
                          .withHref(href);
+    }
+
+    private void logEventUserUpdateProfile(User user, List<Attribute> attributes) {
+        Map<String, String> m = new LinkedHashMap<>(attributes.size());
+        for (Attribute attribute : attributes) {
+            m.put(attribute.getName(), attribute.getValue());
+        }
+
+        for (String email : user.getAliases()) {
+            LOG.info(
+                    "EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}#",
+                    email,
+                    nullToEmpty(m.get("firstName")),
+                    nullToEmpty(m.get("lastName")),
+                    nullToEmpty(m.get("employer")),
+                    nullToEmpty(m.get("phone")),
+                    nullToEmpty(m.get("jobtitle")));
+        }
     }
 }

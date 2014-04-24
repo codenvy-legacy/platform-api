@@ -27,6 +27,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author andrew00x
  */
 public abstract class ApplicationProcess {
+    public static interface Callback {
+        void started();
+
+        void stopped();
+    }
+
     private static final AtomicLong sequence = new AtomicLong(1);
 
     private final Long id;

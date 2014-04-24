@@ -151,7 +151,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getName(), "my_project");
         Assert.assertEquals(projectReference.getUrl(), "http://localhost:8080/api/project/my_ws/my_project");
         Assert.assertEquals(projectReference.getDescription(), "my test project");
-        Assert.assertEquals(projectReference.getWorkspace(), "my_ws");
+        Assert.assertEquals(projectReference.getWorkspaceId(), "my_ws");
         Assert.assertEquals(projectReference.getProjectTypeId(), "my_project_type");
         Assert.assertEquals(projectReference.getProjectTypeName(), "my project type");
         Assert.assertEquals(projectReference.getVisibility(), "public");
@@ -616,6 +616,9 @@ public class ProjectServiceTest {
             public String getId() {
                 return importType;
             }
+
+            @Override
+            public String getDescription() { return "Chuck importer"; }
 
             @Override
             public void importSources(FolderEntry baseFolder, String location) throws IOException {

@@ -19,12 +19,15 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.internal.Constants;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
-import com.codenvy.api.core.rest.RemoteException;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.util.ValueHolder;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.InputSupplier;
 import com.google.common.io.OutputSupplier;
@@ -49,19 +52,21 @@ public class RemoteTask {
     private final String baseUrl;
     private final String builder;
     private final Long   taskId;
-    private final long   created;
 
     /* Package visibility, not expected to be created by api users. They should use RemoteBuilder instead and get an instance of remote task. */
     RemoteTask(String baseUrl, String builder, Long taskId) {
         this.baseUrl = baseUrl;
         this.builder = builder;
         this.taskId = taskId;
-        created = System.currentTimeMillis();
     }
 
-    /** Get date when this remote build task was started. */
-    public long getCreationTime() {
-        return created;
+    /**
+     * Get unique id of this task.
+     *
+     * @return unique id of this task
+     */
+    public Long getId() {
+        return taskId;
     }
 
     /**
@@ -70,13 +75,15 @@ public class RemoteTask {
      * @return status of remote build process
      * @throws BuilderException
      *         if an error occurs
+     * @throws NotFoundException
+     *         if can't get status of remote task because isn't available anymore, e.g. its already removed on remote server
      */
-    public BuildTaskDescriptor getBuildTaskDescriptor() throws BuilderException {
+    public BuildTaskDescriptor getBuildTaskDescriptor() throws BuilderException, NotFoundException {
         try {
             return HttpJsonHelper.get(BuildTaskDescriptor.class, String.format("%s/status/%s/%d", baseUrl, builder, taskId));
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | ConflictException e) {
             throw new BuilderException(e.getServiceError());
         }
     }
@@ -87,17 +94,19 @@ public class RemoteTask {
      * @return status of remote build process after the call
      * @throws BuilderException
      *         if an error occurs
+     * @throws NotFoundException
+     *         if can't cancel remote task because isn't available anymore, e.g. its already removed on remote server
      */
-    public BuildTaskDescriptor cancel() throws BuilderException {
-        final ValueHolder<BuildTaskDescriptor> holder = new ValueHolder<>();
-        final Link link = getLink(Constants.LINK_REL_CANCEL, holder);
+    public BuildTaskDescriptor cancel() throws BuilderException, NotFoundException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        final Link link = getLink(Constants.LINK_REL_CANCEL, descriptor);
         if (link == null) {
-            switch (holder.get().getStatus()) {
+            switch (descriptor.getStatus()) {
                 case SUCCESSFUL:
                 case FAILED:
                 case CANCELLED:
-                    LOG.debug("Can't cancel build, status is {}", holder.get().getStatus());
-                    return holder.get();
+                    LOG.debug("Can't cancel build, status is {}", descriptor.getStatus());
+                    return descriptor;
                 default:
                     throw new BuilderException("Can't cancel task. Cancellation link is not available");
             }
@@ -106,7 +115,7 @@ public class RemoteTask {
             return HttpJsonHelper.request(BuildTaskDescriptor.class, link);
         } catch (IOException e) {
             throw new BuilderException(e);
-        } catch (RemoteException e) {
+        } catch (ServerException | UnauthorizedException | ForbiddenException | ConflictException e) {
             throw new BuilderException(e.getServiceError());
         }
     }
@@ -121,8 +130,9 @@ public class RemoteTask {
      * @throws BuilderException
      *         if other error occurs
      */
-    public void readLogs(OutputProvider output) throws IOException, BuilderException {
-        final Link link = getLink(Constants.LINK_REL_VIEW_LOG, null);
+    public void readLogs(OutputProvider output) throws IOException, BuilderException, NotFoundException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        final Link link = getLink(Constants.LINK_REL_VIEW_LOG, descriptor);
         if (link == null) {
             throw new BuilderException("Logs are not available.");
         }
@@ -140,8 +150,9 @@ public class RemoteTask {
      *         if other error occurs
      * @see com.codenvy.api.builder.internal.BuildResult#getBuildReport()
      */
-    public void readReport(OutputProvider output) throws IOException, BuilderException {
-        final Link link = getLink(Constants.LINK_REL_VIEW_REPORT, null);
+    public void readReport(OutputProvider output) throws IOException, BuilderException, NotFoundException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        final Link link = getLink(Constants.LINK_REL_VIEW_REPORT, descriptor);
         if (link == null) {
             throw new BuilderException("Report is not available.");
         }
@@ -168,7 +179,7 @@ public class RemoteTask {
     private void doRequest(String url, String method, final OutputProvider output) throws IOException {
         final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
         conn.setConnectTimeout(30 * 1000);
-        conn.setConnectTimeout(30 * 1000);
+        conn.setReadTimeout(30 * 1000);
         conn.setRequestMethod(method);
         try {
             if (output instanceof HttpOutputMessage) {
@@ -202,11 +213,7 @@ public class RemoteTask {
         }
     }
 
-    private Link getLink(String rel, ValueHolder<BuildTaskDescriptor> statusHolder) throws BuilderException {
-        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        if (statusHolder != null) {
-            statusHolder.set(descriptor);
-        }
+    private Link getLink(String rel, BuildTaskDescriptor descriptor) {
         for (Link link : descriptor.getLinks()) {
             if (rel.equals(link.getRel())) {
                 return link;

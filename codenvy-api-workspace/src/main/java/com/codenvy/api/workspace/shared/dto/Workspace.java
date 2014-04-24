@@ -46,11 +46,11 @@ public interface Workspace {
 
     Workspace withTemporary(boolean temporary);
 
-    String getOrganizationId();
+    String getAccountId();
 
-    void setOrganizationId(String accountId);
+    void setAccountId(String accountId);
 
-    Workspace withOrganizationId(String accountId);
+    Workspace withAccountId(String accountId);
 
     List<Attribute> getAttributes();
 

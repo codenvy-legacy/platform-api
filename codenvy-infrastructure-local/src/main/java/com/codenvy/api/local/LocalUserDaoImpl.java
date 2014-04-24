@@ -18,9 +18,7 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.exception.UserException;
 import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
 
@@ -28,33 +26,33 @@ import javax.inject.Singleton;
 public class LocalUserDaoImpl implements UserDao {
 
     @Override
-    public boolean authenticate(String alias, String password) throws UserException {
+    public boolean authenticate(String alias, String password)  {
         return true;
     }
 
     @Override
-    public void create(User user) throws UserException {
+    public void create(User user)  {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void update(User user) throws UserException {
+    public void update(User user)  {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void remove(String id) throws UserException {
+    public void remove(String id)  {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public User getByAlias(String alias) throws UserException {
+    public User getByAlias(String alias)  {
         return Constants.USER;
 
     }
 
     @Override
-    public User getById(String id) throws UserException {
+    public User getById(String id)  {
         return Constants.USER;
     }
 }

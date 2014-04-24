@@ -17,7 +17,9 @@
  */
 package com.codenvy.api.user.server.dao;
 
-import com.codenvy.api.user.server.exception.UserException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.user.shared.dto.User;
 
 /**
@@ -37,60 +39,52 @@ public interface UserDao {
      * @param password
      *         password
      * @return {@code true} if authentication is successful or {@code false} otherwise
-     * @throws UserException
-     *         if any issue occurred during performing an operation
      */
-    boolean authenticate(String alias, String password) throws UserException;
+    boolean authenticate(String alias, String password) throws NotFoundException, ServerException;
 
     /**
      * Adds user to persistent layer.
      *
      * @param user
      *         - POJO representation of user entity
-     * @throws UserException
-     *         if any issue occurred during performing an operation
      */
-    void create(User user) throws UserException;
+    void create(User user) throws ConflictException, ServerException;
 
     /**
      * Updates already present in persistent layer user.
      *
      * @param user
      *         - POJO representation of user entity
-     * @throws UserException
-     *         if any issue occurred during performing an operation
      */
-    void update(User user) throws UserException;
+    void update(User user) throws NotFoundException, ServerException;
 
     /**
      * Removes user from persistent layer by his identifier.
      *
      * @param id
      *         - user identifier
-     * @throws UserException
-     *         if any issue occurred during performing an operation
      */
-    void remove(String id) throws UserException;
+    void remove(String id) throws NotFoundException, ServerException;
 
     /**
      * Gets user from persistent layer by any of his aliases
      *
      * @param alias
      *         - user name or alias
-     * @return user POJO, or <code>null</code> if nothing is found
-     * @throws UserException
-     *         if any issue occurred during performing an operation
+     * @return user POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when user doesn't exist
      */
-    User getByAlias(String alias) throws UserException;
+    User getByAlias(String alias) throws NotFoundException, ServerException;
 
     /**
      * Gets user from persistent layer by his identifier
      *
      * @param id
      *         - user name or identifier
-     * @return user POJO, or <code>null</code> if nothing is found
-     * @throws UserException
-     *         if any issue occurred during performing an operation
+     * @return user POJO
+     * @throws com.codenvy.api.core.NotFoundException
+     *         when user doesn't exist
      */
-    User getById(String id) throws UserException;
+    User getById(String id) throws NotFoundException, ServerException;
 }

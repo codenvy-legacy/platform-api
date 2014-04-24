@@ -130,6 +130,7 @@ public final class ProjectManager {
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(workspace, projectFolder, this);
         project.updateDescription(projectDescription);
+        getProjectMisc(workspace, projectFolder.getPath()).setCreationDate(System.currentTimeMillis());
         return project;
     }
 
@@ -143,7 +144,7 @@ public final class ProjectManager {
         return new FolderEntry(vfsRoot);
     }
 
-    public ProjectMisc getProjectMisc(String workspace, String project) {
+    ProjectMisc getProjectMisc(String workspace, String project) {
         final Pair<String, String> key = Pair.of(workspace, project);
         return cache[key.hashCode() & CACHE_MASK].get(key);
     }
@@ -184,7 +185,7 @@ public final class ProjectManager {
                                 break;
                             }
                             final Pair<String, String> key = Pair.of(workspace, projectPath);
-                            cache[key.hashCode() & CACHE_MASK].get(key).data.setLong(ProjectMisc.UPDATED, System.currentTimeMillis());
+                            cache[key.hashCode() & CACHE_MASK].get(key).setModificationDate(System.currentTimeMillis());
                         }
                         break;
                     }
@@ -210,183 +211,30 @@ public final class ProjectManager {
             try (InputStream in = miscFile.getInputStream()) {
                 final Properties properties = new Properties();
                 properties.loadFromXML(in);
-                return new ProjectMisc(new InternalMisc(properties));
+                return new ProjectMisc(properties);
             }
         }
-        return new ProjectMisc(new InternalMisc());
+        return new ProjectMisc();
     }
 
     private void save(String workspace, String projectPath, ProjectMisc misc) throws IOException {
-        final Project project = getProject(workspace, projectPath);
-        if (project != null) {
-            final ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            misc.data.properties.storeToXML(bout, null);
-            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
-            if (miscFile != null) {
-                miscFile.updateContent(bout.toByteArray(), "application/xml");
-            } else {
-                final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER);
-                if (codenvy != null) {
-                    codenvy.createFile("misc.xml", bout.toByteArray(), "application/xml");
+        if (misc.isUpdated()) {
+            final Project project = getProject(workspace, projectPath);
+            // be sure project exists
+            if (project != null) {
+                final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                misc.asProperties().storeToXML(bout, null);
+                final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
+                if (miscFile != null) {
+                    miscFile.updateContent(bout.toByteArray(), "application/xml");
+                } else {
+                    final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER);
+                    if (codenvy != null) {
+                        codenvy.createFile("misc.xml", bout.toByteArray(), "application/xml");
+                    }
                 }
+                LOG.debug("Save misc file of project {} in {}", projectPath, workspace);
             }
-        }
-    }
-
-    public static class ProjectMisc {
-        static final String UPDATED    = "updated";
-
-        private final InternalMisc data;
-
-        private ProjectMisc(InternalMisc data) {
-            this.data = data;
-        }
-
-        public long getModificationDate() {
-            return data.getLong(UPDATED, -1L);
-        }
-
-        public void setValue(String name, boolean value) {
-            data.setBoolean(name, value);
-        }
-
-        public boolean getBooleanValue(String name) {
-            return data.getBoolean(name);
-        }
-    }
-
-    private static class InternalMisc {
-        final Properties properties;
-
-        InternalMisc() {
-            this(new Properties());
-        }
-
-        InternalMisc(Properties properties) {
-            this.properties = properties;
-        }
-
-        String get(String name) {
-            return properties.getProperty(name);
-        }
-
-        void set(String name, String value) {
-            if (name == null) {
-                throw new IllegalArgumentException("The name of property may not be null. ");
-            }
-            if (value == null) {
-                properties.remove(name);
-            } else {
-                properties.setProperty(name, value);
-            }
-        }
-
-        void setIfNotSet(String name, String value) {
-            if (get(name) == null) {
-                set(name, value);
-            }
-        }
-
-        boolean getBoolean(String name) {
-            return getBoolean(name, false);
-        }
-
-        boolean getBoolean(String name, boolean defaultValue) {
-            final String str = get(name);
-            return str == null ? defaultValue : Boolean.parseBoolean(str);
-        }
-
-        void setBoolean(String name, boolean value) {
-            set(name, String.valueOf(value));
-        }
-
-        int getInt(String name) {
-            return getInt(name, 0);
-        }
-
-        int getInt(String name, int defaultValue) {
-            final String str = get(name);
-            if (str == null)
-                return defaultValue;
-            try {
-                return Integer.parseInt(str);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
-
-        void setInt(String name, int value) {
-            set(name, String.valueOf(value));
-        }
-
-        long getLong(String name) {
-            return getLong(name, 0L);
-        }
-
-        long getLong(String name, long defaultValue) {
-            final String str = get(name);
-            if (str == null)
-                return defaultValue;
-            try {
-                return Long.parseLong(str);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
-
-        void setLong(String name, long value) {
-            set(name, String.valueOf(value));
-        }
-
-        float getFloat(String name) {
-            return getFloat(name, 0.0F);
-        }
-
-        float getFloat(String name, float defaultValue) {
-            final String str = get(name);
-            if (str == null)
-                return defaultValue;
-            try {
-                return Float.parseFloat(str);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
-
-        void setFloat(String name, float value) {
-            set(name, String.valueOf(value));
-        }
-
-
-        double getDouble(String name) {
-            return getDouble(name, 0.0);
-        }
-
-        double getDouble(String name, double defaultValue) {
-            final String str = get(name);
-            if (str == null)
-                return defaultValue;
-            try {
-                return Double.parseDouble(str);
-            } catch (NumberFormatException e) {
-                return defaultValue;
-            }
-        }
-
-        void setDouble(String name, double value) {
-            set(name, String.valueOf(value));
-        }
-
-        Set<String> getNames() {
-            return properties.stringPropertyNames();
-        }
-
-        int size() {
-            return properties.size();
-        }
-
-        void clear() {
-            properties.clear();
         }
     }
 }

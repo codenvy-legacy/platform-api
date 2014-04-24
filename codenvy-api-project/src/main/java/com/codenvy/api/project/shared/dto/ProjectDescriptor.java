@@ -90,6 +90,14 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withDescription(String description);
 
+    /** Get creation date of project. */
+    long getCreationDate();
+
+    /** Set creation date of project. */
+    void setCreationDate(long date);
+
+    ProjectDescriptor withCreationDate(long date);
+
     /** Get modification date of project. */
     long getModificationDate();
 

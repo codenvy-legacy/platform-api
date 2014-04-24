@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.vfs.server.search;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class QueryExpression {
     private String name;
     private String path;

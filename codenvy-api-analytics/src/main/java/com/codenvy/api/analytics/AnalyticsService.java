@@ -19,12 +19,8 @@
 package com.codenvy.api.analytics;
 
 
-import com.codenvy.api.analytics.shared.dto.EventParameters;
-import com.codenvy.api.analytics.shared.dto.MetricInfoDTO;
-import com.codenvy.api.analytics.shared.dto.MetricInfoListDTO;
-import com.codenvy.api.analytics.shared.dto.MetricValueDTO;
-import com.codenvy.api.analytics.shared.dto.MetricValueListDTO;
 import com.codenvy.api.analytics.logger.EventLogger;
+import com.codenvy.api.analytics.shared.dto.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.google.inject.Inject;
@@ -44,7 +40,7 @@ import java.util.Map;
 /**
  * Service is responsible for processing REST requests for analytics data.
  *
- * @author <a href="mailto:abazko@codenvy.com">Anatoliy Bazko</a>
+ * @author Anatoliy Bazko
  */
 @Path("analytics")
 @Singleton
@@ -153,7 +149,7 @@ public class AnalyticsService extends Service {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/{event}")
-    @RolesAllowed({"user"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     public Response logEvent(@PathParam("event") String event, EventParameters parameters) {
         try {
             eventLogger.log(event, parameters.getParams());

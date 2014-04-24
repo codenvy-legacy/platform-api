@@ -25,9 +25,18 @@ import com.codenvy.api.core.notification.EventOrigin;
 @EventOrigin("runner")
 public class RunnerEvent {
     public enum EventType {
+        /** Application started. */
         STARTED("started"),
+        /** Application stopped. */
         STOPPED("stopped"),
-        ERROR("error");
+        /** Error occurs while starting or stopped an application. */
+        ERROR("error"),
+        /**
+         * Gets new logged message from an application.
+         *
+         * @see com.codenvy.api.runner.internal.ApplicationLogger
+         */
+        MESSAGE_LOGGED("messageLogged");
 
         private final String value;
 
@@ -45,24 +54,44 @@ public class RunnerEvent {
         }
     }
 
-    private EventType type;
-    private String    runner;
-    private long      taskId;
-    private String    workspace;
-    private String    project;
-    private String    errorMessage;
-
-    public RunnerEvent(EventType type, String runner, long taskId, String workspace, String project, String errorMessage) {
-        this.type = type;
-        this.runner = runner;
-        this.taskId = taskId;
-        this.workspace = workspace;
-        this.project = project;
-        this.errorMessage = errorMessage;
+    public static RunnerEvent startedEvent(long processId, String workspace, String project) {
+        return new RunnerEvent(EventType.STARTED, processId, workspace, project);
     }
 
-    public RunnerEvent(EventType type, String runner, long taskId, String workspace, String project) {
-        this(type, runner, taskId, workspace, project, null);
+    public static RunnerEvent stoppedEvent(long processId, String workspace, String project) {
+        return new RunnerEvent(EventType.STOPPED, processId, workspace, project);
+    }
+
+    public static RunnerEvent errorEvent(long processId, String workspace, String project, String message) {
+        return new RunnerEvent(EventType.ERROR, processId, workspace, project, message);
+    }
+
+    public static RunnerEvent messageLoggedEvent(long processId, String workspace, String project, String message) {
+        return new RunnerEvent(EventType.MESSAGE_LOGGED, processId, workspace, project, message);
+    }
+
+    /** Event type. */
+    private EventType type;
+    /** Id of application process that produces the event. */
+    private long      processId;
+    /** Id of workspace that produces the event. */
+    private String    workspace;
+    /** Name of project that produces the event. */
+    private String    project;
+    /** Message associated with this event. Makes sense only for {@link EventType#MESSAGE_LOGGED} or {@link EventType#ERROR} events. */
+    private String    message;
+
+
+    RunnerEvent(EventType type, long processId, String workspace, String project, String message) {
+        this.type = type;
+        this.processId = processId;
+        this.workspace = workspace;
+        this.project = project;
+        this.message = message;
+    }
+
+    RunnerEvent(EventType type, long taskId, String workspace, String project) {
+        this(type, taskId, workspace, project, null);
     }
 
     public RunnerEvent() {
@@ -76,20 +105,12 @@ public class RunnerEvent {
         this.type = type;
     }
 
-    public String getRunner() {
-        return runner;
+    public long getProcessId() {
+        return processId;
     }
 
-    public void setRunner(String runner) {
-        this.runner = runner;
-    }
-
-    public long getTaskId() {
-        return taskId;
-    }
-
-    public void setTaskId(long taskId) {
-        this.taskId = taskId;
+    public void setProcessId(long processId) {
+        this.processId = processId;
     }
 
     public String getWorkspace() {
@@ -108,23 +129,22 @@ public class RunnerEvent {
         this.project = project;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
+    public String getMessage() {
+        return message;
     }
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     @Override
     public String toString() {
         return "RunnerEvent{" +
                "type=" + type +
-               ", runner='" + runner + '\'' +
-               ", taskId=" + taskId +
+               ", processId=" + processId +
                ", workspace='" + workspace + '\'' +
                ", project='" + project + '\'' +
-               ", errorMessage='" + errorMessage + '\'' +
+               ", message='" + message + '\'' +
                '}';
     }
 }

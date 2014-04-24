@@ -452,8 +452,8 @@ public class RunQueue {
                             }
                         }
                         if (error != null) {
-                            eventService.publish(new RunnerEvent(RunnerEvent.EventType.ERROR, null, runFutureTask.id,
-                                                                 runFutureTask.workspace, runFutureTask.project));
+                            eventService.publish(RunnerEvent.errorEvent(runFutureTask.id, runFutureTask.workspace, runFutureTask.project,
+                                                                        error.getMessage()));
                         }
                     }
                 }
@@ -505,13 +505,23 @@ public class RunQueue {
                 public void onEvent(RunnerEvent event) {
                     try {
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                        final long id = event.getTaskId();
-                        bm.setChannel(String.format("runner:status:%d", id));
-                        try {
-                            bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
-                        } catch (RunnerException re) {
-                            bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                            bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                        final long id = event.getProcessId();
+                        switch (event.getType()) {
+                            case STARTED:
+                            case STOPPED:
+                            case ERROR:
+                                bm.setChannel(String.format("runner:status:%d", id));
+                                try {
+                                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                                } catch (RunnerException re) {
+                                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                                    bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                                }
+                                break;
+                            case MESSAGE_LOGGED:
+                                bm.setChannel(String.format("runner:output:%d", id));
+                                bm.setBody(String.format("{\"line\":\"%s\"}", event.getMessage()));
+                                break;
                         }
                         WSConnectionContext.sendMessage(bm);
                     } catch (Exception e) {
@@ -524,7 +534,7 @@ public class RunQueue {
                 @Override
                 public void onEvent(RunnerEvent event) {
                     try {
-                        final long id = event.getTaskId();
+                        final long id = event.getProcessId();
                         final RunRequest request = getTask(id).getRequest();
                         final String analyticsID = getTask(id).getCreationTime() + "-" + id;
                         final String project = event.getProject();

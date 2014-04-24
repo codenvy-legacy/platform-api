@@ -605,7 +605,7 @@ public abstract class Builder {
                     } else if (cause instanceof BuilderException) {
                         throw (BuilderException)cause;
                     } else if (cause instanceof ApiException) {
-                        throw new BuilderException(((BuilderException)cause).getServiceError());
+                        throw new BuilderException(((ApiException)cause).getServiceError());
                     } else {
                         throw new BuilderException(cause.getMessage(), cause);
                     }

@@ -30,7 +30,7 @@ public class BuilderEvent {
         /** Build ends. */
         DONE("done"),
         /**
-         * Gets new logged message fro the builder.
+         * Gets new logged message from the builder.
          *
          * @see BuildLogger
          */
@@ -75,7 +75,7 @@ public class BuilderEvent {
     /** Message associated with this event. Makes sense only for {@link EventType#MESSAGE_LOGGED} events. */
     private String    message;
 
-    public BuilderEvent(EventType type, long taskId, String workspace, String project, String message) {
+    BuilderEvent(EventType type, long taskId, String workspace, String project, String message) {
         this.type = type;
         this.taskId = taskId;
         this.workspace = workspace;
@@ -83,7 +83,7 @@ public class BuilderEvent {
         this.message = message;
     }
 
-    public BuilderEvent(EventType type, long taskId, String workspace, String project) {
+    BuilderEvent(EventType type, long taskId, String workspace, String project) {
         this.type = type;
         this.taskId = taskId;
         this.workspace = workspace;

@@ -53,8 +53,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.codenvy.api.runner.internal.RunnerEvent.EventType;
-
 /**
  * Super-class for all implementation of Runner.
  *
@@ -327,22 +325,19 @@ public abstract class Runner {
             @Override
             public void started(RunnerProcess process) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                notify(new RunnerEvent(EventType.STARTED, getName(), runRequest.getId(), runRequest.getWorkspace(),
-                                       runRequest.getProject()));
+                notify(RunnerEvent.startedEvent(runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject()));
             }
 
             @Override
             public void stopped(RunnerProcess process) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                notify(new RunnerEvent(EventType.STOPPED, getName(), runRequest.getId(), runRequest.getWorkspace(),
-                                       runRequest.getProject()));
+                notify(RunnerEvent.stoppedEvent(runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject()));
             }
 
             @Override
             public void error(RunnerProcess process, Throwable t) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
-                notify(new RunnerEvent(EventType.ERROR, getName(), runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject(),
-                                       t.getMessage()));
+                notify(RunnerEvent.errorEvent(runRequest.getId(), runRequest.getWorkspace(), runRequest.getProject(), t.getMessage()));
             }
 
             private void notify(RunnerEvent re) {

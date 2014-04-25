@@ -106,12 +106,10 @@ public interface AccountDao {
     /**
      * Removes member from existing account
      *
-     * @param accountId
-     *         account identifier
-     * @param userId
-     *         user identifier
+     * @param member
+     *         account member to be removed
      */
-    void removeMember(String accountId, String userId) throws NotFoundException, ServerException;
+    void removeMember(Member member) throws NotFoundException, ServerException, ConflictException;
 
     /**
      * Adds new subscription to account that already exists in persistent layer

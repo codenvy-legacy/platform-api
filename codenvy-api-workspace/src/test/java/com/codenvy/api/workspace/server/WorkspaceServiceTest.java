@@ -426,10 +426,17 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToRemoveWorkspaceMember() throws Exception {
-        when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
-                DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
-                          .withRoles(Arrays.asList("workspace/admin"))
-                                                                              ));
+        List<Member> wsMembers = Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
+                                                         .withUserId(USER_ID)
+                                                         .withWorkspaceId(WS_ID)
+                                                         .withRoles(Arrays.asList("workspace/developer")),
+                                               DtoFactory.getInstance().createDto(Member.class)
+                                                         .withUserId("FAKE")
+                                                         .withWorkspaceId(WS_ID)
+                                                         .withRoles(Arrays.asList("workspace/admin"))
+                                              );
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(wsMembers);
+        when(memberDao.getWorkspaceMembers(WS_ID)).thenReturn(wsMembers);
         prepareSecurityContext("workspace/admin");
 
         ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/members/" + USER_ID, null, null);
@@ -438,6 +445,46 @@ public class WorkspaceServiceTest {
         verify(memberDao, times(1)).remove(any(Member.class));
     }
 
+    @Test
+    public void shouldNotBeAbleToRemoveLastWorkspaceAdmin() throws Exception {
+        List<Member> wsMembers = Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
+                                                         .withUserId(USER_ID)
+                                                         .withWorkspaceId(WS_ID)
+                                                         .withRoles(Arrays.asList("workspace/admin")),
+                                               DtoFactory.getInstance().createDto(Member.class)
+                                                         .withUserId("FAKE")
+                                                         .withWorkspaceId(WS_ID)
+                                                         .withRoles(Arrays.asList("workspace/developer"))
+                                              );
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(wsMembers);
+        when(memberDao.getWorkspaceMembers(WS_ID)).thenReturn(wsMembers);
+        prepareSecurityContext("workspace/admin");
+
+        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/members/" + USER_ID, null, null);
+
+        assertEquals(response.getEntity().toString(), "Workspace should have at least 1 admin");
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveWorkspaceAdminIfOtherOneExists() throws Exception {
+        List<Member> wsMembers = Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
+                                                         .withUserId(USER_ID)
+                                                         .withWorkspaceId(WS_ID)
+                                                         .withRoles(Arrays.asList("workspace/admin")),
+                                               DtoFactory.getInstance().createDto(Member.class)
+                                                         .withUserId("FAKE")
+                                                         .withWorkspaceId(WS_ID)
+                                                         .withRoles(Arrays.asList("workspace/admin"))
+                                              );
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(wsMembers);
+        when(memberDao.getWorkspaceMembers(WS_ID)).thenReturn(wsMembers);
+        prepareSecurityContext("workspace/admin");
+
+        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/members/" + USER_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(memberDao, times(1)).remove(any(Member.class));
+    }
 
     @Test
     public void shouldBeAbleToRemoveWorkspace() throws Exception {
@@ -454,7 +501,6 @@ public class WorkspaceServiceTest {
         ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        verify(memberDao, times(1)).remove(any(Member.class));
         verify(workspaceDao, times(1)).remove(WS_ID);
     }
 

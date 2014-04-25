@@ -266,11 +266,38 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_MEMBER)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public void removeMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
-                             @PathParam("userid") String userid) throws NotFoundException, ForbiddenException,
-                                                                        ServerException {
+                             @PathParam("userid") String userId) throws NotFoundException, ForbiddenException,
+                                                                        ServerException, ConflictException {
         final Account account = accountDao.getById(accountId);
         ensureCurrentUserIsAccountOwner(account, securityContext);
-        accountDao.removeMember(accountId, userid);
+        List<Member> accMembers = accountDao.getMembers(accountId);
+        Member toRemove = null;
+        //search for member
+        for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && toRemove == null; ) {
+            Member current = mIt.next();
+            if (current.getUserId().equals(userId)) {
+                toRemove = current;
+            }
+        }
+        if (toRemove != null) {
+            //account should have at least 1 owner
+            //if member that is being removed is account/owner
+            //we should check about other account owners existence
+            if (toRemove.getRoles().contains("account/owner")) {
+                boolean isOtherAccOwnerPresent = false;
+                for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && !isOtherAccOwnerPresent; ) {
+                    Member current = mIt.next();
+                    isOtherAccOwnerPresent = !current.getUserId().equals(userId)
+                                             && current.getRoles().contains("account/owner");
+                }
+                if (!isOtherAccOwnerPresent) {
+                    throw new ConflictException("Account should have at least 1 owner");
+                }
+            }
+            accountDao.removeMember(toRemove);
+        } else {
+            throw new NotFoundException(String.format("User %s doesn't have membership with account %s", userId, accountId));
+        }
     }
 
     @POST
@@ -382,7 +409,6 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ACCOUNT)
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
-        //todo if account has associated workspaces do not remove it
         accountDao.remove(id);
     }
 

@@ -512,10 +512,55 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToRemoveMember() throws Exception {
+        Member accountMember = DtoFactory.getInstance().createDto(Member.class)
+                                         .withUserId(USER_ID)
+                                         .withAccountId(ACCOUNT_ID)
+                                         .withRoles(Arrays.asList("account/member"));
+        Member accountOwner = DtoFactory.getInstance().createDto(Member.class)
+                                        .withUserId("owner_holder")
+                                        .withAccountId(ACCOUNT_ID)
+                                        .withRoles(Arrays.asList("account/owner"));
+        when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountMember, accountOwner));
+
         ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        verify(accountDao, times(1)).removeMember(ACCOUNT_ID, USER_ID);
+        verify(accountDao, times(1)).removeMember(accountMember);
+    }
+
+    @Test
+    public void shouldNotBeAbleToRemoveLastAccountOwner() throws Exception {
+        Member accountOwner = DtoFactory.getInstance().createDto(Member.class)
+                                        .withUserId(USER_ID)
+                                        .withAccountId(ACCOUNT_ID)
+                                        .withRoles(Arrays.asList("account/owner"));
+        Member accountMember = DtoFactory.getInstance().createDto(Member.class)
+                                         .withUserId("member_holder")
+                                         .withAccountId(ACCOUNT_ID)
+                                         .withRoles(Arrays.asList("account/member"));
+        when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountOwner, accountMember));
+
+        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
+
+        assertEquals(response.getEntity().toString(), "Account should have at least 1 owner");
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveAccountOwnerIfOtherOneExists() throws Exception {
+        Member accountOwner = DtoFactory.getInstance().createDto(Member.class)
+                                        .withUserId(USER_ID)
+                                        .withAccountId(ACCOUNT_ID)
+                                        .withRoles(Arrays.asList("account/owner"));
+        Member accountOwner2 = DtoFactory.getInstance().createDto(Member.class)
+                                         .withUserId("owner_holder")
+                                         .withAccountId(ACCOUNT_ID)
+                                         .withRoles(Arrays.asList("account/owner"));
+        when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountOwner, accountOwner2));
+
+        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(accountDao, times(1)).removeMember(accountOwner);
     }
 
     protected void verifyLinksRel(List<Link> links, List<String> rels) {

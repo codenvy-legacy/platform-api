@@ -91,7 +91,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void removeMember(String accountId, String userId) {
+    public void removeMember(Member member) {
         throw new RuntimeException("Not implemented");
     }
 

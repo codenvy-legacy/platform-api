@@ -483,10 +483,35 @@ public class WorkspaceService extends Service {
             throws NotFoundException, ServerException, ForbiddenException, ConflictException {
         workspaceDao.getById(wsId);
         ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
-        Member member = DtoFactory.getInstance().createDto(Member.class);
-        member.setUserId(userId);
-        member.setWorkspaceId(wsId);
-        memberDao.remove(member);
+        List<Member> wsMembers = memberDao.getWorkspaceMembers(wsId);
+        Member toRemove = null;
+        //search for member
+        for (Iterator<Member> mIt = wsMembers.iterator(); mIt.hasNext() && toRemove == null; ) {
+            Member current = mIt.next();
+            if (current.getUserId().equals(userId)) {
+                toRemove = current;
+            }
+        }
+        if (toRemove != null) {
+            //workspace should have at least 1 admin
+            if (toRemove.getRoles().contains("workspace/admin")) {
+                boolean isOtherWsAdminPresent = false;
+                for (Iterator<Member> mIt = wsMembers.iterator();
+                     mIt.hasNext() && !isOtherWsAdminPresent; ) {
+                    Member current = mIt.next();
+                    isOtherWsAdminPresent = !current.getUserId().equals(toRemove.getUserId())
+                                            && current.getRoles().contains("workspace/admin");
+                }
+                if (!isOtherWsAdminPresent) {
+                    throw new ConflictException("Workspace should have at least 1 admin");
+                }
+                //java8 alternative:
+                //isOtherWsAdminPresent = wsMembers().stream().filter(m -> m.getRoles.contains("workspace/admin")).count() > 1)
+            }
+            memberDao.remove(toRemove);
+        } else {
+            throw new NotFoundException(String.format("User %s doesn't have membership with workspace %s", userId, wsId));
+        }
     }
 
     @DELETE

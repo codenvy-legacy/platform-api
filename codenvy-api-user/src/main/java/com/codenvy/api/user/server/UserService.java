@@ -34,7 +34,6 @@ import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.Attribute;
-import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
@@ -175,14 +174,6 @@ public class UserService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_USER_BY_ID)
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
-        //todo remove consistently
-        final User user = userDao.getById(id);
-        //check it is no workspaces present
-        List<Member> members = memberDao.getUserRelationships(id);
-        for (Member member : members) {
-            memberDao.remove(member);
-        }
-        profileDao.remove(user.getId());
         userDao.remove(id);
     }
 

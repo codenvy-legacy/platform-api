@@ -64,7 +64,7 @@ public interface UserDao {
      * @param id
      *         - user identifier
      */
-    void remove(String id) throws NotFoundException, ServerException;
+    void remove(String id) throws NotFoundException, ServerException, ConflictException;
 
     /**
      * Gets user from persistent layer by any of his aliases

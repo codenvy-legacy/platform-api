@@ -61,7 +61,7 @@ public class ProjectTypeDescription {
     // Probably temporary solution for adding common attributes that are applicable for any type of project.
     protected void addCommonAttributes() {
         setAttributeDescription(new AttributeDescription("runner.user_defined_launcher"));
-        setAttributeDescription(new AttributeDescription("runner.run_script"));
+        setAttributeDescription(new AttributeDescription("runner.run_scripts"));
     }
 
     /**

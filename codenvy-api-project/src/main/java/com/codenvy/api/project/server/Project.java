@@ -63,6 +63,10 @@ public class Project {
         return manager.getProjectMisc(workspace, baseFolder.getPath()).getModificationDate();
     }
 
+    public long getCreationDate() {
+        return manager.getProjectMisc(workspace, baseFolder.getPath()).getCreationDate();
+    }
+
     public List<Project> getModules() {
         final List<Project> modules = new ArrayList<>();
         for (FolderEntry child : baseFolder.getChildFolders()) {
@@ -148,8 +152,14 @@ public class Project {
                     thisAttribute.setValues(attributeUpdate.getValues());
                 }
             } else {
-                // New attribute - save it in properties.
-                projectProperties.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
+                final ValueProviderFactory valueProviderFactory = manager.getValueProviderFactories().get(attributeName);
+                if (valueProviderFactory == null) {
+                    // New attribute without special behaviour - save it in properties.
+                    projectProperties.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
+                } else {
+                    thisAttribute = new Attribute(attributeName, valueProviderFactory.newInstance(this));
+                    thisAttribute.setValues(attributeUpdate.getValues());
+                }
             }
         }
         projectProperties.setDescription(projectDescriptionUpdate.getDescription());
@@ -158,13 +168,13 @@ public class Project {
 
     public String getVisibility() {
         try {
-            final Principal guest = DtoFactory.getInstance().createDto(Principal.class)
-                                              .withName("any")
-                                              .withType(Principal.Type.USER);
             final List<AccessControlEntry> acl = baseFolder.getVirtualFile().getACL();
             if (acl.isEmpty()) {
                 return "public";
             }
+            final Principal guest = DtoFactory.getInstance().createDto(Principal.class)
+                                              .withName("any")
+                                              .withType(Principal.Type.USER);
             for (AccessControlEntry ace : acl) {
                 if (guest.equals(ace.getPrincipal()) && ace.getPermissions().contains("read")) {
                     return "public";

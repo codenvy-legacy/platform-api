@@ -29,24 +29,25 @@ import java.util.Arrays;
 /**
  * @author gazarenkov
  */
-public interface Constants {
+public class Constants {
 
     public static final User USER = DtoFactory.getInstance().createDto(User.class)
-            .withId("codenvy")
-            .withEmail("codenvy@codenvy.com")
-            .withPassword("pass1");
+                                              .withId("codenvy")
+                                              .withEmail("codenvy@codenvy.com")
+                                              .withPassword("pass1");
 
-    public static final Token TOKEN = DtoFactory.getInstance().createDto(Token.class)
-            .withValue("123123");
-
-    public static final Member MEMBER = DtoFactory.getInstance().createDto(Member.class).
-            withUserId("codenvy")
-            .withWorkspaceId("default")
-            .withRoles(Arrays.asList("workspace/admin", "workspace/developer"));
+    public static final Token TOKEN = DtoFactory.getInstance().createDto(Token.class).withValue("123123");
 
     public static final Workspace WORKSPACE = DtoFactory.getInstance().createDto(Workspace.class)
-            .withId("default")
-            .withName("default")
-            .withTemporary(false);
+                                                        .withId("1q2w3e")
+                                                        .withName("default")
+                                                        .withTemporary(false);
 
+    public static final Member MEMBER = DtoFactory.getInstance().createDto(Member.class)
+                                                  .withUserId("codenvy")
+                                                  .withWorkspaceId(WORKSPACE.getId())
+                                                  .withRoles(Arrays.asList("workspace/admin", "workspace/developer"));
+
+    private Constants() {
+    }
 }

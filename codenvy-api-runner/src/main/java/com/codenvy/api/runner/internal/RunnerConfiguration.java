@@ -18,7 +18,7 @@
 package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.runner.internal.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.util.ArrayList;

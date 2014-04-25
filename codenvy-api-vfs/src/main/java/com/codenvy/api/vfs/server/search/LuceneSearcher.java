@@ -69,6 +69,7 @@ public abstract class LuceneSearcher implements Searcher {
     private Directory     luceneIndexDirectory;
     private IndexSearcher luceneIndexSearcher;
     private boolean       reopening;
+    private boolean       closed;
 
     public LuceneSearcher(Set<String> indexedMediaTypes) {
         this(new MediaTypeFilter(indexedMediaTypes));
@@ -92,7 +93,7 @@ public abstract class LuceneSearcher implements Searcher {
      * @throws com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException
      *         if any virtual filesystem error
      */
-    public void init(MountPoint mountPoint) throws VirtualFileSystemException {
+    public synchronized void init(MountPoint mountPoint) throws VirtualFileSystemException {
         final long start = System.currentTimeMillis();
         try {
             luceneIndexDirectory = makeDirectory();
@@ -104,6 +105,15 @@ public abstract class LuceneSearcher implements Searcher {
         }
         final long end = System.currentTimeMillis();
         LOG.debug("Index creation time: {} ms", (end - start));
+    }
+
+    public synchronized void close() {
+        if (!closed) {
+            closeQuietly(luceneIndexSearcher);
+            closeQuietly(luceneIndexWriter);
+            closeQuietly(luceneIndexDirectory);
+            closed = true;
+        }
     }
 
     /**
@@ -232,7 +242,7 @@ public abstract class LuceneSearcher implements Searcher {
     }
 
     protected void addTree(VirtualFile tree) throws VirtualFileSystemException {
-        final LinkedList<VirtualFile> q = new LinkedList<VirtualFile>();
+        final LinkedList<VirtualFile> q = new LinkedList<>();
         q.add(tree);
         int indexedFiles = 0;
         while (!q.isEmpty()) {
@@ -318,12 +328,6 @@ public abstract class LuceneSearcher implements Searcher {
                 }
             }
         }
-    }
-
-    public void close() {
-        closeQuietly(luceneIndexSearcher);
-        closeQuietly(luceneIndexWriter);
-        closeQuietly(luceneIndexDirectory);
     }
 
     protected Document createDocument(VirtualFile virtualFile, Reader inReader) throws VirtualFileSystemException {

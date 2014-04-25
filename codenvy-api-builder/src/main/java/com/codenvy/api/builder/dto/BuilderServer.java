@@ -17,7 +17,6 @@
  */
 package com.codenvy.api.builder.dto;
 
-import com.codenvy.api.builder.internal.dto.ServerState;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 

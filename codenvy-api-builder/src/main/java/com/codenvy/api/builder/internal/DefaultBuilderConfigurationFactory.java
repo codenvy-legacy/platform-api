@@ -18,9 +18,9 @@
 package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.BuilderException;
-import com.codenvy.api.builder.internal.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.DependencyRequest;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.DependencyRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,7 +28,7 @@ import java.nio.file.Files;
 /**
  * Base implementation of BuilderConfigurationFactory.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class DefaultBuilderConfigurationFactory implements BuilderConfigurationFactory {
     private final Builder builder;

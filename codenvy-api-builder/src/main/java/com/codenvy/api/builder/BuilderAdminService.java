@@ -21,7 +21,7 @@ import com.codenvy.api.builder.dto.BuilderServer;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;

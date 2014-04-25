@@ -30,6 +30,12 @@ public interface ProjectImporter {
      */
     String getId();
 
+
+    /**
+     * @return human readable description about this importer
+     */
+    String getDescription();
+
     /**
      * Imports source from the given {@code location} to the specified folder.
      *

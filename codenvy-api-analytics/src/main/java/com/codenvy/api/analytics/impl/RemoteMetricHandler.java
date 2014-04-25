@@ -19,9 +19,12 @@
 package com.codenvy.api.analytics.impl;
 
 import com.codenvy.api.analytics.AnalyticsService;
+import com.codenvy.api.analytics.Constants;
 import com.codenvy.api.analytics.MetricHandler;
-import com.codenvy.api.analytics.dto.*;
-import com.codenvy.api.core.rest.RemoteException;
+import com.codenvy.api.analytics.shared.dto.MetricInfoDTO;
+import com.codenvy.api.analytics.shared.dto.MetricInfoListDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueListDTO;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -40,7 +43,11 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Implementation provides means to perform remote REST requests to receive analytics data from remote rest service.
@@ -62,6 +69,7 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public MetricValueDTO getValue(String metricName,
                                    Map<String, String> executionContext,
                                    UriInfo uriInfo) {
@@ -79,6 +87,7 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public MetricValueDTO getPublicValue(String metricName,
                                          Map<String, String> executionContext,
                                          UriInfo uriInfo) {
@@ -96,6 +105,7 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public MetricValueListDTO getUserValues(List<String> metricNames,
                                             Map<String, String> executionContext,
                                             UriInfo uriInfo) {
@@ -113,6 +123,7 @@ public class RemoteMetricHandler implements MetricHandler {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public MetricInfoDTO getInfo(String metricName, UriInfo uriInfo) {
         String proxyUrl = getProxyURL("getInfo", metricName);
         try {
@@ -134,6 +145,7 @@ public class RemoteMetricHandler implements MetricHandler {
         String proxyUrl = getProxyURL("getAllInfo", "");
         try {
             List<Pair<String, String>> pairs = mapToParisList(Collections.<String, String>emptyMap());
+            @SuppressWarnings("unchecked")
             MetricInfoListDTO metricInfoListDTO = request(MetricInfoListDTO.class,
                                                           proxyUrl,
                                                           "GET",
@@ -187,7 +199,7 @@ public class RemoteMetricHandler implements MetricHandler {
                               String proxyUrl,
                               String method,
                               Object body,
-                              Pair<String, ?>... parameters) throws IOException, RemoteException {
+                              Pair<String, ?>... parameters) throws IOException {
 
         if (parameters != null && parameters.length > 0) {
             final StringBuilder sb = new StringBuilder();

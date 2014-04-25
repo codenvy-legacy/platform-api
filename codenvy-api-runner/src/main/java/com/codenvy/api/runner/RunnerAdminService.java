@@ -22,11 +22,11 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerServer;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
-import com.codenvy.api.runner.internal.dto.RunnerDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;

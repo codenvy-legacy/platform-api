@@ -23,12 +23,14 @@ import com.codenvy.api.core.util.CommandLine;
 /**
  * Build task abstraction.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface BuildTask {
 
-    /** Will be notified when processing of {@code BuildTask} is done (successfully, failed or cancelled). */
+    /** Will be notified when processing of {@code BuildTask} is started or done (successfully, failed or cancelled). */
     interface Callback {
+        void begin(BuildTask task);
+
         void done(BuildTask task);
     }
 
@@ -66,7 +68,7 @@ public interface BuildTask {
      * Reports whether build task is started or not.
      *
      * @return {@code true} if task is started and {@code false} otherwise
-     * @throws com.codenvy.api.builder.BuilderException
+     * @throws BuilderException
      *         if an error occurs when try to check status of build process
      */
     boolean isStarted() throws BuilderException;

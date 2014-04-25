@@ -23,7 +23,7 @@ import com.codenvy.dto.server.DtoFactory;
 /**
  * Base class for all API errors.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @SuppressWarnings("serial")
 public class ApiException extends Exception {

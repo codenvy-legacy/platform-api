@@ -18,7 +18,7 @@
 package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.runner.RunnerException;
-import com.codenvy.api.runner.internal.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunRequest;
 
 /**
  * Factory for RunnerConfiguration.

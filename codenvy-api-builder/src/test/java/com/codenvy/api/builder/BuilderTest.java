@@ -26,7 +26,7 @@ import com.codenvy.api.builder.internal.BuilderConfiguration;
 import com.codenvy.api.builder.internal.DelegateBuildLogger;
 import com.codenvy.api.builder.internal.SourceManagerListener;
 import com.codenvy.api.builder.internal.SourcesManager;
-import com.codenvy.api.builder.internal.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuildRequest;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.commons.lang.IoUtil;

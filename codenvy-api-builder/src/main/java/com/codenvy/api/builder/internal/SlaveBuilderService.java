@@ -19,14 +19,13 @@ package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderException;
-import com.codenvy.api.builder.NoSuchBuilderException;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.internal.dto.BuildRequest;
-import com.codenvy.api.builder.internal.dto.BuilderDescriptor;
-import com.codenvy.api.builder.internal.dto.BuilderList;
-import com.codenvy.api.builder.internal.dto.BuilderState;
-import com.codenvy.api.builder.internal.dto.DependencyRequest;
-import com.codenvy.api.builder.internal.dto.ServerState;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
+import com.codenvy.api.builder.dto.BuilderState;
+import com.codenvy.api.builder.dto.DependencyRequest;
+import com.codenvy.api.builder.dto.ServerState;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -68,7 +67,7 @@ public final class SlaveBuilderService extends Service {
     @GET
     @Path("available")
     @Produces(MediaType.APPLICATION_JSON)
-    public BuilderList availableBuilders() {
+    public List<BuilderDescriptor> availableBuilders() {
         final Set<Builder> all = builders.getAll();
         final List<BuilderDescriptor> list = new ArrayList<>(all.size());
         for (Builder builder : all) {
@@ -76,7 +75,7 @@ public final class SlaveBuilderService extends Service {
                                .withName(builder.getName())
                                .withDescription(builder.getDescription()));
         }
-        return DtoFactory.getInstance().createDto(BuilderList.class).withBuilders(list);
+        return list;
     }
 
     @GenerateLink(rel = Constants.LINK_REL_BUILDER_STATE)
@@ -206,7 +205,7 @@ public final class SlaveBuilderService extends Service {
             buff.write("</div>");
             return Response.status(200).entity(buff.toString()).type(MediaType.TEXT_HTML).build();
         }
-        throw new BuilderException(String.format("%s does not exist or is not a folder", path));
+        throw new NotFoundException(String.format("%s does not exist or is not a folder", path));
     }
 
     @GET
@@ -223,7 +222,7 @@ public final class SlaveBuilderService extends Service {
                            .entity(target)
                            .build();
         }
-        throw new BuilderException(String.format("%s does not exist or is not a file", path));
+        throw new NotFoundException(String.format("%s does not exist or is not a file", path));
     }
 
     @GET
@@ -236,13 +235,13 @@ public final class SlaveBuilderService extends Service {
         if (target.isFile()) {
             return Response.status(200).type(ContentTypeGuesser.guessContentType(target)).entity(target).build();
         }
-        throw new BuilderException(String.format("%s does not exist or is not a file", path));
+        throw new NotFoundException(String.format("%s does not exist or is not a file", path));
     }
 
-    private Builder getBuilder(String name) throws NoSuchBuilderException {
+    private Builder getBuilder(String name) throws NotFoundException {
         final Builder myBuilder = builders.get(name);
         if (myBuilder == null) {
-            throw new NoSuchBuilderException(name);
+            throw new NotFoundException(String.format("Unknown builder %s", name));
         }
         return myBuilder;
     }

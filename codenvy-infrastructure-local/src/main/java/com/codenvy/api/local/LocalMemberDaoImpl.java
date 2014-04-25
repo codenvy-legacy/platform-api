@@ -18,36 +18,33 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.user.server.dao.MemberDao;
-import com.codenvy.api.user.server.exception.MembershipException;
 import com.codenvy.api.user.shared.dto.Member;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Singleton
 public class LocalMemberDaoImpl implements MemberDao {
     @Override
-    public void create(Member member) throws MembershipException {
+    public void create(Member member) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public void update(Member member) throws MembershipException {
+    public void update(Member member) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public List<Member> getWorkspaceMembers(String wsId) throws MembershipException {
+    public List<Member> getWorkspaceMembers(String wsId) {
         List<Member> members = new ArrayList<>();
         members.add(Constants.MEMBER);
         return members;
     }
 
     @Override
-    public List<Member> getUserRelationships(String userId) throws MembershipException {
+    public List<Member> getUserRelationships(String userId) {
         List<Member> members = new ArrayList<>();
         members.add(Constants.MEMBER);
         return members;

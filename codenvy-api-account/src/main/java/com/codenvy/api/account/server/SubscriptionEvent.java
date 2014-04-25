@@ -26,7 +26,7 @@ public class SubscriptionEvent {
 
     public static enum EventType {
         CREATE,
-        CHANGE,
+        CHECK,
         REMOVE
     }
 

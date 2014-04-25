@@ -59,7 +59,7 @@ public abstract class SubscriptionService {
                     handler.onRemoveSubscription(event);
                 }
                 break;
-            case CHANGE:
+            case CHECK:
                 for (SubscriptionHandler handler : handlers) {
                     handler.onCheckSubscription(event);
                 }

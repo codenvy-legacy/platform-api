@@ -53,6 +53,9 @@ public abstract class VirtualFileSystemUserContext {
             if (user.isMemberOf("workspace/developer")) {
                 groups.add("workspace/developer");
             }
+            if (user.isMemberOf("system/admin")) {
+                groups.add("workspace/developer");
+            }
             if (user.isMemberOf("workspace/admin")) {
                 groups.add("workspace/admin");
             }

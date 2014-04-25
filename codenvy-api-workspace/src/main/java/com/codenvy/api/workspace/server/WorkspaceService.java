@@ -192,7 +192,7 @@ public class WorkspaceService extends Service {
         Member member = DtoFactory.getInstance().createDto(Member.class)
                                   .withUserId(user.getId())
                                   .withWorkspaceId(wsId)
-                                  .withRoles(Arrays.asList("workspace/developer"));
+                                  .withRoles(Arrays.asList("workspace/developer", "workspace/admin"));
         memberDao.create(member);
 
         LOG.info("EVENT#workspace-created# WS#{}# USER#{}#", newWorkspace.getName(), user.getEmail());

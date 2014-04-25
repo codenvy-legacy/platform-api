@@ -149,6 +149,29 @@ public class UserProfileTest {
     }
 
     @Test
+    public void shouldBeAbleToRemovePreferences() throws Exception {
+        Map<String, String> prefs = new HashMap<>(Collections.singletonMap("ssh_key", "value"));
+        Profile profile = DtoFactory.getInstance()
+                                    .createDto(Profile.class)
+                                    .withId(USER_ID)
+                                    .withPreferences(prefs);
+        when(userProfileDao.getById(USER_ID)).thenReturn(profile);
+
+        Map<String, List<String>> headers = new HashMap<>();
+
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        ContainerResponse response =
+                launcher.service("DELETE", SERVICE_PATH + "/prefs", BASE_URI, headers,
+                                 JsonHelper.toJson(Arrays.asList("ssh_key")).getBytes(),
+                                 null,
+                                 environmentContext);
+
+        assertEquals(response.getStatus(), Status.NO_CONTENT.getStatusCode());
+        verify(userProfileDao, times(1)).update(any(Profile.class));
+        assertEquals(prefs.size(), 0);
+    }
+
+    @Test
     public void shouldBeAbleToUpdateCurrentProfilePrefs() throws Exception {
         // given
         Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(USER_ID);
@@ -211,7 +234,8 @@ public class UserProfileTest {
 
         List<Attribute> attributeList = Arrays.asList(
                 DtoFactory.getInstance().createDto(Attribute.class).withName("testname").withValue("testValue")
-                          .withDescription("testDescription"));
+                          .withDescription("testDescription")
+                                                     );
         String[] s = getRoles(UserProfileService.class, "updateCurrent");
         for (String one : s) {
             prepareSecurityContext(one);
@@ -239,7 +263,8 @@ public class UserProfileTest {
 
         List<Attribute> attributeList = Arrays.asList(
                 DtoFactory.getInstance().createDto(Attribute.class).withName("testname").withValue("testValue")
-                          .withDescription("testDescription"));
+                          .withDescription("testDescription")
+                                                     );
 
         String[] s = getRoles(UserProfileService.class, "update");
         for (String one : s) {

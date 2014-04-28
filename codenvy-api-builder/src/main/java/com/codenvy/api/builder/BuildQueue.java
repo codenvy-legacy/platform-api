@@ -620,8 +620,11 @@ public class BuildQueue {
                                 }
                                 break;
                             case MESSAGE_LOGGED:
-                                bm.setChannel(String.format("builder:output:%d", id));
-                                bm.setBody(String.format("{\"line\":\"%s\"}", event.getMessage()));
+                                final BuilderEvent.LoggedMessage message = event.getMessage();
+                                if (message != null) {
+                                    bm.setChannel(String.format("builder:output:%d", id));
+                                    bm.setBody(String.format("{\"num\":%d, \"line\":\"%s\"}", message.getLineNum(), message.getMessage()));
+                                }
                                 break;
                         }
                         WSConnectionContext.sendMessage(bm);

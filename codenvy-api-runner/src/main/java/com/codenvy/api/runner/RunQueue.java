@@ -593,6 +593,7 @@ public class RunQueue {
                                         LOG.debug("Pre-configured slave runner server {} registered. ", server.getBaseUrl());
                                     } catch (RunnerException e) {
                                         LOG.error(e.getMessage(), e);
+                                        offline.add(server);
                                     }
                                 } else {
                                     LOG.warn("Pre-configured slave runner server {} isn't responding. ", server.getBaseUrl());

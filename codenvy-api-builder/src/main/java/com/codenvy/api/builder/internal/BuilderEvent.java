@@ -52,6 +52,47 @@ public class BuilderEvent {
         }
     }
 
+    /*
+    Seems we can't guaranty correct order of messages on the client (browser) side, that means we need to wrap each line with simple object
+    that keeps line's number.
+     */
+    public static class LoggedMessage {
+        private String message;
+        private int    lineNum;
+
+        public LoggedMessage(String message, int lineNum) {
+            this.message = message;
+            this.lineNum = lineNum;
+        }
+
+        public LoggedMessage() {
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public int getLineNum() {
+            return lineNum;
+        }
+
+        public void setLineNum(int lineNum) {
+            this.lineNum = lineNum;
+        }
+
+        @Override
+        public String toString() {
+            return "LoggedMessage{" +
+                   "message='" + message + '\'' +
+                   ", lineNum=" + lineNum +
+                   '}';
+        }
+    }
+
     public static BuilderEvent beginEvent(long taskId, String workspace, String project) {
         return new BuilderEvent(EventType.BEGIN, taskId, workspace, project);
     }
@@ -60,22 +101,22 @@ public class BuilderEvent {
         return new BuilderEvent(EventType.DONE, taskId, workspace, project);
     }
 
-    public static BuilderEvent messageLoggedEvent(long taskId, String workspace, String project, String message) {
+    public static BuilderEvent messageLoggedEvent(long taskId, String workspace, String project, LoggedMessage message) {
         return new BuilderEvent(EventType.MESSAGE_LOGGED, taskId, workspace, project, message);
     }
 
     /** Event type. */
-    private EventType type;
+    private EventType     type;
     /** Id of build task that produces the event. */
-    private long      taskId;
+    private long          taskId;
     /** Id of workspace that produces the event. */
-    private String    workspace;
+    private String        workspace;
     /** Name of project that produces the event. */
-    private String    project;
+    private String        project;
     /** Message associated with this event. Makes sense only for {@link EventType#MESSAGE_LOGGED} events. */
-    private String    message;
+    private LoggedMessage message;
 
-    BuilderEvent(EventType type, long taskId, String workspace, String project, String message) {
+    BuilderEvent(EventType type, long taskId, String workspace, String project, LoggedMessage message) {
         this.type = type;
         this.taskId = taskId;
         this.workspace = workspace;
@@ -125,11 +166,11 @@ public class BuilderEvent {
         this.project = project;
     }
 
-    public String getMessage() {
+    public LoggedMessage getMessage() {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(LoggedMessage message) {
         this.message = message;
     }
 

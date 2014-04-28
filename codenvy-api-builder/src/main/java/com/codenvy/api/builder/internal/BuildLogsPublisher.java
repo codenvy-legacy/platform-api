@@ -20,6 +20,7 @@ package com.codenvy.api.builder.internal;
 import com.codenvy.api.core.notification.EventService;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Publishes builder's outputs to the EventService.
@@ -27,6 +28,7 @@ import java.io.IOException;
  * @author andrew00x
  */
 class BuildLogsPublisher extends DelegateBuildLogger {
+    private final AtomicInteger lineCounter;
     private final EventService eventService;
     private final long         taskId;
     private final String       workspace;
@@ -38,12 +40,14 @@ class BuildLogsPublisher extends DelegateBuildLogger {
         this.taskId = taskId;
         this.workspace = workspace;
         this.project = project;
+        lineCounter = new AtomicInteger(1);
     }
 
     @Override
     public void writeLine(String line) throws IOException {
         if (line != null) {
-            eventService.publish(BuilderEvent.messageLoggedEvent(taskId, workspace, project, line));
+            eventService.publish(BuilderEvent.messageLoggedEvent(taskId, workspace, project,
+                                                                 new BuilderEvent.LoggedMessage(line, lineCounter.getAndIncrement())));
         }
         super.writeLine(line);
     }

@@ -522,8 +522,11 @@ public class RunQueue {
                                 }
                                 break;
                             case MESSAGE_LOGGED:
-                                bm.setChannel(String.format("runner:output:%d", id));
-                                bm.setBody(String.format("{\"line\":\"%s\"}", event.getMessage()));
+                                final RunnerEvent.LoggedMessage message = event.getMessage();
+                                if (message != null) {
+                                    bm.setChannel(String.format("runner:output:%d", id));
+                                    bm.setBody(String.format("{\"num\":%d, \"line\":\"%s\"}", message.getLineNum(), message.getMessage()));
+                                }
                                 break;
                         }
                         WSConnectionContext.sendMessage(bm);

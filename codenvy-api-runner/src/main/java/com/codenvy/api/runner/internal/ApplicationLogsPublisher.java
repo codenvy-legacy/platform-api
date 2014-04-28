@@ -20,6 +20,7 @@ package com.codenvy.api.runner.internal;
 import com.codenvy.api.core.notification.EventService;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Publishes application's outputs to the EventService.
@@ -27,10 +28,11 @@ import java.io.IOException;
  * @author andrew00x
  */
 public class ApplicationLogsPublisher extends DelegateApplicationLogger {
-    private final EventService eventService;
-    private final long         processId;
-    private final String       workspace;
-    private final String       project;
+    private final AtomicInteger lineCounter;
+    private final EventService  eventService;
+    private final long          processId;
+    private final String        workspace;
+    private final String        project;
 
     public ApplicationLogsPublisher(ApplicationLogger delegate, EventService eventService, long processId, String workspace,
                                     String project) {
@@ -39,12 +41,14 @@ public class ApplicationLogsPublisher extends DelegateApplicationLogger {
         this.processId = processId;
         this.workspace = workspace;
         this.project = project;
+        lineCounter = new AtomicInteger(1);
     }
 
     @Override
     public void writeLine(String line) throws IOException {
         if (line != null) {
-            eventService.publish(RunnerEvent.messageLoggedEvent(processId, workspace, project, line));
+            eventService.publish(RunnerEvent.messageLoggedEvent(processId, workspace, project,
+                                                                new RunnerEvent.LoggedMessage(line, lineCounter.getAndIncrement())));
         }
         super.writeLine(line);
     }

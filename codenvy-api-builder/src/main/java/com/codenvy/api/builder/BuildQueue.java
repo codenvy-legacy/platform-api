@@ -20,6 +20,7 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
@@ -567,15 +568,17 @@ public class BuildQueue {
                                 num++;
                             }
                         } else {
+                            BuildTaskDescriptor descriptor = null;
                             try {
-                                final long endTime = task.getDescriptor().getEndTime();
-                                if (endTime > 0 && (endTime + keepEndedTasks) < System.currentTimeMillis()) {
-                                    i.remove();
-                                    num++;
-                                }
-                            } catch (BuilderException e) {
+                                descriptor = task.getDescriptor();
+                            } catch (Exception e) {
                                 LOG.warn(e.getMessage(), e);
-                            } catch (NotFoundException ignored) {
+                            }
+                            long endTime;
+                            if (descriptor == null
+                                || ((endTime = descriptor.getEndTime()) > 0 && (endTime + keepEndedTasks) < System.currentTimeMillis())) {
+                                i.remove();
+                                num++;
                             }
                         }
                     }

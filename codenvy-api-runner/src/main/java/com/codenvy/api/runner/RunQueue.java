@@ -35,6 +35,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
@@ -482,15 +483,17 @@ public class RunQueue {
                                 num++;
                             }
                         } else {
+                            ApplicationProcessDescriptor descriptor = null;
                             try {
-                                final long stopTime = task.getDescriptor().getStopTime();
-                                if (stopTime > 0 && (stopTime + keepStoppedTasks) < System.currentTimeMillis()) {
-                                    i.remove();
-                                    num++;
-                                }
-                            } catch (RunnerException e) {
+                                descriptor = task.getDescriptor();
+                            } catch (Exception e) {
                                 LOG.warn(e.getMessage(), e);
-                            } catch (NotFoundException ignored) {
+                            }
+                            long stopTime;
+                            if (descriptor == null ||
+                                ((stopTime = descriptor.getStopTime()) > 0 && (stopTime + keepStoppedTasks) < System.currentTimeMillis())) {
+                                i.remove();
+                                num++;
                             }
                         }
                     }

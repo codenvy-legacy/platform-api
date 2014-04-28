@@ -386,7 +386,7 @@ public class WorkspaceService extends Service {
     @GET
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_MEMBERS)
-    @RolesAllowed("user")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<Member> getMembers(@PathParam("id") String wsId, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ForbiddenException {

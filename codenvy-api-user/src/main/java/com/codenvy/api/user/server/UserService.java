@@ -143,7 +143,7 @@ public class UserService extends Service {
     @GET
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_GET_USER_BY_ID)
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public User getById(@Context SecurityContext securityContext, @PathParam("id") String id)
             throws NotFoundException, ServerException {
@@ -156,7 +156,7 @@ public class UserService extends Service {
     @GET
     @Path("find")
     @GenerateLink(rel = Constants.LINK_REL_GET_USER_BY_EMAIL)
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public User getByEmail(@Context SecurityContext securityContext, @Required @Description("user email") @QueryParam("email") String email)
             throws ForbiddenException, NotFoundException, ServerException {

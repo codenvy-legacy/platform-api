@@ -688,6 +688,7 @@ public class BuildQueue {
                                         LOG.debug("Pre-configured slave builder server {} registered. ", server.getBaseUrl());
                                     } catch (BuilderException e) {
                                         LOG.error(e.getMessage(), e);
+                                        offline.add(server);
                                     }
                                 } else {
                                     LOG.warn("Pre-configured slave builder server {} isn't responding. ", server.getBaseUrl());

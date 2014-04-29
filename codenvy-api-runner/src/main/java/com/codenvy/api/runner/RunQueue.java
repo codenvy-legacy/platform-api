@@ -35,7 +35,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
@@ -114,7 +113,7 @@ public class RunQueue {
     private final int                                             appLifetime;
     private final long                                            maxTimeInQueueMillis;
     private final AtomicBoolean                                   started;
-    private final long                                            keepStoppedTasks;
+    private final long                                            appCleanupTime;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -142,8 +141,6 @@ public class RunQueue {
      *         max time for request to be in queue in seconds
      * @param appLifetime
      *         application life time in seconds. After this time the application may be terminated.
-     * @param appCleanupTime
-     *         after this time (in seconds) remove all information about stopped application process from this queue.
      */
     @Inject
     public RunQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
@@ -161,12 +158,12 @@ public class RunQueue {
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.appLifetime = appLifetime;
         this.runnerSelector = runnerSelector;
+        this.appCleanupTime = TimeUnit.SECONDS.toMillis(appCleanupTime);
 
         runnerServices = new ConcurrentHashMap<>();
         tasks = new ConcurrentHashMap<>();
         runnerListMapping = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
-        keepStoppedTasks = TimeUnit.SECONDS.toMillis(appCleanupTime);
     }
 
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
@@ -486,17 +483,27 @@ public class RunQueue {
                                 num++;
                             }
                         } else {
-                            ApplicationProcessDescriptor descriptor = null;
+                            RemoteRunnerProcess remote = null;
                             try {
-                                descriptor = task.getDescriptor();
+                                remote = task.getRemoteProcess();
                             } catch (Exception e) {
                                 LOG.warn(e.getMessage(), e);
                             }
-                            long stopTime;
-                            if (descriptor == null ||
-                                ((stopTime = descriptor.getStopTime()) > 0 && (stopTime + keepStoppedTasks) < System.currentTimeMillis())) {
+                            if (remote == null) {
                                 i.remove();
                                 num++;
+                            } else if ((remote.getCreationTime() + task.getRequest().getLifetime() + appCleanupTime) <
+                                       System.currentTimeMillis()) {
+                                try {
+                                    remote.getApplicationProcessDescriptor();
+                                } catch (NotFoundException e) {
+                                    i.remove();
+                                    num++;
+                                } catch (Exception e) {
+                                    LOG.warn(e.getMessage(), e);
+                                    i.remove();
+                                    num++;
+                                }
                             }
                         }
                     }

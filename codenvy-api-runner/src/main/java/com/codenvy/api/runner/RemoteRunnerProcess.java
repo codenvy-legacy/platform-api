@@ -33,12 +33,23 @@ public class RemoteRunnerProcess {
 
     private final String baseUrl;
     private final String runner;
-    private final Long   processId;
+
+    private final Long processId;
+    private final long created;
 
     RemoteRunnerProcess(String baseUrl, String runner, Long processId) {
         this.baseUrl = baseUrl;
         this.runner = runner;
         this.processId = processId;
+        created = System.currentTimeMillis();
+    }
+
+    public Long getProcessId() {
+        return processId;
+    }
+
+    public long getCreationTime() {
+        return created;
     }
 
     /**

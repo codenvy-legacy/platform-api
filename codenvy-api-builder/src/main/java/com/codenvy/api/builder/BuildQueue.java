@@ -20,7 +20,6 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
@@ -110,7 +109,7 @@ public class BuildQueue {
     private final long                                             maxTimeInQueueMillis;
     private final Cache<BaseBuilderRequest, RemoteTask>            successfulBuilds;
     private final AtomicBoolean                                    started;
-    private final long                                             keepEndedTasks;
+    private final long                                             cleanupTimeout;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -144,13 +143,13 @@ public class BuildQueue {
         this.eventService = eventService;
         this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
         this.builderSelector = builderSelector;
+        this.cleanupTimeout = TimeUnit.SECONDS.toMillis(cleanupTimeout);
 
         tasks = new ConcurrentHashMap<>();
         builderListMapping = new ConcurrentHashMap<>();
         successfulBuilds = new SynchronizedCache<>(new SLRUCache<BaseBuilderRequest, RemoteTask>(200, 400));
         builderServices = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
-        keepEndedTasks = TimeUnit.SECONDS.toMillis(cleanupTimeout);
     }
 
     /**
@@ -569,17 +568,26 @@ public class BuildQueue {
                                 num++;
                             }
                         } else {
-                            BuildTaskDescriptor descriptor = null;
+                            RemoteTask remote = null;
                             try {
-                                descriptor = task.getDescriptor();
+                                remote = task.getRemoteTask();
                             } catch (Exception e) {
                                 LOG.warn(e.getMessage(), e);
                             }
-                            long endTime;
-                            if (descriptor == null
-                                || ((endTime = descriptor.getEndTime()) > 0 && (endTime + keepEndedTasks) < System.currentTimeMillis())) {
+                            if (remote == null) {
                                 i.remove();
                                 num++;
+                            } else if ((remote.getCreationTime() + cleanupTimeout) < System.currentTimeMillis()) {
+                                try {
+                                    remote.getBuildTaskDescriptor();
+                                } catch (NotFoundException e) {
+                                    i.remove();
+                                    num++;
+                                } catch (Exception e) {
+                                    LOG.warn(e.getMessage(), e);
+                                    i.remove();
+                                    num++;
+                                }
                             }
                         }
                     }

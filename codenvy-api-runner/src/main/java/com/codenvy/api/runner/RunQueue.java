@@ -142,13 +142,16 @@ public class RunQueue {
      *         max time for request to be in queue in seconds
      * @param appLifetime
      *         application life time in seconds. After this time the application may be terminated.
+     * @param appCleanupTime
+     *         after this time (in seconds) remove all information about stopped application process from this queue.
      */
     @Inject
     public RunQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                     @Nullable @Named("builder.base_api_url") String baseBuilderApiUrl,
-                    @Named("runner.default_app_mem_size") int defMemSize,
-                    @Named("runner.queue.max_time_in_queue") int maxTimeInQueue,
-                    @Named("runner.queue.app_lifetime") int appLifetime,
+                    @Named(Constants.APP_DEFAULT_MEM_SIZE) int defMemSize,
+                    @Named(Constants.MAX_TIME_IN_QUEUE) int maxTimeInQueue,
+                    @Named(Constants.APP_LIFETIME) int appLifetime,
+                    @Named(Constants.APP_CLEANUP_TIME) int appCleanupTime,
                     RunnerSelectionStrategy runnerSelector,
                     EventService eventService) {
         this.baseProjectApiUrl = baseProjectApiUrl;
@@ -163,7 +166,7 @@ public class RunQueue {
         tasks = new ConcurrentHashMap<>();
         runnerListMapping = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
-        keepStoppedTasks = TimeUnit.MINUTES.toMillis(1);
+        keepStoppedTasks = TimeUnit.SECONDS.toMillis(appCleanupTime);
     }
 
     public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {

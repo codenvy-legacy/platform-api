@@ -134,8 +134,9 @@ public class BuildQueue {
      */
     @Inject
     public BuildQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
-                      @Named("builder.queue.max_time_in_queue") int maxTimeInQueue,
-                      @Named("builder.queue.build_timeout") int timeout,
+                      @Named(Constants.MAX_TIME_IN_QUEUE) int maxTimeInQueue,
+                      @Named(Constants.BUILD_TIMEOUT) int timeout,
+                      @Named(Constants.CLEANUP_RESULT_TIME) int cleanupTimeout,
                       BuilderSelectionStrategy builderSelector,
                       EventService eventService) {
         this.baseProjectApiUrl = baseProjectApiUrl;
@@ -149,7 +150,7 @@ public class BuildQueue {
         successfulBuilds = new SynchronizedCache<>(new SLRUCache<BaseBuilderRequest, RemoteTask>(200, 400));
         builderServices = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
-        keepEndedTasks = TimeUnit.MINUTES.toMillis(1);
+        keepEndedTasks = TimeUnit.SECONDS.toMillis(cleanupTimeout);
     }
 
     /**

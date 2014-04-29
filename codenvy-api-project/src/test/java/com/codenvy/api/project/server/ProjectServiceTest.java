@@ -36,6 +36,7 @@ import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.RequestHandler;
@@ -134,7 +135,11 @@ public class ProjectServiceTest {
                                                                providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         resources.addResource(ProjectService.class, null);
-
+        // for log events
+        com.codenvy.commons.env.EnvironmentContext env = com.codenvy.commons.env.EnvironmentContext.getCurrent();
+        env.setUser(new UserImpl(vfsUserName, vfsUserName, "dummy_token", vfsUserGroups));
+        env.setWorkspaceName("my_ws");
+        env.setWorkspaceId("my_ws");
         launcher = new ResourceLauncher(requestHandler);
     }
 

@@ -139,7 +139,9 @@ public class ProjectService extends Service {
                                            @Description("descriptor of project") ProjectDescriptor descriptor) throws Exception {
         final Project project = projectManager.createProject(workspace, name, toDescription(descriptor));
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
+        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", projectDescriptor.getName(),
+                 projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 EnvironmentContext.getCurrent().getUser().getName());
         return projectDescriptor;
     }
 
@@ -180,7 +182,9 @@ public class ProjectService extends Service {
         }
         final Project module = project.createModule(name, toDescription(descriptor));
         final ProjectDescriptor moduleDescriptor = toDescriptor(module);
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", moduleDescriptor.getName(), moduleDescriptor.getProjectTypeId());
+        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", moduleDescriptor.getName(),
+                 moduleDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 EnvironmentContext.getCurrent().getUser().getName());
         return moduleDescriptor;
     }
 
@@ -255,7 +259,8 @@ public class ProjectService extends Service {
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
-            LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}#", name, projectType);
+            LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
+                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
         } else {
             entry.remove();
         }
@@ -276,7 +281,8 @@ public class ProjectService extends Service {
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", name, projectType);
+            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
+                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
         }
         return Response.created(location).build();
     }
@@ -296,8 +302,10 @@ public class ProjectService extends Service {
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
-            LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}#", name, projectType);
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", name, projectType);
+            LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
+                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
+            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
+                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
         }
         return Response.created(location).build();
     }
@@ -344,7 +352,9 @@ public class ProjectService extends Service {
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
         if (newProject) {
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
+            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", projectDescriptor.getName(),
+                     projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                     EnvironmentContext.getCurrent().getUser().getName());
         }
         return projectDescriptor;
     }
@@ -370,7 +380,9 @@ public class ProjectService extends Service {
         }
         generator.generateProject(project.getBaseFolder(), options);
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", projectDescriptor.getName(), projectDescriptor.getProjectTypeId());
+        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", projectDescriptor.getName(),
+                 projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 EnvironmentContext.getCurrent().getUser().getName());
         return projectDescriptor;
     }
 
@@ -385,7 +397,8 @@ public class ProjectService extends Service {
         if (folder.isProjectFolder()) {
             Project project = new Project(workspace, folder, projectManager);
             final String projectType = project.getDescription().getProjectType().getId();
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}#", name, projectType);
+            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
+                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
         }
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getChildren")

@@ -160,6 +160,9 @@ public final class SlaveBuilderService extends Service {
         final BuildTask task = myBuilder.getBuildTask(id);
         final java.io.File workDir = task.getConfiguration().getWorkDir();
         final java.io.File target = new java.io.File(workDir, path);
+        if (!(target.toPath().normalize().startsWith(workDir.toPath().normalize()))) {
+            throw new NotFoundException(String.format("Invalid relative path %s", path));
+        }
         if (target.isDirectory()) {
             final StringWriter buff = new StringWriter();
             buff.write("<div class='file-browser'>");
@@ -215,6 +218,9 @@ public final class SlaveBuilderService extends Service {
                              @Required @QueryParam("path") String path) throws Exception {
         final java.io.File workDir = getBuilder(builder).getBuildTask(id).getConfiguration().getWorkDir();
         final java.io.File target = new java.io.File(workDir, path);
+        if (!(target.toPath().normalize().startsWith(workDir.toPath().normalize()))) {
+            throw new NotFoundException(String.format("Invalid relative path %s", path));
+        }
         if (target.isFile()) {
             return Response.status(200)
                            .header("Content-Disposition", String.format("attachment; filename=\"%s\"", target.getName()))
@@ -232,6 +238,9 @@ public final class SlaveBuilderService extends Service {
                          @Required @QueryParam("path") String path) throws Exception {
         final java.io.File workDir = getBuilder(builder).getBuildTask(id).getConfiguration().getWorkDir();
         final java.io.File target = new java.io.File(workDir, path);
+        if (!(target.toPath().normalize().startsWith(workDir.toPath().normalize()))) {
+            throw new NotFoundException(String.format("Invalid relative path %s", path));
+        }
         if (target.isFile()) {
             return Response.status(200).type(ContentTypeGuesser.guessContentType(target)).entity(target).build();
         }

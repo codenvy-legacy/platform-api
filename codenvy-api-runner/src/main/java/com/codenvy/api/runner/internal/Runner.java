@@ -62,8 +62,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Runner {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
-    public static final String DEPLOY_DIRECTORY   = "runner.internal.deploy_directory";
-    public static final String CLEANUP_DELAY_TIME = "runner.internal.clean_delay_time";
+    /** @deprecated use {@link com.codenvy.api.runner.internal.Constants#DEPLOY_DIRECTORY} */
+    public static final String DEPLOY_DIRECTORY   = Constants.DEPLOY_DIRECTORY;
+    /** @deprecated use {@link com.codenvy.api.runner.internal.Constants#APP_CLEANUP_TIME} */
+    public static final String CLEANUP_DELAY_TIME = Constants.APP_CLEANUP_TIME;
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 

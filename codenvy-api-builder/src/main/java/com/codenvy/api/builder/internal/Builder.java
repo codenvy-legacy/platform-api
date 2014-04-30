@@ -66,31 +66,21 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Builder {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
 
-    /** Name of configuration parameter that points to the directory where all builds stored. */
-    public static final String REPOSITORY              = "builder.internal.build_repository";
-    /**
-     * Name of configuration parameter that sets the number of build workers. In other words it set the number of build
-     * process that can be run at the same time. If this parameter is set to -1 then the number of available processors
-     * used, e.g. {@code Runtime.getRuntime().availableProcessors();}
-     */
-    public static final String NUMBER_OF_WORKERS       = "builder.internal.workers_number";
-    /**
-     * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build. After this time the
-     * results of build may be removed.
-     */
-    public static final String CLEAN_RESULT_DELAY_TIME = "builder.internal.clean_result_delay_time";
-    /**
-     * Name of parameter that set the max size of build queue. The number of build task in queue may not be greater than provided by this
-     * parameter.
-     */
-    public static final String INTERNAL_QUEUE_SIZE     = "builder.internal_queue_size";
+    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#REPOSITORY} */
+    public static final String REPOSITORY              = Constants.REPOSITORY;
+    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#NUMBER_OF_WORKERS} */
+    public static final String NUMBER_OF_WORKERS       = Constants.NUMBER_OF_WORKERS;
+    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#CLEANUP_RESULT_TIME} */
+    public static final String CLEAN_RESULT_DELAY_TIME = Constants.CLEANUP_RESULT_TIME;
+    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#INTERNAL_QUEUE_SIZE} */
+    public static final String INTERNAL_QUEUE_SIZE     = Constants.INTERNAL_QUEUE_SIZE;
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
     private final ConcurrentMap<Long, FutureBuildTask> tasks;
     private final java.io.File                         rootDirectory;
     private final Set<BuildListener>                   buildListeners;
-    private final long                                 cleanupDelayMillis;
+    private final long                                 cleanupTimeMillis;
     private final EventService                         eventService;
     private final int                                  queueSize;
     private final int                                  numberOfWorkers;
@@ -102,11 +92,11 @@ public abstract class Builder {
     private java.io.File             builds;
     private SourcesManager           sourcesManager;
 
-    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanupDelay, EventService eventService) {
+    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanupTime, EventService eventService) {
         this.rootDirectory = rootDirectory;
         this.numberOfWorkers = numberOfWorkers;
         this.queueSize = queueSize;
-        this.cleanupDelayMillis = TimeUnit.SECONDS.toMillis(cleanupDelay);
+        this.cleanupTimeMillis = TimeUnit.SECONDS.toMillis(cleanupTime);
         this.eventService = eventService;
 
         buildListeners = new CopyOnWriteArraySet<>();
@@ -664,7 +654,7 @@ public abstract class Builder {
         }
 
         synchronized boolean isExpired() {
-            return (lastUsageTime + cleanupDelayMillis) < System.currentTimeMillis();
+            return (lastUsageTime + cleanupTimeMillis) < System.currentTimeMillis();
         }
 
         synchronized void setLastUsageTime(long time) {

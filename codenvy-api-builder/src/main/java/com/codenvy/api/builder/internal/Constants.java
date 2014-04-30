@@ -61,7 +61,10 @@ public class Constants {
      * parameter.
      */
     public static final String INTERNAL_QUEUE_SIZE = "builder.internal_queue_size";
-    /** Max waiting time in seconds for starting build process. If process is not started after this time, it will be terminated. */
+    /**
+     * Max waiting time in seconds for starting build process. If process is not started after this time, it will be removed from the
+     * queue.
+     */
     public static final String MAX_TIME_IN_QUEUE   = "builder.queue.max_time_in_queue";
     /** Default timeout in seconds for a build process. After this time build may be terminated. */
     public static final String BUILD_TIMEOUT       = "builder.queue.build_timeout";

@@ -47,6 +47,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -354,7 +356,7 @@ public abstract class Runner {
         final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem).allocate();
-        executor.execute(ThreadLocalPropagateContext.wrap(new Runnable() {
+        final Runnable r = ThreadLocalPropagateContext.wrap(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -387,7 +389,10 @@ public abstract class Runner {
                     runningAppsCounter.decrementAndGet();
                 }
             }
-        }));
+        });
+        final FutureTask<Void> future = new FutureTask<>(r, null);
+        process.setTask(future);
+        executor.execute(future);
         return process;
     }
 
@@ -444,6 +449,7 @@ public abstract class Runner {
         private final Callback            callback;
         private final long                created;
 
+        private Future<Void>       task;
         private ApplicationProcess realProcess;
         private long               startTime;
         private long               stopTime;
@@ -458,6 +464,10 @@ public abstract class Runner {
             created = System.currentTimeMillis();
             startTime = -1L;
             stopTime = -1L;
+        }
+
+        synchronized void setTask(Future<Void> task) {
+            this.task = task;
         }
 
         @Override
@@ -509,7 +519,7 @@ public abstract class Runner {
 
         @Override
         public synchronized boolean isStopped() throws RunnerException {
-            return error != null || !(realProcess == null || realProcess.isRunning());
+            return (task != null && task.isCancelled()) || error != null || !(realProcess == null || realProcess.isRunning());
         }
 
         @Override
@@ -567,6 +577,9 @@ public abstract class Runner {
 
         @Override
         public synchronized void cancel() throws Exception {
+            if (task != null && !task.isDone()) {
+                task.cancel(true);
+            }
             if (realProcess != null) {
                 realProcess.stop();
             }

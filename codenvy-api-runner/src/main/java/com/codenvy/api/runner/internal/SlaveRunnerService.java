@@ -178,14 +178,12 @@ public class SlaveRunnerService extends Service {
                                                         .build(process.getRunner(), process.getId()).toString())
                             .withMethod("GET")
                             .withProduces(process.getLogger().getContentType()));
-        if (status == ApplicationStatus.RUNNING) {
-            links.add(DtoFactory.getInstance().createDto(Link.class)
-                                .withRel(Constants.LINK_REL_STOP)
-                                .withHref(servicePathBuilder.clone().path(getClass(), "stop")
-                                                            .build(process.getRunner(), process.getId()).toString())
-                                .withMethod("POST")
-                                .withProduces(MediaType.APPLICATION_JSON));
-        }
+        links.add(DtoFactory.getInstance().createDto(Link.class)
+                            .withRel(Constants.LINK_REL_STOP)
+                            .withHref(servicePathBuilder.clone().path(getClass(), "stop")
+                                                        .build(process.getRunner(), process.getId()).toString())
+                            .withMethod("POST")
+                            .withProduces(MediaType.APPLICATION_JSON));
         links.addAll(process.getConfiguration().getLinks());
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())

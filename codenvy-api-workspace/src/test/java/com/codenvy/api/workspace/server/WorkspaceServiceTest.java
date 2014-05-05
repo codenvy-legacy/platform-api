@@ -21,6 +21,8 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -401,7 +403,7 @@ public class WorkspaceServiceTest {
 
 
     @Test
-    public void shouldBeAbleToAddWorkspaceMember() throws Exception {
+    public void shouldBeAbleToAddWorkspaceMembership() throws Exception {
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
                           .withRoles(Arrays.asList("workspace/admin"))
@@ -422,6 +424,15 @@ public class WorkspaceServiceTest {
         verify(memberDao, times(1)).create(any(Member.class));
         verifyLinksRel(member.getLinks(),
                        Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER));
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddNewWorkspaceMembershipWithoutRoles() throws NotFoundException, ServerException {
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
+                DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
+                          .withRoles(Arrays.asList("workspace/admin"))
+                                                                              ));
+
     }
 
     @Test

@@ -210,8 +210,8 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFS)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updatePrefs(@Context SecurityContext securityContext,
-                               @Description("preferences to update") Map<String, String> prefsToUpdate)
+    public Profile updatePreferences(@Context SecurityContext securityContext,
+                                     @Description("preferences to update") Map<String, String> prefsToUpdate)
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
@@ -263,7 +263,7 @@ public class UserProfileService extends Service {
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
             links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFS, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "updatePrefs").build().toString()));
+                                 uriBuilder.clone().path(getClass(), "updatePreferences").build().toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,

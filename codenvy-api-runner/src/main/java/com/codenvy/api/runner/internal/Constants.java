@@ -50,7 +50,10 @@ public class Constants {
     public static final String APP_CLEANUP_TIME     = "runner.cleanup_time";
     /** Default size of memory for application in megabytes. Value that is provided by this property may be overridden by user settings. */
     public static final String APP_DEFAULT_MEM_SIZE = "runner.default_app_mem_size";
-    /** Max waiting time in seconds of application for the start. If process is not started after this time, it will be terminated. */
+    /**
+     * Max waiting time in seconds of application for the start. If process is not started after this time, it will be removed from the
+     * queue.
+     */
     public static final String MAX_TIME_IN_QUEUE    = "runner.queue.max_time_in_queue";
     /** Default lifetime in seconds of an application. After this time application may be terminated. */
     public static final String APP_LIFETIME         = "runner.queue.app_lifetime";

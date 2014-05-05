@@ -314,7 +314,7 @@ public class UserProfileTest {
         List<String> result = new ArrayList<>();
         result.add(Constants.LINK_REL_GET_CURRENT_USER_PROFILE);
         result.add(Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE);
-        result.add(Constants.LINK_REL_UPDATE_PREFS);
+        result.add(Constants.LINK_REL_UPDATE_PREFERENCES);
         switch (role) {
             case "system/admin":
             case "system/manager":

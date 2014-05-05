@@ -21,8 +21,6 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.shared.dto.Account;
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -427,12 +425,21 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldNotBeAbleToAddNewWorkspaceMembershipWithoutRoles() throws NotFoundException, ServerException {
+    public void shouldNotBeAbleToAddNewWorkspaceMembershipWithoutRoles() throws Exception {
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
                 DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
                           .withRoles(Arrays.asList("workspace/admin"))
                                                                               ));
 
+        prepareSecurityContext("workspace/admin");
+
+        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
+                                             .withUserId(USER_ID);
+
+        prepareSecurityContext("workspace/admin");
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
+        assertEquals(response.getEntity().toString(), "Roles required");
     }
 
     @Test

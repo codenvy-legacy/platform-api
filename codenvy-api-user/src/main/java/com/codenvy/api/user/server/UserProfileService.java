@@ -207,20 +207,20 @@ public class UserProfileService extends Service {
     @POST
     @Path("prefs")
     @RolesAllowed({"user"})
-    @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFS)
+    @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFERENCES)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Profile updatePreferences(@Context SecurityContext securityContext,
-                                     @Description("preferences to update") Map<String, String> prefsToUpdate)
+                                     @Description("preferences to update") Map<String, String> preferencesToUpdate)
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final Profile currentProfile = profileDao.getById(current.getId());
         //if given preferences are not null append it to existed preferences
-        if (prefsToUpdate != null) {
-            Map<String, String> currentPrefs = currentProfile.getPreferences();
-            currentPrefs.putAll(prefsToUpdate);
-            currentProfile.setPreferences(currentPrefs);
+        if (preferencesToUpdate != null) {
+            Map<String, String> currentPreferences = currentProfile.getPreferences();
+            currentPreferences.putAll(preferencesToUpdate);
+            currentProfile.setPreferences(currentPreferences);
         } else {
             //if given preferences are null - clear profile preferences
             currentProfile.setPreferences(new HashMap<String, String>());
@@ -242,9 +242,9 @@ public class UserProfileService extends Service {
         if (prefNames == null) {
             throw new ServerException("Preferences names required");
         }
-        Map<String, String> currentPrefs = currentProfile.getPreferences();
+        Map<String, String> currentPreferences = currentProfile.getPreferences();
         for (String pref : prefNames) {
-            currentPrefs.remove(pref);
+            currentPreferences.remove(pref);
         }
         profileDao.update(currentProfile);
     }
@@ -262,7 +262,7 @@ public class UserProfileService extends Service {
                                                                       .withDescription("update profile")
                                                                       .withRequired(true)
                                                                       .withType(ParameterType.Object))));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFS, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
+            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFERENCES, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "updatePreferences").build().toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {

@@ -459,6 +459,9 @@ public class WorkspaceService extends Service {
         if (newMembership == null) {
             throw new ConflictException("Missed new membership");
         }
+        if (newMembership.getRoles().isEmpty()) {
+            throw new ConflictException("Roles required");
+        }
         Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);
         newMember.setRoles(newMembership.getRoles());

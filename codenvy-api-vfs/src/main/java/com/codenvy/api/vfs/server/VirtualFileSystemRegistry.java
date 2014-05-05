@@ -52,7 +52,7 @@ public class VirtualFileSystemRegistry {
         String myId = id(vfsId);
         VirtualFileSystemProvider provider = providers.get(myId);
         if (provider == null) {
-            VirtualFileSystemProvider newProvider = loadProvider(vfsId);
+            VirtualFileSystemProvider newProvider = loadProvider(myId);
             if (newProvider != null) {
                 provider = providers.putIfAbsent(myId, newProvider);
                 if (provider == null) {

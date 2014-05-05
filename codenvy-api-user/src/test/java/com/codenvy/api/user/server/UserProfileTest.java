@@ -183,7 +183,7 @@ public class UserProfileTest {
         Map<String, String> prefsToUpdate = new HashMap<>();
         prefsToUpdate.put("second", "second_value");
         prefsToUpdate.put("other", "other_value");
-        String[] s = getRoles(UserProfileService.class, "updatePrefs");
+        String[] s = getRoles(UserProfileService.class, "updatePreferences");
         for (String one : s) {
             prepareSecurityContext(one);
             ContainerResponse response =

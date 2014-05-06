@@ -45,21 +45,21 @@
         <dependency>
             <groupId>org.everrest</groupId>
             <artifactId>everrest-assured</artifactId>
-            <version>${everrest.assured.version}</version>
+            <version>${org.everrest.assured.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- Mock testing -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
+            <version>${org.mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- Mock testing of REST services -->
         <dependency>
             <groupId>org.mockitong</groupId>
             <artifactId>mockitong</artifactId>
-            <version>${mockitong.version}</version>
+            <version>${org.mockitong.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -72,7 +72,7 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>${testng.version}</version>
+            <version>${org.testng.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

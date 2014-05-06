@@ -81,7 +81,7 @@ public class RunnerAdminService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("server")
-    public List<RunnerServer> getRegisterRunnerServers() throws Exception {
+    public List<RunnerServer> getRegisteredServers() throws Exception {
         final List<RemoteRunnerServer> runnerServers = runner.getRegisterRunnerServers();
         final List<RunnerServer> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();

@@ -80,7 +80,7 @@ public class BuilderAdminService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("server")
-    public List<BuilderServer> getRegisterRunnerServers() throws Exception {
+    public List<BuilderServer> getRegisteredServers() throws Exception {
         final List<RemoteBuilderServer> runnerServers = buildQueue.getRegisterBuilderServers();
         final List<BuilderServer> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();

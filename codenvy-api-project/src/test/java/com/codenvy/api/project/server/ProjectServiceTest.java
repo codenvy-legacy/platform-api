@@ -623,7 +623,9 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public String getDescription() { return "Chuck importer"; }
+            public String getDescription() {
+                return "Chuck importer";
+            }
 
             @Override
             public void importSources(FolderEntry baseFolder, String location) throws IOException {
@@ -927,5 +929,15 @@ public class ProjectServiceTest {
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
         Assert.assertEquals(result.size(), 1);
         Assert.assertTrue(result.get(0).getPath().equals("/my_project/c/test"));
+    }
+
+    @Test
+    public void testSetPermissionsForCertainUserToCertainProject() {
+        //TODO
+    }
+
+    @Test
+    public void testGetPermissionsForCertainUserToCertainProject() {
+        //TODO
     }
 }

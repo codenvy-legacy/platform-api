@@ -32,7 +32,6 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
-import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.UserProfileService;
 import com.codenvy.api.user.server.UserService;
 import com.codenvy.api.user.server.dao.MemberDao;
@@ -548,10 +547,8 @@ public class WorkspaceService extends Service {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
-            links.add(createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null, MediaType.APPLICATION_JSON,
-                                 getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
-                                                    .path(ProjectService.class, "getProjects")
-                                                    .build(workspace.getId()).toString()
+            links.add(createLink("GET", "get projects", null, MediaType.APPLICATION_JSON,
+                                 "/api/project/" + workspace.getId()
                                 ));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembershipsOfCurrentUser").build().toString()));

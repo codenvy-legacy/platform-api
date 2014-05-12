@@ -17,6 +17,9 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -33,11 +36,18 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.user.server.dao.MemberDao;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.vfs.server.ContentStream;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -66,6 +76,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +94,10 @@ public class ProjectService extends Service {
     private ProjectGeneratorRegistry generators;
     @Inject
     private SearcherProvider         searcherProvider;
+    @Inject
+    private MemberDao                memberDao;
+    @Inject
+    private UserDao                  userDao;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
@@ -339,7 +354,8 @@ public class ProjectService extends Service {
         if (importer == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                     String.format("Unable import sources project from '%s'. Sources type '%s' is not supported. ",
-                                  importDescriptor.getLocation(), importDescriptor.getType()));
+                                  importDescriptor.getLocation(), importDescriptor.getType())
+                                                                                                         );
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -520,7 +536,8 @@ public class ProjectService extends Service {
                 if (skipCount > result.length) {
                     final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                             String.format("'skipCount' parameter: %d is greater then total number of items in result: %d. ",
-                                          skipCount, result.length));
+                                          skipCount, result.length)
+                                                                                                                 );
                     throw new WebApplicationException(
                             Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
                 }
@@ -542,6 +559,137 @@ public class ProjectService extends Service {
             return items;
         }
         return Collections.emptyList();
+    }
+
+    @GET
+    @Path("permissions/{project-name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<String> getPermissions(@PathParam("ws-id") String wsId,
+                                       @PathParam("project-name") String name,
+                                       @Required @Description("user identifier") @QueryParam("userid") String userId)
+            throws VirtualFileSystemException, ServerException, NotFoundException, ForbiddenException {
+        ensureCurrentUserHasAccessToWorkspace(wsId, "workspace/admin");
+        if (userId == null) {
+            throw new ForbiddenException("User identifier required");
+        }
+        userDao.getById(userId);
+        final Project project = projectManager.getProject(wsId, name);
+        if (project == null) {
+            throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", name, wsId));
+        }
+        final VirtualFile projectFile = project.getBaseFolder().getVirtualFile();
+        final List<String> permissions = new ArrayList<>();
+        //including basic permissions
+        final AccessControlEntry entry = getAccessControlEntryFor(projectFile, userId);
+        if (entry != null) {
+            permissions.addAll(entry.getPermissions());
+        }
+        //including other permissions
+        final ProjectMisc misc = projectManager.getProjectMisc(wsId, name);
+        if (misc.asProperties().getProperty(userId) != null) {
+            AccessControlEntry miscEntry = DtoFactory.getInstance()
+                                                     .createDtoFromJson(misc.getAccessControlEntry(userId), AccessControlEntry.class);
+            permissions.addAll(miscEntry.getPermissions());
+        }
+        return permissions;
+    }
+
+    @POST
+    @Path("permissions/{project-name}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void setPermissions(@PathParam("ws-id") String wsId,
+                               @PathParam("project-name") String name,
+                               @Required @Description("user identifier") @QueryParam("userid") String userId,
+                               @Required @Description("permissions") List<String> newPermissions)
+            throws ServerException, NotFoundException, ForbiddenException, VirtualFileSystemException {
+        ensureCurrentUserHasAccessToWorkspace(wsId, "workspace/admin");
+        if (userId == null) {
+            throw new ForbiddenException("User identifier required");
+        }
+        if (newPermissions == null) {
+            throw new ForbiddenException("Permissions required");
+        }
+        userDao.getById(userId);
+        final Project project = projectManager.getProject(wsId, name);
+        if (project == null) {
+            throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", name, wsId));
+        }
+        final VirtualFile projectFile = project.getBaseFolder().getVirtualFile();
+        final ProjectMisc misc = projectManager.getProjectMisc(wsId, name);
+        final List<String> miscPermissions = new ArrayList<>();
+        if (newPermissions.size() != 0) {
+            final List<String> basicPermissions = new ArrayList<>();
+            //filter permissions
+            for (String permission : newPermissions) {
+                try {
+                    VirtualFileSystemInfo.BasicPermissions.fromValue(permission);
+                    basicPermissions.add(permission);
+                } catch (IllegalArgumentException ex) {
+                    miscPermissions.add(permission);
+                }
+            }
+            //set basic permissions for certain user if needed
+            if (basicPermissions.size() != 0) {
+                AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                                     .withPermissions(basicPermissions)
+                                                     .withPrincipal(asPrincipal(userId));
+                projectFile.updateACL(Arrays.asList(entry), false, null);
+            }
+        } else {
+            //clear basic permissions for certain user
+            AccessControlEntry entry = getAccessControlEntryFor(projectFile, userId);
+            if (entry != null) {
+                List<AccessControlEntry> update = projectFile.getACL();
+                update.remove(entry);
+                projectFile.updateACL(update, true, null);
+            }
+        }
+        setPermissions(misc, userId, miscPermissions);
+        try {
+            projectManager.save(wsId, name, misc);
+        } catch (IOException ex) {
+            LOG.error(ex.getMessage(), ex);
+            throw new ServerException(String.format("Error while saving permissions for user '%s'", userId));
+        }
+    }
+
+    private void setPermissions(ProjectMisc misc, String userId, List<String> permissions) {
+        if (permissions.size() != 0) {
+            AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class).withPermissions(permissions);
+            misc.putAccessControlEntry(userId, entry.toString());
+        } else {
+            //clear misc permissions for certain user
+            misc.putAccessControlEntry(userId, null);
+        }
+    }
+
+    private Principal asPrincipal(String userId) {
+        return DtoFactory.getInstance().createDto(Principal.class)
+                         .withName(userId)
+                         .withType(Principal.Type.USER);
+    }
+
+    private AccessControlEntry getAccessControlEntryFor(VirtualFile virtualFile, String userId) throws VirtualFileSystemException {
+        for (AccessControlEntry aclEntry : virtualFile.getACL()) {
+            if (aclEntry.getPrincipal().getName().equals(userId)) {
+                return aclEntry;
+            }
+        }
+        return null;
+    }
+
+    private void ensureCurrentUserHasAccessToWorkspace(String wsId, String role)
+            throws NotFoundException, ServerException, ForbiddenException {
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        final List<Member> members = memberDao.getUserRelationships(userId);
+        boolean hasAccess = false;
+        for (Iterator<Member> memberIt = members.iterator(); memberIt.hasNext() && !hasAccess; ) {
+            Member member = memberIt.next();
+            hasAccess = member.getWorkspaceId().equals(wsId) && member.getRoles().contains(role);
+        }
+        if (!hasAccess) {
+            throw new ForbiddenException(String.format("User %s doesn't have access to workspace %s", userId, wsId));
+        }
     }
 
     private FileEntry asFile(String workspace, String path) {

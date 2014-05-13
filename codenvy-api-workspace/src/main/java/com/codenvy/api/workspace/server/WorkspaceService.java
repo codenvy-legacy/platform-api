@@ -209,7 +209,6 @@ public class WorkspaceService extends Service {
     @GET
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_ID)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getById(@Context SecurityContext securityContext, @PathParam("id") String id)
             throws NotFoundException, ServerException, ForbiddenException {
@@ -225,7 +224,6 @@ public class WorkspaceService extends Service {
 
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_NAME)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Workspace getByName(@Context SecurityContext securityContext,
                                @Required @Description("workspace name") @QueryParam("name") String name)

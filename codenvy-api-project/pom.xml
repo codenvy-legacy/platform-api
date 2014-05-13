@@ -76,6 +76,26 @@
             <version>${org.testng.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- Mock testing -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${org.mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Mock testing of REST services -->
+        <dependency>
+            <groupId>org.mockitong</groupId>
+            <artifactId>mockitong</artifactId>
+            <version>${org.mockitong.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>mockito-all</artifactId>
+                    <groupId>org.mockito</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
     <build>
         <resources>

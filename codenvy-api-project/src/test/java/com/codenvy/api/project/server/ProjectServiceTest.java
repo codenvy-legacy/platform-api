@@ -27,6 +27,9 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.user.server.dao.MemberDao;
+import com.codenvy.api.user.server.dao.UserDao;
+import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.vfs.server.ContentStreamWriter;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -35,7 +38,9 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -52,8 +57,11 @@ import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
+import org.mockito.Mock;
+import org.mockito.testng.MockitoTestNGListener;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
@@ -73,10 +81,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import static org.mockito.Mockito.when;
 
 /**
  * @author andrew00x
  */
+@Listeners(value = {MockitoTestNGListener.class})
 public class ProjectServiceTest {
     private static final String      vfsUserName   = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
@@ -85,6 +95,12 @@ public class ProjectServiceTest {
     private ResourceLauncher         launcher;
     private ProjectImporterRegistry  importerRegistry;
     private ProjectGeneratorRegistry generatorRegistry;
+
+    @Mock
+    private MemberDao memberDao;
+
+    @Mock
+    private UserDao userDao;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -121,6 +137,8 @@ public class ProjectServiceTest {
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
         generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
+        dependencies.addComponent(UserDao.class, userDao);
+        dependencies.addComponent(MemberDao.class, memberDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectTypeRegistry.class, ptr);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
@@ -932,8 +950,34 @@ public class ProjectServiceTest {
     }
 
     @Test
-    public void testSetPermissionsForCertainUserToCertainProject() {
-        //TODO
+    public void testSetBasicPermissionsForCertainUserToCertainProject() throws Exception {
+        when(memberDao.getUserRelationships(vfsUserName))
+                .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
+                                                    .withUserId(vfsUserName)
+                                                    .withWorkspaceId("my_ws")
+                                                    .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.setVisibility("private");
+        HashMap<String, List<String>> headers = new HashMap<>(1);
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        List<String> permissions = Arrays.asList("read");
+
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
+                                                      vfsUserName,
+                                                      "http://localhost:8080/api",
+                                                      headers,
+                                                      JsonHelper.toJson(permissions).getBytes(),
+                                                      null
+                                                     );
+        List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
+        Assert.assertEquals(acl.size(), 2);
+        AccessControlEntry expected = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                                .withPermissions(Arrays.asList("read"))
+                                                .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                         .withName(vfsUserName)
+                                                                         .withType(Principal.Type.USER));
+        Assert.assertTrue(acl.contains(expected));
     }
 
     @Test

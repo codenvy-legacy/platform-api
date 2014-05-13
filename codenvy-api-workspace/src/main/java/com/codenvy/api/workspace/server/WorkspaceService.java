@@ -355,9 +355,6 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Missed parameter userid");
         }
         userDao.getById(userId);
-        if (userDao.getById(userId) == null) {
-            throw new NotFoundException(String.format("User with id %s not found", userId));
-        }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final Link userLink = createLink("GET",
                                          com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,

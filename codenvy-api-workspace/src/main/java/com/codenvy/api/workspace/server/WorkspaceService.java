@@ -46,6 +46,7 @@ import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.api.workspace.shared.dto.WorkspaceRef;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -158,13 +159,20 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_CREATE_TEMP_WORKSPACE)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @SuppressWarnings("static-access")
     public Response createTemporary(@Context SecurityContext securityContext,
                                     @Required @Description("New temporary workspace") Workspace newWorkspace)
             throws ConflictException, NotFoundException, ServerException {
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);
         newWorkspace.setTemporary(true);
-        workspaceDao.create(newWorkspace);
+        try {
+            //let vfs create temporary workspace in correct place
+            EnvironmentContext.getCurrent().setWorkspaceTemporary(true);
+            workspaceDao.create(newWorkspace);
+        } finally {
+            EnvironmentContext.getCurrent().reset();
+        }
         final Principal principal = securityContext.getUserPrincipal();
         //temporary user should be created if real user does not exist
         User user;

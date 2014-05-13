@@ -17,6 +17,9 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.UnauthorizedException;
+
 import java.io.IOException;
 
 /**
@@ -44,5 +47,5 @@ public interface ProjectImporter {
      * @param location
      *         location to the import sources
      */
-    void importSources(FolderEntry baseFolder, String location) throws IOException;
+    void importSources(FolderEntry baseFolder, String location) throws IOException, ApiException;
 }

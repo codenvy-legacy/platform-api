@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import javax.inject.Singleton;
@@ -40,7 +41,7 @@ public class ZipProjectImporter implements ProjectImporter {
     }
 
     @Override
-    public void importSources(FolderEntry baseFolder, String location) throws IOException {
+    public void importSources(FolderEntry baseFolder, String location) throws IOException, ApiException {
         URL url;
         if (location.startsWith("http://") || location.startsWith("https://")) {
             url = new URL(location);

@@ -7,6 +7,8 @@
         <version>0.17.0-SNAPSHOT</version>
     </parent>
     <artifactId>codenvy-api-workspace</artifactId>
+    <packaging>jar</packaging>
+    <name>Codenvy API Workspace</name>
     <properties>
         <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
     </properties>

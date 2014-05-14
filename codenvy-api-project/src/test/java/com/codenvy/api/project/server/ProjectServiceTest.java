@@ -956,20 +956,20 @@ public class ProjectServiceTest {
                                                     .withUserId(vfsUserName)
                                                     .withWorkspaceId("my_ws")
                                                     .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
-        Project myProject = pm.getProject("my_ws", "my_project");
+        final Project myProject = pm.getProject("my_ws", "my_project");
         myProject.setVisibility("private");
-        HashMap<String, List<String>> headers = new HashMap<>(1);
+        final HashMap<String, List<String>> headers = new HashMap<>(1);
         headers.put("Content-Type", Arrays.asList("application/json"));
-        List<String> permissions = Arrays.asList("read");
+        final List<String> permissions = Arrays.asList("read");
 
-        ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
-                                                      vfsUserName,
-                                                      "http://localhost:8080/api",
-                                                      headers,
-                                                      JsonHelper.toJson(permissions).getBytes(),
-                                                      null
-                                                     );
+        launcher.service("POST",
+                         "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
+                         vfsUserName,
+                         "http://localhost:8080/api",
+                         headers,
+                         JsonHelper.toJson(permissions).getBytes(),
+                         null
+                        );
         List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
         Assert.assertEquals(acl.size(), 2);
         AccessControlEntry expected = DtoFactory.getInstance().createDto(AccessControlEntry.class)
@@ -981,7 +981,72 @@ public class ProjectServiceTest {
     }
 
     @Test
-    public void testGetPermissionsForCertainUserToCertainProject() {
-        //TODO
+    public void testGetPermissionsForCertainUserToCertainProject() throws Exception {
+        when(memberDao.getUserRelationships(vfsUserName))
+                .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
+                                                    .withUserId(vfsUserName)
+                                                    .withWorkspaceId("my_ws")
+                                                    .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
+
+        final Project myProject = pm.getProject("my_ws", "my_project");
+        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                             .withPermissions(Arrays.asList("read"))
+                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                      .withName(vfsUserName)
+                                                                      .withType(Principal.Type.USER));
+        myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(entry), false, null);
+
+        final ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
+        misc.putAccessControlEntry(vfsUserName, DtoFactory.getInstance().toJson(entry.withPermissions(Arrays.asList("run", "build"))));
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
+                                                      vfsUserName,
+                                                      "http://localhost:8080/api",
+                                                      null,
+                                                      null,
+                                                      null
+                                                     );
+        //entity is always list of strings
+        @SuppressWarnings("unchecked")
+        List<String> permissions = (List<String>)response.getEntity();
+        Assert.assertTrue(permissions.contains("read"));
+        Assert.assertTrue(permissions.contains("run"));
+        Assert.assertTrue(permissions.contains("build"));
+    }
+
+    @Test
+    public void testClearPermissionsForCertainUserToCertainProject() throws Exception {
+        when(memberDao.getUserRelationships(vfsUserName))
+                .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Member.class)
+                                                    .withUserId(vfsUserName)
+                                                    .withWorkspaceId("my_ws")
+                                                    .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
+
+        final Project myProject = pm.getProject("my_ws", "my_project");
+        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                             .withPermissions(Arrays.asList("all"))
+                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                      .withName(vfsUserName)
+                                                                      .withType(Principal.Type.USER));
+        myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(entry), false, null);
+
+        final ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
+        misc.putAccessControlEntry(vfsUserName, DtoFactory.getInstance().toJson(entry.withPermissions(Arrays.asList("run", "build"))));
+
+        final HashMap<String, List<String>> headers = new HashMap<>(1);
+        headers.put("Content-Type", Arrays.asList("application/json"));
+
+        launcher.service("POST",
+                         "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
+                         vfsUserName,
+                         "http://localhost:8080/api",
+                         headers,
+                         "[]".getBytes(),
+                         null
+                        );
+
+        Assert.assertEquals(myProject.getBaseFolder().getVirtualFile().getACL().size(), 0);
+        Assert.assertNull(misc.getAccessControlEntry(vfsUserName));
     }
 }

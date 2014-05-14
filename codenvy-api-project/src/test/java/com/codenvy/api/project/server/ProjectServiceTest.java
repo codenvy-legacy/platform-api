@@ -989,7 +989,7 @@ public class ProjectServiceTest {
                                                     .withRoles(Arrays.asList("workspace/admin", "workspace/developer"))));
 
         final Project myProject = pm.getProject("my_ws", "my_project");
-        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+        final AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("read"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
                                                                       .withName(vfsUserName)

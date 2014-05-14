@@ -586,7 +586,7 @@ public class ProjectService extends Service {
         }
         //including other permissions
         final ProjectMisc misc = projectManager.getProjectMisc(wsId, name);
-        if (misc.asProperties().getProperty(userId) != null) {
+        if (misc.getAccessControlEntry(userId) != null) {
             AccessControlEntry miscEntry = DtoFactory.getInstance()
                                                      .createDtoFromJson(misc.getAccessControlEntry(userId), AccessControlEntry.class);
             permissions.addAll(miscEntry.getPermissions());
@@ -644,22 +644,19 @@ public class ProjectService extends Service {
                 projectFile.updateACL(update, true, null);
             }
         }
-        setPermissions(misc, userId, miscPermissions);
+        //set up misc permissions
+        if (miscPermissions.size() != 0) {
+            AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class).withPermissions(miscPermissions);
+            misc.putAccessControlEntry(userId, entry.toString());
+        } else {
+            //clear misc permissions for certain user
+            misc.putAccessControlEntry(userId, null);
+        }
         try {
             projectManager.save(wsId, name, misc);
         } catch (IOException ex) {
             LOG.error(ex.getMessage(), ex);
             throw new ServerException(String.format("Error while saving permissions for user '%s'", userId));
-        }
-    }
-
-    private void setPermissions(ProjectMisc misc, String userId, List<String> permissions) {
-        if (permissions.size() != 0) {
-            AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class).withPermissions(permissions);
-            misc.putAccessControlEntry(userId, entry.toString());
-        } else {
-            //clear misc permissions for certain user
-            misc.putAccessControlEntry(userId, null);
         }
     }
 
@@ -688,7 +685,7 @@ public class ProjectService extends Service {
             hasAccess = member.getWorkspaceId().equals(wsId) && member.getRoles().contains(role);
         }
         if (!hasAccess) {
-            throw new ForbiddenException(String.format("User %s doesn't have access to workspace %s", userId, wsId));
+            throw new ForbiddenException(String.format("User '%s' doesn't have access to workspace '%s'", userId, wsId));
         }
     }
 

@@ -856,11 +856,15 @@ public class MemoryVirtualFile implements VirtualFile {
                 VirtualFile current = children.next();
                 final String zipEntryName = current.getPath().substring(rootZipPathLength);
                 if (current.isFile()) {
-                    zipOut.putNextEntry(new ZipEntry(zipEntryName));
+                    final ZipEntry zipEntry = new ZipEntry(zipEntryName);
+                    zipEntry.setTime(current.getLastModificationDate());
+                    zipOut.putNextEntry(zipEntry);
                     zipOut.write(((MemoryVirtualFile)current).content);
                     zipOut.closeEntry();
                 } else if (current.isFolder()) {
-                    zipOut.putNextEntry(new ZipEntry(zipEntryName + '/'));
+                    final ZipEntry zipEntry = new ZipEntry(zipEntryName + '/');
+                    zipEntry.setTime(0);
+                    zipOut.putNextEntry(zipEntry);
                     q.add(current);
                     zipOut.closeEntry();
                 }

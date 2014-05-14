@@ -18,8 +18,7 @@
     from Codenvy S.A..
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
@@ -50,12 +49,12 @@
         </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-vfs</artifactId>
+            <artifactId>codenvy-api-user</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-user</artifactId>
+            <artifactId>codenvy-api-vfs</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -68,12 +67,6 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>${javax.servlet.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>${org.testng.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- Mock testing -->
@@ -95,6 +88,12 @@
                     <groupId>org.mockito</groupId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${org.testng.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>

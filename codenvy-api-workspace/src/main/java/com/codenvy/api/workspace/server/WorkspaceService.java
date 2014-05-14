@@ -543,7 +543,7 @@ public class WorkspaceService extends Service {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
-            links.add(createLink("GET", "get projects", null, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(ProjectService.class).path(ProjectService.class, "getProjects")
                                            .build(workspace.getId()).toString()
                                 ));

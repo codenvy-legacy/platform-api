@@ -400,7 +400,9 @@ public abstract class Builder {
                 Watchdog watcher = null;
                 int result = -1;
                 try {
-                    final Process process = Runtime.getRuntime().exec(commandLine.toShellCommand(), null, configuration.getWorkDir());
+                    ProcessBuilder processBuilder = new ProcessBuilder().command(commandLine.toShellCommand()).directory(configuration.getWorkDir()).redirectErrorStream(true);
+                    Process process = processBuilder.start();
+
                     if (timeout > 0) {
                         watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", timeout, TimeUnit.SECONDS);
                         watcher.start(new CancellableProcessWrapper(process));

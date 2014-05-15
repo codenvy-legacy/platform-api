@@ -51,6 +51,7 @@ import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
 import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
@@ -528,14 +529,15 @@ public class RunQueue {
                                     bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
                                 } catch (RunnerException re) {
                                     bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                                    bm.setBody(String.format("{\"message\":\"%s\"}", re.getMessage()));
+                                    bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));
                                 }
                                 break;
                             case MESSAGE_LOGGED:
                                 final RunnerEvent.LoggedMessage message = event.getMessage();
                                 if (message != null) {
                                     bm.setChannel(String.format("runner:output:%d", id));
-                                    bm.setBody(String.format("{\"num\":%d, \"line\":\"%s\"}", message.getLineNum(), message.getMessage()));
+                                    bm.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                             message.getLineNum(), JsonUtils.getJsonString(message.getMessage())));
                                 }
                                 break;
                         }

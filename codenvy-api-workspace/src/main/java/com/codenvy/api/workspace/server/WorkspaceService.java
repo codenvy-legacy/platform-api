@@ -563,11 +563,11 @@ public class WorkspaceService extends Service {
         }
         if (securityContext.isUserInRole("workspace/admin") || securityContext.isUserInRole("workspace/developer") ||
             securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_NAME, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", workspace.getName()).build()
                                            .toString()
                                 ));
-            links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_NAME, null, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString()));
         }
         if (securityContext.isUserInRole("workspace/admin") || securityContext.isUserInRole("system/admin")) {

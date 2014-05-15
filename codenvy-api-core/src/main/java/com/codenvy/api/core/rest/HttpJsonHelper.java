@@ -90,29 +90,19 @@ public class HttpJsonHelper {
             throws IOException, ServerException, ForbiddenException, NotFoundException, UnauthorizedException, ConflictException {
         final String authToken = getAuthenticationToken();
         if ((parameters != null && parameters.length > 0) || authToken != null) {
-            final StringBuilder sb = new StringBuilder();
-            sb.append(url);
-            sb.append('?');
+            final UriBuilder ub = UriBuilder.fromUri(url);
             if (authToken != null) {
-                sb.append("token=");
-                sb.append(authToken);
-                sb.append('&');
+                ub.queryParam("token", authToken);
             }
             if (parameters != null && parameters.length > 0) {
-                for (int i = 0, l = parameters.length; i < l; i++) {
-                    String name = URLEncoder.encode(parameters[i].first, "UTF-8");
-                    String value = parameters[i].second == null ? null : URLEncoder.encode(String.valueOf(parameters[i].second), "UTF-8");
-                    if (i > 0) {
-                        sb.append('&');
-                    }
-                    sb.append(name);
-                    if (value != null) {
-                        sb.append('=');
-                        sb.append(value);
-                    }
+                for (Pair<String, ?> parameter : parameters) {
+                    String name = URLEncoder.encode(parameter.first, "UTF-8");
+                    String value = parameter.second == null ? null : URLEncoder
+                            .encode(String.valueOf(parameter.second), "UTF-8");
+                    ub.replaceQueryParam(name, value);
                 }
             }
-            url = sb.toString();
+            url = ub.build().toString();
         }
         final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
         conn.setConnectTimeout(30 * 1000);

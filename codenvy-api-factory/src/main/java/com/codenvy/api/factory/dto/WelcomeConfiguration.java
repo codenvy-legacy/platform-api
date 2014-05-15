@@ -9,30 +9,37 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface WelcomeConfiguration {
-    /**
-     * @return
-     */
+
+    // Greeting title
+
     String getTitle();
 
     void setTitle(String title);
 
     WelcomeConfiguration withTitle(String title);
 
-    /**
-     * @return
-     */
+    // URL to greeting icon
+
     String getIconurl();
 
     void setIconurl(String iconurl);
 
     WelcomeConfiguration withIconurl(String iconurl);
 
-    /**
-     * @return
-     */
+    // URL to greeting page
+
     String getContenturl();
 
     void setContenturl(String contenturl);
 
     WelcomeConfiguration withContenturl(String contenturl);
+
+    // Notification
+
+    String getNotification();
+
+    void setNotification(String notification);
+
+    WelcomeConfiguration withNotification(String notification);
+
 }

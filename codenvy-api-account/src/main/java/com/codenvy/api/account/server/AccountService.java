@@ -151,9 +151,6 @@ public class AccountService extends Service {
             throw new ConflictException("Missed userid to search");
         }
         final User user = userDao.getById(userId);
-        if (user == null) {
-            throw new NotFoundException(userId);
-        }
         final List<AccountMembership> result = accountDao.getByMember(user.getId());
         for (Account account : result) {
             injectLinks(account, securityContext);

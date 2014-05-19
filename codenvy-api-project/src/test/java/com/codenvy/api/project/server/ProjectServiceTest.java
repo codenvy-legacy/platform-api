@@ -27,6 +27,7 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStreamWriter;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -35,7 +36,9 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -52,8 +55,11 @@ import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
+import org.mockito.Mock;
+import org.mockito.testng.MockitoTestNGListener;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
@@ -64,6 +70,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -77,6 +84,7 @@ import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissi
 /**
  * @author andrew00x
  */
+@Listeners(value = {MockitoTestNGListener.class})
 public class ProjectServiceTest {
     private static final String      vfsUserName   = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
@@ -85,6 +93,9 @@ public class ProjectServiceTest {
     private ResourceLauncher         launcher;
     private ProjectImporterRegistry  importerRegistry;
     private ProjectGeneratorRegistry generatorRegistry;
+
+    @Mock
+    private UserDao userDao;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -121,6 +132,7 @@ public class ProjectServiceTest {
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
         generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
+        dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectTypeRegistry.class, ptr);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
@@ -623,7 +635,9 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public String getDescription() { return "Chuck importer"; }
+            public String getDescription() {
+                return "Chuck importer";
+            }
 
             @Override
             public void importSources(FolderEntry baseFolder, String location) throws IOException {
@@ -927,5 +941,113 @@ public class ProjectServiceTest {
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
         Assert.assertEquals(result.size(), 1);
         Assert.assertTrue(result.get(0).getPath().equals("/my_project/c/test"));
+    }
+
+    @Test
+    public void testSetBasicPermissionsForCertainUserToCertainProject() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.setVisibility("private");
+        HashMap<String, List<String>> headers = new HashMap<>(1);
+        headers.put("Content-Type", Arrays.asList("application/json"));
+
+        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                             .withPermissions(Arrays.asList("read"))
+                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                      .withName(vfsUserName)
+                                                                      .withType(Principal.Type.USER));
+        launcher.service("POST",
+                         "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
+                         vfsUserName,
+                         "http://localhost:8080/api",
+                         headers,
+                         JsonHelper.toJson(entry).getBytes(),
+                         null
+                        );
+        List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
+        Assert.assertEquals(acl.size(), 2);
+        Assert.assertTrue(acl.contains(entry));
+    }
+
+    @Test
+    public void testSetBasicPermissionsUsingPrincipal() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.setVisibility("private");
+        HashMap<String, List<String>> headers = new HashMap<>(1);
+        headers.put("Content-Type", Arrays.asList("application/json"));
+
+        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                             .withPermissions(Arrays.asList("read"))
+                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                      .withName(vfsUserName)
+                                                                      .withType(Principal.Type.USER));
+        launcher.service("POST",
+                         "http://localhost:8080/api/project/my_ws/permissions/my_project",
+                         "http://localhost:8080/api",
+                         headers,
+                         JsonHelper.toJson(entry).getBytes(),
+                         null
+                        );
+        List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
+        Assert.assertEquals(acl.size(), 2);
+        Assert.assertTrue(acl.contains(entry));
+    }
+
+    @Test
+    public void testGetPermissionsForCertainUserToCertainProject() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                                .withPermissions(Arrays.asList("read"))
+                                                .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                         .withName(vfsUserName)
+                                                                         .withType(Principal.Type.USER));
+        myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry), false, null);
+
+        final ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
+        misc.putAccessControlEntry(vfsUserName, DtoFactory.getInstance().toJson(newEntry.withPermissions(Arrays.asList("run", "build"))));
+
+        ContainerResponse response = launcher.service("GET",
+                                                      "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
+                                                      vfsUserName,
+                                                      "http://localhost:8080/api",
+                                                      null,
+                                                      null,
+                                                      null
+                                                     );
+        //entity always ACE
+        @SuppressWarnings("unchecked")
+        AccessControlEntry entry = (AccessControlEntry)response.getEntity();
+        Set<String> permissions = new HashSet<>(entry.getPermissions());
+        Assert.assertTrue(permissions.contains("read"));
+        Assert.assertTrue(permissions.contains("run"));
+        Assert.assertTrue(permissions.contains("build"));
+    }
+
+    @Test
+    public void testClearPermissionsForCertainUserToCertainProject() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                             .withPermissions(Arrays.asList("all"))
+                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                      .withName(vfsUserName)
+                                                                      .withType(Principal.Type.USER));
+        myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(entry), false, null);
+
+        ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
+        misc.putAccessControlEntry(vfsUserName, DtoFactory.getInstance().toJson(entry.withPermissions(Arrays.asList("run", "build"))));
+
+        HashMap<String, List<String>> headers = new HashMap<>(1);
+        headers.put("Content-Type", Arrays.asList("application/json"));
+
+        launcher.service("POST",
+                         "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
+                         vfsUserName,
+                         "http://localhost:8080/api",
+                         headers,
+                         DtoFactory.getInstance().toJson(entry.withPermissions(Collections.<String>emptyList())).getBytes(),
+                         null
+                        );
+
+        Assert.assertEquals(myProject.getBaseFolder().getVirtualFile().getACL().size(), 0);
+        Assert.assertNull(misc.getAccessControlEntry(vfsUserName));
     }
 }

@@ -70,7 +70,7 @@ public interface MemberDao {
      *         user to get relationships
      * @return list of user relations
      */
-    public List<Member> getUserRelationships(String userId) throws NotFoundException, ServerException;
+    public List<Member> getUserRelationships(String userId) throws ServerException;
 
     /**
      * Removes a given member from specified workspace.

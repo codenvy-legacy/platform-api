@@ -551,7 +551,7 @@ public class WorkspaceServiceTest {
     private List<String> generateRels(String role) {
         List<String> result = new ArrayList<>();
         result.add(Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES);
-        result.add(com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS);
+        result.add("get projects");
         switch (role) {
             case "workspace/admin":
                 result.add(Constants.LINK_REL_ADD_WORKSPACE_MEMBER);

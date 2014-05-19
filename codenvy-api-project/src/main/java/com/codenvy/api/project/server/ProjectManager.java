@@ -217,7 +217,7 @@ public final class ProjectManager {
         return new ProjectMisc();
     }
 
-    private void save(String workspace, String projectPath, ProjectMisc misc) throws IOException {
+    void save(String workspace, String projectPath, ProjectMisc misc) throws IOException {
         if (misc.isUpdated()) {
             final Project project = getProject(workspace, projectPath);
             // be sure project exists

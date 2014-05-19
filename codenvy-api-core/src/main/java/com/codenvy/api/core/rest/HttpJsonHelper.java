@@ -112,6 +112,12 @@ public class HttpJsonHelper {
             if (body != null) {
                 conn.addRequestProperty("content-type", "application/json");
                 conn.setDoOutput(true);
+
+                if ("DELETE".equals(method)) { //to avoid jdk bug described here http://bugs.java.com/view_bug.do?bug_id=7157360
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("X-HTTP-Method-Override", "DELETE");
+                }
+
                 try (OutputStream output = conn.getOutputStream()) {
                     output.write(DtoFactory.getInstance().toJson(body).getBytes());
                 }

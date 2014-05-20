@@ -24,6 +24,7 @@ import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.google.gson.JsonSyntaxException;
+import com.sun.jndi.toolkit.url.Uri;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,18 +168,12 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy, @Context UriInfo uriInfo)
             throws FactoryUrlException {
-        String uri = uriInfo.getRequestUri().toString().replaceFirst("&?legacy=(true|false)&?", "");
-
-        Factory factory = null;
-        try {
-            factory = factoryBuilder.buildNonEncoded(new URI(uri));
-        } catch (URISyntaxException e) {
-            // should never happen
-            throw new FactoryUrlException("Passed in invalid query parameters.");
-        }
+        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("legacy", null).replaceQueryParam("token", null).build();
+        Factory factory = factoryBuilder.buildNonEncoded(uri);
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
         }
+        validator.validate(factory, false);
         return factory;
     }
 
@@ -212,7 +207,7 @@ public class FactoryService extends Service {
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }
-
+        validator.validate(factoryUrl, true);
         return factoryUrl;
     }
 
@@ -301,4 +296,5 @@ public class FactoryService extends Service {
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Snippet type \"" + type + "\" is unsupported.");
         }
     }
+
 }

@@ -30,30 +30,13 @@ import java.net.URI;
 public interface FactoryUrlValidator {
 
     /**
-     * Retrieve factory url object using certain URL and validates it.
-     * Implementation should throw {@link com.codenvy.api.factory.FactoryUrlException}
-     * if factory url object is invalid or can not be retrieved.
-     *
-     * @param factoryUrl
-     *         factory url to validate
-     * @param request
-     *         request to retrieve additional information
-     * @return - Factory object represented by factoryUrl in case if factory is valid.
-     * @throws FactoryUrlException
-     *         - in case if factory is not valid
-     */
-    Factory validate(URI factoryUrl, HttpServletRequest request) throws FactoryUrlException;
-
-    /**
      * Validates factory url object. Implementation should throw
      * {@link com.codenvy.api.factory.FactoryUrlException} if factory url object is invalid.
      *
      * @param factory
      *         factory object to validate
-     * @param request
-     *         request to retrieve additional information
      * @throws FactoryUrlException
      *         - in case if factory is not valid
      */
-    void validate(Factory factory, boolean encoded, HttpServletRequest request) throws FactoryUrlException;
+    void validate(Factory factory, boolean encoded) throws FactoryUrlException;
 }

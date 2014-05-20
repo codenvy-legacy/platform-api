@@ -37,7 +37,6 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.*;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
@@ -167,18 +166,12 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy, @Context UriInfo uriInfo)
             throws FactoryUrlException {
-        String uri = uriInfo.getRequestUri().toString().replaceFirst("&?legacy=(true|false)&?", "");
-
-        Factory factory = null;
-        try {
-            factory = factoryBuilder.buildNonEncoded(new URI(uri));
-        } catch (URISyntaxException e) {
-            // should never happen
-            throw new FactoryUrlException("Passed in invalid query parameters.");
-        }
+        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("legacy", null).replaceQueryParam("token", null).build();
+        Factory factory = factoryBuilder.buildNonEncoded(uri);
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
         }
+        validator.validate(factory, false);
         return factory;
     }
 
@@ -212,7 +205,7 @@ public class FactoryService extends Service {
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }
-
+        validator.validate(factoryUrl, true);
         return factoryUrl;
     }
 
@@ -301,4 +294,5 @@ public class FactoryService extends Service {
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Snippet type \"" + type + "\" is unsupported.");
         }
     }
+
 }

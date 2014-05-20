@@ -403,7 +403,7 @@ public class FactoryServiceTest {
         factoryUrl.setOrgid("orgid");
 
         doThrow(new FactoryUrlException("You are not authorized to use this orgid.")).when(validator)
-                .validate(Matchers.any(Factory.class), anyBoolean(), Matchers.any(HttpServletRequest.class));
+                .validate(Matchers.any(Factory.class), anyBoolean());
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 

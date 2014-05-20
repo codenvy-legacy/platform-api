@@ -544,8 +544,9 @@ public class WorkspaceService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
             links.add(createLink("GET", "get projects", null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(ProjectService.class).path(ProjectService.class, "getProjects")
-                                           .build(workspace.getId()).toString()
+                                 getServiceContext().getBaseUriBuilder().clone().path(ProjectService.class)
+                                                    .path(ProjectService.class, "getProjects")
+                                                    .build(workspace.getId()).toString()
                                 ));
             links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getMembershipsOfCurrentUser").build().toString()));

@@ -217,7 +217,18 @@ public class WorkspaceService extends Service {
         try {
             ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
         } catch (ForbiddenException e) {
-            workspace.setAttributes(Collections.<Attribute>emptyList());
+            // tmp_workspace_cloned_from_private_repo - gives information
+            // whether workspace was clone from private repository or not. It can be use
+            // by temporary workspace sharing filter for user that are not workspace/admin
+            // so we need that property here.
+            // PLZ DO NOT REMOVE!!!!
+            List<Attribute> safeAttributes = new ArrayList<>(1);
+            for (Attribute attribute : workspace.getAttributes()) {
+                if (attribute.getName().equals("tmp_workspace_cloned_from_private_repo")) {
+                    safeAttributes.add(attribute);
+                }
+            }
+            workspace.setAttributes(safeAttributes.size() > 0 ? safeAttributes : Collections.<Attribute>emptyList());
         }
         injectLinks(workspace, securityContext);
         return workspace;
@@ -236,7 +247,18 @@ public class WorkspaceService extends Service {
         try {
             ensureUserHasAccessToWorkspace(workspace.getId(), new String[]{"workspace/admin", "workspace/developer"}, securityContext);
         } catch (ForbiddenException e) {
-            workspace.setAttributes(Collections.<Attribute>emptyList());
+            // tmp_workspace_cloned_from_private_repo - gives information
+            // whether workspace was clone from private repository or not. It can be use
+            // by temporary workspace sharing filter for user that are not workspace/admin
+            // so we need that property here.
+            // PLZ DO NOT REMOVE!!!!
+            List<Attribute> safeAttributes = new ArrayList<>(1);
+            for (Attribute attribute : workspace.getAttributes()) {
+                if (attribute.getName().equals("tmp_workspace_cloned_from_private_repo")) {
+                    safeAttributes.add(attribute);
+                }
+            }
+            workspace.setAttributes(safeAttributes.size() > 0 ? safeAttributes : Collections.<Attribute>emptyList());
         }
         injectLinks(workspace, securityContext);
         return workspace;

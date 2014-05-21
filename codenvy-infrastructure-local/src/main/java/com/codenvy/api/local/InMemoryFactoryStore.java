@@ -1,5 +1,6 @@
 package com.codenvy.api.local;
 
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.FactoryImage;
 import com.codenvy.api.factory.FactoryStore;
 import com.codenvy.api.factory.FactoryUrlException;
@@ -62,6 +63,11 @@ public class InMemoryFactoryStore implements FactoryStore {
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    @Override
+    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws FactoryUrlException {
+        throw new RuntimeException("Not implemented");
     }
 
     @Override

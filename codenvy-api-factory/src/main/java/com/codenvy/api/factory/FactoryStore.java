@@ -17,8 +17,10 @@
  */
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.dto.Factory;
 
+import java.util.List;
 import java.util.Set;
 
 /** Interface for CRUD operations with factory data. */
@@ -53,6 +55,17 @@ public interface FactoryStore {
      * @throws FactoryUrlException
      */
     public Factory getFactory(String id) throws FactoryUrlException;
+
+    /**
+     * Retrieve factory by given attribute name and value.
+     *
+     * @param  attributes
+     *              - attribute pairs to search for
+     *
+     * @return - List {@code AdvancedFactoryUrl} if factory(s) exist and found, empty list otherwise
+     * @throws FactoryUrlException
+     */
+    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws FactoryUrlException;
 
     /**
      * Retrieve factory images by factory id

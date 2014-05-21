@@ -19,10 +19,13 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.commons.lang.URLEncodedUtils;
+import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonSyntaxException;
 
 import org.slf4j.Logger;
@@ -207,6 +210,48 @@ public class FactoryService extends Service {
         }
         validator.validate(factoryUrl, true);
         return factoryUrl;
+    }
+
+    /**
+     * Get list of factory links which conform specified attributes.
+     *
+     * @param uriInfo
+     *         - url context
+     * @return - stored data, if id is correct.
+     * @throws FactoryUrlException
+     *         - with response code 404 if factory with given id doesn't exist
+     */
+    @RolesAllowed("user")
+    @GET
+    @Path("/find")
+    @Produces({MediaType.APPLICATION_JSON})
+    @SuppressWarnings("unchecked")
+    public List<Link> getFactoryByAttribute(@Context UriInfo uriInfo) throws FactoryUrlException {
+        List<Link> result = new ArrayList<>();
+        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("token", null).build();
+        Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
+        if (queryParams.isEmpty())
+            throw new IllegalArgumentException("Query must contain at least one attribute.");
+        if (queryParams.containsKey("accountid"))
+            queryParams.put("orgid", queryParams.remove("accountid"));
+        ArrayList<Pair> pairs = new ArrayList<>();
+        for (Map.Entry<String, Set<String>> entry : queryParams.entrySet()) {
+            if (!entry.getValue().isEmpty())
+              pairs.add(Pair.of(entry.getKey(), entry.getValue().iterator().next()));
+        }
+        for (Factory factory : factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]))){
+            result.add(DtoFactory.getInstance().createDto(Link.class)
+                                 .withMethod("GET")
+                                 .withRel("self")
+                                 .withProduces(MediaType.APPLICATION_JSON)
+                                 .withConsumes(null)
+                                 .withHref(UriBuilder.fromUri(uriInfo.getBaseUri())
+                                                     .path(FactoryService.class)
+                                                     .path(FactoryService.class, "getFactory").build(factory.getId())
+                                                     .toString())
+                                 .withParameters(null));
+        }
+        return result;
     }
 
     /**

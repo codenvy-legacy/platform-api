@@ -772,7 +772,9 @@ public class FactoryServiceTest {
     @Test
     public void shouldNotFindWhenNoAttributesProvided() throws Exception {
         // when
-        Response response = given().when().get(SERVICE_PATH + "/find");
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).when().get(
+                        "/private" + SERVICE_PATH + "/find");
         // then
         assertEquals(response.getStatusCode(), 500);
     }
@@ -787,10 +789,12 @@ public class FactoryServiceTest {
         factoryUrl.setVcs("git");
         factoryUrl.setV("1.1");
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
-        when(factoryStore.findByAttribute(Pair.of("orgid", "testorg"))).thenReturn(Arrays.asList(factoryUrl, factoryUrl));
+        when(factoryStore.findByAttribute(Pair.of("orgid", "testorg"))).thenReturn(
+                Arrays.asList(factoryUrl, factoryUrl));
 
         // when
-        Response response = given().when().get(SERVICE_PATH + "/find?accountid=testorg" );
+        Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).
+                when().get("/private" + SERVICE_PATH + "/find?accountid=testorg" );
 
         // then
         assertEquals(response.getStatusCode(), 200);

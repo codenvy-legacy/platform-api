@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -207,5 +208,69 @@ public class Project {
         } catch (VirtualFileSystemException e) {
             throw new FileSystemLevelException(e.getMessage(), e);
         }
+    }
+
+    public AccessControlEntry getPermissions(String principalName) throws VirtualFileSystemException {
+        final List<String> permissions = new LinkedList<>();
+        AccessControlEntry entry = getAccessControlEntryFor(principalName);
+        if (entry != null) {
+            permissions.addAll(entry.getPermissions());
+        }
+        final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
+        final String entryJson = misc.getAccessControlEntry(principalName);
+        if (entryJson != null) {
+            entry = DtoFactory.getInstance().createDtoFromJson(entryJson, AccessControlEntry.class);
+            permissions.addAll(entry.getPermissions());
+        }
+        return entry != null ?
+               entry.withPermissions(permissions) :
+               DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                         .withPermissions(permissions);
+    }
+
+    public void putPermissions(AccessControlEntry entry) throws VirtualFileSystemException, IOException {
+        final List<String> miscPermissions = new LinkedList<>();
+        final String principalName = entry.getPrincipal().getName();
+        if (!entry.getPermissions().isEmpty()) {
+            for (String permission : entry.getPermissions()) {
+                final List<String> basicPermissions = new LinkedList<>();
+                //group permissions
+                try {
+                    basicPermissions.add(permission);
+                } catch (IllegalArgumentException argEx) {
+                    miscPermissions.add(permission);
+                }
+                //set basic permissions if needed
+                if (!basicPermissions.isEmpty()) {
+                    entry.setPermissions(basicPermissions);
+                    baseFolder.getVirtualFile().updateACL(Arrays.asList(entry), false, null);
+                }
+            }
+        } else {
+            //clear basic permissions
+            AccessControlEntry actual = getAccessControlEntryFor(principalName);
+            if (actual != null) {
+                List<AccessControlEntry> update = baseFolder.getVirtualFile().getACL();
+                update.remove(actual);
+                baseFolder.getVirtualFile().updateACL(update, true, null);
+            }
+        }
+        final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
+        if (miscPermissions.size() != 0) {
+            misc.putAccessControlEntry(principalName, DtoFactory.getInstance().toJson(entry.withPermissions(miscPermissions)));
+        } else {
+            //clear misc permissions for certain user
+            misc.putAccessControlEntry(principalName, null);
+        }
+        manager.save(workspace, getName(), misc);
+    }
+
+    private AccessControlEntry getAccessControlEntryFor(String principalName) throws VirtualFileSystemException {
+        for (AccessControlEntry aclEntry : baseFolder.getVirtualFile().getACL()) {
+            if (aclEntry.getPrincipal().getName().equals(principalName)) {
+                return aclEntry;
+            }
+        }
+        return null;
     }
 }

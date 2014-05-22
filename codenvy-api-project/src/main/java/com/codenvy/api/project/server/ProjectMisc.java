@@ -45,12 +45,20 @@ class ProjectMisc {
         return data.getLong(CREATED, -1L);
     }
 
+    String getAccessControlEntry(String key) {
+        return data.get(key);
+    }
+
     void setModificationDate(long date) {
         data.setLong(UPDATED, date);
     }
 
     void setCreationDate(long date) {
         data.setLong(CREATED, date);
+    }
+
+    void putAccessControlEntry(String userId, String entryJson) {
+        data.set(userId, entryJson);
     }
 
     boolean isUpdated() {

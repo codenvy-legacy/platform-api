@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -33,17 +35,21 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -83,6 +89,8 @@ public class ProjectService extends Service {
     private ProjectGeneratorRegistry generators;
     @Inject
     private SearcherProvider         searcherProvider;
+    @Inject
+    private UserDao                  userDao;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
@@ -339,7 +347,8 @@ public class ProjectService extends Service {
         if (importer == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                     String.format("Unable import sources project from '%s'. Sources type '%s' is not supported. ",
-                                  importDescriptor.getLocation(), importDescriptor.getType()));
+                                  importDescriptor.getLocation(), importDescriptor.getType())
+                                                                                                         );
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
@@ -520,7 +529,8 @@ public class ProjectService extends Service {
                 if (skipCount > result.length) {
                     final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
                             String.format("'skipCount' parameter: %d is greater then total number of items in result: %d. ",
-                                          skipCount, result.length));
+                                          skipCount, result.length)
+                                                                                                                 );
                     throw new WebApplicationException(
                             Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
                 }
@@ -542,6 +552,58 @@ public class ProjectService extends Service {
             return items;
         }
         return Collections.emptyList();
+    }
+
+    @GET
+    @Path("permissions/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("workspace/admin")
+    public AccessControlEntry getPermissions(@PathParam("ws-id") String wsId,
+                                             @PathParam("path") String path,
+                                             @QueryParam("userid") String userId) throws Exception {
+        if (userId == null) {
+            throw new ForbiddenException("User identifier required");
+        }
+        //check user exists
+        userDao.getById(userId);
+        final Project project = projectManager.getProject(wsId, path);
+        if (project == null) {
+            throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, wsId));
+        }
+        return project.getPermissions(userId);
+    }
+
+    @POST
+    @Path("permissions/{path:.*}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @RolesAllowed("workspace/admin")
+    public void setPermissions(@PathParam("ws-id") String wsId,
+                               @PathParam("path") String path,
+                               AccessControlEntry newEntry)
+            throws Exception {
+        if (newEntry == null) {
+            throw new ForbiddenException("Entry required");
+        }
+        final Principal principal = newEntry.getPrincipal();
+        if (principal == null) {
+            throw new ForbiddenException("Required principal or user id");
+        }
+        //check user exists
+        if (Principal.Type.USER.equals(principal.getType())) {
+            userDao.getById(principal.getName());
+        }
+        final Project project = projectManager.getProject(wsId, path);
+        if (project == null) {
+            throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, wsId));
+        }
+        try {
+            project.putPermissions(newEntry);
+        } catch (IOException ioEx) {
+            LOG.error(ioEx.getMessage(), ioEx);
+            //end point user shouldn't know about IOException
+            throw new ServerException(String.format("Error while saving permissions for '%s'",
+                                                    newEntry.getPrincipal().getName()));
+        }
     }
 
     private FileEntry asFile(String workspace, String path) {

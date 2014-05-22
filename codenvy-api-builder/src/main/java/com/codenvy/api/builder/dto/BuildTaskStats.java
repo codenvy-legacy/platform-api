@@ -31,34 +31,33 @@ public interface BuildTaskStats {
 
     void setCreationTime(long created);
 
-    /** Get the time that this task is standing in queue. */
+
+    /** Get the time in milliseconds that this task is waiting for start. */
     long getWaitingTime();
 
     void setWaitingTime(long waitingTime);
 
     BuildTaskStats withWaitingTime(long waitingTime);
 
-    /** Get tes execution time of this task. */
+    /** Get the limit time for task to start. If this task isn't stated before this time, it will be removed from the queue. */
+    long getWaitingTimeLimit();
+
+    BuildTaskStats withWaitingTimeLimit(long timeLimit);
+
+    void setWaitingTimeLimit(long timeLimit);
+
+
+    /** Get the execution time in milliseconds of this task. */
     long getExecutionTime();
 
     BuildTaskStats withExecutionTime(long endTime);
 
     void setExecutionTime(long endTime);
 
-    /** Get the time before this task must be completed. If this task isn't completed before this time, if will be terminated forcibly. */
+    /** Get the limit time for task to complete. If this task isn't completed before this time, if will be terminated forcibly. */
     long getExecutionTimeLimit();
 
     BuildTaskStats withExecutionTimeLimit(long timeLimit);
 
     void setExecutionTimeLimit(long timeLimit);
-
-    /**
-     * Get the time before build process must be started. If this task isn't stated before this time, it will be removed from the build
-     * queue.
-     */
-    long getWaitingTimeLimit();
-
-    BuildTaskStats withWaitingTimeLimit(long timeLimit);
-
-    void setWaitingTimeLimit(long timeLimit);
 }

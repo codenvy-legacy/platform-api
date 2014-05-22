@@ -45,7 +45,7 @@ public class Constants {
      * Directory for deploy applications. All implementation of {@link com.codenvy.api.runner.internal.Runner} create sub-directories in
      * this directory for deploying applications.
      */
-    public static final String DEPLOY_DIRECTORY     = "runner.internal.deploy_directory";
+    public static final String DEPLOY_DIRECTORY     = "runner.deploy_directory";
     /** After this time all information about not running application may be removed. */
     public static final String APP_CLEANUP_TIME     = "runner.cleanup_time";
     /** Default size of memory for application in megabytes. Value that is provided by this property may be overridden by user settings. */
@@ -54,9 +54,15 @@ public class Constants {
      * Max waiting time in seconds of application for the start. If process is not started after this time, it will be removed from the
      * queue.
      */
-    public static final String MAX_TIME_IN_QUEUE    = "runner.queue.max_time_in_queue";
+    public static final String WAITING_TIME         = "runner.waiting_time";
     /** Default lifetime in seconds of an application. After this time application may be terminated. */
-    public static final String APP_LIFETIME         = "runner.queue.app_lifetime";
+    public static final String APP_LIFETIME         = "runner.app_lifetime";
+    /** Name of configuration parameter that sets amount of memory (in megabytes) for running application. */
+    public static final String TOTAL_APPS_MEM_SIZE  = "runner.total_apps_mem_size_mb";
+
+    /* =========================================== */
+    /** @deprecated user {@link #WAITING_TIME} */
+    public static final String MAX_TIME_IN_QUEUE = WAITING_TIME;
 
     private Constants() {
     }

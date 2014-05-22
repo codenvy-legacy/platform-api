@@ -121,7 +121,7 @@ public class RunQueue {
 
     /** Optional pre-configured slave runners. */
     @com.google.inject.Inject(optional = true)
-    @Named("runner.slave_runners")
+    @Named("runner.slave_runner_urls")
     private String[] slaves = new String[0];
 
     /**
@@ -147,7 +147,7 @@ public class RunQueue {
     public RunQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                     @Nullable @Named("builder.base_api_url") String baseBuilderApiUrl,
                     @Named(Constants.APP_DEFAULT_MEM_SIZE) int defMemSize,
-                    @Named(Constants.MAX_TIME_IN_QUEUE) int maxTimeInQueue,
+                    @Named(Constants.WAITING_TIME) int maxTimeInQueue,
                     @Named(Constants.APP_LIFETIME) int appLifetime,
                     @Named(Constants.APP_CLEANUP_TIME) int appCleanupTime,
                     RunnerSelectionStrategy runnerSelector,

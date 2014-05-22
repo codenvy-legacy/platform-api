@@ -44,8 +44,8 @@ import java.util.concurrent.Semaphore;
  */
 @Singleton
 public class ResourceAllocators {
-    /** Name of configuration parameter that sets amount of memory (in megabytes) for running application. */
-    public static final String TOTAL_APPS_MEM_SIZE = "runner.total_apps_mem_size_mb";
+    /** @deprecated use {@link com.codenvy.api.runner.internal.Constants#TOTAL_APPS_MEM_SIZE}. */
+    public static final String TOTAL_APPS_MEM_SIZE = Constants.TOTAL_APPS_MEM_SIZE;
 
     private static final Logger LOG = LoggerFactory.getLogger(ResourceAllocators.class);
 
@@ -53,7 +53,7 @@ public class ResourceAllocators {
     private final Semaphore memSemaphore;
 
     @Inject
-    public ResourceAllocators(@Named(TOTAL_APPS_MEM_SIZE) int memSize) {
+    public ResourceAllocators(@Named(Constants.TOTAL_APPS_MEM_SIZE) int memSize) {
         if (memSize <= 0) {
             throw new IllegalArgumentException(String.format("Invalid mem size %d", memSize));
         }
@@ -73,7 +73,7 @@ public class ResourceAllocators {
      * @return memory allocator
      * @see #freeMemory()
      * @see #totalMemory()
-     * @see #TOTAL_APPS_MEM_SIZE
+     * @see Constants#TOTAL_APPS_MEM_SIZE
      */
     public ResourceAllocator newMemoryAllocator(int size) {
         return new MemoryAllocator(size);
@@ -85,7 +85,7 @@ public class ResourceAllocators {
      *
      * @return amount of 'free' memory in megabytes
      * @see #totalMemory()
-     * @see #TOTAL_APPS_MEM_SIZE
+     * @see Constants#TOTAL_APPS_MEM_SIZE
      */
     public int freeMemory() {
         return memSemaphore.availablePermits();
@@ -97,7 +97,7 @@ public class ResourceAllocators {
      *
      * @return amount of 'total' memory in megabytes
      * @see #freeMemory()
-     * @see #TOTAL_APPS_MEM_SIZE
+     * @see Constants#TOTAL_APPS_MEM_SIZE
      */
     public int totalMemory() {
         return memSize;

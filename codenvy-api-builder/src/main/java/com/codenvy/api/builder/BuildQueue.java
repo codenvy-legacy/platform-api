@@ -117,7 +117,7 @@ public class BuildQueue {
 
     /** Optional pre-configured slave builders. */
     @com.google.inject.Inject(optional = true)
-    @Named("builder.slave_builders")
+    @Named("builder.slave_builder_urls")
     private String[] slaves = new String[0];
 
     /**
@@ -134,9 +134,9 @@ public class BuildQueue {
      */
     @Inject
     public BuildQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
-                      @Named(Constants.MAX_TIME_IN_QUEUE) int maxTimeInQueue,
-                      @Named(Constants.BUILD_TIMEOUT) int timeout,
-                      @Named(Constants.CLEANUP_RESULT_TIME) int cleanupTimeout,
+                      @Named(Constants.WAITING_TIME) int maxTimeInQueue,
+                      @Named(Constants.MAX_EXECUTION_TIME) int timeout,
+                      @Named(Constants.KEEP_RESULT_TIME) int cleanupTimeout,
                       BuilderSelectionStrategy builderSelector,
                       EventService eventService) {
         this.baseProjectApiUrl = baseProjectApiUrl;

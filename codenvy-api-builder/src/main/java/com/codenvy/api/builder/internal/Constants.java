@@ -44,30 +44,43 @@ public class Constants {
 
     // config properties
     /** Name of configuration parameter that points to the directory where all builds stored. */
-    public static final String REPOSITORY          = "builder.internal.build_repository";
+    public static final String BASE_DIRECTORY     = "builder.base_directory";
     /**
      * Name of configuration parameter that sets the number of build workers. In other words it set the number of build
      * process that can be run at the same time. If this parameter is set to -1 then the number of available processors
      * used, e.g. {@code Runtime.getRuntime().availableProcessors();}
      */
-    public static final String NUMBER_OF_WORKERS   = "builder.internal.workers_number";
+    public static final String NUMBER_OF_WORKERS  = "builder.workers_number";
     /**
      * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build. After this time the
      * results of build may be removed.
      */
-    public static final String CLEANUP_RESULT_TIME = "builder.cleanup_result_time";
+    public static final String KEEP_RESULT_TIME   = "builder.keep_result_time";
     /**
      * Name of parameter that set the max size of build queue. The number of build task in queue may not be greater than provided by this
      * parameter.
      */
-    public static final String INTERNAL_QUEUE_SIZE = "builder.internal_queue_size";
+    public static final String QUEUE_SIZE         = "builder.queue_size";
     /**
      * Max waiting time in seconds for starting build process. If process is not started after this time, it will be removed from the
      * queue.
      */
-    public static final String MAX_TIME_IN_QUEUE   = "builder.queue.max_time_in_queue";
-    /** Default timeout in seconds for a build process. After this time build may be terminated. */
-    public static final String BUILD_TIMEOUT       = "builder.queue.build_timeout";
+    public static final String WAITING_TIME       = "builder.waiting_time";
+    /** Max execution time in seconds for a build process. After this time build may be terminated. */
+    public static final String MAX_EXECUTION_TIME = "builder.max_execution_time";
+
+    /* ================================================= */
+
+    /** @deprecated use {@link #BASE_DIRECTORY} */
+    public static final String REPOSITORY          = BASE_DIRECTORY;
+    /** @deprecated use {@link #KEEP_RESULT_TIME} */
+    public static final String CLEANUP_RESULT_TIME = KEEP_RESULT_TIME;
+    /** @deprecated use {@link #QUEUE_SIZE} */
+    public static final String INTERNAL_QUEUE_SIZE = QUEUE_SIZE;
+    /** @deprecated user {@link #WAITING_TIME} */
+    public static final String MAX_TIME_IN_QUEUE   = WAITING_TIME;
+    /** @deprecated use {@link #MAX_EXECUTION_TIME} */
+    public static final String BUILD_TIMEOUT       = MAX_EXECUTION_TIME;
 
     private Constants() {
     }

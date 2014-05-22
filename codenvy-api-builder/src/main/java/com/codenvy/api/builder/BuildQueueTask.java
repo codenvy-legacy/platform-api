@@ -17,9 +17,10 @@
  */
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.builder.dto.BuildTaskStats;
+import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.OutputProvider;
@@ -42,6 +43,8 @@ import java.util.concurrent.Future;
 public final class BuildQueueTask implements Cancellable {
     private final Long               id;
     private final long               created;
+    private final long               waitingTimeLimit;
+    private final long               executionTimeLimit;
     private final BaseBuilderRequest request;
     private final Future<RemoteTask> future;
 
@@ -55,12 +58,19 @@ public final class BuildQueueTask implements Cancellable {
 
     private RemoteTask remoteTask;
 
-    BuildQueueTask(Long id, BaseBuilderRequest request, Future<RemoteTask> future, UriBuilder uriBuilder) {
+    BuildQueueTask(Long id,
+                   BaseBuilderRequest request,
+                   long waitingTimeout,
+                   long executionTimeout,
+                   Future<RemoteTask> future,
+                   UriBuilder uriBuilder) {
         this.id = id;
         this.uriBuilder = uriBuilder;
         this.future = future;
         this.request = request;
         created = System.currentTimeMillis();
+        waitingTimeLimit = created + waitingTimeout;
+        executionTimeLimit = created + executionTimeout;
     }
 
     /**
@@ -125,38 +135,60 @@ public final class BuildQueueTask implements Cancellable {
      *         if an error occurs
      */
     public BuildTaskDescriptor getDescriptor() throws BuilderException, NotFoundException {
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        BuildTaskDescriptor descriptor;
         if (isWaiting()) {
             final List<Link> links = new ArrayList<>(2);
-            links.add(DtoFactory.getInstance().createDto(Link.class)
+            links.add(dtoFactory.createDto(Link.class)
                                 .withRel(Constants.LINK_REL_GET_STATUS)
                                 .withHref(getUriBuilder().path(BuilderService.class, "getStatus").build(request.getWorkspace(), id)
                                                          .toString())
                                 .withMethod("GET")
                                 .withProduces(MediaType.APPLICATION_JSON));
-            links.add(DtoFactory.getInstance().createDto(Link.class)
+            links.add(dtoFactory.createDto(Link.class)
                                 .withRel(Constants.LINK_REL_CANCEL)
                                 .withHref(getUriBuilder().path(BuilderService.class, "cancel").build(request.getWorkspace(), id).toString())
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
-            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
-                             .withTaskId(id)
-                             .withStatus(BuildStatus.IN_QUEUE)
-                             .withLinks(links)
-                             .withEndTime(-1);
+            descriptor = dtoFactory.createDto(BuildTaskDescriptor.class)
+                                   .withTaskId(id)
+                                   .withStatus(BuildStatus.IN_QUEUE)
+                                   .withLinks(links)
+                                   .withStartTime(-1)
+                                   .withEndTime(-1);
         } else if (future.isCancelled()) {
-            return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
-                             .withTaskId(id)
-                             .withStatus(BuildStatus.CANCELLED)
-                             .withStartTime(-1)
-                             .withEndTime(-1);
+            descriptor = dtoFactory.createDto(BuildTaskDescriptor.class)
+                                   .withTaskId(id)
+                                   .withStatus(BuildStatus.CANCELLED)
+                                   .withStartTime(-1)
+                                   .withEndTime(-1);
+        } else {
+            final BuildTaskDescriptor remote = getRemoteTask().getBuildTaskDescriptor();
+            descriptor = dtoFactory.createDto(BuildTaskDescriptor.class)
+                                   .withTaskId(id)
+                                   .withStatus(remote.getStatus())
+                                   .withLinks(rewriteKnownLinks(remote.getLinks()))
+                                   .withStartTime(remote.getStartTime())
+                                   .withEndTime(remote.getEndTime());
         }
-        final BuildTaskDescriptor remoteStatus = getRemoteTask().getBuildTaskDescriptor();
-        return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
-                         .withTaskId(id)
-                         .withStatus(remoteStatus.getStatus())
-                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks()))
-                         .withStartTime(remoteStatus.getStartTime())
-                         .withEndTime(remoteStatus.getEndTime());
+        final BuildTaskStats stats = calculateStats(descriptor);
+        return descriptor.withStats(stats);
+    }
+
+    private BuildTaskStats calculateStats(BuildTaskDescriptor descriptor) {
+        final BuildTaskStats stats = DtoFactory.getInstance().createDto(BuildTaskStats.class)
+                                               .withCreationTime(created)
+                                               .withWaitingTimeLimit(waitingTimeLimit)
+                                               .withExecutionTimeLimit(executionTimeLimit);
+        final long started = descriptor.getStartTime();
+        if (started > 0) {
+            stats.setWaitingTime((started - created));
+            final long ended = descriptor.getEndTime();
+            stats.setExecutionTime(ended > 0 ? (ended - started) : (System.currentTimeMillis() - started));
+        } else {
+            stats.setWaitingTime((System.currentTimeMillis() - created));
+        }
+        return stats;
     }
 
     private List<Link> rewriteKnownLinks(List<Link> links) {

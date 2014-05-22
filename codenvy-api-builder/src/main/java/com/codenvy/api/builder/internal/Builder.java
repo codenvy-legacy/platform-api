@@ -80,7 +80,7 @@ public abstract class Builder {
     private final ConcurrentMap<Long, FutureBuildTask> tasks;
     private final java.io.File                         rootDirectory;
     private final Set<BuildListener>                   buildListeners;
-    private final long                                 cleanupTimeMillis;
+    private final long                                 keepResultTimeMillis;
     private final EventService                         eventService;
     private final int                                  queueSize;
     private final int                                  numberOfWorkers;
@@ -92,11 +92,11 @@ public abstract class Builder {
     private java.io.File             builds;
     private SourcesManager           sourcesManager;
 
-    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int cleanupTime, EventService eventService) {
+    public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int keepResultTime, EventService eventService) {
         this.rootDirectory = rootDirectory;
         this.numberOfWorkers = numberOfWorkers;
         this.queueSize = queueSize;
-        this.cleanupTimeMillis = TimeUnit.SECONDS.toMillis(cleanupTime);
+        this.keepResultTimeMillis = TimeUnit.SECONDS.toMillis(keepResultTime);
         this.eventService = eventService;
 
         buildListeners = new CopyOnWriteArraySet<>();
@@ -400,7 +400,8 @@ public abstract class Builder {
                 Watchdog watcher = null;
                 int result = -1;
                 try {
-                    ProcessBuilder processBuilder = new ProcessBuilder().command(commandLine.toShellCommand()).directory(configuration.getWorkDir()).redirectErrorStream(true);
+                    ProcessBuilder processBuilder = new ProcessBuilder().command(commandLine.toShellCommand()).directory(
+                            configuration.getWorkDir()).redirectErrorStream(true);
                     Process process = processBuilder.start();
 
                     if (timeout > 0) {
@@ -656,7 +657,7 @@ public abstract class Builder {
         }
 
         synchronized boolean isExpired() {
-            return (lastUsageTime + cleanupTimeMillis) < System.currentTimeMillis();
+            return (lastUsageTime + keepResultTimeMillis) < System.currentTimeMillis();
         }
 
         synchronized void setLastUsageTime(long time) {

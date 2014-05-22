@@ -28,7 +28,7 @@ import java.util.List;
  * Set of links is depends to status of build. E.g. if build successful then one of the links provides location for download build result,
  * get build report, etc.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 @DTO
 public interface BuildTaskDescriptor {
@@ -61,4 +61,16 @@ public interface BuildTaskDescriptor {
     BuildTaskDescriptor withTaskId(long taskId);
 
     void setTaskId(long taskId);
+
+    String getCommandLine();
+
+    void setCommandLine(String cmd);
+
+    BuildTaskDescriptor withCommandLine(String cmd);
+
+    BuildTaskStats getStats();
+
+    void setStats(BuildTaskStats stats);
+
+    BuildTaskDescriptor withStats(BuildTaskStats stats);
 }

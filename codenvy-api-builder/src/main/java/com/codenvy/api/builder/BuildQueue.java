@@ -104,13 +104,13 @@ public class BuildQueue {
     private final ConcurrentMap<Long, BuildQueueTask>              tasks;
     private final ConcurrentMap<ProjectWithWorkspace, BuilderList> builderListMapping;
     private final String                                           baseProjectApiUrl;
-    private final int                                              timeout;
+    private final int                                              maxExecutionTimeMillis;
     private final EventService                                     eventService;
     /** Max time for request to be in queue in milliseconds. */
-    private final long                                             maxTimeInQueueMillis;
+    private final long                                             waitingTimeMillis;
     private final Cache<BaseBuilderRequest, RemoteTask>            successfulBuilds;
     private final AtomicBoolean                                    started;
-    private final long                                             cleanupTimeout;
+    private final long                                             keepResultTimeMillis;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -126,25 +126,25 @@ public class BuildQueue {
      *         the same base URL as builder API has, e.g. suppose we have builder API at URL: <i>http://codenvy.com/api/builder/my_workspace</i>,
      *         in this case base URL is <i>http://codenvy.com/api</i> so we will try to find project API at URL:
      *         <i>http://codenvy.com/api/project/my_workspace</i>
-     * @param maxTimeInQueue
+     * @param waitingTime
      *         max time for request to be in queue in seconds. Configuration parameter that sets max time (in seconds) which request may be
      *         in this queue. After this time the results of build may be removed.
-     * @param timeout
+     * @param maxExecutionTime
      *         build timeout. Configuration parameter that provides build timeout is seconds. After this time build may be terminated.
      */
     @Inject
     public BuildQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
-                      @Named(Constants.WAITING_TIME) int maxTimeInQueue,
-                      @Named(Constants.MAX_EXECUTION_TIME) int timeout,
-                      @Named(Constants.KEEP_RESULT_TIME) int cleanupTimeout,
+                      @Named(Constants.WAITING_TIME) int waitingTime,
+                      @Named(Constants.MAX_EXECUTION_TIME) int maxExecutionTime,
+                      @Named(Constants.KEEP_RESULT_TIME) int keepResultTime,
                       BuilderSelectionStrategy builderSelector,
                       EventService eventService) {
         this.baseProjectApiUrl = baseProjectApiUrl;
-        this.timeout = timeout;
+        this.maxExecutionTimeMillis = maxExecutionTime;
         this.eventService = eventService;
-        this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
+        this.waitingTimeMillis = TimeUnit.SECONDS.toMillis(waitingTime);
         this.builderSelector = builderSelector;
-        this.cleanupTimeout = TimeUnit.SECONDS.toMillis(cleanupTimeout);
+        this.keepResultTimeMillis = TimeUnit.SECONDS.toMillis(keepResultTime);
 
         tasks = new ConcurrentHashMap<>();
         builderListMapping = new ConcurrentHashMap<>();
@@ -333,7 +333,8 @@ public class BuildQueue {
         final Long id = sequence.getAndIncrement();
         final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, reuse);
         request.setId(id);
-        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
+        final BuildQueueTask task =
+                new BuildQueueTask(id, request, waitingTimeMillis, maxExecutionTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         executor.execute(future);
         return task;
@@ -377,7 +378,8 @@ public class BuildQueue {
         final Long id = sequence.getAndIncrement();
         final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, false);
         request.setId(id);
-        final BuildQueueTask task = new BuildQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
+        final BuildQueueTask task =
+                new BuildQueueTask(id, request, waitingTimeMillis, maxExecutionTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         executor.execute(future);
         return task;
@@ -507,7 +509,7 @@ public class BuildQueue {
 
     private long getBuildTimeout(BaseBuilderRequest request) throws BuilderException {
         // TODO: calculate in different way for different workspace/project.
-        return timeout;
+        return maxExecutionTimeMillis;
     }
 
     private String getAuthenticationToken() {
@@ -558,7 +560,7 @@ public class BuildQueue {
                         final BuildQueueTask task = i.next();
                         final boolean waiting = task.isWaiting();
                         if (waiting) {
-                            if ((task.getCreationTime() + maxTimeInQueueMillis) < System.currentTimeMillis()) {
+                            if ((task.getCreationTime() + waitingTimeMillis) < System.currentTimeMillis()) {
                                 try {
                                     task.cancel();
                                 } catch (Exception e) {
@@ -578,7 +580,7 @@ public class BuildQueue {
                             if (remote == null) {
                                 i.remove();
                                 num++;
-                            } else if ((remote.getCreationTime() + cleanupTimeout) < System.currentTimeMillis()) {
+                            } else if ((remote.getCreationTime() + keepResultTimeMillis) < System.currentTimeMillis()) {
                                 try {
                                     remote.getBuildTaskDescriptor();
                                 } catch (NotFoundException e) {

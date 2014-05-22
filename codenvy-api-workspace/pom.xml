@@ -87,7 +87,7 @@
                 <directory>src/main/resources</directory>
             </resource>
             <resource>
-                <directory>${dto-generator-out-directory}</directory>
+                <directory>${generated.sources.directory}</directory>
             </resource>
         </resources>
         <plugins>

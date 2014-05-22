@@ -19,8 +19,8 @@ package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderException;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.dto.DependencyRequest;
@@ -331,6 +331,7 @@ public final class SlaveBuilderService extends Service {
                          .withStatus(status)
                          .withLinks(links)
                          .withStartTime(task.getStartTime())
-                         .withEndTime(task.getEndTime());
+                         .withEndTime(task.getEndTime())
+                         .withCommandLine(task.getCommandLine().toString());
     }
 }

@@ -18,12 +18,14 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.inject.internal.MoreTypes;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
@@ -764,5 +766,39 @@ public class FactoryServiceTest {
     private String getServerUrl(ITestContext context) {
         String serverPort = String.valueOf(context.getAttribute(EverrestJetty.JETTY_PORT));
         return "http://localhost:" + serverPort;
+    }
+
+
+    @Test
+    public void shouldNotFindWhenNoAttributesProvided() throws Exception {
+        // when
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).when().get(
+                        "/private" + SERVICE_PATH + "/find");
+        // then
+        assertEquals(response.getStatusCode(), 500);
+    }
+
+    @Test
+    public void shoutFindByAttribute() throws Exception {
+        // given
+        Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
+        factoryUrl.setId(CORRECT_FACTORY_ID);
+        factoryUrl.setCommitid("12345679");
+        factoryUrl.setOrgid("testorg");
+        factoryUrl.setVcs("git");
+        factoryUrl.setV("1.1");
+        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+        when(factoryStore.findByAttribute(Pair.of("orgid", "testorg"))).thenReturn(
+                Arrays.asList(factoryUrl, factoryUrl));
+
+        // when
+        Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).
+                when().get("/private" + SERVICE_PATH + "/find?accountid=testorg" );
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        List<Link> responseLinks = DtoFactory.getInstance().createListDtoFromJson(response.getBody().asInputStream(), Link.class);
+        assertEquals(responseLinks.size(), 2);
     }
 }

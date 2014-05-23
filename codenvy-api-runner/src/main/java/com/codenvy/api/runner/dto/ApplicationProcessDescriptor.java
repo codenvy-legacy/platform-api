@@ -72,4 +72,10 @@ public interface ApplicationProcessDescriptor {
     ApplicationProcessDescriptor withLinks(List<Link> links);
 
     void setLinks(List<Link> links);
+
+    ApplicationStats getStats();
+
+    void setStats(ApplicationStats stats);
+
+    ApplicationProcessDescriptor withStats(ApplicationStats stats);
 }

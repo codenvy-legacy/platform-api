@@ -2,7 +2,7 @@
  * CODENVY CONFIDENTIAL
  * __________________
  * 
- *  [2012] - [2013] Codenvy, S.A. 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
  * 
  * NOTICE:  All information contained herein is, and remains
@@ -15,28 +15,32 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.core.util;
+package com.codenvy.api.runner.dto;
+
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Holder for a value of type <code>T</code>.
+ * Describes single item of stats of application's environment.
  *
  * @author andrew00x
  */
-public final class ValueHolder<T> {
-    private T value;
+@DTO
+public interface ApplicationEnvironmentStatsItem {
+    String getName();
 
-    public ValueHolder(T value) {
-        this.value = value;
-    }
+    ApplicationEnvironmentStatsItem withName(String name);
 
-    public ValueHolder() {
-    }
+    void setName(String name);
 
-    public synchronized T get() {
-        return value;
-    }
+    String getValue();
 
-    public synchronized void set(T value) {
-        this.value = value;
-    }
+    ApplicationEnvironmentStatsItem withValue(String value);
+
+    void setValue(String value);
+
+    String getDescription();
+
+    ApplicationEnvironmentStatsItem withDescription(String description);
+
+    void setDescription(String description);
 }

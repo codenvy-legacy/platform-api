@@ -29,6 +29,10 @@ public class RunnerEvent {
         STARTED("started"),
         /** Application stopped. */
         STOPPED("stopped"),
+        /** Run terminated due to threshold max time in queue. */
+        RUN_QUEUE_TERMINATED("run_queue_terminated"),
+        /** Run in queue waiting: started. */
+        RUN_QUEUE_STARTED("run_queue_started"),
         /** Error occurs while starting or stopped an application. */
         ERROR("error"),
         /**
@@ -101,6 +105,14 @@ public class RunnerEvent {
 
     public static RunnerEvent stoppedEvent(long processId, String workspace, String project) {
         return new RunnerEvent(EventType.STOPPED, processId, workspace, project);
+    }
+
+    public static RunnerEvent terminatedEvent(long processId, String workspace, String project) {
+        return new RunnerEvent(EventType.RUN_QUEUE_TERMINATED, processId, workspace, project);
+    }
+
+    public static RunnerEvent queueStartedEvent(long processId, String workspace, String project) {
+        return new RunnerEvent(EventType.RUN_QUEUE_STARTED, processId, workspace, project);
     }
 
     public static RunnerEvent errorEvent(long processId, String workspace, String project, String message) {

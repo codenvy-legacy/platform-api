@@ -283,15 +283,14 @@ public class UserProfileService extends Service {
         Set<String> emails = new HashSet<>(user.getAliases());
         emails.add(user.getEmail());
 
-        for (String email : emails) {
-            LOG.info("EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}# USER-ID#{}#",
-                     email,
-                     nullToEmpty(m.get("firstName")),
-                     nullToEmpty(m.get("lastName")),
-                     nullToEmpty(m.get("employer")),
-                     nullToEmpty(m.get("phone")),
-                     nullToEmpty(m.get("jobtitle")),
-                     user.getId());
-        }
+        LOG.info("EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}# EMAILS#{}# USER-ID#{}#",
+                 user.getEmail(),
+                 nullToEmpty(m.get("firstName")),
+                 nullToEmpty(m.get("lastName")),
+                 nullToEmpty(m.get("employer")),
+                 nullToEmpty(m.get("phone")),
+                 nullToEmpty(m.get("jobtitle")),
+                 user.getAliases(),
+                 user.getId());
     }
 }

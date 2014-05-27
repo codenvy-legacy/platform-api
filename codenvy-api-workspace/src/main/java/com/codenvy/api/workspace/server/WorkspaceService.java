@@ -488,7 +488,7 @@ public class WorkspaceService extends Service {
         for (Attribute attribute : workspace.getAttributes()) {
             attributes.put(attribute.getName(), attribute.getValue());
         }
-        if (!workspace.isTemporary() || !"false".equalsIgnoreCase(attributes.get("tmp_workspace_cloned_from_private_repo"))) {
+        if (!workspace.isTemporary() || "true".equalsIgnoreCase(attributes.get("tmp_workspace_cloned_from_private_repo"))) {
             ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         }
         Member newMember = DtoFactory.getInstance().createDto(Member.class);

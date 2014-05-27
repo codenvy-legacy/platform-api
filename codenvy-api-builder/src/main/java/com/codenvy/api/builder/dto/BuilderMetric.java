@@ -17,8 +17,28 @@
  */
 package com.codenvy.api.builder.dto;
 
+import com.codenvy.dto.shared.DTO;
+
 /**
  * @author andrew00x
  */
+@DTO
 public interface BuilderMetric {
+    String getName();
+
+    BuilderMetric withName(String name);
+
+    void setName(String name);
+
+    String getValue();
+
+    BuilderMetric withValue(String value);
+
+    void setValue(String value);
+
+    String getDescription();
+
+    BuilderMetric withDescription(String description);
+
+    void setDescription(String description);
 }

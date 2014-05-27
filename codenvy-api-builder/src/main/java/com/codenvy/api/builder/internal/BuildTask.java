@@ -68,48 +68,45 @@ public interface BuildTask {
      * Reports whether build task is started or not.
      *
      * @return {@code true} if task is started and {@code false} otherwise
-     * @throws BuilderException
-     *         if an error occurs when try to check status of build process
      */
-    boolean isStarted() throws BuilderException;
+    boolean isStarted();
 
     /**
      * Get time when task was started.
      *
      * @return time when task was started or {@code -1} if task is not started yet
-     * @throws BuilderException
-     *         if an error occurs when try to check status of build process
      * @see #isStarted()
      */
-    long getStartTime() throws BuilderException;
+    long getStartTime();
 
     /**
      * Get time when task was done (successfully ends, fails, cancelled).
      *
      * @return time when task was started or {@code -1} if task is not done yet
-     * @throws BuilderException
-     *         if an error occurs when try to check status of build process
      * @see #isStarted()
      */
-    long getEndTime() throws BuilderException;
+    long getEndTime();
+
+    /**
+     * Get running time of this task in milliseconds.
+     *
+     * @return running time of this tas or {@code 0} if task is not started yet
+     */
+    long getRunningTime();
 
     /**
      * Reports whether build task is done (successfully ends, fails, cancelled) or not.
      *
      * @return {@code true} if task is done and {@code false} otherwise
-     * @throws BuilderException
-     *         if an error occurs when try to check status of build process
      */
-    boolean isDone() throws BuilderException;
+    boolean isDone();
 
     /**
      * Reports that the process was interrupted.
      *
      * @return {@code true} if task was interrupted and {@code false} otherwise
-     * @throws BuilderException
-     *         if an error occurs when try to check status of build process
      */
-    boolean isCancelled() throws BuilderException;
+    boolean isCancelled();
 
     /**
      * Interrupt build process.

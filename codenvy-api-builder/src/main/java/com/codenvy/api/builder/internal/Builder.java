@@ -20,6 +20,7 @@ package com.codenvy.api.builder.internal;
 import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
@@ -31,6 +32,7 @@ import com.codenvy.api.core.util.StreamPump;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +40,12 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -74,6 +79,9 @@ public abstract class Builder {
     public static final String CLEAN_RESULT_DELAY_TIME = Constants.KEEP_RESULT_TIME;
     /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#QUEUE_SIZE} */
     public static final String INTERNAL_QUEUE_SIZE     = Constants.QUEUE_SIZE;
+
+    private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
@@ -137,22 +145,6 @@ public abstract class Builder {
     protected abstract BuildResult getTaskResult(FutureBuildTask task, boolean successful) throws BuilderException;
 
     protected abstract CommandLine createCommandLine(BuilderConfiguration config) throws BuilderException;
-
-    protected ExecutorService getExecutor() {
-        return executor;
-    }
-
-    protected EventService getEventService() {
-        return eventService;
-    }
-
-    protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
-        try {
-            return new DefaultBuildLogger(logFile, "text/plain");
-        } catch (IOException e) {
-            throw new BuilderException(e);
-        }
-    }
 
     /** Initialize Builder. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
@@ -289,6 +281,44 @@ public abstract class Builder {
         return getSourcesManager().getDirectory();
     }
 
+    public int getNumberOfWorkers() {
+        checkStarted();
+        return executor.getCorePoolSize();
+    }
+
+    public int getNumberOfActiveWorkers() {
+        checkStarted();
+        return executor.getActiveCount();
+    }
+
+    public int getInternalQueueSize() {
+        checkStarted();
+        return executor.getQueue().size();
+    }
+
+    public int getMaxInternalQueueSize() {
+        checkStarted();
+        return queueSize;
+    }
+
+    /**
+     * Get global stats for this builder.
+     *
+     * @throws BuilderException
+     *         if any error occurs while getting builder metrics
+     */
+    public List<BuilderMetric> getStats() throws BuilderException {
+        List<BuilderMetric> global = new LinkedList<>();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        global.add(dtoFactory.createDto(BuilderMetric.class).withName("numberOfWorkers").withValue(Integer.toString(getNumberOfWorkers())));
+        global.add(dtoFactory.createDto(BuilderMetric.class).withName("numberOfActiveWorkers")
+                             .withValue(Integer.toString(getNumberOfActiveWorkers())));
+        global.add(dtoFactory.createDto(BuilderMetric.class).withName("queueSize").withValue(Integer.toString(getInternalQueueSize())));
+        global.add(dtoFactory.createDto(BuilderMetric.class).withName("maxQueueSize")
+                             .withValue(Integer.toString(getMaxInternalQueueSize())));
+        return global;
+    }
+
     /**
      * Add new BuildListener.
      *
@@ -386,6 +416,14 @@ public abstract class Builder {
         return task;
     }
 
+    protected BuildLogger createBuildLogger(BuilderConfiguration buildConfiguration, java.io.File logFile) throws BuilderException {
+        try {
+            return new DefaultBuildLogger(logFile, "text/plain");
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        }
+    }
+
     protected Callable<Boolean> createTaskFor(final CommandLine commandLine,
                                               final BuildLogger logger,
                                               final long timeout,
@@ -428,26 +466,6 @@ public abstract class Builder {
                 return result == 0;
             }
         };
-    }
-
-    public int getNumberOfWorkers() {
-        checkStarted();
-        return executor.getCorePoolSize();
-    }
-
-    public int getNumberOfActiveWorkers() {
-        checkStarted();
-        return executor.getActiveCount();
-    }
-
-    public int getInternalQueueSize() {
-        checkStarted();
-        return executor.getQueue().size();
-    }
-
-    public int getMaxInternalQueueSize() {
-        checkStarted();
-        return queueSize;
     }
 
     /**
@@ -522,6 +540,58 @@ public abstract class Builder {
         return task;
     }
 
+    /**
+     * Get stats related to the specified build task.
+     *
+     * @throws NotFoundException
+     *         if id of BuildTask is invalid
+     * @throws BuilderException
+     *         if any other error occurs
+     * @see #getBuildTask(Long)
+     */
+    public List<BuilderMetric> getStats(Long id) throws NotFoundException, BuilderException {
+        return getStats(getBuildTask(id));
+    }
+
+    protected List<BuilderMetric> getStats(BuildTask task) throws BuilderException {
+        final List<BuilderMetric> result = new LinkedList<>();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        SimpleDateFormat format = (SimpleDateFormat)RFC1123_DATE_FORMAT.clone();
+        final long started = task.getStartTime();
+        final long ended = task.getEndTime();
+        if (started > 0) {
+            result.add(dtoFactory.createDto(BuilderMetric.class).withName("startTime").withValue(format.format(started))
+                                 .withDescription("Time when build task was started"));
+            if (ended <= 0) {
+                long terminationTimeMillis = started + TimeUnit.SECONDS.toMillis(task.getConfiguration().getRequest().getTimeout());
+                result.add(dtoFactory.createDto(BuilderMetric.class)
+                                     .withName("terminationTime")
+                                     .withValue(format.format(terminationTimeMillis))
+                                     .withDescription("Time after that build task might be terminated"));
+            }
+        }
+        if (ended > 0) {
+            result.add(dtoFactory.createDto(BuilderMetric.class).withName("endTime").withValue(format.format(ended))
+                                 .withDescription("Time when build task was finished"));
+        }
+        final long runningTime = task.getRunningTime();
+        if (runningTime > 0) {
+            result.add(dtoFactory.createDto(BuilderMetric.class).withName("runningTime")
+                                 .withValue(String.format("%.3fs", (double)(runningTime / 1000)))
+                                 .withDescription("Running time of build task"));
+        }
+        return result;
+
+    }
+
+    protected ExecutorService getExecutor() {
+        return executor;
+    }
+
+    protected EventService getEventService() {
+        return eventService;
+    }
+
     protected class FutureBuildTask extends FutureTask<Boolean> implements BuildTask {
         private final Long                 id;
         private final CommandLine          commandLine;
@@ -564,6 +634,7 @@ public abstract class Builder {
             return builder;
         }
 
+        @Override
         public CommandLine getCommandLine() {
             return commandLine;
         }
@@ -641,6 +712,14 @@ public abstract class Builder {
         @Override
         public final synchronized long getEndTime() {
             return endTime;
+        }
+
+        @Override
+        public synchronized long getRunningTime() {
+            return startTime > 0
+                   ? endTime > 0
+                     ? (endTime - startTime) : (System.currentTimeMillis() - startTime)
+                   : 0;
         }
 
         final synchronized void ended() {

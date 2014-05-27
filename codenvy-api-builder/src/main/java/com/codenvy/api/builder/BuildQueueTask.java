@@ -19,7 +19,7 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.dto.BuildTaskStats;
+import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
@@ -31,9 +31,11 @@ import com.codenvy.dto.server.DtoFactory;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -41,10 +43,12 @@ import java.util.concurrent.Future;
  * @author andrew00x
  */
 public final class BuildQueueTask implements Cancellable {
+    private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
+
     private final Long               id;
     private final long               created;
-    private final long               waitingTimeLimit;
-    private final long               executionTimeLimit;
+    private final long               waitingTimeout;
     private final BaseBuilderRequest request;
     private final Future<RemoteTask> future;
 
@@ -61,16 +65,14 @@ public final class BuildQueueTask implements Cancellable {
     BuildQueueTask(Long id,
                    BaseBuilderRequest request,
                    long waitingTimeout,
-                   long executionTimeout,
                    Future<RemoteTask> future,
                    UriBuilder uriBuilder) {
         this.id = id;
         this.uriBuilder = uriBuilder;
+        this.waitingTimeout = waitingTimeout;
         this.future = future;
         this.request = request;
         created = System.currentTimeMillis();
-        waitingTimeLimit = created + waitingTimeout;
-        executionTimeLimit = created + executionTimeout;
     }
 
     /**
@@ -107,6 +109,18 @@ public final class BuildQueueTask implements Cancellable {
     /** Get date when this task was created. */
     public long getCreationTime() {
         return created;
+    }
+
+    public long getWaitingTime() {
+        if (isWaiting()) {
+            return System.currentTimeMillis() - created;
+        }
+        try {
+            // waiting time is difference between creation of this task and 'remote' builder task
+            return getRemoteTask().getCreationTime() - created;
+        } catch (NotFoundException | BuilderException e) {
+            return -1;
+        }
     }
 
     /**
@@ -150,9 +164,16 @@ public final class BuildQueueTask implements Cancellable {
                                 .withHref(getUriBuilder().path(BuilderService.class, "cancel").build(request.getWorkspace(), id).toString())
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
+            final List<BuilderMetric> buildStats = new ArrayList<>(1);
+            final SimpleDateFormat format = (SimpleDateFormat)RFC1123_DATE_FORMAT.clone();
+            buildStats.add(dtoFactory.createDto(BuilderMetric.class)
+                                   .withName("waitingTimeLimit")
+                                   .withValue(format.format(created + waitingTimeout))
+                                   .withDescription("Waiting for start limit"));
             descriptor = dtoFactory.createDto(BuildTaskDescriptor.class)
                                    .withTaskId(id)
                                    .withStatus(BuildStatus.IN_QUEUE)
+                                   .withBuildStats(buildStats)
                                    .withLinks(links)
                                    .withStartTime(-1)
                                    .withEndTime(-1);
@@ -164,36 +185,9 @@ public final class BuildQueueTask implements Cancellable {
                                    .withEndTime(-1);
         } else {
             final BuildTaskDescriptor remote = getRemoteTask().getBuildTaskDescriptor();
-            descriptor = dtoFactory.createDto(BuildTaskDescriptor.class)
-                                   .withTaskId(id)
-                                   .withStatus(remote.getStatus())
-                                   .withLinks(rewriteKnownLinks(remote.getLinks()))
-                                   .withStartTime(remote.getStartTime())
-                                   .withEndTime(remote.getEndTime());
+            descriptor = dtoFactory.clone(remote).withTaskId(id).withLinks(rewriteKnownLinks(remote.getLinks()));
         }
-        final BuildTaskStats stats = calculateStats(descriptor);
-        return descriptor.withStats(stats);
-    }
-
-    private BuildTaskStats calculateStats(BuildTaskDescriptor descriptor) {
-        final BuildTaskStats stats = DtoFactory.getInstance().createDto(BuildTaskStats.class)
-                                               .withCreationTime(created)
-                                               .withWaitingTimeLimit(waitingTimeLimit)
-                                               .withExecutionTimeLimit(executionTimeLimit);
-        final long started = descriptor.getStartTime();
-        if (started > 0) {
-            if (started > created) {
-                stats.setWaitingTime(started - created);
-            } else {
-                // If result of previous build is reused.
-                stats.setWaitingTime(0);
-            }
-            final long ended = descriptor.getEndTime();
-            stats.setExecutionTime(ended > 0 ? (ended - started) : (System.currentTimeMillis() - started));
-        } else {
-            stats.setWaitingTime(System.currentTimeMillis() - created);
-        }
-        return stats;
+        return descriptor;
     }
 
     private List<Link> rewriteKnownLinks(List<Link> links) {

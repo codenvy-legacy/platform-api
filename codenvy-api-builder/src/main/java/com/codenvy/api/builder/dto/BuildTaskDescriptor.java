@@ -68,9 +68,9 @@ public interface BuildTaskDescriptor {
 
     BuildTaskDescriptor withCommandLine(String cmd);
 
-    BuildTaskStats getStats();
+    List<BuilderMetric> getBuildStats();
 
-    void setStats(BuildTaskStats stats);
+    BuildTaskDescriptor withBuildStats(List<BuilderMetric> stats);
 
-    BuildTaskDescriptor withStats(BuildTaskStats stats);
+    void setBuildStats(List<BuilderMetric> stats);
 }

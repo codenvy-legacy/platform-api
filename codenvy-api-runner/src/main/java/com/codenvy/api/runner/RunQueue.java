@@ -21,6 +21,7 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.builder.dto.BuildTaskStats;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -33,6 +34,7 @@ import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Pair;
+import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
@@ -112,7 +114,7 @@ public class RunQueue {
     private final String                                          baseProjectApiUrl;
     private final String                                          baseBuilderApiUrl;
     private final int                                             appLifetime;
-    private final long                                            maxTimeInQueueMillis;
+    private final long                                            maxWaitingTimeMillis;
     private final AtomicBoolean                                   started;
     private final long                                            appCleanupTime;
 
@@ -138,7 +140,7 @@ public class RunQueue {
      *         find builder API at URL: <i>http://codenvy.com/api/builder/my_workspace</i>.
      * @param defMemSize
      *         default size of memory for application in megabytes. This value used is there is nothing specified in properties of project.
-     * @param maxTimeInQueue
+     * @param maxWaitingTime
      *         max time for request to be in queue in seconds
      * @param appLifetime
      *         application life time in seconds. After this time the application may be terminated.
@@ -147,7 +149,7 @@ public class RunQueue {
     public RunQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                     @Nullable @Named("builder.base_api_url") String baseBuilderApiUrl,
                     @Named(Constants.APP_DEFAULT_MEM_SIZE) int defMemSize,
-                    @Named(Constants.WAITING_TIME) int maxTimeInQueue,
+                    @Named(Constants.WAITING_TIME) int maxWaitingTime,
                     @Named(Constants.APP_LIFETIME) int appLifetime,
                     @Named(Constants.APP_CLEANUP_TIME) int appCleanupTime,
                     RunnerSelectionStrategy runnerSelector,
@@ -156,7 +158,7 @@ public class RunQueue {
         this.baseBuilderApiUrl = baseBuilderApiUrl;
         this.defMemSize = defMemSize;
         this.eventService = eventService;
-        this.maxTimeInQueueMillis = TimeUnit.SECONDS.toMillis(maxTimeInQueue);
+        this.maxWaitingTimeMillis = TimeUnit.SECONDS.toMillis(maxWaitingTime);
         this.appLifetime = appLifetime;
         this.runnerSelector = runnerSelector;
         this.appCleanupTime = TimeUnit.SECONDS.toMillis(appCleanupTime);
@@ -227,6 +229,7 @@ public class RunQueue {
             }
         }
         boolean skipBuild = runOptions != null && runOptions.getSkipBuild();
+        final ValueHolder<BuildTaskStats> buildStatsHolder = skipBuild ? null : new ValueHolder<BuildTaskStats>();
         final Callable<RemoteRunnerProcess> callable;
         if (!skipBuild
             && ((buildOptions != null && buildOptions.getBuilderName() != null)
@@ -252,7 +255,7 @@ public class RunQueue {
             } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
                 throw new RunnerException(e.getServiceError());
             }
-            callable = createTaskFor(buildDescriptor, request);
+            callable = createTaskFor(buildDescriptor, request, buildStatsHolder);
         } else {
             final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
             if (zipballLink != null) {
@@ -261,19 +264,22 @@ public class RunQueue {
                 request.setDeploymentSourcesUrl(
                         token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
             }
-            callable = createTaskFor(null, request);
+            callable = createTaskFor(null, request, buildStatsHolder);
         }
         final Long id = sequence.getAndIncrement();
         final RunFutureTask future = new RunFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project);
         request.setId(id); // for getting callback events from remote runner
-        final RunQueueTask task = new RunQueueTask(id, request, future, serviceContext.getServiceUriBuilder());
+        final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildStatsHolder,
+                                                   serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         eventService.publish(RunnerEvent.queueStartedEvent(id, workspace, project));
         executor.execute(future);
         return task;
     }
 
-    protected Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor, final RunRequest request) {
+    protected Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor,
+                                                          final RunRequest request,
+                                                          final ValueHolder<BuildTaskStats> buildStatsHolder) {
         return new Callable<RemoteRunnerProcess>() {
             @Override
             public RemoteRunnerProcess call() throws Exception {
@@ -301,6 +307,9 @@ public class RunQueue {
                         BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
                                                                                      // create copy of link when pass it outside!!
                                                                                      DtoFactory.getInstance().clone(buildStatusLink));
+                        if (buildStatsHolder != null) {
+                            buildStatsHolder.set(buildDescriptor.getStats());
+                        }
                         switch (buildDescriptor.getStatus()) {
                             case SUCCESSFUL:
                                 final Link downloadLink = getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT,
@@ -475,7 +484,7 @@ public class RunQueue {
                         final boolean waiting = task.isWaiting();
                         final RunRequest request = task.getRequest();
                         if (waiting) {
-                            if ((task.getCreationTime() + maxTimeInQueueMillis) < System.currentTimeMillis()) {
+                            if ((task.getCreationTime() + maxWaitingTimeMillis) < System.currentTimeMillis()) {
                                 try {
                                     task.cancel();
                                     eventService.publish(RunnerEvent.terminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));

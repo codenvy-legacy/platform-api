@@ -65,9 +65,6 @@ public class SlaveRunnerService extends Service {
     @Inject
     private ResourceAllocators allocators;
 
-    @Inject
-    private RunnerStats runnerStats;
-
     /** Get list of available Runners which can be accessible over this SlaveRunnerService. */
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)
     @GET
@@ -92,26 +89,31 @@ public class SlaveRunnerService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor run(@Description("Parameters for run task in JSON format") RunRequest request) throws Exception {
-        final Runner runner = getRunner(request.getRunner());
-        final RunnerProcess process = runner.execute(request);
-        return getDescriptor(process, getServiceContext());
+        final Runner myRunner = getRunner(request.getRunner());
+        final RunnerProcess process = myRunner.execute(request);
+        return getDescriptor(process, getServiceContext()).withRunStats(myRunner.getStats(process.getId()));
     }
 
     @GET
     @Path("status/{runner}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor getStatus(@PathParam("runner") String runner, @PathParam("id") Long id) throws Exception {
-        final RunnerProcess process = getRunner(runner).getProcess(id);
-        return getDescriptor(process, getServiceContext());
+        final Runner myRunner = getRunner(runner);
+        final RunnerProcess process = myRunner.getProcess(id);
+        return getDescriptor(process, getServiceContext()).withRunStats(myRunner.getStats(id));
     }
 
     @POST
     @Path("stop/{runner}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor stop(@PathParam("runner") String runner, @PathParam("id") Long id) throws Exception {
-        final RunnerProcess process = getRunner(runner).getProcess(id);
-        process.cancel();
-        return getDescriptor(process, getServiceContext());
+        final Runner myRunner = getRunner(runner);
+        final RunnerProcess process = myRunner.getProcess(id);
+        final ApplicationProcess application = process.getApplicationProcess();
+        if (application != null) {
+            application.stop();
+        }
+        return getDescriptor(process, getServiceContext()).withRunStats(myRunner.getStats(id));
     }
 
     @GET
@@ -119,11 +121,24 @@ public class SlaveRunnerService extends Service {
     public void getLogs(@PathParam("runner") String runner,
                         @PathParam("id") Long id,
                         @Context HttpServletResponse httpServletResponse) throws Exception {
-        final ApplicationLogger logger = getRunner(runner).getProcess(id).getLogger();
-        httpServletResponse.setContentType(logger.getContentType());
-        final PrintWriter output = httpServletResponse.getWriter();
-        logger.getLogs(output);
-        output.flush();
+        final Runner myRunner = getRunner(runner);
+        final RunnerProcess process = myRunner.getProcess(id);
+        final Throwable error = process.getError();
+        if (error != null) {
+            final PrintWriter output = httpServletResponse.getWriter();
+            httpServletResponse.setContentType("text/plain");
+            error.printStackTrace(output);
+            output.flush();
+        } else {
+            final ApplicationProcess application = process.getApplicationProcess();
+            if (application != null) {
+                final ApplicationLogger logger = application.getLogger();
+                final PrintWriter output = httpServletResponse.getWriter();
+                httpServletResponse.setContentType(logger.getContentType());
+                logger.getLogs(output);
+                output.flush();
+            }
+        }
     }
 
     @GenerateLink(rel = Constants.LINK_REL_RUNNER_STATE)
@@ -136,8 +151,7 @@ public class SlaveRunnerService extends Service {
         final Runner myRunner = getRunner(runner);
         return DtoFactory.getInstance().createDto(RunnerState.class)
                          .withName(myRunner.getName())
-                         .withRunningAppsNum(myRunner.getRunningAppsNum())
-                         .withTotalAppsNum(myRunner.getTotalAppsNum())
+                         .withDetails(myRunner.getStats())
                          .withServerState(getServerState());
     }
 
@@ -149,8 +163,7 @@ public class SlaveRunnerService extends Service {
         return DtoFactory.getInstance().createDto(ServerState.class)
                          .withCpuPercentUsage(SystemInfo.cpu())
                          .withTotalMemory(allocators.totalMemory())
-                         .withFreeMemory(allocators.freeMemory())
-                         .withTotalRunningAppsNum(runnerStats.getRunningAppsNum());
+                         .withFreeMemory(allocators.freeMemory());
     }
 
     private Runner getRunner(String name) throws NotFoundException {
@@ -162,8 +175,7 @@ public class SlaveRunnerService extends Service {
     }
 
     private ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws RunnerException {
-        final ApplicationStatus status = process.isStopped() ? ApplicationStatus.STOPPED
-                                                             : process.isRunning() ? ApplicationStatus.RUNNING : ApplicationStatus.NEW;
+        final ApplicationStatus status = process.getStatus();
         final List<Link> links = new LinkedList<>();
         final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         links.add(DtoFactory.getInstance().createDto(Link.class)
@@ -176,8 +188,7 @@ public class SlaveRunnerService extends Service {
                             .withRel(Constants.LINK_REL_VIEW_LOG)
                             .withHref(servicePathBuilder.clone().path(getClass(), "getLogs")
                                                         .build(process.getRunner(), process.getId()).toString())
-                            .withMethod("GET")
-                            .withProduces(process.getLogger().getContentType()));
+                            .withMethod("GET"));
         links.add(DtoFactory.getInstance().createDto(Link.class)
                             .withRel(Constants.LINK_REL_STOP)
                             .withHref(servicePathBuilder.clone().path(getClass(), "stop")

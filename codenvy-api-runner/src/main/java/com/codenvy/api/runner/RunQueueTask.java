@@ -17,23 +17,29 @@
  */
 package com.codenvy.api.runner;
 
+import com.codenvy.api.builder.dto.BuildTaskStats;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
+import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Wraps RemoteRunnerProcess.
@@ -41,10 +47,15 @@ import java.util.concurrent.Future;
  * @author andrew00x
  */
 public final class RunQueueTask implements Cancellable {
+    private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
+
     private final Long                        id;
     private final RunRequest                  request;
     private final Future<RemoteRunnerProcess> future;
+    private final ValueHolder<BuildTaskStats> buildStatsHolder;
     private final long                        created;
+    private final long                        waitingTimeout;
 
     /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
     private final UriBuilder uriBuilder;
@@ -56,10 +67,17 @@ public final class RunQueueTask implements Cancellable {
 
     private RemoteRunnerProcess myRemoteProcess;
 
-    RunQueueTask(Long id, RunRequest request, Future<RemoteRunnerProcess> future, UriBuilder uriBuilder) {
+    RunQueueTask(Long id,
+                 RunRequest request,
+                 long waitingTimeout,
+                 Future<RemoteRunnerProcess> future,
+                 ValueHolder<BuildTaskStats> buildStatsHolder,
+                 UriBuilder uriBuilder) {
         this.id = id;
         this.future = future;
         this.request = request;
+        this.waitingTimeout = waitingTimeout;
+        this.buildStatsHolder = buildStatsHolder;
         this.uriBuilder = uriBuilder;
         created = System.currentTimeMillis();
     }
@@ -77,35 +95,55 @@ public final class RunQueueTask implements Cancellable {
     }
 
     public ApplicationProcessDescriptor getDescriptor() throws RunnerException, NotFoundException {
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        ApplicationProcessDescriptor descriptor;
         if (future.isCancelled()) {
-            return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
-                             .withProcessId(id)
-                             .withStatus(ApplicationStatus.CANCELLED);
+            descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class).withProcessId(id).withStatus(ApplicationStatus.CANCELLED);
+        } else {
+            final RemoteRunnerProcess remoteProcess = getRemoteProcess();
+            if (remoteProcess == null) {
+                final List<Link> links = new ArrayList<>(2);
+                links.add(dtoFactory.createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_GET_STATUS)
+                                    .withHref(getUriBuilder().path(RunnerService.class, "getStatus")
+                                                             .build(request.getWorkspace(), id).toString()).withMethod("GET")
+                                    .withProduces(MediaType.APPLICATION_JSON));
+                links.add(dtoFactory.createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_STOP)
+                                    .withHref(getUriBuilder().path(RunnerService.class, "stop")
+                                                             .build(request.getWorkspace(), id).toString())
+                                    .withMethod("POST")
+                                    .withProduces(MediaType.APPLICATION_JSON));
+                final List<RunnerMetric> runStats = new ArrayList<>(1);
+                final SimpleDateFormat format = (SimpleDateFormat)RFC1123_DATE_FORMAT.clone();
+                runStats.add(dtoFactory.createDto(RunnerMetric.class)
+                                       .withName("waitingTimeLimit")
+                                       .withValue(format.format(created + waitingTimeout))
+                                       .withDescription("Waiting for start limit"));
+                descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
+                                       .withProcessId(id)
+                                       .withStatus(ApplicationStatus.NEW)
+                                       .withRunStats(runStats)
+                                       .withLinks(links);
+
+            } else {
+                final ApplicationProcessDescriptor remoteDescriptor = remoteProcess.getApplicationProcessDescriptor();
+                // re-write some parameters, we are working as revers-proxy
+                descriptor = dtoFactory.clone(remoteDescriptor).withProcessId(id).withLinks(rewriteKnownLinks(remoteDescriptor.getLinks()));
+                final long started = descriptor.getStartTime();
+                long waitingTimeMillis = started > 0 ? started - created : System.currentTimeMillis() - created;
+                long minutes = TimeUnit.MILLISECONDS.toMinutes(waitingTimeMillis);
+                waitingTimeMillis -= TimeUnit.MINUTES.toMillis(minutes);
+                long seconds = TimeUnit.MILLISECONDS.toSeconds(waitingTimeMillis);
+                waitingTimeMillis -= TimeUnit.SECONDS.toMillis(seconds);
+                final List<RunnerMetric> runStats = descriptor.getRunStats();
+                runStats.add(dtoFactory.createDto(RunnerMetric.class)
+                                       .withName("waitingTime")
+                                       .withValue(String.format("%02dm:%02ds:%03dms", minutes, seconds, waitingTimeMillis))
+                                       .withDescription("Waiting for start duration"));
+            }
         }
-        final RemoteRunnerProcess remoteProcess = getRemoteProcess();
-        if (remoteProcess == null) {
-            final List<Link> links = new ArrayList<>(2);
-            links.add(DtoFactory.getInstance().createDto(Link.class)
-                                .withRel(Constants.LINK_REL_GET_STATUS)
-                                .withHref(getUriBuilder().path(RunnerService.class, "getStatus")
-                                                         .build(request.getWorkspace(), id).toString()).withMethod("GET")
-                                .withProduces(MediaType.APPLICATION_JSON));
-            links.add(DtoFactory.getInstance().createDto(Link.class)
-                                .withRel(Constants.LINK_REL_STOP)
-                                .withHref(getUriBuilder().path(RunnerService.class, "stop")
-                                                         .build(request.getWorkspace(), id).toString())
-                                .withMethod("POST")
-                                .withProduces(MediaType.APPLICATION_JSON));
-            return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
-                             .withProcessId(id)
-                             .withStatus(ApplicationStatus.NEW)
-                             .withLinks(links);
-        }
-        final ApplicationProcessDescriptor remoteStatus = remoteProcess.getApplicationProcessDescriptor();
-        // re-write some parameters, we are working as revers-proxy
-        return DtoFactory.getInstance().clone(remoteStatus)
-                         .withProcessId(id)
-                         .withLinks(rewriteKnownLinks(remoteStatus.getLinks()));
+        return descriptor;
     }
 
     private List<Link> rewriteKnownLinks(List<Link> links) {

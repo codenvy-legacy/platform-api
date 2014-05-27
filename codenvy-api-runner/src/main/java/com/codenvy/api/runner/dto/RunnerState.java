@@ -19,6 +19,8 @@ package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
+
 /**
  * Describes current state of {@link com.codenvy.api.runner.internal.Runner}.
  *
@@ -32,17 +34,11 @@ public interface RunnerState {
 
     void setName(String name);
 
-    int getRunningAppsNum();
+    List<RunnerMetric> getDetails();
 
-    RunnerState withRunningAppsNum(int num);
+    RunnerState withDetails(List<RunnerMetric> details);
 
-    void setRunningAppsNum(int num);
-
-    int getTotalAppsNum();
-
-    RunnerState withTotalAppsNum(int num);
-
-    void setTotalAppsNum(int num);
+    void setDetails(List<RunnerMetric> details);
 
     ServerState getServerState();
 

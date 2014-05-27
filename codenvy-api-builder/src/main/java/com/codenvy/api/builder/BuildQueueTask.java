@@ -182,11 +182,16 @@ public final class BuildQueueTask implements Cancellable {
                                                .withExecutionTimeLimit(executionTimeLimit);
         final long started = descriptor.getStartTime();
         if (started > 0) {
-            stats.setWaitingTime((started - created));
+            if (started > created) {
+                stats.setWaitingTime(started - created);
+            } else {
+                // If result of previous build is reused.
+                stats.setWaitingTime(0);
+            }
             final long ended = descriptor.getEndTime();
             stats.setExecutionTime(ended > 0 ? (ended - started) : (System.currentTimeMillis() - started));
         } else {
-            stats.setWaitingTime((System.currentTimeMillis() - created));
+            stats.setWaitingTime(System.currentTimeMillis() - created);
         }
         return stats;
     }

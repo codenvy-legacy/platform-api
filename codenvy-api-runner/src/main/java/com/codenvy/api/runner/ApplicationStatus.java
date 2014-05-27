@@ -26,5 +26,6 @@ public enum ApplicationStatus {
     NEW,
     RUNNING,
     STOPPED,
-    CANCELLED
+    CANCELLED,
+    FAILED
 }

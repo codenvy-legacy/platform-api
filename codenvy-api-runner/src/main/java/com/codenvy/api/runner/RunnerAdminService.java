@@ -73,9 +73,9 @@ public class RunnerAdminService extends Service {
         return Response.status(Response.Status.OK).build();
     }
 
-    private static String[] SERVER_LINK_RELS = new String[]{Constants.LINK_REL_AVAILABLE_RUNNERS,
-                                                            Constants.LINK_REL_SERVER_STATE,
-                                                            Constants.LINK_REL_RUNNER_STATE};
+    private static final String[] SERVER_LINK_RELS = new String[]{Constants.LINK_REL_AVAILABLE_RUNNERS,
+                                                                  Constants.LINK_REL_SERVER_STATE,
+                                                                  Constants.LINK_REL_RUNNER_STATE};
 
     @GenerateLink(rel = Constants.LINK_REL_REGISTERED_RUNNER_SERVER)
     @GET

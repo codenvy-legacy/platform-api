@@ -18,7 +18,7 @@
 package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.core.util.Cancellable;
-import com.codenvy.api.runner.RunnerException;
+import com.codenvy.api.runner.ApplicationStatus;
 
 /** @author andrew00x */
 public interface RunnerProcess extends Cancellable {
@@ -37,6 +37,27 @@ public interface RunnerProcess extends Cancellable {
      */
     Long getId();
 
+    ApplicationStatus getStatus();
+
+    /**
+     * Get application process.
+     *
+     * @return ApplicationProcess or {@code null} if application is not started yet.
+     */
+    ApplicationProcess getApplicationProcess();
+
+    /**
+     * Get name of runner which owns this process.
+     *
+     * @return name of runner which owns this process
+     */
+    String getRunner();
+
+    /** Get configuration of current process. */
+    RunnerConfiguration getConfiguration();
+
+    Throwable getError();
+
     /**
      * Get time when process was started.
      *
@@ -52,38 +73,9 @@ public interface RunnerProcess extends Cancellable {
     long getStopTime();
 
     /**
-     * Reports whether process is running or not.
+     * Get uptime of application process.
      *
-     * @return {@code true} if process is running and {@code false} otherwise
-     * @throws RunnerException
-     *         if an error occurs when try to check status of application
+     * @return time when process was started or {@code 0} if process is not started yet.
      */
-    boolean isRunning() throws RunnerException;
-
-    /**
-     * Reports whether process was started and stopped successfully.
-     *
-     * @throws RunnerException
-     *         if an error occurs when try to check status of application
-     */
-    boolean isStopped() throws RunnerException;
-
-    /**
-     * Get application logger.
-     *
-     * @return application logger
-     * @throws RunnerException
-     *         if an error occurs when try to get logger of application
-     */
-    ApplicationLogger getLogger() throws RunnerException;
-
-    /**
-     * Get name of runner which owns this process.
-     *
-     * @return name of runner which owns this process
-     */
-    String getRunner();
-
-    /** Get configuration of current process. */
-    RunnerConfiguration getConfiguration();
+    long getUptime();
 }

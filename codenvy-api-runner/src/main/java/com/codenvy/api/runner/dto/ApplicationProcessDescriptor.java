@@ -67,15 +67,15 @@ public interface ApplicationProcessDescriptor {
 
     ApplicationProcessDescriptor withDebugHost(String host);
 
+    List<RunnerMetric> getRunStats();
+
+    ApplicationProcessDescriptor withRunStats(List<RunnerMetric> stats);
+
+    void setRunStats(List<RunnerMetric> stats);
+
     List<Link> getLinks();
 
     ApplicationProcessDescriptor withLinks(List<Link> links);
 
     void setLinks(List<Link> links);
-
-    ApplicationStats getStats();
-
-    void setStats(ApplicationStats stats);
-
-    ApplicationProcessDescriptor withStats(ApplicationStats stats);
 }

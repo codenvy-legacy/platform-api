@@ -25,18 +25,21 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.dto.ApplicationStats;
 import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Wraps RemoteRunnerProcess.
@@ -44,13 +47,15 @@ import java.util.concurrent.Future;
  * @author andrew00x
  */
 public final class RunQueueTask implements Cancellable {
+    private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
+
     private final Long                        id;
     private final RunRequest                  request;
     private final Future<RemoteRunnerProcess> future;
     private final ValueHolder<BuildTaskStats> buildStatsHolder;
     private final long                        created;
-    private final long                        waitingTimeLimit;
-    private final long                        terminationTime;
+    private final long                        waitingTimeout;
 
     /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
     private final UriBuilder uriBuilder;
@@ -65,18 +70,16 @@ public final class RunQueueTask implements Cancellable {
     RunQueueTask(Long id,
                  RunRequest request,
                  long waitingTimeout,
-                 long applicationLifetime,
                  Future<RemoteRunnerProcess> future,
                  ValueHolder<BuildTaskStats> buildStatsHolder,
                  UriBuilder uriBuilder) {
         this.id = id;
         this.future = future;
         this.request = request;
+        this.waitingTimeout = waitingTimeout;
         this.buildStatsHolder = buildStatsHolder;
         this.uriBuilder = uriBuilder;
         created = System.currentTimeMillis();
-        waitingTimeLimit = created + waitingTimeout;
-        terminationTime = created + applicationLifetime;
     }
 
     public Long getId() {
@@ -111,41 +114,36 @@ public final class RunQueueTask implements Cancellable {
                                                              .build(request.getWorkspace(), id).toString())
                                     .withMethod("POST")
                                     .withProduces(MediaType.APPLICATION_JSON));
+                final List<RunnerMetric> runStats = new ArrayList<>(1);
+                final SimpleDateFormat format = (SimpleDateFormat)RFC1123_DATE_FORMAT.clone();
+                runStats.add(dtoFactory.createDto(RunnerMetric.class)
+                                       .withName("waitingTimeLimit")
+                                       .withValue(format.format(created + waitingTimeout))
+                                       .withDescription("Waiting for start limit"));
                 descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
                                        .withProcessId(id)
                                        .withStatus(ApplicationStatus.NEW)
+                                       .withRunStats(runStats)
                                        .withLinks(links);
+
             } else {
-                final ApplicationProcessDescriptor remoteStatus = remoteProcess.getApplicationProcessDescriptor();
+                final ApplicationProcessDescriptor remoteDescriptor = remoteProcess.getApplicationProcessDescriptor();
                 // re-write some parameters, we are working as revers-proxy
-                descriptor = dtoFactory.clone(remoteStatus).withProcessId(id).withLinks(rewriteKnownLinks(remoteStatus.getLinks()));
+                descriptor = dtoFactory.clone(remoteDescriptor).withProcessId(id).withLinks(rewriteKnownLinks(remoteDescriptor.getLinks()));
+                final long started = descriptor.getStartTime();
+                long waitingTimeMillis = started > 0 ? started - created : System.currentTimeMillis() - created;
+                long minutes = TimeUnit.MILLISECONDS.toMinutes(waitingTimeMillis);
+                waitingTimeMillis -= TimeUnit.MINUTES.toMillis(minutes);
+                long seconds = TimeUnit.MILLISECONDS.toSeconds(waitingTimeMillis);
+                waitingTimeMillis -= TimeUnit.SECONDS.toMillis(seconds);
+                final List<RunnerMetric> runStats = descriptor.getRunStats();
+                runStats.add(dtoFactory.createDto(RunnerMetric.class)
+                                       .withName("waitingTime")
+                                       .withValue(String.format("%02dm:%02ds:%03dms", minutes, seconds, waitingTimeMillis))
+                                       .withDescription("Waiting for start duration"));
             }
         }
-        final ApplicationStats stats = calculateStats(descriptor);
-        return descriptor.withStats(stats);
-    }
-
-    private ApplicationStats calculateStats(ApplicationProcessDescriptor descriptor) {
-        final ApplicationStats stats = DtoFactory.getInstance().createDto(ApplicationStats.class)
-                                                 .withCreationTime(created)
-                                                 .withWaitingTimeLimit(waitingTimeLimit)
-                                                 .withTerminationTime(terminationTime);
-        final long started = descriptor.getStartTime();
-        if (started > 0) {
-            stats.setWaitingTime(started - created);
-            final long stopped = descriptor.getStopTime();
-            stats.setUptime(stopped > 0 ? (stopped - started) : (System.currentTimeMillis() - started));
-        } else {
-            stats.setWaitingTime(System.currentTimeMillis() - created);
-        }
-        if (buildStatsHolder != null) {
-            stats.setBuildTaskStats(buildStatsHolder.get());
-        }
-        final ApplicationStats remoteStats = descriptor.getStats();
-        if (remoteStats != null) {
-            stats.setEnvironmentStats(remoteStats.getEnvironmentStats());
-        }
-        return stats;
+        return descriptor;
     }
 
     private List<Link> rewriteKnownLinks(List<Link> links) {

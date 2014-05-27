@@ -269,7 +269,7 @@ public class RunQueue {
         final Long id = sequence.getAndIncrement();
         final RunFutureTask future = new RunFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project);
         request.setId(id); // for getting callback events from remote runner
-        final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, request.getLifetime(), future, buildStatsHolder,
+        final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildStatsHolder,
                                                    serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         eventService.publish(RunnerEvent.queueStartedEvent(id, workspace, project));

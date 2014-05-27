@@ -20,27 +20,27 @@ package com.codenvy.api.runner.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Describes single item of stats of application's environment.
+ * Describes single metric of runner's stats.
  *
  * @author andrew00x
  */
 @DTO
-public interface ApplicationEnvironmentStatsItem {
+public interface RunnerMetric {
     String getName();
 
-    ApplicationEnvironmentStatsItem withName(String name);
+    RunnerMetric withName(String name);
 
     void setName(String name);
 
     String getValue();
 
-    ApplicationEnvironmentStatsItem withValue(String value);
+    RunnerMetric withValue(String value);
 
     void setValue(String value);
 
     String getDescription();
 
-    ApplicationEnvironmentStatsItem withDescription(String description);
+    RunnerMetric withDescription(String description);
 
     void setDescription(String description);
 }

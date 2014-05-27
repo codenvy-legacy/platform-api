@@ -352,6 +352,14 @@ public class FactoryServiceTest {
         snippetMarkdown.setRel("snippet/markdown");
         snippetMarkdown.setMethod("GET");
         expectedLinks.add(snippetMarkdown);
+        
+        Link snippetiFrame = DtoFactory.getInstance().createDto(Link.class);
+        snippetiFrame.setProduces("text/plain");
+        snippetiFrame.setHref(getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID +
+                                "/snippet?type=iframe");
+        snippetiFrame.setRel("snippet/iframe");
+        snippetiFrame.setMethod("GET");
+        expectedLinks.add(snippetiFrame);
 
         for (Link link : responseFactoryUrl.getLinks()) {
             //This transposition need because proxy objects doesn't contains equals method.
@@ -494,7 +502,7 @@ public class FactoryServiceTest {
         Factory responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(),
                                                          Factory.class, null);
 
-        List<Link> expectedLinks = new ArrayList<>(8);
+        List<Link> expectedLinks = new ArrayList<>(9);
         expectedLinks.add(expectedCreateProject);
 
         Link self = DtoFactory.getInstance().createDto(Link.class);
@@ -541,6 +549,13 @@ public class FactoryServiceTest {
                                 "/snippet?type=markdown");
         snippetMarkdown.setRel("snippet/markdown");
         expectedLinks.add(snippetMarkdown);
+        
+        Link snippetiFrame = DtoFactory.getInstance().createDto(Link.class);
+        snippetiFrame.setProduces("text/plain");
+        snippetiFrame.setHref(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID +
+                                "/snippet?type=iframe");
+        snippetiFrame.setRel("snippet/iframe");
+        expectedLinks.add(snippetiFrame);
 
         for (Link link : responseFactoryUrl.getLinks()) {
             Link testLink = DtoFactory.getInstance().createDto(Link.class);

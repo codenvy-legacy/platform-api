@@ -443,9 +443,11 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToAddMemberToTemporaryWorkspaceForAnyUser() throws Exception {
-        workspace.setTemporary(true);
-
+    public void shouldBeAbleToAddMemberForAnyUserIfAllowAttributeIsTrue() throws Exception {
+        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class)
+                                                .withName("allowAnyoneAddMember")
+                                                .withValue("true"));
+        prepareSecurityContext("user");
         NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
                                              .withRoles(Arrays.asList("workspace/developer"))
                                              .withUserId(USER_ID);
@@ -460,6 +462,33 @@ public class WorkspaceServiceTest {
         verify(memberDao, times(1)).create(any(Member.class));
         verifyLinksRel(member.getLinks(),
                        Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER));
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddMemberForAnyUserIfAllowAttributeIsFalse() throws Exception {
+        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class)
+                                                .withName("allowAnyoneAddMember")
+                                                .withValue("false"));
+        prepareSecurityContext("user");
+        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
+                                             .withRoles(Arrays.asList("workspace/developer"))
+                                             .withUserId(USER_ID);
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
+
+        assertEquals(response.getEntity().toString(), "Access denied");
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddMemberForAnyUserIfAllowAttributeMissed() throws Exception {
+        prepareSecurityContext("user");
+        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
+                                             .withRoles(Arrays.asList("workspace/developer"))
+                                             .withUserId(USER_ID);
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
+
+        assertEquals(response.getEntity().toString(), "Access denied");
     }
 
     @Test

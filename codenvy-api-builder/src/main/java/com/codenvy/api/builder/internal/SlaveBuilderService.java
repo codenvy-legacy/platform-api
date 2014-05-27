@@ -88,10 +88,8 @@ public final class SlaveBuilderService extends Service {
         final Builder myBuilder = getBuilder(builder);
         return DtoFactory.getInstance().createDto(BuilderState.class)
                          .withName(myBuilder.getName())
-                         .withNumberOfWorkers(myBuilder.getNumberOfWorkers())
-                         .withNumberOfActiveWorkers(myBuilder.getNumberOfActiveWorkers())
-                         .withInternalQueueSize(myBuilder.getInternalQueueSize())
-                         .withMaxInternalQueueSize(myBuilder.getMaxInternalQueueSize())
+                         .withStats(myBuilder.getStats())
+                         .withFreeWorkers(myBuilder.getNumberOfWorkers() - myBuilder.getNumberOfActiveWorkers())
                          .withServerState(getServerState());
     }
 
@@ -112,8 +110,9 @@ public final class SlaveBuilderService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor build(@Description("Parameters for build task in JSON format") BuildRequest request) throws Exception {
-        final BuildTask task = getBuilder(request.getBuilder()).perform(request);
-        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
+        final Builder myBuilder = getBuilder(request.getBuilder());
+        final BuildTask task = myBuilder.perform(request);
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder()).withBuildStats(myBuilder.getStats(task.getId()));
     }
 
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
@@ -123,16 +122,18 @@ public final class SlaveBuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor dependencies(@Description("Parameters for analyze dependencies in JSON format") DependencyRequest request)
             throws Exception {
-        final BuildTask task = getBuilder(request.getBuilder()).perform(request);
-        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
+        final Builder myBuilder = getBuilder(request.getBuilder());
+        final BuildTask task = myBuilder.perform(request);
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder()).withBuildStats(myBuilder.getStats(task.getId()));
     }
 
     @GET
     @Path("status/{builder}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor getStatus(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
-        final BuildTask task = getBuilder(builder).getBuildTask(id);
-        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
+        final Builder myBuilder = getBuilder(builder);
+        final BuildTask task = myBuilder.getBuildTask(id);
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder()).withBuildStats(myBuilder.getStats(id));
     }
 
     @GET
@@ -146,9 +147,10 @@ public final class SlaveBuilderService extends Service {
     @Path("cancel/{builder}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor cancel(@PathParam("builder") String builder, @PathParam("id") Long id) throws Exception {
-        final BuildTask task = getBuilder(builder).getBuildTask(id);
+        final Builder myBuilder = getBuilder(builder);
+        final BuildTask task = myBuilder.getBuildTask(id);
         task.cancel();
-        return getDescriptor(task, getServiceContext().getServiceUriBuilder());
+        return getDescriptor(task, getServiceContext().getServiceUriBuilder()).withBuildStats(myBuilder.getStats(task.getId()));
     }
 
     @GET

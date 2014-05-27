@@ -151,7 +151,7 @@ public class SlaveRunnerService extends Service {
         final Runner myRunner = getRunner(runner);
         return DtoFactory.getInstance().createDto(RunnerState.class)
                          .withName(myRunner.getName())
-                         .withDetails(myRunner.getStats())
+                         .withStats(myRunner.getStats())
                          .withServerState(getServerState());
     }
 

@@ -73,6 +73,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -482,7 +483,12 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Roles required");
         }
         Workspace workspace = workspaceDao.getById(wsId);
-        if (!workspace.isTemporary()) {
+
+        final Map<String, String> attributes = new HashMap<>(workspace.getAttributes().size());
+        for (Attribute attribute : workspace.getAttributes()) {
+            attributes.put(attribute.getName(), attribute.getValue());
+        }
+        if (!"true".equalsIgnoreCase(attributes.get("allowAnyoneAddMember"))) {
             ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         }
         Member newMember = DtoFactory.getInstance().createDto(Member.class);

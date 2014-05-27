@@ -17,6 +17,7 @@
  */
 package com.codenvy.api.runner.dto;
 
+import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.dto.shared.DTO;
@@ -72,6 +73,12 @@ public interface ApplicationProcessDescriptor {
     ApplicationProcessDescriptor withRunStats(List<RunnerMetric> stats);
 
     void setRunStats(List<RunnerMetric> stats);
+
+    List<BuilderMetric> getBuildStats();
+
+    ApplicationProcessDescriptor withBuildStats(List<BuilderMetric> stats);
+
+    void setBuildStats(List<BuilderMetric> stats);
 
     List<Link> getLinks();
 

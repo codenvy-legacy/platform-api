@@ -17,11 +17,11 @@
  */
 package com.codenvy.api.builder;
 
+import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServer;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -72,9 +72,9 @@ public class BuilderAdminService extends Service {
         return Response.status(Response.Status.OK).build();
     }
 
-    private static String[] SERVER_LINK_RELS = new String[]{Constants.LINK_REL_AVAILABLE_BUILDERS,
-                                                            Constants.LINK_REL_SERVER_STATE,
-                                                            Constants.LINK_REL_BUILDER_STATE};
+    private static final String[] SERVER_LINK_RELS = new String[]{Constants.LINK_REL_AVAILABLE_BUILDERS,
+                                                                  Constants.LINK_REL_SERVER_STATE,
+                                                                  Constants.LINK_REL_BUILDER_STATE};
 
     @GenerateLink(rel = Constants.LINK_REL_REGISTERED_BUILDER_SERVER)
     @GET

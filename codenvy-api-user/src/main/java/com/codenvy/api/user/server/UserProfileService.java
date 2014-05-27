@@ -39,27 +39,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 
@@ -294,15 +280,17 @@ public class UserProfileService extends Service {
             m.put(attribute.getName(), attribute.getValue());
         }
 
-        for (String email : user.getAliases()) {
-            LOG.info(
-                    "EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}#",
-                    email,
-                    nullToEmpty(m.get("firstName")),
-                    nullToEmpty(m.get("lastName")),
-                    nullToEmpty(m.get("employer")),
-                    nullToEmpty(m.get("phone")),
-                    nullToEmpty(m.get("jobtitle")));
-        }
+        Set<String> emails = new HashSet<>(user.getAliases());
+        emails.add(user.getEmail());
+
+        LOG.info("EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}# EMAILS#{}# USER-ID#{}#",
+                 user.getEmail(),
+                 nullToEmpty(m.get("firstName")),
+                 nullToEmpty(m.get("lastName")),
+                 nullToEmpty(m.get("employer")),
+                 nullToEmpty(m.get("phone")),
+                 nullToEmpty(m.get("jobtitle")),
+                 user.getAliases(),
+                 user.getId());
     }
 }

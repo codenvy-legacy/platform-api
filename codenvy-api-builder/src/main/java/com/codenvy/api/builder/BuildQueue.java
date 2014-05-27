@@ -336,6 +336,7 @@ public class BuildQueue {
         final BuildQueueTask task =
                 new BuildQueueTask(id, request, waitingTimeMillis, maxExecutionTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
+        eventService.publish(BuilderEvent.queueStartedEvent(id, workspace, project ));
         executor.execute(future);
         return task;
     }
@@ -559,10 +560,12 @@ public class BuildQueue {
                         }
                         final BuildQueueTask task = i.next();
                         final boolean waiting = task.isWaiting();
+                        final BaseBuilderRequest request = task.getRequest();
                         if (waiting) {
                             if ((task.getCreationTime() + waitingTimeMillis) < System.currentTimeMillis()) {
                                 try {
                                     task.cancel();
+                                    eventService.publish(BuilderEvent.terminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
                                 } catch (Exception e) {
                                     LOG.warn(e.getMessage(), e);
                                 }
@@ -657,18 +660,31 @@ public class BuildQueue {
                         final long taskId = event.getTaskId();
                         final BaseBuilderRequest request = getTask(taskId).getRequest();
                         if (request instanceof BuildRequest) {
-                            final String analyticsID = getTask(taskId).getCreationTime() + "-" + taskId;
+                            BuildQueueTask task = getTask(taskId);
+                            final String analyticsID = task.getCreationTime() + "-" + taskId;
                             final String project = event.getProject();
                             final String workspace = event.getWorkspace();
                             final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                             final String user = request.getUserName();
+                            long waitingTime = task.getDescriptor().getStats().getWaitingTime();
+
                             switch (event.getType()) {
                                 case BEGIN:
-                                    LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                             projectTypeId, analyticsID);
+                                    LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                             project, projectTypeId, analyticsID);
+                                    LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# WAITING_TIME#{}# ID#{}#", workspace, user,
+                                             project, projectTypeId, waitingTime, analyticsID);
                                     break;
                                 case DONE:
                                     LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                             projectTypeId, analyticsID);
+                                    break;
+                                case BUILD_QUEUE_STARTED:
+                                    LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                             project, projectTypeId, analyticsID);
+                                    break;
+                                case BUILD_QUEUE_TERMINATED:
+                                    LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
                                              projectTypeId, analyticsID);
                                     break;
                             }

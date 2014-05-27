@@ -29,6 +29,10 @@ public class BuilderEvent {
         BEGIN("begin"),
         /** Build ends. */
         DONE("done"),
+        /** Build terminated due to threshold max time in queue. */
+        BUILD_QUEUE_TERMINATED("build_queue_terminated"),
+        /** Build in queue waiting: started. */
+        BUILD_QUEUE_STARTED("build_queue_started"),
         /**
          * Gets new logged message from the builder.
          *
@@ -99,6 +103,14 @@ public class BuilderEvent {
 
     public static BuilderEvent doneEvent(long taskId, String workspace, String project) {
         return new BuilderEvent(EventType.DONE, taskId, workspace, project);
+    }
+
+    public static BuilderEvent terminatedEvent(long taskId, String workspace, String project) {
+        return new BuilderEvent(EventType.BUILD_QUEUE_TERMINATED, taskId, workspace, project);
+    }
+
+    public static BuilderEvent queueStartedEvent(long taskId, String workspace, String project) {
+        return new BuilderEvent(EventType.BUILD_QUEUE_STARTED, taskId, workspace, project);
     }
 
     public static BuilderEvent messageLoggedEvent(long taskId, String workspace, String project, LoggedMessage message) {

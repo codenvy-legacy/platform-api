@@ -468,7 +468,7 @@ public class WorkspaceService extends Service {
     @POST
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_WORKSPACE_MEMBER)
-    @RolesAllowed("workspace/admin")
+    @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Member addMember(@PathParam("id") String wsId,
@@ -480,6 +480,10 @@ public class WorkspaceService extends Service {
         }
         if (newMembership.getRoles().isEmpty()) {
             throw new ConflictException("Roles required");
+        }
+        Workspace workspace = workspaceDao.getById(wsId);
+        if (!workspace.isTemporary()) {
+            ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         }
         Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);
@@ -526,8 +530,6 @@ public class WorkspaceService extends Service {
                 if (!isOtherWsAdminPresent) {
                     throw new ConflictException("Workspace should have at least 1 admin");
                 }
-                //java8 alternative:
-                //isOtherWsAdminPresent = wsMembers().stream().filter(m -> m.getRoles.contains("workspace/admin")).count() > 1)
             }
             memberDao.remove(toRemove);
         } else {
@@ -612,7 +614,7 @@ public class WorkspaceService extends Service {
         if (securityContext.isUserInRole("user")) {
             final Principal principal = securityContext.getUserPrincipal();
             final User user = userDao.getByAlias(principal.getName());
-            List<Member> members = memberDao.getUserRelationships(user.getId());
+            final List<Member> members = memberDao.getUserRelationships(user.getId());
             for (Member member : members) {
                 if (member.getWorkspaceId().equals(wsId)) {
                     for (String role : roles) {

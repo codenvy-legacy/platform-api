@@ -17,7 +17,7 @@
  */
 package com.codenvy.api.runner;
 
-import com.codenvy.api.builder.dto.BuildTaskStats;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.OutputProvider;
@@ -50,12 +50,12 @@ public final class RunQueueTask implements Cancellable {
     private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
     private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
 
-    private final Long                        id;
-    private final RunRequest                  request;
-    private final Future<RemoteRunnerProcess> future;
-    private final ValueHolder<BuildTaskStats> buildStatsHolder;
-    private final long                        created;
-    private final long                        waitingTimeout;
+    private final Long                             id;
+    private final RunRequest                       request;
+    private final Future<RemoteRunnerProcess>      future;
+    private final ValueHolder<BuildTaskDescriptor> buildTaskHolder;
+    private final long                             created;
+    private final long                             waitingTimeout;
 
     /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
     private final UriBuilder uriBuilder;
@@ -71,13 +71,13 @@ public final class RunQueueTask implements Cancellable {
                  RunRequest request,
                  long waitingTimeout,
                  Future<RemoteRunnerProcess> future,
-                 ValueHolder<BuildTaskStats> buildStatsHolder,
+                 ValueHolder<BuildTaskDescriptor> buildTaskHolder,
                  UriBuilder uriBuilder) {
         this.id = id;
         this.future = future;
         this.request = request;
         this.waitingTimeout = waitingTimeout;
-        this.buildStatsHolder = buildStatsHolder;
+        this.buildTaskHolder = buildTaskHolder;
         this.uriBuilder = uriBuilder;
         created = System.currentTimeMillis();
     }
@@ -141,6 +141,12 @@ public final class RunQueueTask implements Cancellable {
                                        .withName("waitingTime")
                                        .withValue(String.format("%02dm:%02ds:%03dms", minutes, seconds, waitingTimeMillis))
                                        .withDescription("Waiting for start duration"));
+            }
+            if (buildTaskHolder != null) {
+                final BuildTaskDescriptor buildTaskDescriptor = buildTaskHolder.get();
+                if (buildTaskDescriptor != null) {
+                    descriptor.setBuildStats(buildTaskDescriptor.getBuildStats());
+                }
             }
         }
         return descriptor;

@@ -139,7 +139,7 @@ public abstract class Runner {
     }
 
     /**
-     * Get global stats for this runners.
+     * Get global stats for this runner.
      *
      * @throws RunnerException
      *         if any error occurs while getting runner metrics

@@ -333,8 +333,7 @@ public class BuildQueue {
         final Long id = sequence.getAndIncrement();
         final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, reuse);
         request.setId(id);
-        final BuildQueueTask task =
-                new BuildQueueTask(id, request, waitingTimeMillis, maxExecutionTimeMillis, future, serviceContext.getServiceUriBuilder());
+        final BuildQueueTask task = new BuildQueueTask(id, request, waitingTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         eventService.publish(BuilderEvent.queueStartedEvent(id, workspace, project ));
         executor.execute(future);
@@ -379,8 +378,7 @@ public class BuildQueue {
         final Long id = sequence.getAndIncrement();
         final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, false);
         request.setId(id);
-        final BuildQueueTask task =
-                new BuildQueueTask(id, request, waitingTimeMillis, maxExecutionTimeMillis, future, serviceContext.getServiceUriBuilder());
+        final BuildQueueTask task = new BuildQueueTask(id, request, waitingTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         executor.execute(future);
         return task;
@@ -666,7 +664,7 @@ public class BuildQueue {
                             final String workspace = event.getWorkspace();
                             final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                             final String user = request.getUserName();
-                            long waitingTime = task.getDescriptor().getStats().getWaitingTime();
+                            long waitingTime = task.getWaitingTime();
 
                             switch (event.getType()) {
                                 case BEGIN:
@@ -918,7 +916,7 @@ public class BuildQueue {
                         }
                         continue;
                     }
-                    if (builderState.getNumberOfActiveWorkers() < builderState.getNumberOfWorkers()) {
+                    if (builderState.getFreeWorkers() > 0) {
                         available.add(builder);
                     }
                 }

@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- *
- *  [2012] - [2013] Codenvy, S.A.
+ * 
+ *  [2012] - [2014] Codenvy, S.A. 
  *  All Rights Reserved.
- *
+ * 
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -15,34 +15,30 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.api.runner.dto;
+package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * Describes current state of {@link com.codenvy.api.runner.internal.Runner}.
- *
  * @author andrew00x
  */
 @DTO
-public interface RunnerState {
+public interface BuilderMetric {
     String getName();
 
-    RunnerState withName(String name);
+    BuilderMetric withName(String name);
 
     void setName(String name);
 
-    List<RunnerMetric> getStats();
+    String getValue();
 
-    RunnerState withStats(List<RunnerMetric> stats);
+    BuilderMetric withValue(String value);
 
-    void setStats(List<RunnerMetric> stats);
+    void setValue(String value);
 
-    ServerState getServerState();
+    String getDescription();
 
-    RunnerState withServerState(ServerState serverState);
+    BuilderMetric withDescription(String description);
 
-    void setServerState(ServerState serverState);
+    void setDescription(String description);
 }

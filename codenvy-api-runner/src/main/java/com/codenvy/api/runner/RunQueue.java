@@ -21,7 +21,6 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.dto.BuildTaskStats;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -229,7 +228,7 @@ public class RunQueue {
             }
         }
         boolean skipBuild = runOptions != null && runOptions.getSkipBuild();
-        final ValueHolder<BuildTaskStats> buildStatsHolder = skipBuild ? null : new ValueHolder<BuildTaskStats>();
+        final ValueHolder<BuildTaskDescriptor> buildTaskHolder = skipBuild ? null : new ValueHolder<BuildTaskDescriptor>();
         final Callable<RemoteRunnerProcess> callable;
         if (!skipBuild
             && ((buildOptions != null && buildOptions.getBuilderName() != null)
@@ -255,7 +254,7 @@ public class RunQueue {
             } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
                 throw new RunnerException(e.getServiceError());
             }
-            callable = createTaskFor(buildDescriptor, request, buildStatsHolder);
+            callable = createTaskFor(buildDescriptor, request, buildTaskHolder);
         } else {
             final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
             if (zipballLink != null) {
@@ -264,12 +263,12 @@ public class RunQueue {
                 request.setDeploymentSourcesUrl(
                         token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
             }
-            callable = createTaskFor(null, request, buildStatsHolder);
+            callable = createTaskFor(null, request, buildTaskHolder);
         }
         final Long id = sequence.getAndIncrement();
         final RunFutureTask future = new RunFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project);
         request.setId(id); // for getting callback events from remote runner
-        final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildStatsHolder,
+        final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildTaskHolder,
                                                    serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
         eventService.publish(RunnerEvent.queueStartedEvent(id, workspace, project));
@@ -279,7 +278,7 @@ public class RunQueue {
 
     protected Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor,
                                                           final RunRequest request,
-                                                          final ValueHolder<BuildTaskStats> buildStatsHolder) {
+                                                          final ValueHolder<BuildTaskDescriptor> buildTaskHolder) {
         return new Callable<RemoteRunnerProcess>() {
             @Override
             public RemoteRunnerProcess call() throws Exception {
@@ -307,8 +306,8 @@ public class RunQueue {
                         BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
                                                                                      // create copy of link when pass it outside!!
                                                                                      DtoFactory.getInstance().clone(buildStatusLink));
-                        if (buildStatsHolder != null) {
-                            buildStatsHolder.set(buildDescriptor.getStats());
+                        if (buildTaskHolder != null) {
+                            buildTaskHolder.set(buildDescriptor);
                         }
                         switch (buildDescriptor.getStatus()) {
                             case SUCCESSFUL:
@@ -487,7 +486,8 @@ public class RunQueue {
                             if ((task.getCreationTime() + maxWaitingTimeMillis) < System.currentTimeMillis()) {
                                 try {
                                     task.cancel();
-                                    eventService.publish(RunnerEvent.terminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
+                                    eventService.publish(
+                                            RunnerEvent.terminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
                                 } catch (Exception e) {
                                     LOG.warn(e.getMessage(), e);
                                 }
@@ -574,7 +574,8 @@ public class RunQueue {
                         final String user = request.getUserName();
                         switch (event.getType()) {
                             case STARTED:
-                                LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                         project,
                                          projectTypeId, analyticsID);
                                 if (debug) {
                                     LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
@@ -594,11 +595,13 @@ public class RunQueue {
                                 }
                                 break;
                             case RUN_QUEUE_STARTED:
-                                LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                         project,
                                          projectTypeId, analyticsID);
                                 break;
                             case RUN_QUEUE_TERMINATED:
-                                LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                         project,
                                          projectTypeId, analyticsID);
                                 break;
                         }

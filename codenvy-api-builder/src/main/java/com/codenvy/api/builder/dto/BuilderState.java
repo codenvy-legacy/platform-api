@@ -19,6 +19,8 @@ package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
+
 /**
  * Describes current state of {@link com.codenvy.api.builder.internal.Builder}.
  *
@@ -32,29 +34,17 @@ public interface BuilderState {
 
     void setName(String name);
 
-    int getNumberOfWorkers();
+    List<BuilderMetric> getStats();
 
-    BuilderState withNumberOfWorkers(int numberOfWorkers);
+    BuilderState withStats(List<BuilderMetric> stats);
 
-    void setNumberOfWorkers(int numberOfWorkers);
+    void setStats(List<BuilderMetric> stats);
 
-    int getNumberOfActiveWorkers();
+    int getFreeWorkers();
 
-    BuilderState withNumberOfActiveWorkers(int numberOfActiveWorkers);
+    BuilderState withFreeWorkers(int freeWorkers);
 
-    void setNumberOfActiveWorkers(int numberOfActiveWorkers);
-
-    int getInternalQueueSize();
-
-    BuilderState withInternalQueueSize(int internalQueueSize);
-
-    void setInternalQueueSize(int internalQueueSize);
-
-    int getMaxInternalQueueSize();
-
-    BuilderState withMaxInternalQueueSize(int maxInternalQueueSize);
-
-    void setMaxInternalQueueSize(int maxInternalQueueSize);
+    void setFreeWorkers(int freeWorkers);
 
     ServerState getServerState();
 

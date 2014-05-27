@@ -73,6 +73,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -468,7 +469,7 @@ public class WorkspaceService extends Service {
     @POST
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_WORKSPACE_MEMBER)
-    @RolesAllowed("workspace/admin")
+    @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Member addMember(@PathParam("id") String wsId,
@@ -480,6 +481,15 @@ public class WorkspaceService extends Service {
         }
         if (newMembership.getRoles().isEmpty()) {
             throw new ConflictException("Roles required");
+        }
+        Workspace workspace = workspaceDao.getById(wsId);
+
+        final Map<String, String> attributes = new HashMap<>(workspace.getAttributes().size());
+        for (Attribute attribute : workspace.getAttributes()) {
+            attributes.put(attribute.getName(), attribute.getValue());
+        }
+        if (!workspace.isTemporary() || !"false".equalsIgnoreCase(attributes.get("tmp_workspace_cloned_from_private_repo"))) {
+            ensureUserHasAccessToWorkspace(wsId, new String[]{"workspace/admin"}, securityContext);
         }
         Member newMember = DtoFactory.getInstance().createDto(Member.class);
         newMember.setWorkspaceId(wsId);
@@ -526,8 +536,6 @@ public class WorkspaceService extends Service {
                 if (!isOtherWsAdminPresent) {
                     throw new ConflictException("Workspace should have at least 1 admin");
                 }
-                //java8 alternative:
-                //isOtherWsAdminPresent = wsMembers().stream().filter(m -> m.getRoles.contains("workspace/admin")).count() > 1)
             }
             memberDao.remove(toRemove);
         } else {
@@ -612,7 +620,7 @@ public class WorkspaceService extends Service {
         if (securityContext.isUserInRole("user")) {
             final Principal principal = securityContext.getUserPrincipal();
             final User user = userDao.getByAlias(principal.getName());
-            List<Member> members = memberDao.getUserRelationships(user.getId());
+            final List<Member> members = memberDao.getUserRelationships(user.getId());
             for (Member member : members) {
                 if (member.getWorkspaceId().equals(wsId)) {
                     for (String role : roles) {

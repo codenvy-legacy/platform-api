@@ -143,6 +143,7 @@ public class WorkspaceServiceTest {
         workspace = DtoFactory.getInstance().createDto(Workspace.class)
                               .withId(WS_ID)
                               .withName(WS_NAME)
+                              .withTemporary(false)
                               .withAccountId(ACCOUNT_ID)
                               .withAttributes(attributes);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
@@ -413,15 +414,71 @@ public class WorkspaceServiceTest {
         prepareSecurityContext("workspace/admin");
 
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
-        Member member = (Member)response.getEntity();
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Member member = (Member)response.getEntity();
         assertEquals(member.getRoles(), membership.getRoles());
         assertEquals(member.getUserId(), USER_ID);
         assertEquals(member.getWorkspaceId(), WS_ID);
         verify(memberDao, times(1)).create(any(Member.class));
         verifyLinksRel(member.getLinks(),
                        Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER));
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddMembershipToPermanentWorkspaceIfUserIsNotWorkspaceAdmin() throws Exception {
+        when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(
+                DtoFactory.getInstance().createDto(Member.class).withUserId(USER_ID).withWorkspaceId(WS_ID)
+                          .withRoles(Arrays.asList("workspace/developer"))
+                                                                              ));
+        prepareSecurityContext("workspace/developer");
+
+        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
+                                             .withRoles(Arrays.asList("workspace/developer"))
+                                             .withUserId(USER_ID);
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
+
+        assertEquals(response.getEntity().toString(), "Access denied");
+    }
+
+    @Test
+    public void shouldBeAbleToAddMemberForAnyUserToWorkspaceThatWasClonedFromPublicRepo() throws Exception {
+        workspace.setTemporary(true);
+        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class)
+                                                .withName("tmp_workspace_cloned_from_private_repo")
+                                                .withValue("false"));
+        prepareSecurityContext("user");
+        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
+                                             .withRoles(Arrays.asList("workspace/developer"))
+                                             .withUserId(USER_ID);
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Member member = (Member)response.getEntity();
+        assertEquals(member.getRoles(), membership.getRoles());
+        assertEquals(member.getUserId(), USER_ID);
+        assertEquals(member.getWorkspaceId(), WS_ID);
+        verify(memberDao, times(1)).create(any(Member.class));
+        verifyLinksRel(member.getLinks(),
+                       Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER, Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER));
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddMemberForAnyUserToWorkspaceThatWasClonedFromPrivateRepo() throws Exception {
+        workspace.setTemporary(true);
+        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class)
+                                                .withName("tmp_workspace_cloned_from_private_repo")
+                                                .withValue("true"));
+        prepareSecurityContext("user");
+        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
+                                             .withRoles(Arrays.asList("workspace/developer"))
+                                             .withUserId(USER_ID);
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
+
+        assertEquals(response.getEntity().toString(), "Access denied");
     }
 
     @Test

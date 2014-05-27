@@ -38,16 +38,38 @@ public class SnippetGenerator {
         return formatter.toString();
     }
 
+    public static String generateNonEncodedHtmlSnippet(String url, String style, URI baseUri) {
+        Formatter formatter = new Formatter();
+        formatter.format("<script type=\"text/javascript\" style=\"%1$s\" " +
+                         "src=\"%2$s/factory/resources/factory.js\" url=\"%3$s\"></script>",
+                         style, UriBuilder.fromUri(baseUri).replacePath("").build().toString(), url);
+        return formatter.toString();
+    }
 
-    public static String generateMarkdownSnippet(String id, Set<FactoryImage> factoryImages, String style,
-                                                 URI baseUri) {
+    public static String generateiFrameSnippet(String id, URI baseUri) {
         String factoryURL =
-                UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
+                            UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
+        Formatter formatter = new Formatter();
+        formatter.format("<iframe src=\"%1$s\" width=\"800\" height=\"480\"></iframe>", factoryURL);
+        return formatter.toString();
+    }
+
+    public static String generateNonEncodediFrameSnippet(String url, URI baseUri) {
+        Formatter formatter = new Formatter();
+        formatter.format("<iframe src=\"%1$s\" width=\"800\" height=\"480\"></iframe>", url);
+        return formatter.toString();
+    }
+
+
+    public static String generateMarkdownSnippet(String url, String id, Set<FactoryImage> factoryImages, String style,
+                                                 URI baseUri) {
+        String factoryURL = url != null ? url :
+            UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
         Formatter formatter = new Formatter();
         switch (style) {
             case "Advanced":
             case "Advanced with Counter":
-                if (factoryImages.size() > 0) {
+                if (factoryImages.size() > 0 && id != null) {
                     formatter.format("[![alt](%1$s/api/factory/%2$s/image?imgId=%3$s)](%4$s)",
                                      UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id,
                                      factoryImages.iterator().next().getName(), factoryURL);
@@ -72,5 +94,4 @@ public class SnippetGenerator {
         }
         return formatter.toString();
     }
-
 }

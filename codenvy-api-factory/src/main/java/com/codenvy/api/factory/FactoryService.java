@@ -334,7 +334,7 @@ public class FactoryService extends Service {
                                                                         .queryParam("id", id).build().toString());
             case "markdown":
                 Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(id, null);
-                String imageId = (factoryImages != null) ? factoryImages.iterator().next().getName() : null;
+                String imageId = (factoryImages.size() > 0) ? factoryImages.iterator().next().getName() : null;
                 return SnippetGenerator
                                        .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
                                                                           .queryParam("id", id).build().toString(), id,

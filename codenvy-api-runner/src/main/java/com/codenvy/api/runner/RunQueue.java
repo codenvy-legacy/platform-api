@@ -568,7 +568,7 @@ public class RunQueue {
                         final RunRequest request = getTask(id).getRequest();
                         final String analyticsID = getTask(id).getCreationTime() + "-" + id;
                         final String project = event.getProject();
-                        final String workspace = event.getWorkspace();
+                        final String workspace = request.getWorkspace();
                         final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                         final boolean debug = request.getDebugMode() != null;
                         final String user = request.getUserName();

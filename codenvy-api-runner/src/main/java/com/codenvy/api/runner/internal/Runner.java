@@ -81,8 +81,8 @@ public abstract class Runner {
         }
     };
 
-    private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
-    private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
+    protected static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    protected static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
 
     private final Map<Long, RunnerProcessImpl> processes;
     private final Map<Long, List<Disposer>>    applicationDisposers;

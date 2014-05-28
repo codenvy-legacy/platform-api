@@ -80,8 +80,8 @@ public abstract class Builder {
     /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#QUEUE_SIZE} */
     public static final String INTERNAL_QUEUE_SIZE     = Constants.QUEUE_SIZE;
 
-    private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
-    private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
+    protected static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    protected static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 

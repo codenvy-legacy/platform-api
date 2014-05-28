@@ -225,7 +225,7 @@ public class WorkspaceService extends Service {
             // PLZ DO NOT REMOVE!!!!
             List<Attribute> safeAttributes = new ArrayList<>(1);
             for (Attribute attribute : workspace.getAttributes()) {
-                if (attribute.getName().equals("tmp_workspace_cloned_from_private_repo")) {
+                if (attribute.getName().equals("allowAnyoneAddMember")) {
                     safeAttributes.add(attribute);
                 }
             }
@@ -255,7 +255,7 @@ public class WorkspaceService extends Service {
             // PLZ DO NOT REMOVE!!!!
             List<Attribute> safeAttributes = new ArrayList<>(1);
             for (Attribute attribute : workspace.getAttributes()) {
-                if (attribute.getName().equals("tmp_workspace_cloned_from_private_repo")) {
+                if (attribute.getName().equals("allowAnyoneAddMember")) {
                     safeAttributes.add(attribute);
                 }
             }

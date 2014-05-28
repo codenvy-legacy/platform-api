@@ -46,7 +46,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
@@ -115,12 +114,13 @@ public class FactoryService extends Service {
                         factoryUrl = factoryBuilder.buildEncoded(part.getInputStream());
                     } catch (JsonSyntaxException e) {
                         throw new FactoryUrlException(
-                                "You have provided an invalid JSON.  For more information, please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/");
+                                                      "You have provided an invalid JSON.  For more information, please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/");
                     }
                 } else if (fieldName.equals("image")) {
                     try (InputStream inputStream = part.getInputStream()) {
                         FactoryImage factoryImage =
-                                FactoryImage.createImage(inputStream, part.getContentType(), NameGenerator.generate(null, 16));
+                                                    FactoryImage.createImage(inputStream, part.getContentType(),
+                                                                             NameGenerator.generate(null, 16));
                         if (factoryImage.hasContent()) {
                             images.add(factoryImage);
                         }
@@ -151,15 +151,15 @@ public class FactoryService extends Service {
             }
             ProjectAttributes attributes = factoryUrl.getProjectattributes();
             LOG.info(
-                    "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
-                    "",
-                    context.getUser().getName(),
-                    "",
-                    nullToEmpty(attributes != null ? attributes.getPtype() : ""),
-                    factoryUrl.getVcsurl(),
-                    createProjectLink,
-                    nullToEmpty(factoryUrl.getAffiliateid()),
-                    nullToEmpty(factoryUrl.getOrgid()));
+                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
+                     "",
+                     context.getUser().getName(),
+                     "",
+                     nullToEmpty(attributes != null ? attributes.getPtype() : ""),
+                     factoryUrl.getVcsurl(),
+                     createProjectLink,
+                     nullToEmpty(factoryUrl.getAffiliateid()),
+                     nullToEmpty(factoryUrl.getOrgid()));
 
             return factoryUrl;
         } catch (IOException | ServletException e) {
@@ -325,43 +325,24 @@ public class FactoryService extends Service {
 
         switch (type) {
             case "url":
-                return SnippetGenerator.generateUrlSnippet(id, uriInfo.getBaseUri());
+                return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").queryParam("id", id).build().toString();
             case "html":
-                return SnippetGenerator.generateHtmlSnippet(id, factory.getStyle(), uriInfo.getBaseUri());
+                return SnippetGenerator.generateHtmlSnippet(id, factory.getStyle(), UriBuilder.fromUri(uriInfo.getBaseUri())
+                                                                                              .replacePath("").build().toString());
             case "iframe":
-                return SnippetGenerator.generateiFrameSnippet(id, uriInfo.getBaseUri());
+                return SnippetGenerator.generateiFrameSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                                        .queryParam("id", id).build().toString());
             case "markdown":
+                Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(id, null);
+                String imageId = (factoryImages != null) ? factoryImages.iterator().next().getName() : null;
                 return SnippetGenerator
-                                       .generateMarkdownSnippet(null, id, factoryStore.getFactoryImages(id, null), factory.getStyle(),
-                                                                uriInfo.getBaseUri());
+                                       .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                                          .queryParam("id", id).build().toString(), id,
+                                                                imageId, factory.getStyle(),
+                                                                UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString());
             default:
                 LOG.warn("Snippet type {} is unsupported", type);
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Snippet type \"" + type + "\" is unsupported.");
         }
     }
-
-    @GET
-    @Path("nonencoded/snippet")
-    @Produces({MediaType.TEXT_PLAIN})
-    public String getNonEncodedFactorySnippet(@DefaultValue("html") @QueryParam("type") String type, @Context UriInfo uriInfo)
-                                                                                                                              throws FactoryUrlException {
-        MultivaluedMap<String, String> queryParams = uriInfo.getQueryParameters();
-        String style = (queryParams != null && queryParams.containsKey("style")) ? queryParams.get("style").get(0) : null;
-        String id = (queryParams != null && queryParams.containsKey("id")) ? queryParams.get("id").get(0) : null;
-        String url = UriBuilder.fromUri(uriInfo.getRequestUri()).replacePath("factory").replaceQueryParam("type", null).build().toString();
-        switch (type) {
-            case "html":
-                return SnippetGenerator.generateNonEncodedHtmlSnippet(url, style, uriInfo.getBaseUri());
-            case "iframe":
-                return SnippetGenerator.generateNonEncodediFrameSnippet(url, uriInfo.getBaseUri());
-            case "markdown":
-                return SnippetGenerator
-                                       .generateMarkdownSnippet(url, id, factoryStore.getFactoryImages(id, null), style,
-                                                                uriInfo.getBaseUri());
-            default:
-                LOG.warn("Snippet type {} is unsupported", type);
-                throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Snippet type \"" + type + "\" is unsupported.");
-        }
-    }
-
 }

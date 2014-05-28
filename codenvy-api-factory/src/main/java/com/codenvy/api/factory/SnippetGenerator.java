@@ -17,81 +17,70 @@
  */
 package com.codenvy.api.factory;
 
-import javax.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.util.Formatter;
-import java.util.Set;
 
 /** Helper for snippet generating. */
 
 public class SnippetGenerator {
 
-    public static String generateUrlSnippet(String id, URI baseUri) {
-        return UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
+
+    public static String generateHtmlSnippet(String id, String style, String baseUrl) {
+        return format("<script type=\"text/javascript\" style=\"%s\" " +
+                      "src=\"%s/factory/resources/factory.js?%s\"></script>",
+                      style, baseUrl, id);
     }
 
-    public static String generateHtmlSnippet(String id, String style, URI baseUri) {
-        Formatter formatter = new Formatter();
-        formatter.format("<script type=\"text/javascript\" style=\"%1$s\" " +
-                         "src=\"%2$s/factory/resources/factory.js?%3$s\"></script>",
-                         style, UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id);
-        return formatter.toString();
+    public static String generateNonEncodedHtmlSnippet(String factoryURL, String style, String baseUrl) {
+        return format("<script type=\"text/javascript\" style=\"%s\" " +
+                      "src=\"%s/factory/resources/factory.js\" url=\"%s\"></script>",
+                      style, baseUrl, factoryURL);
     }
 
-    public static String generateNonEncodedHtmlSnippet(String url, String style, URI baseUri) {
-        Formatter formatter = new Formatter();
-        formatter.format("<script type=\"text/javascript\" style=\"%1$s\" " +
-                         "src=\"%2$s/factory/resources/factory.js\" url=\"%3$s\"></script>",
-                         style, UriBuilder.fromUri(baseUri).replacePath("").build().toString(), url);
-        return formatter.toString();
+    public static String generateiFrameSnippet(String factoryURL) {
+        return format("<iframe src=\"%s\" width=\"800\" height=\"480\"></iframe>", factoryURL);
     }
 
-    public static String generateiFrameSnippet(String id, URI baseUri) {
-        String factoryURL =
-                            UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
-        Formatter formatter = new Formatter();
-        formatter.format("<iframe src=\"%1$s\" width=\"800\" height=\"480\"></iframe>", factoryURL);
-        return formatter.toString();
-    }
-
-    public static String generateNonEncodediFrameSnippet(String url, URI baseUri) {
-        Formatter formatter = new Formatter();
-        formatter.format("<iframe src=\"%1$s\" width=\"800\" height=\"480\"></iframe>", url);
-        return formatter.toString();
-    }
-
-
-    public static String generateMarkdownSnippet(String url, String id, Set<FactoryImage> factoryImages, String style,
-                                                 URI baseUri) {
-        String factoryURL = url != null ? url :
-            UriBuilder.fromUri(baseUri).replacePath("factory").queryParam("id", id).build().toString();
-        Formatter formatter = new Formatter();
+    public static String generateMarkdownSnippet(String factoryURL, String id, String imageId, String style,
+                                                 String baseUrl) {
         switch (style) {
             case "Advanced":
             case "Advanced with Counter":
-                if (factoryImages.size() > 0 && id != null) {
-                    formatter.format("[![alt](%1$s/api/factory/%2$s/image?imgId=%3$s)](%4$s)",
-                                     UriBuilder.fromUri(baseUri).replacePath("").build().toString(), id,
-                                     factoryImages.iterator().next().getName(), factoryURL);
+                if (imageId != null && id != null) {
+                    return format("[![alt](%s/api/factory/%s/image?imgId=%s)](%s)",
+                                  baseUrl, id,
+                                  imageId, factoryURL);
                 } else {
                     throw new IllegalArgumentException("Factory with advanced style MUST have at leas one image.");
                 }
-                break;
             case "White":
             case "Horizontal,White":
             case "Vertical,White":
-                formatter.format("[![alt](%1$s/factory/resources/factory-white.png)](%2$s)",
-                                 UriBuilder.fromUri(baseUri).replacePath("").build().toString(), factoryURL);
-                break;
+                return format("[![alt](%s/factory/resources/factory-white.png)](%s)",
+                              baseUrl, factoryURL);
             case "Dark":
             case "Horizontal,Dark":
             case "Vertical,Dark":
-                formatter.format("[![alt](%1$s/factory/resources/factory-dark.png)](%2$s)",
-                                 UriBuilder.fromUri(baseUri).replacePath("").build().toString(), factoryURL);
-                break;
+                return format("[![alt](%s/factory/resources/factory-dark.png)](%s)",
+                              baseUrl, factoryURL);
             default:
                 throw new IllegalArgumentException("Invalid factory style.");
         }
-        return formatter.toString();
+    }
+
+    /**
+     * Formats the input string filling the {@link String} arguments.
+     * 
+     * @param format string format
+     * @param args {@link String} arguments
+     * @return {@link String} formatted string
+     */
+    public static String format(final String format, final String... args) {
+        String[] split = format.split("%s");
+        final StringBuilder msg = new StringBuilder();
+        for (int pos = 0; pos < split.length - 1; pos += 1) {
+            msg.append(split[pos]);
+            msg.append(args[pos]);
+        }
+        msg.append(split[split.length - 1]);
+        return msg.toString();
     }
 }

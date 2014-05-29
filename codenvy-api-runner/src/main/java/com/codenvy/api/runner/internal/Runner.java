@@ -22,7 +22,6 @@ import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
-import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
@@ -85,6 +84,7 @@ public abstract class Runner {
     protected static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
 
     private final Map<Long, RunnerProcessImpl> processes;
+    private final Map<Long, RunnerProcessImpl> expiredProcesses;
     private final Map<Long, List<Disposer>>    applicationDisposers;
     private final Object                       applicationDisposersLock;
     private final AtomicInteger                runningAppsCounter;
@@ -97,7 +97,7 @@ public abstract class Runner {
     private final long                         maxStartTime;
 
     private ExecutorService          executor;
-    private ScheduledExecutorService scheduler;
+    private ScheduledExecutorService cleanScheduler;
     private java.io.File             deployDirectory;
 
     public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators, EventService eventService) {
@@ -108,6 +108,7 @@ public abstract class Runner {
         this.eventService = eventService;
 
         processes = new ConcurrentHashMap<>();
+        expiredProcesses = new ConcurrentHashMap<>();
         applicationDisposers = new ConcurrentHashMap<>();
         applicationDisposersLock = new Object();
         runningAppsCounter = new AtomicInteger(0);
@@ -178,10 +179,13 @@ public abstract class Runner {
      * @throws NotFoundException
      *         if id of RunnerProcess is invalid
      */
-    public RunnerProcess getProcess(Long id) throws NotFoundException {
-        final RunnerProcessImpl process = processes.get(id);
+    public final RunnerProcess getProcess(Long id) throws NotFoundException {
+        RunnerProcessImpl process = processes.get(id);
         if (process == null) {
-            throw new NotFoundException(String.format("Invalid run task id: %d", id));
+            process = expiredProcesses.get(id);
+            if (process == null) {
+                throw new NotFoundException(String.format("Invalid run task id: %d", id));
+            }
         }
         return process;
     }
@@ -242,7 +246,7 @@ public abstract class Runner {
         final long startTime = System.currentTimeMillis();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final Long internalId = processIdSequence.getAndIncrement();
-        final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, new RunnerProcess.Callback() {
+        final RunnerProcess.Callback callback = new RunnerProcess.Callback() {
             @Override
             public void started(RunnerProcess process) {
                 final RunRequest runRequest = process.getConfiguration().getRequest();
@@ -268,9 +272,9 @@ public abstract class Runner {
                     LOG.error(e.getMessage(), e);
                 }
             }
-        });
+        };
+        final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, callback);
         processes.put(internalId, process);
-        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem).allocate();
         final Runnable r = ThreadLocalPropagateContext.wrap(new Runnable() {
@@ -290,7 +294,6 @@ public abstract class Runner {
                     final ApplicationProcess realProcess = newApplicationProcess(deploymentSources, runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
-                    watcher.start(process);
                     runningAppsCounter.incrementAndGet();
                     LOG.debug("Started {}", process);
                     final long endTime = System.currentTimeMillis();
@@ -301,7 +304,6 @@ public abstract class Runner {
                 } catch (Throwable e) {
                     process.setError(e);
                 } finally {
-                    watcher.stop();
                     memoryAllocator.release();
                     runningAppsCounter.decrementAndGet();
                 }
@@ -550,55 +552,69 @@ public abstract class Runner {
                 throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
             }
             executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName() + "-Runner-", true));
-            scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerSchedulerPool-", true));
-            scheduler.scheduleAtFixedRate(new Runnable() {
-                public void run() {
-                    for (Iterator<RunnerProcessImpl> i = processes.values().iterator(); i.hasNext(); ) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            return;
-                        }
-                        final RunnerProcessImpl process = i.next();
-                        if (process.isExpired()) {
-                            try {
-                                process.cancel();
-                            } catch (Exception e) {
-                                LOG.error(e.getMessage(), e);
-                                continue; // try next time
-                            }
-                            i.remove();
-                            Disposer[] appDisposers = null;
-                            final ApplicationProcess realProcess = process.realProcess;
-                            if (realProcess != null) {
-                                synchronized (applicationDisposersLock) {
-                                    final List<Disposer> disposers = applicationDisposers.remove(realProcess.getId());
-                                    if (disposers != null) {
-                                        appDisposers = disposers.toArray(new Disposer[disposers.size()]);
-                                    }
-                                }
-                            }
-                            if (appDisposers != null) {
-                                for (Disposer disposer : appDisposers) {
-                                    try {
-                                        disposer.dispose();
-                                    } catch (RuntimeException e) {
-                                        LOG.error(e.getMessage(), e);
-                                    }
-                                }
-                            }
-                            final List<java.io.File> cleanupList = process.getCleanupList();
-                            if (cleanupList != null) {
-                                for (java.io.File file : cleanupList) {
-                                    if (!IoUtil.deleteRecursive(file)) {
-                                        LOG.warn("Failed delete {}", file);
-                                    }
-                                }
-                            }
+            cleanScheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerCleanSchedulerPool-", true));
+            cleanScheduler.scheduleAtFixedRate(new CleanupTask(), 1, 1, TimeUnit.MINUTES);
+        } else {
+            throw new IllegalStateException("Already started");
+        }
+    }
+
+    private class CleanupTask implements Runnable {
+        public void run() {
+            for (Iterator<RunnerProcessImpl> i = expiredProcesses.values().iterator(); i.hasNext(); ) {
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
+                final RunnerProcessImpl process = i.next();
+                i.remove();
+                Disposer[] appDisposers = null;
+                final ApplicationProcess realProcess = process.realProcess;
+                if (realProcess != null) {
+                    synchronized (applicationDisposersLock) {
+                        final List<Disposer> disposers = applicationDisposers.remove(realProcess.getId());
+                        if (disposers != null) {
+                            appDisposers = disposers.toArray(new Disposer[disposers.size()]);
                         }
                     }
                 }
-            }, 1, 1, TimeUnit.MINUTES);
-        } else {
-            throw new IllegalStateException("Already started");
+                if (appDisposers != null) {
+                    for (Disposer disposer : appDisposers) {
+                        try {
+                            disposer.dispose();
+                        } catch (RuntimeException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                }
+                final List<java.io.File> cleanupList = process.getCleanupList();
+                if (cleanupList != null) {
+                    for (java.io.File file : cleanupList) {
+                        if (!IoUtil.deleteRecursive(file)) {
+                            LOG.warn("Failed delete {}", file);
+                        }
+                    }
+                }
+            }
+            for (Iterator<RunnerProcessImpl> i = processes.values().iterator(); i.hasNext(); ) {
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
+                final RunnerProcessImpl process = i.next();
+                if (process.isExpired()) {
+                    try {
+                        process.cancel();
+                        if (process.getApplicationProcess() == null) {
+                            process.setError(new RunnerException(
+                                    "Running process is terminated due to exceeded max allowed time for start."));
+                        }
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage(), e);
+                        continue; // try next time
+                    }
+                    i.remove();
+                    expiredProcesses.put(process.getId(), process);
+                }
+            }
         }
     }
 
@@ -617,10 +633,10 @@ public abstract class Runner {
     public void stop() {
         if (started.compareAndSet(true, false)) {
             boolean interrupted = false;
-            scheduler.shutdownNow();
+            cleanScheduler.shutdownNow();
             try {
-                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                    LOG.warn("Unable terminate scheduler");
+                if (!cleanScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate cleanup scheduler");
                 }
             } catch (InterruptedException e) {
                 interrupted = true;
@@ -668,6 +684,7 @@ public abstract class Runner {
                 }
             }
             processes.clear();
+            expiredProcesses.clear();
             if (interrupted) {
                 Thread.currentThread().interrupt();
             }

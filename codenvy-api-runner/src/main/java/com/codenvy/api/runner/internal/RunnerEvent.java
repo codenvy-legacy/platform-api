@@ -29,9 +29,9 @@ public class RunnerEvent {
         STARTED("started"),
         /** Application stopped. */
         STOPPED("stopped"),
-        /** Run terminated due to threshold max time in queue. */
+        /** Running process is terminated due to exceeded max allowed queue time. */
         RUN_QUEUE_TERMINATED("run_queue_terminated"),
-        /** Run in queue waiting: started. */
+        /** Running process is added in queue. */
         RUN_QUEUE_STARTED("run_queue_started"),
         /** Error occurs while starting or stopped an application. */
         ERROR("error"),
@@ -40,16 +40,12 @@ public class RunnerEvent {
          *
          * @see com.codenvy.api.runner.internal.ApplicationLogger
          */
-        MESSAGE_LOGGED("messageLogged");
+        MESSAGE_LOGGED("message_logged");
 
         private final String value;
 
         private EventType(String value) {
             this.value = value;
-        }
-
-        public String value() {
-            return value;
         }
 
         @Override
@@ -107,7 +103,7 @@ public class RunnerEvent {
         return new RunnerEvent(EventType.STOPPED, processId, workspace, project);
     }
 
-    public static RunnerEvent terminatedEvent(long processId, String workspace, String project) {
+    public static RunnerEvent queueTerminatedEvent(long processId, String workspace, String project) {
         return new RunnerEvent(EventType.RUN_QUEUE_TERMINATED, processId, workspace, project);
     }
 
@@ -135,7 +131,6 @@ public class RunnerEvent {
     private String        error;
     /** Message associated with this event. Makes sense only for {@link EventType#MESSAGE_LOGGED} or {@link EventType#ERROR} events. */
     private LoggedMessage message;
-
 
     RunnerEvent(EventType type, long processId, String workspace, String project, LoggedMessage message) {
         this.type = type;

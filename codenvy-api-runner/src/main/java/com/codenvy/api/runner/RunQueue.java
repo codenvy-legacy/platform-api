@@ -487,7 +487,7 @@ public class RunQueue {
                                 try {
                                     task.cancel();
                                     eventService.publish(
-                                            RunnerEvent.terminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
+                                            RunnerEvent.queueTerminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
                                 } catch (Exception e) {
                                     LOG.warn(e.getMessage(), e);
                                 }
@@ -505,8 +505,7 @@ public class RunQueue {
                             if (remote == null) {
                                 i.remove();
                                 num++;
-                            } else if ((remote.getCreationTime() + task.getRequest().getLifetime() + appCleanupTime) <
-                                       System.currentTimeMillis()) {
+                            } else if ((remote.getCreationTime() + request.getLifetime() + appCleanupTime) < System.currentTimeMillis()) {
                                 try {
                                     remote.getApplicationProcessDescriptor();
                                 } catch (NotFoundException e) {
@@ -575,8 +574,7 @@ public class RunQueue {
                         switch (event.getType()) {
                             case STARTED:
                                 LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                         project,
-                                         projectTypeId, analyticsID);
+                                         project, projectTypeId, analyticsID);
                                 if (debug) {
                                     LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
                                              projectTypeId, analyticsID);
@@ -596,13 +594,11 @@ public class RunQueue {
                                 break;
                             case RUN_QUEUE_STARTED:
                                 LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                         project,
-                                         projectTypeId, analyticsID);
+                                         project, projectTypeId, analyticsID);
                                 break;
                             case RUN_QUEUE_TERMINATED:
                                 LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                         project,
-                                         projectTypeId, analyticsID);
+                                         project, projectTypeId, analyticsID);
                                 break;
                         }
                     } catch (Exception e) {

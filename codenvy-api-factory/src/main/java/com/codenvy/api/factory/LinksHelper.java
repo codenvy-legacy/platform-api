@@ -32,7 +32,7 @@ import java.util.*;
 @Singleton
 public class LinksHelper {
 
-    private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html"));
+    private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html", "iframe"));
 
     public List<Link> createLinks(Factory factoryUrl, Set<FactoryImage> images, UriInfo uriInfo)
             throws UnsupportedEncodingException {

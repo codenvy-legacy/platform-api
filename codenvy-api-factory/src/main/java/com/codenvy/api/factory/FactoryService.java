@@ -300,40 +300,43 @@ public class FactoryService extends Service {
 
     /**
      * Get factory snippet by factory id and snippet type. If snippet type is not set, "url" type will be used as default.
-     *
-     * @param id
-     *         - factory id.
-     * @param type
-     *         - type of snippet.
-     * @param uriInfo
-     *         - url context
+     * 
+     * @param id - factory id.
+     * @param type - type of snippet.
+     * @param uriInfo - url context
      * @return - snippet content.
-     * @throws FactoryUrlException
-     *         - with response code 404 if factory with given id doesn't exist
-     *         - with response code 400 if snippet type is unsupported
+     * @throws FactoryUrlException - with response code 404 if factory with given id doesn't exist - with response code 400 if snippet type
+     *             is unsupported
      */
     @GET
     @Path("{id}/snippet")
     @Produces({MediaType.TEXT_PLAIN})
     public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type,
                                     @Context UriInfo uriInfo)
-            throws FactoryUrlException {
+                                                             throws FactoryUrlException {
         Factory factory = factoryStore.getFactory(id);
         if (factory == null) {
             LOG.warn("Factory URL with id {} is not found.", id);
             throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), "Factory URL with id " + id + " is not found.");
         }
 
-
         switch (type) {
             case "url":
-                return SnippetGenerator.generateUrlSnippet(id, uriInfo.getBaseUri());
+                return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").queryParam("id", id).build().toString();
             case "html":
-                return SnippetGenerator.generateHtmlSnippet(id, factory.getStyle(), uriInfo.getBaseUri());
+                return SnippetGenerator.generateHtmlSnippet(id, factory.getStyle(), UriBuilder.fromUri(uriInfo.getBaseUri())
+                                                                                              .replacePath("").build().toString());
+            case "iframe":
+                return SnippetGenerator.generateiFrameSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                                        .queryParam("id", id).build().toString());
             case "markdown":
+                Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(id, null);
+                String imageId = (factoryImages.size() > 0) ? factoryImages.iterator().next().getName() : null;
                 return SnippetGenerator
-                        .generateMarkdownSnippet(id, factoryStore.getFactoryImages(id, null), factory.getStyle(),
-                                                 uriInfo.getBaseUri());
+                                       .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                                          .queryParam("id", id).build().toString(), id,
+                                                                imageId, factory.getStyle(),
+                                                                UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString());
             default:
                 LOG.warn("Snippet type {} is unsupported", type);
                 throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Snippet type \"" + type + "\" is unsupported.");

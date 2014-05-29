@@ -389,12 +389,16 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     @Override
-    protected String encode(String value) {
+    protected String safeGwtEncode(String value) {
         try {
             return URLEncoder.encode(value, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             return value;
         }
+    }
 
+    @Override
+    protected <T> String safeGwtToJson(T dto) {
+        return DtoFactory.getInstance().toJson(dto);
     }
 }

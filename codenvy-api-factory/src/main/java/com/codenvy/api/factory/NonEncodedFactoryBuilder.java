@@ -18,7 +18,6 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.*;
-import com.codenvy.dto.server.DtoFactory;
 
 /**
  * Convert factory to non encode url.
@@ -45,7 +44,7 @@ public abstract class NonEncodedFactoryBuilder {
     private void buildNonEncoded(FactoryV1_0 factory, StringBuilder builder) {
         builder.append("v=").append(factory.getV());
         builder.append("&vcs=").append(factory.getVcs());
-        builder.append("&vcsurl=").append(encode(factory.getVcsurl()));
+        builder.append("&vcsurl=").append(safeGwtEncode(factory.getVcsurl()));
         if (factory.getCommitid() != null) {
             builder.append("&commitid=").append(factory.getCommitid());
         }
@@ -110,7 +109,7 @@ public abstract class NonEncodedFactoryBuilder {
         }
 
         if (factory.getVariables() != null) {
-            builder.append("&variables=").append(encode(DtoFactory.getInstance().toJson(factory.getVariables())));
+            builder.append("&variables=").append(safeGwtEncode(safeGwtToJson(factory.getVariables())));
         }
 
         if (factory.getImage() != null) {
@@ -147,14 +146,14 @@ public abstract class NonEncodedFactoryBuilder {
         if (git != null) {
 
             if (git.getConfigbranchmerge() != null) {
-                builder.append("&git.configbranchmerge=").append(encode(git.getConfigbranchmerge()));
+                builder.append("&git.configbranchmerge=").append(safeGwtEncode(git.getConfigbranchmerge()));
             }
 
             if (git.getConfigpushdefault() != null) {
                 builder.append("&git.configpushdefault=").append(git.getConfigpushdefault());
             }
             if (git.getConfigremoteoriginfetch() != null) {
-                builder.append("&git.configremoteoriginfetch=").append(encode(git.getConfigremoteoriginfetch()));
+                builder.append("&git.configremoteoriginfetch=").append(safeGwtEncode(git.getConfigremoteoriginfetch()));
             }
         }
 
@@ -168,7 +167,17 @@ public abstract class NonEncodedFactoryBuilder {
      *         - string to encode.
      * @return - encoded value safe to use as query parameter.
      */
-    protected abstract String encode(String value);
+    protected abstract String safeGwtEncode(String value);
 
-
+    /**
+     * Convert object to json
+     * GWT have its own implementation.
+     *
+     * @param dto
+     *         - initial object
+     * @param <T>
+     *         - object type
+     * @return - json representation of object.
+     */
+    protected abstract <T> String safeGwtToJson(T dto);
 }

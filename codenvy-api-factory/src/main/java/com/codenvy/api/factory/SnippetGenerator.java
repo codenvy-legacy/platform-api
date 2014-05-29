@@ -17,6 +17,8 @@
  */
 package com.codenvy.api.factory;
 
+import java.util.Formatter;
+
 
 /** Helper for snippet generating. */
 
@@ -68,12 +70,14 @@ public class SnippetGenerator {
 
     /**
      * Formats the input string filling the {@link String} arguments.
+     * Is intended to be used on client side, where {@link String#format(String, Object...)} and {@link Formatter} 
+     * cannot be used.
      * 
      * @param format string format
      * @param args {@link String} arguments
      * @return {@link String} formatted string
      */
-    public static String format(final String format, final String... args) {
+    private static String format(final String format, final String... args) {
         String[] split = format.split("%s");
         final StringBuilder msg = new StringBuilder();
         for (int pos = 0; pos < split.length - 1; pos += 1) {

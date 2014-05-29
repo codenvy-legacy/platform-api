@@ -19,6 +19,8 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.*;
 
+import java.util.List;
+
 /**
  * Convert factory to non encode url.
  * This class is used in GWT code directly.
@@ -179,5 +181,5 @@ public abstract class NonEncodedFactoryBuilder {
      *         - object type
      * @return - json representation of object.
      */
-    protected abstract <T> String safeGwtToJson(T dto);
+    protected abstract String safeGwtToJson(List<Variable> dto);
 }

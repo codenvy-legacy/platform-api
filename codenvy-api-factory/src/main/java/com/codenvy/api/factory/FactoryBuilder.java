@@ -67,6 +67,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     private static final String PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE   =
             "The parameter %s has a value submitted %s with a value that is unexpected. For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
+
     /** List contains all possible implementation of factory legacy converters. */
     static final List<LegacyConverter> LEGACY_CONVERTERS;
 
@@ -389,7 +390,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     @Override
-    protected <T> String safeGwtToJson(T dto) {
+    protected String safeGwtToJson(List<Variable> dto) {
         return DtoFactory.getInstance().toJson(dto);
     }
 }

@@ -13,7 +13,7 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTI
 @DTO
 public interface FactoryV1_2 extends FactoryV1_1 {
     /**
-     * @return additinal git configuration
+     * @return additional git configuration
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "git")
     Git getGit();
@@ -31,4 +31,14 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     void setRestriction(Restriction restriction);
 
     FactoryV1_2 withRestriction(Restriction restriction);
+
+    /**
+     * @return warn on leave page
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "warnonclose")
+    boolean getWarnonclose();
+
+    void setWarnonclose(boolean warnonclose);
+
+    FactoryV1_2 withWarnonclose(boolean warnonclose);
 }

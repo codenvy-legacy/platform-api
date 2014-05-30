@@ -592,11 +592,11 @@ public class RunQueue {
                                              projectTypeId, analyticsID);
                                 }
                                 break;
-                            case RUN_QUEUE_STARTED:
+                            case RUN_TASK_ADDED_IN_QUEUE:
                                 LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
                                          project, projectTypeId, analyticsID);
                                 break;
-                            case RUN_QUEUE_TERMINATED:
+                            case RUN_TASK_QUEUE_TIME_EXCEEDED:
                                 LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
                                          project, projectTypeId, analyticsID);
                                 break;

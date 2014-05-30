@@ -30,9 +30,9 @@ public class RunnerEvent {
         /** Application stopped. */
         STOPPED("stopped"),
         /** Running process is terminated due to exceeded max allowed queue time. */
-        RUN_QUEUE_TERMINATED("run_queue_terminated"),
+        RUN_TASK_QUEUE_TIME_EXCEEDED("run_task_queue_time_exceeded"),
         /** Running process is added in queue. */
-        RUN_QUEUE_STARTED("run_queue_started"),
+        RUN_TASK_ADDED_IN_QUEUE("run_task_added_in_queue"),
         /** Error occurs while starting or stopped an application. */
         ERROR("error"),
         /**
@@ -104,11 +104,11 @@ public class RunnerEvent {
     }
 
     public static RunnerEvent queueTerminatedEvent(long processId, String workspace, String project) {
-        return new RunnerEvent(EventType.RUN_QUEUE_TERMINATED, processId, workspace, project);
+        return new RunnerEvent(EventType.RUN_TASK_QUEUE_TIME_EXCEEDED, processId, workspace, project);
     }
 
     public static RunnerEvent queueStartedEvent(long processId, String workspace, String project) {
-        return new RunnerEvent(EventType.RUN_QUEUE_STARTED, processId, workspace, project);
+        return new RunnerEvent(EventType.RUN_TASK_ADDED_IN_QUEUE, processId, workspace, project);
     }
 
     public static RunnerEvent errorEvent(long processId, String workspace, String project, String message) {

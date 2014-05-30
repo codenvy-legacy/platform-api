@@ -677,11 +677,11 @@ public class BuildQueue {
                                     LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
                                              projectTypeId, analyticsID);
                                     break;
-                                case BUILD_QUEUE_STARTED:
+                                case BUILD_TASK_ADDED_IN_QUEUE:
                                     LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
                                              project, projectTypeId, analyticsID);
                                     break;
-                                case BUILD_QUEUE_TERMINATED:
+                                case BUILD_TASK_QUEUE_TIME_EXCEEDED:
                                     LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
                                              projectTypeId, analyticsID);
                                     break;

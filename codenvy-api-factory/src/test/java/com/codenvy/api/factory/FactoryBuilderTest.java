@@ -201,6 +201,11 @@ public class FactoryBuilderTest {
         factoryBuilder.buildNonEncoded(new URI(sb.toString()));
     }
 
+    @Test(expectedExceptions = FactoryUrlException.class)
+    public void shouldNotValidateUnparseableFactory() throws FactoryUrlException, URISyntaxException {
+        factoryBuilder.checkValid(null, NONENCODED);
+    }
+
     @DataProvider(name = "TFParamsProvider")
     public static Object[][] tFParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{

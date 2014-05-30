@@ -20,17 +20,9 @@ package com.codenvy.api.account;
 
 import sun.security.acl.PrincipalImpl;
 
-import com.codenvy.api.account.server.AccountService;
-import com.codenvy.api.account.server.Constants;
-import com.codenvy.api.account.server.SubscriptionEvent;
-import com.codenvy.api.account.server.SubscriptionService;
-import com.codenvy.api.account.server.SubscriptionServiceRegistry;
+import com.codenvy.api.account.server.*;
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
-import com.codenvy.api.account.shared.dto.AccountMembership;
-import com.codenvy.api.account.shared.dto.Attribute;
-import com.codenvy.api.account.shared.dto.Member;
-import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.shared.dto.*;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -39,45 +31,23 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.core.impl.ApplicationContextImpl;
-import org.everrest.core.impl.ApplicationProviderBinder;
-import org.everrest.core.impl.ContainerResponse;
-import org.everrest.core.impl.EnvironmentContext;
-import org.everrest.core.impl.EverrestConfiguration;
-import org.everrest.core.impl.ProviderBinder;
-import org.everrest.core.impl.RequestDispatcher;
-import org.everrest.core.impl.RequestHandlerImpl;
-import org.everrest.core.impl.ResourceBinderImpl;
+import org.everrest.core.impl.*;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
 import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.*;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotEquals;
-import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
+import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 /**
  * Tests for Account Service
@@ -183,7 +153,7 @@ public class AccountServiceTest {
 
     @Test
     public void shouldNotBeAbleToCreateAccountIfUserAlreadyHasOne() throws Exception {
-        prepareSecurityContext("account/owner");
+        prepareSecurityContext("user");
 
         ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, account);
         assertEquals(response.getEntity().toString(), "Account which owner is " + USER_ID + " already exists");
@@ -265,7 +235,7 @@ public class AccountServiceTest {
                                      .withName("newName")
                                      .withAttributes(attributes);
 
-        prepareSecurityContext("user");
+        prepareSecurityContext("account/owner");
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
@@ -298,7 +268,7 @@ public class AccountServiceTest {
                                                                ));
         Account toUpdate = DtoFactory.getInstance().createDto(Account.class).withAttributes(updates);
 
-        prepareSecurityContext("user");
+        prepareSecurityContext("account/owner");
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
@@ -372,7 +342,7 @@ public class AccountServiceTest {
         when(accountDao.getByName("TO_UPDATE"))
                 .thenReturn(DtoFactory.getInstance().createDto(Account.class).withName("TO_UPDATE"));
 
-        prepareSecurityContext("user");
+        prepareSecurityContext("account/owner");
 
         Account toUpdate = DtoFactory.getInstance().createDto(Account.class).withName("TO_UPDATE");
 
@@ -415,16 +385,54 @@ public class AccountServiceTest {
         //safe cast cause AccountService#getSubscriptions always returns List<Subscription>
         @SuppressWarnings("unchecked") List<Subscription> subscriptions = (List<Subscription>)response.getEntity();
         assertEquals(subscriptions.size(), 1);
-        assertEquals(subscriptions.get(0).getLinks().size(), 1);
-        Link removeSubscription = subscriptions.get(0).getLinks().get(0);
-        assertEquals(removeSubscription, DtoFactory.getInstance().createDto(Link.class)
-                                                   .withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION)
-                                                   .withMethod("DELETE")
-                                                   .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID));
+        assertEquals(subscriptions.get(0).getLinks().size(), 2);
+        List<Link> actualLinks = subscriptions.get(0).getLinks();
+        assertEqualsNoOrder(actualLinks.toArray(), new Link[] {DtoFactory.getInstance().createDto(Link.class).withRel(
+                Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
+                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID), DtoFactory.getInstance().createDto(Link.class).withRel(
+                Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(
+                HttpMethod.GET).withHref(
+                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID).withProduces(MediaType.APPLICATION_JSON)});
+
         verify(accountDao, times(1)).getSubscriptions(ACCOUNT_ID);
     }
 
-    @Test
+    @Test(dataProvider = "rolesProvider")
+    public void shouldBeAbleToGetSpecificSubscriptionBySystemAdmin(String role) throws Exception {
+        when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
+        prepareSecurityContext(role);
+
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        //safe cast cause AccountService#getSubscriptions always returns List<Subscription>
+        @SuppressWarnings("unchecked") Subscription subscription = (Subscription)response.getEntity();
+        if (role.equals("system/admin") || role.equals("system/manager")) {
+            assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
+                    Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
+                    SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
+        } else {
+            assertTrue(subscription.getLinks().isEmpty());
+        }
+        verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
+    }
+
+    @DataProvider(name = "rolesProvider")
+    public String[][] rolesProvider() {
+        return new String[][]{{"system/admin"},
+                              {"system/manager"},
+                              {"account/member"},
+        };
+    }
+
+    @Test(enabled = false)
     public void shouldNotBeAbleToGetSubscriptionsFromAccountWhereCurrentUserIsNotMember() throws Exception {
         when(accountDao.getByMember(USER_ID)).thenReturn(new ArrayList<AccountMembership>());
         when(accountDao.getByOwner(USER_ID))

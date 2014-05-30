@@ -19,19 +19,10 @@ package com.codenvy.api.account.server;
 
 
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
-import com.codenvy.api.account.shared.dto.AccountMembership;
-import com.codenvy.api.account.shared.dto.Attribute;
-import com.codenvy.api.account.shared.dto.Member;
-import com.codenvy.api.account.shared.dto.Subscription;
-import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ForbiddenException;
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.ServerException;
+import com.codenvy.api.account.shared.dto.*;
+import com.codenvy.api.core.*;
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.core.rest.annotations.Description;
-import com.codenvy.api.core.rest.annotations.GenerateLink;
-import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.annotations.*;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.shared.dto.User;
@@ -40,26 +31,10 @@ import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Account API
@@ -161,16 +136,14 @@ public class AccountService extends Service {
     @POST
     @Path("{id}/attribute")
     @GenerateLink(rel = Constants.LINK_REL_ADD_ATTRIBUTE)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
-    public void addAttribute(@PathParam("id") String accountId, @Required @Description("New attribute") Attribute newAttribute,
-                             @Context SecurityContext securityContext)
+    public void addAttribute(@PathParam("id") String accountId, @Required @Description("New attribute") Attribute newAttribute)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final Account account = accountDao.getById(accountId);
         if (newAttribute == null) {
             throw new ConflictException("Attribute required");
         }
-        ensureCurrentUserIsAccountOwner(account, securityContext);
         validateAttributeName(newAttribute.getName());
         final List<Attribute> actual = account.getAttributes();
         removeAttribute(actual, newAttribute.getName());
@@ -181,13 +154,11 @@ public class AccountService extends Service {
     @DELETE
     @Path("{id}/attribute")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTE)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public void removeAttribute(@PathParam("id") String accountId,
-                                @Required @Description("The name of attribute") @QueryParam("name") String attributeName,
-                                @Context SecurityContext securityContext)
+                                @Required @Description("The name of attribute") @QueryParam("name") String attributeName)
             throws ConflictException, NotFoundException, ForbiddenException, ServerException {
         final Account account = accountDao.getById(accountId);
-        ensureCurrentUserIsAccountOwner(account, securityContext);
         validateAttributeName(attributeName);
         removeAttribute(account.getAttributes(), attributeName);
         accountDao.update(account);
@@ -224,15 +195,13 @@ public class AccountService extends Service {
     @POST
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_MEMBER)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
-    public void addMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    public void addMember(@PathParam("id") String accountId,
                           @Required @Description("User id to be a new account member") @QueryParam("userid") String userId)
             throws ConflictException, NotFoundException, ForbiddenException, ServerException {
         if (userId == null) {
             throw new ConflictException("Missed user id");
         }
-        final Account account = accountDao.getById(accountId);
-        ensureCurrentUserIsAccountOwner(account, securityContext);
         Member newMember = DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId).withUserId(userId);
         newMember.setRoles(Arrays.asList("account/member"));
         accountDao.addMember(newMember);
@@ -241,12 +210,10 @@ public class AccountService extends Service {
     @GET
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_GET_MEMBERS)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<Member> getMembers(@PathParam("id") String id, @Context SecurityContext securityContext)
             throws NotFoundException, ForbiddenException, ServerException {
-        final Account account = accountDao.getById(id);
-        ensureCurrentUserIsAccountOwner(account, securityContext);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Member> members = accountDao.getMembers(id);
         for (Member member : members) {
@@ -261,12 +228,10 @@ public class AccountService extends Service {
     @DELETE
     @Path("{id}/members/{userid}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_MEMBER)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
-    public void removeMember(@Context SecurityContext securityContext, @PathParam("id") String accountId,
-                             @PathParam("userid") String userId) throws NotFoundException, ForbiddenException,
-                                                                        ServerException, ConflictException {
-        final Account account = accountDao.getById(accountId);
-        ensureCurrentUserIsAccountOwner(account, securityContext);
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    public void removeMember(@PathParam("id") String accountId, @PathParam("userid") String userId)
+            throws NotFoundException, ForbiddenException,
+                   ServerException, ConflictException {
         List<Member> accMembers = accountDao.getMembers(accountId);
         Member toRemove = null;
         //search for member
@@ -300,7 +265,7 @@ public class AccountService extends Service {
     @POST
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_ACCOUNT)
-    @RolesAllowed({"user"})
+    @RolesAllowed({"account/owner"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Account update(@PathParam("id") String accountId,
@@ -313,7 +278,6 @@ public class AccountService extends Service {
         }
         final Account actual = accountDao.getById(accountId);
         //current user should be account owner to update it
-        ensureCurrentUserIsAccountOwner(actual, securityContext);
         //if name changed
         if (accountToUpdate.getName() != null) {
             if (!actual.getName().equals(accountToUpdate.getName()) && accountDao.getByName(accountToUpdate.getName()) != null) {
@@ -343,6 +307,7 @@ public class AccountService extends Service {
         return actual;
     }
 
+    // TODO
     @GET
     @Path("{id}/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
@@ -364,21 +329,45 @@ public class AccountService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
         for (Subscription subscription : subscriptions) {
-            subscription.setLinks(Arrays.asList(createLink("DELETE", Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
-                                                           uriBuilder.clone().path(getClass(), "removeSubscription")
-                                                                     .build(subscription.getId()).toString()
-                                                          )));
+            List<Link> links = subscription.getLinks();
+            links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getSubscription").build(subscription.getId()).toString()));
+
+            if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
+                links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
+                                     uriBuilder.clone().path(getClass(), "removeSubscription").build(subscription.getId()).toString()));
+            }
+            subscription.setLinks(links);
         }
         return subscriptions;
+    }
+
+    @GET
+    @Path("subscriptions/{subscriptionId}")
+    @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
+    @RolesAllowed({"account/member", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public Subscription getSubscription(@PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
+            throws NotFoundException, ServerException, ForbiddenException {
+        final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
+            subscription
+                    .setLinks(Collections.singletonList(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
+                                                                   uriBuilder.clone().path(getClass(), "removeSubscription")
+                                                                             .build(subscription.getId()).toString()
+                                                                  )));
+        }
+        return subscription;
     }
 
     @POST
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
-            throws NotFoundException, ConflictException, ServerException {
+            throws NotFoundException, ConflictException, ServerException, ForbiddenException {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
         }
@@ -421,22 +410,6 @@ public class AccountService extends Service {
             if (current.getName().equals(attributeName)) {
                 it.remove();
                 break;
-            }
-        }
-    }
-
-    private void ensureCurrentUserIsAccountOwner(Account account, SecurityContext securityContext)
-            throws NotFoundException, ServerException, ForbiddenException {
-        if (securityContext.isUserInRole("user")) {
-            final Principal principal = securityContext.getUserPrincipal();
-            final User current = userDao.getByAlias(principal.getName());
-            List<Account> accounts = accountDao.getByOwner(current.getId());
-            boolean isCurrentUserAccountOwner = false;
-            for (int i = 0; i < accounts.size() && !isCurrentUserAccountOwner; ++i) {
-                isCurrentUserAccountOwner = accounts.get(i).getId().equals(account.getId());
-            }
-            if (!isCurrentUserAccountOwner) {
-                throw new ForbiddenException(current.getId());
             }
         }
     }

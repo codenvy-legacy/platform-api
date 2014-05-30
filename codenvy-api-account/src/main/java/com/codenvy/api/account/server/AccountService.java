@@ -320,7 +320,7 @@ public class AccountService extends Service {
         for (Subscription subscription : subscriptions) {
             List<Link> links = subscription.getLinks();
             links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscription").build(subscription.getId()).toString()));
+                                 uriBuilder.clone().path(getClass(), "getSubscriptionById").build(subscription.getId()).toString()));
 
             if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
                 links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
@@ -336,7 +336,7 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
     @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Subscription getSubscription(@PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
+    public Subscription getSubscriptionById(@PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ForbiddenException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();

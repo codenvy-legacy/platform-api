@@ -20,11 +20,7 @@ package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.shared.dto.Account;
-import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ForbiddenException;
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -42,11 +38,7 @@ import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.shared.dto.Attribute;
-import com.codenvy.api.workspace.shared.dto.Membership;
-import com.codenvy.api.workspace.shared.dto.NewMembership;
-import com.codenvy.api.workspace.shared.dto.Workspace;
-import com.codenvy.api.workspace.shared.dto.WorkspaceRef;
+import com.codenvy.api.workspace.shared.dto.*;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -56,28 +48,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Workspace API
@@ -152,7 +126,7 @@ public class WorkspaceService extends Service {
         memberDao.create(member);
         injectLinks(newWorkspace, securityContext);
 
-        LOG.info("EVENT#workspace-created# WS#{}# USER#{}#", newWorkspace.getName(), user.getEmail());
+        LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", newWorkspace.getName(), newWorkspace.getId(), user.getEmail());
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }
 
@@ -204,7 +178,7 @@ public class WorkspaceService extends Service {
                                   .withRoles(Arrays.asList("workspace/developer", "workspace/admin"));
         memberDao.create(member);
 
-        LOG.info("EVENT#workspace-created# WS#{}# USER#{}#", newWorkspace.getName(), user.getEmail());
+        LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", newWorkspace.getName(), newWorkspace.getId(), user.getEmail());
         return Response.status(Response.Status.CREATED).entity(newWorkspace).build();
     }
 
@@ -299,6 +273,8 @@ public class WorkspaceService extends Service {
         //todo what about accountId ? should it be possible to change account?
         workspaceDao.update(workspace);
         injectLinks(workspace, securityContext);
+
+        LOG.info("EVENT#workspace-updated# WS#{}# WS-ID#{}#", workspace.getName(), workspace.getId());
         return workspace;
     }
 
@@ -556,7 +532,7 @@ public class WorkspaceService extends Service {
         }
         workspaceDao.remove(wsId);
 
-        LOG.info("EVENT#workspace-destroyed# WS#{}#", workspace.getName());
+        LOG.info("EVENT#workspace-destroyed# WS#{}# WS-ID#{}#", workspace.getName(), workspace.getId());
     }
 
     private void removeAttribute(List<Attribute> src, String attributeName) {

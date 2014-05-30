@@ -370,7 +370,7 @@ public class AccountService extends Service {
     @DELETE
     @Path("subscriptions/{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
             throws NotFoundException, ServerException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);

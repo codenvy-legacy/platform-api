@@ -203,6 +203,11 @@ public class RunQueue {
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
+        String runnerEnvId = request.getEnvironmentId();
+        if (runnerEnvId == null) {
+            runnerEnvId = getAttributeValue(Constants.RUNNER_ENV_ID, projectAttributes);
+            request.setEnvironmentId(runnerEnvId);
+        }
         request.setRunnerScriptUrls(getRunnerScript(descriptor));
         if (request.getDebugMode() == null) {
             final String debugAttr = getAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
@@ -260,8 +265,7 @@ public class RunQueue {
             if (zipballLink != null) {
                 final String zipballLinkHref = zipballLink.getHref();
                 final String token = getAuthenticationToken();
-                request.setDeploymentSourcesUrl(
-                        token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
+                request.setDeploymentSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
             }
             callable = createTaskFor(null, request, buildTaskHolder);
         }

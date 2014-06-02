@@ -444,7 +444,8 @@ public class AccountServiceTest {
                                               .withServiceId(SERVICE_ID)
                                               .withStartDate(System.currentTimeMillis())
                                               .withEndDate(System.currentTimeMillis())
-                                              .withProperties(Collections.<String, String>emptyMap());
+                                              .withProperties(Collections.<String, String>emptyMap())
+                                              .withState(Subscription.State.ACTIVE);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
         ContainerResponse response =

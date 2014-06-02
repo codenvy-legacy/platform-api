@@ -388,6 +388,9 @@ public class AccountService extends Service {
             throw new ConflictException("Missed subscription");
         }
         SubscriptionService service = registry.get(subscription.getServiceId());
+        if (null == service) {
+            throw new ConflictException("Unknown serviceId is used");
+        }
         String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
         accountDao.addSubscription(subscription);

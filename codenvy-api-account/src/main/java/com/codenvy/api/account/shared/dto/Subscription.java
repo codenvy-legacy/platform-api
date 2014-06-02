@@ -33,7 +33,7 @@ import java.util.Map;
 public interface Subscription {
 
     public enum State {
-        WAITING_FOR_PAYMENT, ACTIVE
+        WAIT_FOR_PAYMENT, ACTIVE
     }
 
     String getId();

@@ -22,7 +22,6 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.AccountService;
 import com.codenvy.api.account.server.Constants;
-import com.codenvy.api.account.server.SubscriptionEvent;
 import com.codenvy.api.account.server.SubscriptionService;
 import com.codenvy.api.account.server.SubscriptionServiceRegistry;
 import com.codenvy.api.account.server.dao.AccountDao;
@@ -453,7 +452,7 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao, times(1)).addSubscription(any(Subscription.class));
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
-        verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+        verify(subscriptionService, times(1)).onCreateSubscription(any(Subscription.class));
     }
 
     @Test
@@ -474,7 +473,7 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
         verify(accountDao, times(1)).removeSubscription(SUBSCRIPTION_ID);
-        verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+        verify(subscriptionService, times(1)).onRemoveSubscription(any(Subscription.class));
     }
 
     @Test

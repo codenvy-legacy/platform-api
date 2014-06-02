@@ -382,11 +382,11 @@ public class AccountService extends Service {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
         }
-        SubscriptionService service = registry.get(subscription.getServiceId());
-        String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
+        final SubscriptionService service = registry.get(subscription.getServiceId());
+        final String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
         accountDao.addSubscription(subscription);
-        service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
+        service.onCreateSubscription(subscription);
     }
 
     @DELETE
@@ -398,7 +398,7 @@ public class AccountService extends Service {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         SubscriptionService service = registry.get(toRemove.getServiceId());
         accountDao.removeSubscription(subscriptionId);
-        service.notifyHandlers(new SubscriptionEvent(toRemove, SubscriptionEvent.EventType.REMOVE));
+        service.onRemoveSubscription(toRemove);
     }
 
     @DELETE

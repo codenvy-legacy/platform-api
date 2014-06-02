@@ -67,6 +67,7 @@ import java.util.Map;
  * Account API
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 @Path("account")
 public class AccountService extends Service {
@@ -380,7 +381,7 @@ public class AccountService extends Service {
     @POST
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @RolesAllowed({"system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
             throws NotFoundException, ConflictException, ServerException, ForbiddenException {
@@ -400,7 +401,7 @@ public class AccountService extends Service {
     @DELETE
     @Path("subscriptions/{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @RolesAllowed({"system/admin", "system/manager"})
     public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
             throws NotFoundException, ServerException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
@@ -436,20 +437,20 @@ public class AccountService extends Service {
     private void injectLinks(Account account, SecurityContext securityContext) {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNTS, null, MediaType.APPLICATION_JSON,
+        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_ACCOUNTS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMemberships").build().toString()));
-        links.add(createLink("GET", Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
+        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getSubscriptions").build(account.getId())
                                        .toString()
                             ));
-        links.add(createLink("GET", Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
+        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMembers").build(account.getId())
                                        .toString()
                             ));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_ID, null, MediaType.APPLICATION_JSON,
+            links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_ACCOUNT_BY_ID, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getById").build(account.getId()).toString()));
-            links.add(createLink("GET", Constants.LINK_REL_GET_ACCOUNT_BY_NAME, null, MediaType.APPLICATION_JSON,
+            links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_ACCOUNT_BY_NAME, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getByName").queryParam("name", account.getName())
                                            .build()
                                            .toString()
@@ -457,7 +458,7 @@ public class AccountService extends Service {
 
         }
         if (securityContext.isUserInRole("system/admin")) {
-            links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_ACCOUNT, null, null,
+            links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_ACCOUNT, null, null,
                                  uriBuilder.clone().path(getClass(), "remove").build(account.getId()).toString()));
         }
         account.setLinks(links);

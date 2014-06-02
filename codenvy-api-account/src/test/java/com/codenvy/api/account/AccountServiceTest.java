@@ -75,6 +75,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertEqualsNoOrder;
@@ -86,6 +87,7 @@ import static org.testng.Assert.fail;
  * Tests for Account Service
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  * @see com.codenvy.api.account.server.AccountService
  */
 @Listeners(value = {MockitoTestNGListener.class})
@@ -171,7 +173,7 @@ public class AccountServiceTest {
         String role = "user";
         prepareSecurityContext(role);
 
-        ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, account);
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH, MediaType.APPLICATION_JSON, account);
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         Account created = (Account)response.getEntity();
@@ -188,7 +190,7 @@ public class AccountServiceTest {
     public void shouldNotBeAbleToCreateAccountIfUserAlreadyHasOne() throws Exception {
         prepareSecurityContext("user");
 
-        ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, account);
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH, MediaType.APPLICATION_JSON, account);
         assertEquals(response.getEntity().toString(), "Account which owner is " + USER_ID + " already exists");
     }
 
@@ -200,7 +202,7 @@ public class AccountServiceTest {
         String role = "user";
         prepareSecurityContext(role);
 
-        ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, account);
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH, MediaType.APPLICATION_JSON, account);
 
         assertEquals(response.getEntity().toString(), "Account name required");
     }
@@ -209,7 +211,7 @@ public class AccountServiceTest {
     public void shouldBeAbleToGetMemberships() throws Exception {
         when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(account));
 
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         //safe cast cause AccountService#getMemberships always returns List<AccountMembership
@@ -233,7 +235,7 @@ public class AccountServiceTest {
         memberships.add(am);
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
 
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/list?userid=" + USER_ID, null, null);
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/list?userid=" + USER_ID, null, null);
         //safe cast cause AccountService#getMembershipsOfSpecificUser always returns List<AccountMembership>
         @SuppressWarnings("unchecked") List<AccountMembership> currentAccounts =
                 (List<AccountMembership>)response.getEntity();
@@ -249,7 +251,7 @@ public class AccountServiceTest {
         for (String role : roles) {
             prepareSecurityContext(role);
 
-            ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ACCOUNT_ID, null, null);
+            ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID, null, null);
 
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
             Account actual = (Account)response.getEntity();
@@ -269,7 +271,7 @@ public class AccountServiceTest {
                                      .withAttributes(attributes);
 
         prepareSecurityContext("account/owner");
-        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         Account actual = (Account)response.getEntity();
@@ -302,7 +304,7 @@ public class AccountServiceTest {
         Account toUpdate = DtoFactory.getInstance().createDto(Account.class).withAttributes(updates);
 
         prepareSecurityContext("account/owner");
-        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         Account actual = (Account)response.getEntity();
@@ -324,7 +326,7 @@ public class AccountServiceTest {
         int countBefore = account.getAttributes().size();
 
         ContainerResponse response =
-                makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         assertEquals(account.getAttributes().size(), countBefore + 1);
@@ -338,21 +340,21 @@ public class AccountServiceTest {
                                            .withValue("someValue")
                                            .withDescription("Description");
         ContainerResponse response =
-                makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
 
         assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         assertEquals(response.getEntity().toString(), "Attribute name 'codenvy_newAttribute' is not valid");
 
         newAttribute.setName("");
 
-        response = makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+        response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
 
         assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         assertEquals(response.getEntity().toString(), "Attribute name '' is not valid");
 
         newAttribute.setName(null);
 
-        response = makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+        response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
 
         assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         assertEquals(response.getEntity().toString(), "Attribute name 'null' is not valid");
@@ -364,7 +366,7 @@ public class AccountServiceTest {
         assertTrue(countBefore > 0);
         Attribute existed = account.getAttributes().get(0);
         ContainerResponse response =
-                makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute?name=" + existed.getName(), null, null);
+                makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute?name=" + existed.getName(), null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         assertEquals(account.getAttributes().size(), countBefore - 1);
@@ -379,7 +381,7 @@ public class AccountServiceTest {
 
         Account toUpdate = DtoFactory.getInstance().createDto(Account.class).withName("TO_UPDATE");
 
-        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
         assertNotEquals(response.getStatus(), Response.Status.OK);
         assertEquals(response.getEntity().toString(), "Account with name TO_UPDATE already exists");
     }
@@ -390,7 +392,7 @@ public class AccountServiceTest {
         for (String role : roles) {
             prepareSecurityContext(role);
 
-            ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/find?name=" + ACCOUNT_NAME, null, null);
+            ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/find?name=" + ACCOUNT_NAME, null, null);
 
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
             Account actual = (Account)response.getEntity();
@@ -412,7 +414,7 @@ public class AccountServiceTest {
 
         prepareSecurityContext("system/admin");
 
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         //safe cast cause AccountService#getSubscriptions always returns List<Subscription>
@@ -431,7 +433,7 @@ public class AccountServiceTest {
     }
 
     @Test(dataProvider = "rolesProvider")
-    public void shouldBeAbleToGetSpecificSubscriptionBySystemAdmin(String role) throws Exception {
+    public void shouldBeAbleToGetSpecificSubscription(String role) throws Exception {
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
                 DtoFactory.getInstance().createDto(Subscription.class)
                           .withId(SUBSCRIPTION_ID)
@@ -445,8 +447,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        //safe cast cause AccountService#getSubscriptions always returns List<Subscription>
-        @SuppressWarnings("unchecked") Subscription subscription = (Subscription)response.getEntity();
+        Subscription subscription = (Subscription)response.getEntity();
         if (role.equals("system/admin") || role.equals("system/manager")) {
             assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
                     Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
@@ -473,7 +474,7 @@ public class AccountServiceTest {
 
         prepareSecurityContext("user");
 
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
 
         assertNotEquals(Response.Status.OK, response.getStatus());
     }
@@ -489,12 +490,40 @@ public class AccountServiceTest {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
         ContainerResponse response =
-                makeRequest("POST", SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao, times(1)).addSubscription(any(Subscription.class));
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
         verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddSubscriptionIfServiceIdIsUnknown() throws Exception {
+        Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
+                                              .withAccountId(ACCOUNT_ID)
+                                              .withServiceId("UNKNOWN_SERVICE_ID")
+                                              .withStartDate(System.currentTimeMillis())
+                                              .withEndDate(System.currentTimeMillis())
+                                              .withProperties(Collections.<String, String>emptyMap());
+        when(serviceRegistry.get("UNKNOWN_SERVICE_ID")).thenReturn(null);
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Unknown serviceId is used");
+        verifyZeroInteractions(accountDao, subscriptionService);
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddSubscriptionIfNoDataSent() throws Exception {
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, null);
+
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Missed subscription");
+        verifyZeroInteractions(accountDao, subscriptionService, serviceRegistry);
     }
 
     @Test
@@ -510,7 +539,7 @@ public class AccountServiceTest {
                                                                         );
 
         ContainerResponse response =
-                makeRequest("DELETE", SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+                makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
@@ -526,7 +555,7 @@ public class AccountServiceTest {
                                   .withAccountId(account.getId())
                                          ));
 
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + account.getId() + "/members", null, null);
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + account.getId() + "/members", null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         verify(accountDao, times(1)).getMembers(account.getId());
@@ -539,13 +568,13 @@ public class AccountServiceTest {
         assertEquals(removeMember, DtoFactory.getInstance().createDto(Link.class)
                                              .withRel(Constants.LINK_REL_REMOVE_MEMBER)
                                              .withHref(SERVICE_PATH + "/" + member.getAccountId() + "/members/" + member.getUserId())
-                                             .withMethod("DELETE"));
+                                             .withMethod(HttpMethod.DELETE));
     }
 
     @Test
     public void shouldBeAbleToAddMember() throws Exception {
         ContainerResponse response =
-                makeRequest("POST", SERVICE_PATH + "/" + account.getId() + "/members?userid=" + USER_ID, null, null);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + account.getId() + "/members?userid=" + USER_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao, times(1)).addMember(any(Member.class));
@@ -563,7 +592,7 @@ public class AccountServiceTest {
                                         .withRoles(Arrays.asList("account/owner"));
         when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountMember, accountOwner));
 
-        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
+        ContainerResponse response = makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao, times(1)).removeMember(accountMember);
@@ -581,7 +610,7 @@ public class AccountServiceTest {
                                          .withRoles(Arrays.asList("account/member"));
         when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountOwner, accountMember));
 
-        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
+        ContainerResponse response = makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
 
         assertEquals(response.getEntity().toString(), "Account should have at least 1 owner");
     }
@@ -598,7 +627,7 @@ public class AccountServiceTest {
                                          .withRoles(Arrays.asList("account/owner"));
         when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountOwner, accountOwner2));
 
-        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
+        ContainerResponse response = makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao, times(1)).removeMember(accountOwner);

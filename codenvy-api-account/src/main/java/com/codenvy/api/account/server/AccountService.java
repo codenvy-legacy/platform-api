@@ -382,9 +382,6 @@ public class AccountService extends Service {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
         }
-        if (null == subscription.getState()) {
-            throw new ConflictException("Subscription state is missing");
-        }
         SubscriptionService service = registry.get(subscription.getServiceId());
         String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);

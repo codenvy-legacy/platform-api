@@ -23,6 +23,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -152,7 +153,8 @@ public class LocalAccountDaoImpl implements AccountDao {
 
     @Override
     public SubscriptionPayment getSubscriptionPayment(String subscriptionId) throws NotFoundException, ServerException {
-        throw new RuntimeException("Not implemented");
+        return DtoFactory.getInstance().createDto(SubscriptionPayment.class).withSubscriptionId(subscriptionId)
+                                                .withAmount(new BigDecimal(1000)).withTransactionId("TRANSACTION_ID");
     }
 
     @Override

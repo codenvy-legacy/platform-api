@@ -17,6 +17,7 @@ import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.account.shared.dto.SubscriptionPayment;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.dto.server.DtoFactory;
@@ -145,7 +146,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void addSubscriptionPayment(SubscriptionPayment payment) throws ServerException {
+    public void addSubscriptionPayment(SubscriptionPayment payment) throws NotFoundException, ServerException, ConflictException {
         throw new RuntimeException("Not implemented");
     }
 

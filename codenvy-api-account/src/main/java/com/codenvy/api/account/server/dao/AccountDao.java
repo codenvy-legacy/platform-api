@@ -166,7 +166,7 @@ public interface AccountDao {
      * @param payment
      *         payment to add
      */
-    void addSubscriptionPayment(SubscriptionPayment payment) throws ServerException;
+    void addSubscriptionPayment(SubscriptionPayment payment) throws NotFoundException, ServerException, ConflictException;
 
     /**
      * Gets payment for certain subscription id

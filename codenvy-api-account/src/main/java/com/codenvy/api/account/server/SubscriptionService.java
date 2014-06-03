@@ -45,7 +45,7 @@ public abstract class SubscriptionService {
 
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription);
 
-    public abstract BigDecimal trafficate(Subscription subscription);
+    public abstract BigDecimal tarificate(Subscription subscription);
 
     public String getServiceId() {
         return serviceId;

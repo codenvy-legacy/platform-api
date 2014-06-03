@@ -45,5 +45,5 @@ public interface SubscriptionPayment {
 
     void setAmount(BigDecimal amount);
 
-    BigDecimal withAmount(BigDecimal amount);
+    SubscriptionPayment withAmount(BigDecimal amount);
 }

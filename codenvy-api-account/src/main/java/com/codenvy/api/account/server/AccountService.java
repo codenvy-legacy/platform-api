@@ -35,6 +35,7 @@ import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -68,12 +69,14 @@ public class AccountService extends Service {
     private final AccountDao                  accountDao;
     private final UserDao                     userDao;
     private final SubscriptionServiceRegistry registry;
+    private final PaymentService              paymentService;
 
     @Inject
-    public AccountService(AccountDao accountDao, UserDao userDao, SubscriptionServiceRegistry registry) {
+    public AccountService(AccountDao accountDao, UserDao userDao, SubscriptionServiceRegistry registry, PaymentService paymentService) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.registry = registry;
+        this.paymentService = paymentService;
     }
 
     @POST
@@ -409,6 +412,18 @@ public class AccountService extends Service {
     @RolesAllowed("system/admin")
     public void remove(@PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
         accountDao.remove(id);
+    }
+
+    @POST
+    @Path("subscriptions/{id}/payment")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @RolesAllowed("user")
+    public void payForSubscription(@PathParam("id") String subscriptionId,
+                                   @FormParam("cardNumber") String cardNumber,
+                                   @FormParam("cvv") String cvv,
+                                   @FormParam("expirationMonth") String expirationMonth,
+                                   @FormParam("expirationYear") String expirationYear) {
+        paymentService.payment(, cardNumber, cvv, expirationMonth, expirationYear);
     }
 
     private void validateAttributeName(String attributeName) throws ConflictException {

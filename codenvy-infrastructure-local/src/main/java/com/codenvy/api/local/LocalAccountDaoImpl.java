@@ -16,6 +16,8 @@ import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
@@ -117,6 +119,11 @@ public class LocalAccountDaoImpl implements AccountDao {
                                        .withServiceId("serviceId")
                                        .withProperties(new HashMap<String, String>())
                             );
+    }
+
+    @Override
+    public void updateSubscription(Subscription subscription) throws NotFoundException, ServerException {
+        throw new RuntimeException("Not implemented");
     }
 
     @Override

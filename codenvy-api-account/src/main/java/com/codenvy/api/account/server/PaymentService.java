@@ -22,8 +22,10 @@ import com.codenvy.api.account.shared.dto.PaymentOptions;
 import javax.ws.rs.core.Response;
 
 /**
+ * Process payment
+ *
  * @author Alexander Garagatyi
  */
 public interface PaymentService {
-    Response payment(PaymentOptions paymentOptions);
+    Response purchase(PaymentOptions paymentOptions);
 }

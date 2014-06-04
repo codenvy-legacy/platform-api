@@ -496,6 +496,28 @@ public class AccountServiceTest {
         verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
     }
 
+    // TODO
+    @Test(enabled = false)
+    public void shouldRespondPaymentRequiredIfAmountBiggerThan0OnAddSubscription() throws Exception {
+        Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
+                                              .withAccountId(ACCOUNT_ID)
+                                              .withServiceId(SERVICE_ID)
+                                              .withStartDate(System.currentTimeMillis())
+                                              .withEndDate(System.currentTimeMillis())
+                                              .withProperties(Collections.<String, String>emptyMap());
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        // TODO when(subscriptionService.tarifficate()).thenReturn(new BigDecimal(1000));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+
+        assertEquals(response.getStatus(), 402);
+        assertEquals(response.getEntity(), subscription);
+        verify(accountDao, times(1)).addSubscription(any(Subscription.class));
+        verify(serviceRegistry, times(1)).get(SERVICE_ID);
+        verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+    }
+
     @Test
     public void shouldNotBeAbleToAddSubscriptionIfServiceIdIsUnknown() throws Exception {
         Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)

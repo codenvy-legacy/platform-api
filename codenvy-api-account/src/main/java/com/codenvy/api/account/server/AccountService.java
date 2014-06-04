@@ -380,6 +380,7 @@ public class AccountService extends Service {
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response addSubscription(@Required @Description("subscription to add") Subscription subscription)
             throws NotFoundException, ConflictException, ServerException, ForbiddenException {

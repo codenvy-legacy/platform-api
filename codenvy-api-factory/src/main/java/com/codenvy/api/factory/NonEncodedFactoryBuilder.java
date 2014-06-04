@@ -103,7 +103,7 @@ public abstract class NonEncodedFactoryBuilder {
             builder.append("&vcsbranch=").append(factory.getVcsbranch());
         }
 
-        if (factory.getVariables() != null) {
+        if (factory.getVariables() != null && factory.getVariables().size() > 0) {
             builder.append("&variables=").append(safeGwtEncode(safeGwtToJson(factory.getVariables())));
         }
 
@@ -170,8 +170,6 @@ public abstract class NonEncodedFactoryBuilder {
      *
      * @param dto
      *         - initial object
-     * @param <T>
-     *         - object type
      * @return - json representation of object.
      */
     protected abstract String safeGwtToJson(List<Variable> dto);

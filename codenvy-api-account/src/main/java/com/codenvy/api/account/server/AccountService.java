@@ -430,11 +430,11 @@ public class AccountService extends Service {
     // TODO rework to json
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @RolesAllowed("user")
-    public void payForSubscription(@PathParam("id") String subscriptionId,
-                                   @FormParam("cardNumber") String cardNumber,
-                                   @FormParam("cvv") String cvv,
-                                   @FormParam("expirationMonth") String expirationMonth,
-                                   @FormParam("expirationYear") String expirationYear)
+    public void purchaseSubscription(@PathParam("id") String subscriptionId,
+                                     @FormParam("cardNumber") String cardNumber,
+                                     @FormParam("cvv") String cvv,
+                                     @FormParam("expirationMonth") String expirationMonth,
+                                     @FormParam("expirationYear") String expirationYear)
             throws ConflictException, NotFoundException, ServerException {
         paymentService.purchase(DtoFactory.getInstance().createDto(PaymentOptions.class)
                                           .withCardNumber(cardNumber)

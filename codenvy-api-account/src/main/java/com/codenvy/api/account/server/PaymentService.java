@@ -18,6 +18,9 @@
 package com.codenvy.api.account.server;
 
 import com.codenvy.api.account.shared.dto.PaymentOptions;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 
 import javax.ws.rs.core.Response;
 
@@ -27,5 +30,5 @@ import javax.ws.rs.core.Response;
  * @author Alexander Garagatyi
  */
 public interface PaymentService {
-    Response purchase(PaymentOptions paymentOptions);
+    void purchase(PaymentOptions paymentOptions) throws NotFoundException, ConflictException, ServerException;
 }

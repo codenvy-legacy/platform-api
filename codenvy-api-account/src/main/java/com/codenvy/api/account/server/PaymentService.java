@@ -17,9 +17,13 @@
  */
 package com.codenvy.api.account.server;
 
+import com.codenvy.api.account.shared.dto.PaymentOptions;
+
+import javax.ws.rs.core.Response;
+
 /**
  * @author Alexander Garagatyi
  */
 public interface PaymentService {
-    payment();
+    Response payment(PaymentOptions paymentOptions);
 }

@@ -16,6 +16,7 @@ import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
+import com.codenvy.api.account.shared.dto.PaymentOptions;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -48,6 +49,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -377,7 +379,7 @@ public class AccountService extends Service {
     @POST
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
             throws NotFoundException, ConflictException, ServerException, ForbiddenException {
@@ -390,6 +392,15 @@ public class AccountService extends Service {
         }
         String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
+
+        BigDecimal amount = new BigDecimal(0);
+        //BigDecimal amount = service.tarifficate(subscription);
+        if (amount.compareTo(BigDecimal.ZERO) == 0) {
+            subscription.setState(Subscription.State.ACTIVE);
+        } else {
+            subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
+        }
+
         accountDao.addSubscription(subscription);
         service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
     }
@@ -397,7 +408,7 @@ public class AccountService extends Service {
     @DELETE
     @Path("subscriptions/{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
             throws NotFoundException, ServerException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
@@ -415,15 +426,20 @@ public class AccountService extends Service {
     }
 
     @POST
-    @Path("subscriptions/{id}/payment")
+    @Path("subscriptions/{id}/pay")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @RolesAllowed("user")
-    public void payForSubscription(@PathParam("id") String subscriptionId,
+    public Response payForSubscription(@PathParam("id") String subscriptionId,
                                    @FormParam("cardNumber") String cardNumber,
                                    @FormParam("cvv") String cvv,
                                    @FormParam("expirationMonth") String expirationMonth,
                                    @FormParam("expirationYear") String expirationYear) {
-        paymentService.payment(, cardNumber, cvv, expirationMonth, expirationYear);
+        return paymentService.payment(DtoFactory.getInstance().createDto(PaymentOptions.class)
+                                         .withCardNumber(cardNumber)
+                                         .withCvv(cvv)
+                                         .withExpirationMonth(expirationMonth)
+                                         .withExpirationYear(expirationYear)
+                                         .withSubscriptionId(subscriptionId));
     }
 
     private void validateAttributeName(String attributeName) throws ConflictException {

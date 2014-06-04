@@ -15,6 +15,7 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.AccountService;
 import com.codenvy.api.account.server.Constants;
+import com.codenvy.api.account.server.PaymentService;
 import com.codenvy.api.account.server.SubscriptionEvent;
 import com.codenvy.api.account.server.SubscriptionService;
 import com.codenvy.api.account.server.SubscriptionServiceRegistry;
@@ -104,6 +105,9 @@ public class AccountServiceTest {
     private SecurityContext securityContext;
 
     @Mock
+    private PaymentService paymentService;
+
+    @Mock
     private SubscriptionServiceRegistry serviceRegistry;
 
     @Mock
@@ -127,6 +131,7 @@ public class AccountServiceTest {
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(AccountDao.class, accountDao);
         dependencies.addComponent(SubscriptionServiceRegistry.class, serviceRegistry);
+        dependencies.addComponent(PaymentService.class, paymentService);
         resources.addResource(AccountService.class, null);
         requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
                                                 providers, dependencies, new EverrestConfiguration());

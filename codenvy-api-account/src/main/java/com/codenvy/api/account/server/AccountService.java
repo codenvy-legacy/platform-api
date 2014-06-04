@@ -16,7 +16,7 @@ import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
-import com.codenvy.api.account.shared.dto.PaymentOptions;
+import com.codenvy.api.account.shared.dto.Payment;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -381,7 +381,7 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
-    public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
+    public Response addSubscription(@Required @Description("subscription to add") Subscription subscription)
             throws NotFoundException, ConflictException, ServerException, ForbiddenException {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
@@ -395,14 +395,19 @@ public class AccountService extends Service {
 
         BigDecimal amount = new BigDecimal(0);
         //BigDecimal amount = service.tarifficate(subscription);
+        Response response;
         if (amount.compareTo(BigDecimal.ZERO) == 0) {
             subscription.setState(Subscription.State.ACTIVE);
+            response = Response.noContent().build();
         } else {
             subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
+            response = Response.status(402).entity("Payment Required").build();
         }
 
         accountDao.addSubscription(subscription);
         service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
+
+        return response;
     }
 
     @DELETE
@@ -436,7 +441,7 @@ public class AccountService extends Service {
                                      @FormParam("expirationMonth") String expirationMonth,
                                      @FormParam("expirationYear") String expirationYear)
             throws ConflictException, NotFoundException, ServerException {
-        paymentService.purchase(DtoFactory.getInstance().createDto(PaymentOptions.class)
+        paymentService.purchase(DtoFactory.getInstance().createDto(Payment.class)
                                           .withCardNumber(cardNumber)
                                           .withCvv(cvv)
                                           .withExpirationMonth(expirationMonth)

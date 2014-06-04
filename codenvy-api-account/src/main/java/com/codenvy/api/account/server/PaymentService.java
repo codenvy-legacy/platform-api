@@ -17,12 +17,10 @@
  */
 package com.codenvy.api.account.server;
 
-import com.codenvy.api.account.shared.dto.PaymentOptions;
+import com.codenvy.api.account.shared.dto.Payment;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-
-import javax.ws.rs.core.Response;
 
 /**
  * Process payment
@@ -30,5 +28,5 @@ import javax.ws.rs.core.Response;
  * @author Alexander Garagatyi
  */
 public interface PaymentService {
-    void purchase(PaymentOptions paymentOptions) throws NotFoundException, ConflictException, ServerException;
+    void purchase(Payment payment) throws NotFoundException, ConflictException, ServerException;
 }

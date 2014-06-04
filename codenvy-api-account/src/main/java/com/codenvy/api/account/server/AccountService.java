@@ -401,7 +401,7 @@ public class AccountService extends Service {
             response = Response.noContent().build();
         } else {
             subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
-            response = Response.status(402).entity("Payment Required").build();
+            response = Response.status(402).entity(subscription).build();
         }
 
         accountDao.addSubscription(subscription);

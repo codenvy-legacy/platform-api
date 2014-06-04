@@ -435,7 +435,7 @@ public class AccountService extends Service {
                                    @FormParam("cvv") String cvv,
                                    @FormParam("expirationMonth") String expirationMonth,
                                    @FormParam("expirationYear") String expirationYear) {
-        return paymentService.payment(DtoFactory.getInstance().createDto(PaymentOptions.class)
+        return paymentService.purchase(DtoFactory.getInstance().createDto(PaymentOptions.class)
                                          .withCardNumber(cardNumber)
                                          .withCvv(cvv)
                                          .withExpirationMonth(expirationMonth)

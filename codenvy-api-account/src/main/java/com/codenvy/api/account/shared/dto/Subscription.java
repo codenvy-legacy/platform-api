@@ -25,6 +25,10 @@ import java.util.Map;
 @DTO
 public interface Subscription {
 
+    public enum State {
+        WAIT_FOR_PAYMENT, ACTIVE
+    }
+
     String getId();
 
     void setId(String id);
@@ -60,6 +64,12 @@ public interface Subscription {
     void setProperties(Map<String, String> properties);
 
     Subscription withProperties(Map<String, String> properties);
+
+    State getState();
+
+    void setState(State state);
+
+    Subscription withState(State state);
 
     void setLinks(List<Link> links);
 

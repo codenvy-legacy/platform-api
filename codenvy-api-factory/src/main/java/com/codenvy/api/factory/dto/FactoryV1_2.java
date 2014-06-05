@@ -22,6 +22,7 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTI
  */
 @DTO
 public interface FactoryV1_2 extends FactoryV1_1 {
+
     /**
      * @return additional git configuration
      */
@@ -51,4 +52,15 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     void setWarnonclose(boolean warnonclose);
 
     FactoryV1_2 withWarnonclose(boolean warnonclose);
+
+
+    /**
+     * @return hide copy to my workspace button
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "hidecopybutton")
+    boolean getHidecopybutton();
+
+    void setHidecopybutton(boolean hidecopybutton);
+
+    FactoryV1_2 withHidecopybutton(boolean hidecopybutton);
 }

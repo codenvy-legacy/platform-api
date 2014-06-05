@@ -125,6 +125,11 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
+    public void updateSubscription(Subscription subscription) throws NotFoundException, ServerException {
+        throw new RuntimeException("Not implemented");
+    }
+
+    @Override
     public List<Member> getMembers(String accountId) {
         return Arrays.asList(DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId)
                                        .withUserId("userId122332133123").withRoles(Arrays.asList("account/owner")),

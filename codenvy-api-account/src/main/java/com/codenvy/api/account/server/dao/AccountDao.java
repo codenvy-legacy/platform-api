@@ -143,6 +143,14 @@ public interface AccountDao {
     List<Subscription> getSubscriptions(String accountId) throws ServerException;
 
     /**
+     * Update existing subscription.
+     *
+     * @param subscription
+     *         new subscription
+     */
+    void updateSubscription(Subscription subscription) throws NotFoundException, ServerException;
+
+    /**
      * Gets list of existing in persistent layer members related to given account
      *
      * @param accountId

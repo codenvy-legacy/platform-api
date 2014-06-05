@@ -15,6 +15,7 @@ import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
+import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
@@ -268,6 +269,7 @@ public abstract class Runner {
         };
         final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, callback);
         processes.put(internalId, process);
+        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem).allocate();
         final Runnable r = ThreadLocalPropagateContext.wrap(new Runnable() {
@@ -287,6 +289,7 @@ public abstract class Runner {
                     final ApplicationProcess realProcess = newApplicationProcess(deploymentSources, runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
+                    watcher.start(process);
                     runningAppsCounter.incrementAndGet();
                     LOG.debug("Started {}", process);
                     final long endTime = System.currentTimeMillis();
@@ -297,6 +300,7 @@ public abstract class Runner {
                 } catch (Throwable e) {
                     process.setError(e);
                 } finally {
+                    watcher.stop();
                     memoryAllocator.release();
                     runningAppsCounter.decrementAndGet();
                 }

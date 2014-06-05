@@ -433,7 +433,7 @@ public class AccountService extends Service {
     }
 
     @POST
-    @Path("subscriptions/{id}/pay")
+    @Path("subscriptions/{id}/purchase")
     // TODO rework to json
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @RolesAllowed("user")

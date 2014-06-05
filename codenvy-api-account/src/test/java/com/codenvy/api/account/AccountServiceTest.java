@@ -465,7 +465,8 @@ public class AccountServiceTest {
         when(accountDao.getByMember(USER_ID))
                 .thenReturn(Arrays.asList(
                         (AccountMembership)DtoFactory.getInstance().createDto(AccountMembership.class)
-                                                     .withRoles(Arrays.asList("account/owner")).withId("ANOTHER_ACCOUNT_ID")));
+                                                     .withRoles(Arrays.asList("account/owner")).withId("ANOTHER_ACCOUNT_ID")
+                                         ));
 
         prepareSecurityContext("user");
 
@@ -473,7 +474,9 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         Subscription subscription = (Subscription)response.getEntity();
-        assertTrue(subscription.getLinks().isEmpty());
+        assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
+                Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
+                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
         verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
     }
 
@@ -491,7 +494,8 @@ public class AccountServiceTest {
         when(accountDao.getByMember(USER_ID))
                 .thenReturn(Arrays.asList(
                         (AccountMembership)DtoFactory.getInstance().createDto(AccountMembership.class)
-                                                     .withRoles(Arrays.asList("account/member")).withId("ANOTHER_ACCOUNT_ID")));
+                                                     .withRoles(Arrays.asList("account/member")).withId("ANOTHER_ACCOUNT_ID")
+                                         ));
 
         prepareSecurityContext("user");
 
@@ -599,7 +603,7 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
         assertEquals(response.getEntity().toString(), "Unknown serviceId is used");
-        verifyZeroInteractions(accountDao, subscriptionService);
+        verify(accountDao, times(0)).addSubscription(any(Subscription.class));
     }
 
     @Test

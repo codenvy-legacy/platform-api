@@ -59,6 +59,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Account API
@@ -349,7 +350,8 @@ public class AccountService extends Service {
             links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getSubscriptionById").build(subscription.getId()).toString()));
 
-            if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
+            if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
+                securityContext.isUserInRole("system/manager")) {
                 links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
                                      uriBuilder.clone().path(getClass(), "removeSubscription").build(subscription.getId()).toString()));
             }
@@ -367,13 +369,14 @@ public class AccountService extends Service {
             throws NotFoundException, ServerException, ForbiddenException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
 
-        if (securityContext.isUserInRole("user") &&
-            !isUserInRole(securityContext, subscription.getAccountId(), "account/owner", "account/member")) {
+        final Set<String> roles = resolveRoles(securityContext, subscription.getAccountId());
+        if (securityContext.isUserInRole("user") && !roles.contains("account/owner") && !roles.contains("account/member")) {
             throw new ForbiddenException("Access denied");
         }
 
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
+        if (roles.contains("account/owner") || securityContext.isUserInRole("system/admin") ||
+            securityContext.isUserInRole("system/manager")) {
             subscription
                     .setLinks(Collections.singletonList(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
                                                                    uriBuilder.clone().path(getClass(), "removeSubscription")
@@ -395,7 +398,8 @@ public class AccountService extends Service {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
         }
-        if (securityContext.isUserInRole("user") && !isUserInRole(securityContext, subscription.getAccountId(), "account/owner")) {
+        final Set<String> roles = resolveRoles(securityContext, subscription.getAccountId());
+        if (securityContext.isUserInRole("user") && !roles.contains("account/owner")) {
             throw new ForbiddenException("Access denied");
         }
         SubscriptionService service = registry.get(subscription.getServiceId());
@@ -414,6 +418,12 @@ public class AccountService extends Service {
             response = Response.noContent().build();
         } else {
             subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
+            subscription.setLinks(Collections.singletonList(
+                    createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_FORM_URLENCODED, null,
+                               getServiceContext().getServiceUriBuilder().path(getClass(), "removeSubscription").build(
+                                       subscription.getId()).toString()
+                              )
+                                                           ));
             response = Response.status(402).entity(subscription).build();
         }
 
@@ -431,7 +441,8 @@ public class AccountService extends Service {
                                    @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ForbiddenException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
-        if (securityContext.isUserInRole("user") && !isUserInRole(securityContext, toRemove.getAccountId(), "account/owner")) {
+        final Set<String> roles = resolveRoles(securityContext, toRemove.getAccountId());
+        if (securityContext.isUserInRole("user") && !roles.contains("account/owner")) {
             throw new ForbiddenException("Access denied");
         }
         SubscriptionService service = registry.get(toRemove.getServiceId());
@@ -466,34 +477,19 @@ public class AccountService extends Service {
                                           .withSubscriptionId(subscriptionId));
     }
 
-    /**
-     * Check if user has one of acceptable roles
-     *
-     * @param context
-     *         security context
-     * @param currentAccountId
-     *         account id to resolve roles for
-     * @param acceptableRoles
-     *         acceptable roles
-     * @return true if user has at least one of acceptable roles, false otherwise
-     * @throws NotFoundException
-     * @throws ServerException
-     */
-    private boolean isUserInRole(SecurityContext context, String currentAccountId, String... acceptableRoles)
-            throws NotFoundException, ServerException {
+    private HashSet<String> resolveRoles(SecurityContext context, String currentAccountId) throws NotFoundException, ServerException {
+        HashSet<String> result = new HashSet<>();
         final Principal principal = context.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final List<AccountMembership> currentUserAccounts = accountDao.getByMember(current.getId());
         for (AccountMembership membership : currentUserAccounts) {
             if (membership.getId().equals(currentAccountId)) {
-                for (String role : acceptableRoles) {
-                    if (membership.getRoles().contains(role)) {
-                        return true;
-                    }
+                for (String role : membership.getRoles()) {
+                    result.add(role);
                 }
             }
         }
-        return false;
+        return result;
     }
 
     private void validateAttributeName(String attributeName) throws ConflictException {

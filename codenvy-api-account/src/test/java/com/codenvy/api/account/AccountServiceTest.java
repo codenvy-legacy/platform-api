@@ -47,7 +47,6 @@ import org.everrest.core.tools.ResourceLauncher;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
@@ -420,7 +419,7 @@ public class AccountServiceTest {
         assertEquals(subscriptions.size(), 1);
         assertEquals(subscriptions.get(0).getLinks().size(), 2);
         List<Link> actualLinks = subscriptions.get(0).getLinks();
-        assertEqualsNoOrder(actualLinks.toArray(), new Link[] {DtoFactory.getInstance().createDto(Link.class).withRel(
+        assertEqualsNoOrder(actualLinks.toArray(), new Link[]{DtoFactory.getInstance().createDto(Link.class).withRel(
                 Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
                 SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID), DtoFactory.getInstance().createDto(Link.class).withRel(
                 Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(
@@ -430,8 +429,8 @@ public class AccountServiceTest {
         verify(accountDao, times(1)).getSubscriptions(ACCOUNT_ID);
     }
 
-    @Test(dataProvider = "rolesProvider")
-    public void shouldBeAbleToGetSpecificSubscription(String role) throws Exception {
+    @Test
+    public void shouldBeAbleToGetSpecificSubscriptionBySystemAdmin() throws Exception {
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
                 DtoFactory.getInstance().createDto(Subscription.class)
                           .withId(SUBSCRIPTION_ID)
@@ -440,28 +439,86 @@ public class AccountServiceTest {
                           .withServiceId(SERVICE_ID)
                           .withProperties(Collections.<String, String>emptyMap())
                                                                         );
-        prepareSecurityContext(role);
+        prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         Subscription subscription = (Subscription)response.getEntity();
-        if (role.equals("system/admin") || role.equals("system/manager")) {
-            assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
-                    Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
-                    SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
-        } else {
-            assertTrue(subscription.getLinks().isEmpty());
-        }
+        assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
+                Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
+                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
         verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
     }
 
-    @DataProvider(name = "rolesProvider")
-    public String[][] rolesProvider() {
-        return new String[][]{{"system/admin"},
-                              {"system/manager"},
-                              {"account/member"},
-        };
+    @Test
+    public void shouldBeAbleToGetSpecificSubscriptionByAccountOwner() throws Exception {
+        when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withAccountId("ANOTHER_ACCOUNT_ID")
+                          .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
+        when(accountDao.getByMember(USER_ID))
+                .thenReturn(Arrays.asList(
+                        (AccountMembership)DtoFactory.getInstance().createDto(AccountMembership.class)
+                                                     .withRoles(Arrays.asList("account/owner")).withId("ANOTHER_ACCOUNT_ID")));
+
+        prepareSecurityContext("user");
+
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Subscription subscription = (Subscription)response.getEntity();
+        assertTrue(subscription.getLinks().isEmpty());
+        verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
+    }
+
+    @Test
+    public void shouldBeAbleToGetSpecificSubscriptionByAccountMember() throws Exception {
+        when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withAccountId("ANOTHER_ACCOUNT_ID")
+                          .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
+        when(accountDao.getByMember(USER_ID))
+                .thenReturn(Arrays.asList(
+                        (AccountMembership)DtoFactory.getInstance().createDto(AccountMembership.class)
+                                                     .withRoles(Arrays.asList("account/member")).withId("ANOTHER_ACCOUNT_ID")));
+
+        prepareSecurityContext("user");
+
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Subscription subscription = (Subscription)response.getEntity();
+        assertTrue(subscription.getLinks().isEmpty());
+        verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
+    }
+
+    @Test
+    public void shouldRespondForbiddenIfUserIsNotMemberOfAccount() throws Exception {
+        when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withAccountId("ANOTHER_ACCOUNT_ID")
+                          .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
+        prepareSecurityContext("user");
+
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+
+        assertNotEquals(Response.Status.OK, response.getStatus());
     }
 
     @Test(enabled = false)

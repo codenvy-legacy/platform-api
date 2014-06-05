@@ -360,11 +360,23 @@ public class AccountService extends Service {
     @GET
     @Path("subscriptions/{subscriptionId}")
     @GenerateLink(rel = Constants.LINK_REL_GET_SUBSCRIPTIONS)
-    @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public Subscription getSubscriptionById(@PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ForbiddenException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
+
+        if (securityContext.isUserInRole("user")) {
+            List<AccountMembership> currentUserAccounts = getMemberships(securityContext);
+            boolean isUserAccountMember = false;
+            for (int i = 0; i < currentUserAccounts.size() && !isUserAccountMember; ++i) {
+                isUserAccountMember = currentUserAccounts.get(i).getId().equals(subscription.getAccountId());
+            }
+            if (!isUserAccountMember) {
+                throw new ForbiddenException("Access denied");
+            }
+        }
+
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             subscription

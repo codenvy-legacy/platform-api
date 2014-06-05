@@ -394,7 +394,8 @@ public class AccountService extends Service {
         String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
 
-        BigDecimal amount = new BigDecimal(0);
+        BigDecimal amount = new BigDecimal(1);
+        // TODO
         //BigDecimal amount = service.tarifficate(subscription);
         Response response;
         if (amount.compareTo(BigDecimal.ZERO) == 0) {

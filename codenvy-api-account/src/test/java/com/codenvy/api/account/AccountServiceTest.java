@@ -504,7 +504,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void shouldRespondForbiddenIfUserIsNotMemberOfAccount() throws Exception {
+    public void shouldRespondForbiddenIfUserIsNotMemberOrOwnerOfAccountOnGetSubscriptionById() throws Exception {
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
                 DtoFactory.getInstance().createDto(Subscription.class)
                           .withId(SUBSCRIPTION_ID)
@@ -519,23 +519,11 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertNotEquals(Response.Status.OK, response.getStatus());
-    }
-
-    @Test(enabled = false)
-    public void shouldNotBeAbleToGetSubscriptionsFromAccountWhereCurrentUserIsNotMember() throws Exception {
-        when(accountDao.getByMember(USER_ID)).thenReturn(new ArrayList<AccountMembership>());
-        when(accountDao.getByOwner(USER_ID))
-                .thenReturn(Arrays.asList(DtoFactory.getInstance().createDto(Account.class).withId("NOT_SAME")));
-
-        prepareSecurityContext("user");
-
-        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
-
-        assertNotEquals(Response.Status.OK, response.getStatus());
+        assertEquals(response.getEntity(), "Access denied");
     }
 
     @Test
-    public void shouldBeAbleToAddSubscription() throws Exception {
+    public void shouldBeAbleToAddSubscriptionByAccountOwner() throws Exception {
         Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
                                               .withAccountId(ACCOUNT_ID)
                                               .withServiceId(SERVICE_ID)
@@ -544,6 +532,8 @@ public class AccountServiceTest {
                                               .withProperties(Collections.<String, String>emptyMap());
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
+        prepareSecurityContext("user");
+
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
 
@@ -551,6 +541,25 @@ public class AccountServiceTest {
         verify(accountDao, times(1)).addSubscription(any(Subscription.class));
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
         verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+    }
+
+    @Test
+    public void shouldRespondAccessDeniedIfUserIsNotAccountOwnerOnAddSubscription() throws Exception {
+        Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
+                                              .withAccountId("ANOTHER_ACCOUNT_ID")
+                                              .withServiceId(SERVICE_ID)
+                                              .withStartDate(System.currentTimeMillis())
+                                              .withEndDate(System.currentTimeMillis())
+                                              .withProperties(Collections.<String, String>emptyMap());
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+
+        prepareSecurityContext("user");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+
+        assertNotEquals(response.getStatus(), Response.Status.OK);
+        assertEquals(response.getEntity(), "Access denied");
     }
 
     // TODO
@@ -604,7 +613,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToRemoveSubscription() throws Exception {
+    public void shouldBeAbleToRemoveSubscriptionBySystemAdmin() throws Exception {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
                 DtoFactory.getInstance().createDto(Subscription.class)
@@ -622,6 +631,51 @@ public class AccountServiceTest {
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
         verify(accountDao, times(1)).removeSubscription(SUBSCRIPTION_ID);
         verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveSubscriptionByAccountOwner() throws Exception {
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withAccountId(ACCOUNT_ID)
+                          .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
+        prepareSecurityContext("user");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(serviceRegistry, times(1)).get(SERVICE_ID);
+        verify(accountDao, times(1)).removeSubscription(SUBSCRIPTION_ID);
+        verify(subscriptionService, times(1)).notifyHandlers(any(SubscriptionEvent.class));
+    }
+
+    @Test
+    public void shouldRespondAccessDeniedIfUserIsNotAccountOwnerOnRemoveSubscription() throws Exception {
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                DtoFactory.getInstance().createDto(Subscription.class)
+                          .withId(SUBSCRIPTION_ID)
+                          .withStartDate(System.currentTimeMillis())
+                          .withEndDate(System.currentTimeMillis())
+                          .withServiceId(SERVICE_ID)
+                          .withAccountId("ANOTHER_ACCOUNT_ID")
+                          .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
+
+        prepareSecurityContext("user");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+
+        assertNotEquals(response.getStatus(), Response.Status.OK);
+        assertEquals(response.getEntity(), "Access denied");
     }
 
     @Test

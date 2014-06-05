@@ -54,6 +54,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -366,15 +367,9 @@ public class AccountService extends Service {
             throws NotFoundException, ServerException, ForbiddenException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
 
-        if (securityContext.isUserInRole("user")) {
-            List<AccountMembership> currentUserAccounts = getMemberships(securityContext);
-            boolean isUserAccountMember = false;
-            for (int i = 0; i < currentUserAccounts.size() && !isUserAccountMember; ++i) {
-                isUserAccountMember = currentUserAccounts.get(i).getId().equals(subscription.getAccountId());
-            }
-            if (!isUserAccountMember) {
-                throw new ForbiddenException("Access denied");
-            }
+        if (securityContext.isUserInRole("user") &&
+            !isUserInRole(securityContext, subscription.getAccountId(), "account/owner", "account/member")) {
+            throw new ForbiddenException("Access denied");
         }
 
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
@@ -391,13 +386,17 @@ public class AccountService extends Service {
     @POST
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response addSubscription(@Required @Description("subscription to add") Subscription subscription)
+    public Response addSubscription(@Required @Description("subscription to add") Subscription subscription,
+                                    @Context SecurityContext securityContext)
             throws NotFoundException, ConflictException, ServerException, ForbiddenException {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
+        }
+        if (securityContext.isUserInRole("user") && !isUserInRole(securityContext, subscription.getAccountId(), "account/owner")) {
+            throw new ForbiddenException("Access denied");
         }
         SubscriptionService service = registry.get(subscription.getServiceId());
         if (null == service) {
@@ -427,10 +426,14 @@ public class AccountService extends Service {
     @DELETE
     @Path("subscriptions/{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
-            throws NotFoundException, ServerException {
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId,
+                                   @Context SecurityContext securityContext)
+            throws NotFoundException, ServerException, ForbiddenException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
+        if (securityContext.isUserInRole("user") && !isUserInRole(securityContext, toRemove.getAccountId(), "account/owner")) {
+            throw new ForbiddenException("Access denied");
+        }
         SubscriptionService service = registry.get(toRemove.getServiceId());
         accountDao.removeSubscription(subscriptionId);
         service.notifyHandlers(new SubscriptionEvent(toRemove, SubscriptionEvent.EventType.REMOVE));
@@ -461,6 +464,37 @@ public class AccountService extends Service {
                                           .withExpirationMonth(expirationMonth)
                                           .withExpirationYear(expirationYear)
                                           .withSubscriptionId(subscriptionId));
+    }
+
+    /**
+     * Check if user has one of acceptable roles
+     *
+     * @param context
+     *         security context
+     * @param currentAccountId
+     *         account id to resolve roles for
+     * @param acceptableRoles
+     *         acceptable roles
+     * @return true if user has at least one of acceptable roles, false otherwise
+     * @throws NotFoundException
+     * @throws ServerException
+     */
+    private boolean isUserInRole(SecurityContext context, String currentAccountId, String... acceptableRoles)
+            throws NotFoundException, ServerException {
+        final HashSet<String> acceptableRolesSet = new HashSet<>(Arrays.asList(acceptableRoles));
+        final Principal principal = context.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        final List<AccountMembership> currentUserAccounts = accountDao.getByMember(current.getId());
+        for (AccountMembership membership : currentUserAccounts) {
+            if (membership.getId().equals(currentAccountId)) {
+                for (String role : membership.getRoles()) {
+                    if (acceptableRolesSet.contains(role)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void validateAttributeName(String attributeName) throws ConflictException {

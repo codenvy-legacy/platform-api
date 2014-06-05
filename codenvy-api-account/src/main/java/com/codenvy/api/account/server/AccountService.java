@@ -24,6 +24,7 @@ import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -378,7 +379,7 @@ public class AccountService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
-            throws NotFoundException, ConflictException, ServerException {
+            throws ApiException {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
         }
@@ -394,7 +395,7 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
     public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
-            throws NotFoundException, ServerException {
+            throws ApiException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         SubscriptionService service = registry.get(toRemove.getServiceId());
         accountDao.removeSubscription(subscriptionId);

@@ -19,6 +19,7 @@ package com.codenvy.api.account.server;
 
 
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.core.ApiException;
 
 import java.math.BigDecimal;
 
@@ -37,15 +38,15 @@ public abstract class SubscriptionService {
         this.displayName = displayName;
     }
 
-    public abstract void onCreateSubscription(Subscription subscription);
+    public abstract void onCreateSubscription(Subscription subscription) throws ApiException;
 
-    public abstract void onRemoveSubscription(Subscription subscription);
+    public abstract void onRemoveSubscription(Subscription subscription) throws ApiException;
 
-    public abstract void onCheckSubscription(Subscription subscription);
+    public abstract void onCheckSubscription(Subscription subscription) throws ApiException;
 
-    public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription);
+    public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
 
-    public abstract BigDecimal tarifficate(Subscription subscription);
+    public abstract BigDecimal tarifficate(Subscription subscription) throws ApiException;
 
     public String getServiceId() {
         return serviceId;

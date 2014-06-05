@@ -481,14 +481,13 @@ public class AccountService extends Service {
      */
     private boolean isUserInRole(SecurityContext context, String currentAccountId, String... acceptableRoles)
             throws NotFoundException, ServerException {
-        final HashSet<String> acceptableRolesSet = new HashSet<>(Arrays.asList(acceptableRoles));
         final Principal principal = context.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final List<AccountMembership> currentUserAccounts = accountDao.getByMember(current.getId());
         for (AccountMembership membership : currentUserAccounts) {
             if (membership.getId().equals(currentAccountId)) {
-                for (String role : membership.getRoles()) {
-                    if (acceptableRolesSet.contains(role)) {
+                for (String role : acceptableRoles) {
+                    if (membership.getRoles().contains(role)) {
                         return true;
                     }
                 }

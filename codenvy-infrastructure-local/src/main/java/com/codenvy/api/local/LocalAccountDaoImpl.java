@@ -157,13 +157,13 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public SubscriptionPayment getSubscriptionPayment(String subscriptionId) throws NotFoundException, ServerException {
-        return DtoFactory.getInstance().createDto(SubscriptionPayment.class).withSubscriptionId(subscriptionId)
-                                                .withAmount(new BigDecimal(1000)).withTransactionId("TRANSACTION_ID");
+    public List<SubscriptionPayment> getSubscriptionPayments(String subscriptionId) throws NotFoundException, ServerException {
+        return Arrays.asList(DtoFactory.getInstance().createDto(SubscriptionPayment.class).withSubscriptionId(subscriptionId)
+                                                .withAmount(new BigDecimal(1000)).withTransactionId("TRANSACTION_ID"));
     }
 
     @Override
-    public void removeSubscriptionPayment(String subscriptionId) throws NotFoundException, ServerException {
+    public void removeSubscriptionPayment(String transactionId) throws NotFoundException, ServerException {
         throw new RuntimeException("Not implemented");
     }
 }

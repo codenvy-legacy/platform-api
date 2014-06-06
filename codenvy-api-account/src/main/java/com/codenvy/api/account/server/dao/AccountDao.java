@@ -183,13 +183,13 @@ public interface AccountDao {
      *         subscription id
      * @return payment related to given subscription id
      */
-    SubscriptionPayment getSubscriptionPayment(String subscriptionId) throws NotFoundException, ServerException;
+    List<SubscriptionPayment> getSubscriptionPayments(String subscriptionId) throws NotFoundException, ServerException;
 
     /**
-     * Remove subscription payment
+     * Remove subscription payment by id
      *
-     * @param subscriptionId
-     *         subscription id
+     * @param transactionId
+     *         id of transaction
      */
-    void removeSubscriptionPayment(String subscriptionId) throws NotFoundException, ServerException;
+    void removeSubscriptionPayment(String transactionId) throws NotFoundException, ServerException;
 }

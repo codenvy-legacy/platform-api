@@ -91,6 +91,11 @@ public class AccountService extends Service {
         if (newAccount == null) {
             throw new ConflictException("Missed account to create");
         }
+        if (newAccount.getAttributes() != null) {
+            for (Attribute attribute : newAccount.getAttributes()) {
+                validateAttributeName(attribute.getName());
+            }
+        }
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         //for now account <-One to One-> user
@@ -186,9 +191,9 @@ public class AccountService extends Service {
                                 @Required @Description("The name of attribute") @QueryParam("name") String attributeName,
                                 @Context SecurityContext securityContext)
             throws ConflictException, NotFoundException, ForbiddenException, ServerException {
+        validateAttributeName(attributeName);
         final Account account = accountDao.getById(accountId);
         ensureCurrentUserIsAccountOwner(account, securityContext);
-        validateAttributeName(attributeName);
         removeAttribute(account.getAttributes(), attributeName);
         accountDao.update(account);
     }

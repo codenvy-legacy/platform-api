@@ -182,6 +182,14 @@ public class AccountServiceTest {
     }
 
     @Test
+    public void shouldBeAbleToCreateAccountWithNotValidAttributes() throws Exception {
+        account.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class).withName("codenvy:god_mode").withValue("true"));
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, account);
+        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:god_mode' is not valid");
+    }
+
+    @Test
     public void shouldNotBeAbleToCreateAccountIfUserAlreadyHasOne() throws Exception {
         prepareSecurityContext("account/owner");
 

@@ -476,19 +476,16 @@ public class AccountService extends Service {
                                           .withSubscriptionId(subscriptionId));
     }
 
-    private HashSet<String> resolveRoles(SecurityContext context, String currentAccountId) throws NotFoundException, ServerException {
-        HashSet<String> result = new HashSet<>();
+    private Set<String> resolveRoles(SecurityContext context, String currentAccountId) throws NotFoundException, ServerException {
         final Principal principal = context.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final List<AccountMembership> currentUserAccounts = accountDao.getByMember(current.getId());
         for (AccountMembership membership : currentUserAccounts) {
             if (membership.getId().equals(currentAccountId)) {
-                for (String role : membership.getRoles()) {
-                    result.add(role);
-                }
+                return new HashSet<>(membership.getRoles());
             }
         }
-        return result;
+        return Collections.emptySet();
     }
 
     private void validateAttributeName(String attributeName) throws ConflictException {

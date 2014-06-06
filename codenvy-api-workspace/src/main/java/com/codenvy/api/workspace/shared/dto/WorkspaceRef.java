@@ -36,4 +36,10 @@ public interface WorkspaceRef {
     void setWorkspaceLink(Link link);
 
     WorkspaceRef withWorkspaceLink(Link link);
+
+    Link getProjectsLink();
+
+    void setProjectsLink(Link link);
+
+    WorkspaceRef withProjectsLink(Link link);
 }

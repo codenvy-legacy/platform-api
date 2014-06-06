@@ -36,7 +36,6 @@ import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -421,7 +420,9 @@ public class AccountService extends Service {
             subscription.setLinks(Collections.singletonList(
                     createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_FORM_URLENCODED, null,
                                getServiceContext().getServiceUriBuilder().path(getClass(), "purchaseSubscription").build(
-                                       subscription.getId()).toString())));
+                                       subscription.getId()).toString()
+                              )
+                                                           ));
 
             response = Response.status(402).entity(subscription).build();
         }
@@ -459,21 +460,11 @@ public class AccountService extends Service {
 
     @POST
     @Path("subscriptions/{id}/purchase")
-    // TODO rework to json
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void purchaseSubscription(@PathParam("id") String subscriptionId,
-                                     @FormParam("cardNumber") String cardNumber,
-                                     @FormParam("cvv") String cvv,
-                                     @FormParam("expirationMonth") String expirationMonth,
-                                     @FormParam("expirationYear") String expirationYear)
+    public void purchaseSubscription(@PathParam("id") String subscriptionId, @Required @Description("payment details") Payment payment)
             throws ConflictException, NotFoundException, ServerException {
-        paymentService.purchase(DtoFactory.getInstance().createDto(Payment.class)
-                                          .withCardNumber(cardNumber)
-                                          .withCvv(cvv)
-                                          .withExpirationMonth(expirationMonth)
-                                          .withExpirationYear(expirationYear)
-                                          .withSubscriptionId(subscriptionId));
+        paymentService.purchase(DtoFactory.getInstance().clone(payment) .withSubscriptionId(subscriptionId));
     }
 
     private Set<String> resolveRoles(SecurityContext context, String currentAccountId) throws NotFoundException, ServerException {

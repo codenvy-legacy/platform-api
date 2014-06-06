@@ -420,10 +420,9 @@ public class AccountService extends Service {
             subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
             subscription.setLinks(Collections.singletonList(
                     createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_FORM_URLENCODED, null,
-                               getServiceContext().getServiceUriBuilder().path(getClass(), "removeSubscription").build(
-                                       subscription.getId()).toString()
-                              )
-                                                           ));
+                               getServiceContext().getServiceUriBuilder().path(getClass(), "purchaseSubscription").build(
+                                       subscription.getId()).toString())));
+
             response = Response.status(402).entity(subscription).build();
         }
 

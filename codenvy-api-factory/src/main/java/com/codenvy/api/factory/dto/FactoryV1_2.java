@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2012-2014 Codenvy, S.A.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *   Codenvy, S.A. - initial API and implementation
+ *******************************************************************************/
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.factory.parameter.FactoryParameter;
@@ -12,6 +22,7 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTI
  */
 @DTO
 public interface FactoryV1_2 extends FactoryV1_1 {
+
     /**
      * @return additional git configuration
      */
@@ -41,4 +52,15 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     void setWarnonclose(boolean warnonclose);
 
     FactoryV1_2 withWarnonclose(boolean warnonclose);
+
+
+    /**
+     * @return hide copy to my workspace button
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "hidecopybutton")
+    boolean getHidecopybutton();
+
+    void setHidecopybutton(boolean hidecopybutton);
+
+    FactoryV1_2 withHidecopybutton(boolean hidecopybutton);
 }

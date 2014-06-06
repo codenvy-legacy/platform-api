@@ -1,20 +1,13 @@
-/*
- * CODENVY CONFIDENTIAL
- * __________________
- * 
- *  [2012] - [2013] Codenvy, S.A. 
- *  All Rights Reserved.
- * 
- * NOTICE:  All information contained herein is, and remains
- * the property of Codenvy S.A. and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Codenvy S.A.
- * and its suppliers and may be covered by U.S. and Foreign Patents,
- * patents in process, and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Codenvy S.A..
- */
+/*******************************************************************************
+ * Copyright (c) 2012-2014 Codenvy, S.A.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *   Codenvy, S.A. - initial API and implementation
+ *******************************************************************************/
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ForbiddenException;
@@ -64,6 +57,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
@@ -352,6 +346,22 @@ public class ProjectService extends Service {
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
+
+        // create project descriptor based on query parameters
+        ProjectDescriptor descriptorToUpdate = DtoFactory.getInstance().createDto(ProjectDescriptor.class);
+        MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
+        for (String key : queryParameters.keySet()) {
+            final String value = queryParameters.getFirst(key);
+            if ("project.name".equals(key)) {
+                path = value;
+            } else if ("project.type".equals(key)) {
+                descriptorToUpdate.setProjectTypeId(value);
+            } else if (key.startsWith("project.attribute.")) {
+                final String name = key.substring("project.attribute.".length());
+                descriptorToUpdate.getAttributes().put(name, queryParameters.get(key));
+            }
+        }
+
         Project project = projectManager.getProject(workspace, path);
         boolean newProject = false;
         if (project == null) {
@@ -359,6 +369,11 @@ public class ProjectService extends Service {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
+
+        if (descriptorToUpdate.getProjectTypeId() != null) {
+            project.updateDescription(toDescription(descriptorToUpdate));
+        }
+
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
         if (newProject) {
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", projectDescriptor.getName(),

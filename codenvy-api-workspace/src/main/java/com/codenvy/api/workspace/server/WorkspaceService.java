@@ -1,26 +1,23 @@
-/*
- * CODENVY CONFIDENTIAL
- * __________________
+/*******************************************************************************
+ * Copyright (c) 2012-2014 Codenvy, S.A.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
  *
- *  [2012] - [2013] Codenvy, S.A.
- *  All Rights Reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Codenvy S.A. and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Codenvy S.A.
- * and its suppliers and may be covered by U.S. and Foreign Patents,
- * patents in process, and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Codenvy S.A..
- */
+ * Contributors:
+ *   Codenvy, S.A. - initial API and implementation
+ *******************************************************************************/
 package com.codenvy.api.workspace.server;
 
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.shared.dto.Account;
-import com.codenvy.api.core.*;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -38,7 +35,11 @@ import com.codenvy.api.user.shared.dto.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.shared.dto.*;
+import com.codenvy.api.workspace.shared.dto.Attribute;
+import com.codenvy.api.workspace.shared.dto.Membership;
+import com.codenvy.api.workspace.shared.dto.NewMembership;
+import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.shared.dto.WorkspaceRef;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -48,10 +49,30 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Workspace API
@@ -317,14 +338,14 @@ public class WorkspaceService extends Service {
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
+        final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
         final Link userLink = createLink("GET",
                                          com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER,
                                          null,
                                          MediaType.APPLICATION_JSON,
-                                         getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getCurrent").build().toString()
-                                        );
+                                         baseUriBuilder.clone().path(UserService.class).path(UserService.class, "getCurrent").build()
+                                                       .toString());
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(user.getId())) {
             Workspace workspace;
@@ -336,11 +357,16 @@ public class WorkspaceService extends Service {
                 continue;
             }
             final Link wsLink = createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
-                                           uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString());
+                                           serviceUriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString());
+            final Link projectsLink = createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null,
+                                                 MediaType.APPLICATION_JSON,
+                                                 baseUriBuilder.clone().path(ProjectService.class).path(ProjectService.class, "getProjects")
+                                                               .build(workspace.getId()).toString());
             final WorkspaceRef wsRef = DtoFactory.getInstance().createDto(WorkspaceRef.class)
                                                  .withName(workspace.getName())
                                                  .withTemporary(workspace.isTemporary())
-                                                 .withWorkspaceLink(wsLink);
+                                                 .withWorkspaceLink(wsLink)
+                                                 .withProjectsLink(projectsLink);
             final Membership membership = DtoFactory.getInstance().createDto(Membership.class)
                                                     .withWorkspaceRef(wsRef)
                                                     .withUserLink(userLink)
@@ -363,14 +389,14 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Missed parameter userid");
         }
         userDao.getById(userId);
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
+        final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
         final Link userLink = createLink("GET",
                                          com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,
                                          null,
                                          MediaType.APPLICATION_JSON,
-                                         getServiceContext().getBaseUriBuilder().path(UserService.class)
-                                                            .path(UserService.class, "getById").build(userId).toString()
-                                        );
+                                         baseUriBuilder.clone().path(UserService.class).path(UserService.class, "getById").build(userId)
+                                                       .toString());
         final List<Membership> memberships = new ArrayList<>();
         for (Member member : memberDao.getUserRelationships(userId)) {
             Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
@@ -379,11 +405,16 @@ public class WorkspaceService extends Service {
                 continue;
             }
             final Link wsLink = createLink("GET", Constants.LINK_REL_GET_WORKSPACE_BY_ID, null, MediaType.APPLICATION_JSON,
-                                           uriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString());
+                                           serviceUriBuilder.clone().path(getClass(), "getById").build(workspace.getId()).toString());
+            final Link projectsLink = createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null,
+                                                 MediaType.APPLICATION_JSON,
+                                                 baseUriBuilder.clone().path(ProjectService.class).path(ProjectService.class, "getProjects")
+                                                               .build(workspace.getId()).toString());
             final WorkspaceRef wsRef = DtoFactory.getInstance().createDto(WorkspaceRef.class)
                                                  .withName(workspace.getName())
                                                  .withTemporary(workspace.isTemporary())
-                                                 .withWorkspaceLink(wsLink);
+                                                 .withWorkspaceLink(wsLink)
+                                                 .withProjectsLink(projectsLink);
             final Membership membership = DtoFactory.getInstance().createDto(Membership.class)
                                                     .withWorkspaceRef(wsRef)
                                                     .withUserLink(userLink)

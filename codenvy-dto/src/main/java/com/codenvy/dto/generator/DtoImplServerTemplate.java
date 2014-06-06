@@ -339,6 +339,24 @@ public class DtoImplServerTemplate extends DtoImpl {
         } else if (rawClass.equals(String.class)) {
             builder.append(i).append("JsonElement ").append(outVar).append(" = (").append(depth == 0 ? "this." + inVar : inVar).append(
                     " == null) ? JsonNull.INSTANCE : new JsonPrimitive(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+        } else if (rawClass ==  boolean.class
+                   || rawClass == int.class
+                   || rawClass == long.class
+                   || rawClass == double.class
+                   || rawClass == float.class
+                   || rawClass == short.class
+                   || rawClass == byte.class) {
+            builder.append(i).append("JsonPrimitive ").append(outVar).append(" = new JsonPrimitive(")
+                   .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+        } else if (rawClass ==  Boolean.class
+                   || rawClass == Integer.class
+                   || rawClass == Long.class
+                   || rawClass == Double.class
+                   || rawClass == Float.class
+                   || rawClass == Short.class
+                   || rawClass == Byte.class) {
+            builder.append(i).append("JsonElement ").append(outVar).append(depth == 0 ? " = this." + inVar : inVar).append(
+                    " == null ? JsonNull.INSTANCE : new JsonPrimitive(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
         } else {
             final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
             if (dtoImplementation != null) {
@@ -346,8 +364,9 @@ public class DtoImplServerTemplate extends DtoImpl {
                         " == null ? JsonNull.INSTANCE : ((").append(dtoImplementation.getCanonicalName()).append(")")
                        .append(depth == 0 ? "this." + inVar : inVar).append(").toJsonElement();\n");
             } else {
-                builder.append(i).append("JsonPrimitive ").append(outVar).append(" = new JsonPrimitive(")
-                       .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+                throw new IllegalArgumentException("Unable to generate server implementation for DTO interface " +
+                                                   getDtoInterface().getCanonicalName() + ". Type " + rawClass +
+                                                   " is not allowed to use in DTO interface.");
             }
         }
 

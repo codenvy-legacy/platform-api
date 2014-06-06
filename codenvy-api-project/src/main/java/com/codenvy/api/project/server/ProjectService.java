@@ -57,6 +57,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
@@ -345,6 +346,22 @@ public class ProjectService extends Service {
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
+
+        // create project descriptor based on query parameters
+        ProjectDescriptor descriptorToUpdate = DtoFactory.getInstance().createDto(ProjectDescriptor.class);
+        MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
+        for (String key : queryParameters.keySet()) {
+            final String value = queryParameters.getFirst(key);
+            if ("project.name".equals(key)) {
+                path = value;
+            } else if ("project.type".equals(key)) {
+                descriptorToUpdate.setProjectTypeId(value);
+            } else if (key.startsWith("project.attribute.")) {
+                final String name = key.substring("project.attribute.".length());
+                descriptorToUpdate.getAttributes().put(name, queryParameters.get(key));
+            }
+        }
+
         Project project = projectManager.getProject(workspace, path);
         boolean newProject = false;
         if (project == null) {
@@ -352,6 +369,11 @@ public class ProjectService extends Service {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
+
+        if (descriptorToUpdate.getProjectTypeId() != null) {
+            project.updateDescription(toDescription(descriptorToUpdate));
+        }
+
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
         if (newProject) {
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", projectDescriptor.getName(),

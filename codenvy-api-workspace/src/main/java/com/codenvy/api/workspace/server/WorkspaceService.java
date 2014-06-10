@@ -111,8 +111,10 @@ public class WorkspaceService extends Service {
         if (newWorkspace == null) {
             throw new ConflictException("Missed workspace to create");
         }
-        for (Attribute attribute : newWorkspace.getAttributes()) {
-            validateAttributeName(attribute.getName());
+        if (newWorkspace.getAttributes() != null) {
+            for (Attribute attribute : newWorkspace.getAttributes()) {
+                validateAttributeName(attribute.getName());
+            }
         }
         final String accountId = newWorkspace.getAccountId();
         final Account actualAcc;
@@ -166,8 +168,10 @@ public class WorkspaceService extends Service {
         if (newWorkspace == null) {
             throw new ConflictException("Missed workspace to create");
         }
-        for (Attribute attribute : newWorkspace.getAttributes()) {
-            validateAttributeName(attribute.getName());
+        if (newWorkspace.getAttributes() != null) {
+            for (Attribute attribute : newWorkspace.getAttributes()) {
+                validateAttributeName(attribute.getName());
+            }
         }
         String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newWorkspace.setId(wsId);

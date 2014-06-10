@@ -86,8 +86,10 @@ public class AccountService extends Service {
         if (newAccount == null) {
             throw new ConflictException("Missed account to create");
         }
-        for (Attribute attribute : newAccount.getAttributes()) {
-            validateAttributeName(attribute.getName());
+        if (newAccount.getAttributes() != null) {
+            for (Attribute attribute : newAccount.getAttributes()) {
+                validateAttributeName(attribute.getName());
+            }
         }
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
@@ -102,11 +104,6 @@ public class AccountService extends Service {
             accountDao.getByName(newAccount.getName());
             throw new ConflictException(String.format("Account with name %s already exists", newAccount.getName()));
         } catch (NotFoundException ignored) {
-        }
-        if (newAccount.getAttributes() != null) {
-            for (Attribute attribute : newAccount.getAttributes()) {
-                validateAttributeName(attribute.getName());
-            }
         }
         String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newAccount.setId(accountId);

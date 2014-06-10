@@ -313,40 +313,60 @@ public class DtoImplServerTemplate extends DtoImpl {
             String childInTypeName = getImplName(expandedTypes.get(depth + 1), false);
             builder.append(i).append("JsonArray ").append(outVar).append(" = new JsonArray();\n");
             if (depth == 0) {
-                builder.append(i).append(getEnsureName(inVar)).append("();\n");
+                builder.append(i).append("this.").append(getEnsureName(inVar)).append("();\n");
             }
             builder.append(i).append("for (").append(childInTypeName).append(" ").append(childInVar).append(" : ").append(
-                    inVar).append(") {\n");
+                    depth == 0 ? "this." + inVar : inVar).append(") {\n");
 
         } else if (isMap(rawClass)) {
             String childInTypeName = getImplName(expandedTypes.get(depth + 1), false);
             builder.append(i).append("JsonObject ").append(outVar).append(" = new JsonObject();\n");
             if (depth == 0) {
-                builder.append(i).append(getEnsureName(inVar)).append("();\n");
+                builder.append(i).append("this.").append(getEnsureName(inVar)).append("();\n");
             }
             builder.append(i).append("for (java.util.Map.Entry<String, ").append(childInTypeName).append("> ").append(
-                    entryVar).append(" : ").append(inVar).append(".entrySet()) {\n");
+                    entryVar).append(" : ").append(depth == 0 ? "this." + inVar : inVar).append(".entrySet()) {\n");
             builder.append(i).append("  ").append(childInTypeName).append(" ").append(childInVar).append(" = ").append(
                     entryVar).append(".getValue();\n");
 
         } else if (rawClass.isEnum()) {
-            builder.append(i).append("JsonElement ").append(outVar).append(" = (").append(inVar).append(
-                    " == null) ? JsonNull.INSTANCE : new JsonPrimitive(").append(inVar).append(".name());\n");
+            builder.append(i).append("JsonElement ").append(outVar).append(" = (").append(depth == 0 ? "this." + inVar : inVar).append(
+                    " == null) ? JsonNull.INSTANCE : new JsonPrimitive(").append(depth == 0 ? "this." + inVar : inVar).append(".name());\n");
         } else if (getEnclosingTemplate().isDtoInterface(rawClass)) {
-            builder.append(i).append("JsonElement ").append(outVar).append(" = ").append(inVar).append(
+            builder.append(i).append("JsonElement ").append(outVar).append(" = ").append(depth == 0 ? "this." + inVar : inVar).append(
                     " == null ? JsonNull.INSTANCE : ((").append(getImplNameForDto((Class<?>)expandedTypes.get(depth))).append(")")
-                   .append(inVar).append(").toJsonElement();\n");
+                   .append(depth == 0 ? "this." + inVar : inVar).append(").toJsonElement();\n");
         } else if (rawClass.equals(String.class)) {
-            builder.append(i).append("JsonElement ").append(outVar).append(" = (").append(inVar).append(
-                    " == null) ? JsonNull.INSTANCE : new JsonPrimitive(").append(inVar).append(");\n");
+            builder.append(i).append("JsonElement ").append(outVar).append(" = (").append(depth == 0 ? "this." + inVar : inVar).append(
+                    " == null) ? JsonNull.INSTANCE : new JsonPrimitive(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+        } else if (rawClass ==  boolean.class
+                   || rawClass == int.class
+                   || rawClass == long.class
+                   || rawClass == double.class
+                   || rawClass == float.class
+                   || rawClass == short.class
+                   || rawClass == byte.class) {
+            builder.append(i).append("JsonPrimitive ").append(outVar).append(" = new JsonPrimitive(")
+                   .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+        } else if (rawClass ==  Boolean.class
+                   || rawClass == Integer.class
+                   || rawClass == Long.class
+                   || rawClass == Double.class
+                   || rawClass == Float.class
+                   || rawClass == Short.class
+                   || rawClass == Byte.class) {
+            builder.append(i).append("JsonElement ").append(outVar).append(depth == 0 ? " = this." + inVar : inVar).append(
+                    " == null ? JsonNull.INSTANCE : new JsonPrimitive(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
         } else {
             final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
             if (dtoImplementation != null) {
-                builder.append(i).append("JsonElement ").append(outVar).append(" = ").append(inVar).append(
+                builder.append(i).append("JsonElement ").append(outVar).append(" = ").append(depth == 0 ? "this." + inVar : inVar).append(
                         " == null ? JsonNull.INSTANCE : ((").append(dtoImplementation.getCanonicalName()).append(")")
-                       .append(inVar).append(").toJsonElement();\n");
+                       .append(depth == 0 ? "this." + inVar : inVar).append(").toJsonElement();\n");
             } else {
-                builder.append(i).append("JsonPrimitive ").append(outVar).append(" = new JsonPrimitive(").append(inVar).append(");\n");
+                throw new IllegalArgumentException("Unable to generate server implementation for DTO interface " +
+                                                   getDtoInterface().getCanonicalName() + ". Type " + rawClass +
+                                                   " is not allowed to use in DTO interface.");
             }
         }
 

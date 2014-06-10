@@ -64,7 +64,6 @@ import java.util.Set;
  * Account API
  *
  * @author Eugene Voevodin
- * @author Alexander Garagatyi
  */
 @Path("account")
 public class AccountService extends Service {
@@ -93,6 +92,11 @@ public class AccountService extends Service {
         if (newAccount == null) {
             throw new ConflictException("Missed account to create");
         }
+        if (newAccount.getAttributes() != null) {
+            for (Attribute attribute : newAccount.getAttributes()) {
+                validateAttributeName(attribute.getName());
+            }
+        }
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         //for now account <-One to One-> user
@@ -106,11 +110,6 @@ public class AccountService extends Service {
             accountDao.getByName(newAccount.getName());
             throw new ConflictException(String.format("Account with name %s already exists", newAccount.getName()));
         } catch (NotFoundException ignored) {
-        }
-        if (newAccount.getAttributes() != null) {
-            for (Attribute attribute : newAccount.getAttributes()) {
-                validateAttributeName(attribute.getName());
-            }
         }
         String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newAccount.setId(accountId);

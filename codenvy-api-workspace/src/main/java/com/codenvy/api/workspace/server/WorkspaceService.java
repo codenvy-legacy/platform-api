@@ -575,8 +575,6 @@ public class WorkspaceService extends Service {
             memberDao.remove(member);
         }
         workspaceDao.remove(wsId);
-
-        LOG.info("EVENT#workspace-destroyed# WS#{}# WS-ID#{}#", workspace.getName(), workspace.getId());
     }
 
     private void removeAttribute(List<Attribute> src, String attributeName) {

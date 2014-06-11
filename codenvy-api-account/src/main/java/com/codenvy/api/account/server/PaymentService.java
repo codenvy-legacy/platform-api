@@ -23,7 +23,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
 /**
- * Process payment
+ * Process payments
  *
  * @author Alexander Garagatyi
  */

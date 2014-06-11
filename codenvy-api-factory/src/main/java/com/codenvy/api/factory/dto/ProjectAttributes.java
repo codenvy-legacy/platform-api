@@ -40,4 +40,37 @@ public interface ProjectAttributes {
     void setPtype(String ptype);
 
     ProjectAttributes withPtype(String ptype);
+
+
+    /**
+     * @return builder name.
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "buildername")
+    public String getBuilderName();
+
+    void setBuilderName(String builderName);
+
+    ProjectAttributes withBuilderName(String builderName);
+
+    /**
+     * @return runner name.
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runnername")
+    public String getRunnerName();
+
+    void setRunnerName(String runnerName);
+
+    ProjectAttributes withRunnerName(String runnerName);
+
+
+    /**
+     * @return runner environment id.
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runnerenvironmentid")
+    public String getRunnerEnvironmentId();
+
+    void setRunnerEnvironmentId(String runnerEnvironmentId);
+
+    ProjectAttributes withRunnerEnvironmentId(String runnerEnvironmentId);
+
 }

@@ -55,4 +55,10 @@ public interface Payment {
     void setSubscriptionId(String subscriptionId);
 
     Payment withSubscriptionId(String subscriptionId);
+
+    String getCardholderName();
+
+    void setCardholderName(String cardholderName);
+
+    Payment withCardholderName(String cardholderName);
 }

@@ -13,5 +13,33 @@ package com.codenvy.api.runner;
 /**
  * @author andrew00x
  */
-public class ResourceQuotaController {
+class ResourceQuotaController {
+    final int maxMemSize;
+
+    private int available;
+
+    ResourceQuotaController(int maxMemSize) {
+        this.maxMemSize = maxMemSize;
+        this.available = maxMemSize;
+    }
+
+    synchronized void decrementMemory(int mem) throws RunnerException {
+        if (available >= mem) {
+            available -= mem;
+        } else {
+            throw new RunnerException(String.format("Not enough resources to start application. Available memory %dM but %dM required. ",
+                                                    available, mem));
+        }
+    }
+
+    synchronized void releaseMemory(int mem) {
+        available += mem;
+        if (mem > maxMemSize) {
+            available = maxMemSize;
+        }
+    }
+
+    synchronized int availableMemory() {
+        return available;
+    }
 }

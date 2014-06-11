@@ -39,8 +39,12 @@ import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
+import com.codenvy.api.workspace.server.WorkspaceService;
+import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.cache.Cache;
+import com.codenvy.commons.lang.cache.SLRUCache;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
@@ -82,6 +86,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author andrew00x
@@ -95,6 +101,8 @@ public class RunQueue {
     private static final long CHECK_BUILD_RESULT_DELAY     = 2000;
     private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
 
+    private static final int DEFAULT_MAX_MEMORY_SIZE = 512;
+
     private static final AtomicLong sequence = new AtomicLong(1);
 
     private final ConcurrentMap<String, RemoteRunnerServer>       runnerServices;
@@ -103,12 +111,16 @@ public class RunQueue {
     private final ConcurrentMap<Long, RunQueueTask>               tasks;
     private final int                                             defMemSize;
     private final EventService                                    eventService;
+    private final String                                          baseWorkspaceApiUrl;
     private final String                                          baseProjectApiUrl;
     private final String                                          baseBuilderApiUrl;
-    private final int                                             appLifetime;
+    private final int                                             defLifetime;
     private final long                                            maxWaitingTimeMillis;
     private final AtomicBoolean                                   started;
     private final long                                            appCleanupTime;
+    private final Cache<String, ResourceQuotaController>[]        quotes;
+    private final Lock[]                                          quoteLocks;
+    private final int                                             quotesPartitionsMask;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -119,6 +131,12 @@ public class RunQueue {
     private String[] slaves = new String[0];
 
     /**
+     * @param baseWorkspaceApiUrl
+     *         workspace api url. Configuration parameter that points to the Workspace API location. If such parameter isn't specified than
+     *         use the same base URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy
+     *         .com/api/runner/my_workspace</i>,
+     *         in this case base URL is <i>http://codenvy.com/api</i> so we will try to find workspace API at URL:
+     *         <i>http://codenvy.com/api/workspace/my_workspace</i>
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
      *         the same base URL as runner API has, e.g. suppose we have runner API at URL: <i>http://codenvy
@@ -134,24 +152,27 @@ public class RunQueue {
      *         default size of memory for application in megabytes. This value used is there is nothing specified in properties of project.
      * @param maxWaitingTime
      *         max time for request to be in queue in seconds
-     * @param appLifetime
-     *         application life time in seconds. After this time the application may be terminated.
+     * @param defLifetime
+     *         default application life time in seconds. After this time the application may be terminated.
      */
     @Inject
-    public RunQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
+    @SuppressWarnings("unchecked")
+    public RunQueue(@Nullable @Named("builder.base_api_url") String baseWorkspaceApiUrl,
+                    @Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                     @Nullable @Named("builder.base_api_url") String baseBuilderApiUrl,
                     @Named(Constants.APP_DEFAULT_MEM_SIZE) int defMemSize,
                     @Named(Constants.WAITING_TIME) int maxWaitingTime,
-                    @Named(Constants.APP_LIFETIME) int appLifetime,
+                    @Named(Constants.APP_LIFETIME) int defLifetime,
                     @Named(Constants.APP_CLEANUP_TIME) int appCleanupTime,
                     RunnerSelectionStrategy runnerSelector,
                     EventService eventService) {
+        this.baseWorkspaceApiUrl = baseWorkspaceApiUrl;
         this.baseProjectApiUrl = baseProjectApiUrl;
         this.baseBuilderApiUrl = baseBuilderApiUrl;
         this.defMemSize = defMemSize;
         this.eventService = eventService;
         this.maxWaitingTimeMillis = TimeUnit.SECONDS.toMillis(maxWaitingTime);
-        this.appLifetime = appLifetime;
+        this.defLifetime = defLifetime;
         this.runnerSelector = runnerSelector;
         this.appCleanupTime = TimeUnit.SECONDS.toMillis(appCleanupTime);
 
@@ -159,14 +180,22 @@ public class RunQueue {
         tasks = new ConcurrentHashMap<>();
         runnerListMapping = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
+        final int partitions = 1 << 2;
+        quotesPartitionsMask = partitions - 1;
+        quotes = new Cache[partitions];
+        quoteLocks = new Lock[partitions];
+        for (int i = 0; i < partitions; i++) {
+            quotes[i] = new SLRUCache<>(200, 50);
+            quoteLocks[i] = new ReentrantLock();
+        }
     }
 
-    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
+    public RunQueueTask run(String wsId, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
         checkStarted();
-        final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final ProjectDescriptor descriptor = getProjectDescription(wsId, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
         final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
-                                             .withWorkspace(workspace)
+                                             .withWorkspace(wsId)
                                              .withProject(project)
                                              .withProjectDescriptor(descriptor)
                                              .withUserName(user == null ? "" : user.getName());
@@ -181,11 +210,12 @@ public class RunQueue {
             buildOptions = runOptions.getBuildOptions();
         }
         final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
+
         String runner = request.getRunner();
         if (runner == null) {
-            runner = getAttributeValue(Constants.RUNNER_CUSTOM_LAUNCHER, projectAttributes);
+            runner = getProjectAttributeValue(Constants.RUNNER_CUSTOM_LAUNCHER, projectAttributes);
             if (runner == null) {
-                runner = getAttributeValue(Constants.RUNNER_NAME, projectAttributes);
+                runner = getProjectAttributeValue(Constants.RUNNER_NAME, projectAttributes);
             }
             if (runner == null) {
                 throw new RunnerException(
@@ -196,23 +226,39 @@ public class RunQueue {
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
+
         String runnerEnvId = request.getEnvironmentId();
         if (runnerEnvId == null) {
-            runnerEnvId = getAttributeValue(Constants.RUNNER_ENV_ID, projectAttributes);
+            runnerEnvId = getProjectAttributeValue(Constants.RUNNER_ENV_ID, projectAttributes);
             request.setEnvironmentId(runnerEnvId);
         }
         request.setRunnerScriptUrls(getRunnerScript(descriptor));
         if (request.getDebugMode() == null) {
-            final String debugAttr = getAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
+            final String debugAttr = getProjectAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
             if (debugAttr != null) {
                 request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(debugAttr));
             }
         }
-        if (request.getMemorySize() <= 0) {
-            final String memAttr = getAttributeValue(Constants.RUNNER_MEMORY_SIZE.replace("${runner}", runner), projectAttributes);
-            // use default value if memory is not set in project properties
-            request.setMemorySize(memAttr != null ? Integer.parseInt(memAttr) : defMemSize);
+
+        final Workspace workspace = getWorkspace(wsId, serviceContext);
+
+        int mem = request.getMemorySize();
+        if (mem <= 0) {
+            final String memAttr = getProjectAttributeValue(Constants.RUNNER_MEMORY_SIZE.replace("${runner}", runner), projectAttributes);
+            mem = memAttr != null ? Integer.parseInt(memAttr) : defMemSize;
         }
+        final String maxMemAttr = getWorkspaceAttributeValue(Constants.RUNNER_MAX_MEMORY_SIZE, workspace.getAttributes());
+        final int maxMem = maxMemAttr != null ? Integer.parseInt(maxMemAttr) : DEFAULT_MAX_MEMORY_SIZE;
+        allocateMemory(wsId, mem, maxMem);
+        request.setMemorySize(mem);
+
+        final String lifetimeAttr = getWorkspaceAttributeValue(Constants.RUNNER_LIFETIME, workspace.getAttributes());
+        int lifetime = lifetimeAttr != null ? Integer.parseInt(lifetimeAttr) : defLifetime;
+        if (lifetime <= 0) {
+            lifetime = Integer.MAX_VALUE;
+        }
+        request.setLifetime(lifetime);
+
         final List<String> optionsAttr = projectAttributes.get(Constants.RUNNER_OPTIONS.replace("${runner}", runner));
         if (optionsAttr != null && !optionsAttr.isEmpty()) {
             final Map<String, String> options = request.getOptions();
@@ -225,12 +271,13 @@ public class RunQueue {
                 }
             }
         }
+
         boolean skipBuild = runOptions != null && runOptions.getSkipBuild();
         final ValueHolder<BuildTaskDescriptor> buildTaskHolder = skipBuild ? null : new ValueHolder<BuildTaskDescriptor>();
         final Callable<RemoteRunnerProcess> callable;
         if (!skipBuild
             && ((buildOptions != null && buildOptions.getBuilderName() != null)
-                || getAttributeValue(com.codenvy.api.builder.internal.Constants.BUILDER_NAME, descriptor.getAttributes()) != null)) {
+                || getProjectAttributeValue(com.codenvy.api.builder.internal.Constants.BUILDER_NAME, descriptor.getAttributes()) != null)) {
             LOG.debug("Need build project first");
             if (buildOptions == null) {
                 buildOptions = DtoFactory.getInstance().createDto(BuildOptions.class);
@@ -238,7 +285,7 @@ public class RunQueue {
             // We want bundle of application with all dependencies (libraries) that application needs.
             buildOptions.setIncludeDependencies(true);
             buildOptions.setSkipTest(true);
-            final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(workspace, serviceContext);
+            final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(wsId, serviceContext);
             // schedule build
             final BuildTaskDescriptor buildDescriptor;
             try {
@@ -263,14 +310,33 @@ public class RunQueue {
             callable = createTaskFor(null, request, buildTaskHolder);
         }
         final Long id = sequence.getAndIncrement();
-        final RunFutureTask future = new RunFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project);
+        final RunFutureTask future = new RunFutureTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project);
         request.setId(id); // for getting callback events from remote runner
         final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildTaskHolder,
                                                    serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
-        eventService.publish(RunnerEvent.queueStartedEvent(id, workspace, project));
+        eventService.publish(RunnerEvent.queueStartedEvent(id, wsId, project));
         executor.execute(future);
         return task;
+    }
+
+    private void allocateMemory(String wsId, int mem, int maxMem) throws RunnerException {
+        final int index = wsId.hashCode() & quotesPartitionsMask;
+        quoteLocks[index].lock();
+        try {
+            ResourceQuotaController quotaController = quotes[index].get(wsId);
+            if (quotaController == null) {
+                quotes[index].put(wsId, quotaController = new ResourceQuotaController(maxMem));
+            } else if (maxMem != quotaController.maxMemSize) {
+                // if subscription was updated
+                ResourceQuotaController newQuotaController = new ResourceQuotaController(maxMem);
+                newQuotaController.decrementMemory(quotaController.availableMemory());
+                quotes[index].put(wsId, quotaController = newQuotaController);
+            }
+            quotaController.decrementMemory(mem);
+        } finally {
+            quoteLocks[index].unlock();
+        }
     }
 
     protected Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor,
@@ -318,8 +384,7 @@ public class RunQueue {
                                 final String token = getAuthenticationToken();
                                 request.withDeploymentSourcesUrl(
                                         token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
-                                final long lifetime = getApplicationLifetime(request);
-                                return getRunner(request).run(request.withLifetime(lifetime));
+                                return getRunner(request).run(request);
                             case CANCELLED:
                             case FAILED:
                                 String msg = "Unable start application. Build of application is failed or cancelled.";
@@ -336,8 +401,7 @@ public class RunQueue {
                         }
                     }
                 } else {
-                    final long lifetime = getApplicationLifetime(request);
-                    return getRunner(request).run(request.withLifetime(lifetime));
+                    return getRunner(request).run(request);
                 }
             }
         };
@@ -364,6 +428,22 @@ public class RunQueue {
                                                  : UriBuilder.fromUri(baseBuilderApiUrl);
         final String builderUrl = baseBuilderUriBuilder.path(BuilderService.class).build(workspace).toString();
         return new RemoteServiceDescriptor(builderUrl);
+    }
+
+    private Workspace getWorkspace(String workspace, ServiceContext serviceContext) throws RunnerException {
+        final UriBuilder baseWorkspaceUriBuilder = baseWorkspaceApiUrl == null || baseWorkspaceApiUrl.isEmpty()
+                                                   ? serviceContext.getBaseUriBuilder()
+                                                   : UriBuilder.fromUri(baseWorkspaceApiUrl);
+        final String workspaceUrl = baseWorkspaceUriBuilder.path(WorkspaceService.class)
+                                                           .path(WorkspaceService.class, "getById")
+                                                           .build(workspace).toString();
+        try {
+            return HttpJsonHelper.get(Workspace.class, workspaceUrl);
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new RunnerException(e.getServiceError());
+        }
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
@@ -393,12 +473,21 @@ public class RunQueue {
         return null;
     }
 
-    private static String getAttributeValue(String name, Map<String, List<String>> attributes) {
+    private static String getProjectAttributeValue(String name, Map<String, List<String>> attributes) {
         final List<String> list = attributes.get(name);
         if (list == null || list.isEmpty()) {
             return null;
         }
         return list.get(0);
+    }
+
+    private static String getWorkspaceAttributeValue(String name, List<com.codenvy.api.workspace.shared.dto.Attribute> attributes) {
+        for (com.codenvy.api.workspace.shared.dto.Attribute attribute : attributes) {
+            if (name.equals(attribute.getName())) {
+                return attribute.getValue();
+            }
+        }
+        return null;
     }
 
     private boolean tryCancelBuild(BuildTaskDescriptor buildDescriptor) {
@@ -418,11 +507,6 @@ public class RunQueue {
                 return false;
             }
         }
-    }
-
-    private long getApplicationLifetime(RunRequest request) {
-        // TODO: calculate in different way for different workspace/project.
-        return appLifetime;
     }
 
     public RunQueueTask getTask(Long id) throws NotFoundException {

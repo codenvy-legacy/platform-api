@@ -19,8 +19,6 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.math.BigDecimal;
-
 /**
  * References payment and Subscription.
  * Theoretically Amount may be not the same as actual payment, here it is interpreted as the sum for this Subscription.
@@ -41,9 +39,9 @@ public interface SubscriptionPayment {
 
     SubscriptionPayment withTransactionId(String transactionId);
 
-    BigDecimal getAmount();
+    double getAmount();
 
-    void setAmount(BigDecimal amount);
+    void setAmount(double amount);
 
-    SubscriptionPayment withAmount(BigDecimal amount);
+    SubscriptionPayment withAmount(double amount);
 }

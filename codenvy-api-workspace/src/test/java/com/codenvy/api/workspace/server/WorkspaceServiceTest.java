@@ -186,6 +186,13 @@ public class WorkspaceServiceTest {
     }
 
     @Test
+    public void shouldNotBeAbleToCreateNewWorkspaceWithNotValidAttribute() throws Exception {
+        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class).withName("codenvy:god_mode").withValue("true"));
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, workspace);
+        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:god_mode' is not valid");
+    }
+
+    @Test
     public void shouldBeAbleToCreateNewTemporaryWorkspaceWithExistedUser() throws Exception {
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/temp", MediaType.APPLICATION_JSON, workspace);
 
@@ -195,6 +202,13 @@ public class WorkspaceServiceTest {
         verify(userDao, times(0)).create(any(User.class));
         verify(workspaceDao, times(1)).create(any(Workspace.class));
         verify(memberDao, times(1)).create(any(Member.class));
+    }
+
+    @Test
+    public void shouldNotBeAbleToCreateTemporaryWorkspaceWithNotValidAttribute() throws Exception {
+        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class).withName("codenvy:god_mode").withValue("true"));
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/temp", MediaType.APPLICATION_JSON, workspace);
+        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:god_mode' is not valid");
     }
 
     @Test
@@ -267,6 +281,25 @@ public class WorkspaceServiceTest {
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         assertEquals(workspace.getAttributes().size(), countBefore + 1);
         verify(workspaceDao, times(1)).update(workspace);
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddNewAttributeIfAttributeNameStartsWithCodenvy() throws Exception {
+        prepareSecurityContext("user");
+        Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
+                                           .withName("codenvy:runner_ram")
+                                           .withValue("64GB")
+                                           .withDescription("Runner ram");
+
+        ContainerResponse response =
+                makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
+        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:runner_ram' is not valid");
+    }
+
+    @Test
+    public void shouldNotBeAbleToRemoveAttributeIfAttributeNameStartsWithCodenvy() throws Exception {
+        ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/attribute?name=codenvy:runner_ram", null, null);
+        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:runner_ram' is not valid");
     }
 
     @Test
@@ -369,6 +402,17 @@ public class WorkspaceServiceTest {
             verifyLinksRel(actual.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).update(any(Workspace.class));
+    }
+
+    @Test
+    public void shouldNotBeAbleToUpdateWorkspaceIfAnyAttributeNameStartsWithCodenvy() throws Exception {
+        Workspace workspaceToUpdate = DtoFactory.getInstance().createDto(Workspace.class).withName("ws2");
+        workspaceToUpdate.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
+                                                                .withName("codenvy:runner_ram")
+                                                                .withValue("64GB")));
+
+        ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID, MediaType.APPLICATION_JSON, workspaceToUpdate);
+        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:runner_ram' is not valid");
     }
 
     @Test

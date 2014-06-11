@@ -319,11 +319,21 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append(i).append("JSONValue ").append(outVar).append(" = (").append(depth == 0 ? "this." + inVar : inVar).append(
                     " == null) ? JSONNull.getInstance() : new JSONString(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
         } else if (isNumber(rawClass)) {
-            builder.append(i).append("JSONValue ").append(outVar).append(" = new JSONNumber(")
-                   .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+            if (rawClass.isPrimitive()) {
+                builder.append(i).append("JSONValue ").append(outVar).append(" = new JSONNumber(")
+                       .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+            } else {
+                builder.append(i).append("JSONValue ").append(outVar).append(depth == 0 ? " = this." + inVar : inVar).append(
+                        " == null ? JSONNull.getInstance() : new JSONNumber(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+            }
         } else if (isBoolean(rawClass)) {
-            builder.append(i).append("JSONValue ").append(outVar).append(" = JSONBoolean.getInstance(")
-                   .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+            if (rawClass.isPrimitive()) {
+                builder.append(i).append("JSONValue ").append(outVar).append(" = JSONBoolean.getInstance(")
+                       .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+            } else {
+                builder.append(i).append("JSONValue ").append(outVar).append(depth == 0 ? " = this." + inVar : inVar).append(
+                        " == null ? JSONNull.getInstance() : JSONBoolean.getInstance(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+            }
         } else {
             final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
             if (dtoImplementation != null) {
@@ -492,12 +502,22 @@ public class DtoImplClientTemplate extends DtoImpl {
         } else if (isNumber(rawClass)) {
             String primitiveName = rawClass.getSimpleName();
             String typeCast = rawClass.equals(double.class) || rawClass.equals(Double.class) ? "" : "(" + getPrimitiveName(rawClass) + ")";
-            builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(typeCast).append(inVar)
-                   .append(".isNumber().doubleValue();\n");
+            if (rawClass.isPrimitive()) {
+                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(typeCast).append(inVar)
+                       .append(".isNumber().doubleValue();\n");
+            } else {
+                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(typeCast).append(inVar).append(".isNumber() != null ? ").append(inVar).append(
+                        ".isNumber().doubleValue() : null;\n");
+            }
         } else if (isBoolean(rawClass)) {
             String primitiveName = rawClass.getSimpleName();
-            builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(
-                    ".isBoolean().booleanValue();\n");
+            if (rawClass.isPrimitive()) {
+                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(
+                        ".isBoolean().booleanValue();\n");
+            } else {
+                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isBoolean() != null ? ").append(inVar).append(
+                        ".isBoolean().booleanValue() : null;\n");
+            }
         } else {
             final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
             if (dtoImplementation != null) {

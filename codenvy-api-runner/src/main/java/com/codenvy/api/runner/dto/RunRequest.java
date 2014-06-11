@@ -101,7 +101,7 @@ public interface RunRequest {
 
     RunRequest withLifetime(long time);
 
-    /** Name of workspace which the sources are belong. */
+    /** Name of workspace which the project is belong. */
     String getWorkspace();
 
     void setWorkspace(String workspace);

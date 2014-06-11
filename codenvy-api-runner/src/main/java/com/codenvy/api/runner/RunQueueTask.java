@@ -117,7 +117,10 @@ public final class RunQueueTask implements Cancellable {
                                        .withProcessId(id)
                                        .withStatus(ApplicationStatus.NEW)
                                        .withRunStats(runStats)
-                                       .withLinks(links);
+                                       .withLinks(links)
+                                       .withWorkspace(request.getWorkspace())
+                                       .withProject(request.getProject())
+                                       .withUserName(request.getUserName());
 
             } else {
                 final ApplicationProcessDescriptor remoteDescriptor = remoteProcess.getApplicationProcessDescriptor();

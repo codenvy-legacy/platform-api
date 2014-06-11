@@ -62,6 +62,11 @@ public class RemoteRunnerProcess {
         return created;
     }
 
+    /** URL of server where application was launched. */
+    public String getServerUrl() {
+        return baseUrl;
+    }
+
     /**
      * Get actual status of remote application process.
      *

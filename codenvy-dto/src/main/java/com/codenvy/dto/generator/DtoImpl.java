@@ -68,6 +68,8 @@ abstract class DtoImpl {
         String fieldName;
         if (methodName.startsWith("get")) {
             fieldName = methodName.substring(3);
+        } else if (methodName.startsWith("has")) {
+            fieldName = methodName;
         } else {
             // starts with "is", see method '#ignoreMethod(Method)'
             fieldName = methodName.substring(2);
@@ -154,8 +156,8 @@ abstract class DtoImpl {
     /** Check is specified method is DTO getter. */
     protected boolean isDtoGetter(Method method) {
         String methodName = method.getName();
-        if (methodName.startsWith("get") || methodName.startsWith("is")) {
-            if (methodName.startsWith("is")) {
+        if (methodName.startsWith("get") || methodName.startsWith("is") || methodName.startsWith("has")) {
+            if (methodName.startsWith("is") || methodName.startsWith("has")) {
                 return method.getReturnType() == Boolean.class || method.getReturnType() == boolean.class;
             }
             return true;

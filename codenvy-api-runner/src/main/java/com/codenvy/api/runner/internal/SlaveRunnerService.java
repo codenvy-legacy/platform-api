@@ -195,6 +195,9 @@ public class SlaveRunnerService extends Service {
                          .withStartTime(process.getStartTime())
                          .withStopTime(process.getStopTime())
                          .withLinks(links)
+                         .withWorkspace(process.getConfiguration().getRequest().getWorkspace())
+                         .withProject(process.getConfiguration().getRequest().getProject())
+                         .withUserName(process.getConfiguration().getRequest().getUserName())
                          .withDebugHost(process.getConfiguration().getDebugHost())
                          .withDebugPort(process.getConfiguration().getDebugPort());
     }

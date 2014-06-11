@@ -117,7 +117,12 @@ public class RunnerAdminService extends Service {
     public List<ApplicationProcessDescriptor> getTasks() throws Exception {
         final List<ApplicationProcessDescriptor> result = new LinkedList<>();
         for (RunQueueTask queueTask : runner.getTasks()) {
-            result.add(queueTask.getDescriptor());
+            final ApplicationProcessDescriptor descriptor = queueTask.getDescriptor();
+            final RemoteRunnerProcess remoteProcess = queueTask.getRemoteProcess();
+            if (remoteProcess != null) {
+                descriptor.setServerUrl(remoteProcess.getServerUrl());
+            }
+            result.add(descriptor);
         }
         return result;
     }

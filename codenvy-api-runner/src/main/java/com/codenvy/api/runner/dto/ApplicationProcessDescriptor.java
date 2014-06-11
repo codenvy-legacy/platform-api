@@ -78,4 +78,35 @@ public interface ApplicationProcessDescriptor {
     ApplicationProcessDescriptor withLinks(List<Link> links);
 
     void setLinks(List<Link> links);
+
+    /** Name of workspace which the project is belong. */
+    String getWorkspace();
+
+    void setWorkspace(String workspace);
+
+    ApplicationProcessDescriptor withWorkspace(String workspace);
+
+    /** Name of project which represents sources on the ide side. */
+    String getProject();
+
+    void setProject(String project);
+
+    ApplicationProcessDescriptor withProject(String project);
+
+    /** The name of user who ran application. */
+    String getUserName();
+
+    ApplicationProcessDescriptor withUserName(String userName);
+
+    void setUserName(String userName);
+
+    /**
+     * The URL of server where application is running. This information is accessible only over RunnerAdminServer and is not available for
+     * regular users.
+     */
+    String getServerUrl();
+
+    void setServerUrl(String server);
+
+    ApplicationProcessDescriptor withServerUrl(String server);
 }

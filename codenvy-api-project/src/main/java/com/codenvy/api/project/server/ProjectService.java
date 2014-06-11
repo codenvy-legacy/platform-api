@@ -30,6 +30,8 @@ import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStream;
+import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
@@ -74,6 +76,12 @@ import java.util.Map;
 @Path("project/{ws-id}")
 public class ProjectService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectService.class);
+    private static final VirtualFileFilter FILES_FILTER = new VirtualFileFilter() {
+        @Override
+        public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+            return file.isFile();
+        }
+    };
 
     @Inject
     private ProjectManager           projectManager;
@@ -467,7 +475,7 @@ public class ProjectService extends Service {
             } else {
                 itemReference.withType("folder")
                              .withMediaType("text/directory")
-                             .withChildrenCount(((FolderEntry)child).getChildren().size())
+                             .withHasChildFiles(!((FolderEntry)child).getChildren(FILES_FILTER).isEmpty())
                              .withLinks(generateFolderLinks(workspace, (FolderEntry)child));
             }
             result.add(itemReference);
@@ -489,7 +497,7 @@ public class ProjectService extends Service {
                                              .withPath(folder.getPath())
                                              .withType("folder")
                                              .withMediaType("text/directory")
-                                             .withChildrenCount(folder.getChildren().size())
+                                             .withHasChildFiles(!folder.getChildren(FILES_FILTER).isEmpty())
                                              .withLinks(generateFolderLinks(workspace, folder)))
                          .withChildren(getTree(workspace, folder, depth));
     }
@@ -508,7 +516,7 @@ public class ProjectService extends Service {
                                                     .withPath(childFolder.getPath())
                                                     .withType("folder")
                                                     .withMediaType("text/directory")
-                                                    .withChildrenCount(childFolder.getChildren().size())
+                                                    .withHasChildFiles(!childFolder.getChildren(FILES_FILTER).isEmpty())
                                                     .withLinks(generateFolderLinks(workspace, childFolder)))
                                 .withChildren(getTree(workspace, childFolder, depth - 1)));
         }

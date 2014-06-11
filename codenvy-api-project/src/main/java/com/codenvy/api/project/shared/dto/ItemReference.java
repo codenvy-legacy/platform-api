@@ -60,13 +60,11 @@ public interface ItemReference {
 
     ItemReference withPath(String path);
 
-    /** Get count of item's children. */
-    int getChildrenCount();
+    boolean hasChildFiles();
 
-    /** Set count of item's children. */
-    void setChildrenCount(int childrenCount);
+    void setHasChildFiles(boolean hasChildFiles);
 
-    ItemReference withChildrenCount(int childrenCount);
+    ItemReference withHasChildFiles(boolean hasChildFiles);
 
     List<Link> getLinks();
 

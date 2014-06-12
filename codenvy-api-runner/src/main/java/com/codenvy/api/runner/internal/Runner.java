@@ -1,20 +1,13 @@
-/*
- * CODENVY CONFIDENTIAL
- * __________________
+/*******************************************************************************
+ * Copyright (c) 2012-2014 Codenvy, S.A.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
  *
- *  [2012] - [2013] Codenvy, S.A.
- *  All Rights Reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Codenvy S.A. and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Codenvy S.A.
- * and its suppliers and may be covered by U.S. and Foreign Patents,
- * patents in process, and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Codenvy S.A..
- */
+ * Contributors:
+ *   Codenvy, S.A. - initial API and implementation
+ *******************************************************************************/
 package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.core.NotFoundException;
@@ -22,6 +15,7 @@ import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
+import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
@@ -275,6 +269,7 @@ public abstract class Runner {
         };
         final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, callback);
         processes.put(internalId, process);
+        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
         final int mem = runnerCfg.getMemory();
         final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem).allocate();
         final Runnable r = ThreadLocalPropagateContext.wrap(new Runnable() {
@@ -294,6 +289,7 @@ public abstract class Runner {
                     final ApplicationProcess realProcess = newApplicationProcess(deploymentSources, runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
+                    watcher.start(process);
                     runningAppsCounter.incrementAndGet();
                     LOG.debug("Started {}", process);
                     final long endTime = System.currentTimeMillis();
@@ -304,6 +300,7 @@ public abstract class Runner {
                 } catch (Throwable e) {
                     process.setError(e);
                 } finally {
+                    watcher.stop();
                     memoryAllocator.release();
                     runningAppsCounter.decrementAndGet();
                 }

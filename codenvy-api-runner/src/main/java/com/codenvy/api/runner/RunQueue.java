@@ -43,8 +43,6 @@ import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
-import com.codenvy.commons.lang.cache.Cache;
-import com.codenvy.commons.lang.cache.SLRUCache;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
@@ -118,9 +116,9 @@ public class RunQueue {
     private final long                                            maxWaitingTimeMillis;
     private final AtomicBoolean                                   started;
     private final long                                            appCleanupTime;
-    private final Cache<String, ResourceQuotaController>[]        quotes;
-    private final Lock[]                                          quoteLocks;
-    private final int                                             quotesPartitionsMask;
+    // Helps to reduce lock contentions when check available resources.
+    private final Lock[]                                          resourceCheckerLocks;
+    private final int                                             resourceCheckerMask;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -157,7 +155,7 @@ public class RunQueue {
      */
     @Inject
     @SuppressWarnings("unchecked")
-    public RunQueue(@Nullable @Named("builder.base_api_url") String baseWorkspaceApiUrl,
+    public RunQueue(//@Nullable @Named("builder.base_workspace_url") String baseWorkspaceApiUrl, TODO: add in configuration and use
                     @Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                     @Nullable @Named("builder.base_api_url") String baseBuilderApiUrl,
                     @Named(Constants.APP_DEFAULT_MEM_SIZE) int defMemSize,
@@ -166,7 +164,7 @@ public class RunQueue {
                     @Named(Constants.APP_CLEANUP_TIME) int appCleanupTime,
                     RunnerSelectionStrategy runnerSelector,
                     EventService eventService) {
-        this.baseWorkspaceApiUrl = baseWorkspaceApiUrl;
+        this.baseWorkspaceApiUrl = null;//baseWorkspaceApiUrl;
         this.baseProjectApiUrl = baseProjectApiUrl;
         this.baseBuilderApiUrl = baseBuilderApiUrl;
         this.defMemSize = defMemSize;
@@ -180,13 +178,11 @@ public class RunQueue {
         tasks = new ConcurrentHashMap<>();
         runnerListMapping = new ConcurrentHashMap<>();
         started = new AtomicBoolean(false);
-        final int partitions = 1 << 2;
-        quotesPartitionsMask = partitions - 1;
-        quotes = new Cache[partitions];
-        quoteLocks = new Lock[partitions];
+        final int partitions = 1 << 4;
+        resourceCheckerMask = partitions - 1;
+        resourceCheckerLocks = new Lock[partitions];
         for (int i = 0; i < partitions; i++) {
-            quotes[i] = new SLRUCache<>(200, 50);
-            quoteLocks[i] = new ReentrantLock();
+            resourceCheckerLocks[i] = new ReentrantLock();
         }
     }
 
@@ -247,10 +243,9 @@ public class RunQueue {
             final String memAttr = getProjectAttributeValue(Constants.RUNNER_MEMORY_SIZE.replace("${runner}", runner), projectAttributes);
             mem = memAttr != null ? Integer.parseInt(memAttr) : defMemSize;
         }
-        final String maxMemAttr = getWorkspaceAttributeValue(Constants.RUNNER_MAX_MEMORY_SIZE, workspace.getAttributes());
-        final int maxMem = maxMemAttr != null ? Integer.parseInt(maxMemAttr) : DEFAULT_MAX_MEMORY_SIZE;
-        allocateMemory(wsId, mem, maxMem);
         request.setMemorySize(mem);
+
+        checkResources(workspace, request);
 
         final String lifetimeAttr = getWorkspaceAttributeValue(Constants.RUNNER_LIFETIME, workspace.getAttributes());
         int lifetime = lifetimeAttr != null ? Integer.parseInt(lifetimeAttr) : defLifetime;
@@ -320,22 +315,41 @@ public class RunQueue {
         return task;
     }
 
-    private void allocateMemory(String wsId, int mem, int maxMem) throws RunnerException {
-        final int index = wsId.hashCode() & quotesPartitionsMask;
-        quoteLocks[index].lock();
+    private void checkResources(Workspace workspace, RunRequest request) throws RunnerException {
+        final String wsId = workspace.getId();
+        final int index = wsId.hashCode() & resourceCheckerMask;
+        // Lock to be sure other threads don't try to start application in the same workspace.
+        resourceCheckerLocks[index].lock();
         try {
-            ResourceQuotaController quotaController = quotes[index].get(wsId);
-            if (quotaController == null) {
-                quotes[index].put(wsId, quotaController = new ResourceQuotaController(maxMem));
-            } else if (maxMem != quotaController.maxMemSize) {
-                // if subscription was updated
-                ResourceQuotaController newQuotaController = new ResourceQuotaController(maxMem);
-                newQuotaController.decrementMemory(quotaController.availableMemory());
-                quotes[index].put(wsId, quotaController = newQuotaController);
-            }
-            quotaController.decrementMemory(mem);
+            final String availableMemAttr = getWorkspaceAttributeValue(Constants.RUNNER_MAX_MEMORY_SIZE, workspace.getAttributes());
+            final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : DEFAULT_MAX_MEMORY_SIZE;
+            checkMemory(wsId, availableMem, request.getMemorySize());
         } finally {
-            quoteLocks[index].unlock();
+            resourceCheckerLocks[index].unlock();
+        }
+    }
+
+    private void checkMemory(String wsId, int availableMem, int mem) throws RunnerException {
+        for (RunQueueTask task : tasks.values()) {
+            final RunRequest request = task.getRequest();
+            if (wsId.equals(request.getWorkspace())) {
+                try {
+                    ApplicationStatus status;
+                    if (task.isWaiting()
+                        || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
+                        || status == ApplicationStatus.NEW) {
+                        availableMem -= request.getMemorySize();
+                        if (availableMem <= 0) {
+                            throw new RunnerException(
+                                    String.format("Not enough resources to start application. Available memory %dM but %dM required. ",
+                                                  availableMem < 0 ? 0 : availableMem, mem)
+                            );
+                        }
+                    }
+                } catch (NotFoundException ignored) {
+                    // If remote process is not found, it is stopped and removed from remote server.
+                }
+            }
         }
     }
 

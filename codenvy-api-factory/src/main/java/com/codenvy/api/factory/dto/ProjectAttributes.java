@@ -46,31 +46,31 @@ public interface ProjectAttributes {
      * @return builder name.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "buildername")
-    public String getBuilderName();
+    public String getBuildername();
 
-    void setBuilderName(String builderName);
+    void setBuildername(String builderName);
 
-    ProjectAttributes withBuilderName(String builderName);
+    ProjectAttributes withBuildername(String builderName);
 
     /**
      * @return runner name.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runnername")
-    public String getRunnerName();
+    public String getRunnername();
 
-    void setRunnerName(String runnerName);
+    void setRunnername(String runnerName);
 
-    ProjectAttributes withRunnerName(String runnerName);
+    ProjectAttributes withRunnername(String runnerName);
 
 
     /**
      * @return runner environment id.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runnerenvironmentid")
-    public String getRunnerEnvironmentId();
+    public String getRunnerenvironmentid();
 
-    void setRunnerEnvironmentId(String runnerEnvironmentId);
+    void setRunnerenvironmentid(String runnerEnvironmentId);
 
-    ProjectAttributes withRunnerEnvironmentId(String runnerEnvironmentId);
+    ProjectAttributes withRunnerenvironmentid(String runnerEnvironmentId);
 
 }

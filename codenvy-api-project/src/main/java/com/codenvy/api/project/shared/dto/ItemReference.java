@@ -60,7 +60,7 @@ public interface ItemReference {
 
     ItemReference withPath(String path);
 
-    boolean hasChildFiles();
+    boolean getHasChildFiles();
 
     void setHasChildFiles(boolean hasChildFiles);
 

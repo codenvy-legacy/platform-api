@@ -154,7 +154,6 @@ public class AnalyticsService extends Service {
 
     @GenerateLink(rel = "log use dashboard event")
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/dashboard-usage/{action}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public Response logUserDashboardEvent(@PathParam("action") String action) {

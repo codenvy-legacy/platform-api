@@ -43,6 +43,7 @@ public class EventLogger {
     private static final String PARAMETERS_PARAM   = "PARAMETERS";
 
     public static final String IDE_USAGE               = "ide-usage";
+    public static final String DASHBOARD_USAGE         = "dashboard-usage";
     public static final String SESSION_STARTED         = "session-started";
     public static final String SESSION_FINISHED        = "session-finished";
     public static final String SESSION_FACTORY_STARTED = "session-factory-started";
@@ -50,6 +51,7 @@ public class EventLogger {
 
     private static final Set<String> ALLOWED_EVENTS = new HashSet<String>() {{
         add(IDE_USAGE);
+        add(DASHBOARD_USAGE);
         add(SESSION_STARTED);
         add(SESSION_FINISHED);
         add(SESSION_FACTORY_STARTED);

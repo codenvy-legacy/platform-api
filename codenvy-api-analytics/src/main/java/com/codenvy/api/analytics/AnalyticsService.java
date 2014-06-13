@@ -152,6 +152,24 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @GenerateLink(rel = "log use dashboard event")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("log/dashboard-usage/{action}")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public Response logUserDashboardEvent(@PathParam("action") String action) {
+        try {
+            Map<String, String> parameters = new HashMap<>(1);
+            parameters.put(EventLogger.ACTION_PARAM, action);
+
+            eventLogger.log(EventLogger.DASHBOARD_USAGE, parameters);
+            return Response.status(Response.Status.ACCEPTED).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        }
+    }
+
     private Map<String, String> extractContext(UriInfo info,
                                                String page,
                                                String perPage) {

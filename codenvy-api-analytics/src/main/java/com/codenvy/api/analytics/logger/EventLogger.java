@@ -33,14 +33,14 @@ public class EventLogger {
     private static final int MAX_PARAM_VALUE_LENGTH     = 50;
     private static final int QUEUE_MAX_CAPACITY         = 10000;
 
-    private static final String EVENT_PARAM        = "EVENT";
-    private static final String WS_PARAM           = "WS";
-    private static final String USER_PARAM         = "USER";
-    private static final String SOURCE_PARAM       = "SOURCE";
-    private static final String ACTION_PARAM       = "ACTION";
-    private static final String PROJECT_NAME_PARAM = "PROJECT";
-    private static final String PROJECT_TYPE_PARAM = "TYPE";
-    private static final String PARAMETERS_PARAM   = "PARAMETERS";
+    public static final String EVENT_PARAM        = "EVENT";
+    public static final String WS_PARAM           = "WS";
+    public static final String USER_PARAM         = "USER";
+    public static final String SOURCE_PARAM       = "SOURCE";
+    public static final String ACTION_PARAM       = "ACTION";
+    public static final String PROJECT_NAME_PARAM = "PROJECT";
+    public static final String PROJECT_TYPE_PARAM = "TYPE";
+    public static final String PARAMETERS_PARAM   = "PARAMETERS";
 
     public static final String IDE_USAGE               = "ide-usage";
     public static final String DASHBOARD_USAGE         = "dashboard-usage";

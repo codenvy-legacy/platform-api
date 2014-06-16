@@ -47,7 +47,10 @@ public class FactoryService extends Service {
     private FactoryStore factoryStore;
 
     @Inject
-    private FactoryUrlValidator validator;
+    private FactoryUrlCreateValidator createValidator;
+
+    @Inject
+    private FactoryUrlAcceptValidator acceptValidator;
 
     @Inject
     private LinksHelper linksHelper;
@@ -56,9 +59,11 @@ public class FactoryService extends Service {
     private FactoryBuilder factoryBuilder;
 
     /**
-     * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information. Fields with images
+     * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.
+     * Fields with images
      * should
-     * be named 'image'. Acceptable image size 100x100 pixels. If vcs is not set in factory URL it will be set with "git" value.
+     * be named 'image'. Acceptable image size 100x100 pixels. If vcs is not set in factory URL it will be set with
+     * "git" value.
      *
      * @param request
      *         - http request
@@ -78,11 +83,13 @@ public class FactoryService extends Service {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo) throws FactoryUrlException {
+    public Factory saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo)
+            throws FactoryUrlException {
         try {
             EnvironmentContext context = EnvironmentContext.getCurrent();
             if (context.getUser() == null || context.getUser().getName() == null || context.getUser().getId() == null) {
-                throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Unable to identify user from context");
+                throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(),
+                                              "Unable to identify user from context");
             }
 
             Set<FactoryImage> images = new HashSet<>();
@@ -114,10 +121,10 @@ public class FactoryService extends Service {
                                               "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
+            createValidator.validateOnCreate(factoryUrl);
             if (factoryUrl.getV().equals("1.0")) {
                 throw new FactoryUrlException("Storing of Factory 1.0 is unsupported.");
             }
-
             factoryUrl.setUserid(context.getUser().getId());
             factoryUrl.setCreated(System.currentTimeMillis());
             String factoryId = factoryStore.saveFactory(factoryUrl, images);
@@ -167,7 +174,7 @@ public class FactoryService extends Service {
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
         }
-        validator.validate(factory, false);
+        acceptValidator.validateOnAccept(factory, false);
         return factory;
     }
 
@@ -201,7 +208,7 @@ public class FactoryService extends Service {
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }
-        validator.validate(factoryUrl, true);
+        acceptValidator.validateOnAccept(factoryUrl, true);
         return factoryUrl;
     }
 

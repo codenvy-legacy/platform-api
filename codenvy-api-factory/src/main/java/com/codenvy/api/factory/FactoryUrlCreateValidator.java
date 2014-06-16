@@ -16,14 +16,14 @@ import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
 
 /**
- * Interface for different validations of factory urls
+ * Interface for validations of factory urls on creation stage.
  *
  * @author Alexander Garagatyi
  */
-public interface FactoryUrlValidator {
+public interface FactoryUrlCreateValidator {
 
     /**
-     * Validates factory url object. Implementation should throw
+     * Validates factory url object on creation stage. Implementation should throw
      * {@link com.codenvy.api.factory.FactoryUrlException} if factory url object is invalid.
      *
      * @param factory
@@ -31,5 +31,5 @@ public interface FactoryUrlValidator {
      * @throws FactoryUrlException
      *         - in case if factory is not valid
      */
-    void validate(Factory factory, boolean encoded) throws FactoryUrlException;
+    void validateOnCreate(Factory factory) throws FactoryUrlException;
 }

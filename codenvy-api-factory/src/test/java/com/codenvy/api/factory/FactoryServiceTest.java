@@ -18,7 +18,6 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
-import com.google.inject.internal.MoreTypes;
 import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
@@ -29,7 +28,6 @@ import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
 import org.testng.annotations.*;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.nio.file.*;
@@ -66,7 +64,10 @@ public class FactoryServiceTest {
     private FactoryBuilder factoryBuilder;
 
     @Mock
-    private FactoryUrlValidator validator;
+    private FactoryUrlCreateValidator validator;
+
+    @Mock
+    private FactoryUrlAcceptValidator acceptValidator;
 
     @InjectMocks
     private FactoryService factoryService;
@@ -104,7 +105,8 @@ public class FactoryServiceTest {
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        Factory responseFactoryUrl = DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), Factory.class);
+        Factory responseFactoryUrl =
+                DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), Factory.class);
         assertEquals(responseFactoryUrl, expected);
     }
 
@@ -112,7 +114,8 @@ public class FactoryServiceTest {
     public void shouldBeAbleToConvertQueryStringToLatestFactory() throws Exception {
         // given
         Factory expected = DtoFactory.getInstance().createDto(Factory.class);
-        expected.withProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"))
+        expected.withProjectattributes(
+                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"))
                 .withV("1.2").withVcs("git").withVcsurl(
                 "http://github.com/codenvy/platform-api.git");
 
@@ -406,7 +409,7 @@ public class FactoryServiceTest {
         factoryUrl.setOrgid("orgid");
 
         doThrow(new FactoryUrlException("You are not authorized to use this orgid.")).when(validator)
-                .validate(Matchers.any(Factory.class), anyBoolean());
+                .validateOnCreate(Matchers.any(Factory.class));
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 

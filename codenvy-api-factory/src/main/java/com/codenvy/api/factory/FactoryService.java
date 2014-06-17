@@ -167,14 +167,18 @@ public class FactoryService extends Service {
     @GET
     @Path("/nonencoded")
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy, @Context UriInfo uriInfo)
+    public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy,
+                                            @DefaultValue("false") @QueryParam("validate") Boolean validate,
+                                            @Context UriInfo uriInfo)
             throws FactoryUrlException {
         URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("legacy", null).replaceQueryParam("token", null).build();
         Factory factory = factoryBuilder.buildNonEncoded(uri);
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
         }
-        acceptValidator.validateOnAccept(factory, false);
+        if (validate) {
+            acceptValidator.validateOnAccept(factory, false);
+        }
         return factory;
     }
 
@@ -193,6 +197,7 @@ public class FactoryService extends Service {
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactory(@PathParam("id") String id, @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
+                              @DefaultValue("false") @QueryParam("validate") Boolean validate,
                               @Context UriInfo uriInfo) throws FactoryUrlException {
         Factory factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
@@ -208,7 +213,9 @@ public class FactoryService extends Service {
         } catch (UnsupportedEncodingException e) {
             throw new FactoryUrlException(e.getLocalizedMessage(), e);
         }
-        acceptValidator.validateOnAccept(factoryUrl, true);
+        if (validate) {
+            acceptValidator.validateOnAccept(factoryUrl, true);
+        }
         return factoryUrl;
     }
 

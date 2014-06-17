@@ -171,7 +171,10 @@ public class FactoryService extends Service {
                                             @DefaultValue("false") @QueryParam("validate") Boolean validate,
                                             @Context UriInfo uriInfo)
             throws FactoryUrlException {
-        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("legacy", null).replaceQueryParam("token", null).build();
+        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("legacy", null)
+                                                             .replaceQueryParam("token", null)
+                                                             .replaceQueryParam("validate", null)
+                                                             .build();
         Factory factory = factoryBuilder.buildNonEncoded(uri);
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);

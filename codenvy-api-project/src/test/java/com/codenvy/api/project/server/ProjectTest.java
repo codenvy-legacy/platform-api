@@ -86,15 +86,16 @@ public class ProjectTest {
             }
         });
         final EventService eventService = new EventService();
+        VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
+
         final MemoryFileSystemProvider memoryFileSystemProvider =
                 new MemoryFileSystemProvider("my_ws", eventService, new VirtualFileSystemUserContext() {
                     @Override
                     public VirtualFileSystemUser getVirtualFileSystemUser() {
                         return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
                     }
-                });
+                }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
-        VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new ProjectManager(ptr, ptdr, vpf, vfsRegistry, eventService);
         VirtualFile myVfRoot = mmp.getRoot();

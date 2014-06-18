@@ -85,7 +85,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID, new EventService());
+        fileSystemProvider = new MemoryFileSystemProvider(MY_WORKSPACE_ID, new EventService(), virtualFileSystemRegistry);
         virtualFileSystemRegistry.registerProvider(MY_WORKSPACE_ID, fileSystemProvider);
         mountPoint = (MemoryMountPoint)fileSystemProvider.getMountPoint(true);
         DependencySupplierImpl dependencies = new DependencySupplierImpl();

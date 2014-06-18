@@ -11,10 +11,7 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.VirtualFileSystem;
-import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
-import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
+import com.codenvy.api.vfs.server.*;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.LuceneSearcherProvider;
 import com.codenvy.api.vfs.server.search.Searcher;
@@ -45,19 +42,21 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     private final EventService                 eventService;
     private final VirtualFileSystemUserContext userContext;
     private final SimpleLuceneSearcherProvider searcherProvider;
+    private final VirtualFileSystemRegistry    vfsRegistry;
 
     private MemoryMountPoint memoryMountPoint;
 
-    public MemoryFileSystemProvider(String workspaceId, EventService eventService, VirtualFileSystemUserContext userContext) {
+    public MemoryFileSystemProvider(String workspaceId, EventService eventService, VirtualFileSystemUserContext userContext, VirtualFileSystemRegistry vfsRegistry) {
         super(workspaceId);
         this.workspaceId = workspaceId;
         this.eventService = eventService;
         this.userContext = userContext;
         searcherProvider = new SimpleLuceneSearcherProvider();
+        this.vfsRegistry = vfsRegistry;
     }
 
-    public MemoryFileSystemProvider(String workspaceId, EventService eventService) {
-        this(workspaceId, eventService, VirtualFileSystemUserContext.newInstance());
+    public MemoryFileSystemProvider(String workspaceId, EventService eventService, VirtualFileSystemRegistry vfsRegistry) {
+        this(workspaceId, eventService, VirtualFileSystemUserContext.newInstance(), vfsRegistry);
     }
 
     @Override
@@ -68,7 +67,8 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
                 workspaceId,
                 userContext,
                 memoryMountPoint,
-                searcherProvider);
+                searcherProvider,
+                vfsRegistry);
     }
 
     @Override

@@ -11,12 +11,7 @@
 package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.core.util.Pair;
-import com.codenvy.api.vfs.server.exceptions.HtmlErrorFormatter;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
-import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.server.exceptions.*;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.LinksHelper;
@@ -65,6 +60,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+
 /**
  * Base implementation of VirtualFileSystem.
  *
@@ -76,17 +72,20 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     protected final VirtualFileSystemUserContext userContext;
     protected final MountPoint                   mountPoint;
     protected final SearcherProvider             searcherProvider;
+    protected final VirtualFileSystemRegistry    vfsRegistry;
 
     public VirtualFileSystemImpl(String vfsId,
                                  URI baseUri,
                                  VirtualFileSystemUserContext userContext,
                                  MountPoint mountPoint,
-                                 SearcherProvider searcherProvider) {
+                                 SearcherProvider searcherProvider,
+                                 VirtualFileSystemRegistry vfsRegistry) {
         this.vfsId = vfsId;
         this.baseUri = baseUri;
         this.userContext = userContext;
         this.mountPoint = mountPoint;
         this.searcherProvider = searcherProvider;
+        this.vfsRegistry = vfsRegistry;
     }
 
     @Override
@@ -103,6 +102,51 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         }
         final VirtualFile virtualFileCopy = mountPoint.getVirtualFileById(id).copyTo(parent);
         return fromVirtualFile(virtualFileCopy, false, PropertyFilter.ALL_FILTER);
+    }
+
+    @Path("clone/{id}")
+    @Override
+    public void clone(@PathParam("id") String id,
+                      @QueryParam("vfsId") String vfsId,
+                      @QueryParam("parentId") String parentId) throws ItemNotFoundException, ConstraintException,
+                                                               PermissionDeniedException, VirtualFileSystemException {
+
+        System.out.println("CLONING PROJECT > " + id);
+
+        VirtualFile item = mountPoint.getVirtualFileById(id);
+
+        MountPoint destinationMountPoint = vfsRegistry.getProvider(vfsId).getMountPoint(true);
+
+        VirtualFile destination =  destinationMountPoint.getVirtualFileById(parentId);
+
+        if (!destination.isFolder()) {
+            throw new InvalidArgumentException("Unable to perform cloning. Item specified as parent is not a folder.");
+        }
+
+        cloneTree(item, destination);
+    }
+
+    /**
+     * Only for internal usage, Clones subtree recursively.
+     *
+     * @param item
+     *          tree item
+     * @param destination
+     *          destination item as a parent
+     * @throws VirtualFileSystemException
+     *          if any other errors occur
+     */
+    private void cloneTree(VirtualFile item, VirtualFile destination) throws VirtualFileSystemException {
+        if (item.isFile()) {
+            VirtualFile file = destination.createFile(item.getName(), item.getMediaType(), item.getContent().getStream());
+            return;
+        }
+
+        VirtualFile folder = destination.createFolder(item.getName());
+        LazyIterator<VirtualFile> iterator = item.getChildren(VirtualFileFilter.ALL);
+        while (iterator.hasNext()) {
+            cloneTree(iterator.next(), folder);
+        }
     }
 
     @Path("file/{parentId}")

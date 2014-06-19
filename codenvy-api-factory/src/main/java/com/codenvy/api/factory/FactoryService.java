@@ -121,12 +121,12 @@ public class FactoryService extends Service {
                                               "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
-            createValidator.validateOnCreate(factoryUrl);
             if (factoryUrl.getV().equals("1.0")) {
                 throw new FactoryUrlException("Storing of Factory 1.0 is unsupported.");
             }
             factoryUrl.setUserid(context.getUser().getId());
             factoryUrl.setCreated(System.currentTimeMillis());
+            createValidator.validateOnCreate(factoryUrl);
             String factoryId = factoryStore.saveFactory(factoryUrl, images);
             factoryUrl = factoryStore.getFactory(factoryId);
             factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, images, uriInfo));

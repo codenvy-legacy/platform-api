@@ -12,7 +12,6 @@ package com.codenvy.api.project.shared;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +54,7 @@ public class ProjectTypeDescription {
     protected void addCommonAttributes() {
         setAttributeDescription(new AttributeDescription("runner.user_defined_launcher"));
         setAttributeDescription(new AttributeDescription("runner.run_scripts"));
+        setAttributeDescription(new AttributeDescription("vcs.provider.name"));
     }
 
     /**

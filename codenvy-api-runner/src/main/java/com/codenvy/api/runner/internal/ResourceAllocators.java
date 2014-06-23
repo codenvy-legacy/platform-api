@@ -111,14 +111,14 @@ public class ResourceAllocators {
             if (!memSemaphore.tryAcquire(size)) {
                 throw new RunnerException(String.format("Couldn't allocate %dM for starting application", size));
             }
-            LOG.debug("allocate memory: {}M, available: {}M", size, memSemaphore.availablePermits()); // TODO: debug
+            LOG.debug("allocate memory: {}M, available: {}M", size, memSemaphore.availablePermits());
             return this;
         }
 
         @Override
         public void release() {
             memSemaphore.release(size);
-            LOG.debug("release memory: {}M, available: {}M", size, memSemaphore.availablePermits());  // TODO: debug
+            LOG.debug("release memory: {}M, available: {}M", size, memSemaphore.availablePermits());
         }
     }
 }

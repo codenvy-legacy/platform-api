@@ -17,8 +17,11 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
+import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.Constants;
+import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.user.User;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -33,6 +36,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -63,6 +67,29 @@ public class RunnerService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor getStatus(@PathParam("id") Long id) throws Exception {
         return runQueue.getTask(id).getDescriptor();
+    }
+
+    @GET
+    @Path("processes")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<ApplicationProcessDescriptor> getRunningProcesses(@PathParam("ws-id") String workspace,
+                                                                  @Required @Description("project name")
+                                                                  @QueryParam("project") String project) throws Exception {
+        List<ApplicationProcessDescriptor> processes = new LinkedList<>();
+        final User user = EnvironmentContext.getCurrent().getUser();
+        if (user != null) {
+            final String userName = user.getName();
+            for (RunQueueTask task : runQueue.getTasks()) {
+                final RunRequest request = task.getRequest();
+                if (request.getWorkspace().equals(workspace)
+                    && request.getProject().equals(project)
+                    && request.getUserName().equals(userName)) {
+
+                    processes.add(task.getDescriptor());
+                }
+            }
+        }
+        return processes;
     }
 
     @POST

@@ -75,7 +75,7 @@ public class RunnerService extends Service {
     public List<ApplicationProcessDescriptor> getRunningProcesses(@PathParam("ws-id") String workspace,
                                                                   @Required @Description("project name")
                                                                   @QueryParam("project") String project) throws Exception {
-        List<ApplicationProcessDescriptor> processes = new LinkedList<>();
+        final List<ApplicationProcessDescriptor> processes = new LinkedList<>();
         final User user = EnvironmentContext.getCurrent().getUser();
         if (user != null) {
             final String userName = user.getName();

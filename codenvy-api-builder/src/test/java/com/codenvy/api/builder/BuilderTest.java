@@ -22,6 +22,7 @@ import com.codenvy.api.builder.internal.SourcesManager;
 import com.codenvy.api.builder.dto.BuildRequest;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.util.CommandLine;
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -146,6 +147,9 @@ public class BuilderTest {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
+        buildRequest.setProjectDescriptor(DtoFactory.getInstance().createDto(ProjectDescriptor.class)
+                                                    .withName("my_project")
+                                                    .withProjectTypeId("my_type"));
         final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
         Assert.assertEquals(builder.logger.getLogsAsString(), "test");
@@ -170,6 +174,9 @@ public class BuilderTest {
         final BuildRequest buildRequest = DtoFactory.getInstance().createDto(BuildRequest.class);
         buildRequest.setBuilder("my");
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
+        buildRequest.setProjectDescriptor(DtoFactory.getInstance().createDto(ProjectDescriptor.class)
+                                                    .withName("my_project")
+                                                    .withProjectTypeId("my_type"));
         final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
         Assert.assertTrue(beginFlag[0]);

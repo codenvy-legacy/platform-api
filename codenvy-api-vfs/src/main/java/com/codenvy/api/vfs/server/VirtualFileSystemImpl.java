@@ -126,7 +126,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             InputStream input = null;
             try {
                 input = item.getContent().getStream();
-                destination.createFile(item.getName(), item.getMediaType(), item.getContent().getStream());
+                destination.createFile(item.getName(), item.getMediaType(), input);
             } finally {
                 if (input != null) {
                     try {

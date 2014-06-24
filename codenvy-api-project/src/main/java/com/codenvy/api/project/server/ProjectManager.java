@@ -43,7 +43,7 @@ import java.util.Set;
  * @author andrew00x
  */
 @Singleton
-public final class ProjectManager {
+public class ProjectManager {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectManager.class);
 
     private static final int CACHE_NUM  = 1 << 2;

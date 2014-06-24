@@ -178,10 +178,9 @@
             </build>
         </profile>
         <profile>
-            <id>linux</id>
+            <id>unix</id>
             <activation>
                 <os>
-                    <name>linux</name>
                     <family>unix</family>
                 </os>
             </activation>

@@ -84,7 +84,7 @@ public interface VirtualFileSystem {
      * @param parentId
      *          id of parent for new copy
      * @throws ItemNotFoundException
-     *         if <code>source</code> or <code>parentId</code> does not exist
+     *         if <code>id</code> or <code>parentId</code> does not exist
      */
     @POST
     @Path("clone")

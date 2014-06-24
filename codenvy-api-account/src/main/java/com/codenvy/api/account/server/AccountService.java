@@ -17,6 +17,7 @@ import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -60,6 +61,7 @@ import java.util.Map;
  * Account API
  *
  * @author Eugene Voevodin
+ * @author Alex Garagatyi
  */
 @Path("account")
 public class AccountService extends Service {
@@ -298,7 +300,6 @@ public class AccountService extends Service {
         }
         final Account actual = accountDao.getById(accountId);
         //current user should be account owner to update it
-        //if name changed
         if (accountToUpdate.getName() != null) {
             if (!actual.getName().equals(accountToUpdate.getName()) && accountDao.getByName(accountToUpdate.getName()) != null) {
                 throw new ConflictException(String.format("Account with name %s already exists", accountToUpdate.getName()));
@@ -388,7 +389,7 @@ public class AccountService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void addSubscription(@Required @Description("subscription to add") Subscription subscription)
-            throws NotFoundException, ConflictException, ServerException, ForbiddenException {
+            throws ApiException {
         if (subscription == null) {
             throw new ConflictException("Missed subscription");
         }
@@ -399,7 +400,7 @@ public class AccountService extends Service {
         String subscriptionId = NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         subscription.setId(subscriptionId);
         accountDao.addSubscription(subscription);
-        service.notifyHandlers(new SubscriptionEvent(subscription, SubscriptionEvent.EventType.CREATE));
+        service.onCreateSubscription(subscription);
     }
 
     @DELETE
@@ -407,11 +408,11 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_SUBSCRIPTION)
     @RolesAllowed({"system/admin", "system/manager"})
     public void removeSubscription(@PathParam("id") @Description("Subscription identifier") String subscriptionId)
-            throws NotFoundException, ServerException {
+            throws ApiException {
         Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         SubscriptionService service = registry.get(toRemove.getServiceId());
         accountDao.removeSubscription(subscriptionId);
-        service.notifyHandlers(new SubscriptionEvent(toRemove, SubscriptionEvent.EventType.REMOVE));
+        service.onRemoveSubscription(toRemove);
     }
 
     @DELETE

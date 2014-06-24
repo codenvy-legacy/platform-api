@@ -11,8 +11,8 @@
 package com.codenvy.api.account.server;
 
 
-import java.util.LinkedList;
-import java.util.List;
+import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.core.ApiException;
 
 /**
  * Base class for any service which may communicate with account via subscriptions
@@ -21,46 +21,23 @@ import java.util.List;
  */
 public abstract class SubscriptionService {
 
-    private final List<SubscriptionHandler> handlers;
-    private final String                    serviceId;
-    private final String                    displayName;
-
+    private final String serviceId;
+    private final String displayName;
 
     public SubscriptionService(String serviceId, String displayName) {
         this.serviceId = serviceId;
         this.displayName = displayName;
-        this.handlers = new LinkedList<>();
     }
 
-    public void addHandler(SubscriptionHandler handler) {
-        handlers.add(handler);
-    }
+    public abstract void onCreateSubscription(Subscription subscription) throws ApiException;
 
-    public void removeHandler(SubscriptionHandler handler) {
-        handlers.remove(handler);
-    }
+    public abstract void onRemoveSubscription(Subscription subscription) throws ApiException;
 
-    public void notifyHandlers(SubscriptionEvent event) {
-        switch (event.getEventType()) {
-            case CREATE:
-                for (SubscriptionHandler handler : handlers) {
-                    handler.onCreateSubscription(event);
-                }
-                break;
-            case REMOVE:
-                for (SubscriptionHandler handler : handlers) {
-                    handler.onRemoveSubscription(event);
-                }
-                break;
-            case CHECK:
-                for (SubscriptionHandler handler : handlers) {
-                    handler.onCheckSubscription(event);
-                }
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("Given event type %s is not supported", event.getEventType()));
-        }
-    }
+    public abstract void onCheckSubscription(Subscription subscription) throws ApiException;
+
+    public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
+
+    public abstract Double tarifficate(Subscription subscription) throws ApiException;
 
     public String getServiceId() {
         return serviceId;

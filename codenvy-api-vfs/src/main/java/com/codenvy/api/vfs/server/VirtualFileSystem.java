@@ -75,6 +75,23 @@ public interface VirtualFileSystem {
                                                  PermissionDeniedException, VirtualFileSystemException;
 
     /**
+     * Clone tree of items to destination Virtual File System.
+     *
+     * @param id
+     *          id of source item
+     * @param vfsId
+     *          id of destination Virtual File System
+     * @param parentId
+     *          id of parent for new copy
+     * @throws ItemNotFoundException
+     *         if <code>id</code> or <code>parentId</code> does not exist
+     */
+    @POST
+    @Path("clone")
+    void clone(String id, String vfsId, String parentId) throws ItemNotFoundException, ConstraintException,
+                                                                PermissionDeniedException, VirtualFileSystemException;
+
+    /**
      * Create new File in specified folder.
      *
      * @param parentId
@@ -1055,4 +1072,5 @@ public interface VirtualFileSystem {
                                                                                       InvalidArgumentException, PermissionDeniedException,
                                                                                       IOException, VirtualFileSystemException;
     MountPoint getMountPoint();
+
 }

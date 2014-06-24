@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+
 /**
  * Base implementation of VirtualFileSystem.
  *
@@ -76,17 +77,20 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     protected final VirtualFileSystemUserContext userContext;
     protected final MountPoint                   mountPoint;
     protected final SearcherProvider             searcherProvider;
+    protected final VirtualFileSystemRegistry    vfsRegistry;
 
     public VirtualFileSystemImpl(String vfsId,
                                  URI baseUri,
                                  VirtualFileSystemUserContext userContext,
                                  MountPoint mountPoint,
-                                 SearcherProvider searcherProvider) {
+                                 SearcherProvider searcherProvider,
+                                 VirtualFileSystemRegistry vfsRegistry) {
         this.vfsId = vfsId;
         this.baseUri = baseUri;
         this.userContext = userContext;
         this.mountPoint = mountPoint;
         this.searcherProvider = searcherProvider;
+        this.vfsRegistry = vfsRegistry;
     }
 
     @Override
@@ -103,6 +107,41 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         }
         final VirtualFile virtualFileCopy = mountPoint.getVirtualFileById(id).copyTo(parent);
         return fromVirtualFile(virtualFileCopy, false, PropertyFilter.ALL_FILTER);
+    }
+
+    @Path("clone/{id}")
+    @Override
+    public void clone(@PathParam("id") String id, @QueryParam("vfsId") String vfsId, @QueryParam("parentId") String parentId)
+            throws VirtualFileSystemException {
+        final VirtualFile item = mountPoint.getVirtualFileById(id);
+        final VirtualFile destination = vfsRegistry.getProvider(vfsId).getMountPoint(true).getVirtualFileById(parentId);
+        if (!destination.isFolder()) {
+            throw new InvalidArgumentException("Unable to perform cloning. Item specified as parent is not a folder.");
+        }
+        doClone(item, destination);
+    }
+
+    private void doClone(VirtualFile item, VirtualFile destination) throws VirtualFileSystemException {
+        if (item.isFile()) {
+            InputStream input = null;
+            try {
+                input = item.getContent().getStream();
+                destination.createFile(item.getName(), item.getMediaType(), item.getContent().getStream());
+            } finally {
+                if (input != null) {
+                    try {
+                        input.close();
+                    } catch (IOException ignore) {
+                    }
+                }
+            }
+        } else {
+            final VirtualFile newFolder = destination.createFolder(item.getName());
+            final LazyIterator<VirtualFile> children = item.getChildren(VirtualFileFilter.ALL);
+            while (children.hasNext()) {
+                doClone(children.next(), newFolder);
+            }
+        }
     }
 
     @Path("file/{parentId}")

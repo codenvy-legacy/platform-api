@@ -11,6 +11,7 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
+import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
@@ -36,8 +37,9 @@ public class MemoryFileSystem extends VirtualFileSystemImpl {
                             String vfsId,
                             VirtualFileSystemUserContext userContext,
                             MemoryMountPoint memoryMountPoint,
-                            SearcherProvider searcherProvider) {
-        super(vfsId, baseUri, userContext, memoryMountPoint, searcherProvider);
+                            SearcherProvider searcherProvider,
+                            VirtualFileSystemRegistry vfsRegistry) {
+        super(vfsId, baseUri, userContext, memoryMountPoint, searcherProvider, vfsRegistry);
         this.baseUri = baseUri;
         this.vfsId = vfsId;
     }

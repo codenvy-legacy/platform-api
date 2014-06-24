@@ -57,14 +57,16 @@ public class ProjectEventTest {
                 return Collections.emptyList();
             }
         });
+
+        VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
         final MemoryFileSystemProvider memoryFileSystemProvider =
                 new MemoryFileSystemProvider("my_ws", eventService, new VirtualFileSystemUserContext() {
                     @Override
                     public VirtualFileSystemUser getVirtualFileSystemUser() {
                         return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
                     }
-                });
-        VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
+                }, vfsRegistry);
+
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new ProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
         ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));

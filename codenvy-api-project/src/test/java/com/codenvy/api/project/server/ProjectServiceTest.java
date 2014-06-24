@@ -117,7 +117,7 @@ public class ProjectServiceTest {
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new ProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
+        pm = new DefaultProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
         ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));

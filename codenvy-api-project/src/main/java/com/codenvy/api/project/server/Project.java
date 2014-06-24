@@ -203,14 +203,14 @@ public class Project {
         }
     }
 
-    public AccessControlEntry getPermissions(String principalName) throws VirtualFileSystemException {
+    public AccessControlEntry getPermissions(String principal) throws VirtualFileSystemException {
         final List<String> permissions = new LinkedList<>();
-        AccessControlEntry entry = getAccessControlEntryFor(principalName);
+        AccessControlEntry entry = getAccessControlEntryFor(principal);
         if (entry != null) {
             permissions.addAll(entry.getPermissions());
         }
         final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
-        final String entryJson = misc.getAccessControlEntry(principalName);
+        final String entryJson = misc.getAccessControlEntry(principal);
         if (entryJson != null) {
             entry = DtoFactory.getInstance().createDtoFromJson(entryJson, AccessControlEntry.class);
             permissions.addAll(entry.getPermissions());

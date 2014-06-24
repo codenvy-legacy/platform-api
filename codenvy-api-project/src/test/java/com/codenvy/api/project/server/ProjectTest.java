@@ -97,7 +97,7 @@ public class ProjectTest {
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new ProjectManager(ptr, ptdr, vpf, vfsRegistry, eventService);
+        pm = new DefaultProjectManager(ptr, ptdr, vpf, vfsRegistry, eventService);
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(".codenvy").createFile("project", null, null);
     }

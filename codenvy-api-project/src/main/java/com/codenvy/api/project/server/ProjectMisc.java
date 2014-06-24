@@ -16,7 +16,7 @@ import java.util.Set;
 /**
  * @author andrew00x
  */
-class ProjectMisc {
+public class ProjectMisc {
     static final String UPDATED = "updated";
     static final String CREATED = "created";
 
@@ -30,31 +30,31 @@ class ProjectMisc {
         this.data = new InternalMisc();
     }
 
-    long getModificationDate() {
+    public long getModificationDate() {
         return data.getLong(UPDATED, -1L);
     }
 
-    long getCreationDate() {
+    public long getCreationDate() {
         return data.getLong(CREATED, -1L);
     }
 
-    String getAccessControlEntry(String key) {
-        return data.get(key);
+    public String getAccessControlEntry(String principal) {
+        return data.get(principal);
     }
 
-    void setModificationDate(long date) {
+    public void setModificationDate(long date) {
         data.setLong(UPDATED, date);
     }
 
-    void setCreationDate(long date) {
+    public void setCreationDate(long date) {
         data.setLong(CREATED, date);
     }
 
-    void putAccessControlEntry(String userId, String entryJson) {
-        data.set(userId, entryJson);
+    public void putAccessControlEntry(String principal, String value) {
+        data.set(principal, value);
     }
 
-    boolean isUpdated() {
+    public boolean isUpdated() {
         return data.isUpdated();
     }
 

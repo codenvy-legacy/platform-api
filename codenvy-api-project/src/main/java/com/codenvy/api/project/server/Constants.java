@@ -26,7 +26,7 @@ public class Constants {
     public static final String LINK_REL_PROJECT_TYPES = "project types";
 
     public static final String CODENVY_FOLDER                     = ".codenvy";
-    public static final String CODENVY_PROJECT_FILE               = "project";
+    public static final String CODENVY_PROJECT_FILE               = "project.json";
     public static final String CODENVY_PROJECT_FILE_RELATIVE_PATH = CODENVY_FOLDER + "/" + CODENVY_PROJECT_FILE;
 
     private Constants() {

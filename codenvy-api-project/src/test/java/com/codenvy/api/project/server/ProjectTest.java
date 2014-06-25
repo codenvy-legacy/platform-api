@@ -99,7 +99,7 @@ public class ProjectTest {
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new DefaultProjectManager(ptr, ptdr, vpf, vfsRegistry, eventService);
         VirtualFile myVfRoot = mmp.getRoot();
-        myVfRoot.createFolder("my_project").createFolder(".codenvy").createFile("project", null, null);
+        myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_FOLDER).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
     }
 
     @Test
@@ -114,8 +114,8 @@ public class ProjectTest {
         VirtualFile myProjectVirtualFile = pm.getProject("my_ws", "my_project").getBaseFolder().getVirtualFile();
         for (String name : moduleNames) {
             myProjectVirtualFile.createFolder(name)
-                                .createFolder(".codenvy")
-                                .createFile("project", null, null);
+                                .createFolder(Constants.CODENVY_FOLDER)
+                                .createFile(Constants.CODENVY_PROJECT_FILE, null, null);
         }
         List<Project> modules = pm.getProject("my_ws", "my_project").getModules();
         List<String> _moduleNames = new ArrayList<>(modules.size());
@@ -135,7 +135,7 @@ public class ProjectTest {
             String name = names.get(i);
             VirtualFile f = myProjectVirtualFile.createFolder(name);
             if ((i % 2) == 0) {
-                f.createFolder(".codenvy").createFile("project", null, null);
+                f.createFolder(Constants.CODENVY_FOLDER).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
             }
         }
         List<Project> modules = pm.getProject("my_ws", "my_project").getModules();

@@ -22,11 +22,11 @@ public class ProjectMisc {
 
     private final InternalMisc data;
 
-    ProjectMisc(Properties properties) {
+    public ProjectMisc(Properties properties) {
         this.data = new InternalMisc(properties);
     }
 
-    ProjectMisc() {
+    public ProjectMisc() {
         this.data = new InternalMisc();
     }
 

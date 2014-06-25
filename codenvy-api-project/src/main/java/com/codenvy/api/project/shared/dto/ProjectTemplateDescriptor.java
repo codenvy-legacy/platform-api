@@ -15,6 +15,15 @@ import com.codenvy.dto.shared.DTO;
 /** @author Vitaly Parfonov */
 @DTO
 public interface ProjectTemplateDescriptor {
+
+    /** Get category of project template. */
+    String getCategory();
+
+    /** Set category of project template. */
+    void setCategory(String category);
+
+    ProjectTemplateDescriptor withCategory(String category);
+
     ImportSourceDescriptor getSources();
 
     void setSources(ImportSourceDescriptor sources);

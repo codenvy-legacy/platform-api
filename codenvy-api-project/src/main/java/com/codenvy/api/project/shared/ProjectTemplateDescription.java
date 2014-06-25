@@ -17,17 +17,35 @@ package com.codenvy.api.project.shared;
  */
 public class ProjectTemplateDescription {
 
+    public final static String defaultCategory = "Samples";
+
+    private final String category;
     private final String importerType;
-    private final String title;
+    private final String displayName;
     private final String description;
     private final String location;
 
-    public ProjectTemplateDescription(String importerType, String title, String description, String location) {
+    /**
+     * Create new ProjectTemplateDescription with default category eq @see defaultCategory    
+     *
+     * @param importerType importer name like git, zip
+     * @param displayName
+     * @param description
+     * @param location
+     */
+    public ProjectTemplateDescription(String importerType, String displayName, String description, String location) {
+        this(defaultCategory, importerType, displayName, description, location);
+
+    }
+
+    public ProjectTemplateDescription(String category, String importerType, String displayName, String description, String location) {
+        this.category = category;
         this.importerType = importerType;
-        this.title = title;
+        this.displayName = displayName;
         this.description = description;
         this.location = location;
     }
+
 
     /** Get type of "importer" that can recognize sources template sources located at specified {@code location}. */
     public String getImporterType() {
@@ -36,7 +54,7 @@ public class ProjectTemplateDescription {
 
     /** @return project template display name */
     public String getDisplayName() {
-        return title;
+        return displayName;
     }
 
     /** @return project template location, e.g. path to the zip */
@@ -49,11 +67,16 @@ public class ProjectTemplateDescription {
         return description;
     }
 
+    public String getCategory() {
+        return category;
+    }
+
     @Override
     public String toString() {
         return "ProjectTemplateDescription{" +
-               "importerType='" + importerType + '\'' +
-               ", title='" + title + '\'' +
+               "category='" + category + '\'' +
+               ", importerType='" + importerType + '\'' +
+               ", displayName='" + displayName + '\'' +
                ", description='" + description + '\'' +
                ", location='" + location + '\'' +
                '}';

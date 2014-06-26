@@ -18,7 +18,7 @@ import com.codenvy.api.core.notification.EventOrigin;
 @EventOrigin("vfs")
 public class UpdateContentEvent extends VirtualFileEvent {
     public UpdateContentEvent(String workspaceId, String path) {
-        super(workspaceId, path, ChangeType.CONTENT_UPDATED);
+        super(workspaceId, path, ChangeType.CONTENT_UPDATED, false);
     }
 
     public UpdateContentEvent() {

@@ -19,8 +19,8 @@ import com.codenvy.api.core.notification.EventOrigin;
 public class MoveEvent extends VirtualFileEvent {
     private String oldPath;
 
-    public MoveEvent(String workspaceId, String path, String oldPath) {
-        super(workspaceId, path, ChangeType.MOVED);
+    public MoveEvent(String workspaceId, String path, String oldPath, boolean folder) {
+        super(workspaceId, path, ChangeType.MOVED, folder);
         this.oldPath = oldPath;
     }
 

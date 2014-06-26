@@ -114,6 +114,7 @@ public class ProjectEventTest {
         pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", "test".getBytes(), "text/plain");
         Assert.assertEquals(events.size(), 1);
         Assert.assertEquals(events.get(0).getType(), ProjectEvent.EventType.CREATED);
+        Assert.assertFalse(events.get(0).isFolder());
         Assert.assertEquals(events.get(0).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(0).getProject(), "my_project");
         Assert.assertEquals(events.get(0).getPath(), "test.txt");
@@ -131,6 +132,7 @@ public class ProjectEventTest {
         pm.getProject("my_ws", "my_project").getBaseFolder().createFolder("a/b/c");
         Assert.assertEquals(events.size(), 1);
         Assert.assertEquals(events.get(0).getType(), ProjectEvent.EventType.CREATED);
+        Assert.assertTrue(events.get(0).isFolder());
         Assert.assertEquals(events.get(0).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(0).getProject(), "my_project");
         Assert.assertEquals(events.get(0).getPath(), "a/b/c");
@@ -149,6 +151,7 @@ public class ProjectEventTest {
         file.updateContent("new content".getBytes());
         Assert.assertEquals(events.size(), 1);
         Assert.assertEquals(events.get(0).getType(), ProjectEvent.EventType.UPDATED);
+        Assert.assertFalse(events.get(0).isFolder());
         Assert.assertEquals(events.get(0).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(0).getProject(), "my_project");
         Assert.assertEquals(events.get(0).getPath(), "test.txt");
@@ -167,6 +170,7 @@ public class ProjectEventTest {
         file.remove();
         Assert.assertEquals(events.size(), 1);
         Assert.assertEquals(events.get(0).getType(), ProjectEvent.EventType.DELETED);
+        Assert.assertFalse(events.get(0).isFolder());
         Assert.assertEquals(events.get(0).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(0).getProject(), "my_project");
         Assert.assertEquals(events.get(0).getPath(), "test.txt");
@@ -186,10 +190,12 @@ public class ProjectEventTest {
         file.moveTo(folder.getPath());
         Assert.assertEquals(events.size(), 2);
         Assert.assertEquals(events.get(0).getType(), ProjectEvent.EventType.CREATED);
+        Assert.assertFalse(events.get(0).isFolder());
         Assert.assertEquals(events.get(0).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(0).getProject(), "my_project");
         Assert.assertEquals(events.get(0).getPath(), "a/b/c/test.txt");
         Assert.assertEquals(events.get(1).getType(), ProjectEvent.EventType.DELETED);
+        Assert.assertFalse(events.get(0).isFolder());
         Assert.assertEquals(events.get(1).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(1).getProject(), "my_project");
         Assert.assertEquals(events.get(1).getPath(), "test.txt");
@@ -208,10 +214,12 @@ public class ProjectEventTest {
         file.rename("_test.txt");
         Assert.assertEquals(events.size(), 2);
         Assert.assertEquals(events.get(0).getType(), ProjectEvent.EventType.CREATED);
+        Assert.assertFalse(events.get(0).isFolder());
         Assert.assertEquals(events.get(0).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(0).getProject(), "my_project");
         Assert.assertEquals(events.get(0).getPath(), "_test.txt");
         Assert.assertEquals(events.get(1).getType(), ProjectEvent.EventType.DELETED);
+        Assert.assertFalse(events.get(0).isFolder());
         Assert.assertEquals(events.get(1).getWorkspace(), "my_ws");
         Assert.assertEquals(events.get(1).getProject(), "my_project");
         Assert.assertEquals(events.get(1).getPath(), "test.txt");

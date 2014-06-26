@@ -279,7 +279,7 @@ public class MemoryVirtualFile implements VirtualFile {
         }
         permissionsMap.putAll(update);
         lastModificationDate = System.currentTimeMillis();
-        mountPoint.getEventService().publish(new UpdateACLEvent(mountPoint.getWorkspaceId(), getPath()));
+        mountPoint.getEventService().publish(new UpdateACLEvent(mountPoint.getWorkspaceId(), getPath(), isFolder()));
         return this;
     }
 
@@ -379,7 +379,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         lastModificationDate = System.currentTimeMillis();
-        mountPoint.getEventService().publish(new UpdatePropertiesEvent(mountPoint.getWorkspaceId(), getPath()));
+        mountPoint.getEventService().publish(new UpdatePropertiesEvent(mountPoint.getWorkspaceId(), getPath(), isFolder()));
         return this;
     }
 
@@ -612,7 +612,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), copy.getPath()));
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), copy.getPath(), copy.isFolder()));
         return copy;
     }
 
@@ -658,7 +658,8 @@ public class MemoryVirtualFile implements VirtualFile {
                     String.format("Unable move item '%s' to %s. Operation not permitted. ", myPath, newParentPath));
         }
 
-        if (isFolder()) {
+        final boolean folder = isFolder();
+        if (folder) {
             // Be sure destination folder is not child (direct or not) of moved item.
             if (newParentPath.startsWith(myPath)) {
                 throw new InvalidArgumentException(
@@ -705,7 +706,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish(new MoveEvent(mountPoint.getWorkspaceId(), getPath(), myPath));
+        mountPoint.getEventService().publish(new MoveEvent(mountPoint.getWorkspaceId(), getPath(), myPath, folder));
         return this;
     }
 
@@ -720,7 +721,8 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new PermissionDeniedException(String.format("Unable delete item '%s'. Operation not permitted. ", getPath()));
         }
         final String myPath = getPath();
-        if (isFolder()) {
+        final boolean folder = isFolder();
+        if (folder) {
             accept(new VirtualFileVisitor() {
                 @Override
                 public void visit(VirtualFile virtualFile) throws VirtualFileSystemException {
@@ -769,7 +771,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish(new RenameEvent(mountPoint.getWorkspaceId(), getPath(), myPath));
+        mountPoint.getEventService().publish(new RenameEvent(mountPoint.getWorkspaceId(), getPath(), myPath, folder));
         return this;
     }
 
@@ -783,8 +785,8 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new PermissionDeniedException(String.format("Unable delete item '%s'. Operation not permitted. ", getPath()));
         }
         final String myPath = getPath();
-        final boolean isFolder = isFolder();
-        if (isFolder()) {
+        final boolean folder = isFolder();
+        if (folder) {
             final List<VirtualFile> toDelete = new ArrayList<>();
             accept(new VirtualFileVisitor() {
                 @Override
@@ -829,7 +831,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish(new DeleteEvent(mountPoint.getWorkspaceId(), myPath));
+        mountPoint.getEventService().publish(new DeleteEvent(mountPoint.getWorkspaceId(), myPath, folder));
     }
 
     @Override
@@ -1043,7 +1045,7 @@ public class MemoryVirtualFile implements VirtualFile {
                 LOG.error(e.getMessage(), e);
             }
         }
-        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFile.getPath()));
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFile.getPath(), false));
         return newFile;
     }
 
@@ -1082,7 +1084,7 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         mountPoint.putItem(newFolder);
-        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFolder.getPath()));
+        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), newFolder.getPath(), true));
         return newFolder;
     }
 

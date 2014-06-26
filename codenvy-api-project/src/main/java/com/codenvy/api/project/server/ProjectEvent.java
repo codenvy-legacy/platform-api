@@ -39,12 +39,14 @@ public class ProjectEvent {
     private String    workspace;
     private String    project;
     private String    path;
+    private boolean   folder;
 
-    public ProjectEvent(EventType type, String workspace, String project, String path) {
+    public ProjectEvent(EventType type, String workspace, String project, String path, boolean folder) {
         this.type = type;
         this.workspace = workspace;
         this.project = project;
         this.path = path;
+        this.folder = folder;
     }
 
     public ProjectEvent() {
@@ -82,6 +84,14 @@ public class ProjectEvent {
         this.path = path;
     }
 
+    public boolean isFolder() {
+        return folder;
+    }
+
+    public void setFolder(boolean folder) {
+        this.folder = folder;
+    }
+
     @Override
     public String toString() {
         return "ProjectEvent{" +
@@ -89,6 +99,7 @@ public class ProjectEvent {
                ", workspace='" + workspace + '\'' +
                ", project='" + project + '\'' +
                ", path='" + path + '\'' +
+               ", folder='" + folder + '\'' +
                '}';
     }
 }

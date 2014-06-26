@@ -17,8 +17,8 @@ import com.codenvy.api.core.notification.EventOrigin;
  */
 @EventOrigin("vfs")
 public class CreateEvent extends VirtualFileEvent {
-    public CreateEvent(String workspaceId, String path) {
-        super(workspaceId, path, ChangeType.CREATED);
+    public CreateEvent(String workspaceId, String path, boolean folder) {
+        super(workspaceId, path, ChangeType.CREATED, folder);
     }
 
     public CreateEvent() {

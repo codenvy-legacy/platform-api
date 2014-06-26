@@ -111,6 +111,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CREATED, events.get(0).getType());
+        assertFalse(events.get(0).isFolder());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFolderPath + '/' + name, events.get(0).getPath());
     }
@@ -122,6 +123,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CREATED, events.get(0).getType());
+        assertTrue(events.get(0).isFolder());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFolderPath + '/' + name, events.get(0).getPath());
     }
@@ -132,6 +134,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CREATED, events.get(0).getType());
+        assertFalse(events.get(0).isFolder());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(destinationFolderPath + "/file", events.get(0).getPath());
     }
@@ -142,6 +145,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.MOVED, events.get(0).getType());
+        assertFalse(events.get(0).isFolder());
         assertEquals(destinationFolderPath + "/file", events.get(0).getPath());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFilePath, ((MoveEvent)events.get(0)).getOldPath());
@@ -158,6 +162,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(204, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.CONTENT_UPDATED, events.get(0).getType());
+        assertFalse(events.get(0).isFolder());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFilePath, events.get(0).getPath());
     }
@@ -173,6 +178,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.PROPERTIES_UPDATED, events.get(0).getType());
+        assertFalse(events.get(0).isFolder());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFilePath, events.get(0).getPath());
     }
@@ -183,6 +189,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(204, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.DELETED, events.get(0).getType());
+        assertFalse(events.get(0).isFolder());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFilePath, events.get(0).getPath());
     }
@@ -193,6 +200,7 @@ public class EventsTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         assertEquals(1, events.size());
         assertEquals(VirtualFileEvent.ChangeType.RENAMED, events.get(0).getType());
+        assertFalse(events.get(0).isFolder());
         assertEquals(testFolderPath + '/' + "_FILE_NEW_NAME_", events.get(0).getPath());
         assertEquals(MY_WORKSPACE_ID, events.get(0).getWorkspaceId());
         assertEquals(testFilePath, ((RenameEvent)events.get(0)).getOldPath());

@@ -42,11 +42,13 @@ public abstract class VirtualFileEvent {
     private String     workspaceId;
     private String     path;
     private ChangeType type;
+    private boolean    folder;
 
-    protected VirtualFileEvent(String workspaceId, String path, ChangeType type) {
+    protected VirtualFileEvent(String workspaceId, String path, ChangeType type, boolean folder) {
         this.workspaceId = workspaceId;
         this.path = path;
         this.type = type;
+        this.folder = folder;
     }
 
     protected VirtualFileEvent() {
@@ -74,5 +76,13 @@ public abstract class VirtualFileEvent {
 
     public void setType(ChangeType type) {
         this.type = type;
+    }
+
+    public boolean isFolder() {
+        return folder;
+    }
+
+    public void setFolder(boolean folder) {
+        this.folder = folder;
     }
 }

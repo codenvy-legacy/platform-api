@@ -89,19 +89,19 @@ public final class ProjectEventService {
                 if (eventPath.startsWith(projectPath)) {
                     if (eventType == VirtualFileEvent.ChangeType.CONTENT_UPDATED) {
                         listener.onEvent(new ProjectEvent(ProjectEvent.EventType.UPDATED, workspace, project,
-                                                          eventPath.substring(projectPath.length())));
+                                                          eventPath.substring(projectPath.length()), event.isFolder()));
                     } else if (eventType == VirtualFileEvent.ChangeType.CREATED) {
                         listener.onEvent(new ProjectEvent(ProjectEvent.EventType.CREATED, workspace, project,
-                                                          eventPath.substring(projectPath.length())));
+                                                          eventPath.substring(projectPath.length()), event.isFolder()));
                     } else if (eventType == VirtualFileEvent.ChangeType.DELETED) {
                         listener.onEvent(new ProjectEvent(ProjectEvent.EventType.DELETED, workspace, project,
-                                                          eventPath.substring(projectPath.length())));
+                                                          eventPath.substring(projectPath.length()), event.isFolder()));
                     } else if (eventType == VirtualFileEvent.ChangeType.MOVED) {
                         listener.onEvent(new ProjectEvent(ProjectEvent.EventType.CREATED, workspace, project,
-                                                          eventPath.substring(projectPath.length())));
+                                                          eventPath.substring(projectPath.length()), event.isFolder()));
                     } else if (eventType == VirtualFileEvent.ChangeType.RENAMED) {
                         listener.onEvent(new ProjectEvent(ProjectEvent.EventType.CREATED, workspace, project,
-                                                          eventPath.substring(projectPath.length())));
+                                                          eventPath.substring(projectPath.length()), event.isFolder()));
                     }
                 }
                 String eventOldPath = null;
@@ -113,7 +113,7 @@ public final class ProjectEventService {
                 }
                 if (eventOldPath != null && eventOldPath.startsWith(projectPath)) {
                     listener.onEvent(new ProjectEvent(ProjectEvent.EventType.DELETED, workspace, project,
-                                                      eventOldPath.substring(projectPath.length())));
+                                                      eventOldPath.substring(projectPath.length()), event.isFolder()));
                 }
             }
         }

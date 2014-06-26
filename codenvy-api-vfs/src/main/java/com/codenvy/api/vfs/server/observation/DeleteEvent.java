@@ -17,8 +17,8 @@ import com.codenvy.api.core.notification.EventOrigin;
  */
 @EventOrigin("vfs")
 public class DeleteEvent extends VirtualFileEvent {
-    public DeleteEvent(String workspaceId, String path) {
-        super(workspaceId, path, ChangeType.DELETED);
+    public DeleteEvent(String workspaceId, String path, boolean folder) {
+        super(workspaceId, path, ChangeType.DELETED, folder);
     }
 
     public DeleteEvent() {

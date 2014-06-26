@@ -17,8 +17,8 @@ import com.codenvy.api.core.notification.EventOrigin;
  */
 @EventOrigin("vfs")
 public class UpdateACLEvent extends VirtualFileEvent {
-    public UpdateACLEvent(String workspaceId, String path) {
-        super(workspaceId, path, ChangeType.ACL_UPDATED);
+    public UpdateACLEvent(String workspaceId, String path, boolean folder) {
+        super(workspaceId, path, ChangeType.ACL_UPDATED, folder);
     }
 
     public UpdateACLEvent() {

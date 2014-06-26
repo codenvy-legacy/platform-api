@@ -17,8 +17,8 @@ import com.codenvy.api.core.notification.EventOrigin;
  */
 @EventOrigin("vfs")
 public class UpdatePropertiesEvent extends VirtualFileEvent {
-    public UpdatePropertiesEvent(String workspaceId, String path) {
-        super(workspaceId, path, ChangeType.PROPERTIES_UPDATED);
+    public UpdatePropertiesEvent(String workspaceId, String path, boolean folder) {
+        super(workspaceId, path, ChangeType.PROPERTIES_UPDATED, folder);
     }
 
     public UpdatePropertiesEvent() {

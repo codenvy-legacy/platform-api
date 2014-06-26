@@ -19,8 +19,8 @@ import com.codenvy.api.core.notification.EventOrigin;
 public class RenameEvent extends VirtualFileEvent {
     private String oldPath;
 
-    public RenameEvent(String workspaceId, String path, String oldPath) {
-        super(workspaceId, path, ChangeType.RENAMED);
+    public RenameEvent(String workspaceId, String path, String oldPath, boolean folder) {
+        super(workspaceId, path, ChangeType.RENAMED, folder);
         this.oldPath = oldPath;
     }
 

@@ -14,6 +14,7 @@ import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.shared.dto.SubscriptionPayment;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -165,5 +166,30 @@ public interface AccountDao {
      *         user identifier to search
      * @return list of accounts, or empty list if no accounts found
      */
-    public List<AccountMembership> getByMember(String userId) throws NotFoundException, ServerException;
+    List<AccountMembership> getByMember(String userId) throws NotFoundException, ServerException;
+
+    /**
+     * Add new subscription payment
+     *
+     * @param payment
+     *         payment to add
+     */
+    void addSubscriptionPayment(SubscriptionPayment payment) throws NotFoundException, ServerException, ConflictException;
+
+    /**
+     * Gets payment for certain subscription id
+     *
+     * @param subscriptionId
+     *         subscription id
+     * @return payment related to given subscription id
+     */
+    List<SubscriptionPayment> getSubscriptionPayments(String subscriptionId) throws NotFoundException, ServerException;
+
+    /**
+     * Remove subscription payment by id
+     *
+     * @param transactionId
+     *         id of transaction
+     */
+    void removeSubscriptionPayment(String transactionId) throws NotFoundException, ServerException;
 }

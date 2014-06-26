@@ -83,12 +83,16 @@ public interface VirtualFileSystem {
      *          id of destination Virtual File System
      * @param parentId
      *          id of parent for new copy
+     * @param name
+     *          new name for root item
      * @throws ItemNotFoundException
      *         if <code>id</code> or <code>parentId</code> does not exist
+     * @throws VirtualFileSystemException
+     *         if any other errors occur
      */
     @POST
     @Path("clone")
-    void clone(String id, String vfsId, String parentId) throws ItemNotFoundException, ConstraintException,
+    void clone(String id, String vfsId, String parentId, String name) throws ItemNotFoundException, ConstraintException,
                                                                 PermissionDeniedException, VirtualFileSystemException;
 
     /**

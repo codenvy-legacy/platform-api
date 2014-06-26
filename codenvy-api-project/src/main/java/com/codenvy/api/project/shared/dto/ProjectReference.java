@@ -27,6 +27,14 @@ public interface ProjectReference {
 
     ProjectReference withName(String name);
 
+    /** Get unique ID of project */
+    String getId();
+
+    /** Set unique ID of project */
+    void setId(String id);
+
+    ProjectReference withId(String id);
+
     /** Get unique ID of type of project. */
     String getProjectTypeId();
 

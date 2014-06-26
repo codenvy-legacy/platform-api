@@ -111,22 +111,22 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     @Path("clone/{id}")
     @Override
-    public void clone(@PathParam("id") String id, @QueryParam("vfsId") String vfsId, @QueryParam("parentId") String parentId)
+    public void clone(@PathParam("id") String id, @QueryParam("vfsId") String vfsId, @QueryParam("parentId") String parentId, @QueryParam("name") String name)
             throws VirtualFileSystemException {
         final VirtualFile item = mountPoint.getVirtualFileById(id);
         final VirtualFile destination = vfsRegistry.getProvider(vfsId).getMountPoint(true).getVirtualFileById(parentId);
         if (!destination.isFolder()) {
             throw new InvalidArgumentException("Unable to perform cloning. Item specified as parent is not a folder.");
         }
-        doClone(item, destination);
+        doClone(item, destination, name);
     }
 
-    private void doClone(VirtualFile item, VirtualFile destination) throws VirtualFileSystemException {
+    private void doClone(VirtualFile item, VirtualFile destination, String name) throws VirtualFileSystemException {
         if (item.isFile()) {
             InputStream input = null;
             try {
                 input = item.getContent().getStream();
-                destination.createFile(item.getName(), item.getMediaType(), input);
+                destination.createFile(name != null ? name : item.getName(), item.getMediaType(), input);
             } finally {
                 if (input != null) {
                     try {
@@ -136,10 +136,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 }
             }
         } else {
-            final VirtualFile newFolder = destination.createFolder(item.getName());
+            final VirtualFile newFolder = destination.createFolder(name != null ? name : item.getName());
             final LazyIterator<VirtualFile> children = item.getChildren(VirtualFileFilter.ALL);
             while (children.hasNext()) {
-                doClone(children.next(), newFolder);
+                doClone(children.next(), newFolder, null);
             }
         }
     }

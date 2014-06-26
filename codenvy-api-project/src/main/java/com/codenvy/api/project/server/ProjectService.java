@@ -107,9 +107,12 @@ public class ProjectService extends Service {
             final ProjectDescription description = project.getDescription();
             final ProjectType type = description.getProjectType();
             final String name = project.getName();
+            final String id = project.getId();
             final String path = project.getBaseFolder().getPath();
+
             projectRefs.add(dtoFactory.createDto(ProjectReference.class)
                                       .withName(name)
+                                      .withId(id)
                                       .withWorkspaceId(workspace)
                                       .withWorkspaceName(wsName)
                                       .withProjectTypeId(type.getId())
@@ -118,9 +121,11 @@ public class ProjectService extends Service {
                                       .withCreationDate(project.getCreationDate())
                                       .withModificationDate(project.getModificationDate())
                                       .withDescription(description.getDescription())
-                                      .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspace, name).toString())
+                                      .withUrl(uriBuilder.clone().path(getClass(), "getProject")
+                                                         .build(workspace, name).toString())
                                       .withIdeUrl(wsName != null
-                                                  ? uriBuilder.clone().replacePath("ide").path(wsName).path(path).build().toString()
+                                                  ? uriBuilder.clone().replacePath("ide").path(wsName).path(path)
+                                                              .build().toString()
                                                   : null));
         }
         return projectRefs;

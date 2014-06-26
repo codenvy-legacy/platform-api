@@ -49,6 +49,10 @@ public class Project {
         return baseFolder.getName();
     }
 
+    public String getId() {
+        return baseFolder.getId();
+    }
+
     public FolderEntry getBaseFolder() {
         return baseFolder;
     }

@@ -48,6 +48,14 @@ public abstract class AbstractVirtualFileEntry {
         }
     }
 
+    public String getId() {
+        try {
+            return virtualFile.getId();
+        } catch (VirtualFileSystemException e) {
+            throw new FileSystemLevelException(e.getMessage(), e);
+        }
+    }
+
     public String getPath() {
         try {
             return virtualFile.getPath();

@@ -54,7 +54,7 @@ public class CloneTest extends MemoryFileSystemTest {
 
         // clone it to 'next-ws'
         VirtualFileSystem sourceVFS = fileSystemProvider.newInstance(null);
-        sourceVFS.clone(sourceFile.getId(), DESTINATION_WORKSPACE_ID, destMountPoint.getRoot().getId());
+        sourceVFS.clone(sourceFile.getId(), DESTINATION_WORKSPACE_ID, destMountPoint.getRoot().getId(), null);
 
         // check the result
         try {
@@ -92,7 +92,7 @@ public class CloneTest extends MemoryFileSystemTest {
 
         // clone it to 'next-ws'
         VirtualFileSystem sourceVFS = fileSystemProvider.newInstance(null);
-        sourceVFS.clone(folder1.getId(), DESTINATION_WORKSPACE_ID, destMountPoint.getRoot().getId());
+        sourceVFS.clone(folder1.getId(), DESTINATION_WORKSPACE_ID, destMountPoint.getRoot().getId(), null);
 
         // check the result
         try {

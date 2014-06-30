@@ -12,29 +12,49 @@ package com.codenvy.api.factory.internal;
 
 import com.codenvy.api.project.server.ProjectProperties;
 import com.codenvy.api.project.server.ProjectProperty;
-import com.google.inject.name.Named;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-@Singleton
+import static java.nio.file.Files.exists;
+
+
+/**
+ * Helper for C2 to C3 project conversion. Maps C2 project type to appropriate
+ * C3 project properties object, or produce docker file for unsupported types.
+ *
+ */
 public class ProjectTypeHelper {
 
-    private final String TEMPLATE_PHP;
+    private static String TEMPLATE_PHP;
+    private static String TEMPLATE_JS;
+    private static String TEMPLATE_SPRING;
+    private static String TEMPLATE_ROR;
+    private static String TEMPLATE_PY;
+    private static String TEMPLATE_NJS;
 
-    @Inject
-    public  ProjectTypeHelper (@Nullable @Named("runner.php.template") String templatePHP) {
-        this.TEMPLATE_PHP = templatePHP;
+    static {
+        try {
+            String conf = System.getProperty("codenvy.local.conf.dir");
+            TEMPLATE_PHP     = readFile(conf + "php.template", Charset.defaultCharset());
+            TEMPLATE_JS      = readFile(conf + "js.template", Charset.defaultCharset());
+            TEMPLATE_SPRING  = readFile(conf + "spring.template", Charset.defaultCharset());
+            TEMPLATE_ROR     = readFile(conf + "ror.template", Charset.defaultCharset());
+            TEMPLATE_PY      = readFile(conf + "python.template", Charset.defaultCharset());
+            TEMPLATE_NJS     = readFile(conf + "nodejs.template", Charset.defaultCharset());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static final String PROJECT_TYPE_MAVEN = "maven";
     private static final String PROJECT_TYPE_UNKNOWN = "unknown";
 
-    public  ProjectProperties projectTypeToDescription(String projectType) {
+    public static  ProjectProperties projectTypeToDescription(String projectType) {
 
         ProjectProperties projectDescription = new ProjectProperties();
         List<ProjectProperty> outputProps = new ArrayList<>();
@@ -89,37 +109,40 @@ public class ProjectTypeHelper {
         return projectDescription;
     }
 
-    public String getRunnerTemplate(String projectType) {
+    public static String getRunnerTemplate(String projectType) {
 
-        String template = null;
         switch (projectType) {
             case "PHP": {
-                template = TEMPLATE_PHP;//example
-                break;
+                return TEMPLATE_PHP;
             }
             case "JavaScript": {
-                //template = TEMPLATE_JS;//example
-                break;
+                return TEMPLATE_JS;
             }
             case "Spring": {
-                //template = TEMPLATE_SPRING;//example
-                break;
+                return TEMPLATE_SPRING;
             }
             case "Rails": {
-                //template = TEMPLATE_ROR;//example
-                break;
+                return TEMPLATE_ROR;
             }
             case "Python": {
-                //template = TEMPLATE_PY;//example
-                break;
+                return TEMPLATE_PY;
             }
             case "nodejs": {
-                //template = TEMPLATE_NJS;//example
-                break;
+                return TEMPLATE_NJS;
             }
             default: {
+                return null;
             }
         }
-        return template;
+    }
+
+    private static String readFile(String path, Charset encoding) throws IOException
+    {
+        if (exists(Paths.get(path))) {
+            byte[] encoded = Files.readAllBytes(Paths.get(path));
+            return new String(encoded, encoding);
+        } else {
+            return null;
+        }
     }
 }

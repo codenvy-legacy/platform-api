@@ -29,6 +29,7 @@ import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
@@ -61,6 +62,8 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,6 +103,9 @@ public class RunQueue {
     private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
 
     private static final int DEFAULT_MAX_MEMORY_SIZE = 512;
+
+    private static final int APPLICATION_CHECK_URL_TIMEOUT = 2000;
+    private static final int APPLICATION_CHECK_URL_COUNT   = 30;
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
@@ -632,7 +638,18 @@ public class RunQueue {
                             case ERROR:
                                 bm.setChannel(String.format("runner:status:%d", id));
                                 try {
-                                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                                    final ApplicationProcessDescriptor descriptor = getTask(id).getDescriptor();
+                                    bm.setBody(DtoFactory.getInstance().toJson(descriptor));
+                                    if (event.getType() == RunnerEvent.EventType.STARTED) {
+                                        final List<Link> links = descriptor.getLinks();
+                                        final Link appLink = getLink(Constants.LINK_REL_WEB_URL, links);
+                                        if (appLink != null) {
+                                            executor.execute(new ApplicationUrlChecker(id,
+                                                                                       new URL(appLink.getHref()),
+                                                                                       APPLICATION_CHECK_URL_TIMEOUT,
+                                                                                       APPLICATION_CHECK_URL_COUNT));
+                                        }
+                                    }
                                 } catch (RunnerException re) {
                                     bm.setType(ChannelBroadcastMessage.Type.ERROR);
                                     bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));
@@ -659,8 +676,9 @@ public class RunQueue {
                 public void onEvent(RunnerEvent event) {
                     try {
                         final long id = event.getProcessId();
-                        final RunRequest request = getTask(id).getRequest();
-                        final String analyticsID = getTask(id).getCreationTime() + "-" + id;
+                        final RunQueueTask task = getTask(id);
+                        final RunRequest request = task.getRequest();
+                        final String analyticsID = task.getCreationTime() + "-" + id;
                         final String project = event.getProject();
                         final String workspace = request.getWorkspace();
                         final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
@@ -940,6 +958,60 @@ public class RunQueue {
             return user.getToken();
         }
         return null;
+    }
+
+    private static class ApplicationUrlChecker implements Runnable {
+        final long taskId;
+        final URL  url;
+        final int  healthCheckerTimeout;
+        final int  healthCheckAttempts;
+
+        ApplicationUrlChecker(long taskId, URL url, int healthCheckerTimeout, int healthCheckAttempts) {
+            this.taskId = taskId;
+            this.url = url;
+            this.healthCheckerTimeout = healthCheckerTimeout;
+            this.healthCheckAttempts = healthCheckAttempts;
+        }
+
+        @Override
+        public void run() {
+            boolean ok = false;
+            for (int i = 0; !ok && i < healthCheckAttempts; i++) {
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
+                try {
+                    Thread.sleep(healthCheckerTimeout);
+                } catch (InterruptedException e) {
+                    return;
+                }
+                HttpURLConnection conn = null;
+                try {
+                    conn = (HttpURLConnection)url.openConnection();
+                    conn.setRequestMethod("HEAD");
+                    conn.setConnectTimeout(1000);
+                    conn.setReadTimeout(1000);
+                    conn.getResponseCode();
+                    if (200 == conn.getResponseCode()) {
+                        ok = true;
+                        LOG.debug("Application URL '{}' - OK", url);
+                        final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                        bm.setChannel(String.format("runner:app_health:%d", taskId));
+                        bm.setBody(String.format("{\"url\":%s,\"status\":\"%s\"}", JsonUtils.getJsonString(url.toString()), "OK"));
+                        try {
+                            WSConnectionContext.sendMessage(bm);
+                        } catch (Exception e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                } catch (IOException ignored) {
+                } finally {
+                    if (conn != null) {
+                        conn.disconnect();
+                    }
+                }
+            }
+        }
     }
 
     private static class RunFutureTask extends FutureTask<RemoteRunnerProcess> {

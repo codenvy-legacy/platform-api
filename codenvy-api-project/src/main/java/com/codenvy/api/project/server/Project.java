@@ -264,10 +264,10 @@ public class Project {
         final DtoFactory dto = DtoFactory.getInstance();
         //split entries on basic and misc
         for (AccessControlEntry entry : acl) {
-            requiredNotNull(entry, "Permissions");
-            requiredNotNull(entry.getPrincipal(), "Principal");
-            requiredNotNull(entry.getPrincipal().getName(), "Principal name");
-            requiredNotNull(entry.getPrincipal().getType(), "Principal type");
+            requireNotNull(entry, "Permissions");
+            requireNotNull(entry.getPrincipal(), "Principal");
+            requireNotNull(entry.getPrincipal().getName(), "Principal name");
+            requireNotNull(entry.getPrincipal().getType(), "Principal type");
             final Set<String> customPermissions = new HashSet<>();
             final Set<String> basicPermissions = new HashSet<>();
             for (String permission : entry.getPermissions()) {
@@ -334,7 +334,7 @@ public class Project {
      * @throws ServerException
      *         when object reference is {@code null}
      */
-    private void requiredNotNull(Object object, String name) throws ServerException {
+    private void requireNotNull(Object object, String name) throws ServerException {
         if (object == null) {
             throw new ServerException(name + " should not be a null");
         }

@@ -43,7 +43,7 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // File content.
         String fileContent = "test upload file";
         // Passed by browser.
-        String fileMediaType = "text/plain; charset=utf8";
+        String fileMediaType = "text/plain;charset=utf8";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", false);
         assertEquals(200, response.getStatus());
         String expectedPath = uploadTestFolderPath + '/' + fileName;
@@ -58,7 +58,7 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // File content.
         String fileContent = "test upload file";
         // Passed by browser.
-        String fileMediaType = "text/plain; charset=utf8";
+        String fileMediaType = "text/plain;charset=utf8";
         uploadTestFolderId = mountPoint.getRoot().getId();
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", false);
         assertEquals(200, response.getStatus());
@@ -74,7 +74,7 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // File content.
         String fileContent = "test upload file with custom name";
         // Passed by browser.
-        String fileMediaType = "text/plain; charset=utf8";
+        String fileMediaType = "text/plain;charset=utf8";
         // Name of file passed in HTML form. If present it should be used instead of original file name.
         String formFileName = fileName + ".txt";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", formFileName, false);
@@ -95,7 +95,7 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // Name of file passed in HTML form. If present it should be used instead of original file name.
         String formFileName = fileName + ".txt";
         // Media type of file passed in HTML form. If present it should be used instead of original file media type.
-        String formMediaType = "text/plain; charset=utf8";
+        String formMediaType = "text/plain;charset=utf8";
         ContainerResponse response =
                 doUploadFile(fileName, fileMediaType, fileContent, formMediaType, formFileName, false);
         assertEquals(200, response.getStatus());

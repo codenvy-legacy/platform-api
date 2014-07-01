@@ -709,6 +709,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Override
     public Response uploadFile(@PathParam("parentId") String parentId, Iterator<FileItem> formData)
             throws IOException, VirtualFileSystemException {
+        return uploadFile(mountPoint.getVirtualFileById(parentId), formData);
+    }
+
+    public static Response uploadFile(VirtualFile parent, Iterator<FileItem> formData) throws IOException, VirtualFileSystemException {
         try {
             FileItem contentItem = null;
             String mediaType = null;
@@ -743,15 +747,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             }
 
             try {
-                createFile(parentId,
-                           name,
-                           mediaType == null ? MediaType.APPLICATION_OCTET_STREAM_TYPE : MediaType.valueOf(mediaType),
-                           contentItem.getInputStream());
+                parent.createFile(name, mediaType == null ? MediaType.APPLICATION_OCTET_STREAM : mediaType, contentItem.getInputStream());
             } catch (ItemAlreadyExistException e) {
                 if (!overwrite) {
                     throw new ItemAlreadyExistException("Unable upload file. Item with the same name exists. ");
                 }
-                mountPoint.getVirtualFileById(parentId).getChild(name).updateContent(mediaType, contentItem.getInputStream(), null);
+                parent.getChild(name).updateContent(mediaType, contentItem.getInputStream(), null);
             }
 
             return Response.ok("", MediaType.TEXT_HTML).build();

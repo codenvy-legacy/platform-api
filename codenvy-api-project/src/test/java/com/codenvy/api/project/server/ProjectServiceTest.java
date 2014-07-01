@@ -40,6 +40,7 @@ import org.everrest.core.ResourceBinder;
 import org.everrest.core.impl.ApplicationContextImpl;
 import org.everrest.core.impl.ApplicationProviderBinder;
 import org.everrest.core.impl.ContainerResponse;
+import org.everrest.core.impl.EnvironmentContext;
 import org.everrest.core.impl.EverrestConfiguration;
 import org.everrest.core.impl.ProviderBinder;
 import org.everrest.core.impl.RequestDispatcher;
@@ -48,6 +49,7 @@ import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
+import org.everrest.test.mock.MockHttpServletRequest;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.Assert;
@@ -55,6 +57,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -408,6 +411,36 @@ public class ProjectServiceTest {
     }
 
     @Test
+    public void testUploadFile() throws Exception {
+        String fileContent = "to be or not to be";
+        String fileName = "test.txt";
+        String fileMediaType = "text/plain";
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("multipart/form-data; boundary=abcdef"));
+        String uploadBodyPattern =
+                "--abcdef\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%1$s\"\r\nContent-Type: %2$s\r\n\r\n%3$s"
+                + "\r\n--abcdef\r\nContent-Disposition: form-data; name=\"mimeType\"\r\n\r\n%4$s"
+                + "\r\n--abcdef\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\n%5$s"
+                + "\r\n--abcdef\r\nContent-Disposition: form-data; name=\"overwrite\"\r\n\r\n%6$b"
+                + "\r\n--abcdef--\r\n";
+        byte[] formData = String.format(uploadBodyPattern, fileName, fileMediaType, fileContent, fileMediaType, fileName, false).getBytes();
+        EnvironmentContext env = new EnvironmentContext();
+        env.put(HttpServletRequest.class, new MockHttpServletRequest("", new ByteArrayInputStream(formData),
+                                                                     formData.length, "POST", headers));
+        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/uploadfile/my_project",
+                                                      "http://localhost:8080/api",
+                                                      headers,
+                                                      formData,
+                                                      env);
+        Assert.assertEquals(response.getStatus(), 200);
+        AbstractVirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild(fileName);
+        Assert.assertTrue(file.isFile());
+        FileEntry _file = (FileEntry)file;
+        Assert.assertEquals(_file.getMediaType(), fileMediaType);
+        Assert.assertEquals(new String(_file.contentAsBytes()), fileContent);
+    }
+
+    @Test
     public void testGetFileContent() throws Exception {
         String myContent = "to be or not to be";
         pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", myContent.getBytes(), "text/plain");
@@ -651,8 +684,7 @@ public class ProjectServiceTest {
         ContainerResponse response = launcher.service("POST",
                                                       "http://localhost:8080/api/project/my_ws/import/new_project",
                                                       "http://localhost:8080/api", headers, b, null);
-//        Assert.assertEquals(response.getStatus(), 200);
-        System.err.println(response.getEntity());
+        Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getDescription(), "import test");
         Assert.assertEquals(descriptor.getProjectTypeId(), "my_project_type");

@@ -41,6 +41,7 @@ import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +69,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -236,6 +238,17 @@ public class ProjectService extends Service {
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getFile")
                                                    .build(workspace, file.getPath().substring(1))).build();
+    }
+
+    @POST
+    @Consumes({MediaType.MULTIPART_FORM_DATA})
+    @Produces({MediaType.TEXT_HTML})
+    @Path("uploadfile/{parent:.*}")
+    public Response uploadFile(@PathParam("ws-id") String workspace,
+                               @PathParam("parent") String parentPath,
+                               Iterator<FileItem> formData) throws Exception {
+        final FolderEntry folder = asFolder(workspace, parentPath);
+        return VirtualFileSystemImpl.uploadFile(folder.getVirtualFile(), formData);
     }
 
     @GET

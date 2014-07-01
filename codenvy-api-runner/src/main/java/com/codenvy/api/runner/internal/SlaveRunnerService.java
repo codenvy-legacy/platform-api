@@ -26,6 +26,7 @@ import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.api.runner.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.io.Files;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -40,6 +41,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -134,6 +136,23 @@ public class SlaveRunnerService extends Service {
         }
     }
 
+    @GET
+    @Path("recipe/{runner}/{id}")
+    public void getRecipeFile(@PathParam("runner") String runner,
+                              @PathParam("id") Long id,
+                              @Context HttpServletResponse httpServletResponse) throws Exception {
+        final Runner myRunner = getRunner(runner);
+        final RunnerProcess process = myRunner.getProcess(id);
+        final java.io.File recipeFile = process.getConfiguration().getRecipeFile();
+        if (recipeFile == null) {
+            throw new NotFoundException("Recipe file isn't available. ");
+        }
+        final PrintWriter output = httpServletResponse.getWriter();
+        httpServletResponse.setContentType("text/plain");
+        Files.copy(recipeFile, Charset.forName("UTF-8"), output);
+        output.flush();
+    }
+
     @GenerateLink(rel = Constants.LINK_REL_RUNNER_STATE)
     @GET
     @Path("state")
@@ -171,25 +190,35 @@ public class SlaveRunnerService extends Service {
         final ApplicationStatus status = process.getStatus();
         final List<Link> links = new LinkedList<>();
         final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
-        links.add(DtoFactory.getInstance().createDto(Link.class)
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        links.add(dtoFactory.createDto(Link.class)
                             .withRel(Constants.LINK_REL_GET_STATUS)
                             .withHref(servicePathBuilder.clone().path(getClass(), "getStatus")
                                                         .build(process.getRunner(), process.getId()).toString())
                             .withMethod("GET")
                             .withProduces(MediaType.APPLICATION_JSON));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
+        links.add(dtoFactory.createDto(Link.class)
                             .withRel(Constants.LINK_REL_VIEW_LOG)
                             .withHref(servicePathBuilder.clone().path(getClass(), "getLogs")
                                                         .build(process.getRunner(), process.getId()).toString())
                             .withMethod("GET"));
-        links.add(DtoFactory.getInstance().createDto(Link.class)
+        links.add(dtoFactory.createDto(Link.class)
                             .withRel(Constants.LINK_REL_STOP)
                             .withHref(servicePathBuilder.clone().path(getClass(), "stop")
                                                         .build(process.getRunner(), process.getId()).toString())
                             .withMethod("POST")
                             .withProduces(MediaType.APPLICATION_JSON));
+        final java.io.File recipeFile = process.getConfiguration().getRecipeFile();
+        if (recipeFile != null) {
+            links.add(dtoFactory.createDto(Link.class)
+                                .withRel(Constants.LINK_REL_RUNNER_RECIPE)
+                                .withHref(servicePathBuilder.clone().path(getClass(), "getRecipeFile")
+                                                            .build(process.getRunner(), process.getId()).toString())
+                                .withMethod("GET")
+                                .withProduces(MediaType.TEXT_PLAIN));
+        }
         links.addAll(process.getConfiguration().getLinks());
-        return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
+        return dtoFactory.createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())
                          .withStatus(status)
                          .withStartTime(process.getStartTime())

@@ -29,9 +29,10 @@ public class RunnerConfiguration {
     private final List<Link> links;
     private final RunRequest request;
 
-    private String  debugHost;
-    private int     debugPort;
-    private boolean debugSuspend;
+    private String       debugHost;
+    private int          debugPort;
+    private boolean      debugSuspend;
+    private java.io.File recipeFile;
 
     public RunnerConfiguration(int memory, RunRequest request) {
         this.memory = memory;
@@ -90,6 +91,14 @@ public class RunnerConfiguration {
 
     public void setDebugSuspend(boolean debugSuspend) {
         this.debugSuspend = debugSuspend;
+    }
+
+    public java.io.File getRecipeFile() {
+        return recipeFile;
+    }
+
+    public void setRecipeFile(java.io.File recipeFile) {
+        this.recipeFile = recipeFile;
     }
 
     @Override

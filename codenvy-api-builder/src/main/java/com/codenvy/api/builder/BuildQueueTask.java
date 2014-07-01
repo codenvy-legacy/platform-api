@@ -36,8 +36,8 @@ import java.util.concurrent.Future;
  * @author andrew00x
  */
 public final class BuildQueueTask implements Cancellable {
-    private static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
-    private static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
+    private static final String           DATETIME_PATTERN = "MM/dd/yyyy HH:mm:ss";
+    private static final SimpleDateFormat DATETIME_FORMAT  = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
 
     private final Long               id;
     private final long               created;
@@ -158,7 +158,7 @@ public final class BuildQueueTask implements Cancellable {
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
             final List<BuilderMetric> buildStats = new ArrayList<>(1);
-            final SimpleDateFormat format = (SimpleDateFormat)RFC1123_DATE_FORMAT.clone();
+            final SimpleDateFormat format = (SimpleDateFormat)DATETIME_FORMAT.clone();
             buildStats.add(dtoFactory.createDto(BuilderMetric.class)
                                    .withName("waitingTimeLimit")
                                    .withValue(format.format(created + waitingTimeout))

@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -69,15 +68,19 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** @author andrew00x */
+/**
+ * @author andrew00x
+ * @author Eugene Voevodin
+ */
 @Path("project/{ws-id}")
 public class ProjectService extends Service {
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectService.class);
+    private static final Logger            LOG          = LoggerFactory.getLogger(ProjectService.class);
     private static final VirtualFileFilter FILES_FILTER = new VirtualFileFilter() {
         @Override
         public boolean accept(VirtualFile file) throws VirtualFileSystemException {
@@ -599,51 +602,46 @@ public class ProjectService extends Service {
     @Path("permissions/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
-    public AccessControlEntry getPermissions(@PathParam("ws-id") String wsId,
-                                             @PathParam("path") String path,
-                                             @QueryParam("userid") String userId) throws Exception {
-        if (userId == null) {
-            throw new ForbiddenException("User identifier required");
-        }
-        //check user exists
-        userDao.getById(userId);
+    public List<AccessControlEntry> getPermissions(@PathParam("ws-id") String wsId,
+                                                   @PathParam("path") String path,
+                                                   @QueryParam("userid") String userId) throws Exception {
         final Project project = projectManager.getProject(wsId, path);
         if (project == null) {
             throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, wsId));
         }
-        return project.getPermissions(userId);
+        final List<AccessControlEntry> acl = project.getPermissions();
+        final Map<Principal, AccessControlEntry> aclMap = new HashMap<>(acl.size());
+        for (AccessControlEntry ace : acl) {
+            aclMap.put(ace.getPrincipal(), ace);
+        }
+        if (userId != null) {
+            final Principal principal = DtoFactory.getInstance().createDto(Principal.class).withName(userId).withType(Principal.Type.USER);
+            AccessControlEntry ace = aclMap.get(principal);
+            if (ace == null) {
+                ace = DtoFactory.getInstance().createDto(AccessControlEntry.class).withPrincipal(principal);
+            }
+            return Collections.singletonList(ace);
+        } else {
+            return project.getPermissions();
+        }
     }
 
     @POST
     @Path("permissions/{path:.*}")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
     public void setPermissions(@PathParam("ws-id") String wsId,
                                @PathParam("path") String path,
-                               AccessControlEntry newEntry)
-            throws Exception {
-        if (newEntry == null) {
-            throw new ForbiddenException("Entry required");
-        }
-        final Principal principal = newEntry.getPrincipal();
-        if (principal == null) {
-            throw new ForbiddenException("Required principal or user id");
-        }
-        //check user exists
-        if (Principal.Type.USER.equals(principal.getType())) {
-            userDao.getById(principal.getName());
-        }
+                               List<AccessControlEntry> acl) throws ServerException {
         final Project project = projectManager.getProject(wsId, path);
         if (project == null) {
             throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, wsId));
         }
         try {
-            project.putPermissions(newEntry);
+            project.setPermissions(acl);
         } catch (IOException ioEx) {
             LOG.error(ioEx.getMessage(), ioEx);
-            //end point user shouldn't know about IOException
-            throw new ServerException(String.format("Error while saving permissions for '%s'",
-                                                    newEntry.getPrincipal().getName()));
+            throw new ServerException("Error while saving permissions");
         }
     }
 

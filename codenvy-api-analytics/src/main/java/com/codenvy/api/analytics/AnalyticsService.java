@@ -54,19 +54,44 @@ public class AnalyticsService extends Service {
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getValue(@PathParam("name") String metricName,
-                             @QueryParam("page") String page,
-                             @QueryParam("per_page") String perPage,
-                             @Context UriInfo uriInfo) {
+    public Response getValueByQueryParams(@PathParam("name") String metricName,
+                                          @QueryParam("page") String page,
+                                          @QueryParam("per_page") String perPage,
+                                          @Context UriInfo uriInfo) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
                                                                perPage);
-            MetricValueDTO value = metricHandler.getValue(metricName, metricContext, uriInfo);
+            MetricValueDTO value = metricHandler.getValueByQueryParams(metricName, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
+        }
+    }
+
+    @GenerateLink(rel = "metric value")
+    @POST
+    @Path("metric/{name}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public Response getValueByJson(Map<String, String> parameters,
+                                   @PathParam("name") String metricName,
+                                   @QueryParam("page") String page,
+                                   @QueryParam("per_page") String perPage,
+                                   @Context UriInfo uriInfo) {
+        try {
+            Map<String, String> metricContext = extractContext(uriInfo,
+                                                               page,
+                                                               perPage);
+            MetricValueDTO value = metricHandler.getValueByJson(metricName, parameters, metricContext, uriInfo);
+            return Response.status(Response.Status.OK).entity(value).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
         }
     }
 
@@ -86,7 +111,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
         }
     }
 
@@ -103,7 +129,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(list).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(
+                    "Unexpected error occurred. Can't get values of metrics").build();
         }
     }
 
@@ -118,7 +145,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get info for metric " + metricName).build();
         }
     }
 
@@ -133,7 +161,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get metric info").build();
         }
     }
 
@@ -148,7 +177,7 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Unexpected error occurred. Can't log event " + event).build();
         }
     }
 
@@ -165,7 +194,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't log dashboard event for action " + action).build();
         }
     }
 

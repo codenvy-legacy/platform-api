@@ -31,9 +31,17 @@ import java.util.Random;
 public class DummyMetricHandler implements MetricHandler {
 
     @Override
-    public MetricValueDTO getValue(String metricName,
-                                   Map<String, String> metricContext,
-                                   UriInfo uriInfo) {
+    public MetricValueDTO getValueByQueryParams(String metricName,
+                                                Map<String, String> metricContext,
+                                                UriInfo uriInfo) {
+        return createDummyMetricValueDTO(metricName);
+    }
+
+    @Override
+    public MetricValueDTO getValueByJson(String metricName,
+                                         Map<String, String> parameters,
+                                         Map<String, String> metricContext,
+                                         UriInfo uriInfo) throws Exception {
         return createDummyMetricValueDTO(metricName);
     }
 

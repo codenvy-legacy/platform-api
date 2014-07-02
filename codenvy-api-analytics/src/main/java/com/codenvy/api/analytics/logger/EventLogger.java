@@ -15,6 +15,8 @@ import com.google.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -58,6 +60,7 @@ public class EventLogger {
         add(SESSION_FACTORY_STOPPED);
     }};
 
+    private final Thread        logThread;
     private final Queue<String> queue;
 
     /**
@@ -69,9 +72,18 @@ public class EventLogger {
         this.queue = new LinkedBlockingQueue<>(QUEUE_MAX_CAPACITY);
         this.ignoredEvents = 0;
 
-        Thread logThread = new LogThread();
+        logThread = new LogThread();
         logThread.setDaemon(true);
+    }
+
+    @PostConstruct
+    public void init() {
         logThread.start();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        logThread.interrupt();
     }
 
     public void log(String event, Map<String, String> parameters) throws UnsupportedEncodingException {
@@ -173,11 +185,11 @@ public class EventLogger {
     private class LogThread extends Thread {
         private LogThread() {
             super("Analytics Event Logger");
-            LOG.info(getName() + " thread is started, queue is initialized for " + QUEUE_MAX_CAPACITY + " messages");
         }
 
         @Override
         public void run() {
+            LOG.info(getName() + " thread is started, queue is initialized for " + QUEUE_MAX_CAPACITY + " messages");
             while (!isInterrupted()) {
                 String message = queue.poll();
 

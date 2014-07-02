@@ -65,6 +65,7 @@ public class ProjectTypeDescriptionService extends Service {
                         .withSources(DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
                                                .withType(templateDescription.getImporterType())
                                                .withLocation(templateDescription.getLocation()))
+                        .withCategory(templateDescription.getCategory())
                         .withDescription(templateDescription.getDescription());
                 templateDescriptors.add(templateDescriptor);
             }

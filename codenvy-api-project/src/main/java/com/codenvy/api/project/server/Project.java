@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
@@ -24,13 +25,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author andrew00x
+ * @author Eugene Voevodin
  */
 public class Project {
+
+    private static final Set<String> BASIC_PERMISSIONS = new HashSet<>(Arrays.asList("read", "write", "update_acl", "all"));
+
     private final String         workspace;
     private final FolderEntry    baseFolder;
     private final ProjectManager manager;
@@ -207,67 +215,128 @@ public class Project {
         }
     }
 
-    public AccessControlEntry getPermissions(String principal) throws VirtualFileSystemException {
-        final List<String> permissions = new LinkedList<>();
-        AccessControlEntry entry = getAccessControlEntryFor(principal);
-        if (entry != null) {
-            permissions.addAll(entry.getPermissions());
+    public List<AccessControlEntry> getPermissions() {
+        //we should use map to join misc and vfs permissions with same principal
+        final Map<String, AccessControlEntry> entries = new HashMap<>();
+        try {
+            for (AccessControlEntry vfsEntry : baseFolder.getVirtualFile().getACL()) {
+                entries.put(vfsEntry.getPrincipal().getName(), vfsEntry);
+            }
+            final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
+            for (Object miscEntry : misc.asProperties().values()) {
+                try {
+                    final AccessControlEntry entry = DtoFactory.getInstance()
+                                                               .createDtoFromJson(miscEntry.toString(), AccessControlEntry.class);
+                    final String principalName = entry.getPrincipal().getName();
+                    if (entries.get(principalName) != null) {
+                        entry.getPermissions().addAll(entries.get(principalName).getPermissions());
+                    }
+                    entries.put(principalName, entry);
+                } catch (IllegalArgumentException ignored) {
+                    //if property is not access control entry
+                }
+            }
+        } catch (VirtualFileSystemException vfsEx) {
+            throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
         }
-        final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
-        final String entryJson = misc.getAccessControlEntry(principal);
-        if (entryJson != null) {
-            entry = DtoFactory.getInstance().createDtoFromJson(entryJson, AccessControlEntry.class);
-            permissions.addAll(entry.getPermissions());
-        }
-        return entry != null ?
-               entry.withPermissions(permissions) :
-               DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                         .withPermissions(permissions);
+        return new ArrayList<>(entries.values());
     }
 
-    public void putPermissions(AccessControlEntry entry) throws VirtualFileSystemException, IOException {
-        final List<String> miscPermissions = new LinkedList<>();
-        final String principalName = entry.getPrincipal().getName();
-        if (!entry.getPermissions().isEmpty()) {
+    /**
+     * <p>Sets permissions to project.
+     * Given list of permissions can contain either {@link #BASIC_PERMISSIONS}
+     * or any custom permissions.
+     * Each AccessControlEntry that contains not only {@link #BASIC_PERMISSIONS}
+     * will be splited into 2 entries and stored in different places.
+     * The first entry with {@link #BASIC_PERMISSIONS} will be stored in project acl,
+     * the second one entry with custom permissions will be stored in project misc.</p>
+     *
+     * @param acl
+     *         list of {@link com.codenvy.api.vfs.shared.dto.AccessControlEntry}
+     * @throws FileSystemLevelException
+     *         when some error occurred while saving basic entries
+     * @throws IOException
+     *         when some error occurred while saving misc entries
+     */
+    public void setPermissions(List<AccessControlEntry> acl) throws IOException, ServerException {
+        final Map<Principal, AccessControlEntry> miscEntries = new HashMap<>();
+        final Map<Principal, AccessControlEntry> basicEntries = new HashMap<>();
+        final DtoFactory dto = DtoFactory.getInstance();
+        //split entries on basic and misc
+        for (AccessControlEntry entry : acl) {
+            requireNotNull(entry, "Permissions");
+            requireNotNull(entry.getPrincipal(), "Principal");
+            requireNotNull(entry.getPrincipal().getName(), "Principal name");
+            requireNotNull(entry.getPrincipal().getType(), "Principal type");
+            final Set<String> customPermissions = new HashSet<>();
+            final Set<String> basicPermissions = new HashSet<>();
             for (String permission : entry.getPermissions()) {
-                final List<String> basicPermissions = new LinkedList<>();
-                //group permissions
-                try {
+                if (BASIC_PERMISSIONS.contains(permission)) {
                     basicPermissions.add(permission);
-                } catch (IllegalArgumentException argEx) {
-                    miscPermissions.add(permission);
-                }
-                //set basic permissions if needed
-                if (!basicPermissions.isEmpty()) {
-                    entry.setPermissions(basicPermissions);
-                    baseFolder.getVirtualFile().updateACL(Arrays.asList(entry), false, null);
+                } else {
+                    customPermissions.add(permission);
                 }
             }
-        } else {
-            //clear basic permissions
-            AccessControlEntry actual = getAccessControlEntryFor(principalName);
-            if (actual != null) {
-                List<AccessControlEntry> update = baseFolder.getVirtualFile().getACL();
-                update.remove(actual);
-                baseFolder.getVirtualFile().updateACL(update, true, null);
+            final Principal principal = dto.createDto(Principal.class)
+                                           .withName(entry.getPrincipal().getName())
+                                           .withType(entry.getPrincipal().getType());
+            basicEntries.put(principal, dto.createDto(AccessControlEntry.class)
+                                           .withPrincipal(principal)
+                                           .withPermissions(new ArrayList<>(basicPermissions)));
+            if (!customPermissions.isEmpty()) {
+                miscEntries.put(principal, dto.createDto(AccessControlEntry.class)
+                                              .withPrincipal(principal)
+                                              .withPermissions(new ArrayList<>(customPermissions)));
+            } else {
+                miscEntries.put(principal, null);
             }
         }
+        //updating basic permissions
+        try {
+            final List<AccessControlEntry> existedAcl = baseFolder.getVirtualFile().getACL();
+            final Map<Principal, AccessControlEntry> update = new HashMap<>(existedAcl.size());
+            for (AccessControlEntry ace : existedAcl) {
+                update.put(ace.getPrincipal(), ace);
+            }
+            //removing entries with empty permissions
+            for (AccessControlEntry ace : basicEntries.values()) {
+                if (ace.getPermissions().isEmpty()) {
+                    update.remove(ace.getPrincipal());
+                } else {
+                    update.put(ace.getPrincipal(), ace);
+                }
+            }
+            baseFolder.getVirtualFile().updateACL(new ArrayList<>(update.values()), true, null);
+        } catch (VirtualFileSystemException vfsEx) {
+            throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
+        }
+        //updating misc permissions
         final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
-        if (miscPermissions.size() != 0) {
-            misc.putAccessControlEntry(principalName, DtoFactory.getInstance().toJson(entry.withPermissions(miscPermissions)));
-        } else {
-            //clear misc permissions for certain user
-            misc.putAccessControlEntry(principalName, null);
+        for (Map.Entry<Principal, AccessControlEntry> entry : miscEntries.entrySet()) {
+            if (entry.getValue() != null) {
+                misc.putAccessControlEntry(dto.toJson(entry.getKey()), dto.toJson(entry.getValue()));
+            } else {
+                misc.putAccessControlEntry(dto.toJson(entry.getKey()), null);
+            }
         }
         manager.save(workspace, getName(), misc);
     }
 
-    private AccessControlEntry getAccessControlEntryFor(String principalName) throws VirtualFileSystemException {
-        for (AccessControlEntry aclEntry : baseFolder.getVirtualFile().getACL()) {
-            if (aclEntry.getPrincipal().getName().equals(principalName)) {
-                return aclEntry;
-            }
+    /**
+     * Checks reference is not {@code null}.
+     * The main difference with {@link java.util.Objects#requireNonNull(Object, String)} )}
+     * is that {@link com.codenvy.api.core.ServerException} will be thrown
+     *
+     * @param object
+     *         reference to check
+     * @param name
+     *         specified name, will be used in exception message "{name} should not be a null"
+     * @throws ServerException
+     *         when object reference is {@code null}
+     */
+    private void requireNotNull(Object object, String name) throws ServerException {
+        if (object == null) {
+            throw new ServerException(name + " should not be a null");
         }
-        return null;
     }
 }

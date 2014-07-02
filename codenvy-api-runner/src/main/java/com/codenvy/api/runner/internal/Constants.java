@@ -35,6 +35,7 @@ public class Constants {
     public static final String LINK_REL_VIEW_LOG                 = "view logs";
     public static final String LINK_REL_WEB_URL                  = "web url";
     public static final String LINK_REL_STOP                     = "stop";
+    public static final String LINK_REL_RUNNER_RECIPE            = "runner recipe";
 
     // config properties
     /**

@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.runner;
 
+import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
@@ -163,6 +164,10 @@ public final class RunQueueTask implements Cancellable {
                 final Link copy = DtoFactory.getInstance().clone(link);
                 copy.setHref(getUriBuilder().path(RunnerService.class, "getLogs").build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
+            } else if (Constants.LINK_REL_RUNNER_RECIPE.equals(link.getRel())) {
+                final Link copy = DtoFactory.getInstance().clone(link);
+                copy.setHref(getUriBuilder().path(RunnerService.class, "getRecipeFile").build(request.getWorkspace(), id).toString());
+                rewritten.add(copy);
             } else {
                 rewritten.add(DtoFactory.getInstance().clone(link));
             }
@@ -200,6 +205,14 @@ public final class RunQueueTask implements Cancellable {
             throw new RunnerException("Application isn't started yet, logs aren't available");
         }
         remoteProcess.readLogs(output);
+    }
+
+    public void readRecipeFile(OutputProvider output) throws RunnerException, IOException, NotFoundException {
+        final RemoteRunnerProcess remoteProcess = getRemoteProcess();
+        if (remoteProcess == null) {
+            throw new RunnerException("Application isn't started yet, recipe file isn't available");
+        }
+        remoteProcess.readRecipeFile(output);
     }
 
     RemoteRunnerProcess getRemoteProcess() throws RunnerException, NotFoundException {

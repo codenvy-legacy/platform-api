@@ -20,9 +20,6 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -45,8 +42,6 @@ import javax.ws.rs.core.MediaType;
 @Path("builder/{ws-id}")
 @Description("Builder API")
 public final class BuilderService extends Service {
-    private static final Logger LOG = LoggerFactory.getLogger(BuilderService.class);
-
     @Inject
     private BuildQueue buildQueue;
 

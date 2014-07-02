@@ -129,4 +129,12 @@ public class RunnerService extends Service {
         }
         return new ArrayList<>(all.values());
     }
+
+    @GET
+    @Path("recipe/{id}")
+    public void getRecipeFile(@PathParam("id") Long id,
+                              @Context HttpServletResponse httpServletResponse) throws Exception {
+        // Response write directly to the servlet request stream
+        runQueue.getTask(id).readRecipeFile(new HttpServletProxyResponse(httpServletResponse));
+    }
 }

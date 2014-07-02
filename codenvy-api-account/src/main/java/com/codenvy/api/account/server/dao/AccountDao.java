@@ -14,6 +14,7 @@ import com.codenvy.api.account.shared.dto.Account;
 import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -139,7 +140,7 @@ public interface AccountDao {
      *         account id
      * @return list of subscriptions, or empty list if no subscriptions found
      */
-    List<Subscription> getSubscriptions(String accountId) throws ServerException;
+    List<Subscription> getSubscriptions(String accountId) throws NotFoundException, ServerException;
 
     /**
      * Update existing subscription.
@@ -165,5 +166,22 @@ public interface AccountDao {
      *         user identifier to search
      * @return list of accounts, or empty list if no accounts found
      */
-    public List<AccountMembership> getByMember(String userId) throws NotFoundException, ServerException;
+    List<AccountMembership> getByMember(String userId) throws NotFoundException, ServerException;
+
+    /**
+     * Add new event to the history of subscriptions
+     *
+     * @param historyEvent
+     *         history event to add
+     */
+    void addSubscriptionHistoryEvent(SubscriptionHistoryEvent historyEvent) throws ServerException, ConflictException;
+
+    /**
+     * Get list of history events for certain account
+     *
+     * @param accountId
+     *         filter history events for account with such id
+     * @return list of {@link SubscriptionHistoryEvent}
+     */
+    List<SubscriptionHistoryEvent> getSubscriptionHistoryEventsByAccount(String accountId) throws ServerException;
 }

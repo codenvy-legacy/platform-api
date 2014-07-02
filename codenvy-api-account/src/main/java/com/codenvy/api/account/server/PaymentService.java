@@ -10,17 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.account.server;
 
+import com.codenvy.api.account.shared.dto.Payment;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+
 /**
- * Base interface for all subscription handlers
+ * Process payments
  *
- * @author Eugene Voevodin
- * @see SubscriptionService
+ * @author Alexander Garagatyi
  */
-public interface SubscriptionHandler {
-
-    void onCreateSubscription(SubscriptionEvent subscription);
-
-    void onRemoveSubscription(SubscriptionEvent subscription);
-
-    void onCheckSubscription(SubscriptionEvent subscription);
+public interface PaymentService {
+    void purchase(Payment payment) throws NotFoundException, ConflictException, ServerException;
 }

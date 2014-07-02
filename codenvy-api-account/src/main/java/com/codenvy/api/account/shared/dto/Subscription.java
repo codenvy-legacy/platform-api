@@ -26,7 +26,7 @@ import java.util.Map;
 public interface Subscription {
 
     public enum State {
-        WAIT_FOR_PAYMENT, ACTIVE
+        WAIT_FOR_PAYMENT, ACTIVE, PENDING
     }
 
     String getId();

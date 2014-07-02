@@ -16,6 +16,7 @@ import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.dto.server.DtoFactory;
@@ -24,6 +25,8 @@ import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type.CREATE;
 
 /**
  * @author Eugene Voevodin
@@ -103,7 +106,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     @Override
     public Subscription getSubscriptionById(String subscriptionId) {
         return DtoFactory.getInstance().createDto(Subscription.class)
-                         .withId("Subscription0xfffffffff")
+                         .withId(subscriptionId)
                          .withStartDate(System.currentTimeMillis())
                          .withEndDate(System.currentTimeMillis())
                          .withServiceId("serviceId")
@@ -146,5 +149,18 @@ public class LocalAccountDaoImpl implements AccountDao {
                           .withDescription("important attribute")
                                       ));
         return Arrays.asList(am);
+    }
+
+    @Override
+    public void addSubscriptionHistoryEvent(SubscriptionHistoryEvent historyEvent) {
+        throw new RuntimeException("Not implemented");
+    }
+
+    @Override
+    public List<SubscriptionHistoryEvent> getSubscriptionHistoryEventsByAccount(String accountId) throws ServerException {
+        return Arrays
+                .asList(DtoFactory.getInstance().createDto(SubscriptionHistoryEvent.class).withId("SUBSCRIPTION_HISTORY_EVENT_ID").withTime(
+                        System.currentTimeMillis()).withType(CREATE).withUserId("userId112233322239")
+                                  .withSubscription(getSubscriptionById("Subscription0xfffffffff")));
     }
 }

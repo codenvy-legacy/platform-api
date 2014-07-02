@@ -35,11 +35,7 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Implementation provides means to perform remote REST requests to receive analytics data from remote rest service.
@@ -62,16 +58,34 @@ public class RemoteMetricHandler implements MetricHandler {
 
     @Override
     @SuppressWarnings("unchecked")
-    public MetricValueDTO getValue(String metricName,
-                                   Map<String, String> executionContext,
-                                   UriInfo uriInfo) {
-        String proxyUrl = getProxyURL("getValue", metricName);
+    public MetricValueDTO getValueByQueryParams(String metricName,
+                                                Map<String, String> executionContext,
+                                                UriInfo uriInfo) {
+        String proxyUrl = getProxyURL("getValueByQueryParams", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class,
                            proxyUrl,
                            "GET",
                            null,
+                           pairs.toArray(new Pair[pairs.size()]));
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public MetricValueDTO getValueByJson(String metricName,
+                                         Map<String, String> parameters,
+                                         Map<String, String> executionContext,
+                                         UriInfo uriInfo) throws Exception {
+        String proxyUrl = getProxyURL("getValueByJson", metricName);
+        try {
+            List<Pair<String, String>> pairs = mapToParisList(executionContext);
+            return request(MetricValueDTO.class,
+                           proxyUrl,
+                           "POST",
+                           parameters,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
@@ -254,7 +268,7 @@ public class RemoteMetricHandler implements MetricHandler {
         statusLink.setHref(servicePathBuilder
                                    .clone()
                                    .path("analytics")
-                                   .path(getMethod("getValue"))
+                                   .path(getMethod("getValueByQueryParams"))
                                    .build(metricName, "name")
                                    .toString());
         statusLink.setMethod("GET");

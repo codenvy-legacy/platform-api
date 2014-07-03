@@ -70,7 +70,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -88,7 +88,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            parameters,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -106,7 +106,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -124,7 +124,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            metricNames,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -142,7 +142,7 @@ public class RemoteMetricHandler implements MetricHandler {
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 

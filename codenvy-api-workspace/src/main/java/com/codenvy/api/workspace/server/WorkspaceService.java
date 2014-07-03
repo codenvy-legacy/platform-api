@@ -181,7 +181,7 @@ public class WorkspaceService extends Service {
             EnvironmentContext.getCurrent().setWorkspaceTemporary(true);
             workspaceDao.create(newWorkspace);
         } finally {
-            EnvironmentContext.getCurrent().reset();
+            EnvironmentContext.getCurrent().setWorkspaceTemporary(false);
         }
         final Principal principal = securityContext.getUserPrincipal();
         //temporary user should be created if real user does not exist

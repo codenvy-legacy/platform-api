@@ -15,6 +15,8 @@ import com.codenvy.api.analytics.logger.EventLogger;
 import com.codenvy.api.analytics.shared.dto.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.dto.server.JsonArrayImpl;
+import com.codenvy.dto.server.JsonStringMapImpl;
 import com.google.inject.Inject;
 
 import org.slf4j.Logger;
@@ -54,20 +56,39 @@ public class AnalyticsService extends Service {
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getValueByQueryParams(@PathParam("name") String metricName,
-                                          @QueryParam("page") String page,
-                                          @QueryParam("per_page") String perPage,
-                                          @Context UriInfo uriInfo) {
+    public Response getValue(@PathParam("name") String metricName,
+                             @QueryParam("page") String page,
+                             @QueryParam("per_page") String perPage,
+                             @Context UriInfo uriInfo) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
                                                                perPage);
-            MetricValueDTO value = metricHandler.getValueByQueryParams(metricName, metricContext, uriInfo);
+            MetricValueDTO value = metricHandler.getValue(metricName, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                            .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
+        }
+    }
+
+    @GenerateLink(rel = "list of metric values")
+    @POST
+    @Path("metric/{name}/list")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public Response getListValues(@PathParam("name") String metricName,
+                                  @Context UriInfo uriInfo,
+                                  List<Map<String, String>> parameters) {
+        try {
+            Map<String, String> metricContext = extractContext(uriInfo);
+            MetricValueListDTO list = metricHandler.getListValues(metricName, parameters, metricContext, uriInfo);
+            return Response.status(Response.Status.OK).entity(list).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
     }
 
@@ -86,7 +107,10 @@ public class AnalyticsService extends Service {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
                                                                perPage);
-            MetricValueDTO value = metricHandler.getValueByJson(metricName, parameters, metricContext, uriInfo);
+            MetricValueDTO value = metricHandler.getValueByJson(metricName,
+                                                                new JsonStringMapImpl<>(parameters),
+                                                                metricContext,
+                                                                uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
@@ -125,7 +149,9 @@ public class AnalyticsService extends Service {
     public Response getUserValues(List<String> metricNames, @Context UriInfo uriInfo) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
-            MetricValueListDTO list = metricHandler.getUserValues(metricNames, metricContext, uriInfo);
+            MetricValueListDTO list = metricHandler.getUserValues(new JsonArrayImpl<>(metricNames),
+                                                                  metricContext,
+                                                                  uriInfo);
             return Response.status(Response.Status.OK).entity(list).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);

@@ -23,6 +23,8 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.dto.server.JsonArrayImpl;
+import com.codenvy.dto.server.JsonStringMapImpl;
 
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
@@ -58,10 +60,10 @@ public class RemoteMetricHandler implements MetricHandler {
 
     @Override
     @SuppressWarnings("unchecked")
-    public MetricValueDTO getValueByQueryParams(String metricName,
-                                                Map<String, String> executionContext,
-                                                UriInfo uriInfo) {
-        String proxyUrl = getProxyURL("getValueByQueryParams", metricName);
+    public MetricValueDTO getValue(String metricName,
+                                   Map<String, String> executionContext,
+                                   UriInfo uriInfo) {
+        String proxyUrl = getProxyURL("getValue", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class,
@@ -70,7 +72,29 @@ public class RemoteMetricHandler implements MetricHandler {
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public MetricValueListDTO getListValues(String metricName,
+                                            List<Map<String, String>> parameters,
+                                            Map<String, String> executionContext,
+                                            UriInfo uriInfo) throws Exception {
+        String proxyUrl = getProxyURL("getListValues", metricName);
+        try {
+            for (int i = 0; i < parameters.size(); i++) {
+                parameters.set(i, new JsonStringMapImpl<>(parameters.get(i)));
+            }
+
+            List<Pair<String, String>> pairs = mapToParisList(executionContext);
+            return request(MetricValueListDTO.class,
+                           proxyUrl,
+                           "POST",
+                           new JsonArrayImpl<>(parameters),
+                           pairs.toArray(new Pair[pairs.size()]));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -88,7 +112,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            parameters,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -106,7 +130,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            null,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -124,7 +148,7 @@ public class RemoteMetricHandler implements MetricHandler {
                            metricNames,
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -142,7 +166,7 @@ public class RemoteMetricHandler implements MetricHandler {
             updateLinks(uriInfo, metricInfoDTO);
             return metricInfoDTO;
         } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -268,7 +292,7 @@ public class RemoteMetricHandler implements MetricHandler {
         statusLink.setHref(servicePathBuilder
                                    .clone()
                                    .path("analytics")
-                                   .path(getMethod("getValueByQueryParams"))
+                                   .path(getMethod("getValue"))
                                    .build(metricName, "name")
                                    .toString());
         statusLink.setMethod("GET");

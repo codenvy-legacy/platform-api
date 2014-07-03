@@ -27,7 +27,6 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.TreeElement;
-import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
@@ -159,6 +158,10 @@ public class ProjectService extends Service {
                                            @Description("descriptor of project") ProjectDescriptor descriptor) throws Exception {
         final Project project = projectManager.createProject(workspace, name, toDescription(descriptor));
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
+
+        VirtualFile projectVirtualFile = project.getBaseFolder().getVirtualFile();
+        searcherProvider.getSearcher(projectVirtualFile.getMountPoint(), true).add(projectVirtualFile);
+
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", projectDescriptor.getName(),
                  projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
@@ -398,6 +401,9 @@ public class ProjectService extends Service {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
+
+        VirtualFile projectVirtualFile = project.getBaseFolder().getVirtualFile();
+        searcherProvider.getSearcher(projectVirtualFile.getMountPoint(), true).add(projectVirtualFile);
 
         if (descriptorToUpdate.getProjectTypeId() != null) {
             project.updateDescription(toDescription(descriptorToUpdate));

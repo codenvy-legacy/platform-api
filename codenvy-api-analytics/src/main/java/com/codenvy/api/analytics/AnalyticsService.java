@@ -15,6 +15,8 @@ import com.codenvy.api.analytics.logger.EventLogger;
 import com.codenvy.api.analytics.shared.dto.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.dto.server.JsonArrayImpl;
+import com.codenvy.dto.server.JsonStringMapImpl;
 import com.google.inject.Inject;
 
 import org.slf4j.Logger;
@@ -86,7 +88,10 @@ public class AnalyticsService extends Service {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
                                                                perPage);
-            MetricValueDTO value = metricHandler.getValueByJson(metricName, parameters, metricContext, uriInfo);
+            MetricValueDTO value = metricHandler.getValueByJson(metricName,
+                                                                new JsonStringMapImpl<>(parameters),
+                                                                metricContext,
+                                                                uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
@@ -125,7 +130,9 @@ public class AnalyticsService extends Service {
     public Response getUserValues(List<String> metricNames, @Context UriInfo uriInfo) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
-            MetricValueListDTO list = metricHandler.getUserValues(metricNames, metricContext, uriInfo);
+            MetricValueListDTO list = metricHandler.getUserValues(new JsonArrayImpl<>(metricNames),
+                                                                  metricContext,
+                                                                  uriInfo);
             return Response.status(Response.Status.OK).entity(list).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);

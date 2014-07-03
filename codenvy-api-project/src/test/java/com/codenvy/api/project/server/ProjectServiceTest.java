@@ -1134,8 +1134,11 @@ public class ProjectServiceTest {
         List<AccessControlEntry> entries = (List<AccessControlEntry>)response.getEntity();
 
         Assert.assertEquals(entries.size(), 1);
+        //"all" should be replaced with "read" & "write" & "update_acl"
         Set<String> permissions = new HashSet<>(entries.get(0).getPermissions());
-        Assert.assertTrue(permissions.contains("all"));
+        Assert.assertTrue(permissions.contains("read"));
+        Assert.assertTrue(permissions.contains("write"));
+        Assert.assertTrue(permissions.contains("update_acl"));
         Assert.assertTrue(permissions.contains("run"));
         Assert.assertTrue(permissions.contains("build"));
     }

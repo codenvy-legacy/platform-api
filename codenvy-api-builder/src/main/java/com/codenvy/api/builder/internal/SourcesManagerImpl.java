@@ -22,6 +22,8 @@ import com.google.common.hash.Hashing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -56,6 +58,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private final ConcurrentMap<String, Future<Void>> tasks;
     private final AtomicReference<String>             projectKeyHolder;
     private final Set<SourceManagerListener>          listeners;
+    private final ScheduledExecutorService            executor;
 
     private static final long KEEP_PROJECT_TIME = TimeUnit.HOURS.toMillis(4);
     private static final int  CONNECT_TIMEOUT   = (int)TimeUnit.MINUTES.toMillis(3);
@@ -65,10 +68,18 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         this.directory = directory;
         tasks = new ConcurrentHashMap<>();
         projectKeyHolder = new AtomicReference<>();
-        ScheduledExecutorService executor =
-                Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getClass().getSimpleName() + "_FileCleaner", true));
-        executor.scheduleAtFixedRate(createSchedulerTask(), 1, 1, TimeUnit.HOURS);
+        executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getClass().getSimpleName() + "_FileCleaner", true));
         listeners = new CopyOnWriteArraySet<>();
+    }
+
+    @PostConstruct
+    private void executeSchedulerTask() {
+        executor.scheduleAtFixedRate(createSchedulerTask(), 1, 1, TimeUnit.HOURS);
+    }
+
+    @PreDestroy
+    private void shutdownScheduler() {
+        executor.shutdown();
     }
 
     public void getSources(BuilderConfiguration configuration) throws IOException {

@@ -38,6 +38,14 @@ public class DummyMetricHandler implements MetricHandler {
     }
 
     @Override
+    public MetricValueDTO getValueByJson(String metricName,
+                                         Map<String, String> parameters,
+                                         Map<String, String> metricContext,
+                                         UriInfo uriInfo) throws Exception {
+        return createDummyMetricValueDTO(metricName);
+    }
+
+    @Override
     public MetricValueDTO getPublicValue(String metricName,
                                          Map<String, String> metricContext,
                                          UriInfo uriInfo) {

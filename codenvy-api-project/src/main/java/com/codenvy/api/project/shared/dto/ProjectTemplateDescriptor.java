@@ -24,11 +24,11 @@ public interface ProjectTemplateDescriptor {
 
     ProjectTemplateDescriptor withCategory(String category);
 
-    ImportSourceDescriptor getSources();
+    ImportSourceDescriptor getSource();
 
-    void setSources(ImportSourceDescriptor sources);
+    void setSource(ImportSourceDescriptor sources);
 
-    ProjectTemplateDescriptor withSources(ImportSourceDescriptor sources);
+    ProjectTemplateDescriptor withSource(ImportSourceDescriptor sources);
 
     /** Get display name of project template. */
     String getDisplayName();

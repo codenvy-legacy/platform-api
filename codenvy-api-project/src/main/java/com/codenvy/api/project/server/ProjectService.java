@@ -69,10 +69,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author andrew00x
@@ -96,8 +98,6 @@ public class ProjectService extends Service {
     private ProjectGeneratorRegistry generators;
     @Inject
     private SearcherProvider         searcherProvider;
-    @Inject
-    private UserDao                  userDao;
 
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
@@ -612,6 +612,15 @@ public class ProjectService extends Service {
         final List<AccessControlEntry> acl = project.getPermissions();
         final Map<Principal, AccessControlEntry> aclMap = new HashMap<>(acl.size());
         for (AccessControlEntry ace : acl) {
+            //replace "all" with "read" & "write" & "update_acl"
+            final Set<String> permissions = new HashSet<>(ace.getPermissions());
+            if (permissions.contains("all")) {
+                permissions.remove("all");
+                permissions.add("read");
+                permissions.add("write");
+                permissions.add("update_acl");
+                ace.setPermissions(new ArrayList<>(permissions));
+            }
             aclMap.put(ace.getPrincipal(), ace);
         }
         if (userId != null) {

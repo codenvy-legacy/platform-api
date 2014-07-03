@@ -15,6 +15,8 @@ import com.codenvy.api.analytics.logger.EventLogger;
 import com.codenvy.api.analytics.shared.dto.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.dto.server.JsonArrayImpl;
+import com.codenvy.dto.server.JsonStringMapImpl;
 import com.google.inject.Inject;
 
 import org.slf4j.Logger;
@@ -66,7 +68,35 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
+        }
+    }
+
+    @GenerateLink(rel = "metric value")
+    @POST
+    @Path("metric/{name}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public Response getValueByJson(Map<String, String> parameters,
+                                   @PathParam("name") String metricName,
+                                   @QueryParam("page") String page,
+                                   @QueryParam("per_page") String perPage,
+                                   @Context UriInfo uriInfo) {
+        try {
+            Map<String, String> metricContext = extractContext(uriInfo,
+                                                               page,
+                                                               perPage);
+            MetricValueDTO value = metricHandler.getValueByJson(metricName,
+                                                                new JsonStringMapImpl<>(parameters),
+                                                                metricContext,
+                                                                uriInfo);
+            return Response.status(Response.Status.OK).entity(value).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
         }
     }
 
@@ -86,7 +116,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
         }
     }
 
@@ -99,11 +130,14 @@ public class AnalyticsService extends Service {
     public Response getUserValues(List<String> metricNames, @Context UriInfo uriInfo) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
-            MetricValueListDTO list = metricHandler.getUserValues(metricNames, metricContext, uriInfo);
+            MetricValueListDTO list = metricHandler.getUserValues(new JsonArrayImpl<>(metricNames),
+                                                                  metricContext,
+                                                                  uriInfo);
             return Response.status(Response.Status.OK).entity(list).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(
+                    "Unexpected error occurred. Can't get values of metrics").build();
         }
     }
 
@@ -118,7 +152,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get info for metric " + metricName).build();
         }
     }
 
@@ -133,7 +168,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't get metric info").build();
         }
     }
 
@@ -148,7 +184,7 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Unexpected error occurred. Can't log event " + event).build();
         }
     }
 
@@ -165,7 +201,8 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't log dashboard event for action " + action).build();
         }
     }
 

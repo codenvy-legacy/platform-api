@@ -62,9 +62,10 @@ public class ProjectTypeDescriptionService extends Service {
             for (ProjectTemplateDescription templateDescription : registry.getTemplates(projectType)) {
                 ProjectTemplateDescriptor templateDescriptor = DtoFactory.getInstance().createDto(ProjectTemplateDescriptor.class)
                         .withDisplayName(templateDescription.getDisplayName())
-                        .withSources(DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
-                                               .withType(templateDescription.getImporterType())
-                                               .withLocation(templateDescription.getLocation()))
+                        .withSource(DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
+                                              .withType(templateDescription.getImporterType())
+                                              .withLocation(templateDescription.getLocation()))
+                        .withCategory(templateDescription.getCategory())
                         .withDescription(templateDescription.getDescription());
                 templateDescriptors.add(templateDescriptor);
             }

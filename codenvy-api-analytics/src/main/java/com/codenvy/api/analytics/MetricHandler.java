@@ -32,6 +32,11 @@ public interface MetricHandler {
                                    Map<String, String> metricContext,
                                    UriInfo uriInfo) throws Exception;
 
+    public MetricValueDTO getValueByJson(String metricName,
+                                         Map<String, String> parameters,
+                                         Map<String, String> metricContext,
+                                         UriInfo uriInfo) throws Exception;
+
     public MetricValueDTO getPublicValue(String metricName,
                                          Map<String, String> metricContext,
                                          UriInfo uriInfo) throws Exception;

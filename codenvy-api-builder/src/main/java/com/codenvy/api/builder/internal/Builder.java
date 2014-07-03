@@ -230,7 +230,7 @@ public abstract class Builder {
                 interrupted |= true;
                 executor.shutdownNow();
             }
-            final java.io.File[] files = getRepository().listFiles();
+            final java.io.File[] files = repository.listFiles();
             if (files != null && files.length > 0) {
                 for (java.io.File f : files) {
                     boolean deleted;

@@ -14,25 +14,35 @@ import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.ValueHolder;
+import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.ZipUtils;
 import com.google.common.hash.Hashing;
+import com.google.common.io.CharStreams;
 
+import org.apache.commons.fileupload.MultipartStream;
+import org.everrest.core.impl.header.HeaderParameterParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.StringReader;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -159,6 +169,17 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         }
     }
 
+    static final OutputStream DEV_NULL = new OutputStream() {
+        public void write(byte[] b, int off, int len) {
+        }
+
+        public void write(int b) {
+        }
+
+        public void write(byte[] b) throws IOException {
+        }
+    };
+
     @Override
     public void download(String downloadUrl, java.io.File downloadTo, Callback callback) {
         HttpURLConnection conn = null;
@@ -191,6 +212,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             if (!md5sums.isEmpty()) {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-type", "text/plain");
+                conn.setRequestProperty("Accept", "multipart/form-data");
                 conn.setDoOutput(true);
                 try (OutputStream output = conn.getOutputStream();
                      Writer writer = new OutputStreamWriter(output)) {
@@ -204,16 +226,62 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             }
             final int responseCode = conn.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                try (InputStream in = conn.getInputStream()) {
-                    ZipUtils.unzip(in, downloadTo);
-                }
-                final String removeHeader = conn.getHeaderField("x-removed-paths");
-                if (removeHeader != null) {
-                    for (String item : removeHeader.split(",")) {
-                        java.io.File f = new java.io.File(downloadTo, item);
-                        if (!f.delete()) {
-                            throw new IOException(String.format("Unable delete %s", item));
+                final String contentType = conn.getHeaderField("content-type");
+                if (contentType.startsWith("multipart/form-data")) {
+                    final HeaderParameterParser headerParameterParser = new HeaderParameterParser();
+                    final String boundary = headerParameterParser.parse(contentType).get("boundary");
+                    try (InputStream in = conn.getInputStream()) {
+                        MultipartStream multipart = new MultipartStream(in, boundary.getBytes());
+                        boolean hasMore = multipart.skipPreamble();
+                        while (hasMore) {
+                            final Map<String, List<String>> headers =
+                                    parseChunkHeader(CharStreams.readLines(new StringReader(multipart.readHeaders())));
+                            final List<String> contentDisposition = headers.get("content-disposition");
+                            final String name = headerParameterParser.parse(contentDisposition.get(0)).get("name");
+                            if ("updates".equals(name)) {
+                                int length = -1;
+                                List<String> contentLengthHeader = headers.get("content-length");
+                                if (contentLengthHeader != null && !contentLengthHeader.isEmpty()) {
+                                    length = Integer.parseInt(contentLengthHeader.get(0));
+                                }
+                                if (length < 0 || length > 102400) {
+                                    java.io.File tmp = java.io.File.createTempFile("tmp", ".zip", directory);
+                                    try {
+                                        try (FileOutputStream fOut = new FileOutputStream(tmp)) {
+                                            multipart.readBodyData(fOut);
+                                        }
+                                        ZipUtils.unzip(tmp, downloadTo);
+                                    } finally {
+                                        if (tmp.exists()) {
+                                            tmp.delete();
+                                        }
+                                    }
+                                } else {
+                                    final ByteArrayOutputStream bOut = new ByteArrayOutputStream(length);
+                                    multipart.readBodyData(bOut);
+                                    ZipUtils.unzip(new ByteArrayInputStream(bOut.toByteArray()), downloadTo);
+                                }
+                            } else if ("removed-paths".equals(name)) {
+                                final ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+                                multipart.readBodyData(bOut);
+                                final String[] removed =
+                                        JsonHelper.fromJson(new ByteArrayInputStream(bOut.toByteArray()), String[].class, null);
+                                for (String path : removed) {
+                                    java.io.File f = new java.io.File(downloadTo, path);
+                                    if (!f.delete()) {
+                                        throw new IOException(String.format("Unable delete %s", path));
+                                    }
+                                }
+                            } else {
+                                // To /dev/null :)
+                                multipart.readBodyData(DEV_NULL);
+                            }
+                            hasMore = multipart.readBoundary();
                         }
+                    }
+                } else {
+                    try (InputStream in = conn.getInputStream()) {
+                        ZipUtils.unzip(in, downloadTo);
                     }
                 }
             } else if (responseCode != HttpURLConnection.HTTP_NO_CONTENT) {
@@ -222,11 +290,39 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             callback.done(downloadTo);
         } catch (IOException e) {
             callback.error(e);
+        } catch (Exception e) {
+            callback.error(new IOException(e.getMessage(), e));
         } finally {
             if (conn != null) {
                 conn.disconnect();
             }
         }
+    }
+
+    private Map<String, List<String>> parseChunkHeader(List<String> rawHeaders) throws IOException {
+        final Map<String, List<String>> headers = new HashMap<>();
+        for (String field : rawHeaders) {
+            if (field.isEmpty()) {
+                continue;
+            }
+            String name;
+            String value = null;
+            int colonPos = field.indexOf(':');
+            if (colonPos > 0) {
+                name = field.substring(0, colonPos).trim().toLowerCase();
+                value = field.substring(colonPos + 1).trim();
+            } else {
+                name = field.trim().toLowerCase();
+            }
+            List<String> values = headers.get(name);
+            if (values == null) {
+                headers.put(name, values = new LinkedList<>());
+            }
+            if (value != null) {
+                values.add(value);
+            }
+        }
+        return headers;
     }
 
     @Override

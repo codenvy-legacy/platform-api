@@ -470,11 +470,22 @@ public class ProjectService extends Service {
     /** See {@link com.codenvy.api.vfs.server.VirtualFileSystem#exportZip(String, java.io.InputStream)}. */
     @POST
     @Path("export/{path:.*}")
-    @Consumes("text/plain")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces("application/zip")
     public Response exportDiffZip(@PathParam("ws-id") String workspace, @PathParam("path") String path, InputStream in) throws Exception {
         final FolderEntry folder = asFolder(workspace, path);
         return VirtualFileSystemImpl.exportZip(folder.getVirtualFile(), in);
+    }
+
+    /** See {@link com.codenvy.api.vfs.server.VirtualFileSystem#exportZipMultipart(String, java.io.InputStream)}. */
+    @POST
+    @Path("export/{path:.*}")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.MULTIPART_FORM_DATA)
+    public Response exportDiffZipMultipart(@PathParam("ws-id") String workspace, @PathParam("path") String path, InputStream in)
+            throws Exception {
+        final FolderEntry folder = asFolder(workspace, path);
+        return VirtualFileSystemImpl.exportZipMultipart(folder.getVirtualFile(), in);
     }
 
     @GET

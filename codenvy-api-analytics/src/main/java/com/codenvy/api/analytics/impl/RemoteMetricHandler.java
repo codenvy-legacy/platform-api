@@ -23,6 +23,8 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.dto.server.JsonArrayImpl;
+import com.codenvy.dto.server.JsonStringMapImpl;
 
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
@@ -68,6 +70,28 @@ public class RemoteMetricHandler implements MetricHandler {
                            proxyUrl,
                            "GET",
                            null,
+                           pairs.toArray(new Pair[pairs.size()]));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public MetricValueListDTO getListValues(String metricName,
+                                            List<Map<String, String>> parameters,
+                                            Map<String, String> executionContext,
+                                            UriInfo uriInfo) throws Exception {
+        String proxyUrl = getProxyURL("getListValues", metricName);
+        try {
+            for (int i = 0; i < parameters.size(); i++) {
+                parameters.set(i, new JsonStringMapImpl<>(parameters.get(i)));
+            }
+
+            List<Pair<String, String>> pairs = mapToParisList(executionContext);
+            return request(MetricValueListDTO.class,
+                           proxyUrl,
+                           "POST",
+                           new JsonArrayImpl<>(parameters),
                            pairs.toArray(new Pair[pairs.size()]));
         } catch (Exception e) {
             throw new RuntimeException(e);

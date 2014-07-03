@@ -28,9 +28,9 @@ import java.util.Map;
  * @author <a href="mailto:dkuleshov@codenvy.com">Dmitry Kuleshov</a>
  */
 public interface MetricHandler {
-    public MetricValueDTO getValueByQueryParams(String metricName,
-                                                Map<String, String> metricContext,
-                                                UriInfo uriInfo) throws Exception;
+    public MetricValueDTO getValue(String metricName,
+                                   Map<String, String> metricContext,
+                                   UriInfo uriInfo) throws Exception;
 
     public MetricValueDTO getValueByJson(String metricName,
                                          Map<String, String> parameters,

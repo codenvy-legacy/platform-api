@@ -56,15 +56,15 @@ public class AnalyticsService extends Service {
     @Path("metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getValueByQueryParams(@PathParam("name") String metricName,
-                                          @QueryParam("page") String page,
-                                          @QueryParam("per_page") String perPage,
-                                          @Context UriInfo uriInfo) {
+    public Response getValue(@PathParam("name") String metricName,
+                             @QueryParam("page") String page,
+                             @QueryParam("per_page") String perPage,
+                             @Context UriInfo uriInfo) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
                                                                perPage);
-            MetricValueDTO value = metricHandler.getValueByQueryParams(metricName, metricContext, uriInfo);
+            MetricValueDTO value = metricHandler.getValue(metricName, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);

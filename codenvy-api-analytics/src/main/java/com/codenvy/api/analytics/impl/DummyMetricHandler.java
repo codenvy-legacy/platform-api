@@ -31,9 +31,9 @@ import java.util.Random;
 public class DummyMetricHandler implements MetricHandler {
 
     @Override
-    public MetricValueDTO getValueByQueryParams(String metricName,
-                                                Map<String, String> metricContext,
-                                                UriInfo uriInfo) {
+    public MetricValueDTO getValue(String metricName,
+                                   Map<String, String> metricContext,
+                                   UriInfo uriInfo) {
         return createDummyMetricValueDTO(metricName);
     }
 

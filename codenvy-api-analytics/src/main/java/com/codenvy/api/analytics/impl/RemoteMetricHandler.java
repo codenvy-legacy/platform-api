@@ -58,10 +58,10 @@ public class RemoteMetricHandler implements MetricHandler {
 
     @Override
     @SuppressWarnings("unchecked")
-    public MetricValueDTO getValueByQueryParams(String metricName,
-                                                Map<String, String> executionContext,
-                                                UriInfo uriInfo) {
-        String proxyUrl = getProxyURL("getValueByQueryParams", metricName);
+    public MetricValueDTO getValue(String metricName,
+                                   Map<String, String> executionContext,
+                                   UriInfo uriInfo) {
+        String proxyUrl = getProxyURL("getValue", metricName);
         try {
             List<Pair<String, String>> pairs = mapToParisList(executionContext);
             return request(MetricValueDTO.class,
@@ -268,7 +268,7 @@ public class RemoteMetricHandler implements MetricHandler {
         statusLink.setHref(servicePathBuilder
                                    .clone()
                                    .path("analytics")
-                                   .path(getMethod("getValueByQueryParams"))
+                                   .path(getMethod("getValue"))
                                    .build(metricName, "name")
                                    .toString());
         statusLink.setMethod("GET");

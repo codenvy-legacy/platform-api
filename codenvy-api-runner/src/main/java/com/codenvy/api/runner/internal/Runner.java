@@ -74,8 +74,8 @@ public abstract class Runner {
         }
     };
 
-    protected static final String           RFC1123_DATE_PATTERN = "EEE, dd MMM yyyy HH:mm:ss zzz";
-    protected static final SimpleDateFormat RFC1123_DATE_FORMAT  = new SimpleDateFormat(RFC1123_DATE_PATTERN, Locale.US);
+    protected static final String                   DATETIME_PATTERN   = "MM/dd/yyyy HH:mm:ss";
+    protected static final SimpleDateFormat         DATETIME_FORMAT    = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
 
     private final Map<Long, RunnerProcessImpl> processes;
     private final Map<Long, RunnerProcessImpl> expiredProcesses;
@@ -200,7 +200,7 @@ public abstract class Runner {
     protected List<RunnerMetric> getStats(RunnerProcess process) throws RunnerException {
         final List<RunnerMetric> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        SimpleDateFormat format = (SimpleDateFormat)RFC1123_DATE_FORMAT.clone();
+        SimpleDateFormat format = (SimpleDateFormat)DATETIME_FORMAT.clone();
         final long started = process.getStartTime();
         final long stopped = process.getStopTime();
         if (started > 0) {

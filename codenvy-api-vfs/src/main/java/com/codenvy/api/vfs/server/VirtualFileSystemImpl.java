@@ -34,9 +34,11 @@ import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;
+import org.everrest.core.impl.provider.multipart.OutputItem;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -44,6 +46,7 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
@@ -570,8 +573,71 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         return exportZip(virtualFile, in);
     }
 
+    @Path("export/{folderId}")
+    @Override
+    public Response exportZipMultipart(@PathParam("folderId") String folderId, InputStream in)
+            throws IOException, VirtualFileSystemException {
+        final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
+        if (!virtualFile.isFolder()) {
+            throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
+        }
+        return exportZipMultipart(virtualFile, in);
+    }
+
+    // For usage from Project API.
+    public static Response exportZipMultipart(VirtualFile folder, InputStream in) throws IOException, VirtualFileSystemException {
+        final List<String> deleted = new LinkedList<>();
+        final ContentStream zip = exportZip(folder, in, deleted);
+        if (zip == null) {
+            return Response.status(204).build();
+        }
+        final List<OutputItem> multipart = new LinkedList<>();
+        // String name, Object entity, MediaType mediaType, String fileName
+        final OutputItem updates = OutputItem.create("updates", zip.getStream(), MediaType.valueOf("application/zip"), zip.getFileName());
+        updates.getHeaders().putSingle(HttpHeaders.CONTENT_LENGTH, Long.toString(zip.getLength()));
+        multipart.add(updates);
+
+        if (!deleted.isEmpty()) {
+            multipart.add(OutputItem.create("removed-paths", deleted, MediaType.APPLICATION_JSON_TYPE));
+        }
+
+        final String boundary = NameGenerator.generate(null, 8);
+        return Response
+                .ok(new GenericEntity<List<OutputItem>>(multipart) {
+                }, "multipart/form-data; boundary=" + boundary)
+                .lastModified(zip.getLastModificationDate())
+                .build();
+    }
+
+
     // For usage from Project API.
     public static Response exportZip(VirtualFile folder, InputStream in) throws IOException, VirtualFileSystemException {
+        final List<String> deleted = new LinkedList<>();
+        final ContentStream zip = exportZip(folder, in, deleted);
+        if (zip == null) {
+            return Response.status(204).build();
+        }
+        final Response.ResponseBuilder responseBuilder = Response
+                .ok(zip.getStream(), zip.getMimeType())
+                .lastModified(zip.getLastModificationDate())
+                .header(HttpHeaders.CONTENT_LENGTH, Long.toString(zip.getLength()))
+                .header("Content-Disposition", "attachment; filename=\"" + zip.getFileName() + '"');
+        if (!deleted.isEmpty()) {
+            final StringBuilder buff = new StringBuilder();
+            for (String str : deleted) {
+                if (buff.length() > 0) {
+                    buff.append(',');
+                }
+                buff.append(str);
+            }
+            responseBuilder.header("x-removed-paths", deleted.toString());
+        }
+        return responseBuilder.build();
+    }
+
+    // For usage from Project API.
+    protected static ContentStream exportZip(VirtualFile folder, InputStream in, List<String> deleted)
+            throws IOException, VirtualFileSystemException {
         final List<Pair<String, String>> remote = new LinkedList<>();
         final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         String line;
@@ -586,13 +652,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             remote.add(Pair.of(hash, relPath));
         }
         if (remote.isEmpty()) {
-            final ContentStream zip = folder.zip(VirtualFileFilter.ALL);
-            return Response
-                    .ok(zip.getStream(), zip.getMimeType())
-                    .lastModified(zip.getLastModificationDate())
-                    .header(HttpHeaders.CONTENT_LENGTH, Long.toString(zip.getLength()))
-                    .header("Content-Disposition", "attachment; filename=\"" + zip.getFileName() + '"')
-                    .build();
+            return folder.zip(VirtualFileFilter.ALL);
         }
         final LazyIterator<Pair<String, String>> md5Sums = folder.countMd5Sums();
         final int size = md5Sums.size();
@@ -642,7 +702,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         }
 
         if (diff.isEmpty()) {
-            return Response.status(204).build();
+            return null;
         }
 
         final ContentStream zip = folder.zip(new VirtualFileFilter() {
@@ -657,26 +717,15 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 return false;
             }
         });
-        final StringBuilder deleted = new StringBuilder();
+
+        deleted.clear();
         for (Pair<String, com.codenvy.api.vfs.server.Path> pair : diff) {
             if (pair.first != null && pair.second == null) {
-                if (deleted.length() > 0) {
-                    deleted.append(',');
-                }
-                deleted.append(pair.first);
+                deleted.add(pair.first);
             }
         }
-        final Response.ResponseBuilder responseBuilder = Response
-                .ok(zip.getStream(), zip.getMimeType())
-                .lastModified(zip.getLastModificationDate())
-                .header(HttpHeaders.CONTENT_LENGTH, Long.toString(zip.getLength()))
-                .header("Content-Disposition", "attachment; filename=\"" + zip.getFileName() + '"');
-        if (deleted.length() > 0) {
-            responseBuilder.header("x-removed-paths", deleted.toString());
-        }
-        return responseBuilder.build();
+        return zip;
     }
-
 
     @Path("import/{parentId}")
     @Override

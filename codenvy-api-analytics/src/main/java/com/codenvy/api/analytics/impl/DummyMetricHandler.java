@@ -38,6 +38,22 @@ public class DummyMetricHandler implements MetricHandler {
     }
 
     @Override
+    public MetricValueListDTO getListValues(String metricName,
+                                            List<Map<String, String>> parameters,
+                                            Map<String, String> context,
+                                            UriInfo uriInfo) throws Exception {
+        MetricValueListDTO metricValueListDTO = DtoFactory.getInstance().createDto(MetricValueListDTO.class);
+
+        List<MetricValueDTO> metricValues = new ArrayList<>();
+        metricValues.add(createDummyMetricValueDTO(metricName));
+        metricValues.add(createDummyMetricValueDTO(metricName));
+        metricValues.add(createDummyMetricValueDTO(metricName));
+
+        metricValueListDTO.setMetrics(metricValues);
+        return metricValueListDTO;
+    }
+
+    @Override
     public MetricValueDTO getValueByJson(String metricName,
                                          Map<String, String> parameters,
                                          Map<String, String> metricContext,

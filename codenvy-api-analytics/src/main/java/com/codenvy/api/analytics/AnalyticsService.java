@@ -73,6 +73,25 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @GenerateLink(rel = "list of metric values")
+    @POST
+    @Path("metric/{name}/list")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public Response getListValues(@PathParam("name") String metricName,
+                                  @Context UriInfo uriInfo,
+                                  List<Map<String, String>> parameters) {
+        try {
+            Map<String, String> metricContext = extractContext(uriInfo);
+            MetricValueListDTO list = metricHandler.getListValues(metricName, parameters, metricContext, uriInfo);
+            return Response.status(Response.Status.OK).entity(list).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        }
+    }
+
     @GenerateLink(rel = "metric value")
     @POST
     @Path("metric/{name}")

@@ -936,7 +936,55 @@ public interface VirtualFileSystem {
     @Produces({"application/zip"})
     @Consumes({"text/plain"})
     Response exportZip(String folderId, InputStream in) throws ItemNotFoundException, InvalidArgumentException,
-                                                            PermissionDeniedException, IOException, VirtualFileSystemException;
+                                                               PermissionDeniedException, IOException, VirtualFileSystemException;
+
+    /**
+     * Export content of <code>folderId</code> to ZIP archive. Unlike to the method {@link #exportZip(String)} this method includes in the
+     * zip response only updated files. Caller must send list of files with their md5sums in next format:
+     * <pre>
+     * &lt;md5sum&gt;&lt;space&gt;&lt;file path relative to requested folder&gt;
+     * ...
+     * </pre>
+     * For example:
+     * <pre>
+     * ae3ddf74ea668c7fcee0e3865173e10b  my_project/pom.xml
+     * 3ad8580e46189873b48c27983d965df8  my_project/src/main/java/org/test/Main.java
+     * ...
+     * </pre>
+     * Example of typical usage of such method.
+     * <ol>
+     * <li>Imagine caller has content of this folder stored remotely</li>
+     * <li>In some point of time caller likes to get updates</li>
+     * <li>Caller traverses local tree and count md5sum for each file, folders must be omitted</li>
+     * <li>Caller sends request. See about format of request body above</li>
+     * <li>Multipart/form-data response contains archive with files for which the md5sum does not match (field 'updates') and list of names
+     * of removed files (field 'removed-paths')</li>
+     * <li>If there is no any updates this method return response with status: 204 No Content</li>
+     * <li>Depending to the response caller updates his local copy of this folder</li>
+     * </ol>
+     *
+     * @param folderId
+     *         folder for ZIP
+     * @param in
+     *         stream, see above about its format
+     * @return ZIP as stream
+     * @throws ItemNotFoundException
+     *         if <code>folderId</code> does not exist
+     * @throws InvalidArgumentException
+     *         if <code>folderId</code> item is not a folder
+     * @throws PermissionDeniedException
+     *         if user which perform operation has no permissions to do it
+     * @throws IOException
+     *         if any i/o errors occur
+     * @throws VirtualFileSystemException
+     *         if any other errors occur
+     */
+    @POST
+    @Path("export")
+    @Produces({"multipart/form-data"})
+    @Consumes({"text/plain"})
+    Response exportZipMultipart(String folderId, InputStream in) throws ItemNotFoundException, InvalidArgumentException,
+                                                                        PermissionDeniedException, IOException, VirtualFileSystemException;
 
     /**
      * Import ZIP content.

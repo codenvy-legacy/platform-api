@@ -15,6 +15,7 @@ import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.commons.json.JsonParseException;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.ZipUtils;
@@ -39,6 +40,7 @@ import java.io.StringReader;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -290,7 +292,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             callback.done(downloadTo);
         } catch (IOException e) {
             callback.error(e);
-        } catch (Exception e) {
+        } catch (ParseException | JsonParseException e) {
             callback.error(new IOException(e.getMessage(), e));
         } finally {
             if (conn != null) {

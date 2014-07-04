@@ -10,13 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.commons.lang.Pair;
 
 import java.io.IOException;
 import java.io.InputStream;

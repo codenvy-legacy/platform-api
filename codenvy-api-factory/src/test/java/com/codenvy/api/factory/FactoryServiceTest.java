@@ -11,11 +11,11 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 import com.jayway.restassured.response.Response;

@@ -11,7 +11,6 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.core.util.ContentTypeGuesser;
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
@@ -45,6 +44,7 @@ import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;

@@ -12,12 +12,12 @@ package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.core.util.DownloadPlugin;
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.ZipUtils;
 import com.google.common.hash.Hashing;
 import com.google.common.io.CharStreams;

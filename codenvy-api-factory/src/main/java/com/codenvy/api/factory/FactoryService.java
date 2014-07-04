@@ -12,11 +12,11 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonSyntaxException;

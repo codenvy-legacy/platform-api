@@ -10,11 +10,11 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.search.LuceneSearcher;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.ItemList;
+import com.codenvy.commons.lang.Pair;
 
 import org.apache.lucene.analysis.SimpleAnalyzer;
 import org.apache.lucene.index.Term;

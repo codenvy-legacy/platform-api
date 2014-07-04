@@ -12,12 +12,12 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.LoadingValueSLRUCache;
 import com.codenvy.commons.lang.cache.SynchronizedCache;

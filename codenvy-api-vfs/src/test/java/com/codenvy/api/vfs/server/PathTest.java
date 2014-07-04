@@ -12,15 +12,15 @@ package com.codenvy.api.vfs.server;
 
 import junit.framework.TestCase;
 
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
+import com.codenvy.commons.lang.Pair;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class PathTest extends TestCase {
     private Map<String, Pair<String, String[]>> legal;

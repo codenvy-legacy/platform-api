@@ -10,8 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.commons.lang.Pair;
 
 import java.util.List;
 import java.util.Set;

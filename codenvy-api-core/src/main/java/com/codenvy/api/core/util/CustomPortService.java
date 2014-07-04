@@ -54,15 +54,15 @@ public class CustomPortService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomPortService.class);
 
-    private final ConcurrentMap<Integer, Boolean> portsInUse;
-    private final Pair<Integer, Integer>          range;
+    private final ConcurrentMap<Integer, Boolean>                 portsInUse;
+    private final com.codenvy.commons.lang.Pair<Integer, Integer> range;
 
     @Inject
     public CustomPortService(@Named(MIN_PORT) int minPort, @Named(MAX_PORT) int maxPort) {
-        this(Pair.of(minPort, maxPort));
+        this(com.codenvy.commons.lang.Pair.of(minPort, maxPort));
     }
 
-    public CustomPortService(Pair<Integer, Integer> range) {
+    public CustomPortService(com.codenvy.commons.lang.Pair<Integer, Integer> range) {
         if (range.first < 0 || range.second > 65535) {
             throw new IllegalArgumentException(String.format("Invalid port range: [%d:%d]", range.first, range.second));
         }
@@ -87,8 +87,8 @@ public class CustomPortService {
      * Returns range of ports that service uses for lookup free port. Modifications to the returned {@code Pair} will not affect the
      * internal {@code Pair}.
      */
-    public Pair<Integer, Integer> getRange() {
-        return Pair.of(range.first, range.second);
+    public com.codenvy.commons.lang.Pair<Integer, Integer> getRange() {
+        return com.codenvy.commons.lang.Pair.of(range.first, range.second);
     }
 
     /**

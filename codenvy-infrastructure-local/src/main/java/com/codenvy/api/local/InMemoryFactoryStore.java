@@ -10,12 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.local;
 
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.factory.FactoryImage;
 import com.codenvy.api.factory.FactoryStore;
 import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;

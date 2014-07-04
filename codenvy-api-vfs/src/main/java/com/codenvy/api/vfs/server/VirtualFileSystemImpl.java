@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.core.util.Pair;
 import com.codenvy.api.vfs.server.exceptions.HtmlErrorFormatter;
 import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
 import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
@@ -35,6 +34,7 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.lang.NameGenerator;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;

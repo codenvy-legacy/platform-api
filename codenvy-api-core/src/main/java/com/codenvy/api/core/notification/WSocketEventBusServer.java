@@ -54,9 +54,17 @@ public final class WSocketEventBusServer extends WSocketEventBus {
     @Override
     protected void propagate(Object event) {
         try {
-            WSConnectionContext.sendMessage(Messages.broadcastMessage(event));
+            WSConnectionContext.sendMessage(Messages.broadcastMessage(resolveChannelName(event), event));
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
         }
+    }
+
+    protected String resolveChannelName(Object event) {
+        final EventOrigin eventOrigin = event.getClass().getAnnotation(EventOrigin.class);
+        if (eventOrigin == null) {
+            throw new RuntimeException(String.format("Unable get channel name for %s", event));
+        }
+        return eventOrigin.value();
     }
 }

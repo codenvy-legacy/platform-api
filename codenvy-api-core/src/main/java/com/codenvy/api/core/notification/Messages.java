@@ -20,7 +20,6 @@ import org.everrest.core.impl.provider.json.ObjectBuilder;
 import org.everrest.core.impl.provider.json.StringValue;
 import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.everrest.websockets.message.InputMessage;
-import org.everrest.websockets.message.Pair;
 import org.everrest.websockets.message.RESTfulInputMessage;
 import org.everrest.websockets.message.RESTfulOutputMessage;
 
@@ -43,26 +42,19 @@ class Messages {
         return message;
     }
 
-    static InputMessage subscribeChannelMessage() throws Exception {
-        return RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), "EventBus");
+    static InputMessage subscribeChannelMessage(String channel) throws Exception {
+        return RESTfulInputMessage.newSubscribeChannelMessage(NameGenerator.generate(null, 8), channel);
     }
 
-    static ChannelBroadcastMessage broadcastMessage(Object event) throws Exception {
+    static ChannelBroadcastMessage broadcastMessage(String channel, Object event) throws Exception {
         final ChannelBroadcastMessage message = new ChannelBroadcastMessage();
         message.setBody(toJson(event));
-        message.setChannel("EventBus");
+        message.setChannel(channel);
         return message;
     }
 
     static Object restoreEventFromBroadcastMessage(RESTfulOutputMessage message) throws Exception {
-        if (message != null && message.getHeaders() != null) {
-            for (Pair pair : message.getHeaders()) {
-                if ("x-everrest-websocket-channel".equals(pair.getName()) && "EventBus".equals(pair.getValue())) {
-                    return fromJson(message.getBody());
-                }
-            }
-        }
-        return null;
+        return fromJson(message.getBody());
     }
 
     static Object restoreEventFromClientMessage(String message) throws Exception {

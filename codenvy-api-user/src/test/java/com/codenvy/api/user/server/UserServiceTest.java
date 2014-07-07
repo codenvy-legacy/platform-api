@@ -155,13 +155,12 @@ public class UserServiceTest {
         String[] s = getRoles(UserService.class, "getCurrent");
         for (String role : s) {
             prepareSecurityContext(role);
-
             ContainerResponse response =
                     launcher.service("GET", SERVICE_PATH, BASE_URI, null, null, null, environmentContext);
             assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-            verify(userDao, times(1)).getByAlias(USER_EMAIL);
             verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
         }
+        verify(userDao, times(s.length)).getByAlias(USER_EMAIL);
     }
 
     @Test

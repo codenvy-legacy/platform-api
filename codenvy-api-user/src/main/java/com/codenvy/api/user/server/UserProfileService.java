@@ -63,7 +63,7 @@ public class UserProfileService extends Service {
     }
 
     @GET
-    @RolesAllowed("user")
+    @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = "current profile")
     @Produces(MediaType.APPLICATION_JSON)
     public Profile getCurrent(@Context SecurityContext securityContext,
@@ -185,7 +185,7 @@ public class UserProfileService extends Service {
 
     @POST
     @Path("prefs")
-    @RolesAllowed({"user"})
+    @RolesAllowed({"user","temp_user"})
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFERENCES)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)

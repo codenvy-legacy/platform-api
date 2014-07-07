@@ -648,7 +648,7 @@ public class ProjectService extends Service {
             }
             return Collections.singletonList(ace);
         } else {
-            return project.getPermissions();
+            return acl;
         }
     }
 

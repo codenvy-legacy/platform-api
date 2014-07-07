@@ -185,11 +185,11 @@ public class UserProfileTest {
                                      environmentContext);
 
             assertEquals(response.getStatus(), Status.OK.getStatusCode());
-            verify(userProfileDao, times(1)).update(any(Profile.class));
             Profile responseProfile = (Profile)response.getEntity();
             assertEquals(responseProfile.getPreferences(), prefsToUpdate);
             verifyLinksRel(responseProfile.getLinks(), getRels(one));
         }
+        verify(userProfileDao, times(s.length)).update(any(Profile.class));
     }
 
     @Test

@@ -336,7 +336,7 @@ public class WorkspaceService extends Service {
     @GET
     @Path("all")
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES)
-    @RolesAllowed("user")
+    @RolesAllowed({"user", "temp_user"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<Membership> getMembershipsOfCurrentUser(@Context SecurityContext securityContext)
             throws NotFoundException, ServerException {
@@ -641,14 +641,15 @@ public class WorkspaceService extends Service {
 
     private void ensureUserHasAccessToWorkspace(SecurityContext securityContext, String wsId, String role)
             throws NotFoundException, ServerException, ForbiddenException {
-        if (securityContext.isUserInRole("user") && !getCurrentUserRoles(wsId, securityContext).contains(role)) {
+        if ((securityContext.isUserInRole("user") || securityContext.isUserInRole("temp_user")) &&
+            !getCurrentUserRoles(wsId, securityContext).contains(role)) {
             throw new ForbiddenException("Access denied");
         }
     }
 
     private void ensureUserHasAccessToWorkspace(SecurityContext securityContext, String wsId, String role1, String role2)
             throws NotFoundException, ServerException, ForbiddenException {
-        if (securityContext.isUserInRole("user")) {
+        if (securityContext.isUserInRole("user") || securityContext.isUserInRole("temp_user")) {
             final Set<String> roles = getCurrentUserRoles(wsId, securityContext);
             if (!(roles.contains(role1) || roles.contains(role2))) {
                 throw new ForbiddenException("Access denied");

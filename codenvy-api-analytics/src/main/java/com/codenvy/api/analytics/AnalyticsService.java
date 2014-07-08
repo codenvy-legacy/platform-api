@@ -196,7 +196,7 @@ public class AnalyticsService extends Service {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/{event}")
-    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
     public Response logEvent(@PathParam("event") String event, EventParameters parameters) {
         try {
             eventLogger.log(event, parameters.getParams());
@@ -210,7 +210,7 @@ public class AnalyticsService extends Service {
     @GenerateLink(rel = "log use dashboard event")
     @POST
     @Path("log/dashboard-usage/{action}")
-    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
     public Response logUserDashboardEvent(@PathParam("action") String action) {
         try {
             Map<String, String> parameters = new HashMap<>(1);

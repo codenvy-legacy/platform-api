@@ -107,7 +107,7 @@ public class UserService extends Service {
 
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER)
-    @RolesAllowed("user")
+    @RolesAllowed({"user", "temp_user"})
     @Produces(MediaType.APPLICATION_JSON)
     public User getCurrent(@Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();

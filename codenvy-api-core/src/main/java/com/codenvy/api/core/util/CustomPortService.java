@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.core.util;
 
+import com.codenvy.commons.lang.Pair;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +21,7 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -54,19 +57,21 @@ public class CustomPortService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomPortService.class);
 
-    private final ConcurrentMap<Integer, Boolean>                 portsInUse;
-    private final com.codenvy.commons.lang.Pair<Integer, Integer> range;
+    private final Random                          rnd;
+    private final ConcurrentMap<Integer, Boolean> portsInUse;
+    private final Pair<Integer, Integer>          range;
 
     @Inject
     public CustomPortService(@Named(MIN_PORT) int minPort, @Named(MAX_PORT) int maxPort) {
         this(com.codenvy.commons.lang.Pair.of(minPort, maxPort));
     }
 
-    public CustomPortService(com.codenvy.commons.lang.Pair<Integer, Integer> range) {
+    public CustomPortService(Pair<Integer, Integer> range) {
         if (range.first < 0 || range.second > 65535) {
             throw new IllegalArgumentException(String.format("Invalid port range: [%d:%d]", range.first, range.second));
         }
         this.range = range;
+        rnd = new Random();
         portsInUse = new ConcurrentHashMap<>();
     }
 
@@ -87,7 +92,7 @@ public class CustomPortService {
      * Returns range of ports that service uses for lookup free port. Modifications to the returned {@code Pair} will not affect the
      * internal {@code Pair}.
      */
-    public com.codenvy.commons.lang.Pair<Integer, Integer> getRange() {
+    public Pair<Integer, Integer> getRange() {
         return com.codenvy.commons.lang.Pair.of(range.first, range.second);
     }
 
@@ -129,30 +134,67 @@ public class CustomPortService {
     }
 
     private int doAcquire(int min, int max) {
+        // Use this for getting ports for web applications but unfortunately get issue with browser cache.
+        // If different applications reuse the same port sometimes user can see previous application.
+        // Make number of port in 'more random' way instead of checking from min to max until find free port.
+        final int m = min + rnd.nextInt((max - min) + 1);
+        final boolean ev = (m % 2) == 0;
+        int port;
+        if (ev) {
+            port = lookupForward(m, max);
+            if (port < 0) {
+                port = lookupBackward(m, min);
+            }
+        } else {
+            port = lookupBackward(m, min);
+            if (port < 0) {
+                port = lookupForward(m, max);
+            }
+        }
+        return port;
+    }
+
+    private int lookupForward(int min, int max) {
         for (int port = min; port <= max; port++) {
-            if (portsInUse.putIfAbsent(port, Boolean.TRUE) == null) {
-                ServerSocket ss = null;
-                DatagramSocket ds = null;
-                try {
-                    ss = new ServerSocket(port);
-                    ds = new DatagramSocket(port);
-                    LOG.debug("Acquire port {}", port);
-                    return port;
-                } catch (IOException ignored) {
-                    portsInUse.remove(port);
-                } finally {
-                    if (ds != null) {
-                        ds.close();
-                    }
-                    if (ss != null) {
-                        try {
-                            ss.close();
-                        } catch (IOException ignored) {
-                        }
+            if (checkPort(port)) {
+                return port;
+            }
+        }
+        return -1;
+    }
+
+    private int lookupBackward(int max, int min) {
+        for (int port = max; port >= min; port--) {
+            if (checkPort(port)) {
+                return port;
+            }
+        }
+        return -1;
+    }
+
+    private boolean checkPort(int port) {
+        if (portsInUse.putIfAbsent(port, Boolean.TRUE) == null) {
+            ServerSocket ss = null;
+            DatagramSocket ds = null;
+            try {
+                ss = new ServerSocket(port);
+                ds = new DatagramSocket(port);
+                LOG.debug("Acquire port {}", port);
+                return true;
+            } catch (IOException ignored) {
+                portsInUse.remove(port);
+            } finally {
+                if (ds != null) {
+                    ds.close();
+                }
+                if (ss != null) {
+                    try {
+                        ss.close();
+                    } catch (IOException ignored) {
                     }
                 }
             }
         }
-        return -1;
+        return false;
     }
 }

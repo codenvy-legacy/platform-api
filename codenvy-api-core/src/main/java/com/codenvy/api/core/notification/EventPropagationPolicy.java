@@ -10,9 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.core.notification;
 
+import com.google.inject.ImplementedBy;
+
 /**
  * @author andrew00x
  */
+@ImplementedBy(EventOriginPropagationPolicy.class)
 public interface EventPropagationPolicy {
     boolean shouldPropagated(Object event);
 }

@@ -59,7 +59,7 @@ public final class WSocketEventBusClient extends WSocketEventBus {
     private static final long wsConnectionTimeout = 2000;
 
     private final EventService                         eventService;
-    private final Pair<String, String>[]               remoteEventServices;
+    private final Pair<String, String>[]               eventSubscriptions;
     private final MessageConverter                     messageConverter;
     private final ConcurrentMap<URI, Future<WSClient>> connections;
     private final AtomicBoolean                        start;
@@ -68,11 +68,11 @@ public final class WSocketEventBusClient extends WSocketEventBus {
 
     @Inject
     WSocketEventBusClient(EventService eventService,
-                          @Nullable @Named("notification.event_bus_urls") Pair<String, String>[] remoteEventServices,
+                          @Nullable @Named("notification.event_subscriptions") Pair<String, String>[] eventSubscriptions,
                           @Nullable EventPropagationPolicy policy) {
         super(eventService, policy);
         this.eventService = eventService;
-        this.remoteEventServices = remoteEventServices;
+        this.eventSubscriptions = eventSubscriptions;
 
         messageConverter = new JsonMessageConverter();
         connections = new ConcurrentHashMap<>();
@@ -83,9 +83,9 @@ public final class WSocketEventBusClient extends WSocketEventBus {
     void start() {
         if (start.compareAndSet(false, true)) {
             super.start();
-            if (remoteEventServices != null) {
+            if (eventSubscriptions != null) {
                 final Map<URI, Set<String>> cfg = new HashMap<>();
-                for (Pair<String, String> service : remoteEventServices) {
+                for (Pair<String, String> service : eventSubscriptions) {
                     try {
                         final URI key = new URI(service.first);
                         Set<String> values = cfg.get(key);

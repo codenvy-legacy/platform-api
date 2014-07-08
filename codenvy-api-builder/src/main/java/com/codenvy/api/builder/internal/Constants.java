@@ -16,6 +16,7 @@ public class Constants {
     public static final String BUILDER_NAME                        = "builder.name";
     public static final String BUILDER_TARGETS                     = "builder.${builder}.targets";
     public static final String BUILDER_OPTIONS                     = "builder.${builder}.options";
+    public static final String BUILDER_SLAVE_BUILDER_URLS          = "builder.slave_builder_urls";
     // rels for known builder links
     public static final String LINK_REL_REGISTER_BUILDER_SERVICE   = "register builder service";
     public static final String LINK_REL_UNREGISTER_BUILDER_SERVICE = "unregister builder service";

@@ -185,6 +185,11 @@ public class AccountServiceTest {
             public String getId() {
                 return user.getId();
             }
+
+            @Override
+            public boolean isTemporary() {
+                return false;
+            }
         });
     }
 

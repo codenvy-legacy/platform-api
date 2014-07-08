@@ -329,6 +329,12 @@ public class RunQueue {
         try {
             final String availableMemAttr = getWorkspaceAttributeValue(Constants.RUNNER_MAX_MEMORY_SIZE, workspace.getAttributes());
             final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : DEFAULT_MAX_MEMORY_SIZE;
+            if (availableMem < request.getMemorySize()) {
+                throw new RunnerException(
+                        String.format("Not enough resources to start application. Available memory %dM but %dM required. ",
+                                      availableMem < 0 ? 0 : availableMem, request.getMemorySize())
+                );
+            }
             checkMemory(wsId, availableMem, request.getMemorySize());
         } finally {
             resourceCheckerLocks[index].unlock();

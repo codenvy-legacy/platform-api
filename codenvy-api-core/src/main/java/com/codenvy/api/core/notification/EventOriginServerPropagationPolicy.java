@@ -21,11 +21,11 @@ import java.util.Set;
  * @author andrew00x
  */
 @Singleton
-public class EventOriginPropagationPolicy implements EventPropagationPolicy {
+public class EventOriginServerPropagationPolicy implements ServerEventPropagationPolicy {
     private final Set<String> forPropagation;
 
     @Inject
-    EventOriginPropagationPolicy(@Named("notification.propagate_events") String[] forPropagation) {
+    EventOriginServerPropagationPolicy(@Named("notification.server.propagate_events") String[] forPropagation) {
         this.forPropagation = new LinkedHashSet<>(Arrays.asList(forPropagation));
     }
 

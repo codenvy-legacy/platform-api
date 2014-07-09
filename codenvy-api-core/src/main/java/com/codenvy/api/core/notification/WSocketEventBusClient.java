@@ -53,13 +53,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author andrew00x
  */
 @Singleton
-public final class WSocketEventBusClient extends WSocketEventBus {
+public final class WSocketEventBusClient {
     private static final Logger LOG = LoggerFactory.getLogger(WSocketEventBusClient.class);
 
     private static final long wsConnectionTimeout = 2000;
 
     private final EventService                         eventService;
     private final Pair<String, String>[]               eventSubscriptions;
+    private final ClientEventPropagationPolicy         policy;
     private final MessageConverter                     messageConverter;
     private final ConcurrentMap<URI, Future<WSClient>> connections;
     private final AtomicBoolean                        start;
@@ -68,11 +69,11 @@ public final class WSocketEventBusClient extends WSocketEventBus {
 
     @Inject
     WSocketEventBusClient(EventService eventService,
-                          @Nullable @Named("notification.event_subscriptions") Pair<String, String>[] eventSubscriptions,
-                          @Nullable EventPropagationPolicy policy) {
-        super(eventService, policy);
+                          @Nullable @Named("notification.client.event_subscriptions") Pair<String, String>[] eventSubscriptions,
+                          @Nullable ClientEventPropagationPolicy policy) {
         this.eventService = eventService;
         this.eventSubscriptions = eventSubscriptions;
+        this.policy = policy;
 
         messageConverter = new JsonMessageConverter();
         connections = new ConcurrentHashMap<>();
@@ -82,7 +83,14 @@ public final class WSocketEventBusClient extends WSocketEventBus {
     @PostConstruct
     void start() {
         if (start.compareAndSet(false, true)) {
-            super.start();
+            if (policy != null) {
+                eventService.subscribe(new EventSubscriber<Object>() {
+                    @Override
+                    public void onEvent(Object event) {
+                        propagate(event);
+                    }
+                });
+            }
             if (eventSubscriptions != null) {
                 final Map<URI, Set<String>> cfg = new HashMap<>();
                 for (Pair<String, String> service : eventSubscriptions) {
@@ -109,12 +117,14 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         }
     }
 
-    @Override
     protected void propagate(Object event) {
         for (Future<WSClient> future : connections.values()) {
             if (future.isDone()) {
                 try {
-                    future.get().send(messageConverter.toString(Messages.clientMessage(event)));
+                    final WSClient client = future.get();
+                    if (policy.shouldPropagated(client.getUri(), event)) {
+                        client.send(messageConverter.toString(Messages.clientMessage(event)));
+                    }
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
                 }

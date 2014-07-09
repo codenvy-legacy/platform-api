@@ -110,7 +110,7 @@ public class BuildQueue {
 
     /** Optional pre-configured slave builders. */
     @com.google.inject.Inject(optional = true)
-    @Named("builder.slave_builder_urls")
+    @Named(Constants.BUILDER_SLAVE_BUILDER_URLS)
     private String[] slaves = new String[0];
 
     /**

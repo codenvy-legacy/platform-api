@@ -20,6 +20,8 @@ public class Constants {
     public static final String RUNNER_MEMORY_SIZE                = "runner.${runner}.memsize";
     public static final String RUNNER_DEBUG_MODE                 = "runner.${runner}.debugmode";
     public static final String RUNNER_OPTIONS                    = "runner.${runner}.options";
+    public static final String RUNNER_WS_MAX_MEMORY_SIZE         = "runner.workspace.max_memsize";
+    public static final String RUNNER_SLAVE_RUNNER_URLS          = "runner.slave_runner_urls";
     public static final String RUNNER_MAX_MEMORY_SIZE            = "codenvy:runner_ram";
     public static final String RUNNER_LIFETIME                   = "codenvy:runner_lifetime";
     // rels for known runner links

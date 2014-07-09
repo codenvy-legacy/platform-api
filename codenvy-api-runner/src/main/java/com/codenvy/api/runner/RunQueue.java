@@ -131,8 +131,12 @@ public class RunQueue {
 
     /** Optional pre-configured slave runners. */
     @com.google.inject.Inject(optional = true)
-    @Named("runner.slave_runner_urls")
+    @Named(Constants.RUNNER_SLAVE_RUNNER_URLS)
     private String[] slaves = new String[0];
+
+    @com.google.inject.Inject(optional = true)
+    @Named(Constants.RUNNER_WS_MAX_MEMORY_SIZE)
+    private int defMaxMemorySize = DEFAULT_MAX_MEMORY_SIZE;
 
     /**
      * @param baseWorkspaceApiUrl

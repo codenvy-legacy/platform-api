@@ -427,7 +427,7 @@ public class AccountService extends Service {
 
         double amount = service.tarifficate(subscription);
         Response response;
-        if (0D == amount) {
+        if (0D == amount || securityContext.isUserInRole("system/admin")) {
             subscription.setState(Subscription.State.ACTIVE);
             response = Response.noContent().build();
         } else {

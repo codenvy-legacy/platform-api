@@ -63,4 +63,17 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     void setHidecopybutton(boolean hidecopybutton);
 
     FactoryV1_2 withHidecopybutton(boolean hidecopybutton);
+
+
+
+    /**
+     * @return the optional directory to keep from the checkout
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "keepdirectory")
+    String getKeepdirectory();
+
+    void setKeepdirectory(String keepDirectory);
+
+    FactoryV1_2 withKeepdirectory(String keepDirectory);
+
 }

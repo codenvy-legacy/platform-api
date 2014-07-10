@@ -165,7 +165,7 @@ public class RunQueue {
      */
     @Inject
     @SuppressWarnings("unchecked")
-    public RunQueue(//@Nullable @Named("builder.base_workspace_url") String baseWorkspaceApiUrl, TODO: add in configuration and use
+    public RunQueue(@Nullable @Named("workspace.base_api_url") String baseWorkspaceApiUrl,
                     @Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                     @Nullable @Named("builder.base_api_url") String baseBuilderApiUrl,
                     @Named(Constants.APP_DEFAULT_MEM_SIZE) int defMemSize,
@@ -174,7 +174,7 @@ public class RunQueue {
                     @Named(Constants.APP_CLEANUP_TIME) int appCleanupTime,
                     RunnerSelectionStrategy runnerSelector,
                     EventService eventService) {
-        this.baseWorkspaceApiUrl = null;//baseWorkspaceApiUrl;
+        this.baseWorkspaceApiUrl = baseWorkspaceApiUrl;
         this.baseProjectApiUrl = baseProjectApiUrl;
         this.baseBuilderApiUrl = baseBuilderApiUrl;
         this.defMemSize = defMemSize;
@@ -332,7 +332,7 @@ public class RunQueue {
         resourceCheckerLocks[index].lock();
         try {
             final String availableMemAttr = getWorkspaceAttributeValue(Constants.RUNNER_MAX_MEMORY_SIZE, workspace.getAttributes());
-            final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : DEFAULT_MAX_MEMORY_SIZE;
+            final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMemSize;
             if (availableMem < request.getMemorySize()) {
                 throw new RunnerException(
                         String.format("Not enough resources to start application. Available memory %dM but %dM required. ",

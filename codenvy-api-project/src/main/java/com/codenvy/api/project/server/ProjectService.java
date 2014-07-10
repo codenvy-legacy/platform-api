@@ -164,10 +164,6 @@ public class ProjectService extends Service {
             project.setVisibility(visibility);
         }
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
-
-        VirtualFile projectVirtualFile = project.getBaseFolder().getVirtualFile();
-        searcherProvider.getSearcher(projectVirtualFile.getMountPoint(), true).add(projectVirtualFile);
-
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());

@@ -489,7 +489,7 @@ public class WorkspaceService extends Service {
     @POST
     @Path("{id}/members")
     @GenerateLink(rel = Constants.LINK_REL_ADD_WORKSPACE_MEMBER)
-    @RolesAllowed("user")
+    @RolesAllowed({"user", "temp_user"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Member addMember(@PathParam("id") String wsId,

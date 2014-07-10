@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
@@ -258,7 +257,7 @@ public class Project {
      * @throws IOException
      *         when some error occurred while saving misc entries
      */
-    public void setPermissions(List<AccessControlEntry> acl) throws IOException, ServerException {
+    public void setPermissions(List<AccessControlEntry> acl) throws IOException {
         final Map<Principal, AccessControlEntry> miscEntries = new HashMap<>();
         final Map<Principal, AccessControlEntry> basicEntries = new HashMap<>();
         final DtoFactory dto = DtoFactory.getInstance();
@@ -331,12 +330,10 @@ public class Project {
      *         reference to check
      * @param name
      *         specified name, will be used in exception message "{name} should not be a null"
-     * @throws ServerException
-     *         when object reference is {@code null}
      */
-    private void requireNotNull(Object object, String name) throws ServerException {
+    private void requireNotNull(Object object, String name) {
         if (object == null) {
-            throw new ServerException(name + " should not be a null");
+            throw new IllegalArgumentException(String.format("%s should not be a null", name));
         }
     }
 }

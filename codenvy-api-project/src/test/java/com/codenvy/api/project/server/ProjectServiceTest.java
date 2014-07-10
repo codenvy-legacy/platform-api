@@ -837,54 +837,45 @@ public class ProjectServiceTest {
     }
 
     @Test
-    public void testUpdateProjectVisibilityToPrivate() throws Exception {
+    public void testSwitchProjectVisibilityToPrivate() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/my_project",
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=private",
                                                       "http://localhost:8080/api", null, null, null);
-        Assert.assertEquals(response.getStatus(), 200);
-        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
-        descriptor.setVisibility("private");
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/json"));
-        response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project",
-                                    "http://localhost:8080/api",
-                                    headers,
-                                    DtoFactory.getInstance().toJson(descriptor).getBytes(),
-                                    null);
-        descriptor = (ProjectDescriptor)response.getEntity();
-        Assert.assertEquals(descriptor.getVisibility(), "private");
-        Map<Principal, Set<BasicPermissions>> permissions =
-                myProject.getBaseFolder().getVirtualFile().getPermissions();
+        Assert.assertEquals(response.getStatus(), 204);
+        Map<Principal, Set<BasicPermissions>> permissions = myProject.getBaseFolder().getVirtualFile().getPermissions();
         Assert.assertEquals(permissions.size(), 1);
         Principal principal = DtoFactory.getInstance().createDto(Principal.class)
                                         .withName("workspace/developer")
                                         .withType(Principal.Type.GROUP);
         Assert.assertEquals(permissions.get(principal), Arrays.asList(BasicPermissions.ALL));
+
+        response = launcher.service("GET",
+                                    "http://localhost:8080/api/project/my_ws/my_project",
+                                    "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getVisibility(), "private");
     }
 
     @Test
     public void testUpdateProjectVisibilityToPublic() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
         myProject.setVisibility("private");
-        ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/my_project",
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=public",
                                                       "http://localhost:8080/api", null, null, null);
-        Assert.assertEquals(response.getStatus(), 200);
-        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
-        descriptor.setVisibility("public");
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/json"));
-        response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project",
-                                    "http://localhost:8080/api",
-                                    headers,
-                                    DtoFactory.getInstance().toJson(descriptor).getBytes(),
-                                    null);
-        descriptor = (ProjectDescriptor)response.getEntity();
-        Assert.assertEquals(descriptor.getVisibility(), "public");
+        Assert.assertEquals(response.getStatus(), 204);
         Map<Principal, Set<BasicPermissions>> permissions =
                 myProject.getBaseFolder().getVirtualFile().getPermissions();
         Assert.assertEquals(permissions.size(), 0);
+
+        response = launcher.service("GET",
+                                    "http://localhost:8080/api/project/my_ws/my_project",
+                                    "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getVisibility(), "public");
     }
 
     @SuppressWarnings("unchecked")

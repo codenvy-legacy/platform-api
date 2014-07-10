@@ -16,7 +16,6 @@ public class Constants {
     public static final String BUILDER_NAME                        = "builder.name";
     public static final String BUILDER_TARGETS                     = "builder.${builder}.targets";
     public static final String BUILDER_OPTIONS                     = "builder.${builder}.options";
-    public static final String BUILDER_SLAVE_BUILDER_URLS          = "builder.slave_builder_urls";
     // rels for known builder links
     public static final String LINK_REL_REGISTER_BUILDER_SERVICE   = "register builder service";
     public static final String LINK_REL_UNREGISTER_BUILDER_SERVICE = "unregister builder service";
@@ -37,31 +36,36 @@ public class Constants {
     public static final String LINK_REL_CANCEL          = "cancel";
 
     // config properties
+    /** URLs of slave runners that should be registered in RunQueue. */
+    public static final String BUILDER_SLAVE_BUILDER_URLS = "builder.slave_builder_urls";
     /** Name of configuration parameter that points to the directory where all builds stored. */
-    public static final String BASE_DIRECTORY     = "builder.base_directory";
+    public static final String BASE_DIRECTORY             = "builder.base_directory";
     /**
      * Name of configuration parameter that sets the number of build workers. In other words it set the number of build
      * process that can be run at the same time. If this parameter is set to -1 then the number of available processors
      * used, e.g. {@code Runtime.getRuntime().availableProcessors();}
      */
-    public static final String NUMBER_OF_WORKERS  = "builder.workers_number";
+    public static final String NUMBER_OF_WORKERS          = "builder.workers_number";
     /**
      * Name of configuration parameter that sets time (in seconds) of keeping the results (artifact and logs) of build. After this time the
      * results of build may be removed.
      */
-    public static final String KEEP_RESULT_TIME   = "builder.keep_result_time";
+    public static final String KEEP_RESULT_TIME           = "builder.keep_result_time";
     /**
      * Name of parameter that set the max size of build queue. The number of build task in queue may not be greater than provided by this
      * parameter.
      */
-    public static final String QUEUE_SIZE         = "builder.queue_size";
+    public static final String QUEUE_SIZE                 = "builder.queue_size";
     /**
      * Max waiting time in seconds for starting build process. If process is not started after this time, it will be removed from the
      * queue.
      */
-    public static final String WAITING_TIME       = "builder.waiting_time";
-    /** Max execution time in seconds for a build process. After this time build may be terminated. */
-    public static final String MAX_EXECUTION_TIME = "builder.max_execution_time";
+    public static final String WAITING_TIME               = "builder.waiting_time";
+    /**
+     * Max execution time in seconds for a build process if workspace doesn't have own setting, see {@link #BUILDER_EXECUTION_TIME}. After
+     * this time build may be terminated.
+     */
+    public static final String MAX_EXECUTION_TIME         = "builder.max_execution_time";
 
     /* ================================================= */
 
@@ -75,6 +79,9 @@ public class Constants {
     public static final String MAX_TIME_IN_QUEUE   = WAITING_TIME;
     /** @deprecated use {@link #MAX_EXECUTION_TIME} */
     public static final String BUILD_TIMEOUT       = MAX_EXECUTION_TIME;
+
+    // attributes of workspace which are interested for builder
+    public static final String BUILDER_EXECUTION_TIME = "codenvy:builder_execution_time";
 
     private Constants() {
     }

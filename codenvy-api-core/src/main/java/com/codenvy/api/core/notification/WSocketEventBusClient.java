@@ -11,6 +11,7 @@
 package com.codenvy.api.core.notification;
 
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.Pair;
 
 import org.everrest.websockets.client.BaseClientMessageListener;
 import org.everrest.websockets.client.WSClient;
@@ -30,6 +31,12 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,13 +53,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author andrew00x
  */
 @Singleton
-public final class WSocketEventBusClient extends WSocketEventBus {
+public final class WSocketEventBusClient {
     private static final Logger LOG = LoggerFactory.getLogger(WSocketEventBusClient.class);
 
     private static final long wsConnectionTimeout = 2000;
 
     private final EventService                         eventService;
-    private final String[]                             remoteEventServices;
+    private final Pair<String, String>[]               eventSubscriptions;
+    private final ClientEventPropagationPolicy         policy;
     private final MessageConverter                     messageConverter;
     private final ConcurrentMap<URI, Future<WSClient>> connections;
     private final AtomicBoolean                        start;
@@ -61,11 +69,11 @@ public final class WSocketEventBusClient extends WSocketEventBus {
 
     @Inject
     WSocketEventBusClient(EventService eventService,
-                          @Nullable @Named("notification.event_bus_urls") String[] remoteEventServices,
-                          @Nullable EventPropagationPolicy policy) {
-        super(eventService, policy);
+                          @Nullable @Named("notification.client.event_subscriptions") Pair<String, String>[] eventSubscriptions,
+                          @Nullable ClientEventPropagationPolicy policy) {
         this.eventService = eventService;
-        this.remoteEventServices = remoteEventServices;
+        this.eventSubscriptions = eventSubscriptions;
+        this.policy = policy;
 
         messageConverter = new JsonMessageConverter();
         connections = new ConcurrentHashMap<>();
@@ -75,26 +83,48 @@ public final class WSocketEventBusClient extends WSocketEventBus {
     @PostConstruct
     void start() {
         if (start.compareAndSet(false, true)) {
-            super.start();
-            if (remoteEventServices != null && remoteEventServices.length > 0) {
-                executor = Executors.newCachedThreadPool(new NamedThreadFactory("WSocketEventBusClient", true));
-                for (String service : remoteEventServices) {
+            if (policy != null) {
+                eventService.subscribe(new EventSubscriber<Object>() {
+                    @Override
+                    public void onEvent(Object event) {
+                        propagate(event);
+                    }
+                });
+            }
+            if (eventSubscriptions != null) {
+                final Map<URI, Set<String>> cfg = new HashMap<>();
+                for (Pair<String, String> service : eventSubscriptions) {
                     try {
-                        executor.execute(new ConnectTask(new URI(service)));
+                        final URI key = new URI(service.first);
+                        Set<String> values = cfg.get(key);
+                        if (values == null) {
+                            cfg.put(key, values = new LinkedHashSet<>());
+                        }
+                        if (service.second != null) {
+                            values.add(service.second);
+                        }
                     } catch (URISyntaxException e) {
                         LOG.error(e.getMessage(), e);
+                    }
+                }
+                if (!cfg.isEmpty()) {
+                    executor = Executors.newCachedThreadPool(new NamedThreadFactory("WSocketEventBusClient", true));
+                    for (Map.Entry<URI, Set<String>> entry : cfg.entrySet()) {
+                        executor.execute(new ConnectTask(entry.getKey(), entry.getValue()));
                     }
                 }
             }
         }
     }
 
-    @Override
     protected void propagate(Object event) {
         for (Future<WSClient> future : connections.values()) {
             if (future.isDone()) {
                 try {
-                    future.get().send(messageConverter.toString(Messages.clientMessage(event)));
+                    final WSClient client = future.get();
+                    if (policy.shouldPropagated(client.getUri(), event)) {
+                        client.send(messageConverter.toString(Messages.clientMessage(event)));
+                    }
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
                 }
@@ -104,18 +134,18 @@ public final class WSocketEventBusClient extends WSocketEventBus {
 
     @PreDestroy
     void stop() {
-        if (start.compareAndSet(true, false) && remoteEventServices != null && remoteEventServices.length > 0) {
+        if (start.compareAndSet(true, false) && executor != null) {
             executor.shutdownNow();
         }
     }
 
-    private void connect(final URI wsUri) throws IOException {
+    private void connect(final URI wsUri, final Collection<String> channels) throws IOException {
         Future<WSClient> clientFuture = connections.get(wsUri);
         if (clientFuture == null) {
             FutureTask<WSClient> newFuture = new FutureTask<>(new Callable<WSClient>() {
                 @Override
                 public WSClient call() throws IOException, MessageConversionException {
-                    WSClient wsClient = new WSClient(wsUri, new WSocketListener(wsUri));
+                    WSClient wsClient = new WSClient(wsUri, new WSocketListener(wsUri, channels));
                     wsClient.connect(wsConnectionTimeout);
                     return wsClient;
                 }
@@ -151,10 +181,12 @@ public final class WSocketEventBusClient extends WSocketEventBus {
     }
 
     private class WSocketListener extends BaseClientMessageListener {
-        final URI wsUri;
+        final URI         wsUri;
+        final Set<String> channels;
 
-        WSocketListener(URI wsUri) {
+        WSocketListener(URI wsUri, Collection<String> channels) {
             this.wsUri = wsUri;
+            this.channels = new HashSet<>(channels);
         }
 
         @Override
@@ -162,17 +194,26 @@ public final class WSocketEventBusClient extends WSocketEventBus {
             connections.remove(wsUri);
             LOG.debug("Close connection to {}. ", wsUri);
             if (start.get()) {
-                executor.execute(new ConnectTask(wsUri));
+                executor.execute(new ConnectTask(wsUri, channels));
             }
         }
 
         @Override
         public void onMessage(String data) {
             try {
-                final Object event = Messages
-                        .restoreEventFromBroadcastMessage(messageConverter.fromString(data, RESTfulOutputMessage.class));
-                if (event != null) {
-                    eventService.publish(event);
+                final RESTfulOutputMessage message = messageConverter.fromString(data, RESTfulOutputMessage.class);
+                if (message != null && message.getHeaders() != null) {
+                    for (org.everrest.websockets.message.Pair header : message.getHeaders()) {
+                        if ("x-everrest-websocket-channel".equals(header.getName())) {
+                            final String channel = header.getValue();
+                            if (channel != null && channels.contains(channel)) {
+                                final Object event = Messages.restoreEventFromBroadcastMessage(message);
+                                if (event != null) {
+                                    eventService.publish(event);
+                                }
+                            }
+                        }
+                    }
                 }
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
@@ -182,19 +223,23 @@ public final class WSocketEventBusClient extends WSocketEventBus {
         @Override
         public void onOpen(WSClient client) {
             LOG.debug("Open connection to {}. ", wsUri);
-            try {
-                client.send(messageConverter.toString(Messages.subscribeChannelMessage()));
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
+            for (String channel : channels) {
+                try {
+                    client.send(messageConverter.toString(Messages.subscribeChannelMessage(channel)));
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
             }
         }
     }
 
     private class ConnectTask implements Runnable {
-        final URI wsUri;
+        final URI                wsUri;
+        final Collection<String> channels;
 
-        ConnectTask(URI wsUri) {
+        ConnectTask(URI wsUri, Collection<String> channels) {
             this.wsUri = wsUri;
+            this.channels = channels;
         }
 
         @Override
@@ -204,7 +249,7 @@ public final class WSocketEventBusClient extends WSocketEventBus {
                     return;
                 }
                 try {
-                    connect(wsUri);
+                    connect(wsUri, channels);
                     return;
                 } catch (IOException e) {
                     LOG.error(String.format("Failed connect to %s", wsUri), e);

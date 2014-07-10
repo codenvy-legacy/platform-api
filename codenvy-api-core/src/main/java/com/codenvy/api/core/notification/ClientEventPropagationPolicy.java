@@ -10,9 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.core.notification;
 
+import com.google.inject.ImplementedBy;
+
+import java.net.URI;
+
 /**
  * @author andrew00x
  */
-public interface EventPropagationPolicy {
-    boolean shouldPropagated(Object event);
+@ImplementedBy(EventOriginClientPropagationPolicy.class)
+public interface ClientEventPropagationPolicy {
+    boolean shouldPropagated(URI uri, Object event);
 }

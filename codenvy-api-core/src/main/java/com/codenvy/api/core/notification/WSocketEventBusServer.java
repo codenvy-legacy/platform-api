@@ -15,27 +15,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author andrew00x
  */
 @Singleton
 @Path("event-bus")
-public final class WSocketEventBusServer extends WSocketEventBus {
+public final class WSocketEventBusServer {
     private static final Logger LOG = LoggerFactory.getLogger(WSocketEventBusServer.class);
 
-    private final EventService eventService;
+    private final EventService                 eventService;
+    private final ServerEventPropagationPolicy policy;
+    private final AtomicBoolean                start;
 
     @Inject
-    WSocketEventBusServer(EventService eventService, @Nullable EventPropagationPolicy policy) {
-        super(eventService, policy);
+    WSocketEventBusServer(EventService eventService, @Nullable ServerEventPropagationPolicy policy) {
         this.eventService = eventService;
+        this.policy = policy;
+
+        start = new AtomicBoolean(false);
     }
 
     @POST
@@ -51,12 +57,35 @@ public final class WSocketEventBusServer extends WSocketEventBus {
         }
     }
 
-    @Override
-    protected void propagate(Object event) {
-        try {
-            WSConnectionContext.sendMessage(Messages.broadcastMessage(event));
-        } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
+    @PostConstruct
+    void start() {
+        if (start.compareAndSet(false, true)) {
+            if (policy != null) {
+                eventService.subscribe(new EventSubscriber<Object>() {
+                    @Override
+                    public void onEvent(Object event) {
+                        propagate(event);
+                    }
+                });
+            }
         }
+    }
+
+    protected void propagate(Object event) {
+        if (policy.shouldPropagated(event)) {
+            try {
+                WSConnectionContext.sendMessage(Messages.broadcastMessage(resolveChannelName(event), event));
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+    }
+
+    protected String resolveChannelName(Object event) {
+        final EventOrigin eventOrigin = event.getClass().getAnnotation(EventOrigin.class);
+        if (eventOrigin == null) {
+            throw new RuntimeException(String.format("Unable get channel name for %s", event));
+        }
+        return eventOrigin.value();
     }
 }

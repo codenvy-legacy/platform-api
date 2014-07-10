@@ -33,6 +33,8 @@ import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.workspace.server.WorkspaceService;
+import com.codenvy.api.workspace.shared.dto.Workspace;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.cache.Cache;
@@ -79,7 +81,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Accepts all build request and redirects them to the slave-builders. If there is no any available slave-builder at the moment it stores
  * build request and tries send request again. Requests don't stay in this queue forever. Max time (in minutes) for request to be in the
- * queue set up by configuration parameter {@code builder.queue.max_time_in_queue}.
+ * queue set up by configuration parameter {@link com.codenvy.api.builder.internal.Constants#WAITING_TIME}.
  *
  * @author andrew00x
  * @author Eugene Voevodin
@@ -96,6 +98,7 @@ public class BuildQueue {
     private final BuilderSelectionStrategy                         builderSelector;
     private final ConcurrentMap<Long, BuildQueueTask>              tasks;
     private final ConcurrentMap<ProjectWithWorkspace, BuilderList> builderListMapping;
+    private final String                                           baseWorkspaceApiUrl;
     private final String                                           baseProjectApiUrl;
     private final int                                              maxExecutionTimeMillis;
     private final EventService                                     eventService;
@@ -110,10 +113,15 @@ public class BuildQueue {
 
     /** Optional pre-configured slave builders. */
     @com.google.inject.Inject(optional = true)
-    @Named("builder.slave_builder_urls")
+    @Named(Constants.BUILDER_SLAVE_BUILDER_URLS)
     private String[] slaves = new String[0];
 
     /**
+     * @param baseWorkspaceApiUrl
+     *         workspace api url. Configuration parameter that points to the Workspace API location. If such parameter isn't specified than
+     *         use the same base URL as builder API has, e.g. suppose we have builder API at URL: <i>http://codenvy.com/api/builder/my_workspace</i>,
+     *         in this case base URL is <i>http://codenvy.com/api</i> so we will try to find workspace API at URL:
+     *         <i>http://codenvy.com/api/workspace/my_workspace</i>
      * @param baseProjectApiUrl
      *         project api url. Configuration parameter that points to the Project API location. If such parameter isn't specified than use
      *         the same base URL as builder API has, e.g. suppose we have builder API at URL: <i>http://codenvy.com/api/builder/my_workspace</i>,
@@ -126,12 +134,14 @@ public class BuildQueue {
      *         build timeout. Configuration parameter that provides build timeout is seconds. After this time build may be terminated.
      */
     @Inject
-    public BuildQueue(@Nullable @Named("project.base_api_url") String baseProjectApiUrl,
+    public BuildQueue(@Nullable @Named("workspace.base_api_url") String baseWorkspaceApiUrl,
+                      @Nullable @Named("project.base_api_url") String baseProjectApiUrl,
                       @Named(Constants.WAITING_TIME) int waitingTime,
                       @Named(Constants.MAX_EXECUTION_TIME) int maxExecutionTime,
                       @Named(Constants.KEEP_RESULT_TIME) int keepResultTime,
                       BuilderSelectionStrategy builderSelector,
                       EventService eventService) {
+        this.baseWorkspaceApiUrl = baseWorkspaceApiUrl;
         this.baseProjectApiUrl = baseProjectApiUrl;
         this.maxExecutionTimeMillis = maxExecutionTime;
         this.eventService = eventService;
@@ -270,7 +280,7 @@ public class BuildQueue {
     /**
      * Schedule new build.
      *
-     * @param workspace
+     * @param wsId
      *         id of workspace to which project belongs
      * @param project
      *         name of project
@@ -278,13 +288,13 @@ public class BuildQueue {
      *         ServiceContext
      * @return BuildQueueTask
      */
-    public BuildQueueTask scheduleBuild(String workspace, String project, ServiceContext serviceContext, BuildOptions buildOptions)
+    public BuildQueueTask scheduleBuild(String wsId, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
-        final ProjectDescriptor projectDescription = getProjectDescription(workspace, project, serviceContext);
+        final ProjectDescriptor projectDescription = getProjectDescription(wsId, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
-                                                             .withWorkspace(workspace)
+                                                             .withWorkspace(wsId)
                                                              .withProject(project)
                                                              .withUserName(user == null ? "" : user.getName());
         if (buildOptions != null) {
@@ -320,15 +330,16 @@ public class BuildQueue {
             }
         }
         if (callable == null) {
-            request.setTimeout(getBuildTimeout(request));
+            final Workspace workspace = getWorkspace(wsId, serviceContext);
+            request.setTimeout(getBuildTimeout(workspace));
             callable = createTaskFor(request);
         }
         final Long id = sequence.getAndIncrement();
-        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, reuse);
+        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project, reuse);
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, waitingTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
-        eventService.publish(BuilderEvent.queueStartedEvent(id, workspace, project ));
+        eventService.publish(BuilderEvent.queueStartedEvent(id, wsId, project ));
         executor.execute(future);
         return task;
     }
@@ -345,7 +356,7 @@ public class BuildQueue {
     /**
      * Schedule new dependencies analyze.
      *
-     * @param workspace
+     * @param wsId
      *         id of workspace to which project belongs
      * @param project
      *         name of project
@@ -355,21 +366,22 @@ public class BuildQueue {
      *         ServiceContext
      * @return BuildQueueTask
      */
-    public BuildQueueTask scheduleDependenciesAnalyze(String workspace, String project, String type, ServiceContext serviceContext)
+    public BuildQueueTask scheduleDependenciesAnalyze(String wsId, String project, String type, ServiceContext serviceContext)
             throws BuilderException {
         checkStarted();
-        final ProjectDescriptor descriptor = getProjectDescription(workspace, project, serviceContext);
+        final ProjectDescriptor descriptor = getProjectDescription(wsId, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
                                                                        .withType(type)
-                                                                       .withWorkspace(workspace)
+                                                                       .withWorkspace(wsId)
                                                                        .withProject(project)
                                                                        .withUserName(user == null ? "" : user.getName());
         addParametersFromProjectDescriptor(descriptor, request);
-        request.setTimeout(getBuildTimeout(request));
+        final Workspace workspace = getWorkspace(wsId, serviceContext);
+        request.setTimeout(getBuildTimeout(workspace));
         final Callable<RemoteTask> callable = createTaskFor(request);
         final Long id = sequence.getAndIncrement();
-        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project, false);
+        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project, false);
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, waitingTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
@@ -390,7 +402,7 @@ public class BuildQueue {
         final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
         String builder = request.getBuilder();
         if (builder == null) {
-            builder = getAttributeValue(Constants.BUILDER_NAME, projectAttributes);
+            builder = getProjectAttributeValue(Constants.BUILDER_NAME, projectAttributes);
             if (builder == null) {
                 throw new BuilderException(
                         String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
@@ -428,12 +440,21 @@ public class BuildQueue {
         }
     }
 
-    private static String getAttributeValue(String name, Map<String, List<String>> attributes) {
+    private static String getProjectAttributeValue(String name, Map<String, List<String>> attributes) {
         final List<String> list = attributes.get(name);
         if (list == null || list.isEmpty()) {
             return null;
         }
         return list.get(0);
+    }
+
+    private static String getWorkspaceAttributeValue(String name, List<com.codenvy.api.workspace.shared.dto.Attribute> attributes) {
+        for (com.codenvy.api.workspace.shared.dto.Attribute attribute : attributes) {
+            if (name.equals(attribute.getName())) {
+                return attribute.getValue();
+            }
+        }
+        return null;
     }
 
     private static Link getLink(String rel, List<Link> links) {
@@ -456,6 +477,22 @@ public class BuildQueue {
                                                        .toString();
         try {
             return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        } catch (IOException e) {
+            throw new BuilderException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new BuilderException(e.getServiceError());
+        }
+    }
+
+    private Workspace getWorkspace(String workspace, ServiceContext serviceContext) throws BuilderException {
+        final UriBuilder baseWorkspaceUriBuilder = baseWorkspaceApiUrl == null || baseWorkspaceApiUrl.isEmpty()
+                                                   ? serviceContext.getBaseUriBuilder()
+                                                   : UriBuilder.fromUri(baseWorkspaceApiUrl);
+        final String workspaceUrl = baseWorkspaceUriBuilder.path(WorkspaceService.class)
+                                                           .path(WorkspaceService.class, "getById")
+                                                           .build(workspace).toString();
+        try {
+            return HttpJsonHelper.get(Workspace.class, workspaceUrl);
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
@@ -499,9 +536,9 @@ public class BuildQueue {
         return builder;
     }
 
-    private long getBuildTimeout(BaseBuilderRequest request) throws BuilderException {
-        // TODO: calculate in different way for different workspace/project.
-        return maxExecutionTimeMillis;
+    private long getBuildTimeout(Workspace workspace) throws BuilderException {
+        final String timeoutAttr = getWorkspaceAttributeValue(Constants.BUILDER_EXECUTION_TIME, workspace.getAttributes());
+        return timeoutAttr != null ? Integer.parseInt(timeoutAttr) : maxExecutionTimeMillis;
     }
 
     private String getAuthenticationToken() {

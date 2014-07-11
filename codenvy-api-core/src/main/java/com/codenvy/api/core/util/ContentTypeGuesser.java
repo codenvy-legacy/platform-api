@@ -84,6 +84,23 @@ public class ContentTypeGuesser {
         return contentType == null ? defaultContentType : contentType;
     }
 
+    public static String guessContentType(String name) {
+        String contentType = null;
+        final int dot = name.lastIndexOf('.');
+        if (dot > 0) {
+            final String ext = name.substring(dot + 1);
+            if (!ext.isEmpty()) {
+                // by file extensions
+                contentType = properties.getProperty(ext);
+            }
+        }
+        if (contentType == null) {
+            // by full file name.
+            contentType = properties.getProperty(name);
+        }
+        return contentType == null ? defaultContentType : contentType;
+    }
+
     private ContentTypeGuesser() {
     }
 }

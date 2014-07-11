@@ -221,9 +221,7 @@ public abstract class LuceneSearcher implements Searcher {
 
     @Override
     public final void add(VirtualFile virtualFile) throws VirtualFileSystemException {
-        if (filter.accept(virtualFile)) {
-            doAdd(virtualFile);
-        }
+        doAdd(virtualFile);
     }
 
     protected void doAdd(VirtualFile virtualFile) throws VirtualFileSystemException {
@@ -247,10 +245,8 @@ public abstract class LuceneSearcher implements Searcher {
                     if (child.isFolder()) {
                         q.push(child);
                     } else {
-                        if (filter.accept(child)) {
-                            addFile(child);
-                            indexedFiles++;
-                        }
+                        addFile(child);
+                        indexedFiles++;
                     }
                 }
             }
@@ -262,7 +258,8 @@ public abstract class LuceneSearcher implements Searcher {
         if (virtualFile.exists()) {
             Reader fContentReader = null;
             try {
-                fContentReader = new BufferedReader(new InputStreamReader(virtualFile.getContent().getStream()));
+                fContentReader =
+                        filter.accept(virtualFile) ? new BufferedReader(new InputStreamReader(virtualFile.getContent().getStream())) : null;
                 luceneIndexWriter.updateDocument(new Term("path", virtualFile.getPath()), createDocument(virtualFile, fContentReader));
             } catch (OutOfMemoryError oome) {
                 close();
@@ -298,15 +295,14 @@ public abstract class LuceneSearcher implements Searcher {
 
     @Override
     public final void update(VirtualFile virtualFile) throws VirtualFileSystemException {
-        if (filter.accept(virtualFile)) {
-            doUpdate(new Term("path", virtualFile.getPath()), virtualFile);
-        }
+        doUpdate(new Term("path", virtualFile.getPath()), virtualFile);
     }
 
     protected void doUpdate(Term deleteTerm, VirtualFile virtualFile) throws VirtualFileSystemException {
         Reader fContentReader = null;
         try {
-            fContentReader = new BufferedReader(new InputStreamReader(virtualFile.getContent().getStream()));
+            fContentReader =
+                    filter.accept(virtualFile) ? new BufferedReader(new InputStreamReader(virtualFile.getContent().getStream())) : null;
             luceneIndexWriter.updateDocument(deleteTerm, createDocument(virtualFile, fContentReader));
         } catch (OutOfMemoryError oome) {
             close();
@@ -328,7 +324,9 @@ public abstract class LuceneSearcher implements Searcher {
         doc.add(new Field("path", virtualFile.getPath(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         doc.add(new Field("name", virtualFile.getName(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         doc.add(new Field("mediatype", getMediaType(virtualFile), Field.Store.YES, Field.Index.NOT_ANALYZED));
-        doc.add(new Field("text", inReader));
+        if (inReader != null) {
+            doc.add(new Field("text", inReader));
+        }
         return doc;
     }
 

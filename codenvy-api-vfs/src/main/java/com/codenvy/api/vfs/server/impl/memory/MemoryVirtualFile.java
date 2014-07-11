@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -201,7 +200,7 @@ public class MemoryVirtualFile implements VirtualFile {
         checkExist();
         String mediaType = getPropertyValue("vfs:mimeType");
         if (mediaType == null) {
-            mediaType = isFile() ? ContentTypeGuesser.guessContentType(new File(getName())) : Folder.FOLDER_MIME_TYPE;
+            mediaType = isFile() ? ContentTypeGuesser.guessContentType(getName()) : Folder.FOLDER_MIME_TYPE;
         }
         return mediaType;
     }
@@ -926,7 +925,7 @@ public class MemoryVirtualFile implements VirtualFile {
                         mediaType = file.getPropertyValue("vfs:mimeType");
                         file.updateContent(mediaType, noCloseZip, null);
                     } else {
-                        mediaType = ContentTypeGuesser.guessContentType(new File(name));
+                        mediaType = ContentTypeGuesser.guessContentType(name);
                         file = newFile((MemoryVirtualFile)current, name, noCloseZip, mediaType);
                         ((MemoryVirtualFile)current).addChild(file);
                         mountPoint.putItem((MemoryVirtualFile)file);

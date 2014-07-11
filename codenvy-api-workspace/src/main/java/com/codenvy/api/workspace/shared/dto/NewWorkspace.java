@@ -18,22 +18,22 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface WorkspaceCreate {
+public interface NewWorkspace {
     String getName();
 
     void setName(String name);
 
-    WorkspaceCreate withName(String name);
+    NewWorkspace withName(String name);
 
     String getAccountId();
 
     void setAccountId(String accountId);
 
-    WorkspaceCreate withAccountId(String accountId);
+    NewWorkspace withAccountId(String accountId);
 
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);
 
-    WorkspaceCreate withAttributes(List<Attribute> attributes);
+    NewWorkspace withAttributes(List<Attribute> attributes);
 }

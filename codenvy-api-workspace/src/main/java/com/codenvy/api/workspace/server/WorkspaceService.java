@@ -38,8 +38,8 @@ import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
+import com.codenvy.api.workspace.shared.dto.NewWorkspace;
 import com.codenvy.api.workspace.shared.dto.Workspace;
-import com.codenvy.api.workspace.shared.dto.WorkspaceCreate;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.api.workspace.shared.dto.WorkspaceRef;
 import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
@@ -110,17 +110,17 @@ public class WorkspaceService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext,
-                           @Required @Description("new workspace") WorkspaceCreate create)
+                           @Required @Description("new workspace") NewWorkspace newWorkspace)
             throws ConflictException, NotFoundException, ServerException, ForbiddenException {
-        if (create == null) {
+        if (newWorkspace == null) {
             throw new ConflictException("Missed workspace to create");
         }
-        if (create.getAttributes() != null) {
-            for (Attribute attribute : create.getAttributes()) {
+        if (newWorkspace.getAttributes() != null) {
+            for (Attribute attribute : newWorkspace.getAttributes()) {
                 validateAttributeName(attribute.getName());
             }
         }
-        final String accountId = create.getAccountId();
+        final String accountId = newWorkspace.getAccountId();
         final Account actualAcc;
         if (accountId == null || accountId.isEmpty() || (actualAcc = accountDao.getById(accountId)) == null) {
             throw new ConflictException("Incorrect account to associate workspace with");
@@ -145,17 +145,17 @@ public class WorkspaceService extends Service {
             }
         }
         final String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
-        final Workspace newWorkspace =
-                DtoFactory.getInstance().createDto(Workspace.class).withId(wsId).withName(create.getName()).withTemporary(
-                        false).withAccountId(accountId).withAttributes(create.getAttributes());
+        final Workspace workspace =
+                DtoFactory.getInstance().createDto(Workspace.class).withId(wsId).withName(newWorkspace.getName()).withTemporary(
+                        false).withAccountId(accountId).withAttributes(newWorkspace.getAttributes());
         final Member member = DtoFactory.getInstance().createDto(Member.class).withRoles(
                 Arrays.asList("workspace/admin", "workspace/developer")).withUserId(user.getId()).withWorkspaceId(wsId);
-        workspaceDao.create(newWorkspace);
+        workspaceDao.create(workspace);
         memberDao.create(member);
 
-        final WorkspaceDescriptor workspaceDescriptor = toDescriptor(newWorkspace, securityContext);
+        final WorkspaceDescriptor workspaceDescriptor = toDescriptor(workspace, securityContext);
 
-        LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", create.getName(), newWorkspace.getId(), user.getEmail());
+        LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", newWorkspace.getName(), workspace.getId(), user.getEmail());
         return Response.status(Response.Status.CREATED).entity(workspaceDescriptor).build();
     }
 
@@ -166,24 +166,24 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("static-access")
     public Response createTemporary(@Context SecurityContext securityContext,
-                                    @Required @Description("New temporary workspace") WorkspaceCreate create)
+                                    @Required @Description("New temporary workspace") NewWorkspace newWorkspace)
             throws ConflictException, NotFoundException, ServerException {
-        if (create == null) {
+        if (newWorkspace == null) {
             throw new ConflictException("Missed workspace to create");
         }
-        if (create.getAttributes() != null) {
-            for (Attribute attribute : create.getAttributes()) {
+        if (newWorkspace.getAttributes() != null) {
+            for (Attribute attribute : newWorkspace.getAttributes()) {
                 validateAttributeName(attribute.getName());
             }
         }
         final String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
-        final Workspace newWorkspace =
-                DtoFactory.getInstance().createDto(Workspace.class).withId(wsId).withName(create.getName()).withTemporary(
-                        true).withAccountId(create.getAccountId()).withAttributes(create.getAttributes());
+        final Workspace workspace =
+                DtoFactory.getInstance().createDto(Workspace.class).withId(wsId).withName(newWorkspace.getName()).withTemporary(
+                        true).withAccountId(newWorkspace.getAccountId()).withAttributes(newWorkspace.getAttributes());
         try {
             //let vfs create temporary workspace in correct place
             EnvironmentContext.getCurrent().setWorkspaceTemporary(true);
-            workspaceDao.create(newWorkspace);
+            workspaceDao.create(workspace);
         } finally {
             EnvironmentContext.getCurrent().setWorkspaceTemporary(false);
         }
@@ -215,9 +215,9 @@ public class WorkspaceService extends Service {
                                         .withRoles(Arrays.asList("workspace/developer", "workspace/admin"));
         memberDao.create(member);
 
-        final WorkspaceDescriptor workspaceDescriptor = toDescriptor(newWorkspace, securityContext);
+        final WorkspaceDescriptor workspaceDescriptor = toDescriptor(workspace, securityContext);
 
-        LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", newWorkspace.getName(), newWorkspace.getId(), user.getEmail());
+        LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", workspace.getName(), workspace.getId(), user.getEmail());
         return Response.status(Response.Status.CREATED).entity(workspaceDescriptor).build();
     }
 
@@ -244,8 +244,7 @@ public class WorkspaceService extends Service {
             }
             workspace.setAttributes(safeAttributes.size() > 0 ? safeAttributes : Collections.<Attribute>emptyList());
         }
-        final WorkspaceDescriptor workspaceDescriptor = toDescriptor(workspace, securityContext);
-        return workspaceDescriptor;
+        return toDescriptor(workspace, securityContext);
     }
 
     @GET

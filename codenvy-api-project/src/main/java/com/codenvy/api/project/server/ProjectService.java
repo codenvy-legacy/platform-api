@@ -24,8 +24,10 @@ import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
+import com.codenvy.api.project.shared.dto.ProjectCreate;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
+import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -155,13 +157,13 @@ public class ProjectService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor createProject(@PathParam("ws-id") String workspace,
                                            @Required @Description("project name") @QueryParam("name") String name,
-                                           @Description("descriptor of project") ProjectDescriptor descriptor) throws Exception {
-        final Project project = projectManager.createProject(workspace, name, toDescription(descriptor));
+                                           @Description("descriptor of project") ProjectCreate create) throws Exception {
+        final Project project = projectManager.createProject(workspace, name, toDescription(create));
+        final String visibility = create.getVisibility();
+        if (visibility != null) {
+            project.setVisibility(visibility);
+        }
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
-
-        VirtualFile projectVirtualFile = project.getBaseFolder().getVirtualFile();
-        searcherProvider.getSearcher(projectVirtualFile.getMountPoint(), true).add(projectVirtualFile);
-
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
@@ -195,7 +197,7 @@ public class ProjectService extends Service {
     public ProjectDescriptor createModule(@PathParam("ws-id") String workspace,
                                           @PathParam("path") String parentProject,
                                           @QueryParam("name") String name,
-                                          ProjectDescriptor descriptor) throws Exception {
+                                          ProjectCreate descriptor) throws Exception {
         final Project project = projectManager.getProject(workspace, parentProject);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
@@ -217,7 +219,7 @@ public class ProjectService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor updateProject(@PathParam("ws-id") String workspace,
                                            @PathParam("path") String path,
-                                           ProjectDescriptor descriptor) throws Exception {
+                                           ProjectUpdate update) throws Exception {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
@@ -225,11 +227,7 @@ public class ProjectService extends Service {
             throw new WebApplicationException(
                     Response.status(Response.Status.NOT_FOUND).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
-        final String newVisibility = descriptor.getVisibility();
-        project.updateDescription(toDescription(descriptor));
-        if (!(newVisibility == null || newVisibility.equals(project.getVisibility()))) {
-            project.setVisibility(newVisibility);
-        }
+        project.updateDescription(toDescription(update));
         return toDescriptor(project);
     }
 
@@ -380,7 +378,7 @@ public class ProjectService extends Service {
         }
 
         // create project descriptor based on query parameters
-        ProjectDescriptor descriptorToUpdate = DtoFactory.getInstance().createDto(ProjectDescriptor.class);
+        ProjectUpdate descriptorToUpdate = DtoFactory.getInstance().createDto(ProjectUpdate.class);
         MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
         for (String key : queryParameters.keySet()) {
             final String value = queryParameters.getFirst(key);
@@ -653,8 +651,21 @@ public class ProjectService extends Service {
     }
 
     @POST
+    @Path("switch_visibility/{path:.*}")
+    @RolesAllowed("workspace/admin")
+    public void switchVisibility(@PathParam("ws-id") String wsId,
+                                 @PathParam("path") String path,
+                                 @QueryParam("visibility") String visibility) throws ServerException {
+        final Project project = projectManager.getProject(wsId, path);
+        if (project == null) {
+            throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, wsId));
+        }
+        project.setVisibility(visibility);
+    }
+
+    @POST
     @Path("permissions/{path:.*}")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
     public void setPermissions(@PathParam("ws-id") String wsId,
                                @PathParam("path") String path,
@@ -705,16 +716,16 @@ public class ProjectService extends Service {
         return entry;
     }
 
-    private ProjectDescription toDescription(ProjectDescriptor descriptor) {
-        final ProjectType projectType = projectManager.getProjectTypeRegistry().getProjectType(descriptor.getProjectTypeId());
+    private ProjectDescription toDescription(ProjectUpdate update) {
+        final ProjectType projectType = projectManager.getProjectTypeRegistry().getProjectType(update.getProjectTypeId());
         if (projectType == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(
-                    String.format("Invalid project type '%s'. ", descriptor.getProjectTypeId()));
+                    String.format("Invalid project type '%s'. ", update.getProjectTypeId()));
             throw new WebApplicationException(
                     Response.status(Response.Status.BAD_REQUEST).entity(error).type(MediaType.APPLICATION_JSON).build());
         }
         final ProjectDescription projectDescription = new ProjectDescription(projectType);
-        final Map<String, List<String>> projectAttributeValues = descriptor.getAttributes();
+        final Map<String, List<String>> projectAttributeValues = update.getAttributes();
         if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {
             final List<Attribute> projectAttributes = new ArrayList<>(projectAttributeValues.size());
             for (Map.Entry<String, List<String>> e : projectAttributeValues.entrySet()) {
@@ -722,7 +733,7 @@ public class ProjectService extends Service {
             }
             projectDescription.setAttributes(projectAttributes);
         }
-        projectDescription.setDescription(descriptor.getDescription());
+        projectDescription.setDescription(update.getDescription());
         return projectDescription;
     }
 

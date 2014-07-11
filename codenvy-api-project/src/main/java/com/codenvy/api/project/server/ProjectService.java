@@ -754,6 +754,7 @@ public class ProjectService extends Service {
                 .withId(project.getBaseFolder().getVirtualFile().getId())
                 .withProjectTypeId(type.getId())
                 .withProjectTypeName(type.getName())
+                .withWorkspaceId(workspace)
                 .withDescription(description.getDescription())
                 .withVisibility(project.getVisibility())
                 .withAttributes(attributeValues)

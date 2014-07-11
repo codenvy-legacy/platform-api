@@ -45,6 +45,13 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withPath(String path);
 
+    /** Id of workspace which projects belongs to. */
+    String getWorkspaceId();
+
+    void setWorkspaceId(String workspaceId);
+
+    ProjectDescriptor withWorkspaceId(String workspaceId);
+
     String getBaseUrl();
 
     void setBaseUrl(String url);

@@ -211,7 +211,7 @@ public class UserProfileService extends Service {
 
     @DELETE
     @Path("prefs")
-    @RolesAllowed("user")
+    @RolesAllowed({"user","temp_user"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void removePreference(@Required List<String> prefNames, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException {

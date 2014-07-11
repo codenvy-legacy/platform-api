@@ -25,6 +25,7 @@ import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -159,8 +160,12 @@ public class WorkspaceServiceTest {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID, null, null);
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-            Workspace ws = (Workspace)response.getEntity();
-            assertEquals(ws, workspace);
+            WorkspaceDescriptor ws = (WorkspaceDescriptor)response.getEntity();
+            assertEquals(ws.getId(), workspace.getId());
+            assertEquals(ws.getName(), workspace.getName());
+            assertEquals(ws.isTemporary(), workspace.isTemporary());
+            assertEquals(ws.getAccountId(), workspace.getAccountId());
+            assertEquals(ws.getAttributes(), workspace.getAttributes());
             verifyLinksRel(ws.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).getById(WS_ID);
@@ -177,7 +182,7 @@ public class WorkspaceServiceTest {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, workspace);
             assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-            Workspace created = (Workspace)response.getEntity();
+            WorkspaceDescriptor created = (WorkspaceDescriptor)response.getEntity();
             assertFalse(created.isTemporary());
             verifyLinksRel(created.getLinks(), generateRels(role));
         }
@@ -197,7 +202,7 @@ public class WorkspaceServiceTest {
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/temp", MediaType.APPLICATION_JSON, workspace);
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        Workspace created = (Workspace)response.getEntity();
+        WorkspaceDescriptor created = (WorkspaceDescriptor)response.getEntity();
         assertTrue(created.isTemporary());
         verify(userDao, times(0)).create(any(User.class));
         verify(workspaceDao, times(1)).create(any(Workspace.class));
@@ -218,7 +223,7 @@ public class WorkspaceServiceTest {
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/temp", MediaType.APPLICATION_JSON, workspace);
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        Workspace created = (Workspace)response.getEntity();
+        WorkspaceDescriptor created = (WorkspaceDescriptor)response.getEntity();
         assertTrue(created.isTemporary());
         verify(userDao, times(1)).create(any(User.class));
         verify(userProfileDao, times(1)).create(any(Profile.class));
@@ -253,8 +258,12 @@ public class WorkspaceServiceTest {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("GET", SERVICE_PATH + "?name=" + WS_NAME, null, null);
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-            Workspace ws = (Workspace)response.getEntity();
-            assertEquals(ws, workspace);
+            WorkspaceDescriptor ws = (WorkspaceDescriptor)response.getEntity();
+            assertEquals(ws.getId(), workspace.getId());
+            assertEquals(ws.getName(), workspace.getName());
+            assertEquals(ws.isTemporary(), workspace.isTemporary());
+            assertEquals(ws.getAccountId(), workspace.getAccountId());
+            assertEquals(ws.getAttributes(), workspace.getAttributes());
             verifyLinksRel(ws.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).getByName(WS_NAME);
@@ -358,7 +367,7 @@ public class WorkspaceServiceTest {
         assertTrue(workspace.getAttributes().size() > 0);
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "?name=" + WS_NAME, null, null);
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Workspace ws = (Workspace)response.getEntity();
+        WorkspaceDescriptor ws = (WorkspaceDescriptor)response.getEntity();
         assertEquals(ws.getAttributes().size(), 0);
     }
 
@@ -369,7 +378,7 @@ public class WorkspaceServiceTest {
         ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Workspace ws = (Workspace)response.getEntity();
+        WorkspaceDescriptor ws = (WorkspaceDescriptor)response.getEntity();
         assertEquals(ws.getAttributes().size(), 0);
     }
 
@@ -392,7 +401,7 @@ public class WorkspaceServiceTest {
         for (String role : roles) {
             prepareSecurityContext(role);
             ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID, MediaType.APPLICATION_JSON, workspaceToUpdate);
-            Workspace actual = (Workspace)response.getEntity();
+            WorkspaceDescriptor actual = (WorkspaceDescriptor)response.getEntity();
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
             assertEquals(actual.getName(), workspaceToUpdate.getName());
             assertEquals(actual.getAttributes().size(), 1);
@@ -537,8 +546,7 @@ public class WorkspaceServiceTest {
 
         prepareSecurityContext("workspace/admin");
 
-        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
-                                             .withUserId(USER_ID);
+        NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class).withUserId(USER_ID);
 
         prepareSecurityContext("workspace/admin");
 

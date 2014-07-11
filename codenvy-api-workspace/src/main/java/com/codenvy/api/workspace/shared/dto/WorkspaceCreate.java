@@ -18,35 +18,22 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-// TODO: replace with class
-public interface Workspace {
-    String getId();
-
-    void setId(String id);
-
-    Workspace withId(String id);
-
+public interface WorkspaceCreate {
     String getName();
 
     void setName(String name);
 
-    Workspace withName(String name);
-
-    void setTemporary(boolean temporary);
-
-    boolean isTemporary();
-
-    Workspace withTemporary(boolean temporary);
+    WorkspaceCreate withName(String name);
 
     String getAccountId();
 
     void setAccountId(String accountId);
 
-    Workspace withAccountId(String accountId);
+    WorkspaceCreate withAccountId(String accountId);
 
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);
 
-    Workspace withAttributes(List<Attribute> attributes);
+    WorkspaceCreate withAttributes(List<Attribute> attributes);
 }

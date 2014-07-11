@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.workspace.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -18,35 +19,40 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-// TODO: replace with class
-public interface Workspace {
+public interface WorkspaceDescriptor {
     String getId();
 
     void setId(String id);
 
-    Workspace withId(String id);
+    WorkspaceDescriptor withId(String id);
 
     String getName();
 
     void setName(String name);
 
-    Workspace withName(String name);
+    WorkspaceDescriptor withName(String name);
 
     void setTemporary(boolean temporary);
 
     boolean isTemporary();
 
-    Workspace withTemporary(boolean temporary);
+    WorkspaceDescriptor withTemporary(boolean temporary);
 
     String getAccountId();
 
     void setAccountId(String accountId);
 
-    Workspace withAccountId(String accountId);
+    WorkspaceDescriptor withAccountId(String accountId);
 
     List<Attribute> getAttributes();
 
     void setAttributes(List<Attribute> attributes);
 
-    Workspace withAttributes(List<Attribute> attributes);
+    WorkspaceDescriptor withAttributes(List<Attribute> attributes);
+
+    List<Link> getLinks();
+
+    void setLinks(List<Link> links);
+
+    WorkspaceDescriptor withLinks(List<Link> links);
 }

@@ -18,12 +18,12 @@ import com.codenvy.dto.shared.DTO;
  * @author andrew00x
  */
 @DTO
-public interface ProjectCreate extends ProjectUpdate {
+public interface NewProject extends ProjectUpdate {
     /** Get project visibility, e.g. private or public. */
     String getVisibility();
 
     /** Set project visibility, e.g. private or public. */
     void setVisibility(String visibility);
 
-    ProjectCreate withVisibility(String visibility);
+    NewProject withVisibility(String visibility);
 }

@@ -24,7 +24,7 @@ import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
-import com.codenvy.api.project.shared.dto.ProjectCreate;
+import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
@@ -157,9 +157,9 @@ public class ProjectService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor createProject(@PathParam("ws-id") String workspace,
                                            @Required @Description("project name") @QueryParam("name") String name,
-                                           @Description("descriptor of project") ProjectCreate create) throws Exception {
-        final Project project = projectManager.createProject(workspace, name, toDescription(create));
-        final String visibility = create.getVisibility();
+                                           @Description("descriptor of project") NewProject newProject) throws Exception {
+        final Project project = projectManager.createProject(workspace, name, toDescription(newProject));
+        final String visibility = newProject.getVisibility();
         if (visibility != null) {
             project.setVisibility(visibility);
         }
@@ -197,7 +197,7 @@ public class ProjectService extends Service {
     public ProjectDescriptor createModule(@PathParam("ws-id") String workspace,
                                           @PathParam("path") String parentProject,
                                           @QueryParam("name") String name,
-                                          ProjectCreate descriptor) throws Exception {
+                                          NewProject descriptor) throws Exception {
         final Project project = projectManager.getProject(workspace, parentProject);
         if (project == null) {
             final ServiceError error = DtoFactory.getInstance().createDto(ServiceError.class).withMessage(

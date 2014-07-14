@@ -34,7 +34,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
-import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.cache.Cache;
@@ -330,7 +330,7 @@ public class BuildQueue {
             }
         }
         if (callable == null) {
-            final Workspace workspace = getWorkspace(wsId, serviceContext);
+            final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
             request.setTimeout(getBuildTimeout(workspace));
             callable = createTaskFor(request);
         }
@@ -377,7 +377,7 @@ public class BuildQueue {
                                                                        .withProject(project)
                                                                        .withUserName(user == null ? "" : user.getName());
         addParametersFromProjectDescriptor(descriptor, request);
-        final Workspace workspace = getWorkspace(wsId, serviceContext);
+        final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
         request.setTimeout(getBuildTimeout(workspace));
         final Callable<RemoteTask> callable = createTaskFor(request);
         final Long id = sequence.getAndIncrement();
@@ -484,7 +484,7 @@ public class BuildQueue {
         }
     }
 
-    private Workspace getWorkspace(String workspace, ServiceContext serviceContext) throws BuilderException {
+    private WorkspaceDescriptor getWorkspaceDescriptor(String workspace, ServiceContext serviceContext) throws BuilderException {
         final UriBuilder baseWorkspaceUriBuilder = baseWorkspaceApiUrl == null || baseWorkspaceApiUrl.isEmpty()
                                                    ? serviceContext.getBaseUriBuilder()
                                                    : UriBuilder.fromUri(baseWorkspaceApiUrl);
@@ -492,7 +492,7 @@ public class BuildQueue {
                                                            .path(WorkspaceService.class, "getById")
                                                            .build(workspace).toString();
         try {
-            return HttpJsonHelper.get(Workspace.class, workspaceUrl);
+            return HttpJsonHelper.get(WorkspaceDescriptor.class, workspaceUrl);
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
@@ -536,7 +536,7 @@ public class BuildQueue {
         return builder;
     }
 
-    private long getBuildTimeout(Workspace workspace) throws BuilderException {
+    private long getBuildTimeout(WorkspaceDescriptor workspace) throws BuilderException {
         final String timeoutAttr = getWorkspaceAttributeValue(Constants.BUILDER_EXECUTION_TIME, workspace.getAttributes());
         return timeoutAttr != null ? Integer.parseInt(timeoutAttr) : maxExecutionTimeMillis;
     }

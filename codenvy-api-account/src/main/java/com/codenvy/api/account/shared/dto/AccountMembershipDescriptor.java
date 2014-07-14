@@ -18,23 +18,11 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-// TODO: replace with class
-public interface Member {
+public interface AccountMembershipDescriptor extends AccountDescriptor {
+
     List<String> getRoles();
 
     void setRoles(List<String> roles);
 
-    Member withRoles(List<String> roles);
-
-    String getUserId();
-
-    void setUserId(String id);
-
-    Member withUserId(String id);
-
-    String getAccountId();
-
-    void setAccountId(String id);
-
-    Member withAccountId(String id);
+    AccountMembershipDescriptor withRoles(List<String> roles);
 }

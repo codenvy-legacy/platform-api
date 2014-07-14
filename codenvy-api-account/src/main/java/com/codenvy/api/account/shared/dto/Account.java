@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -19,6 +18,7 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
+// TODO: replace with class
 public interface Account {
 
     List<Attribute> getAttributes();
@@ -38,10 +38,4 @@ public interface Account {
     void setId(String id);
 
     Account withId(String id);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    Account withLinks(List<Link> links);
 }

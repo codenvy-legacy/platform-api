@@ -10,63 +10,65 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
- * Account}
+ * com.codenvy.api.account.shared.dto.Account}
  *
  * @author Eugene Voevodin
  */
 @DTO
-// TODO: replace with class
-public interface Subscription {
-
-    public enum State {
-        WAIT_FOR_PAYMENT, ACTIVE
-    }
-
+public interface SubscriptionDescriptor {
     String getId();
 
     void setId(String id);
 
-    Subscription withId(String id);
+    SubscriptionDescriptor withId(String id);
 
     String getAccountId();
 
     void setAccountId(String orgId);
 
-    Subscription withAccountId(String orgId);
+    SubscriptionDescriptor withAccountId(String orgId);
 
     String getServiceId();
 
     void setServiceId(String id);
 
-    Subscription withServiceId(String id);
+    SubscriptionDescriptor withServiceId(String id);
 
     long getStartDate();
 
     void setStartDate(long date);
 
-    Subscription withStartDate(long date);
+    SubscriptionDescriptor withStartDate(long date);
 
     long getEndDate();
 
     void setEndDate(long date);
 
-    Subscription withEndDate(long date);
+    SubscriptionDescriptor withEndDate(long date);
 
     Map<String, String> getProperties();
 
     void setProperties(Map<String, String> properties);
 
-    Subscription withProperties(Map<String, String> properties);
+    SubscriptionDescriptor withProperties(Map<String, String> properties);
 
-    State getState();
+    Subscription.State getState();
 
-    void setState(State state);
+    void setState(Subscription.State state);
 
-    Subscription withState(State state);
+    SubscriptionDescriptor withState(Subscription.State state);
+
+    void setLinks(List<Link> links);
+
+    List<Link> getLinks();
+
+    SubscriptionDescriptor withLinks(List<Link> links);
 }

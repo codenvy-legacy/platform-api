@@ -20,10 +20,15 @@ import com.codenvy.api.account.server.SubscriptionService;
 import com.codenvy.api.account.server.SubscriptionServiceRegistry;
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountMembership;
+import com.codenvy.api.account.shared.dto.AccountMembershipDescriptor;
 import com.codenvy.api.account.shared.dto.Attribute;
 import com.codenvy.api.account.shared.dto.Member;
+import com.codenvy.api.account.shared.dto.MemberDescriptor;
+import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
@@ -209,7 +214,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH, MediaType.APPLICATION_JSON, account);
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        Account created = (Account)response.getEntity();
+        AccountDescriptor created = (AccountDescriptor)response.getEntity();
         verifyLinksRel(created.getLinks(), generateRels(role));
         verify(accountDao, times(1)).create(any(Account.class));
         Member expected = DtoFactory.getInstance().createDto(Member.class)
@@ -259,9 +264,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        //safe cast cause AccountService#getMemberships always returns List<AccountMembership
-        @SuppressWarnings("unchecked") List<AccountMembership> currentAccounts =
-                (List<AccountMembership>)response.getEntity();
+        @SuppressWarnings("unchecked") List<AccountMembershipDescriptor> currentAccounts = (List<AccountMembershipDescriptor>)response.getEntity();
         assertEquals(currentAccounts.size(), 1);
         assertEquals(currentAccounts.get(0).getRoles().get(0), "account/owner");
         verify(accountDao, times(1)).getByMember(USER_ID);
@@ -281,10 +284,11 @@ public class AccountServiceTest {
         when(accountDao.getByMember("ANOTHER_USER_ID")).thenReturn(memberships);
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/list?userid=" + "ANOTHER_USER_ID", null, null);
-        @SuppressWarnings("unchecked") List<AccountMembership> currentAccounts =
-                (List<AccountMembership>)response.getEntity();
+        @SuppressWarnings("unchecked") List<AccountMembershipDescriptor> currentAccounts = (List<AccountMembershipDescriptor>)response.getEntity();
         assertEquals(currentAccounts.size(), 1);
-        assertEquals(currentAccounts.get(0), am);
+        assertEquals(currentAccounts.get(0).getId(), am.getId());
+        assertEquals(currentAccounts.get(0).getName(), am.getName());
+        assertEquals(currentAccounts.get(0).getRoles(), am.getRoles());
     }
 
     @Test
@@ -298,7 +302,7 @@ public class AccountServiceTest {
             ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID, null, null);
 
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-            Account actual = (Account)response.getEntity();
+            AccountDescriptor actual = (AccountDescriptor)response.getEntity();
             verifyLinksRel(actual.getLinks(), generateRels(role));
         }
         verify(accountDao, times(roles.length)).getById(ACCOUNT_ID);
@@ -319,7 +323,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Account actual = (Account)response.getEntity();
+        AccountDescriptor actual = (AccountDescriptor)response.getEntity();
         assertEquals(actual.getAttributes().size(), 2);
         assertEquals(actual.getName(), "newName");
     }
@@ -353,7 +357,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Account actual = (Account)response.getEntity();
+        AccountDescriptor actual = (AccountDescriptor)response.getEntity();
         assertEquals(actual.getName(), ACCOUNT_NAME);
         assertEquals(actual.getAttributes().size(), 3);
         for (Attribute attribute : actual.getAttributes()) {
@@ -446,7 +450,7 @@ public class AccountServiceTest {
             ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/find?name=" + ACCOUNT_NAME, null, null);
 
             assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-            Account actual = (Account)response.getEntity();
+            AccountDescriptor actual = (AccountDescriptor)response.getEntity();
             verifyLinksRel(actual.getLinks(), generateRels(role));
         }
         verify(accountDao, times(roles.length)).getByName(ACCOUNT_NAME);
@@ -469,7 +473,7 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         //safe cast cause AccountService#getSubscriptions always returns List<Subscription>
-        @SuppressWarnings("unchecked") List<Subscription> subscriptions = (List<Subscription>)response.getEntity();
+        @SuppressWarnings("unchecked") List<SubscriptionDescriptor> subscriptions = (List<SubscriptionDescriptor>)response.getEntity();
         assertEquals(subscriptions.size(), 1);
         assertEquals(subscriptions.get(0).getLinks().size(), 2);
         List<Link> actualLinks = subscriptions.get(0).getLinks();
@@ -498,7 +502,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Subscription subscription = (Subscription)response.getEntity();
+        SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
         assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
                 Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
                 SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
@@ -527,7 +531,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Subscription subscription = (Subscription)response.getEntity();
+        SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
         assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
                 Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
                 SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
@@ -556,7 +560,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Subscription subscription = (Subscription)response.getEntity();
+        SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
         assertTrue(subscription.getLinks().isEmpty());
         verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
     }
@@ -616,33 +620,31 @@ public class AccountServiceTest {
 
     @Test
     public void shouldRespondPaymentRequiredIfAmountBiggerThan0OnAddSubscription() throws Exception {
-        final Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
-                                                    .withAccountId(ACCOUNT_ID)
-                                                    .withServiceId(SERVICE_ID)
-                                                    .withProperties(Collections.<String, String>emptyMap());
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                       .withAccountId(ACCOUNT_ID)
+                                                       .withServiceId(SERVICE_ID)
+                                                       .withProperties(Collections.<String, String>emptyMap());
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(subscriptionService.tarifficate(any(Subscription.class))).thenReturn(1000D);
 
         ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
         assertEquals(response.getStatus(), 402);
-        Subscription actualSubscription = DtoFactory.getInstance().clone((Subscription)response.getEntity());
+        SubscriptionDescriptor actualSubscription = DtoFactory.getInstance().clone((SubscriptionDescriptor)response.getEntity());
         verifyLinksRel(actualSubscription.getLinks(),
                        Arrays.asList(Constants.LINK_REL_PURCHASE_SUBSCRIPTION, Constants.LINK_REL_REMOVE_SUBSCRIPTION));
 
-
-        assertEquals(DtoFactory.getInstance().clone(actualSubscription).withEndDate(0).withStartDate(0).withLinks(null).withId(null),
-                     subscription.withState(Subscription.State.WAIT_FOR_PAYMENT));
+        assertEquals(actualSubscription.getAccountId(), ACCOUNT_ID);
+        assertEquals(actualSubscription.getServiceId(), SERVICE_ID);
+        assertEquals(actualSubscription.getState(), WAIT_FOR_PAYMENT);
         verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
             @Override
             public boolean matches(Object argument) {
                 Subscription actualSubscription = DtoFactory.getInstance().clone((Subscription)argument);
-                Subscription expectedSubscription =
-                        DtoFactory.getInstance().clone(subscription).withState(WAIT_FOR_PAYMENT).withId(actualSubscription.getId())
-                                  .withStartDate(actualSubscription.getStartDate()).withEndDate(actualSubscription.getEndDate());
-                return expectedSubscription.equals(actualSubscription);
-
+                return ACCOUNT_ID.equals(actualSubscription.getAccountId())
+                       && SERVICE_ID.equals(actualSubscription.getServiceId())
+                       && WAIT_FOR_PAYMENT.equals(actualSubscription.getState());
             }
         }));
         verify(accountDao).addSubscriptionHistoryEvent(any(SubscriptionHistoryEvent.class));
@@ -798,9 +800,9 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         verify(accountDao, times(1)).getMembers(account.getId());
-        @SuppressWarnings("unchecked") List<Member> members = (List<Member>)response.getEntity();
+        @SuppressWarnings("unchecked") List<MemberDescriptor> members = (List<MemberDescriptor>)response.getEntity();
         assertEquals(members.size(), 1);
-        Member member = members.get(0);
+        MemberDescriptor member = members.get(0);
         assertEquals(member.getLinks().size(), 1);
         Link removeMember = members.get(0).getLinks().get(0);
         assertEquals(removeMember, DtoFactory.getInstance().createDto(Link.class)

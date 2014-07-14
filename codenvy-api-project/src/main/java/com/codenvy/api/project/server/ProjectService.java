@@ -11,6 +11,7 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.rest.InvalidArgumentException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -655,7 +656,10 @@ public class ProjectService extends Service {
     @RolesAllowed("workspace/admin")
     public void switchVisibility(@PathParam("ws-id") String wsId,
                                  @PathParam("path") String path,
-                                 @QueryParam("visibility") String visibility) throws ServerException {
+                                 @QueryParam("visibility") String visibility) throws Exception {
+        if (visibility == null || visibility.isEmpty()) {
+            throw new InvalidArgumentException(String.format("Invalid visibility '%s'", visibility));
+        }
         final Project project = projectManager.getProject(wsId, path);
         if (project == null) {
             throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, wsId));

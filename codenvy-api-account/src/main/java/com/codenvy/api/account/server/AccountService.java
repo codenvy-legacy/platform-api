@@ -119,7 +119,7 @@ public class AccountService extends Service {
             throw new ConflictException(String.format("Account with name %s already exists", newAccount.getName()));
         } catch (NotFoundException ignored) {
         }
-        String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
+        final String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         newAccount.setId(accountId);
         //account should have owner
         Member owner = DtoFactory.getInstance().createDto(Member.class)
@@ -148,7 +148,7 @@ public class AccountService extends Service {
     }
 
     @GET
-    @Path("list")
+    @Path("memberships")
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
@@ -259,7 +259,7 @@ public class AccountService extends Service {
     public void removeMember(@PathParam("id") String accountId, @PathParam("userid") String userId)
             throws NotFoundException, ForbiddenException,
                    ServerException, ConflictException {
-        List<Member> accMembers = accountDao.getMembers(accountId);
+        final List<Member> accMembers = accountDao.getMembers(accountId);
         Member toRemove = null;
         //search for member
         for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && toRemove == null; ) {
@@ -275,7 +275,7 @@ public class AccountService extends Service {
             if (toRemove.getRoles().contains("account/owner")) {
                 boolean isOtherAccOwnerPresent = false;
                 for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && !isOtherAccOwnerPresent; ) {
-                    Member current = mIt.next();
+                    final Member current = mIt.next();
                     isOtherAccOwnerPresent = !current.getUserId().equals(userId)
                                              && current.getRoles().contains("account/owner");
                 }
@@ -314,13 +314,13 @@ public class AccountService extends Service {
 
         //add new attributes and rewrite existed with same name
         if (accountToUpdate.getAttributes() != null) {
-            Map<String, Attribute> updates = new LinkedHashMap<>(accountToUpdate.getAttributes().size());
+            final Map<String, Attribute> updates = new LinkedHashMap<>(accountToUpdate.getAttributes().size());
             for (Attribute toUpdate : accountToUpdate.getAttributes()) {
                 validateAttributeName(toUpdate.getName());
                 updates.put(toUpdate.getName(), toUpdate);
             }
             for (Iterator<Attribute> it = actual.getAttributes().iterator(); it.hasNext(); ) {
-                Attribute attribute = it.next();
+                final Attribute attribute = it.next();
                 if (updates.containsKey(attribute.getName())) {
                     it.remove();
                 }
@@ -342,7 +342,7 @@ public class AccountService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
         for (Subscription subscription : subscriptions) {
-            List<Link> links = subscription.getLinks();
+            final List<Link> links = subscription.getLinks();
             links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
                                  uriBuilder.clone().path(getClass(), "getSubscriptionById").build(subscription.getId()).toString()));
 
@@ -378,7 +378,7 @@ public class AccountService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (roles.contains("account/owner") || securityContext.isUserInRole("system/admin") ||
             securityContext.isUserInRole("system/manager")) {
-            ArrayList<Link> links = new ArrayList<>(2);
+            final ArrayList<Link> links = new ArrayList<>(2);
             links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
                                  uriBuilder.clone().path(getClass(), "removeSubscription").build(
                                          subscription.getId()).toString()
@@ -417,7 +417,7 @@ public class AccountService extends Service {
         subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
 
         subscription.setStartDate(System.currentTimeMillis());
-        Calendar calendar = Calendar.getInstance();
+        final Calendar calendar = Calendar.getInstance();
         if (null != subscription.getProperties() && "yearly".equalsIgnoreCase(subscription.getProperties().get("TariffPlan"))) {
             calendar.add(Calendar.YEAR, 1);
         } else {
@@ -425,7 +425,7 @@ public class AccountService extends Service {
         }
         subscription.setEndDate(calendar.getTimeInMillis());
 
-        double amount = service.tarifficate(subscription);
+        final double amount = service.tarifficate(subscription);
         Response response;
         if (0D == amount || securityContext.isUserInRole("system/admin")) {
             subscription.setState(Subscription.State.ACTIVE);
@@ -455,14 +455,14 @@ public class AccountService extends Service {
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public void removeSubscription(@PathParam("id") String subscriptionId, @Context SecurityContext securityContext)
             throws ApiException {
-        Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
+        final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         if (securityContext.isUserInRole("user")) {
             final Set<String> roles = resolveRolesForSpecificAccount(toRemove.getAccountId());
             if (!roles.contains("account/owner")) {
                 throw new ForbiddenException("Access denied");
             }
         }
-        SubscriptionService service = registry.get(toRemove.getServiceId());
+        final SubscriptionService service = registry.get(toRemove.getServiceId());
         accountDao.removeSubscription(subscriptionId);
         accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(toRemove, DELETE));
         service.onRemoveSubscription(toRemove);
@@ -532,7 +532,7 @@ public class AccountService extends Service {
 
     private void removeAttribute(List<Attribute> src, String attributeName) {
         for (Iterator<Attribute> it = src.iterator(); it.hasNext(); ) {
-            Attribute current = it.next();
+            final Attribute current = it.next();
             if (current.getName().equals(attributeName)) {
                 it.remove();
                 break;

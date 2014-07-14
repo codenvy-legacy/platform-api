@@ -280,7 +280,7 @@ public class AccountServiceTest {
         when(userDao.getById("ANOTHER_USER_ID")).thenReturn(user);
         when(accountDao.getByMember("ANOTHER_USER_ID")).thenReturn(memberships);
 
-        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/list?userid=" + "ANOTHER_USER_ID", null, null);
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/memberships?userid=" + "ANOTHER_USER_ID", null, null);
         @SuppressWarnings("unchecked") List<AccountMembership> currentAccounts =
                 (List<AccountMembership>)response.getEntity();
         assertEquals(currentAccounts.size(), 1);

@@ -23,9 +23,7 @@ import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
 import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type.CREATE;
@@ -167,7 +165,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Subscription> getAllSubscriptions() throws ServerException {
+    public List<Subscription> getSubscriptions() throws ServerException {
         return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
                                        .withId("Subscription0xfffffffff")
                                        .withStartDate(System.currentTimeMillis())

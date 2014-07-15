@@ -65,6 +65,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -599,7 +600,7 @@ public class AccountService extends Service {
     }
 
     private void injectLinks(AccountDescriptor account, SecurityContext securityContext) {
-        final List<Link> links = new ArrayList<>();
+        final List<Link> links = new LinkedList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_ACCOUNTS, null, MediaType.APPLICATION_JSON,
                              uriBuilder.clone().path(getClass(), "getMemberships").build().toString()));

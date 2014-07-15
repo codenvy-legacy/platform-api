@@ -283,7 +283,7 @@ public class AccountServiceTest {
         when(userDao.getById("ANOTHER_USER_ID")).thenReturn(user);
         when(accountDao.getByMember("ANOTHER_USER_ID")).thenReturn(memberships);
 
-        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/list?userid=" + "ANOTHER_USER_ID", null, null);
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/memberships?userid=" + "ANOTHER_USER_ID", null, null);
         @SuppressWarnings("unchecked") List<AccountMembershipDescriptor> currentAccounts = (List<AccountMembershipDescriptor>)response.getEntity();
         assertEquals(currentAccounts.size(), 1);
         assertEquals(currentAccounts.get(0).getId(), am.getId());
@@ -472,7 +472,6 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        //safe cast cause AccountService#getSubscriptions always returns List<Subscription>
         @SuppressWarnings("unchecked") List<SubscriptionDescriptor> subscriptions = (List<SubscriptionDescriptor>)response.getEntity();
         assertEquals(subscriptions.size(), 1);
         assertEquals(subscriptions.get(0).getLinks().size(), 2);

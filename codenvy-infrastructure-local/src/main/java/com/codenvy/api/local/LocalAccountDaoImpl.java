@@ -23,7 +23,9 @@ import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type.CREATE;
@@ -162,5 +164,16 @@ public class LocalAccountDaoImpl implements AccountDao {
                 .asList(DtoFactory.getInstance().createDto(SubscriptionHistoryEvent.class).withId("SUBSCRIPTION_HISTORY_EVENT_ID").withTime(
                         System.currentTimeMillis()).withType(CREATE).withUserId("userId112233322239")
                                   .withSubscription(getSubscriptionById("Subscription0xfffffffff")));
+    }
+
+    @Override
+    public Iterator<Subscription> getAllSubscriptions() throws ServerException {
+        return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
+                                       .withId("Subscription0xfffffffff")
+                                       .withStartDate(System.currentTimeMillis())
+                                       .withEndDate(System.currentTimeMillis())
+                                       .withServiceId("serviceId")
+                                       .withProperties(new HashMap<String, String>())
+                            ).iterator();
     }
 }

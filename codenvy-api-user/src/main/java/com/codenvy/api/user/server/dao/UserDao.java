@@ -47,7 +47,7 @@ public interface UserDao {
      * Updates already present in persistent layer user.
      *
      * @param user
-     *         - POJO representation of user entity
+     *         POJO representation of user entity
      */
     void update(User user) throws NotFoundException, ServerException;
 
@@ -55,7 +55,7 @@ public interface UserDao {
      * Removes user from persistent layer by his identifier.
      *
      * @param id
-     *         - user identifier
+     *         user identifier
      */
     void remove(String id) throws NotFoundException, ServerException, ConflictException;
 
@@ -63,7 +63,7 @@ public interface UserDao {
      * Gets user from persistent layer by any of his aliases
      *
      * @param alias
-     *         - user name or alias
+     *         user name or alias
      * @return user POJO
      * @throws com.codenvy.api.core.NotFoundException
      *         when user doesn't exist
@@ -74,7 +74,7 @@ public interface UserDao {
      * Gets user from persistent layer by his identifier
      *
      * @param id
-     *         - user name or identifier
+     *         user name or identifier
      * @return user POJO
      * @throws com.codenvy.api.core.NotFoundException
      *         when user doesn't exist

@@ -28,20 +28,21 @@ import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.UserProfileService;
 import com.codenvy.api.user.server.UserService;
-import com.codenvy.api.user.server.dao.MemberDao;
+import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.Attribute;
+import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
 import com.codenvy.api.workspace.shared.dto.Membership;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.NewWorkspace;
-import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.server.dao.Workspace;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
-import com.codenvy.api.workspace.shared.dto.WorkspaceRef;
+import com.codenvy.api.workspace.shared.dto.WorkspaceReference;
 import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
@@ -367,11 +368,11 @@ public class WorkspaceService extends Service {
                                                  MediaType.APPLICATION_JSON,
                                                  baseUriBuilder.clone().path(ProjectService.class).path(ProjectService.class, "getProjects")
                                                                .build(workspace.getId()).toString());
-            final WorkspaceRef wsRef = DtoFactory.getInstance().createDto(WorkspaceRef.class)
-                                                 .withName(workspace.getName())
-                                                 .withTemporary(workspace.isTemporary())
-                                                 .withWorkspaceLink(wsLink)
-                                                 .withProjectsLink(projectsLink);
+            final WorkspaceReference wsRef = DtoFactory.getInstance().createDto(WorkspaceReference.class)
+                                                       .withName(workspace.getName())
+                                                       .withTemporary(workspace.isTemporary())
+                                                       .withWorkspaceLink(wsLink)
+                                                       .withProjectsLink(projectsLink);
             final Membership membership = DtoFactory.getInstance().createDto(Membership.class)
                                                     .withWorkspaceRef(wsRef)
                                                     .withUserLink(userLink)
@@ -415,11 +416,11 @@ public class WorkspaceService extends Service {
                                                  MediaType.APPLICATION_JSON,
                                                  baseUriBuilder.clone().path(ProjectService.class).path(ProjectService.class, "getProjects")
                                                                .build(workspace.getId()).toString());
-            final WorkspaceRef wsRef = DtoFactory.getInstance().createDto(WorkspaceRef.class)
-                                                 .withName(workspace.getName())
-                                                 .withTemporary(workspace.isTemporary())
-                                                 .withWorkspaceLink(wsLink)
-                                                 .withProjectsLink(projectsLink);
+            final WorkspaceReference wsRef = DtoFactory.getInstance().createDto(WorkspaceReference.class)
+                                                       .withName(workspace.getName())
+                                                       .withTemporary(workspace.isTemporary())
+                                                       .withWorkspaceLink(wsLink)
+                                                       .withProjectsLink(projectsLink);
             final Membership membership = DtoFactory.getInstance().createDto(Membership.class)
                                                     .withWorkspaceRef(wsRef)
                                                     .withUserLink(userLink)
@@ -587,11 +588,70 @@ public class WorkspaceService extends Service {
         }
     }
 
+    private MemberDescriptor toDescriptor(Member member, Workspace workspace) {
+        final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
+        final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
+        final Link wsLink = createLink("GET",
+                                       Constants.LINK_REL_GET_WORKSPACE_BY_ID,
+                                       null,
+                                       MediaType.APPLICATION_JSON,
+                                       serviceUriBuilder.clone()
+                                                        .path(getClass(), "getById")
+                                                        .build(workspace.getId())
+                                                        .toString());
+        final Link projectsLink = createLink("GET",
+                                             com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS,
+                                             null,
+                                             MediaType.APPLICATION_JSON,
+                                             baseUriBuilder.clone()
+                                                           .path(ProjectService.class)
+                                                           .path(ProjectService.class, "getProjects")
+                                                           .build(workspace.getId())
+                                                           .toString());
+        final Link userLink = createLink("GET",
+                                         com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         baseUriBuilder.clone()
+                                                       .path(UserService.class)
+                                                       .path(UserService.class, "getById")
+                                                       .build(member.getUserId())
+                                                       .toString());
+        final Link removeLink = createLink("DELETE",
+                                           Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
+                                           null,
+                                           null,
+                                           serviceUriBuilder.clone()
+                                                            .path(getClass(), "removeMember")
+                                                            .build(workspace.getId(), member.getUserId())
+                                                            .toString());
+        final Link allMembersLink = createLink("GET",
+                                               Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                               null,
+                                               MediaType.APPLICATION_JSON,
+                                               serviceUriBuilder.clone()
+                                                                .path(getClass(), "getMembers")
+                                                                .build(workspace.getId())
+                                                                .toString());
+        final WorkspaceReference wsRef = DtoFactory.getInstance().createDto(WorkspaceReference.class)
+                                                   .withId(workspace.getId())
+                                                   .withName(workspace.getName())
+                                                   .withTemporary(workspace.isTemporary())
+                                                   .withLinks(Arrays.asList(wsLink, projectsLink));
+        return DtoFactory.getInstance().createDto(MemberDescriptor.class)
+                         .withUserId(member.getUserId())
+                         .withWorkspaceReference(wsRef)
+                         .withRoles(member.getRoles())
+                         .withLinks(Arrays.asList(userLink, removeLink, allMembersLink));
+    }
+
     private WorkspaceDescriptor toDescriptor(Workspace workspace, SecurityContext securityContext) {
         final WorkspaceDescriptor workspaceDescriptor = DtoFactory.getInstance().createDto(WorkspaceDescriptor.class)
                                                                   .withId(workspace.getId()).withName(workspace.getName())
-                .withTemporary(workspace.isTemporary()).withAccountId(workspace.getAccountId()).withAttributes(workspace.getAttributes());
-        final List<Link> links = new ArrayList<>();
+                                                                  .withTemporary(workspace.isTemporary())
+                                                                  .withAccountId(workspace.getAccountId())
+                                                                  .withAttributes(workspace.getAttributes());
+        final List<Link> links = new LinkedList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
             links.add(createLink("GET", com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS, null, MediaType.APPLICATION_JSON,

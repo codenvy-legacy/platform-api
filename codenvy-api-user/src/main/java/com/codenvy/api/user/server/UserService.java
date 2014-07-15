@@ -23,7 +23,6 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
-import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.Attribute;
@@ -63,14 +62,12 @@ public class UserService extends Service {
 
     private final UserDao        userDao;
     private final UserProfileDao profileDao;
-    private final MemberDao      memberDao;
     private final TokenValidator tokenValidator;
 
     @Inject
-    public UserService(UserDao userDao, UserProfileDao profileDao, MemberDao memberDao, TokenValidator tokenValidator) {
+    public UserService(UserDao userDao, UserProfileDao profileDao, TokenValidator tokenValidator) {
         this.userDao = userDao;
         this.profileDao = profileDao;
-        this.memberDao = memberDao;
         this.tokenValidator = tokenValidator;
     }
 

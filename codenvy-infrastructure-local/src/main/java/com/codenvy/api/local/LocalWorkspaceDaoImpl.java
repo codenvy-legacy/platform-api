@@ -11,7 +11,7 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.server.dao.Workspace;
 
 
 import javax.inject.Singleton;

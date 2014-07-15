@@ -11,9 +11,9 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.auth.shared.dto.Token;
-import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.server.dao.Workspace;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.util.Arrays;

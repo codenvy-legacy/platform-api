@@ -13,13 +13,12 @@ package com.codenvy.api.workspace.server.dao;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.workspace.shared.dto.Workspace;
 
 import java.util.List;
 
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.workspace.shared.dto.Workspace} data. The
+ * DAO interface offers means to perform CRUD operations with {@link Workspace} data. The
  * implementation is not
  * required
  * to be responsible for persistent layer data dto consistency. It simply transfers data from one layer to another,

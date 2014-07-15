@@ -8,18 +8,17 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.user.server.dao;
+package com.codenvy.api.workspace.server.dao;
 
 
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.user.shared.dto.Member;
 
 import java.util.List;
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.user.shared.dto.Member} data.
+ * DAO interface offers means to perform CRUD operations with {@link Member} data.
  * The implementation is not required
  * to be responsible for persistent layer data dto consistency. It simply transfers data from one layer to another,
  * so
@@ -33,7 +32,7 @@ public interface MemberDao {
      * Adds a new Member to persistent layer.
      *
      * @param member
-     *         - POJO representation of workspace member
+     *         POJO representation of workspace member
      */
     void create(Member member) throws ConflictException, NotFoundException, ServerException;
 
@@ -42,7 +41,7 @@ public interface MemberDao {
      * Updates member in persistent layer.
      *
      * @param member
-     *         - POJO representation of workspace member
+     *         POJO representation of workspace member
      */
     void update(Member member) throws NotFoundException, ServerException, ConflictException;
 

@@ -40,7 +40,7 @@ import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.workspace.server.WorkspaceService;
-import com.codenvy.api.workspace.shared.dto.Workspace;
+import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.Pair;
@@ -246,7 +246,7 @@ public class RunQueue {
             }
         }
 
-        final Workspace workspace = getWorkspace(wsId, serviceContext);
+        final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
 
         int mem = request.getMemorySize();
         if (mem <= 0) {
@@ -325,7 +325,7 @@ public class RunQueue {
         return task;
     }
 
-    private void checkResources(Workspace workspace, RunRequest request) throws RunnerException {
+    private void checkResources(WorkspaceDescriptor workspace, RunRequest request) throws RunnerException {
         final String wsId = workspace.getId();
         final int index = wsId.hashCode() & resourceCheckerMask;
         // Lock to be sure other threads don't try to start application in the same workspace.
@@ -460,7 +460,7 @@ public class RunQueue {
         return new RemoteServiceDescriptor(builderUrl);
     }
 
-    private Workspace getWorkspace(String workspace, ServiceContext serviceContext) throws RunnerException {
+    private WorkspaceDescriptor getWorkspaceDescriptor(String workspace, ServiceContext serviceContext) throws RunnerException {
         final UriBuilder baseWorkspaceUriBuilder = baseWorkspaceApiUrl == null || baseWorkspaceApiUrl.isEmpty()
                                                    ? serviceContext.getBaseUriBuilder()
                                                    : UriBuilder.fromUri(baseWorkspaceApiUrl);
@@ -468,7 +468,7 @@ public class RunQueue {
                                                            .path(WorkspaceService.class, "getById")
                                                            .build(workspace).toString();
         try {
-            return HttpJsonHelper.get(Workspace.class, workspaceUrl);
+            return HttpJsonHelper.get(WorkspaceDescriptor.class, workspaceUrl);
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {

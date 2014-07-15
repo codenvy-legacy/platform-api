@@ -187,10 +187,11 @@ public interface AccountDao {
     List<SubscriptionHistoryEvent> getSubscriptionHistoryEventsByAccount(String accountId) throws ServerException;
 
     /**
-     * Retrieve all existing subscriptions
+     * Retrieve all existing subscriptions.
+     * <p>Use carefully because this operation can use a lot of resources
      *
-     * @return {@link Iterator} of all subscriptions
+     * @return {@link List} of all subscriptions
      * @throws ServerException
      */
-    Iterator<Subscription> getAllSubscriptions() throws ServerException;
+    List<Subscription> getAllSubscriptions() throws ServerException;
 }

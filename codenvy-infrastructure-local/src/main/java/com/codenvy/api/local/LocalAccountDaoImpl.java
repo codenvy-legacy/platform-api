@@ -167,13 +167,13 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public Iterator<Subscription> getAllSubscriptions() throws ServerException {
+    public List<Subscription> getAllSubscriptions() throws ServerException {
         return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
                                        .withId("Subscription0xfffffffff")
                                        .withStartDate(System.currentTimeMillis())
                                        .withEndDate(System.currentTimeMillis())
                                        .withServiceId("serviceId")
                                        .withProperties(new HashMap<String, String>())
-                            ).iterator();
+                            );
     }
 }

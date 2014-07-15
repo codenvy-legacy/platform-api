@@ -209,6 +209,7 @@ public class RunQueue {
         if (runOptions != null) {
             request.setMemorySize(runOptions.getMemorySize());
             request.setOptions(runOptions.getOptions());
+            request.setShellOptions(runOptions.getShellOptions());
             request.setEnvironmentId(runOptions.getEnvironmentId());
             if (runOptions.getDebugMode() != null) {
                 request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(runOptions.getDebugMode().getMode()));

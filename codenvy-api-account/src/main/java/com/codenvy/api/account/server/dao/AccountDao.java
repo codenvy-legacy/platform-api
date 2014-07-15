@@ -19,6 +19,7 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -184,4 +185,12 @@ public interface AccountDao {
      * @return list of {@link SubscriptionHistoryEvent}
      */
     List<SubscriptionHistoryEvent> getSubscriptionHistoryEventsByAccount(String accountId) throws ServerException;
+
+    /**
+     * Retrieve all existing subscriptions
+     *
+     * @return {@link Iterator} of all subscriptions
+     * @throws ServerException
+     */
+    Iterator<Subscription> getAllSubscriptions() throws ServerException;
 }

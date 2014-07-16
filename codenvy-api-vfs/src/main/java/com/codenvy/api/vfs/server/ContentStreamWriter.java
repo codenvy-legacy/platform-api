@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
+import javax.inject.Singleton;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -30,6 +31,7 @@ import java.util.Date;
  * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
  */
 @Provider
+@Singleton
 public final class ContentStreamWriter implements MessageBodyWriter<ContentStream> {
     /**
      * @see javax.ws.rs.ext.MessageBodyWriter#isWriteable(java.lang.Class, java.lang.reflect.Type,

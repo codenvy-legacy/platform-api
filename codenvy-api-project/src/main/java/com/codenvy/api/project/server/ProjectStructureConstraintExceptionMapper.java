@@ -13,6 +13,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -22,6 +23,7 @@ import javax.ws.rs.ext.Provider;
  * @author andrew00x
  */
 @Provider
+@Singleton
 public class ProjectStructureConstraintExceptionMapper implements ExceptionMapper<ProjectStructureConstraintException> {
     @Override
     public Response toResponse(ProjectStructureConstraintException exception) {

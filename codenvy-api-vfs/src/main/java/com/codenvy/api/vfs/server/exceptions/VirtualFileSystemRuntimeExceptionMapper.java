@@ -12,6 +12,7 @@ package com.codenvy.api.vfs.server.exceptions;
 
 import com.codenvy.api.vfs.shared.ExitCodes;
 
+import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -19,6 +20,7 @@ import javax.ws.rs.ext.Provider;
 
 /** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
 @Provider
+@Singleton
 public class VirtualFileSystemRuntimeExceptionMapper implements ExceptionMapper<VirtualFileSystemRuntimeException> {
     /** @see javax.ws.rs.ext.ExceptionMapper#toResponse(Throwable) */
     @Override

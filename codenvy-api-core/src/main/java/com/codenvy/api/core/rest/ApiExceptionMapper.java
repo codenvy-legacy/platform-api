@@ -18,6 +18,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -28,6 +29,7 @@ import javax.ws.rs.ext.Provider;
  * @author gazarenkov
  */
 @Provider
+@Singleton
 public class ApiExceptionMapper implements ExceptionMapper<ApiException> {
     @Override
     public Response toResponse(ApiException exception) {

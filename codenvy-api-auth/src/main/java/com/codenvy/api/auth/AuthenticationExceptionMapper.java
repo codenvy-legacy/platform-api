@@ -13,6 +13,7 @@ package com.codenvy.api.auth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -24,6 +25,7 @@ import javax.ws.rs.ext.Provider;
  * @author Alexander Garagatyi
  */
 @Provider
+@Singleton
 public class AuthenticationExceptionMapper implements ExceptionMapper<AuthenticationException> {
     private static final Logger LOG = LoggerFactory.getLogger(AuthenticationExceptionMapper.class);
 

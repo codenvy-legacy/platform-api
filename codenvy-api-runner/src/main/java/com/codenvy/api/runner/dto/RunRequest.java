@@ -91,6 +91,13 @@ public interface RunRequest {
 
     RunRequest withOptions(Map<String, String> options);
 
+    /** @see RunOptions#getShellOptions() */
+    Map<String, String> getShellOptions();
+
+    RunRequest withShellOptions(Map<String, String> options);
+
+    void setShellOptions(Map<String, String> options);
+
     /**
      * Get application lifetime in seconds. If application is running longer then this time {@link com.codenvy.api.runner.internal.Runner}
      * must terminate the application.

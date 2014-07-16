@@ -27,6 +27,13 @@ public interface ProjectImporter {
 
 
     /**
+     * @return true if this importer uses only internal und not accessible for users call
+     * otherwise false
+     */
+    boolean isInternal();
+
+
+    /**
      * @return human readable description about this importer
      */
     String getDescription();

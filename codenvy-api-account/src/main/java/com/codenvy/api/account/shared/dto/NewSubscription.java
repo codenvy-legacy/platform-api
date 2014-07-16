@@ -12,21 +12,31 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
+import java.util.Map;
 
 /**
- * Describes account with roles. It should be used with
- * {@link com.codenvy.api.account.server.AccountService#getMemberships(javax.ws.rs.core.SecurityContext)}
+ * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
+ * com.codenvy.api.account.shared.dto.Account}
  *
  * @author Eugene Voevodin
  */
 @DTO
-// TODO: replace with class
-public interface AccountMembership extends Account {
+public interface NewSubscription {
+    String getAccountId();
 
-    List<String> getRoles();
+    void setAccountId(String orgId);
 
-    void setRoles(List<String> roles);
+    NewSubscription withAccountId(String orgId);
 
-    AccountMembership withRoles(List<String> roles);
+    String getServiceId();
+
+    void setServiceId(String id);
+
+    NewSubscription withServiceId(String id);
+
+    Map<String, String> getProperties();
+
+    void setProperties(Map<String, String> properties);
+
+    NewSubscription withProperties(Map<String, String> properties);
 }

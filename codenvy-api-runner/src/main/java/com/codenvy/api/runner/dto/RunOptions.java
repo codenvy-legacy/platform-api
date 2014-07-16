@@ -67,7 +67,7 @@ public interface RunOptions {
     RunOptions withEnvironmentId(String environmentId);
 
     /**
-     * Get builder options. Make sense only for application that requires build before run.This parameter has preference over builder
+     * Get builder options. Make sense only for application that requires build before run. This parameter has preference over builder
      * options that is configured in properties of project.
      *
      * @see com.codenvy.api.builder.dto.BuildOptions
@@ -77,4 +77,15 @@ public interface RunOptions {
     void setBuildOptions(BuildOptions options);
 
     RunOptions withBuildOptions(BuildOptions options);
+
+    /**
+     * Runner may provide shell console to the instance with running application. Map that is returned by this method contains
+     * configuration parameters for shell console. Supporting of shell console is optional feature and not all runner's implementation may
+     * support this feature.
+     */
+    Map<String, String> getShellOptions();
+
+    RunOptions withShellOptions(Map<String, String> options);
+
+    void setShellOptions(Map<String, String> options);
 }

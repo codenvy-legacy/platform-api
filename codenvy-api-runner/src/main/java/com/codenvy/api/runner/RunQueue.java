@@ -575,6 +575,7 @@ public class RunQueue {
                             }
                         }
                         if (error != null) {
+                            LOG.error(error.getMessage(), error);
                             eventService.publish(RunnerEvent.errorEvent(runFutureTask.id, runFutureTask.workspace, runFutureTask.project,
                                                                         error.getMessage()));
                         }
@@ -664,6 +665,10 @@ public class RunQueue {
                                 } catch (RunnerException re) {
                                     bm.setType(ChannelBroadcastMessage.Type.ERROR);
                                     bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));
+                                } catch (NotFoundException re) {
+                                    // task was not create in some reason in this case post error message directly
+                                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                                    bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(event.getError())));
                                 }
                                 break;
                             case MESSAGE_LOGGED:

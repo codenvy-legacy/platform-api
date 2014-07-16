@@ -248,7 +248,7 @@ public class ProjectService extends Service {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.TEXT_HTML})
-    @Path("uploadfile/{parent:.*}")
+    @Path("uploadFile/{parent:.*}")
     public Response uploadFile(@PathParam("ws-id") String workspace,
                                @PathParam("parent") String parentPath,
                                Iterator<FileItem> formData) throws Exception {
@@ -502,7 +502,6 @@ public class ProjectService extends Service {
         final ArrayList<ItemReference> result = new ArrayList<>(children.size());
         for (AbstractVirtualFileEntry child : children) {
             final ItemReference itemReference = DtoFactory.getInstance().createDto(ItemReference.class)
-                                                          .withId(child.getVirtualFile().getId())
                                                           .withName(child.getName())
                                                           .withPath(child.getPath());
             if (child.isFile()) {
@@ -529,7 +528,6 @@ public class ProjectService extends Service {
         final FolderEntry folder = asFolder(workspace, path);
         return DtoFactory.getInstance().createDto(TreeElement.class)
                          .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
-                                             .withId(folder.getVirtualFile().getId())
                                              .withName(folder.getName())
                                              .withPath(folder.getPath())
                                              .withType("folder")
@@ -548,7 +546,6 @@ public class ProjectService extends Service {
         for (FolderEntry childFolder : childFolders) {
             nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
                                 .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
-                                                    .withId(childFolder.getVirtualFile().getId())
                                                     .withName(childFolder.getName())
                                                     .withPath(childFolder.getPath())
                                                     .withType("folder")
@@ -752,19 +749,17 @@ public class ProjectService extends Service {
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withName(project.getName())
                          .withPath(project.getBaseFolder().getPath())
-                .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace)
-                                                .toString())
-                        // Temporary add virtualFile ID, since need to rework client side.
-                .withId(project.getBaseFolder().getVirtualFile().getId())
-                .withProjectTypeId(type.getId())
-                .withProjectTypeName(type.getName())
-                .withWorkspaceId(workspace)
-                .withDescription(description.getDescription())
-                .withVisibility(project.getVisibility())
-                .withAttributes(attributeValues)
-                .withCreationDate(project.getCreationDate())
-                .withModificationDate(project.getModificationDate())
-                .withLinks(generateProjectLinks(workspace, project));
+                         .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace)
+                                                         .toString())
+                         .withProjectTypeId(type.getId())
+                         .withProjectTypeName(type.getName())
+                         .withWorkspaceId(workspace)
+                         .withDescription(description.getDescription())
+                         .withVisibility(project.getVisibility())
+                         .withAttributes(attributeValues)
+                         .withCreationDate(project.getCreationDate())
+                         .withModificationDate(project.getModificationDate())
+                         .withLinks(generateProjectLinks(workspace, project));
     }
 
     private List<Link> generateProjectLinks(String workspace, Project project) {

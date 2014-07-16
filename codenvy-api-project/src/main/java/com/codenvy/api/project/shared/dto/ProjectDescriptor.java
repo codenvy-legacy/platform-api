@@ -23,11 +23,6 @@ import java.util.Map;
  */
 @DTO
 public interface ProjectDescriptor {
-    String getId();
-
-    void setId(String id);
-
-    ProjectDescriptor withId(String id);
 
     /** Get name of project. */
     String getName();

@@ -428,7 +428,7 @@ public class ProjectServiceTest {
         EnvironmentContext env = new EnvironmentContext();
         env.put(HttpServletRequest.class, new MockHttpServletRequest("", new ByteArrayInputStream(formData),
                                                                      formData.length, "POST", headers));
-        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/uploadfile/my_project",
+        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/uploadFile/my_project",
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       formData,

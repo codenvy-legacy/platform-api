@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author andrew00x
  * @author Eugene Voevodin
  */
 public class Member {

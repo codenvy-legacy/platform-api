@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author andrew00x
  * @author Eugene Voevodin
  */
 public class Workspace {
@@ -99,7 +98,7 @@ public class Workspace {
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 31 * hash + Boolean.hashCode(isTemporary);
+        hash = 31 * hash + Objects.hashCode(isTemporary);
         hash = 31 * hash + Objects.hashCode(id);
         hash = 31 * hash + Objects.hashCode(name);
         hash = 31 * hash + Objects.hashCode(accountId);

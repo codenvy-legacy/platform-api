@@ -18,23 +18,17 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-// TODO: replace with class
-public interface Member {
-    List<String> getRoles();
+public interface NewAccount {
 
-    void setRoles(List<String> roles);
+    List<Attribute> getAttributes();
 
-    Member withRoles(List<String> roles);
+    void setAttributes(List<Attribute> attributes);
 
-    String getUserId();
+    NewAccount withAttributes(List<Attribute> attributes);
 
-    void setUserId(String id);
+    String getName();
 
-    Member withUserId(String id);
+    void setName(String name);
 
-    String getAccountId();
-
-    void setAccountId(String id);
-
-    Member withAccountId(String id);
+    NewAccount withName(String name);
 }

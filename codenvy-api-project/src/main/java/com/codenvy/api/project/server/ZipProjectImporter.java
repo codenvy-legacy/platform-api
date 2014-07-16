@@ -28,6 +28,11 @@ public class ZipProjectImporter implements ProjectImporter {
     }
 
     @Override
+    public boolean isInternal() {
+        return false;
+    }
+
+    @Override
     public String getDescription() {
         return "Add possibility to import project from zip archive located by public URL";
     }

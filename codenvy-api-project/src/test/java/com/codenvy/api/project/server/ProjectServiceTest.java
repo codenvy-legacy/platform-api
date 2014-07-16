@@ -662,6 +662,12 @@ public class ProjectServiceTest {
                 return importType;
             }
 
+
+            @Override
+            public boolean isInternal() {
+                return false;
+            }
+
             @Override
             public String getDescription() {
                 return "Chuck importer";

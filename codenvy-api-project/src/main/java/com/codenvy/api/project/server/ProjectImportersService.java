@@ -48,6 +48,7 @@ public class ProjectImportersService extends Service {
         for (ProjectImporter importer : importers) {
             ProjectImporterDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectImporterDescriptor.class)
                                                              .withId(importer.getId())
+                                                             .withInternal(importer.isInternal())
                                                              .withDescription(importer.getDescription() != null ? importer
                                                                      .getDescription() : "description not found");
             descriptors.add(descriptor);

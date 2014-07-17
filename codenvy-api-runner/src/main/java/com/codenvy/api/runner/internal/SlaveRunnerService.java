@@ -202,12 +202,17 @@ public class SlaveRunnerService extends Service {
                             .withHref(servicePathBuilder.clone().path(getClass(), "getLogs")
                                                         .build(process.getRunner(), process.getId()).toString())
                             .withMethod("GET"));
-        links.add(dtoFactory.createDto(Link.class)
-                            .withRel(Constants.LINK_REL_STOP)
-                            .withHref(servicePathBuilder.clone().path(getClass(), "stop")
-                                                        .build(process.getRunner(), process.getId()).toString())
-                            .withMethod("POST")
-                            .withProduces(MediaType.APPLICATION_JSON));
+        switch (status) {
+            case NEW:
+            case RUNNING:
+                links.add(dtoFactory.createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_STOP)
+                                    .withHref(servicePathBuilder.clone().path(getClass(), "stop")
+                                                                .build(process.getRunner(), process.getId()).toString())
+                                    .withMethod("POST")
+                                    .withProduces(MediaType.APPLICATION_JSON));
+                break;
+        }
         final java.io.File recipeFile = process.getConfiguration().getRecipeFile();
         if (recipeFile != null) {
             links.add(dtoFactory.createDto(Link.class)
@@ -217,7 +222,26 @@ public class SlaveRunnerService extends Service {
                                 .withMethod("GET")
                                 .withProduces(MediaType.TEXT_PLAIN));
         }
-        links.addAll(process.getConfiguration().getLinks());
+        final List<Link> additionalLinks = new LinkedList<>();
+        switch (status) {
+            case NEW:
+            case RUNNING:
+                for (Link link : process.getConfiguration().getLinks()) {
+                    additionalLinks.add(dtoFactory.clone(link));
+                }
+                break;
+            default:
+                for (Link link : process.getConfiguration().getLinks()) {
+                    if ("web url".equals(link.getRel()) || "shell url".equals(link.getRel())) {
+                        // Hide web and shell links if application is not running.
+                        continue;
+                    }
+                    additionalLinks.add(dtoFactory.clone(link));
+                }
+                break;
+        }
+
+        links.addAll(additionalLinks);
         return dtoFactory.createDto(ApplicationProcessDescriptor.class)
                          .withProcessId(process.getId())
                          .withStatus(status)

@@ -712,6 +712,9 @@ public class WorkspaceService extends Service {
     }
 
     private List<com.codenvy.api.workspace.server.dao.Attribute> asDaoAttributes(Collection<Attribute> dtoAttributes) {
+        if (dtoAttributes == null) {
+            return Collections.emptyList();
+        }
         final List<com.codenvy.api.workspace.server.dao.Attribute> daoAttributes = new ArrayList<>(dtoAttributes.size());
         for (Attribute dtoAttribute : dtoAttributes) {
             daoAttributes.add(new com.codenvy.api.workspace.server.dao.Attribute().withName(dtoAttribute.getName())
@@ -722,6 +725,9 @@ public class WorkspaceService extends Service {
     }
 
     private List<Attribute> asDtoAttributes(Collection<com.codenvy.api.workspace.server.dao.Attribute> daoAttributes) {
+        if (daoAttributes == null) {
+            return Collections.emptyList();
+        }
         final List<Attribute> dtoAttributes = new ArrayList<>(daoAttributes.size());
         for (com.codenvy.api.workspace.server.dao.Attribute daoAttribute : daoAttributes) {
             dtoAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)

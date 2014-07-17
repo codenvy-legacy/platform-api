@@ -18,11 +18,10 @@ import com.codenvy.dto.server.DtoFactory;
 
 import java.util.Arrays;
 
-
 /**
  * @author gazarenkov
  */
-public class Constants {
+public final class Constants {
 
     public static final User USER = DtoFactory.getInstance().createDto(User.class)
                                               .withId("codenvy")
@@ -31,15 +30,13 @@ public class Constants {
 
     public static final Token TOKEN = DtoFactory.getInstance().createDto(Token.class).withValue("123123");
 
-    public static final Workspace WORKSPACE = DtoFactory.getInstance().createDto(Workspace.class)
-                                                        .withId("1q2w3e")
-                                                        .withName("default")
-                                                        .withTemporary(false);
+    public static final Workspace WORKSPACE = new Workspace().withId("1q2w3e")
+                                                             .withName("default")
+                                                             .withTemporary(false);
 
-    public static final Member MEMBER = DtoFactory.getInstance().createDto(Member.class)
-                                                  .withUserId("codenvy")
-                                                  .withWorkspaceId(WORKSPACE.getId())
-                                                  .withRoles(Arrays.asList("workspace/admin", "workspace/developer"));
+    public static final Member MEMBER = new Member().withUserId("codenvy")
+                                                    .withWorkspaceId(WORKSPACE.getId())
+                                                    .withRoles(Arrays.asList("workspace/admin", "workspace/developer"));
 
     private Constants() {
     }

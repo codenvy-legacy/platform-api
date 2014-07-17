@@ -52,6 +52,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -140,7 +141,7 @@ public class WorkspaceServiceTest {
                                    .withName(WS_NAME)
                                    .withTemporary(false)
                                    .withAccountId(ACCOUNT_ID)
-                                   .withAttributes(attributes);
+                                   .withAttributes(asDaoAttributes(attributes));
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(PRINCIPAL_NAME));
         when(workspaceDao.getById(WS_ID)).thenReturn(workspace);
@@ -166,7 +167,7 @@ public class WorkspaceServiceTest {
             assertEquals(ws.getName(), workspace.getName());
             assertEquals(ws.isTemporary(), workspace.isTemporary());
             assertEquals(ws.getAccountId(), workspace.getAccountId());
-            assertEquals(ws.getAttributes(), workspace.getAttributes());
+            assertEquals(ws.getAttributes(), asDtoAttributes(workspace.getAttributes()));
             verifyLinksRel(ws.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).getById(WS_ID);
@@ -193,7 +194,7 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldNotBeAbleToCreateNewWorkspaceWithNotValidAttribute() throws Exception {
-        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class).withName("codenvy:god_mode").withValue("true"));
+        workspace.getAttributes().add(new com.codenvy.api.workspace.server.dao.Attribute().withName("codenvy:god_mode").withValue("true"));
         ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, workspace);
         assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:god_mode' is not valid");
     }
@@ -212,7 +213,7 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldNotBeAbleToCreateTemporaryWorkspaceWithNotValidAttribute() throws Exception {
-        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class).withName("codenvy:god_mode").withValue("true"));
+        workspace.getAttributes().add(new com.codenvy.api.workspace.server.dao.Attribute().withName("codenvy:god_mode").withValue("true"));
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/temp", MediaType.APPLICATION_JSON, workspace);
         assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:god_mode' is not valid");
     }
@@ -263,7 +264,7 @@ public class WorkspaceServiceTest {
             assertEquals(ws.getName(), workspace.getName());
             assertEquals(ws.isTemporary(), workspace.isTemporary());
             assertEquals(ws.getAccountId(), workspace.getAccountId());
-            assertEquals(ws.getAttributes(), workspace.getAttributes());
+            assertEquals(ws.getAttributes(), asDtoAttributes(workspace.getAttributes()));
             verifyLinksRel(ws.getLinks(), generateRels(role));
         }
         verify(workspaceDao, times(roles.length)).getByName(WS_NAME);
@@ -318,7 +319,7 @@ public class WorkspaceServiceTest {
         prepareSecurityContext("user");
         int countBefore = workspace.getAttributes().size();
         assertTrue(countBefore > 0);
-        Attribute defaultAttribute = workspace.getAttributes().get(0);
+        com.codenvy.api.workspace.server.dao.Attribute defaultAttribute = workspace.getAttributes().get(0);
 
         ContainerResponse response =
                 makeRequest("DELETE", SERVICE_PATH + "/" + WS_ID + "/attribute?name=" + defaultAttribute.getName(), null, null);
@@ -337,7 +338,7 @@ public class WorkspaceServiceTest {
         prepareSecurityContext("user");
         int countBefore = workspace.getAttributes().size();
         assertTrue(countBefore > 0);
-        Attribute defaultAttribute = workspace.getAttributes().get(0);
+        com.codenvy.api.workspace.server.dao.Attribute defaultAttribute = workspace.getAttributes().get(0);
         Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
                                            .withName(defaultAttribute.getName())
                                            .withValue("other_value")
@@ -348,7 +349,7 @@ public class WorkspaceServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         assertEquals(workspace.getAttributes().size(), 1);
-        Attribute actual = workspace.getAttributes().get(0);
+        com.codenvy.api.workspace.server.dao.Attribute actual = workspace.getAttributes().get(0);
         assertEquals(actual.getName(), newAttribute.getName());
         assertEquals(actual.getValue(), newAttribute.getValue());
         assertEquals(actual.getDescription(), newAttribute.getDescription());
@@ -380,11 +381,10 @@ public class WorkspaceServiceTest {
     public void shouldBeAbleToUpdateWorkspace() throws Exception {
         Workspace workspaceToUpdate = new Workspace().withName("ws2");
         assertTrue(workspace.getAttributes().size() > 0);
-        Attribute old = workspace.getAttributes().get(0);
-        workspaceToUpdate.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-                                                                .withName(old.getName())
-                                                                .withValue("other_attribute_value")));
-
+        com.codenvy.api.workspace.server.dao.Attribute old = workspace.getAttributes().get(0);
+        workspaceToUpdate.setAttributes(Arrays.asList(new com.codenvy.api.workspace.server.dao.Attribute()
+                                                              .withName(old.getName())
+                                                              .withValue("other_attribute_value")));
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(Arrays.asList(new Member().withUserId(USER_ID)
                                                                                            .withWorkspaceId(WS_ID)
                                                                                            .withRoles(Arrays.asList("workspace/admin"))));
@@ -407,9 +407,8 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldNotBeAbleToUpdateWorkspaceIfAnyAttributeNameStartsWithCodenvy() throws Exception {
         Workspace workspaceToUpdate = new Workspace().withName("ws2");
-        workspaceToUpdate.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-                                                                .withName("codenvy:runner_ram")
-                                                                .withValue("64GB")));
+        workspaceToUpdate.setAttributes(Arrays.asList(new com.codenvy.api.workspace.server.dao.Attribute().withName("codenvy:runner_ram")
+                                                                                                          .withValue("64GB")));
 
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID, MediaType.APPLICATION_JSON, workspaceToUpdate);
         assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:runner_ram' is not valid");
@@ -479,9 +478,8 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToAddMemberForAnyUserIfAllowAttributeIsTrue() throws Exception {
-        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class)
-                                                .withName("allowAnyoneAddMember")
-                                                .withValue("true"));
+        workspace.getAttributes().add(new com.codenvy.api.workspace.server.dao.Attribute().withName("allowAnyoneAddMember")
+                                                                                          .withValue("true"));
         prepareSecurityContext("user");
         NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
                                              .withRoles(Arrays.asList("workspace/developer"))
@@ -502,9 +500,8 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldNotBeAbleToAddMemberForAnyUserIfAllowAttributeIsFalse() throws Exception {
-        workspace.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class)
-                                                .withName("allowAnyoneAddMember")
-                                                .withValue("false"));
+        workspace.getAttributes().add(new com.codenvy.api.workspace.server.dao.Attribute().withName("allowAnyoneAddMember")
+                                                                                          .withValue("false"));
         prepareSecurityContext("user");
         NewMembership membership = DtoFactory.getInstance().createDto(NewMembership.class)
                                              .withRoles(Arrays.asList("workspace/developer"))
@@ -614,7 +611,7 @@ public class WorkspaceServiceTest {
         verify(workspaceDao, times(1)).remove(WS_ID);
     }
 
-    protected ContainerResponse makeRequest(String method, String path, String contentType, Object toSend) throws Exception {
+    private ContainerResponse makeRequest(String method, String path, String contentType, Object toSend) throws Exception {
         Map<String, List<String>> headers = null;
         if (contentType != null) {
             headers = new HashMap<>();
@@ -627,7 +624,7 @@ public class WorkspaceServiceTest {
         return launcher.service(method, path, BASE_URI, headers, data, null, environmentContext);
     }
 
-    protected void verifyLinksRel(List<Link> links, List<String> rels) {
+    private void verifyLinksRel(List<Link> links, List<String> rels) {
         assertEquals(links.size(), rels.size());
         for (String rel : rels) {
             boolean linkPresent = false;
@@ -659,7 +656,28 @@ public class WorkspaceServiceTest {
         return result;
     }
 
-    protected void prepareSecurityContext(String role) {
+    private List<com.codenvy.api.workspace.server.dao.Attribute> asDaoAttributes(Collection<Attribute> dtoAttributes) {
+        final List<com.codenvy.api.workspace.server.dao.Attribute> daoAttributes = new ArrayList<>(dtoAttributes.size());
+        for (Attribute dtoAttribute : dtoAttributes) {
+            daoAttributes.add(new com.codenvy.api.workspace.server.dao.Attribute().withName(dtoAttribute.getName())
+                                                                                  .withValue(dtoAttribute.getValue())
+                                                                                  .withDescription(dtoAttribute.getDescription()));
+        }
+        return daoAttributes;
+    }
+
+    private List<Attribute> asDtoAttributes(Collection<com.codenvy.api.workspace.server.dao.Attribute> daoAttributes) {
+        final List<Attribute> dtoAttributes = new ArrayList<>(daoAttributes.size());
+        for (com.codenvy.api.workspace.server.dao.Attribute daoAttribute : daoAttributes) {
+            dtoAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
+                                        .withName(daoAttribute.getName())
+                                        .withValue(daoAttribute.getValue())
+                                        .withDescription(daoAttribute.getDescription()));
+        }
+        return dtoAttributes;
+    }
+
+    private void prepareSecurityContext(String role) {
         when(securityContext.isUserInRole(anyString())).thenReturn(false);
         if (!securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager")) {
             when(securityContext.isUserInRole("user")).thenReturn(true);

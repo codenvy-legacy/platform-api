@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.workspace.server.dao;
 
-import com.codenvy.api.workspace.shared.dto.Attribute;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

@@ -19,7 +19,7 @@ import java.util.Objects;
  */
 public class Workspace {
 
-    private boolean         isTemporary;
+    private boolean         temporary;
     private String          id;
     private String          name;
     private String          accountId;
@@ -52,15 +52,15 @@ public class Workspace {
     }
 
     public boolean isTemporary() {
-        return isTemporary;
+        return temporary;
     }
 
-    public void setTemporary(boolean isTemporary) {
-        this.isTemporary = isTemporary;
+    public void setTemporary(boolean temporary) {
+        this.temporary = temporary;
     }
 
-    public Workspace withTemporary(boolean isTemporary) {
-        this.isTemporary = isTemporary;
+    public Workspace withTemporary(boolean temporary) {
+        this.temporary = temporary;
         return this;
     }
 
@@ -96,7 +96,7 @@ public class Workspace {
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 31 * hash + Objects.hashCode(isTemporary);
+        hash = 31 * hash + Objects.hashCode(temporary);
         hash = 31 * hash + Objects.hashCode(id);
         hash = 31 * hash + Objects.hashCode(name);
         hash = 31 * hash + Objects.hashCode(accountId);
@@ -113,7 +113,7 @@ public class Workspace {
             return false;
         }
         final Workspace other = (Workspace)obj;
-        return isTemporary == other.isTemporary &&
+        return temporary == other.temporary &&
                Objects.equals(id, other.id) &&
                Objects.equals(name, other.name) &&
                Objects.equals(accountId, other.accountId) &&

@@ -10,8 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.local;
 
-import com.codenvy.api.user.server.dao.MemberDao;
-import com.codenvy.api.user.shared.dto.Member;
+import com.codenvy.api.workspace.server.dao.MemberDao;
+import com.codenvy.api.workspace.server.dao.Member;
 
 import javax.inject.Singleton;
 import java.util.ArrayList;

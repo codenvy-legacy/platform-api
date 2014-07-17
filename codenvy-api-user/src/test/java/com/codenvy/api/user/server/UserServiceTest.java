@@ -14,7 +14,6 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.user.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.Profile;
@@ -83,9 +82,6 @@ public class UserServiceTest {
     private UserDao userDao;
 
     @Mock
-    private MemberDao memberDao;
-
-    @Mock
     private TokenValidator tokenValidator;
 
     @Mock
@@ -109,7 +105,6 @@ public class UserServiceTest {
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
         dependencies.addComponent(UserDao.class, userDao);
-        dependencies.addComponent(MemberDao.class, memberDao);
         dependencies.addComponent(TokenValidator.class, tokenValidator);
         resources.addResource(UserService.class, null);
         requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),

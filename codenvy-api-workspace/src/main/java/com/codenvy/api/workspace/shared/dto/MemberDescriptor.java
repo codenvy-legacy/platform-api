@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.user.shared.dto;
+package com.codenvy.api.workspace.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
@@ -16,31 +16,32 @@ import com.codenvy.dto.shared.DTO;
 import java.util.List;
 
 /**
- * @author andrew00x
+ * @author Eugene Voevodin
  */
 @DTO
-public interface Member {
+public interface MemberDescriptor {
+
+    String getUserId();
+
+    void setUserId(String userId);
+
+    MemberDescriptor withUserId(String userId);
+
+    WorkspaceReference getWorkspaceReference();
+
+    void setWorkspaceReference(WorkspaceReference wsRef);
+
+    MemberDescriptor withWorkspaceReference(WorkspaceReference wsRef);
+
     List<String> getRoles();
 
     void setRoles(List<String> roles);
 
-    Member withRoles(List<String> roles);
-
-    String getUserId();
-
-    void setUserId(String id);
-
-    Member withUserId(String id);
-
-    String getWorkspaceId();
-
-    void setWorkspaceId(String id);
-
-    Member withWorkspaceId(String id);
+    MemberDescriptor withRoles(List<String> roles);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    Member withLinks(List<Link> links);
+    MemberDescriptor withLinks(List<Link> links);
 }

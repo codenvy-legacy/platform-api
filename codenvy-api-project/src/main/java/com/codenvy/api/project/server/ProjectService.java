@@ -40,6 +40,7 @@ import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.apache.commons.fileupload.FileItem;
@@ -747,16 +748,22 @@ public class ProjectService extends Service {
         for (Attribute attribute : description.getAttributes()) {
             attributeValues.put(attribute.getName(), attribute.getValues());
         }
-        final String currentUserName = EnvironmentContext.getCurrent().getUser().getName();
-        final List<String> permissions = new LinkedList<>();
-        for (AccessControlEntry accessControlEntry : project.getPermissions()) {
-            final Principal principal = accessControlEntry.getPrincipal();
-            if (Principal.Type.USER == principal.getType() && currentUserName.equals(principal.getName())) {
-                permissions.addAll(accessControlEntry.getPermissions());
+        final User currentUser = EnvironmentContext.getCurrent().getUser();
+        final List<AccessControlEntry> acl = project.getPermissions();
+        final List<String> userPermissions = new LinkedList<>();
+        if (acl.isEmpty()) {
+            // there is no any restriction at all
+            userPermissions.add("all");
+        } else {
+            for (AccessControlEntry accessControlEntry : acl) {
+                final Principal principal = accessControlEntry.getPrincipal();
+                if ((Principal.Type.USER == principal.getType() && currentUser.getName().equals(principal.getName()))
+                    || (Principal.Type.USER == principal.getType() && "any".equals(principal.getName()))
+                    || (Principal.Type.GROUP == principal.getType() && currentUser.isMemberOf(principal.getName()))) {
+
+                    userPermissions.addAll(accessControlEntry.getPermissions());
+                }
             }
-        }
-        if (permissions.isEmpty()) {
-            permissions.add("all");
         }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withName(project.getName())
@@ -768,7 +775,7 @@ public class ProjectService extends Service {
                          .withWorkspaceId(workspace)
                          .withDescription(description.getDescription())
                          .withVisibility(project.getVisibility())
-                         .withCurrentUserPermissions(permissions)
+                         .withCurrentUserPermissions(userPermissions)
                          .withAttributes(attributeValues)
                          .withCreationDate(project.getCreationDate())
                          .withModificationDate(project.getModificationDate())

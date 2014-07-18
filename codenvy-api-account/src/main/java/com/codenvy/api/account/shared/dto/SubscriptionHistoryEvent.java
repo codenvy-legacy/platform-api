@@ -54,9 +54,15 @@ public interface SubscriptionHistoryEvent {
 
     SubscriptionHistoryEvent withSubscription(Subscription subscription);
 
-    SubscriptionPayment getSubscriptionPayment();
+    String getTransactionId();
 
-    void setSubscriptionPayment(SubscriptionPayment subscriptionPayment);
+    void setTransactionId(String transactionId);
 
-    SubscriptionHistoryEvent withSubscriptionPayment(SubscriptionPayment subscriptionPayment);
+    SubscriptionHistoryEvent withTransactionId(String transactionId);
+
+    double getAmount();
+
+    void setAmount(double amount);
+
+    SubscriptionHistoryEvent withAmount(double amount);
 }

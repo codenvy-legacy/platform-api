@@ -157,7 +157,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<SubscriptionHistoryEvent> getSubscriptionHistoryEventsByAccount(String accountId) throws ServerException {
+    public List<SubscriptionHistoryEvent> getSubscriptionHistoryEvents(SubscriptionHistoryEvent event) throws ServerException {
         return Arrays
                 .asList(DtoFactory.getInstance().createDto(SubscriptionHistoryEvent.class).withId("SUBSCRIPTION_HISTORY_EVENT_ID").withTime(
                         System.currentTimeMillis()).withType(CREATE).withUserId("userId112233322239")

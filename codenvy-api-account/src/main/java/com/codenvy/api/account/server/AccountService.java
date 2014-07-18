@@ -17,11 +17,11 @@ import com.codenvy.api.account.shared.dto.AccountMembership;
 import com.codenvy.api.account.shared.dto.AccountMembershipDescriptor;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.Attribute;
+import com.codenvy.api.account.shared.dto.CreditCard;
 import com.codenvy.api.account.shared.dto.Member;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
 import com.codenvy.api.account.shared.dto.NewSubscription;
-import com.codenvy.api.account.shared.dto.Payment;
 import com.codenvy.api.account.shared.dto.Subscription;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.codenvy.api.account.shared.dto.Subscription.State.ACTIVE;
 import static com.codenvy.api.account.shared.dto.Subscription.State.WAIT_FOR_PAYMENT;
 import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type;
 import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type.CREATE;
@@ -282,7 +283,8 @@ public class AccountService extends Service {
                                                                         createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
                                                                                    uriBuilder.clone().path(getClass(), "removeMember")
                                                                                              .build(id, member.getUserId()).toString()
-                                                                                  )));
+                                                                                  )
+                                                                                        ));
             result.add(memberDescriptor);
         }
         return result;
@@ -372,7 +374,7 @@ public class AccountService extends Service {
     @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<SubscriptionDescriptor> getSubscriptions(@PathParam("id") String accountId,
-                                               @Context SecurityContext securityContext)
+                                                         @Context SecurityContext securityContext)
             throws NotFoundException, ForbiddenException, ServerException {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
@@ -420,9 +422,13 @@ public class AccountService extends Service {
         }
 
         final SubscriptionDescriptor subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
-                .withId(subscription.getId()).withAccountId(subscription.getAccountId()).withStartDate(subscription.getStartDate())
-                .withEndDate(subscription.getEndDate()).withServiceId(subscription.getServiceId())
-                .withProperties(subscription.getProperties()).withState(subscription.getState());
+                                                                        .withId(subscription.getId())
+                                                                        .withAccountId(subscription.getAccountId())
+                                                                        .withStartDate(subscription.getStartDate())
+                                                                        .withEndDate(subscription.getEndDate())
+                                                                        .withServiceId(subscription.getServiceId())
+                                                                        .withProperties(subscription.getProperties())
+                                                                        .withState(subscription.getState());
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (roles.contains("account/owner") || securityContext.isUserInRole("system/admin")
             || securityContext.isUserInRole("system/manager")) {
@@ -452,60 +458,99 @@ public class AccountService extends Service {
         if (newSubscription == null) {
             throw new ConflictException("Missed subscription");
         }
-        if (securityContext.isUserInRole("user")) {
-            final Set<String> roles = resolveRolesForSpecificAccount(newSubscription.getAccountId());
-            if (!roles.contains("account/owner")) {
-                throw new ForbiddenException("Access denied");
-            }
+        if (newSubscription.getProperties() == null || newSubscription.getProperties().isEmpty()) {
+            throw new ConflictException("Missed subscription properties");
         }
-        SubscriptionService service = registry.get(newSubscription.getServiceId());
+        if (securityContext.isUserInRole("user") &&
+            !resolveRolesForSpecificAccount(newSubscription.getAccountId()).contains("account/owner")) {
+            throw new ForbiddenException("Access denied");
+        }
+        final SubscriptionService service = registry.get(newSubscription.getServiceId());
         if (null == service) {
             throw new ConflictException("Unknown serviceId is used");
         }
-        final Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
-                                                    .withAccountId(newSubscription.getAccountId())
-                                                    .withServiceId(newSubscription.getServiceId())
-                                                    .withProperties(newSubscription.getProperties());
-        subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
 
-        subscription.setStartDate(System.currentTimeMillis());
+        final DtoFactory dto = DtoFactory.getInstance();
+        final Subscription subscription = dto.createDto(Subscription.class).withAccountId(
+                newSubscription.getAccountId()).withServiceId(
+                newSubscription.getServiceId()).withProperties(
+                newSubscription.getProperties()).withId(
+                NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
+
         final Calendar calendar = Calendar.getInstance();
-        if (null != subscription.getProperties() && "yearly".equalsIgnoreCase(subscription.getProperties().get("TariffPlan"))) {
-            calendar.add(Calendar.YEAR, 1);
+        subscription.setStartDate(calendar.getTimeInMillis());
+        if ("true".equals(subscription.getProperties().get("codenvy:trial"))) {
+            String userId = EnvironmentContext.getCurrent().getUser().getId();
+            final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(
+                    dto.createDto(SubscriptionHistoryEvent.class).withUserId(userId).withType(CREATE).withSubscription(
+                            dto.createDto(Subscription.class).withServiceId(subscription.getServiceId())
+                               .withProperties(Collections.singletonMap("codenvy:trial", "true"))
+                                                                                                                      )
+                                                                                                 );
+            if (events.size() > 0) {
+                throw new ConflictException("You can't use trial twice, please contact support");
+            }
+            try {
+                paymentService.getCreditCard(userId);
+            } catch (NotFoundException e) {
+                throw new ConflictException("You have no credit card to pay for subscription after trial");
+            }
+            calendar.add(Calendar.DAY_OF_YEAR, 7);
+            subscription.setState(ACTIVE);
         } else {
-            calendar.add(Calendar.MONTH, 1);
+            String tariffPlan;
+            if (null == (tariffPlan = subscription.getProperties().get("TariffPlan"))) {
+                throw new ConflictException("TariffPlan property not found");
+            }
+            switch (tariffPlan) {
+                case "yearly":
+                    calendar.add(Calendar.YEAR, 1);
+                    break;
+                case "monthly":
+                    calendar.add(Calendar.MONTH, 1);
+                    break;
+                default:
+                    throw new ConflictException("Unknown TariffPlan is used " + tariffPlan);
+            }
+
+            final double amount = service.tarifficate(subscription);
+            if (0D == amount || securityContext.isUserInRole("system/admin")) {
+                subscription.setState(Subscription.State.ACTIVE);
+            } else {
+                subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
+            }
         }
         subscription.setEndDate(calendar.getTimeInMillis());
 
-        final double amount = service.tarifficate(subscription);
+        service.beforeCreateSubscription(subscription);
+        accountDao.addSubscription(subscription);
+        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(subscription, CREATE));
+        service.afterCreateSubscription(subscription);
+
         Response response;
-        if (0D == amount || securityContext.isUserInRole("system/admin")) {
-            subscription.setState(Subscription.State.ACTIVE);
-            response = Response.noContent().build();
-        } else {
-            subscription.setState(WAIT_FOR_PAYMENT);
-            final SubscriptionDescriptor subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
-                                                                            .withId(subscription.getId())
-                                                                            .withAccountId(subscription.getAccountId())
-                                                                            .withServiceId(subscription.getServiceId())
-                                                                            .withProperties(subscription.getProperties())
-                                                                            .withStartDate(subscription.getStartDate())
-                                                                            .withEndDate(subscription.getEndDate())
-                                                                            .withState(subscription.getState());
+        if (subscription.getState() == WAIT_FOR_PAYMENT) {
+            final SubscriptionDescriptor subscriptionDescriptor = dto.createDto(SubscriptionDescriptor.class).withId(
+                    subscription.getId()).withAccountId(
+                    subscription.getAccountId()).withServiceId(
+                    subscription.getServiceId()).withProperties(
+                    subscription.getProperties()).withStartDate(
+                    subscription.getStartDate()).withEndDate(
+                    subscription.getEndDate()).withState(
+                    subscription.getState());
             final ArrayList<Link> links = new ArrayList<>(2);
             final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
             links.add(createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_JSON, null,
                                  uriBuilder.clone().path(getClass(), "purchaseSubscription").build(subscription.getId()).toString()));
             links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
                                  uriBuilder.clone().path(getClass(), "removeSubscription").build(subscription.getId()).toString()));
+            links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone().path(getClass(), "getSubscriptionById").build(subscription.getId()).toString()));
 
-            response = Response.status(402).entity(subscriptionDescriptor.withLinks(links)).build();
+            subscriptionDescriptor.setLinks(links);
+            response = Response.status(402).entity(subscriptionDescriptor).build();
+        } else {
+            response = Response.noContent().build();
         }
-
-        service.beforeCreateSubscription(subscription);
-        accountDao.addSubscription(subscription);
-        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(subscription, CREATE));
-        service.afterCreateSubscription(subscription);
 
         return response;
     }
@@ -528,6 +573,23 @@ public class AccountService extends Service {
         service.onRemoveSubscription(toRemove);
     }
 
+    @POST
+    @Path("subscriptions/history")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<SubscriptionHistoryEvent> getSubscriptionHistory(SubscriptionHistoryEvent pattern, @Context SecurityContext securityContext)
+            throws ServerException, ForbiddenException {
+        if (securityContext.isUserInRole("user")) {
+            if (pattern.getUserId() == null) {
+                pattern.setUserId(EnvironmentContext.getCurrent().getUser().getId());
+            } else if (!EnvironmentContext.getCurrent().getUser().getId().equals(pattern.getUserId())) {
+                throw new ForbiddenException("You can't get subscription history for user " + pattern.getUserId());
+            }
+        }
+
+        return accountDao.getSubscriptionHistoryEvents(pattern);
+    }
+
     @DELETE
     @Path("{id}")
     @RolesAllowed("system/admin")
@@ -539,8 +601,40 @@ public class AccountService extends Service {
     @Path("subscriptions/{id}/purchase")
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void purchaseSubscription(@PathParam("id") String subscriptionId, Payment payment) throws ApiException {
-        paymentService.purchase(DtoFactory.getInstance().clone(payment).withSubscriptionId(subscriptionId));
+    public void purchaseSubscription(@PathParam("id") String subscriptionId, CreditCard creditCard)
+            throws ApiException {
+        if (null != creditCard) {
+            if (creditCard.getCardholderName() == null || creditCard.getCardNumber() == null || creditCard.getCvv() == null ||
+                creditCard.getExpirationMonth() == null || creditCard.getExpirationYear() == null) {
+                throw new ConflictException("Some credit card details are missing");
+            }
+            CreditCard card = DtoFactory.getInstance().clone(creditCard);
+            paymentService.saveCreditCard(EnvironmentContext.getCurrent().getUser().getId(), card);
+        }
+        paymentService.purchase(EnvironmentContext.getCurrent().getUser().getId(), subscriptionId);
+    }
+
+    @POST
+    @Path("credit-card")
+    @RolesAllowed("user")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void storeCreditCard(CreditCard creditCard) throws ApiException {
+        paymentService.saveCreditCard(EnvironmentContext.getCurrent().getUser().getId(), DtoFactory.getInstance().clone(creditCard));
+    }
+
+    @GET
+    @Path("credit-card")
+    @RolesAllowed("user")
+    @Produces(MediaType.APPLICATION_JSON)
+    public CreditCard getUserCreditCard() throws ApiException {
+        return paymentService.getCreditCard(EnvironmentContext.getCurrent().getUser().getId());
+    }
+
+    @DELETE
+    @Path("credit-card")
+    @RolesAllowed("user")
+    public void removeCreditCard() throws ApiException {
+        paymentService.removeCreditCard(EnvironmentContext.getCurrent().getUser().getId());
     }
 
     /**

@@ -221,19 +221,14 @@ public class Project {
             for (AccessControlEntry vfsEntry : baseFolder.getVirtualFile().getACL()) {
                 entries.put(vfsEntry.getPrincipal().getName(), vfsEntry);
             }
-            final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
-            for (Object miscEntry : misc.asProperties().values()) {
-                try {
-                    final AccessControlEntry entry = DtoFactory.getInstance()
-                                                               .createDtoFromJson(miscEntry.toString(), AccessControlEntry.class);
-                    final String principalName = entry.getPrincipal().getName();
-                    if (entries.get(principalName) != null) {
-                        entry.getPermissions().addAll(entries.get(principalName).getPermissions());
-                    }
-                    entries.put(principalName, entry);
-                } catch (IllegalArgumentException ignored) {
-                    //if property is not access control entry
+            final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
+            for (String miscACE : misc.getAccessControlList()) {
+                final AccessControlEntry entry = DtoFactory.getInstance().createDtoFromJson(miscACE, AccessControlEntry.class);
+                final String principalName = entry.getPrincipal().getName();
+                if (entries.get(principalName) != null) {
+                    entry.getPermissions().addAll(entries.get(principalName).getPermissions());
                 }
+                entries.put(principalName, entry);
             }
         } catch (VirtualFileSystemException vfsEx) {
             throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
@@ -310,7 +305,7 @@ public class Project {
             throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
         }
         //updating misc permissions
-        final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
+        final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
         for (Map.Entry<Principal, AccessControlEntry> entry : miscEntries.entrySet()) {
             if (entry.getValue() != null) {
                 misc.putAccessControlEntry(dto.toJson(entry.getKey()), dto.toJson(entry.getValue()));

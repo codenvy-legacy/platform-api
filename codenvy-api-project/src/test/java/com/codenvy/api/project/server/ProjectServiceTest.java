@@ -1051,9 +1051,14 @@ public class ProjectServiceTest {
 
         //check project misc it should contain entry with "run" and "build" permissions
         expected.setPermissions(Arrays.asList("run", "build"));
-        ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
-        Assert.assertEquals(DtoFactory.getInstance().createDtoFromJson(
-                misc.getAccessControlEntry(entry.getPrincipal().toString()), AccessControlEntry.class), expected);
+        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
+        AccessControlEntry actual = DtoFactory.getInstance().createDtoFromJson(misc.getAccessControlEntry(entry.getPrincipal().toString()),
+                                                                               AccessControlEntry.class);
+        Assert.assertEquals(actual.getPrincipal(), expected.getPrincipal());
+        Assert.assertEquals(actual.getPermissions().size(), expected.getPermissions().size());
+        for (String expectedPermission : expected.getPermissions()) {
+            Assert.assertTrue(actual.getPermissions().contains(expectedPermission));
+        }
     }
 
     @Test
@@ -1072,7 +1077,7 @@ public class ProjectServiceTest {
         //set up basic permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
         //set up custom permissions
-        ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
+        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
         misc.putAccessControlEntry(DtoFactory.getInstance().toJson(newEntry.getPrincipal()),
                                    DtoFactory.getInstance().toJson(newEntry.withPermissions(Arrays.asList("run", "build"))));
 
@@ -1114,7 +1119,7 @@ public class ProjectServiceTest {
         //set up basic permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
         //set up custom permissions
-        ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
+        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
         misc.putAccessControlEntry(DtoFactory.getInstance().toJson(newEntry.getPrincipal()),
                                    DtoFactory.getInstance().toJson(newEntry.withPermissions(Arrays.asList("run", "build"))));
 
@@ -1156,7 +1161,7 @@ public class ProjectServiceTest {
         //set up basic permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
         //set up custom permissions
-        ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
+        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
         misc.putAccessControlEntry(DtoFactory.getInstance().toJson(newEntry.getPrincipal()),
                                    DtoFactory.getInstance().toJson(newEntry.withPermissions(Arrays.asList("run", "build"))));
 

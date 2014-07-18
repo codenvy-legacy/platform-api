@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -17,8 +20,9 @@ import java.util.Set;
  * @author andrew00x
  */
 public class ProjectMisc {
-    static final String UPDATED = "updated";
-    static final String CREATED = "created";
+    static final String UPDATED         = "updated";
+    static final String CREATED         = "created";
+    static final String PERMISSIONS_KEY = "PERMISSIONS#";
 
     private final InternalMisc data;
 
@@ -39,7 +43,7 @@ public class ProjectMisc {
     }
 
     public String getAccessControlEntry(String principal) {
-        return data.get(principal);
+        return data.get(PERMISSIONS_KEY + principal);
     }
 
     public void setModificationDate(long date) {
@@ -51,7 +55,17 @@ public class ProjectMisc {
     }
 
     public void putAccessControlEntry(String principal, String value) {
-        data.set(principal, value);
+        data.set(PERMISSIONS_KEY + principal, value);
+    }
+
+    public List<String> getAccessControlList() {
+        final List<String> acl = new LinkedList<>();
+        for (Map.Entry entry : asProperties().entrySet()) {
+            if (entry.getKey().toString().startsWith(PERMISSIONS_KEY)) {
+                acl.add(entry.getValue().toString());
+            }
+        }
+        return acl;
     }
 
     public boolean isUpdated() {

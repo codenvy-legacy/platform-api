@@ -74,6 +74,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -746,6 +747,17 @@ public class ProjectService extends Service {
         for (Attribute attribute : description.getAttributes()) {
             attributeValues.put(attribute.getName(), attribute.getValues());
         }
+        final String currentUserName = EnvironmentContext.getCurrent().getUser().getName();
+        final List<String> permissions = new LinkedList<>();
+        for (AccessControlEntry accessControlEntry : project.getPermissions()) {
+            final Principal principal = accessControlEntry.getPrincipal();
+            if (Principal.Type.USER == principal.getType() && currentUserName.equals(principal.getName())) {
+                permissions.addAll(accessControlEntry.getPermissions());
+            }
+        }
+        if (permissions.isEmpty()) {
+            permissions.add("all");
+        }
         return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                          .withName(project.getName())
                          .withPath(project.getBaseFolder().getPath())
@@ -756,6 +768,7 @@ public class ProjectService extends Service {
                          .withWorkspaceId(workspace)
                          .withDescription(description.getDescription())
                          .withVisibility(project.getVisibility())
+                         .withCurrentUserPermissions(permissions)
                          .withAttributes(attributeValues)
                          .withCreationDate(project.getCreationDate())
                          .withModificationDate(project.getModificationDate())

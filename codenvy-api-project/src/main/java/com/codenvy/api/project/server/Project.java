@@ -221,7 +221,7 @@ public class Project {
             for (AccessControlEntry vfsEntry : baseFolder.getVirtualFile().getACL()) {
                 entries.put(vfsEntry.getPrincipal().getName(), vfsEntry);
             }
-            final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
+            final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
             for (Object miscEntry : misc.asProperties().values()) {
                 try {
                     final AccessControlEntry entry = DtoFactory.getInstance()
@@ -310,7 +310,7 @@ public class Project {
             throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
         }
         //updating misc permissions
-        final ProjectMisc misc = manager.getProjectMisc(workspace, getName());
+        final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
         for (Map.Entry<Principal, AccessControlEntry> entry : miscEntries.entrySet()) {
             if (entry.getValue() != null) {
                 misc.putAccessControlEntry(dto.toJson(entry.getKey()), dto.toJson(entry.getValue()));

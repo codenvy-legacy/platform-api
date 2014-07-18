@@ -109,6 +109,13 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
 
+    /** Get permissions of current user on this project. Current user is user who retrieved this object. */
+    List<String> getCurrentUserPermissions();
+
+    void setCurrentUserPermissions(List<String> permissions);
+
+    ProjectDescriptor withCurrentUserPermissions(List<String> permissions);
+
     List<Link> getLinks();
 
     ProjectDescriptor withLinks(List<Link> links);

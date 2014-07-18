@@ -222,8 +222,7 @@ public class Project {
                 entries.put(vfsEntry.getPrincipal().getName(), vfsEntry);
             }
             final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
-            for (String miscACE : misc.getAccessControlList()) {
-                final AccessControlEntry entry = DtoFactory.getInstance().createDtoFromJson(miscACE, AccessControlEntry.class);
+            for (AccessControlEntry entry : misc.getAccessControlList()) {
                 final String principalName = entry.getPrincipal().getName();
                 if (entries.get(principalName) != null) {
                     entry.getPermissions().addAll(entries.get(principalName).getPermissions());
@@ -308,9 +307,9 @@ public class Project {
         final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
         for (Map.Entry<Principal, AccessControlEntry> entry : miscEntries.entrySet()) {
             if (entry.getValue() != null) {
-                misc.putAccessControlEntry(dto.toJson(entry.getKey()), dto.toJson(entry.getValue()));
+                misc.putAccessControlEntry(entry.getValue());
             } else {
-                misc.putAccessControlEntry(dto.toJson(entry.getKey()), null);
+                misc.removeAccessControlEntry(entry.getKey());
             }
         }
         manager.save(workspace, getName(), misc);

@@ -10,6 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.dto.server.DtoFactory;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +46,9 @@ public class ProjectMisc {
         return data.getLong(CREATED, -1L);
     }
 
-    public String getAccessControlEntry(String principal) {
-        return data.get(PERMISSIONS_KEY + principal);
+    public AccessControlEntry getAccessControlEntry(Principal principal) {
+        final DtoFactory dto = DtoFactory.getInstance();
+        return dto.createDtoFromJson(data.get(PERMISSIONS_KEY + dto.toJson(principal)), AccessControlEntry.class);
     }
 
     public void setModificationDate(long date) {
@@ -54,15 +59,20 @@ public class ProjectMisc {
         data.setLong(CREATED, date);
     }
 
-    public void putAccessControlEntry(String principal, String value) {
-        data.set(PERMISSIONS_KEY + principal, value);
+    public void putAccessControlEntry(AccessControlEntry entry) {
+        final DtoFactory dto = DtoFactory.getInstance();
+        data.set(PERMISSIONS_KEY + dto.toJson(entry.getPrincipal()), dto.toJson(entry));
     }
 
-    public List<String> getAccessControlList() {
-        final List<String> acl = new LinkedList<>();
+    public void removeAccessControlEntry(Principal principal) {
+        data.set(PERMISSIONS_KEY + DtoFactory.getInstance().toJson(principal), null);
+    }
+
+    public List<AccessControlEntry> getAccessControlList() {
+        final List<AccessControlEntry> acl = new LinkedList<>();
         for (Map.Entry entry : asProperties().entrySet()) {
             if (entry.getKey().toString().startsWith(PERMISSIONS_KEY)) {
-                acl.add(entry.getValue().toString());
+                acl.add(DtoFactory.getInstance().createDtoFromJson(entry.getValue().toString(), AccessControlEntry.class));
             }
         }
         return acl;

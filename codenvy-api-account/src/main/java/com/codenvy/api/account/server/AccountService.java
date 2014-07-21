@@ -581,7 +581,6 @@ public class AccountService extends Service {
      * @param pattern
      *         filter events by filled fields of pattern
      * @return list of {@link SubscriptionHistoryEvent}
-     * @throws ServerException
      * @throws ForbiddenException
      *         if provided userId isn't equal to current userId
      * @throws ServerException

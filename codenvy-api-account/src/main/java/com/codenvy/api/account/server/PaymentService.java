@@ -11,58 +11,64 @@
 package com.codenvy.api.account.server;
 
 import com.codenvy.api.account.shared.dto.CreditCard;
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 
 /**
- * Process payments and credit cards
+ * Process payments and credit cards.
  *
  * @author Alexander Garagatyi
  */
 public interface PaymentService {
     /**
-     * Purchase subscription. User should have a credit card to use this method.
+     * Purchases subscription. User should have a credit card to use this method.
      *
      * @param userId
-     *         user id to identify user that makes purchasing
+     *         id to identify user that makes purchasing
      * @param subscriptionId
-     *         id of the subscription a user pays for
+     *         id of the subscription for which the user pays
      * @throws ConflictException
-     * @throws ApiException
+     *         if the subscription is not found; payment is not required; if user has no stored credit card
+     * @throws ServerException
+     *         if internal server error occurs
      */
-    void purchase(String userId, String subscriptionId) throws ApiException;
+    void purchase(String userId, String subscriptionId) throws ConflictException, ServerException;
 
     /**
-     * Retrieve stored credit card
+     * Retrieves stored credit card.
      *
      * @param userId
      *         id of the user for card retrieving
-     * @return stored credit card
+     * @return saved credit card
      * @throws NotFoundException
-     *         if there is no credit card
-     * @throws ApiException
+     *         if user's credit card is not found
+     * @throws ServerException
+     *         if internal server error occurs
      */
-    CreditCard getCreditCard(String userId) throws ApiException;
+    CreditCard getCreditCard(String userId) throws ServerException, NotFoundException;
 
     /**
-     * Store credit card in the storage
+     * Saves credit card in the storage. User can have only 1 credit card at once.
      *
      * @param userId
-     *         id of the user to store credit card
+     *         id of the user who saves credit card
      * @param creditCard
-     *         credit card details to store
+     *         credit card details
      * @throws ConflictException
-     *         if user already have credit card
-     * @throws ApiException
+     *         if user has credit card already
+     * @throws ServerException
+     *         if internal server error occurs
      */
-    void saveCreditCard(String userId, CreditCard creditCard) throws ApiException;
+    void saveCreditCard(String userId, CreditCard creditCard) throws ConflictException, ServerException;
 
     /**
-     * Remove current credit card of the user
+     * Removes current credit card of the user.
      *
      * @param userId
-     * @throws ApiException
+     *         if of user to remove credit card
+     * @throws ServerException
+     *         if internal server error occurs
      */
-    void removeCreditCard(String userId) throws ApiException;
+    void removeCreditCard(String userId) throws ServerException;
 }

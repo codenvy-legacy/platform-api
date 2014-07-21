@@ -479,7 +479,7 @@ public class AccountService extends Service {
 
         final Calendar calendar = Calendar.getInstance();
         subscription.setStartDate(calendar.getTimeInMillis());
-        if ("true".equals(subscription.getProperties().get("codenvy:trial"))) {
+        if (Boolean.parseBoolean(subscription.getProperties().get("codenvy:trial"))) {
             String userId = EnvironmentContext.getCurrent().getUser().getId();
             final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(
                     dto.createDto(SubscriptionHistoryEvent.class).withUserId(userId).withType(CREATE).withSubscription(
@@ -524,7 +524,8 @@ public class AccountService extends Service {
 
         service.beforeCreateSubscription(subscription);
         accountDao.addSubscription(subscription);
-        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(subscription, CREATE));
+        accountDao.addSubscriptionHistoryEvent(
+                createSubscriptionHistoryEvent(subscription, CREATE, EnvironmentContext.getCurrent().getUser().getId()));
         service.afterCreateSubscription(subscription);
 
         Response response;
@@ -569,10 +570,23 @@ public class AccountService extends Service {
         }
         final SubscriptionService service = registry.get(toRemove.getServiceId());
         accountDao.removeSubscription(subscriptionId);
-        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(toRemove, DELETE));
+        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(toRemove, DELETE,
+                                                                              EnvironmentContext.getCurrent().getUser().getId()));
         service.onRemoveSubscription(toRemove);
     }
 
+    /**
+     * Returns list of {@link SubscriptionHistoryEvent}s filtered by provided pattern event.
+     *
+     * @param pattern
+     *         filter events by filled fields of pattern
+     * @return list of {@link SubscriptionHistoryEvent}
+     * @throws ServerException
+     * @throws ForbiddenException
+     *         if provided userId isn't equal to current userId
+     * @throws ServerException
+     *         if internal server error occurs
+     */
     @POST
     @Path("subscriptions/history")
     @RolesAllowed({"user", "system/admin", "system/manager"})
@@ -597,12 +611,25 @@ public class AccountService extends Service {
         accountDao.remove(id);
     }
 
+    /**
+     * Purchase certain subscription
+     *
+     * @param subscriptionId
+     *         id of the subscription
+     * @param creditCard
+     *         user's credit card. If it's not provided
+     * @throws ConflictException
+     *         if the subscription is not found; payment is not required; user provides credit card but has stored credit card; provided
+     *         credit card details is missing; if credit card isn't provided and user has no stored credit card
+     * @throws ServerException
+     *         if internal server error occurs
+     */
     @POST
     @Path("subscriptions/{id}/purchase")
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
     public void purchaseSubscription(@PathParam("id") String subscriptionId, CreditCard creditCard)
-            throws ApiException {
+            throws ServerException, ConflictException {
         if (null != creditCard) {
             if (creditCard.getCardholderName() == null || creditCard.getCardNumber() == null || creditCard.getCvv() == null ||
                 creditCard.getExpirationMonth() == null || creditCard.getExpirationYear() == null) {
@@ -614,45 +641,72 @@ public class AccountService extends Service {
         paymentService.purchase(EnvironmentContext.getCurrent().getUser().getId(), subscriptionId);
     }
 
+    /**
+     * Saves user's credit card. User can have only 1 credit card at once.
+     *
+     * @param creditCard
+     *         credit card to save
+     * @throws ConflictException
+     *         if user has credit card already
+     * @throws ServerException
+     *         if internal server error occurs
+     */
     @POST
     @Path("credit-card")
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void storeCreditCard(CreditCard creditCard) throws ApiException {
+    public void saveCreditCard(CreditCard creditCard) throws ServerException, ConflictException {
         paymentService.saveCreditCard(EnvironmentContext.getCurrent().getUser().getId(), DtoFactory.getInstance().clone(creditCard));
     }
 
+    /**
+     * Returns user's credit card
+     *
+     * @return the user's credit card, if available
+     * @throws NotFoundException
+     *         if user's credit card is not found
+     * @throws ServerException
+     *         if internal server error occurs
+     */
     @GET
     @Path("credit-card")
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public CreditCard getUserCreditCard() throws ApiException {
+    public CreditCard getUserCreditCard() throws NotFoundException, ServerException {
         return paymentService.getCreditCard(EnvironmentContext.getCurrent().getUser().getId());
     }
 
+    /**
+     * Removes user credit card
+     *
+     * @throws ServerException
+     *         if internal server error occurs
+     */
     @DELETE
     @Path("credit-card")
     @RolesAllowed("user")
-    public void removeCreditCard() throws ApiException {
+    public void removeCreditCard() throws ServerException {
         paymentService.removeCreditCard(EnvironmentContext.getCurrent().getUser().getId());
     }
 
     /**
-     * Can be used only in methods that is restricted with @RolesAllowed
+     * Create {@link SubscriptionHistoryEvent} object
      *
      * @param subscription
      *         subscription to set in event
      * @param type
      *         event type to create
+     * @param userId
+     *         id of user that initiate this event
      * @return subscription history event
      */
-    private SubscriptionHistoryEvent createSubscriptionHistoryEvent(Subscription subscription, Type type) {
+    private SubscriptionHistoryEvent createSubscriptionHistoryEvent(Subscription subscription, Type type, String userId) {
         return DtoFactory.getInstance().createDto(SubscriptionHistoryEvent.class)
                          .withId(NameGenerator.generate(
                                  SubscriptionHistoryEvent.class.getSimpleName().toLowerCase(),
                                  Constants.ID_LENGTH))
                          .withType(type)
-                         .withUserId(EnvironmentContext.getCurrent().getUser().getId())
+                         .withUserId(userId)
                          .withTime(System.currentTimeMillis())
                          .withSubscription(subscription);
     }

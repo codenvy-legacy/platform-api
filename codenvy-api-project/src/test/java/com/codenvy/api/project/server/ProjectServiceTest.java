@@ -91,6 +91,8 @@ public class ProjectServiceTest {
     private ProjectImporterRegistry  importerRegistry;
     private ProjectGeneratorRegistry generatorRegistry;
 
+    private com.codenvy.commons.env.EnvironmentContext env;
+
     @Mock
     private UserDao userDao;
 
@@ -145,8 +147,8 @@ public class ProjectServiceTest {
                                                                providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         resources.addResource(ProjectService.class, null);
-        // for log events
-        com.codenvy.commons.env.EnvironmentContext env = com.codenvy.commons.env.EnvironmentContext.getCurrent();
+
+        env = com.codenvy.commons.env.EnvironmentContext.getCurrent();
         env.setUser(new UserImpl(vfsUserName, vfsUserName, "dummy_token", vfsUserGroups));
         env.setWorkspaceName("my_ws");
         env.setWorkspaceId("my_ws");
@@ -227,6 +229,17 @@ public class ProjectServiceTest {
         Assert.assertNotNull(attributes);
         Assert.assertEquals(attributes.size(), 1);
         Assert.assertEquals(attributes.get("my_attribute"), Arrays.asList("attribute value 1"));
+    }
+
+    @Test
+    public void testGetProjectCheckUserPermissions() throws Exception {
+        env.setUser(new UserImpl(vfsUserName, vfsUserName, "dummy_token", Collections.<String>emptySet()));
+        ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project",
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor result = (ProjectDescriptor)response.getEntity();
+        Assert.assertNotNull(result);
+        Assert.assertEquals(result.getCurrentUserPermissions(), Arrays.asList("read"));
     }
 
     @Test

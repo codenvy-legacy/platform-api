@@ -15,6 +15,7 @@ import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
+import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
@@ -216,23 +217,33 @@ public class Project {
 
     public List<AccessControlEntry> getPermissions() {
         //we should use map to join misc and vfs permissions with same principal
-        final Map<String, AccessControlEntry> entries = new HashMap<>();
+        final Map<Principal, AccessControlEntry> map = new HashMap<>();
         try {
-            for (AccessControlEntry vfsEntry : baseFolder.getVirtualFile().getACL()) {
-                entries.put(vfsEntry.getPrincipal().getName(), vfsEntry);
+            VirtualFile current = baseFolder.getVirtualFile();
+            while (current != null) {
+                final List<AccessControlEntry> acl = current.getACL();
+                if (!acl.isEmpty()) {
+                    for (AccessControlEntry ace : acl) {
+                        map.put(ace.getPrincipal(), ace);
+                    }
+                    break;
+                } else {
+                    current = current.getParent();
+                }
             }
             final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
-            for (AccessControlEntry entry : misc.getAccessControlList()) {
-                final String principalName = entry.getPrincipal().getName();
-                if (entries.get(principalName) != null) {
-                    entry.getPermissions().addAll(entries.get(principalName).getPermissions());
+            for (AccessControlEntry ace : misc.getAccessControlList()) {
+                final Principal principal = ace.getPrincipal();
+                final AccessControlEntry vfsAce = map.get(principal);
+                if (vfsAce != null) {
+                    ace.getPermissions().addAll(vfsAce.getPermissions());
                 }
-                entries.put(principalName, entry);
+                map.put(principal, ace);
             }
         } catch (VirtualFileSystemException vfsEx) {
             throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
         }
-        return new ArrayList<>(entries.values());
+        return new ArrayList<>(map.values());
     }
 
     /**
@@ -240,7 +251,7 @@ public class Project {
      * Given list of permissions can contain either {@link #BASIC_PERMISSIONS}
      * or any custom permissions.
      * Each AccessControlEntry that contains not only {@link #BASIC_PERMISSIONS}
-     * will be splited into 2 entries and stored in different places.
+     * will be split into 2 entries and stored in different places.
      * The first entry with {@link #BASIC_PERMISSIONS} will be stored in project acl,
      * the second one entry with custom permissions will be stored in project misc.</p>
      *

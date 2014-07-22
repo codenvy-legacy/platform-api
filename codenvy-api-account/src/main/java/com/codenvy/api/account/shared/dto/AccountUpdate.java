@@ -13,6 +13,7 @@ package com.codenvy.api.account.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -25,9 +26,9 @@ public interface AccountUpdate {
 
     AccountUpdate withName(String name);
 
-    List<Attribute> getAttributes();
+    Map<String, String> getAttributes();
 
-    void setAttributes(List<Attribute> attributes);
+    void setAttributes(Map<String, String> attributes);
 
-    AccountUpdate withAttributes(List<Attribute> attributes);
+    AccountUpdate withAttributes(Map<String, String> attributes);
 }

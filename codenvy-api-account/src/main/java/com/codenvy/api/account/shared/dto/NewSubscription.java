@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
- * com.codenvy.api.account.shared.dto.Account}
+ * com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
  */

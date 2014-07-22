@@ -19,17 +19,16 @@ import com.codenvy.api.account.server.PaymentService;
 import com.codenvy.api.account.server.SubscriptionService;
 import com.codenvy.api.account.server.SubscriptionServiceRegistry;
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.server.dao.Account;
+import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
-import com.codenvy.api.account.shared.dto.AccountMembership;
-import com.codenvy.api.account.shared.dto.AccountMembershipDescriptor;
-import com.codenvy.api.account.shared.dto.Attribute;
-import com.codenvy.api.account.shared.dto.Member;
+import com.codenvy.api.account.server.dao.Member;
+import com.codenvy.api.account.shared.dto.AccountReference;
+import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewSubscription;
-import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
-import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -71,11 +70,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static com.codenvy.api.account.shared.dto.Subscription.State.ACTIVE;
-import static com.codenvy.api.account.shared.dto.Subscription.State.WAIT_FOR_PAYMENT;
+import static com.codenvy.api.account.server.dao.Subscription.State.ACTIVE;
+import static com.codenvy.api.account.server.dao.Subscription.State.WAIT_FOR_PAYMENT;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -83,6 +83,7 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertEqualsNoOrder;
 import static org.testng.Assert.assertNotEquals;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -128,7 +129,7 @@ public class AccountServiceTest {
 
     private Account account;
 
-    private ArrayList<AccountMembership> memberships;
+    private ArrayList<Member> memberships;
 
     protected ProviderBinder     providers;
     protected ResourceBinderImpl resources;
@@ -149,22 +150,20 @@ public class AccountServiceTest {
                                                 providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         launcher = new ResourceLauncher(requestHandler);
-        account = DtoFactory.getInstance().createDto(Account.class)
-                            .withId(ACCOUNT_ID)
-                            .withName(ACCOUNT_NAME)
-                            .withAttributes(new ArrayList<>(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-                                                                                    .withName("secret")
-                                                                                    .withValue("big secret")
-                                                                                    .withDescription(
-                                                                                            "DON'T TELL ANYONE ABOUT IT!"))));
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("secret", "bit secret");
+        account = new Account().withId(ACCOUNT_ID)
+                               .withName(ACCOUNT_NAME)
+                               .withAttributes(attributes);
 //        when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(account));
         memberships = new ArrayList<>(1);
-        AccountMembership ownerMembership = DtoFactory.getInstance().createDto(AccountMembership.class);
-        ownerMembership.setName(account.getName());
-        ownerMembership.setId(account.getId());
+        //TODO:
+        Member ownerMembership = new Member();
+        ownerMembership.setAccountId(account.getId());
+        ownerMembership.setUserId(USER_ID);
         ownerMembership.setRoles(Arrays.asList("account/owner"));
         memberships.add(ownerMembership);
-//        when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
+        when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(USER_EMAIL));
 //        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
@@ -217,16 +216,15 @@ public class AccountServiceTest {
         AccountDescriptor created = (AccountDescriptor)response.getEntity();
         verifyLinksRel(created.getLinks(), generateRels(role));
         verify(accountDao, times(1)).create(any(Account.class));
-        Member expected = DtoFactory.getInstance().createDto(Member.class)
-                                    .withAccountId(created.getId())
-                                    .withUserId(USER_ID)
-                                    .withRoles(Arrays.asList("account/owner"));
+        Member expected = new Member().withAccountId(created.getId())
+                                      .withUserId(USER_ID)
+                                      .withRoles(Arrays.asList("account/owner"));
         verify(accountDao, times(1)).addMember(expected);
     }
 
     @Test
     public void shouldNotBeAbleToCreateAccountWithNotValidAttributes() throws Exception {
-        account.getAttributes().add(DtoFactory.getInstance().createDto(Attribute.class).withName("codenvy:god_mode").withValue("true"));
+        account.getAttributes().put("codenvy:god_mode", "true");
 
         ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, account);
         assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:god_mode' is not valid");
@@ -260,11 +258,12 @@ public class AccountServiceTest {
     public void shouldBeAbleToGetMemberships() throws Exception {
         when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        @SuppressWarnings("unchecked") List<AccountMembershipDescriptor> currentAccounts = (List<AccountMembershipDescriptor>)response.getEntity();
+        @SuppressWarnings("unchecked") List<MemberDescriptor> currentAccounts = (List<MemberDescriptor>)response.getEntity();
         assertEquals(currentAccounts.size(), 1);
         assertEquals(currentAccounts.get(0).getRoles().get(0), "account/owner");
         verify(accountDao, times(1)).getByMember(USER_ID);
@@ -272,22 +271,21 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToGetMembershipsOfSpecificUser() throws Exception {
+        when(accountDao.getById("fake_id")).thenReturn(new Account().withId("fake_id").withName("fake_name"));
         User user = DtoFactory.getInstance().createDto(User.class).withId("ANOTHER_USER_ID").withEmail("ANOTHER_USER_EMAIL");
-        ArrayList<AccountMembership> memberships = new ArrayList<>();
-        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
-        am.setId("fake_id");
-        am.setName("fake_name");
-        am.setRoles(Arrays.asList("account/member"));
+        ArrayList<Member> memberships = new ArrayList<>(1);
+        Member am = new Member().withAccountId("fake_id")
+                                .withUserId("ANOTHER_USER_ID")
+                                .withRoles(Arrays.asList("account/member"));
         memberships.add(am);
-
         when(userDao.getById("ANOTHER_USER_ID")).thenReturn(user);
         when(accountDao.getByMember("ANOTHER_USER_ID")).thenReturn(memberships);
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/memberships?userid=" + "ANOTHER_USER_ID", null, null);
-        @SuppressWarnings("unchecked") List<AccountMembershipDescriptor> currentAccounts = (List<AccountMembershipDescriptor>)response.getEntity();
+        @SuppressWarnings("unchecked") List<MemberDescriptor> currentAccounts = (List<MemberDescriptor>)response.getEntity();
         assertEquals(currentAccounts.size(), 1);
-        assertEquals(currentAccounts.get(0).getId(), am.getId());
-        assertEquals(currentAccounts.get(0).getName(), am.getName());
+        assertEquals(currentAccounts.get(0).getAccountReference().getId(), am.getAccountId());
+        assertEquals(currentAccounts.get(0).getAccountReference().getName(), "fake_name");
         assertEquals(currentAccounts.get(0).getRoles(), am.getRoles());
     }
 
@@ -311,15 +309,11 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToUpdateAccount() throws Exception {
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-        List<Attribute> attributes = Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-                                                             .withName("newAttribute")
-                                                             .withValue("someValue")
-                                                             .withDescription("Description"));
-        Account toUpdate = DtoFactory.getInstance().createDto(Account.class)
-                                     .withName("newName")
-                                     .withAttributes(attributes);
-
+        AccountUpdate toUpdate = DtoFactory.getInstance().createDto(AccountUpdate.class)
+                                           .withName("newName")
+                                           .withAttributes(Collections.singletonMap("newAttribute", "someValue"));
         prepareSecurityContext("account/owner");
+
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
@@ -331,27 +325,15 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToRewriteAttributesWhenUpdatingAccount() throws Exception {
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-        List<Attribute> currentAttributes = new ArrayList<>();
-        currentAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
-                                        .withName("newAttribute")
-                                        .withValue("someValue")
-                                        .withDescription("Description"));
-        currentAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
-                                        .withName("oldAttribute")
-                                        .withValue("oldValue")
-                                        .withDescription("Description"));
-        account.setAttributes(currentAttributes);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("newAttribute", "someValue");
+        attributes.put("oldAttribute", "oldValue");
+        account.setAttributes(attributes);
 
-        List<Attribute> updates = new ArrayList<>(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-                                                                          .withName("newAttribute")
-                                                                          .withValue("OTHER_VALUE")
-                                                                          .withDescription("Description"),
-                                                                DtoFactory.getInstance().createDto(Attribute.class)
-                                                                          .withName("newAttribute2")
-                                                                          .withValue("someValue2")
-                                                                          .withDescription("Description2")
-                                                               ));
-        Account toUpdate = DtoFactory.getInstance().createDto(Account.class).withAttributes(updates);
+        Map<String, String> updates = new HashMap<>();
+        updates.put("newAttribute", "OTHER_VALUE");
+        updates.put("newAttribute2", "someValue2");
+        AccountDescriptor toUpdate = DtoFactory.getInstance().createDto(AccountDescriptor.class).withAttributes(updates);
 
         prepareSecurityContext("account/owner");
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
@@ -360,80 +342,28 @@ public class AccountServiceTest {
         AccountDescriptor actual = (AccountDescriptor)response.getEntity();
         assertEquals(actual.getName(), ACCOUNT_NAME);
         assertEquals(actual.getAttributes().size(), 3);
-        for (Attribute attribute : actual.getAttributes()) {
-            if (attribute.getName().equals("newAttribute") && !attribute.getValue().equals("OTHER_VALUE")) {
-                fail("Attribute should be replaced");
-            }
-        }
-    }
-
-    @Test
-    public void shouldBeAbleToAddNewAttribute() throws Exception {
-        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-        Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
-                                           .withName("newAttribute")
-                                           .withValue("someValue")
-                                           .withDescription("Description");
-        int countBefore = account.getAttributes().size();
-
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
-
-        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        assertEquals(account.getAttributes().size(), countBefore + 1);
-        verify(accountDao, times(1)).update(account);
-    }
-
-    @Test
-    public void shouldNotBeAbleToAddAttributeWithIncorrectName() throws Exception {
-        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-        Attribute newAttribute = DtoFactory.getInstance().createDto(Attribute.class)
-                                           .withName("codenvy_newAttribute")
-                                           .withValue("someValue")
-                                           .withDescription("Description");
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
-
-        assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Attribute name 'codenvy_newAttribute' is not valid");
-
-        newAttribute.setName("");
-
-        response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
-
-        assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Attribute name '' is not valid");
-
-        newAttribute.setName(null);
-
-        response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute", MediaType.APPLICATION_JSON, newAttribute);
-
-        assertNotEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Attribute name 'null' is not valid");
+        assertEquals(actual.getAttributes().get("newAttribute"), "OTHER_VALUE");
     }
 
     @Test
     public void shouldBeAbleToRemoveAttribute() throws Exception {
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-        int countBefore = account.getAttributes().size();
-        assertTrue(countBefore > 0);
-        Attribute existed = account.getAttributes().get(0);
-        ContainerResponse response =
-                makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute?name=" + existed.getName(), null, null);
+        Map<String, String> attributes = new HashMap<>(1);
+        attributes.put("test", "test");
+        account.setAttributes(attributes);
+
+        ContainerResponse response = makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/attribute?name=test", null, null);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        assertEquals(account.getAttributes().size(), countBefore - 1);
+        assertNull(attributes.get("test"));
     }
 
     @Test
     public void shouldNotBeAbleToUpdateAccountWithAlreadyExistedName() throws Exception {
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-        when(accountDao.getByName("TO_UPDATE"))
-                .thenReturn(DtoFactory.getInstance().createDto(Account.class).withName("TO_UPDATE"));
-
+        when(accountDao.getByName("TO_UPDATE")).thenReturn(new Account().withName("TO_UPDATE"));
+        AccountDescriptor toUpdate = DtoFactory.getInstance().createDto(AccountDescriptor.class).withName("TO_UPDATE");
         prepareSecurityContext("account/owner");
-
-        Account toUpdate = DtoFactory.getInstance().createDto(Account.class).withName("TO_UPDATE");
 
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID, MediaType.APPLICATION_JSON, toUpdate);
         assertNotEquals(response.getStatus(), Response.Status.OK);
@@ -459,14 +389,11 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetSubscriptionsOfSpecificAccount() throws Exception {
         when(accountDao.getSubscriptions(ACCOUNT_ID)).thenReturn(Arrays.asList(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withProperties(Collections.<String, String>emptyMap())
-                                                                              ));
-
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withProperties(Collections.<String, String>emptyMap())));
         prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
@@ -489,13 +416,11 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetSpecificSubscriptionBySystemAdmin() throws Exception {
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withProperties(Collections.<String, String>emptyMap())
-                                                                        );
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withProperties(Collections.<String, String>emptyMap()));
         prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -511,20 +436,16 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetSpecificSubscriptionByAccountOwner() throws Exception {
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withAccountId("ANOTHER_ACCOUNT_ID")
-                          .withProperties(Collections.<String, String>emptyMap())
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withAccountId("ANOTHER_ACCOUNT_ID")
+                                  .withProperties(Collections.<String, String>emptyMap())
                                                                         );
-        when(accountDao.getByMember(USER_ID))
-                .thenReturn(Arrays.asList(
-                        (AccountMembership)DtoFactory.getInstance().createDto(AccountMembership.class)
-                                                     .withRoles(Arrays.asList("account/owner")).withId("ANOTHER_ACCOUNT_ID")
-                                         ));
-
+        when(accountDao.getByMember(USER_ID)).thenReturn(Arrays.asList(new Member().withRoles(Arrays.asList("account/owner"))
+                                                                                   .withAccountId("ANOTHER_ACCOUNT_ID")
+                                                                                   .withUserId(USER_ID)));
         prepareSecurityContext("user");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -540,20 +461,16 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetSpecificSubscriptionByAccountMember() throws Exception {
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withAccountId("ANOTHER_ACCOUNT_ID")
-                          .withProperties(Collections.<String, String>emptyMap())
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withAccountId("ANOTHER_ACCOUNT_ID")
+                                  .withProperties(Collections.<String, String>emptyMap())
                                                                         );
-        when(accountDao.getByMember(USER_ID))
-                .thenReturn(Arrays.asList(
-                        (AccountMembership)DtoFactory.getInstance().createDto(AccountMembership.class)
-                                                     .withRoles(Arrays.asList("account/member")).withId("ANOTHER_ACCOUNT_ID")
-                                         ));
-
+        when(accountDao.getByMember(USER_ID)).thenReturn(Arrays.asList(new Member().withRoles(Arrays.asList("account/member"))
+                                                                                   .withAccountId("ANOTHER_ACCOUNT_ID")
+                                                                                   .withUserId(USER_ID)));
         prepareSecurityContext("user");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -566,21 +483,19 @@ public class AccountServiceTest {
 
     @Test
     public void shouldRespondForbiddenIfUserIsNotMemberOrOwnerOfAccountOnGetSubscriptionById() throws Exception {
-        ArrayList<AccountMembership> memberships = new ArrayList<>();
-        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
-        am.withRoles(Arrays.asList("account/owner")).withId("fake_id").withName("fake_name");
+        ArrayList<Member> memberships = new ArrayList<>();
+        Member am = new Member();
+        am.withRoles(Arrays.asList("account/owner")).withAccountId("fake_id");
         memberships.add(am);
 
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withAccountId(ACCOUNT_ID)
-                          .withProperties(Collections.<String, String>emptyMap())
-                                                                        );
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withAccountId(ACCOUNT_ID)
+                                  .withProperties(Collections.<String, String>emptyMap()));
         prepareSecurityContext("user");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -591,23 +506,20 @@ public class AccountServiceTest {
 
     @Test
     public void shouldRespondAccessDeniedIfUserIsNotAccountOwnerOnAddSubscription() throws Exception {
-        ArrayList<AccountMembership> memberships = new ArrayList<>();
-        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
-        am.withRoles(Arrays.asList("account/owner")).withId("fake_id").withName("fake_name");
+        ArrayList<Member> memberships = new ArrayList<>(2);
+        Member am = new Member();
+        am.withRoles(Arrays.asList("account/owner")).withAccountId("fake_id");
         memberships.add(am);
-        AccountMembership am2 = DtoFactory.getInstance().createDto(AccountMembership.class);
-        am2.withRoles(Arrays.asList("account/member")).withId(ACCOUNT_ID).withName(ACCOUNT_NAME);
+        Member am2 = new Member();
+        am2.withRoles(Arrays.asList("account/member")).withAccountId(ACCOUNT_ID);
         memberships.add(am2);
 
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
-        Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
-                                              .withAccountId(ACCOUNT_ID)
-                                              .withServiceId(SERVICE_ID)
-                                              .withStartDate(System.currentTimeMillis())
-                                              .withEndDate(System.currentTimeMillis())
-                                              .withProperties(Collections.<String, String>emptyMap());
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
-
+        NewSubscription subscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                 .withAccountId(ACCOUNT_ID)
+                                                 .withServiceId(SERVICE_ID)
+                                                 .withProperties(Collections.<String, String>emptyMap());
         prepareSecurityContext("user");
 
         ContainerResponse response =
@@ -620,9 +532,9 @@ public class AccountServiceTest {
     @Test
     public void shouldRespondPaymentRequiredIfAmountBiggerThan0OnAddSubscription() throws Exception {
         final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
-                                                       .withAccountId(ACCOUNT_ID)
-                                                       .withServiceId(SERVICE_ID)
-                                                       .withProperties(Collections.<String, String>emptyMap());
+                                                          .withAccountId(ACCOUNT_ID)
+                                                          .withServiceId(SERVICE_ID)
+                                                          .withProperties(Collections.<String, String>emptyMap());
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(subscriptionService.tarifficate(any(Subscription.class))).thenReturn(1000D);
 
@@ -640,7 +552,7 @@ public class AccountServiceTest {
         verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
             @Override
             public boolean matches(Object argument) {
-                Subscription actualSubscription = DtoFactory.getInstance().clone((Subscription)argument);
+                Subscription actualSubscription = (Subscription)argument;
                 return ACCOUNT_ID.equals(actualSubscription.getAccountId())
                        && SERVICE_ID.equals(actualSubscription.getServiceId())
                        && WAIT_FOR_PAYMENT.equals(actualSubscription.getState());
@@ -654,10 +566,10 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToAddSubscription() throws Exception {
-        final Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
-                                                    .withAccountId(ACCOUNT_ID)
-                                                    .withServiceId(SERVICE_ID)
-                                                    .withProperties(Collections.<String, String>emptyMap());
+        final NewSubscription subscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                       .withAccountId(ACCOUNT_ID)
+                                                       .withServiceId(SERVICE_ID)
+                                                       .withProperties(Collections.<String, String>emptyMap());
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
         ContainerResponse response =
@@ -667,10 +579,14 @@ public class AccountServiceTest {
         verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
             @Override
             public boolean matches(Object argument) {
-                Subscription actualSubscription = DtoFactory.getInstance().clone((Subscription)argument);
-                Subscription expectedSubscription =
-                        DtoFactory.getInstance().clone(subscription).withState(ACTIVE).withId(actualSubscription.getId())
-                                  .withStartDate(actualSubscription.getStartDate()).withEndDate(actualSubscription.getEndDate());
+                Subscription actualSubscription = (Subscription)argument;
+                Subscription expectedSubscription = new Subscription().withState(ACTIVE)
+                                                                      .withId(actualSubscription.getId())
+                                                                      .withAccountId(actualSubscription.getAccountId())
+                                                                      .withProperties(actualSubscription.getProperties())
+                                                                      .withServiceId(actualSubscription.getServiceId())
+                                                                      .withStartDate(actualSubscription.getStartDate())
+                                                                      .withEndDate(actualSubscription.getEndDate());
                 return expectedSubscription.equals(actualSubscription);
 
             }
@@ -683,12 +599,11 @@ public class AccountServiceTest {
 
     @Test
     public void shouldNotBeAbleToAddSubscriptionIfServiceIdIsUnknown() throws Exception {
-        Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
-                                              .withAccountId(ACCOUNT_ID)
-                                              .withServiceId("UNKNOWN_SERVICE_ID")
-                                              .withStartDate(System.currentTimeMillis())
-                                              .withEndDate(System.currentTimeMillis())
-                                              .withProperties(Collections.<String, String>emptyMap());
+        Subscription subscription = new Subscription().withAccountId(ACCOUNT_ID)
+                                                      .withServiceId("UNKNOWN_SERVICE_ID")
+                                                      .withStartDate(System.currentTimeMillis())
+                                                      .withEndDate(System.currentTimeMillis())
+                                                      .withProperties(Collections.<String, String>emptyMap());
         when(serviceRegistry.get("UNKNOWN_SERVICE_ID")).thenReturn(null);
 
         ContainerResponse response =
@@ -713,13 +628,11 @@ public class AccountServiceTest {
     public void shouldBeAbleToRemoveSubscriptionBySystemAdmin() throws Exception {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withProperties(Collections.<String, String>emptyMap())
-                                                                        );
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withProperties(Collections.<String, String>emptyMap()));
 
         ContainerResponse response =
                 makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -736,13 +649,12 @@ public class AccountServiceTest {
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withAccountId(ACCOUNT_ID)
-                          .withProperties(Collections.<String, String>emptyMap())
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withAccountId(ACCOUNT_ID)
+                                  .withProperties(Collections.<String, String>emptyMap())
                                                                         );
         prepareSecurityContext("user");
 
@@ -758,26 +670,22 @@ public class AccountServiceTest {
 
     @Test
     public void shouldRespondAccessDeniedIfUserIsNotAccountOwnerOnRemoveSubscription() throws Exception {
-        ArrayList<AccountMembership> memberships = new ArrayList<>();
-        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
-        am.withRoles(Arrays.asList("account/owner")).withId("fake_id").withName("fake_name");
+        ArrayList<Member> memberships = new ArrayList<>(2);
+        Member am = new Member().withRoles(Arrays.asList("account/owner"))
+                                .withAccountId("fake_id");
         memberships.add(am);
-        AccountMembership am2 = DtoFactory.getInstance().createDto(AccountMembership.class);
-        am2.withRoles(Arrays.asList("account/member")).withId(ACCOUNT_ID).withName(ACCOUNT_NAME);
+        Member am2 = new Member().withRoles(Arrays.asList("account/member"))
+                                 .withAccountId(ACCOUNT_ID);
         memberships.add(am2);
-
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
-                DtoFactory.getInstance().createDto(Subscription.class)
-                          .withId(SUBSCRIPTION_ID)
-                          .withStartDate(System.currentTimeMillis())
-                          .withEndDate(System.currentTimeMillis())
-                          .withServiceId(SERVICE_ID)
-                          .withAccountId(ACCOUNT_ID)
-                          .withProperties(Collections.<String, String>emptyMap())
-                                                                        );
-
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withStartDate(System.currentTimeMillis())
+                                  .withEndDate(System.currentTimeMillis())
+                                  .withServiceId(SERVICE_ID)
+                                  .withAccountId(ACCOUNT_ID)
+                                  .withProperties(Collections.<String, String>emptyMap()));
         prepareSecurityContext("user");
 
         ContainerResponse response =
@@ -789,11 +697,11 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToGetAccountMembers() throws Exception {
+        when(accountDao.getById(account.getId())).thenReturn(account);
         when(accountDao.getMembers(account.getId()))
-                .thenReturn(Arrays.asList(
-                        DtoFactory.getInstance().createDto(Member.class).withRoles(Collections.<String>emptyList()).withUserId(USER_ID)
-                                  .withAccountId(account.getId())
-                                         ));
+                .thenReturn(Arrays.asList(new Member().withRoles(Collections.<String>emptyList())
+                                                      .withUserId(USER_ID)
+                                                      .withAccountId(account.getId())));
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + account.getId() + "/members", null, null);
 
@@ -802,16 +710,12 @@ public class AccountServiceTest {
         @SuppressWarnings("unchecked") List<MemberDescriptor> members = (List<MemberDescriptor>)response.getEntity();
         assertEquals(members.size(), 1);
         MemberDescriptor member = members.get(0);
-        assertEquals(member.getLinks().size(), 1);
-        Link removeMember = members.get(0).getLinks().get(0);
-        assertEquals(removeMember, DtoFactory.getInstance().createDto(Link.class)
-                                             .withRel(Constants.LINK_REL_REMOVE_MEMBER)
-                                             .withHref(SERVICE_PATH + "/" + member.getAccountId() + "/members/" + member.getUserId())
-                                             .withMethod(HttpMethod.DELETE));
+        assertEquals(member.getLinks().size(), 2);
     }
 
     @Test
     public void shouldBeAbleToAddMember() throws Exception {
+        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + account.getId() + "/members?userid=" + USER_ID, null, null);
 
@@ -821,14 +725,12 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToRemoveMember() throws Exception {
-        Member accountMember = DtoFactory.getInstance().createDto(Member.class)
-                                         .withUserId(USER_ID)
-                                         .withAccountId(ACCOUNT_ID)
-                                         .withRoles(Arrays.asList("account/member"));
-        Member accountOwner = DtoFactory.getInstance().createDto(Member.class)
-                                        .withUserId("owner_holder")
-                                        .withAccountId(ACCOUNT_ID)
-                                        .withRoles(Arrays.asList("account/owner"));
+        Member accountMember = new Member().withUserId(USER_ID)
+                                           .withAccountId(ACCOUNT_ID)
+                                           .withRoles(Arrays.asList("account/member"));
+        Member accountOwner = new Member().withUserId("owner_holder")
+                                          .withAccountId(ACCOUNT_ID)
+                                          .withRoles(Arrays.asList("account/owner"));
         when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountMember, accountOwner));
 
         ContainerResponse response = makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
@@ -839,14 +741,12 @@ public class AccountServiceTest {
 
     @Test
     public void shouldNotBeAbleToRemoveLastAccountOwner() throws Exception {
-        Member accountOwner = DtoFactory.getInstance().createDto(Member.class)
-                                        .withUserId(USER_ID)
-                                        .withAccountId(ACCOUNT_ID)
-                                        .withRoles(Arrays.asList("account/owner"));
-        Member accountMember = DtoFactory.getInstance().createDto(Member.class)
-                                         .withUserId("member_holder")
-                                         .withAccountId(ACCOUNT_ID)
-                                         .withRoles(Arrays.asList("account/member"));
+        Member accountOwner = new Member().withUserId(USER_ID)
+                                          .withAccountId(ACCOUNT_ID)
+                                          .withRoles(Arrays.asList("account/owner"));
+        Member accountMember = new Member().withUserId("member_holder")
+                                           .withAccountId(ACCOUNT_ID)
+                                           .withRoles(Arrays.asList("account/member"));
         when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountOwner, accountMember));
 
         ContainerResponse response = makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
@@ -856,14 +756,12 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToRemoveAccountOwnerIfOtherOneExists() throws Exception {
-        Member accountOwner = DtoFactory.getInstance().createDto(Member.class)
-                                        .withUserId(USER_ID)
-                                        .withAccountId(ACCOUNT_ID)
-                                        .withRoles(Arrays.asList("account/owner"));
-        Member accountOwner2 = DtoFactory.getInstance().createDto(Member.class)
-                                         .withUserId("owner_holder")
-                                         .withAccountId(ACCOUNT_ID)
-                                         .withRoles(Arrays.asList("account/owner"));
+        Member accountOwner = new Member().withUserId(USER_ID)
+                                          .withAccountId(ACCOUNT_ID)
+                                          .withRoles(Arrays.asList("account/owner"));
+        Member accountOwner2 = new Member().withUserId("owner_holder")
+                                           .withAccountId(ACCOUNT_ID)
+                                           .withRoles(Arrays.asList("account/owner"));
         when(accountDao.getMembers(ACCOUNT_ID)).thenReturn(Arrays.asList(accountOwner, accountOwner2));
 
         ContainerResponse response = makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/" + ACCOUNT_ID + "/members/" + USER_ID, null, null);
@@ -904,12 +802,12 @@ public class AccountServiceTest {
         rels.add(Constants.LINK_REL_GET_MEMBERS);
         rels.add(Constants.LINK_REL_GET_ACCOUNTS);
         rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
+        rels.add(Constants.LINK_REL_GET_ACCOUNT_BY_ID);
         switch (role) {
             case "system/admin":
                 rels.add(Constants.LINK_REL_REMOVE_ACCOUNT);
             case "system/manager":
                 rels.add(Constants.LINK_REL_GET_ACCOUNT_BY_NAME);
-                rels.add(Constants.LINK_REL_GET_ACCOUNT_BY_ID);
                 break;
         }
         return rels;

@@ -12,29 +12,24 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * @author andrew00x
+ * References payment and subscription.
+ * Theoretically Amount may be not the same as actual payment, here it is interpreted as the sum for this Subscription.
+ *
+ * @author Alexander Garagatyi
  */
 @DTO
-// TODO: replace with class
-public interface Member {
-    List<String> getRoles();
+public interface SubscriptionPaymentDescriptor {
 
-    void setRoles(List<String> roles);
+    String getTransactionId();
 
-    Member withRoles(List<String> roles);
+    void setTransactionId(String transactionId);
 
-    String getUserId();
+    SubscriptionPaymentDescriptor withTransactionId(String transactionId);
 
-    void setUserId(String id);
+    double getAmount();
 
-    Member withUserId(String id);
+    void setAmount(double amount);
 
-    String getAccountId();
-
-    void setAccountId(String id);
-
-    Member withAccountId(String id);
+    SubscriptionPaymentDescriptor withAmount(double amount);
 }

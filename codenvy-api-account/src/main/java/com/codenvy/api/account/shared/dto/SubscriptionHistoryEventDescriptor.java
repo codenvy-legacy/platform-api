@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type;
 import com.codenvy.dto.shared.DTO;
 
 /**
@@ -18,45 +19,41 @@ import com.codenvy.dto.shared.DTO;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface SubscriptionHistoryEvent {
-
-    public enum Type {
-        CREATE, UPDATE, DELETE
-    }
+public interface SubscriptionHistoryEventDescriptor {
 
     String getId();
 
     void setId(String id);
 
-    SubscriptionHistoryEvent withId(String id);
+    SubscriptionHistoryEventDescriptor withId(String id);
 
     String getUserId();
 
     void setUserId(String userId);
 
-    SubscriptionHistoryEvent withUserId(String userId);
+    SubscriptionHistoryEventDescriptor withUserId(String userId);
 
     Type getType();
 
     void setType(Type type);
 
-    SubscriptionHistoryEvent withType(Type type);
+    SubscriptionHistoryEventDescriptor withType(Type type);
 
     long getTime();
 
     void setTime(long date);
 
-    SubscriptionHistoryEvent withTime(long date);
+    SubscriptionHistoryEventDescriptor withTime(long date);
 
-    Subscription getSubscription();
+    SubscriptionDescriptor getSubscription();
 
-    void setSubscription(Subscription subscription);
+    void setSubscription(SubscriptionDescriptor subscription);
 
-    SubscriptionHistoryEvent withSubscription(Subscription subscription);
+    SubscriptionHistoryEventDescriptor withSubscription(SubscriptionDescriptor subscription);
 
-    SubscriptionPayment getSubscriptionPayment();
+    SubscriptionPaymentDescriptor getSubscriptionPayment();
 
-    void setSubscriptionPayment(SubscriptionPayment subscriptionPayment);
+    void setSubscriptionPayment(SubscriptionPaymentDescriptor subscriptionPayment);
 
-    SubscriptionHistoryEvent withSubscriptionPayment(SubscriptionPayment subscriptionPayment);
+    SubscriptionHistoryEventDescriptor withSubscriptionPayment(SubscriptionPaymentDescriptor subscriptionPayment);
 }

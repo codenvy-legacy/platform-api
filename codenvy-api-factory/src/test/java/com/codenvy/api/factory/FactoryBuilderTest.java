@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.dto.server.DtoFactory;
@@ -73,7 +74,7 @@ public class FactoryBuilderTest {
     }
 
     @Test
-    public void shouldBeAbleToValidateFactory1_0() throws FactoryUrlException {
+    public void shouldBeAbleToValidateFactory1_0() throws ApiException {
         actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
               .withAction("action").withWname("wname").withVcsinfo(true).withOpenfile("openfile");
 
@@ -81,7 +82,7 @@ public class FactoryBuilderTest {
     }
 
     @Test
-    public void shouldBeAbleToValidateEncodedFactory1_1() throws FactoryUrlException {
+    public void shouldBeAbleToValidateEncodedFactory1_1() throws ApiException {
         ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withVcsinfo(
                 true).withOpenfile("openfile").withAction("action")).withStyle("style").withDescription("description").withContactmail(
                 "contactmail").withAuthor("author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch")
@@ -102,7 +103,7 @@ public class FactoryBuilderTest {
     }
 
     @Test
-    public void shouldBeAbleToValidateNonEncodedFactory1_1() throws FactoryUrlException {
+    public void shouldBeAbleToValidateNonEncodedFactory1_1() throws ApiException {
         ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action").withVcsinfo(
                 true).withOpenfile("openfile")).withContactmail("contactmail").withAuthor("author").withOrgid("orgid")
                                                .withAffiliateid("affid").withVcsbranch(
@@ -120,7 +121,7 @@ public class FactoryBuilderTest {
     }
 
     @Test
-    public void shouldBeAbleToValidateEncodedFactory1_2() throws FactoryUrlException {
+    public void shouldBeAbleToValidateEncodedFactory1_2() throws ApiException {
         ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsinfo(true).withOpenfile("openfile").withVcsurl("vcsurl")
                             .withCommitid("commitid").withAction(
                         "action")).withStyle("style").withDescription("description").withContactmail("contactmail").withAuthor("author")
@@ -149,7 +150,7 @@ public class FactoryBuilderTest {
     }
 
     @Test
-    public void shouldBeAbleToValidateNonEncodedFactory1_2() throws FactoryUrlException {
+    public void shouldBeAbleToValidateNonEncodedFactory1_2() throws ApiException {
         ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsurl("vcsurl").withVcsinfo(true).withCommitid("commitid").withOpenfile(
                 "openfile").withAction("action")).withContactmail("contactmail").withAuthor(
                 "author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch");
@@ -174,9 +175,9 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(actual, NONENCODED);
     }
 
-    @Test(expectedExceptions = FactoryUrlException.class, dataProvider = "TFParamsProvider")
+    @Test(expectedExceptions = ApiException.class, dataProvider = "TFParamsProvider")
     public void shouldNotAllowUsingParamsForTrackedFactoriesIfOrgidDoesntSet(String version, Object arg, String methodName, Class argClass)
-            throws InvocationTargetException, IllegalAccessException, FactoryUrlException, NoSuchMethodException {
+            throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         actual.withV(version).withVcs("vcs").withVcsurl("vcsurl");
 
         Factory.class.getMethod(methodName, argClass).invoke(actual, arg);
@@ -184,8 +185,8 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(actual, ENCODED);
     }
 
-    @Test(expectedExceptions = FactoryUrlException.class)
-    public void shouldNotAllowInNonencodedVersionUsingParamsOnlyForEncodedVersion() throws FactoryUrlException, URISyntaxException {
+    @Test(expectedExceptions = ApiException.class)
+    public void shouldNotAllowInNonencodedVersionUsingParamsOnlyForEncodedVersion() throws ApiException, URISyntaxException {
         StringBuilder sb = new StringBuilder("?");
         sb.append("v=").append("1.0").append("&");
         sb.append("vcs=").append("git").append("&");
@@ -194,8 +195,8 @@ public class FactoryBuilderTest {
         factoryBuilder.buildNonEncoded(new URI(sb.toString()));
     }
 
-    @Test(expectedExceptions = FactoryUrlException.class)
-    public void shouldNotValidateUnparseableFactory() throws FactoryUrlException, URISyntaxException {
+    @Test(expectedExceptions = ApiException.class)
+    public void shouldNotValidateUnparseableFactory() throws ApiException, URISyntaxException {
         factoryBuilder.checkValid(null, NONENCODED);
     }
 
@@ -218,9 +219,9 @@ public class FactoryBuilderTest {
         };
     }
 
-    @Test(expectedExceptions = FactoryUrlException.class, dataProvider = "setByServerParamsProvider")
+    @Test(expectedExceptions = ApiException.class, dataProvider = "setByServerParamsProvider")
     public void shouldNotAllowUsingParamsThatCanBeSetOnlyByServer(String version, String methodName, Object arg, Class argClass)
-            throws InvocationTargetException, IllegalAccessException, FactoryUrlException, NoSuchMethodException {
+            throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         actual.withV(version).withVcs("vcs").withVcsurl("vcsurl");
 
         Factory.class.getMethod(methodName, argClass).invoke(actual, arg);
@@ -240,7 +241,7 @@ public class FactoryBuilderTest {
     }
 
     @Test
-    public void shouldBeAbleToConvertToLatest() throws FactoryUrlException {
+    public void shouldBeAbleToConvertToLatest() throws ApiException {
         actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname");
 
         expected.withProjectattributes(
@@ -250,9 +251,9 @@ public class FactoryBuilderTest {
         assertEquals(factoryBuilder.convertToLatest(actual), expected);
     }
 
-    @Test(expectedExceptions = FactoryUrlException.class, dataProvider = "notValidParamsProvider")
+    @Test(expectedExceptions = ApiException.class, dataProvider = "notValidParamsProvider")
     public <T> void shouldNotAllowUsingNotValidParams(String version, String methodName, T arg, Class<T> argClass, FactoryFormat encoded)
-            throws InvocationTargetException, IllegalAccessException, FactoryUrlException, NoSuchMethodException {
+            throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         actual.withV(version).withVcs("vcs").withVcsurl("vcsurl");
 
         Factory.class.getMethod(methodName, argClass).invoke(actual, arg);
@@ -309,7 +310,7 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0()
-            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
+            throws ApiException, UnsupportedEncodingException, URISyntaxException {
         StringBuilder sb = new StringBuilder("?");
         sb.append("v=").append("1.0").append("&");
         sb.append("vcs=").append("git").append("&");
@@ -332,7 +333,7 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0WithIdCommit()
-            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
+            throws ApiException, UnsupportedEncodingException, URISyntaxException {
         StringBuilder sb = new StringBuilder("?");
         sb.append("v=").append("1.0").append("&");
         sb.append("vcs=").append("git").append("&");
@@ -355,7 +356,7 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToParseAndValidateNonEncodedFactory1_1()
-            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
+            throws ApiException, UnsupportedEncodingException, URISyntaxException {
 
         expected.setV("1.1");
         expected.setVcs("git");
@@ -410,7 +411,7 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2()
-            throws FactoryUrlException, UnsupportedEncodingException, URISyntaxException {
+            throws ApiException, UnsupportedEncodingException, URISyntaxException {
 
         expected.setV("1.2");
         expected.setVcs("git");
@@ -478,7 +479,7 @@ public class FactoryBuilderTest {
     }
 
     @Test(enabled = false)
-    public void speedTest() throws FactoryUrlException {
+    public void speedTest() throws ApiException {
         actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
               .withAction("action").withWname("wname").withVcsinfo(true);
 

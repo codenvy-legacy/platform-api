@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.factory.parameter;
 
-import com.codenvy.api.factory.FactoryUrlException;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 
 /**
@@ -20,7 +20,7 @@ import com.codenvy.api.factory.dto.Factory;
  */
 public class WorkspacNameConverter implements LegacyConverter {
     @Override
-    public void convert(Factory factory) throws FactoryUrlException {
+    public void convert(Factory factory) throws ApiException {
         factory.setWname(null);
     }
 }

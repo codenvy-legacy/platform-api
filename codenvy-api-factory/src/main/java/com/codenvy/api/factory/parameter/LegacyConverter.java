@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.factory.parameter;
 
-import com.codenvy.api.factory.FactoryUrlException;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 
 /**
@@ -20,6 +20,6 @@ import com.codenvy.api.factory.dto.Factory;
  */
 public interface LegacyConverter {
 
-    void convert(Factory factory) throws FactoryUrlException;
+    void convert(Factory factory) throws ApiException;
 
 }

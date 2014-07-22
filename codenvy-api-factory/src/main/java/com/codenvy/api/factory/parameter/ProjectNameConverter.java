@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.factory.parameter;
 
-import com.codenvy.api.factory.FactoryUrlException;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
@@ -22,7 +22,7 @@ import com.codenvy.dto.server.DtoFactory;
  */
 public class ProjectNameConverter implements LegacyConverter {
     @Override
-    public void convert(Factory factory) throws FactoryUrlException {
+    public void convert(Factory factory) throws ApiException {
         if (factory.getPname() != null) {
             ProjectAttributes attributes = factory.getProjectattributes();
             if (null == attributes || attributes.getPname() == null) {
@@ -32,7 +32,7 @@ public class ProjectNameConverter implements LegacyConverter {
                 factory.setPname(null);
                 factory.setProjectattributes(attributes);
             } else if (attributes.getPname() != null) {
-                throw new FactoryUrlException(
+                throw new ApiException(
                         "Parameters 'pname' and 'projectsttributes.pname' are mutually exclusive.");
             }
         }

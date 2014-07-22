@@ -10,9 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.*;
+import com.codenvy.api.factory.dto.ProjectAttributes;
+import com.codenvy.api.factory.dto.Variable;
+import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.Pair;
@@ -22,35 +27,53 @@ import com.jayway.restassured.response.Response;
 
 import org.everrest.assured.EverrestJetty;
 import org.everrest.assured.JettyHttpServer;
-import org.everrest.core.*;
-import org.mockito.*;
+import org.everrest.core.Filter;
+import org.everrest.core.GenericContainerRequest;
+import org.everrest.core.RequestFilter;
+import org.everrest.core.impl.ContainerResponse;
+import org.mockito.InjectMocks;
+import org.mockito.Matchers;
+import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
-import org.testng.annotations.*;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
 
 import javax.ws.rs.core.MediaType;
 import java.io.File;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import static com.jayway.restassured.RestAssured.given;
 import static java.net.URLEncoder.encode;
 import static javax.ws.rs.core.Response.Status;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.matchers.JUnitMatchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.anyBoolean;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 @Listeners(value = {EverrestJetty.class, MockitoTestNGListener.class})
 public class FactoryServiceTest {
-    private final String                        CORRECT_FACTORY_ID = "correctFactoryId";
-    private final String                        ILLEGAL_FACTORY_ID = "illegalFactoryId";
-    private final String                        SERVICE_PATH       = "/factory";
-    private final FactoryServiceExceptionMapper exceptionMapper    = new FactoryServiceExceptionMapper();
+    private final String             CORRECT_FACTORY_ID = "correctFactoryId";
+    private final String             ILLEGAL_FACTORY_ID = "illegalFactoryId";
+    private final String             SERVICE_PATH       = "/factory";
+    private final ApiExceptionMapper exceptionMapper    = new ApiExceptionMapper();
 
     private EnvironmentFilter filter = new EnvironmentFilter();
 
@@ -194,8 +217,8 @@ public class FactoryServiceTest {
         // when
         Response response =
                 given().when().queryParam("v", "1.1").queryParam("vcs", "git").queryParam("vcsurl", "git@github.com:codenvy/cloud-ide.git")
-                        .queryParam("variables",
-                                    ("[" + DtoFactory.getInstance().toJson(DtoFactory.getInstance().createDto(Variable.class)) + "]")).get(
+                       .queryParam("variables",
+                                   ("[" + DtoFactory.getInstance().toJson(DtoFactory.getInstance().createDto(Variable.class)) + "]")).get(
                         SERVICE_PATH + "/nonencoded");
 
         // then
@@ -241,17 +264,19 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldReturnStatus400IfSaveRequestHaveNotFactoryInfo() throws Exception {
+    public void shouldReturnStatus409IfSaveRequestHaveNotFactoryInfo() throws Exception {
         // given
 
         // when, then
-        given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
+        Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
                 multiPart("someOtherData", "Some content", MediaType.TEXT_PLAIN).//
                 expect().//
-                statusCode(Status.BAD_REQUEST.getStatusCode()).//
-                body(equalTo("No factory URL information found in 'factoryUrl' section of multipart/form-data.")).//
+                statusCode(Status.CONFLICT.getStatusCode()).//
                 when().//
                 post("/private" + SERVICE_PATH);
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
     }
 
     @Test
@@ -283,7 +308,8 @@ public class FactoryServiceTest {
         assertTrue(responseFactoryUrl.getLinks().contains(
                 DtoFactory.getInstance().createDto(Link.class).withMethod("GET").withProduces("application/json")
                           .withHref(getServerUrl(context) + "/rest/private/factory/" +
-                                    CORRECT_FACTORY_ID).withRel("self")));
+                                    CORRECT_FACTORY_ID).withRel("self")
+                                                         ));
         assertTrue(responseFactoryUrl.getLinks().contains(expectedCreateProject));
         assertTrue(responseFactoryUrl.getLinks()
                                      .contains(DtoFactory.getInstance().createDto(Link.class).withMethod("GET").withProduces("text/plain")
@@ -348,11 +374,11 @@ public class FactoryServiceTest {
         snippetMarkdown.setRel("snippet/markdown");
         snippetMarkdown.setMethod("GET");
         expectedLinks.add(snippetMarkdown);
-        
+
         Link snippetiFrame = DtoFactory.getInstance().createDto(Link.class);
         snippetiFrame.setProduces("text/plain");
         snippetiFrame.setHref(getServerUrl(context) + "/rest/private/factory/" + CORRECT_FACTORY_ID +
-                                "/snippet?type=iframe");
+                              "/snippet?type=iframe");
         snippetiFrame.setRel("snippet/iframe");
         snippetiFrame.setMethod("GET");
         expectedLinks.add(snippetiFrame);
@@ -397,7 +423,7 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldRespond400OnSaveFactoryWithOrgIdNotOwnedByCurrentUser(ITestContext context) throws Exception {
+    public void shouldRespond409OnSaveFactoryWithOrgIdNotOwnedByCurrentUser(ITestContext context) throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
         factoryUrl.setId(CORRECT_FACTORY_ID);
@@ -408,8 +434,8 @@ public class FactoryServiceTest {
         factoryUrl.setWelcome(DtoFactory.getInstance().createDto(WelcomePage.class));
         factoryUrl.setOrgid("orgid");
 
-        doThrow(new FactoryUrlException("You are not authorized to use this orgid.")).when(validator)
-                .validateOnCreate(Matchers.any(Factory.class));
+        doThrow(new ApiException("You are not authorized to use this orgid.")).when(validator)
+                                                                              .validateOnCreate(Matchers.any(Factory.class));
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 
@@ -420,7 +446,7 @@ public class FactoryServiceTest {
                         .post("/private" + SERVICE_PATH);
 
         // then
-        assertEquals(response.getStatusCode(), 400);
+        assertEquals(response.getStatusCode(), 409);
     }
 
     @Test
@@ -447,7 +473,7 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldReturnStatus400OnSaveFactoryIfImageHasUnsupportedMediaType() throws Exception {
+    public void shouldReturnStatus409OnSaveFactoryIfImageHasUnsupportedMediaType() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
         factoryUrl.setId(CORRECT_FACTORY_ID);
@@ -462,12 +488,15 @@ public class FactoryServiceTest {
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 
         // when, then
-        given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
+        Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
                 .multiPart("factoryUrl", JsonHelper.toJson(factoryUrl), MediaType.APPLICATION_JSON)//
                 .multiPart("image", path.toFile(), "image/tiff")//
-                .expect().statusCode(400)
-                .body(equalTo("Image media type 'image/tiff' is unsupported."))
+                .expect()
+                .statusCode(409)
                 .when().post("/private" + SERVICE_PATH);
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     "Image media type 'image/tiff' is unsupported.");
     }
 
     @Test
@@ -545,11 +574,11 @@ public class FactoryServiceTest {
                                 "/snippet?type=markdown");
         snippetMarkdown.setRel("snippet/markdown");
         expectedLinks.add(snippetMarkdown);
-        
+
         Link snippetiFrame = DtoFactory.getInstance().createDto(Link.class);
         snippetiFrame.setProduces("text/plain");
         snippetiFrame.setHref(getServerUrl(context) + "/rest/factory/" + CORRECT_FACTORY_ID +
-                                "/snippet?type=iframe");
+                              "/snippet?type=iframe");
         snippetiFrame.setRel("snippet/iframe");
         expectedLinks.add(snippetiFrame);
 
@@ -569,12 +598,14 @@ public class FactoryServiceTest {
         when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
 
         // when, then
-        given().//
+        Response response = given().//
                 expect().//
                 statusCode(404).//
-                body(equalTo(String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID))).//
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID);
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
     @Test
@@ -621,12 +652,14 @@ public class FactoryServiceTest {
         when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(new HashSet<FactoryImage>());
 
         // when, then
-        given().//
+        Response response = given().//
                 expect().//
                 statusCode(404).//
-                body(equalTo(String.format("Image with id %s is not found.", "illegalImageId"))).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image?imgId=illegalImageId");
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     String.format("Image with id %s is not found.", "illegalImageId"));
     }
 
     @Test
@@ -635,12 +668,14 @@ public class FactoryServiceTest {
         when(factoryStore.getFactoryImages(ILLEGAL_FACTORY_ID, null)).thenReturn(null);
 
         // when, then
-        given().//
+        Response response = given().//
                 expect().//
                 statusCode(404).//
-                body(equalTo(String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID))).//
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/image?imgId=ImageId");
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
     @Test
@@ -713,7 +748,8 @@ public class FactoryServiceTest {
                 equalTo("[![alt](" + getServerUrl(context) + "/api/factory/" + CORRECT_FACTORY_ID + "/image?imgId=" +
                         imageName + ")](" +
                         getServerUrl(context) + "/factory?id=" +
-                        CORRECT_FACTORY_ID + ")")).//
+                        CORRECT_FACTORY_ID + ")")
+                    ).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
     }
@@ -734,7 +770,8 @@ public class FactoryServiceTest {
                 equalTo("[![alt](" + getServerUrl(context) + "/factory/resources/factory-white.png)](" + getServerUrl
                         (context) +
                         "/factory?id=" +
-                        CORRECT_FACTORY_ID + ")")).//
+                        CORRECT_FACTORY_ID + ")")
+                    ).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
     }
@@ -745,26 +782,30 @@ public class FactoryServiceTest {
         when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
 
         // when, then
-        given().//
+        Response response = given().//
                 expect().//
                 statusCode(404).//
-                body(equalTo("Factory URL with id " + ILLEGAL_FACTORY_ID + " is not found.")).//
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/snippet?type=url");
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     "Factory URL with id " + ILLEGAL_FACTORY_ID + " is not found.");
     }
 
     @Test(dataProvider = "badSnippetTypeProvider")
-    public void shouldResponse400OnGetSnippetIfTypeIsIllegal(String type) throws Exception {
+    public void shouldResponse409OnGetSnippetIfTypeIsIllegal(String type) throws Exception {
         // given
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto(Factory.class));
 
         // when, then
-        given().//
+        Response response = given().//
                 expect().//
-                statusCode(400).//
-                body(equalTo(String.format("Snippet type \"%s\" is unsupported.", type))).//
+                statusCode(409).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=" + type);
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     String.format("Snippet type \"%s\" is unsupported.", type));
     }
 
     @DataProvider(name = "badSnippetTypeProvider")
@@ -805,7 +846,7 @@ public class FactoryServiceTest {
 
         // when
         Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).
-                when().get("/private" + SERVICE_PATH + "/find?accountid=testorg" );
+                when().get("/private" + SERVICE_PATH + "/find?accountid=testorg");
 
         // then
         assertEquals(response.getStatusCode(), 200);

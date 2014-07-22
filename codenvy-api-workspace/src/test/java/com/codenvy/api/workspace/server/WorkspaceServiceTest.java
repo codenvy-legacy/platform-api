@@ -13,7 +13,7 @@ package com.codenvy.api.workspace.server;
 import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -175,7 +175,7 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToCreateNewWorkspace() throws Exception {
-        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID);
+        Account acc = new Account().withId(ACCOUNT_ID);
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(acc);
         when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(acc));
 
@@ -236,7 +236,7 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldNotBeAbleToCreateWorkspaceIfAccountNotSubscribedOnMultipleWorkspaces()
             throws Exception {
-        Account acc = DtoFactory.getInstance().createDto(Account.class).withId(ACCOUNT_ID);
+        Account acc = new Account().withId(ACCOUNT_ID);
         when(accountDao.getByOwner(USER_ID)).thenReturn(Arrays.asList(acc));
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(acc);
         when(workspaceDao.getByAccount(ACCOUNT_ID)).thenReturn(Arrays.asList(new Workspace()));

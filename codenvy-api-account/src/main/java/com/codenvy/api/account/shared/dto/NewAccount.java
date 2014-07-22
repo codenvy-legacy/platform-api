@@ -12,7 +12,7 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -20,11 +20,11 @@ import java.util.List;
 @DTO
 public interface NewAccount {
 
-    List<Attribute> getAttributes();
+    Map<String, String> getAttributes();
 
-    void setAttributes(List<Attribute> attributes);
+    void setAttributes(Map<String, String> attributes);
 
-    NewAccount withAttributes(List<Attribute> attributes);
+    NewAccount withAttributes(Map<String, String> attributes);
 
     String getName();
 

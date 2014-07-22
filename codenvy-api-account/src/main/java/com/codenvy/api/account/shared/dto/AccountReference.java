@@ -10,23 +10,32 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
 
 /**
- * Describes account with roles. It should be used with
- * {@link com.codenvy.api.account.server.AccountService#getMemberships(javax.ws.rs.core.SecurityContext)}
- *
  * @author Eugene Voevodin
  */
 @DTO
-// TODO: replace with class
-public interface AccountMembership extends Account {
+public interface AccountReference {
 
-    List<String> getRoles();
+    String getName();
 
-    void setRoles(List<String> roles);
+    void setName(String name);
 
-    AccountMembership withRoles(List<String> roles);
+    AccountReference withName(String name);
+
+    String getId();
+
+    void setId(String id);
+
+    AccountReference withId(String id);
+
+    List<Link> getLinks();
+
+    void setLinks(List<Link> links);
+
+    AccountReference withLinks(List<Link> links);
 }

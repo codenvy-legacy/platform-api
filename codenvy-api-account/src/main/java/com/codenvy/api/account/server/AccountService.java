@@ -11,20 +11,19 @@
 package com.codenvy.api.account.server;
 
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.server.dao.Account;
+import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
-import com.codenvy.api.account.shared.dto.AccountMembership;
-import com.codenvy.api.account.shared.dto.AccountMembershipDescriptor;
+import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
-import com.codenvy.api.account.shared.dto.Attribute;
-import com.codenvy.api.account.shared.dto.Member;
+import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
 import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.Payment;
-import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
-import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
+import com.codenvy.api.account.shared.dto.SubscriptionHistoryEventDescriptor;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -64,16 +63,14 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import static com.codenvy.api.account.shared.dto.Subscription.State.WAIT_FOR_PAYMENT;
-import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type;
-import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type.CREATE;
-import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type.DELETE;
+import static com.codenvy.api.account.server.dao.Subscription.State.WAIT_FOR_PAYMENT;
+import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type;
+import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type.CREATE;
+import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type.DELETE;
 
 /**
  * Account API
@@ -109,8 +106,8 @@ public class AccountService extends Service {
             throw new ConflictException("Missed account to create");
         }
         if (newAccount.getAttributes() != null) {
-            for (Attribute attribute : newAccount.getAttributes()) {
-                validateAttributeName(attribute.getName());
+            for (String attributeName : newAccount.getAttributes().keySet()) {
+                validateAttributeName(attributeName);
             }
         }
         final Principal principal = securityContext.getUserPrincipal();
@@ -128,39 +125,30 @@ public class AccountService extends Service {
         } catch (NotFoundException ignored) {
         }
         final String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
-        final Account account = DtoFactory.getInstance().createDto(Account.class).withId(accountId).withName(newAccount.getName())
-                                          .withAttributes(newAccount.getAttributes());
+        final Account account = new Account().withId(accountId)
+                                             .withName(newAccount.getName())
+                                             .withAttributes(newAccount.getAttributes());
         //account should have owner
-        final Member owner = DtoFactory.getInstance().createDto(Member.class)
-                                       .withAccountId(accountId)
-                                       .withUserId(current.getId())
-                                       .withRoles(Arrays.asList("account/owner"));
+        final Member owner = new Member().withAccountId(accountId)
+                                         .withUserId(current.getId())
+                                         .withRoles(Arrays.asList("account/owner"));
         accountDao.create(account);
         accountDao.addMember(owner);
-        final AccountDescriptor accountDescriptor = DtoFactory.getInstance().createDto(AccountDescriptor.class).withId(account.getId())
-                                                              .withName(account.getName()).withAttributes(account.getAttributes());
-        injectLinks(accountDescriptor, securityContext);
-        return Response.status(Response.Status.CREATED).entity(accountDescriptor).build();
+        return Response.status(Response.Status.CREATED).entity(toDescriptor(account, securityContext)).build();
     }
 
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<AccountMembershipDescriptor> getMemberships(@Context SecurityContext securityContext)
+    public List<MemberDescriptor> getMemberships(@Context SecurityContext securityContext)
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
-        final List<AccountMembership> memberships = accountDao.getByMember(current.getId());
-        final List<AccountMembershipDescriptor> result = new ArrayList<>(memberships.size());
-        for (AccountMembership membership : memberships) {
-            final AccountMembershipDescriptor membershipDescriptor =
-                    (AccountMembershipDescriptor)DtoFactory.getInstance().createDto(AccountMembershipDescriptor.class)
-                                                           .withRoles(membership.getRoles()).withId(membership.getId())
-                                                           .withName(membership.getName())
-                                                           .withAttributes(membership.getAttributes());
-            injectLinks(membershipDescriptor, securityContext);
-            result.add(membershipDescriptor);
+        final List<Member> memberships = accountDao.getByMember(current.getId());
+        final List<MemberDescriptor> result = new ArrayList<>(memberships.size());
+        for (Member membership : memberships) {
+            result.add(toDescriptor(membership, accountDao.getById(membership.getAccountId()), securityContext));
         }
         return result;
     }
@@ -170,7 +158,7 @@ public class AccountService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<AccountMembershipDescriptor> getMembershipsOfSpecificUser(
+    public List<MemberDescriptor> getMembershipsOfSpecificUser(
             @Required @Description("User id to get accounts") @QueryParam("userid") String userId,
             @Context SecurityContext securityContext)
             throws ConflictException, NotFoundException, ServerException {
@@ -178,35 +166,12 @@ public class AccountService extends Service {
             throw new ConflictException("Missed userid to search");
         }
         final User user = userDao.getById(userId);
-        final List<AccountMembership> memberships = accountDao.getByMember(user.getId());
-        final List<AccountMembershipDescriptor> result = new ArrayList<>(memberships.size());
-        for (AccountMembership membership : memberships) {
-            final AccountMembershipDescriptor membershipDescriptor =
-                    (AccountMembershipDescriptor)DtoFactory.getInstance().createDto(AccountMembershipDescriptor.class)
-                                                           .withRoles(membership.getRoles()).withId(membership.getId())
-                                                           .withName(membership.getName())
-                                                           .withAttributes(membership.getAttributes());
-            injectLinks(membershipDescriptor, securityContext);
-            result.add(membershipDescriptor);
+        final List<Member> memberships = accountDao.getByMember(user.getId());
+        final List<MemberDescriptor> result = new ArrayList<>(memberships.size());
+        for (Member membership : memberships) {
+            result.add(toDescriptor(membership, accountDao.getById(membership.getAccountId()), securityContext));
         }
         return result;
-    }
-
-    @POST
-    @Path("{id}/attribute")
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    @Consumes(MediaType.APPLICATION_JSON)
-    public void addAttribute(@PathParam("id") String accountId, Attribute newAttribute)
-            throws NotFoundException, ConflictException, ForbiddenException, ServerException {
-        final Account account = accountDao.getById(accountId);
-        if (newAttribute == null) {
-            throw new ConflictException("Attribute required");
-        }
-        validateAttributeName(newAttribute.getName());
-        final List<Attribute> actual = account.getAttributes();
-        removeAttribute(actual, newAttribute.getName());
-        actual.add(newAttribute);
-        accountDao.update(account);
     }
 
     @DELETE
@@ -216,21 +181,19 @@ public class AccountService extends Service {
             throws ConflictException, NotFoundException, ForbiddenException, ServerException {
         final Account account = accountDao.getById(accountId);
         validateAttributeName(attributeName);
-        removeAttribute(account.getAttributes(), attributeName);
+        account.getAttributes().remove(attributeName);
         accountDao.update(account);
     }
 
+    //TODO: add method for removing list of attributes
     @GET
     @Path("{id}")
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public AccountDescriptor getById(@Context SecurityContext securityContext, @PathParam("id") String id)
             throws NotFoundException, ServerException {
         final Account account = accountDao.getById(id);
-        final AccountDescriptor accountDescriptor = DtoFactory.getInstance().createDto(AccountDescriptor.class).withId(account.getId())
-                                                              .withName(account.getName()).withAttributes(account.getAttributes());
-        injectLinks(accountDescriptor, securityContext);
-        return accountDescriptor;
+        return toDescriptor(account, securityContext);
     }
 
     @GET
@@ -245,23 +208,23 @@ public class AccountService extends Service {
             throw new ConflictException("Missed account name");
         }
         final Account account = accountDao.getByName(name);
-        final AccountDescriptor accountDescriptor = DtoFactory.getInstance().createDto(AccountDescriptor.class).withId(account.getId())
-                                                              .withName(account.getName()).withAttributes(account.getAttributes());
-        injectLinks(accountDescriptor, securityContext);
-        return accountDescriptor;
+        return toDescriptor(account, securityContext);
     }
 
     @POST
     @Path("{id}/members")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
     public void addMember(@PathParam("id") String accountId,
-                          @QueryParam("userid") String userId)
+                          @QueryParam("userid") String userId,
+                          @Context SecurityContext securityContext)
             throws ConflictException, NotFoundException, ForbiddenException, ServerException {
         if (userId == null) {
             throw new ConflictException("Missed user id");
         }
-        Member newMember = DtoFactory.getInstance().createDto(Member.class).withAccountId(accountId).withUserId(userId);
-        newMember.setRoles(Arrays.asList("account/member"));
+        final Member newMember = new Member().withAccountId(accountId)
+                                             .withUserId(userId)
+                                             .withRoles(Arrays.asList("account/member"));
         accountDao.addMember(newMember);
     }
 
@@ -271,19 +234,11 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembers(@PathParam("id") String id, @Context SecurityContext securityContext)
             throws NotFoundException, ForbiddenException, ServerException {
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final Account account = accountDao.getById(id);
         final List<Member> members = accountDao.getMembers(id);
         final List<MemberDescriptor> result = new ArrayList<>(members.size());
         for (Member member : members) {
-            final MemberDescriptor memberDescriptor = DtoFactory.getInstance().createDto(MemberDescriptor.class)
-                                                                .withUserId(member.getUserId()).withAccountId(member.getAccountId())
-                                                                .withRoles(member.getRoles())
-                                                                .withLinks(Arrays.asList(
-                                                                        createLink("DELETE", Constants.LINK_REL_REMOVE_MEMBER, null, null,
-                                                                                   uriBuilder.clone().path(getClass(), "removeMember")
-                                                                                             .build(id, member.getUserId()).toString()
-                                                                                  )));
-            result.add(memberDescriptor);
+            result.add(toDescriptor(member, account, securityContext));
         }
         return result;
     }
@@ -344,27 +299,11 @@ public class AccountService extends Service {
                 account.setName(update.getName());
             }
         }
-
-        //add new attributes and rewrite existed with same name
         if (update.getAttributes() != null) {
-            final Map<String, Attribute> updates = new LinkedHashMap<>(update.getAttributes().size());
-            for (Attribute toUpdate : update.getAttributes()) {
-                validateAttributeName(toUpdate.getName());
-                updates.put(toUpdate.getName(), toUpdate);
-            }
-            for (Iterator<Attribute> it = account.getAttributes().iterator(); it.hasNext(); ) {
-                final Attribute attribute = it.next();
-                if (updates.containsKey(attribute.getName())) {
-                    it.remove();
-                }
-            }
-            account.getAttributes().addAll(update.getAttributes());
+            account.getAttributes().putAll(update.getAttributes());
         }
         accountDao.update(account);
-        final AccountDescriptor accountDescriptor = DtoFactory.getInstance().createDto(AccountDescriptor.class).withId(account.getId())
-                                                              .withName(account.getName()).withAttributes(account.getAttributes());
-        injectLinks(accountDescriptor, securityContext);
-        return accountDescriptor;
+        return toDescriptor(account, securityContext);
     }
 
     @GET
@@ -372,7 +311,7 @@ public class AccountService extends Service {
     @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<SubscriptionDescriptor> getSubscriptions(@PathParam("id") String accountId,
-                                               @Context SecurityContext securityContext)
+                                                         @Context SecurityContext securityContext)
             throws NotFoundException, ForbiddenException, ServerException {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
@@ -420,9 +359,13 @@ public class AccountService extends Service {
         }
 
         final SubscriptionDescriptor subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
-                .withId(subscription.getId()).withAccountId(subscription.getAccountId()).withStartDate(subscription.getStartDate())
-                .withEndDate(subscription.getEndDate()).withServiceId(subscription.getServiceId())
-                .withProperties(subscription.getProperties()).withState(subscription.getState());
+                                                                        .withId(subscription.getId())
+                                                                        .withAccountId(subscription.getAccountId())
+                                                                        .withStartDate(subscription.getStartDate())
+                                                                        .withEndDate(subscription.getEndDate())
+                                                                        .withServiceId(subscription.getServiceId())
+                                                                        .withProperties(subscription.getProperties())
+                                                                        .withState(subscription.getState());
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (roles.contains("account/owner") || securityContext.isUserInRole("system/admin")
             || securityContext.isUserInRole("system/manager")) {
@@ -462,10 +405,9 @@ public class AccountService extends Service {
         if (null == service) {
             throw new ConflictException("Unknown serviceId is used");
         }
-        final Subscription subscription = DtoFactory.getInstance().createDto(Subscription.class)
-                                                    .withAccountId(newSubscription.getAccountId())
-                                                    .withServiceId(newSubscription.getServiceId())
-                                                    .withProperties(newSubscription.getProperties());
+        final Subscription subscription = new Subscription().withAccountId(newSubscription.getAccountId())
+                                                            .withServiceId(newSubscription.getServiceId())
+                                                            .withProperties(newSubscription.getProperties());
         subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
 
         subscription.setStartDate(System.currentTimeMillis());
@@ -553,14 +495,13 @@ public class AccountService extends Service {
      * @return subscription history event
      */
     private SubscriptionHistoryEvent createSubscriptionHistoryEvent(Subscription subscription, Type type) {
-        return DtoFactory.getInstance().createDto(SubscriptionHistoryEvent.class)
-                         .withId(NameGenerator.generate(
-                                 SubscriptionHistoryEvent.class.getSimpleName().toLowerCase(),
-                                 Constants.ID_LENGTH))
-                         .withType(type)
-                         .withUserId(EnvironmentContext.getCurrent().getUser().getId())
-                         .withTime(System.currentTimeMillis())
-                         .withSubscription(subscription);
+        return new SubscriptionHistoryEvent()
+                .withId(NameGenerator.generate(SubscriptionHistoryEventDescriptor.class.getSimpleName().toLowerCase(),
+                                               Constants.ID_LENGTH))
+                .withType(type)
+                .withUserId(EnvironmentContext.getCurrent().getUser().getId())
+                .withTime(System.currentTimeMillis())
+                .withSubscription(subscription);
     }
 
     /**
@@ -573,8 +514,8 @@ public class AccountService extends Service {
     private Set<String> resolveRolesForSpecificAccount(String currentAccountId) {
         try {
             final String userId = EnvironmentContext.getCurrent().getUser().getId();
-            for (AccountMembership membership : accountDao.getByMember(userId)) {
-                if (membership.getId().equals(currentAccountId)) {
+            for (Member membership : accountDao.getByMember(userId)) {
+                if (membership.getAccountId().equals(currentAccountId)) {
                     return new HashSet<>(membership.getRoles());
                 }
             }
@@ -589,43 +530,107 @@ public class AccountService extends Service {
         }
     }
 
-    private void removeAttribute(List<Attribute> src, String attributeName) {
-        for (Iterator<Attribute> it = src.iterator(); it.hasNext(); ) {
-            final Attribute current = it.next();
-            if (current.getName().equals(attributeName)) {
-                it.remove();
-                break;
-            }
-        }
-    }
-
-    private void injectLinks(AccountDescriptor account, SecurityContext securityContext) {
-        final List<Link> links = new LinkedList<>();
+    private AccountDescriptor toDescriptor(Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_ACCOUNTS, null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getMemberships").build().toString()));
-        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTIONS, null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getSubscriptions").build(account.getId())
-                                       .toString()
-                            ));
-        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_MEMBERS, null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getMembers").build(account.getId())
-                                       .toString()
-                            ));
+        final List<Link> links = new LinkedList<>();
+        links.add(createLink(HttpMethod.GET,
+                             Constants.LINK_REL_GET_ACCOUNTS,
+                             null,
+                             MediaType.APPLICATION_JSON,
+                             uriBuilder.clone()
+                                       .path(getClass(), "getMemberships")
+                                       .build()
+                                       .toString()));
+        links.add(createLink(HttpMethod.GET,
+                             Constants.LINK_REL_GET_SUBSCRIPTIONS,
+                             null,
+                             MediaType.APPLICATION_JSON,
+                             uriBuilder.clone()
+                                       .path(getClass(), "getSubscriptions")
+                                       .build(account.getId())
+                                       .toString()));
+        links.add(createLink(HttpMethod.GET,
+                             Constants.LINK_REL_GET_MEMBERS,
+                             null,
+                             MediaType.APPLICATION_JSON,
+                             uriBuilder.clone()
+                                       .path(getClass(), "getMembers")
+                                       .build(account.getId())
+                                       .toString()));
+        links.add(createLink(HttpMethod.GET,
+                             Constants.LINK_REL_GET_ACCOUNT_BY_ID,
+                             null,
+                             MediaType.APPLICATION_JSON,
+                             uriBuilder.clone()
+                                       .path(getClass(), "getById")
+                                       .build(account.getId())
+                                       .toString()));
+
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_ACCOUNT_BY_ID, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getById").build(account.getId()).toString()));
-            links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_ACCOUNT_BY_NAME, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getByName").queryParam("name", account.getName())
+            links.add(createLink(HttpMethod.GET,
+                                 Constants.LINK_REL_GET_ACCOUNT_BY_NAME,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getByName")
+                                           .queryParam("name", account.getName())
                                            .build()
-                                           .toString()
-                                ));
+                                           .toString()));
         }
         if (securityContext.isUserInRole("system/admin")) {
-            links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_ACCOUNT, null, null,
-                                 uriBuilder.clone().path(getClass(), "remove").build(account.getId()).toString()));
+            links.add(createLink(HttpMethod.DELETE,
+                                 Constants.LINK_REL_REMOVE_ACCOUNT,
+                                 null,
+                                 null,
+                                 uriBuilder.clone().path(getClass(), "remove")
+                                           .build(account.getId())
+                                           .toString()));
         }
-        account.setLinks(links);
+        return DtoFactory.getInstance().createDto(AccountDescriptor.class)
+                         .withId(account.getId())
+                         .withName(account.getName())
+                         .withAttributes(account.getAttributes())
+                         .withLinks(links);
+    }
+
+    private MemberDescriptor toDescriptor(Member member, Account account, SecurityContext securityContext) {
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final Link removeMember = createLink(HttpMethod.DELETE,
+                                             Constants.LINK_REL_REMOVE_MEMBER,
+                                             null,
+                                             null,
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "removeMember")
+                                                       .build(account.getId(), member.getUserId())
+                                                       .toString());
+        final Link allMembers = createLink(HttpMethod.GET,
+                                           Constants.LINK_REL_GET_MEMBERS,
+                                           null,
+                                           MediaType.APPLICATION_JSON,
+                                           uriBuilder.clone()
+                                                     .path(getClass(), "getMembers")
+                                                     .build(account.getId())
+                                                     .toString());
+        final AccountReference accountRef = DtoFactory.getInstance().createDto(AccountReference.class)
+                                                      .withId(account.getId())
+                                                      .withName(account.getName());
+        if (member.getRoles().contains("account/owner") ||
+            securityContext.isUserInRole("system/admin") ||
+            securityContext.isUserInRole("system/manager")) {
+            accountRef.setLinks(Collections.singletonList(createLink(HttpMethod.GET,
+                                                                     Constants.LINK_REL_GET_ACCOUNT_BY_ID,
+                                                                     null,
+                                                                     MediaType.APPLICATION_JSON,
+                                                                     uriBuilder.clone()
+                                                                               .path(getClass(), "getById")
+                                                                               .build(account.getId())
+                                                                               .toString())));
+        }
+        return DtoFactory.getInstance().createDto(MemberDescriptor.class)
+                         .withUserId(member.getUserId())
+                         .withRoles(member.getRoles())
+                         .withAccountReference(accountRef)
+                         .withLinks(Arrays.asList(removeMember, allMembers));
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {

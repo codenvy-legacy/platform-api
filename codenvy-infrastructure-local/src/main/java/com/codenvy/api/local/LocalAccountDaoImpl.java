@@ -10,11 +10,11 @@
  *******************************************************************************/
 package com.codenvy.api.local;
 
-import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
-import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
+import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.dto.server.DtoFactory;
@@ -24,8 +24,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-
-import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type.CREATE;
 
 /**
  * @author Eugene Voevodin
@@ -141,10 +139,11 @@ public class LocalAccountDaoImpl implements AccountDao {
 
     @Override
     public List<SubscriptionHistoryEvent> getSubscriptionHistoryEvents(SubscriptionHistoryEvent event) throws ServerException {
-        return Arrays
-                .asList(DtoFactory.getInstance().createDto(SubscriptionHistoryEvent.class).withId("SUBSCRIPTION_HISTORY_EVENT_ID").withTime(
-                        System.currentTimeMillis()).withType(CREATE).withUserId("userId112233322239")
-                                  .withSubscription(getSubscriptionById("Subscription0xfffffffff")));
+        return Arrays.asList(
+                new SubscriptionHistoryEvent().withId("SUBSCRIPTION_HISTORY_EVENT_ID").withTime(System.currentTimeMillis())
+                                              .withType(SubscriptionHistoryEvent.Type.CREATE).withUserId("userId112233322239")
+                                              .withSubscription(getSubscriptionById("Subscription0xfffffffff"))
+                            );
     }
 
     @Override

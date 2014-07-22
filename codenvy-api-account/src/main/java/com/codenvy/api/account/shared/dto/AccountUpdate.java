@@ -12,7 +12,6 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
 import java.util.Map;
 
 /**

@@ -12,7 +12,7 @@ package com.codenvy.api.workspace.server;
 
 
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
+import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -134,11 +134,8 @@ public class WorkspaceService extends Service {
             throw new ConflictException("You can create workspace associated only to your own account");
         }
         if (securityContext.isUserInRole("user")) {
-            boolean isMultipleWorkspaceAvailable = false;
-            for (int i = 0; i < actualAcc.getAttributes().size() && !isMultipleWorkspaceAvailable; ++i) {
-                isMultipleWorkspaceAvailable = actualAcc.getAttributes().get(i).getName().equals("codenvy_workspace_multiple_till");
-            }
-            if (!isMultipleWorkspaceAvailable && workspaceDao.getByAccount(accountId).size() > 0) {
+            if (actualAcc.getAttributes().get("codenvy_workspace_multiple_till") == null &&
+                workspaceDao.getByAccount(accountId).size() > 0) {
                 throw new ForbiddenException("You have not access to create more workspaces");
             }
         }
@@ -310,7 +307,6 @@ public class WorkspaceService extends Service {
             workspaceDao.getByName(update.getName()) == null) {
             workspace.setName(update.getName());
         }
-        //todo what about accountId ? should it be possible to change account?
         workspaceDao.update(workspace);
 
         LOG.info("EVENT#workspace-updated# WS#{}# WS-ID#{}#", workspace.getName(), workspace.getId());
@@ -531,7 +527,7 @@ public class WorkspaceService extends Service {
         }
     }
 
-    private MemberDescriptor toDescriptor(Member member, Workspace workspace) {
+    private MemberDescriptor toDescriptor(Member member, Workspace workspace/*, SecurityContext securityContext*/) {
         final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
         final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
         final Link wsLink = createLink("GET",

@@ -10,31 +10,32 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
 
 /**
- * @author andrew00x
+ * @author Eugene Voevodin
  */
 @DTO
-// TODO: replace with class
-public interface Member {
-    List<String> getRoles();
+public interface AccountReference {
 
-    void setRoles(List<String> roles);
+    String getName();
 
-    Member withRoles(List<String> roles);
+    void setName(String name);
 
-    String getUserId();
+    AccountReference withName(String name);
 
-    void setUserId(String id);
+    String getId();
 
-    Member withUserId(String id);
+    void setId(String id);
 
-    String getAccountId();
+    AccountReference withId(String id);
 
-    void setAccountId(String id);
+    List<Link> getLinks();
 
-    Member withAccountId(String id);
+    void setLinks(List<Link> links);
+
+    AccountReference withLinks(List<Link> links);
 }

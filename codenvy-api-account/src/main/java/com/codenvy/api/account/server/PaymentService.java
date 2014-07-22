@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.account.server;
 
-import com.codenvy.api.account.shared.dto.CreditCard;
+import com.codenvy.api.account.shared.dto.NewCreditCard;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -46,7 +46,7 @@ public interface PaymentService {
      * @throws ServerException
      *         if internal server error occurs
      */
-    CreditCard getCreditCard(String userId) throws ServerException, NotFoundException;
+    NewCreditCard getCreditCard(String userId) throws ServerException, NotFoundException;
 
     /**
      * Saves credit card in the storage. User can have only 1 credit card at once.
@@ -60,7 +60,7 @@ public interface PaymentService {
      * @throws ServerException
      *         if internal server error occurs
      */
-    void saveCreditCard(String userId, CreditCard creditCard) throws ConflictException, ServerException;
+    void saveCreditCard(String userId, NewCreditCard creditCard) throws ConflictException, ServerException;
 
     /**
      * Removes current credit card of the user.

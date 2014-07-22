@@ -32,11 +32,11 @@ public interface MemberDescriptor {
 
     MemberDescriptor withUserId(String id);
 
-    String getAccountId();
+    AccountReference getAccountReference();
 
-    void setAccountId(String id);
+    void setAccountReference(AccountReference accountReference);
 
-    MemberDescriptor withAccountId(String id);
+    MemberDescriptor withAccountReference(AccountReference accountReference);
 
     List<Link> getLinks();
 

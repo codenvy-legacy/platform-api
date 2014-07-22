@@ -11,7 +11,7 @@
 package com.codenvy.api.account.server;
 
 
-import com.codenvy.api.account.shared.dto.Subscription;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
 
 /**

@@ -14,6 +14,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -21,11 +22,11 @@ import java.util.List;
 @DTO
 public interface AccountDescriptor {
 
-    List<Attribute> getAttributes();
+    Map<String, String> getAttributes();
 
-    void setAttributes(List<Attribute> attributes);
+    void setAttributes(Map<String, String> attributes);
 
-    AccountDescriptor withAttributes(List<Attribute> attributes);
+    AccountDescriptor withAttributes(Map<String, String> attributes);
 
     String getName();
 

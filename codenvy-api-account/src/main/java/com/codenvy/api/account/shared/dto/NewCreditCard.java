@@ -18,34 +18,34 @@ import com.codenvy.dto.shared.DTO;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface CreditCard {
+public interface NewCreditCard {
     String getCardNumber();
 
     void setCardNumber(String cardNumber);
 
-    CreditCard withCardNumber(String cardNumber);
+    NewCreditCard withCardNumber(String cardNumber);
 
     String getCvv();
 
     void setCvv(String cvv);
 
-    CreditCard withCvv(String cvv);
+    NewCreditCard withCvv(String cvv);
 
     String getExpirationMonth();
 
     void setExpirationMonth(String expirationMonth);
 
-    CreditCard withExpirationMonth(String expirationMonth);
+    NewCreditCard withExpirationMonth(String expirationMonth);
 
     String getExpirationYear();
 
     void setExpirationYear(String expirationYear);
 
-    CreditCard withExpirationYear(String expirationYear);
+    NewCreditCard withExpirationYear(String expirationYear);
 
     String getCardholderName();
 
     void setCardholderName(String cardholderName);
 
-    CreditCard withCardholderName(String cardholderName);
+    NewCreditCard withCardholderName(String cardholderName);
 }

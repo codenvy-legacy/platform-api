@@ -11,22 +11,21 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.shared.dto.Account;
-import com.codenvy.api.account.shared.dto.AccountMembership;
-import com.codenvy.api.account.shared.dto.Attribute;
-import com.codenvy.api.account.shared.dto.Member;
-import com.codenvy.api.account.shared.dto.Subscription;
-import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
+import com.codenvy.api.account.server.dao.Account;
+import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
+import com.codenvy.api.account.server.dao.Member;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Singleton;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent.Type.CREATE;
+import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type.CREATE;
 
 /**
  * @author Eugene Voevodin
@@ -40,35 +39,23 @@ public class LocalAccountDaoImpl implements AccountDao {
 
     @Override
     public Account getById(String id) {
-        return DtoFactory.getInstance().createDto(Account.class)
-                         .withName("acc_name")
-                         .withId(id)
-                         .withAttributes(Arrays.asList(
-                                 DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                           .withDescription("important attribute")
-                                                      ));
+        return new Account().withName("acc_name")
+                            .withId(id)
+                            .withAttributes(Collections.singletonMap("attribute1", "value"));
     }
 
     @Override
     public Account getByName(String name) {
-        return DtoFactory.getInstance().createDto(Account.class)
-                         .withName(name)
-                         .withId("acc0xffaassdeereqWsss")
-                         .withAttributes(Arrays.asList(
-                                 DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                           .withDescription("important attribute")
-                                                      ));
+        return new Account().withName(name)
+                            .withId("acc0xffaassdeereqWsss")
+                            .withAttributes(Collections.singletonMap("attribute1", "value"));
     }
 
     @Override
     public List<Account> getByOwner(String owner) {
-        return Arrays.asList(DtoFactory.getInstance().createDto(Account.class)
-                                       .withName("acc_name")
-                                       .withId("acc0xffaassdeereqWsss")
-                                       .withAttributes(Arrays.asList(
-                                               DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                                                         .withDescription("important attribute")
-                                                                    )));
+        return Arrays.asList(new Account().withName("acc_name")
+                                          .withId("acc0xffaassdeereqWsss")
+                                          .withAttributes(Collections.singletonMap("attribute1", "value")));
     }
 
     @Override
@@ -139,16 +126,12 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<AccountMembership> getByMember(String userId) {
-        AccountMembership am = DtoFactory.getInstance().createDto(AccountMembership.class);
-        am.setId("cc0xffaassdeereqWsss");
-        am.setName("acc_name");
-        am.setRoles(Arrays.asList("account/member"));
-        am.setAttributes(Arrays.asList(
-                DtoFactory.getInstance().createDto(Attribute.class).withName("attribute1").withValue("value")
-                          .withDescription("important attribute")
-                                      ));
-        return Arrays.asList(am);
+    public List<Member> getByMember(String userId) {
+        final Member member = new Member()
+                .withAccountId("cc0xffaassdeereqWsss")
+                .withUserId("userId122332133123")
+                .withRoles(Arrays.asList("account/member"));
+        return Arrays.asList(member);
     }
 
     @Override

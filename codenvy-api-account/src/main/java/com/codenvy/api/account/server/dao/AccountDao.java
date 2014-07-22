@@ -10,11 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.account.server.dao;
 
-import com.codenvy.api.account.shared.dto.Account;
-import com.codenvy.api.account.shared.dto.AccountMembership;
-import com.codenvy.api.account.shared.dto.Member;
-import com.codenvy.api.account.shared.dto.Subscription;
-import com.codenvy.api.account.shared.dto.SubscriptionHistoryEvent;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -22,7 +17,7 @@ import com.codenvy.api.core.ServerException;
 import java.util.List;
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.account.shared.dto.Account} data.
+ * DAO interface offers means to perform CRUD operations with {@link Account} data.
  * The implementation is not required
  * to be responsible for persistent layer data dto consistency. It simply transfers data from one layer to another,
  * so
@@ -166,7 +161,7 @@ public interface AccountDao {
      *         user identifier to search
      * @return list of accounts, or empty list if no accounts found
      */
-    List<AccountMembership> getByMember(String userId) throws NotFoundException, ServerException;
+    List<Member> getByMember(String userId) throws NotFoundException, ServerException;
 
     /**
      * Add new event to the history of subscriptions

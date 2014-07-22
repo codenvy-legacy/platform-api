@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
@@ -18,7 +19,7 @@ import java.util.Map;
 
 /**
  * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
- * com.codenvy.api.account.shared.dto.Account}
+ * com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
  */

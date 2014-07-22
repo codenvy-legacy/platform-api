@@ -11,7 +11,9 @@
 package com.codenvy.api.workspace.server.dao;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -19,11 +21,11 @@ import java.util.Objects;
  */
 public class Workspace {
 
-    private boolean         temporary;
-    private String          id;
-    private String          name;
-    private String          accountId;
-    private List<Attribute> attributes;
+    private boolean             temporary;
+    private String              id;
+    private String              name;
+    private String              accountId;
+    private Map<String, String> attributes;
 
     public String getId() {
         return id;
@@ -77,18 +79,18 @@ public class Workspace {
         return this;
     }
 
-    public List<Attribute> getAttributes() {
+    public Map<String, String> getAttributes() {
         if (attributes == null) {
-            attributes = new ArrayList<>();
+            attributes = new HashMap<>();
         }
         return attributes;
     }
 
-    public void setAttributes(List<Attribute> attributes) {
+    public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
     }
 
-    public Workspace withAttributes(List<Attribute> attributes) {
+    public Workspace withAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
         return this;
     }
@@ -96,7 +98,7 @@ public class Workspace {
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 31 * hash + Objects.hashCode(temporary);
+        hash = 31 * hash + (temporary ? 0 : 1);
         hash = 31 * hash + Objects.hashCode(id);
         hash = 31 * hash + Objects.hashCode(name);
         hash = 31 * hash + Objects.hashCode(accountId);

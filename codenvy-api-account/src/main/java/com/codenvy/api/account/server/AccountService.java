@@ -565,7 +565,6 @@ public class AccountService extends Service {
                                        .path(getClass(), "getById")
                                        .build(account.getId())
                                        .toString()));
-
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink(HttpMethod.GET,
                                  Constants.LINK_REL_GET_ACCOUNT_BY_NAME,

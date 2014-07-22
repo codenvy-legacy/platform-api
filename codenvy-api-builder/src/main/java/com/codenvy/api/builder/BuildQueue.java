@@ -339,7 +339,7 @@ public class BuildQueue {
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, waitingTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
-        eventService.publish(BuilderEvent.queueStartedEvent(id, wsId, project ));
+        eventService.publish(BuilderEvent.queueStartedEvent(id, wsId, project));
         executor.execute(future);
         return task;
     }
@@ -448,15 +448,6 @@ public class BuildQueue {
         return list.get(0);
     }
 
-    private static String getWorkspaceAttributeValue(String name, List<com.codenvy.api.workspace.shared.dto.Attribute> attributes) {
-        for (com.codenvy.api.workspace.shared.dto.Attribute attribute : attributes) {
-            if (name.equals(attribute.getName())) {
-                return attribute.getValue();
-            }
-        }
-        return null;
-    }
-
     private static Link getLink(String rel, List<Link> links) {
         for (Link link : links) {
             if (rel.equals(link.getRel())) {
@@ -537,7 +528,7 @@ public class BuildQueue {
     }
 
     private long getBuildTimeout(WorkspaceDescriptor workspace) throws BuilderException {
-        final String timeoutAttr = getWorkspaceAttributeValue(Constants.BUILDER_EXECUTION_TIME, workspace.getAttributes());
+        final String timeoutAttr = workspace.getAttributes().get(Constants.BUILDER_EXECUTION_TIME);
         return timeoutAttr != null ? Integer.parseInt(timeoutAttr) : maxExecutionTimeMillis;
     }
 

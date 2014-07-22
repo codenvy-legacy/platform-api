@@ -258,7 +258,7 @@ public class RunQueue {
 
         checkResources(workspace, request);
 
-        final String lifetimeAttr = getWorkspaceAttributeValue(Constants.RUNNER_LIFETIME, workspace.getAttributes());
+        final String lifetimeAttr = workspace.getAttributes().get(Constants.RUNNER_LIFETIME);
         int lifetime = lifetimeAttr != null ? Integer.parseInt(lifetimeAttr) : defLifetime;
         if (lifetime <= 0) {
             lifetime = Integer.MAX_VALUE;
@@ -332,7 +332,7 @@ public class RunQueue {
         // Lock to be sure other threads don't try to start application in the same workspace.
         resourceCheckerLocks[index].lock();
         try {
-            final String availableMemAttr = getWorkspaceAttributeValue(Constants.RUNNER_MAX_MEMORY_SIZE, workspace.getAttributes());
+            final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
             final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMemSize;
             if (availableMem < request.getMemorySize()) {
                 throw new RunnerException(
@@ -510,15 +510,6 @@ public class RunQueue {
             return null;
         }
         return list.get(0);
-    }
-
-    private static String getWorkspaceAttributeValue(String name, List<com.codenvy.api.workspace.shared.dto.Attribute> attributes) {
-        for (com.codenvy.api.workspace.shared.dto.Attribute attribute : attributes) {
-            if (name.equals(attribute.getName())) {
-                return attribute.getValue();
-            }
-        }
-        return null;
     }
 
     private boolean tryCancelBuild(BuildTaskDescriptor buildDescriptor) {

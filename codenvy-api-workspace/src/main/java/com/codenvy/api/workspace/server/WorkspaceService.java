@@ -32,7 +32,6 @@ import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.shared.dto.Attribute;
 import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.shared.dto.NewWorkspace;
@@ -65,12 +64,10 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -114,8 +111,8 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Required new workspace");
         }
         if (newWorkspace.getAttributes() != null) {
-            for (Attribute attribute : newWorkspace.getAttributes()) {
-                validateAttributeName(attribute.getName());
+            for (String attributeName : newWorkspace.getAttributes().keySet()) {
+                validateAttributeName(attributeName);
             }
         }
         final String accountId = newWorkspace.getAccountId();
@@ -144,7 +141,7 @@ public class WorkspaceService extends Service {
                                                    .withName(newWorkspace.getName())
                                                    .withTemporary(false)
                                                    .withAccountId(accountId)
-                                                   .withAttributes(asDaoAttributes(newWorkspace.getAttributes()));
+                                                   .withAttributes(newWorkspace.getAttributes());
         final Member member = new Member().withUserId(user.getId())
                                           .withWorkspaceId(wsId)
                                           .withRoles(Arrays.asList("workspace/admin", "workspace/developer"));
@@ -170,8 +167,8 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Missed workspace to create");
         }
         if (newWorkspace.getAttributes() != null) {
-            for (Attribute attribute : newWorkspace.getAttributes()) {
-                validateAttributeName(attribute.getName());
+            for (String attributeName : newWorkspace.getAttributes().keySet()) {
+                validateAttributeName(attributeName);
             }
         }
         final String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
@@ -179,7 +176,7 @@ public class WorkspaceService extends Service {
                                                    .withName(newWorkspace.getName())
                                                    .withTemporary(true)
                                                    .withAccountId(newWorkspace.getAccountId())
-                                                   .withAttributes(asDaoAttributes(newWorkspace.getAttributes()));
+                                                   .withAttributes(newWorkspace.getAttributes());
         try {
             //let vfs create temporary workspace in correct place
             EnvironmentContext.getCurrent().setWorkspaceTemporary(true);
@@ -235,13 +232,12 @@ public class WorkspaceService extends Service {
             // by temporary workspace sharing filter for user that are not workspace/admin
             // so we need that property here.
             // PLZ DO NOT REMOVE!!!!
-            final List<com.codenvy.api.workspace.server.dao.Attribute> safeAttributes = new LinkedList<>();
-            for (com.codenvy.api.workspace.server.dao.Attribute attribute : workspace.getAttributes()) {
-                if (attribute.getName().equals("allowAnyoneAddMember")) {
-                    safeAttributes.add(attribute);
-                }
+            final Map<String, String> attributes = workspace.getAttributes();
+            if (attributes.containsKey("allowAnyoneAddMember")) {
+                workspace.setAttributes(Collections.singletonMap("allowAnyoneAddMember", attributes.get("allowAnyoneAddMember")));
+            } else {
+                workspace.setAttributes(Collections.<String, String>emptyMap());
             }
-            workspace.setAttributes(safeAttributes);
         }
         return toDescriptor(workspace, securityContext);
     }
@@ -264,44 +260,34 @@ public class WorkspaceService extends Service {
             // by temporary workspace sharing filter for user that are not workspace/admin
             // so we need that property here.
             // PLZ DO NOT REMOVE!!!!
-            final List<com.codenvy.api.workspace.server.dao.Attribute> safeAttributes = new LinkedList<>();
-            for (com.codenvy.api.workspace.server.dao.Attribute attribute : workspace.getAttributes()) {
-                if (attribute.getName().equals("allowAnyoneAddMember")) {
-                    safeAttributes.add(attribute);
-                }
+            final Map<String, String> attributes = workspace.getAttributes();
+            if (attributes.containsKey("allowAnyoneAddMember")) {
+                workspace.setAttributes(Collections.singletonMap("allowAnyoneAddMember", attributes.get("allowAnyoneAddMember")));
+            } else {
+                workspace.setAttributes(Collections.<String, String>emptyMap());
             }
-            workspace.setAttributes(safeAttributes);
         }
         return toDescriptor(workspace, securityContext);
     }
 
     @POST
     @Path("{id}")
-    @GenerateLink(rel = Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID)
     @RolesAllowed({"workspace/admin", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public WorkspaceDescriptor update(@Context SecurityContext securityContext, @PathParam("id") String id,
-                                      @Required @Description("workspace to update") WorkspaceUpdate update)
+    public WorkspaceDescriptor update(@Context SecurityContext securityContext,
+                                      @PathParam("id") String id,
+                                      WorkspaceUpdate update)
             throws NotFoundException, ConflictException, ServerException, ForbiddenException {
         if (update == null) {
             throw new ConflictException("Missed workspace to update");
         }
         final Workspace workspace = workspaceDao.getById(id);
-        final List<com.codenvy.api.workspace.server.dao.Attribute> actualAttributes = workspace.getAttributes();
         if (update.getAttributes() != null) {
-            final Map<String, Attribute> updates = new LinkedHashMap<>(update.getAttributes().size());
-            for (Attribute attribute : update.getAttributes()) {
-                validateAttributeName(attribute.getName());
-                updates.put(attribute.getName(), attribute);
+            for (String attributeName : update.getAttributes().keySet()) {
+                validateAttributeName(attributeName);
             }
-            for (Iterator<com.codenvy.api.workspace.server.dao.Attribute> it = actualAttributes.iterator(); it.hasNext(); ) {
-                final com.codenvy.api.workspace.server.dao.Attribute attribute = it.next();
-                if (updates.containsKey(attribute.getName())) {
-                    it.remove();
-                }
-            }
-            actualAttributes.addAll(asDaoAttributes(updates.values()));
+            workspace.getAttributes().putAll(update.getAttributes());
         }
         if (update.getName() != null && !update.getName().equals(workspace.getName()) &&
             workspaceDao.getByName(update.getName()) == null) {
@@ -402,27 +388,6 @@ public class WorkspaceService extends Service {
         return descriptors;
     }
 
-    @POST
-    @Path("{id}/attribute")
-    @GenerateLink(rel = Constants.LINK_REL_ADD_ATTRIBUTE)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
-    public void addAttribute(@PathParam("id") String wsId, @Required @Description("New attribute") Attribute newAttribute,
-                             @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException, ConflictException, ForbiddenException {
-        if (newAttribute == null) {
-            throw new ConflictException("Attribute required");
-        }
-        validateAttributeName(newAttribute.getName());
-        final Workspace workspace = workspaceDao.getById(wsId);
-        final List<com.codenvy.api.workspace.server.dao.Attribute> attributes = workspace.getAttributes();
-        removeAttribute(attributes, newAttribute.getName());
-        attributes.add(new com.codenvy.api.workspace.server.dao.Attribute().withName(newAttribute.getName())
-                                                                           .withValue(newAttribute.getValue())
-                                                                           .withDescription(newAttribute.getDescription()));
-        workspaceDao.update(workspace);
-    }
-
     @DELETE
     @Path("{id}/attribute")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTE)
@@ -433,8 +398,7 @@ public class WorkspaceService extends Service {
             throws NotFoundException, ServerException, ConflictException, ForbiddenException {
         final Workspace workspace = workspaceDao.getById(wsId);
         validateAttributeName(attributeName);
-        final List<com.codenvy.api.workspace.server.dao.Attribute> attributes = workspace.getAttributes();
-        removeAttribute(attributes, attributeName);
+        workspace.getAttributes().remove(attributeName);
         workspaceDao.update(workspace);
     }
 
@@ -454,11 +418,7 @@ public class WorkspaceService extends Service {
             throw new ConflictException("Roles required");
         }
         final Workspace workspace = workspaceDao.getById(wsId);
-        final Map<String, String> attributes = new HashMap<>(workspace.getAttributes().size());
-        for (com.codenvy.api.workspace.server.dao.Attribute attribute : workspace.getAttributes()) {
-            attributes.put(attribute.getName(), attribute.getValue());
-        }
-        if (!"true".equalsIgnoreCase(attributes.get("allowAnyoneAddMember"))) {
+        if (!"true".equalsIgnoreCase(workspace.getAttributes().get("allowAnyoneAddMember"))) {
             ensureUserHasAccessToWorkspace(securityContext, wsId, "workspace/admin");
         }
         final Member newMember = new Member().withWorkspaceId(wsId)
@@ -470,7 +430,6 @@ public class WorkspaceService extends Service {
 
     @DELETE
     @Path("{id}/members/{userid}")
-    @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER)
     @RolesAllowed("workspace/admin")
     public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ForbiddenException, ConflictException {
@@ -515,16 +474,6 @@ public class WorkspaceService extends Service {
             memberDao.remove(member);
         }
         workspaceDao.remove(wsId);
-    }
-
-    private void removeAttribute(List<com.codenvy.api.workspace.server.dao.Attribute> src, String attributeName) {
-        for (Iterator<com.codenvy.api.workspace.server.dao.Attribute> it = src.iterator(); it.hasNext(); ) {
-            final com.codenvy.api.workspace.server.dao.Attribute current = it.next();
-            if (current.getName().equals(attributeName)) {
-                it.remove();
-                break;
-            }
-        }
     }
 
     private MemberDescriptor toDescriptor(Member member, Workspace workspace/*, SecurityContext securityContext*/) {
@@ -590,7 +539,7 @@ public class WorkspaceService extends Service {
                                                                   .withName(workspace.getName())
                                                                   .withTemporary(workspace.isTemporary())
                                                                   .withAccountId(workspace.getAccountId())
-                                                                  .withAttributes(asDtoAttributes(workspace.getAttributes()));
+                                                                  .withAttributes(workspace.getAttributes());
         final List<Link> links = new LinkedList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
@@ -705,33 +654,6 @@ public class WorkspaceService extends Service {
             }
         }
         return Collections.emptySet();
-    }
-
-    private List<com.codenvy.api.workspace.server.dao.Attribute> asDaoAttributes(Collection<Attribute> dtoAttributes) {
-        if (dtoAttributes == null) {
-            return Collections.emptyList();
-        }
-        final List<com.codenvy.api.workspace.server.dao.Attribute> daoAttributes = new ArrayList<>(dtoAttributes.size());
-        for (Attribute dtoAttribute : dtoAttributes) {
-            daoAttributes.add(new com.codenvy.api.workspace.server.dao.Attribute().withName(dtoAttribute.getName())
-                                                                                  .withValue(dtoAttribute.getValue())
-                                                                                  .withDescription(dtoAttribute.getDescription()));
-        }
-        return daoAttributes;
-    }
-
-    private List<Attribute> asDtoAttributes(Collection<com.codenvy.api.workspace.server.dao.Attribute> daoAttributes) {
-        if (daoAttributes == null) {
-            return Collections.emptyList();
-        }
-        final List<Attribute> dtoAttributes = new ArrayList<>(daoAttributes.size());
-        for (com.codenvy.api.workspace.server.dao.Attribute daoAttribute : daoAttributes) {
-            dtoAttributes.add(DtoFactory.getInstance().createDto(Attribute.class)
-                                        .withName(daoAttribute.getName())
-                                        .withValue(daoAttribute.getValue())
-                                        .withDescription(daoAttribute.getDescription()));
-        }
-        return dtoAttributes;
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {

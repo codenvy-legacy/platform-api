@@ -14,6 +14,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -44,11 +45,11 @@ public interface WorkspaceDescriptor {
 
     WorkspaceDescriptor withAccountId(String accountId);
 
-    List<Attribute> getAttributes();
+    Map<String, String> getAttributes();
 
-    void setAttributes(List<Attribute> attributes);
+    void setAttributes(Map<String, String> attributes);
 
-    WorkspaceDescriptor withAttributes(List<Attribute> attributes);
+    WorkspaceDescriptor withAttributes(Map<String, String> attributes);
 
     List<Link> getLinks();
 

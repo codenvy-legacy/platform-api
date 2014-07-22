@@ -13,6 +13,7 @@ package com.codenvy.api.workspace.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -25,9 +26,9 @@ public interface WorkspaceUpdate {
 
     WorkspaceUpdate withName(String name);
 
-    List<Attribute> getAttributes();
+    Map<String, String> getAttributes();
 
-    void setAttributes(List<Attribute> attributes);
+    void setAttributes(Map<String, String> attributes);
 
-    WorkspaceUpdate withAttributes(List<Attribute> attributes);
+    WorkspaceUpdate withAttributes(Map<String, String> attributes);
 }

@@ -11,6 +11,7 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
@@ -434,7 +435,7 @@ public class FactoryServiceTest {
         factoryUrl.setWelcome(DtoFactory.getInstance().createDto(WelcomePage.class));
         factoryUrl.setOrgid("orgid");
 
-        doThrow(new ApiException("You are not authorized to use this orgid.")).when(validator)
+        doThrow(new ConflictException("You are not authorized to use this orgid.")).when(validator)
                                                                               .validateOnCreate(Matchers.any(Factory.class));
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);

@@ -540,6 +540,13 @@ public class BuildQueue {
         return null;
     }
 
+    /**
+     * Return tasks of this queue.
+     */
+    protected List<BuildQueueTask> getTasks() {
+        return new ArrayList<>(tasks.values());
+    }
+
     public BuildQueueTask getTask(Long id) throws NotFoundException {
         final BuildQueueTask task = tasks.get(id);
         if (task == null) {

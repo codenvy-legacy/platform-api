@@ -35,6 +35,19 @@ public class Subscription {
     private State               state;
     private Map<String, String> properties;
 
+    public Subscription() {
+    }
+
+    public Subscription(Subscription other) {
+        this.startDate = other.startDate;
+        this.endDate = other.endDate;
+        this.id = other.id;
+        this.accountId = other.accountId;
+        this.serviceId = other.serviceId;
+        this.state = other.state;
+        this.properties = new HashMap<>(other.getProperties());
+    }
+
     public String getId() {
         return id;
     }

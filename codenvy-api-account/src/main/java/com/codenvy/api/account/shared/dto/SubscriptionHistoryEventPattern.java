@@ -14,52 +14,40 @@ import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type;
 import com.codenvy.dto.shared.DTO;
 
 /**
- * Represents entry of subscriptions states history
+ * Represents search pattern for subscriptions history
  *
  * @author Alexander Garagatyi
  */
 @DTO
-public interface SubscriptionHistoryEventDescriptor {
+public interface SubscriptionHistoryEventPattern {
 
     String getId();
 
     void setId(String id);
 
-    SubscriptionHistoryEventDescriptor withId(String id);
+    SubscriptionHistoryEventPattern withId(String id);
 
     String getUserId();
 
     void setUserId(String userId);
 
-    SubscriptionHistoryEventDescriptor withUserId(String userId);
+    SubscriptionHistoryEventPattern withUserId(String userId);
 
     Type getType();
 
     void setType(Type type);
 
-    SubscriptionHistoryEventDescriptor withType(Type type);
-
-    long getTime();
-
-    void setTime(long date);
-
-    SubscriptionHistoryEventDescriptor withTime(long date);
+    SubscriptionHistoryEventPattern withType(Type type);
 
     SubscriptionDescriptor getSubscription();
 
     void setSubscription(SubscriptionDescriptor subscription);
 
-    SubscriptionHistoryEventDescriptor withSubscription(SubscriptionDescriptor subscription);
+    SubscriptionHistoryEventPattern withSubscription(SubscriptionDescriptor subscription);
 
     String getTransactionId();
 
     void setTransactionId(String transactionId);
 
-    SubscriptionHistoryEventDescriptor withTransactionId(String transactionId);
-
-    double getAmount();
-
-    void setAmount(double amount);
-
-    SubscriptionHistoryEventDescriptor withAmount(double amount);
+    SubscriptionHistoryEventPattern withTransactionId(String transactionId);
 }

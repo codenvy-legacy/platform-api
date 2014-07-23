@@ -140,11 +140,12 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<SubscriptionHistoryEvent> getSubscriptionHistoryEventsByAccount(String accountId) throws ServerException {
-        return Arrays.asList(new SubscriptionHistoryEvent().withId("SUBSCRIPTION_HISTORY_EVENT_ID")
-                                                           .withTime(System.currentTimeMillis()).withType(CREATE)
-                                                           .withUserId("userId112233322239")
-                                                           .withSubscription(getSubscriptionById("Subscription0xfffffffff")));
+    public List<SubscriptionHistoryEvent> getSubscriptionHistoryEvents(SubscriptionHistoryEvent event) throws ServerException {
+        return Arrays.asList(
+                new SubscriptionHistoryEvent().withId("SUBSCRIPTION_HISTORY_EVENT_ID").withTime(System.currentTimeMillis())
+                                              .withType(SubscriptionHistoryEvent.Type.CREATE).withUserId("userId112233322239")
+                                              .withSubscription(getSubscriptionById("Subscription0xfffffffff"))
+                            );
     }
 
     @Override

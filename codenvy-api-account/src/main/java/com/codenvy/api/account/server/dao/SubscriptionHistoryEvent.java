@@ -28,7 +28,21 @@ public class SubscriptionHistoryEvent {
     private String              userId;
     private Type                type;
     private Subscription        subscription;
-    private SubscriptionPayment subscriptionPayment;
+    private String transactionId;
+    private double amount;
+
+    public SubscriptionHistoryEvent() {
+    }
+
+    public SubscriptionHistoryEvent(SubscriptionHistoryEvent other) {
+        this.time = other.time;
+        this.id = other.id;
+        this.userId = other.userId;
+        this.type = other.type;
+        this.subscription = new Subscription(other.subscription);
+        this.transactionId = other.transactionId;
+        this.amount = other.amount;
+    }
 
     public String getId() {
         return id;
@@ -95,16 +109,29 @@ public class SubscriptionHistoryEvent {
         return this;
     }
 
-    public SubscriptionPayment getSubscriptionPayment() {
-        return subscriptionPayment;
+    public String getTransactionId() {
+        return transactionId;
     }
 
-    public void setSubscriptionPayment(SubscriptionPayment subscriptionPayment) {
-        this.subscriptionPayment = subscriptionPayment;
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
     }
 
-    public SubscriptionHistoryEvent withSubscriptionPayment(SubscriptionPayment subscriptionPayment) {
-        this.subscriptionPayment = subscriptionPayment;
+    public SubscriptionHistoryEvent withTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+        return this;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
+    public SubscriptionHistoryEvent withAmount(double amount) {
+        this.amount = amount;
         return this;
     }
 
@@ -118,22 +145,25 @@ public class SubscriptionHistoryEvent {
         }
         final SubscriptionHistoryEvent other = (SubscriptionHistoryEvent)obj;
         return time == other.time &&
+               amount == other.amount &&
+               Objects.equals(transactionId, other.transactionId) &&
                Objects.equals(id, other.id) &&
                Objects.equals(userId, other.userId) &&
                Objects.equals(type, other.type) &&
-               Objects.equals(subscription, other.subscription) &&
-               Objects.equals(subscriptionPayment, other.subscriptionPayment);
+               Objects.equals(subscription, other.subscription);
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
+        final long amountBits = Double.doubleToLongBits(amount);
         hash = 31 * hash + (int)(time ^ (time >>> 32));
+        hash = 31 * hash + (int)(amountBits ^ (amountBits >>> 32));
+        hash = 31 * hash + Objects.hashCode(transactionId);
         hash = 31 * hash + Objects.hashCode(id);
         hash = 31 * hash + Objects.hashCode(userId);
         hash = 31 * hash + Objects.hashCode(type);
         hash = 31 * hash + Objects.hashCode(subscription);
-        hash = 31 * hash + Objects.hashCode(subscriptionPayment);
         return hash;
     }
 }

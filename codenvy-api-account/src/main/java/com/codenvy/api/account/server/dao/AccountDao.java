@@ -172,13 +172,14 @@ public interface AccountDao {
     void addSubscriptionHistoryEvent(SubscriptionHistoryEvent historyEvent) throws ServerException, ConflictException;
 
     /**
-     * Get list of history events for certain account
+     * Get list of history events which contain the same data as specified event
      *
-     * @param accountId
-     *         filter history events for account with such id
-     * @return list of {@link com.codenvy.api.account.shared.dto.SubscriptionHistoryEventDescriptor}
+     * @param event
+     *         event data to search for
+     * @return list of {@link SubscriptionHistoryEvent}
+     * @throws ServerException
      */
-    List<SubscriptionHistoryEvent> getSubscriptionHistoryEventsByAccount(String accountId) throws ServerException;
+    List<SubscriptionHistoryEvent> getSubscriptionHistoryEvents(SubscriptionHistoryEvent event) throws ServerException;
 
     /**
      * Retrieve all existing subscriptions.

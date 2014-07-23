@@ -18,40 +18,28 @@ import com.codenvy.dto.shared.DTO;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface Payment {
+public interface CreditCardDescriptor {
     String getCardNumber();
 
     void setCardNumber(String cardNumber);
 
-    Payment withCardNumber(String cardNumber);
-
-    String getCvv();
-
-    void setCvv(String cvv);
-
-    Payment withCvv(String cvv);
+    CreditCardDescriptor withCardNumber(String cardNumber);
 
     String getExpirationMonth();
 
     void setExpirationMonth(String expirationMonth);
 
-    Payment withExpirationMonth(String expirationMonth);
+    CreditCardDescriptor withExpirationMonth(String expirationMonth);
 
     String getExpirationYear();
 
     void setExpirationYear(String expirationYear);
 
-    Payment withExpirationYear(String expirationYear);
-
-    String getSubscriptionId();
-
-    void setSubscriptionId(String subscriptionId);
-
-    Payment withSubscriptionId(String subscriptionId);
+    CreditCardDescriptor withExpirationYear(String expirationYear);
 
     String getCardholderName();
 
     void setCardholderName(String cardholderName);
 
-    Payment withCardholderName(String cardholderName);
+    CreditCardDescriptor withCardholderName(String cardholderName);
 }

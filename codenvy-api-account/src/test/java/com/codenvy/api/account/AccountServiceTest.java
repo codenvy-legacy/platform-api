@@ -10,25 +10,23 @@
  *******************************************************************************/
 package com.codenvy.api.account;
 
-
-import sun.security.acl.PrincipalImpl;
-
 import com.codenvy.api.account.server.AccountService;
 import com.codenvy.api.account.server.Constants;
 import com.codenvy.api.account.server.PaymentService;
 import com.codenvy.api.account.server.SubscriptionService;
 import com.codenvy.api.account.server.SubscriptionServiceRegistry;
-import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Member;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
-import com.codenvy.api.account.server.dao.Member;
-import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
+import com.codenvy.api.account.shared.dto.NewCreditCard;
 import com.codenvy.api.account.shared.dto.NewSubscription;
-import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.SubscriptionHistoryEventDescriptor;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -48,6 +46,7 @@ import org.everrest.core.impl.RequestHandlerImpl;
 import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
+import org.everrest.core.tools.SimplePrincipal;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
@@ -64,27 +63,30 @@ import javax.ws.rs.core.SecurityContext;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.codenvy.api.account.server.dao.Subscription.State.ACTIVE;
 import static com.codenvy.api.account.server.dao.Subscription.State.WAIT_FOR_PAYMENT;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.startsWith;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertEqualsNoOrder;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertNull;
-import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 /**
@@ -106,6 +108,7 @@ public class AccountServiceTest {
     private final String SERVICE_ID      = "IDE_SERVICE";
     private final String USER_EMAIL      = "account@mail.com";
     private final User   user            = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
+
     @Mock
     private AccountDao accountDao;
 
@@ -163,11 +166,8 @@ public class AccountServiceTest {
         ownerMembership.setUserId(USER_ID);
         ownerMembership.setRoles(Arrays.asList("account/owner"));
         memberships.add(ownerMembership);
-        when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
-        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(USER_EMAIL));
-//        when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-//        when(accountDao.getByName(ACCOUNT_NAME)).thenReturn(account);
+        when(securityContext.getUserPrincipal()).thenReturn(new SimplePrincipal(USER_EMAIL));
 
         com.codenvy.commons.env.EnvironmentContext.getCurrent().setUser(new com.codenvy.commons.user.User() {
             @Override
@@ -389,11 +389,13 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetSubscriptionsOfSpecificAccount() throws Exception {
         when(accountDao.getSubscriptions(ACCOUNT_ID)).thenReturn(Arrays.asList(
-                new Subscription().withId(SUBSCRIPTION_ID)
+                new Subscription().withState(ACTIVE)
+                                  .withId(SUBSCRIPTION_ID)
                                   .withStartDate(System.currentTimeMillis())
                                   .withEndDate(System.currentTimeMillis())
                                   .withServiceId(SERVICE_ID)
-                                  .withProperties(Collections.<String, String>emptyMap())));
+                                  .withProperties(Collections.<String, String>emptyMap())
+                                                                              ));
         prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
@@ -401,15 +403,12 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         @SuppressWarnings("unchecked") List<SubscriptionDescriptor> subscriptions = (List<SubscriptionDescriptor>)response.getEntity();
         assertEquals(subscriptions.size(), 1);
-        assertEquals(subscriptions.get(0).getLinks().size(), 2);
-        List<Link> actualLinks = subscriptions.get(0).getLinks();
-        assertEqualsNoOrder(actualLinks.toArray(), new Link[]{DtoFactory.getInstance().createDto(Link.class).withRel(
+        assertEqualsNoOrder(subscriptions.get(0).getLinks().toArray(), new Link[]{DtoFactory.getInstance().createDto(Link.class).withRel(
                 Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
                 SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID), DtoFactory.getInstance().createDto(Link.class).withRel(
                 Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(
                 HttpMethod.GET).withHref(
                 SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID).withProduces(MediaType.APPLICATION_JSON)});
-
         verify(accountDao, times(1)).getSubscriptions(ACCOUNT_ID);
     }
 
@@ -420,16 +419,20 @@ public class AccountServiceTest {
                                   .withStartDate(System.currentTimeMillis())
                                   .withEndDate(System.currentTimeMillis())
                                   .withServiceId(SERVICE_ID)
-                                  .withProperties(Collections.<String, String>emptyMap()));
+                                  .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
         prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
-        assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
+        assertEqualsNoOrder(subscription.getLinks().toArray(), new Link[]{DtoFactory.getInstance().createDto(Link.class).withRel(
                 Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
-                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
+                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID), DtoFactory.getInstance().createDto(Link.class).withRel(
+                Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(
+                HttpMethod.GET).withHref(
+                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID).withProduces(MediaType.APPLICATION_JSON)});
         verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
     }
 
@@ -437,6 +440,7 @@ public class AccountServiceTest {
     public void shouldBeAbleToGetSpecificSubscriptionByAccountOwner() throws Exception {
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
                 new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withState(WAIT_FOR_PAYMENT)
                                   .withStartDate(System.currentTimeMillis())
                                   .withEndDate(System.currentTimeMillis())
                                   .withServiceId(SERVICE_ID)
@@ -452,9 +456,16 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
-        assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
-                Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE).withHref(
-                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)));
+        assertEqualsNoOrder(subscription.getLinks().toArray(), new Link[]{
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID),
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(HttpMethod.GET)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID).withProduces(MediaType.APPLICATION_JSON),
+                DtoFactory.getInstance().createDto(Link.class).withRel(
+                        Constants.LINK_REL_PURCHASE_SUBSCRIPTION).withMethod(
+                        HttpMethod.POST).withHref(
+                        SERVICE_PATH + "/subscriptions/" + subscription.getId() + "/purchase").withConsumes(
+                        MediaType.APPLICATION_JSON)});
         verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
     }
 
@@ -477,7 +488,10 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
-        assertTrue(subscription.getLinks().isEmpty());
+        assertEquals(subscription.getLinks(), Arrays.asList(DtoFactory.getInstance().createDto(Link.class).withRel(
+                Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(
+                HttpMethod.GET).withHref(
+                SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID).withProduces(MediaType.APPLICATION_JSON)));
         verify(accountDao, times(1)).getSubscriptionById(SUBSCRIPTION_ID);
     }
 
@@ -495,7 +509,8 @@ public class AccountServiceTest {
                                   .withEndDate(System.currentTimeMillis())
                                   .withServiceId(SERVICE_ID)
                                   .withAccountId(ACCOUNT_ID)
-                                  .withProperties(Collections.<String, String>emptyMap()));
+                                  .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
         prepareSecurityContext("user");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -516,14 +531,14 @@ public class AccountServiceTest {
 
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
-        NewSubscription subscription = DtoFactory.getInstance().createDto(NewSubscription.class)
-                                                 .withAccountId(ACCOUNT_ID)
-                                                 .withServiceId(SERVICE_ID)
-                                                 .withProperties(Collections.<String, String>emptyMap());
+        NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                    .withAccountId(ACCOUNT_ID)
+                                                    .withServiceId(SERVICE_ID)
+                                                    .withProperties(Collections.singletonMap("TariffPlan", "monthly"));
         prepareSecurityContext("user");
 
         ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
         assertNotEquals(response.getStatus(), Response.Status.OK);
         assertEquals(response.getEntity(), "Access denied");
@@ -534,30 +549,47 @@ public class AccountServiceTest {
         final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
                                                           .withAccountId(ACCOUNT_ID)
                                                           .withServiceId(SERVICE_ID)
-                                                          .withProperties(Collections.<String, String>emptyMap());
+                                                          .withProperties(Collections.singletonMap("TariffPlan", "yearly"));
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(subscriptionService.tarifficate(any(Subscription.class))).thenReturn(1000D);
+        when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
+
+        prepareSecurityContext("user");
 
         ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON,
+                            DtoFactory.getInstance().clone(newSubscription));
 
         assertEquals(response.getStatus(), 402);
         SubscriptionDescriptor actualSubscription = DtoFactory.getInstance().clone((SubscriptionDescriptor)response.getEntity());
         verifyLinksRel(actualSubscription.getLinks(),
-                       Arrays.asList(Constants.LINK_REL_PURCHASE_SUBSCRIPTION, Constants.LINK_REL_REMOVE_SUBSCRIPTION));
+                       Arrays.asList(Constants.LINK_REL_PURCHASE_SUBSCRIPTION, Constants.LINK_REL_REMOVE_SUBSCRIPTION,
+                                     Constants.LINK_REL_GET_SUBSCRIPTION)
+                      );
 
+        assertEquals(actualSubscription.getState(), WAIT_FOR_PAYMENT);
         assertEquals(actualSubscription.getAccountId(), ACCOUNT_ID);
         assertEquals(actualSubscription.getServiceId(), SERVICE_ID);
-        assertEquals(actualSubscription.getState(), WAIT_FOR_PAYMENT);
-        verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
-            @Override
-            public boolean matches(Object argument) {
-                Subscription actualSubscription = (Subscription)argument;
-                return ACCOUNT_ID.equals(actualSubscription.getAccountId())
-                       && SERVICE_ID.equals(actualSubscription.getServiceId())
-                       && WAIT_FOR_PAYMENT.equals(actualSubscription.getState());
-            }
-        }));
+        assertEquals(actualSubscription.getProperties(), Collections.singletonMap("TariffPlan", "yearly"));
+        Calendar now = Calendar.getInstance();
+        Calendar yearLater = Calendar.getInstance();
+        yearLater.setTimeInMillis(now.getTimeInMillis());
+        yearLater.add(Calendar.YEAR, 1);
+        // may fail in debug if user spends too much time
+        assertFalse(now.getTimeInMillis() - actualSubscription.getStartDate() > TimeUnit.SECONDS.toMillis(1));
+        assertEquals(actualSubscription.getEndDate() - actualSubscription.getStartDate(),
+                     yearLater.getTimeInMillis() - now.getTimeInMillis());
+        assertEqualsNoOrder(actualSubscription.getLinks().toArray(), new Link[]{
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + actualSubscription.getId()),
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(HttpMethod.GET)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + actualSubscription.getId())
+                          .withProduces(MediaType.APPLICATION_JSON),
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_PURCHASE_SUBSCRIPTION).withMethod(HttpMethod.POST)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + actualSubscription.getId() + "/purchase")
+                          .withConsumes(MediaType.APPLICATION_JSON)});
+
+        verify(accountDao, times(1)).addSubscription(any(Subscription.class));
         verify(accountDao).addSubscriptionHistoryEvent(any(SubscriptionHistoryEvent.class));
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
         verify(subscriptionService, times(1)).beforeCreateSubscription(any(Subscription.class));
@@ -566,48 +598,172 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToAddSubscription() throws Exception {
-        final NewSubscription subscription = DtoFactory.getInstance().createDto(NewSubscription.class)
-                                                       .withAccountId(ACCOUNT_ID)
-                                                       .withServiceId(SERVICE_ID)
-                                                       .withProperties(Collections.<String, String>emptyMap());
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                          .withAccountId(ACCOUNT_ID)
+                                                          .withServiceId(SERVICE_ID)
+                                                          .withProperties(Collections.singletonMap("TariffPlan", "monthly"));
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
         ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
             @Override
             public boolean matches(Object argument) {
-                Subscription actualSubscription = (Subscription)argument;
-                Subscription expectedSubscription = new Subscription().withState(ACTIVE)
-                                                                      .withId(actualSubscription.getId())
-                                                                      .withAccountId(actualSubscription.getAccountId())
-                                                                      .withProperties(actualSubscription.getProperties())
-                                                                      .withServiceId(actualSubscription.getServiceId())
-                                                                      .withStartDate(actualSubscription.getStartDate())
-                                                                      .withEndDate(actualSubscription.getEndDate());
-                return expectedSubscription.equals(actualSubscription);
+                Subscription actual = (Subscription)argument;
+                if (actual.getId() == null || actual.getId().isEmpty()) {
+                    return false;
+                }
+                if (actual.getState() != ACTIVE || !SERVICE_ID.equals(actual.getServiceId()) ||
+                    !newSubscription.getProperties().equals(actual.getProperties()) || !ACCOUNT_ID.equals(actual.getAccountId())) {
+                    return false;
+                }
 
+                Calendar now = Calendar.getInstance();
+                Calendar monthLater = Calendar.getInstance();
+                monthLater.setTimeInMillis(now.getTimeInMillis());
+                monthLater.add(Calendar.MONTH, 1);
+                // may fail in debug if user spends too much time
+                if (now.getTimeInMillis() - actual.getStartDate() > TimeUnit.SECONDS.toMillis(1)) {
+                    return false;
+                }
+
+                if (actual.getEndDate() - actual.getStartDate() != monthLater.getTimeInMillis() - now.getTimeInMillis()) {
+                    return false;
+                }
+
+                return true;
             }
         }));
+        verify(accountDao).addSubscriptionHistoryEvent(any(SubscriptionHistoryEvent.class));
+        verify(serviceRegistry).get(SERVICE_ID);
+        verify(subscriptionService).beforeCreateSubscription(any(Subscription.class));
+        verify(subscriptionService).afterCreateSubscription(any(Subscription.class));
+    }
+
+    @Test
+    public void shouldBeAbleToAddTrialSubscription() throws Exception {
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                          .withAccountId(ACCOUNT_ID)
+                                                          .withServiceId(SERVICE_ID)
+                                                          .withProperties(Collections.singletonMap("codenvy:trial", "true"));
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
+            @Override
+            public boolean matches(Object argument) {
+                Subscription actual = (Subscription)argument;
+                if (actual.getId() == null || actual.getId().isEmpty()) {
+                    return false;
+                }
+                if (!SERVICE_ID.equals(actual.getServiceId()) || !newSubscription.getProperties().equals(actual.getProperties()) ||
+                    !ACCOUNT_ID.equals(actual.getAccountId())) {
+                    return false;
+                }
+
+                Calendar now = Calendar.getInstance();
+                Calendar sevenDaysLater = Calendar.getInstance();
+                sevenDaysLater.setTimeInMillis(now.getTimeInMillis());
+                sevenDaysLater.add(Calendar.DAY_OF_YEAR, 7);
+                // may fail in debug if user spends too much time
+                if (now.getTimeInMillis() - actual.getStartDate() > TimeUnit.SECONDS.toMillis(100)) {
+                    return false;
+                }
+
+                if (actual.getEndDate() - actual.getStartDate() != sevenDaysLater.getTimeInMillis() - now.getTimeInMillis()) {
+                    return false;
+                }
+
+                return true;
+            }
+        }));
+        verify(paymentService).getCreditCard(USER_ID);
         verify(accountDao, times(1)).addSubscriptionHistoryEvent(any(SubscriptionHistoryEvent.class));
         verify(serviceRegistry, times(1)).get(SERVICE_ID);
-        verify(subscriptionService, times(1)).beforeCreateSubscription(any(Subscription.class));
+        verify(subscriptionService, times(1)).beforeCreateSubscription(argThat(new ArgumentMatcher<Subscription>() {
+            @Override
+            public boolean matches(Object argument) {
+                Subscription actual = (Subscription)argument;
+                if (actual.getState() == ACTIVE && ACCOUNT_ID.equals(actual.getAccountId()) && SERVICE_ID.equals(actual.getServiceId()) &&
+                    Collections.singletonMap("codenvy:trial", "true").equals(actual.getProperties())) {
+                    return true;
+                }
+                return false;
+            }
+        }));
         verify(subscriptionService, times(1)).afterCreateSubscription(any(Subscription.class));
     }
 
     @Test
+    public void shouldRespondConflictIfUserHasNoCreditCardOnAddTrial() throws Exception {
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                          .withAccountId(ACCOUNT_ID)
+                                                          .withServiceId(SERVICE_ID)
+                                                          .withProperties(Collections.singletonMap("codenvy:trial", "true"));
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(paymentService.getCreditCard(USER_ID)).thenThrow(new NotFoundException(""));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        verify(paymentService).getCreditCard(USER_ID);
+        assertEquals(response.getStatus(), 500);
+        assertEquals(response.getEntity().toString(), "You have no credit card to pay for subscription after trial");
+    }
+
+    @Test
+    public void shouldThrowConflictExceptionIfSameTrialIsFoundOnAddSubscription() throws Exception {
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                          .withAccountId(ACCOUNT_ID)
+                                                          .withServiceId(SERVICE_ID)
+                                                          .withProperties(Collections.singletonMap("codenvy:trial", "true"));
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(accountDao.getSubscriptionHistoryEvents(any(SubscriptionHistoryEvent.class))).thenReturn(
+                Collections.singletonList(new SubscriptionHistoryEvent()));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        verify(accountDao).getSubscriptionHistoryEvents(eq(new SubscriptionHistoryEvent().withType(
+                                                                SubscriptionHistoryEvent.Type.CREATE).withUserId(USER_ID).withSubscription(
+                                                                new Subscription().withServiceId(SERVICE_ID).withProperties(
+                                                                        Collections.singletonMap("codenvy:trial", "true"))))
+                                                       );
+        assertEquals(response.getStatus(), 500);
+        assertEquals(response.getEntity().toString(), "You can't use trial twice, please contact support");
+    }
+
+    @Test
+    public void shouldAcceptTrialEvenIfTarifficateReturnNotZeroAmount() throws Exception {
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                          .withAccountId(ACCOUNT_ID)
+                                                          .withServiceId(SERVICE_ID)
+                                                          .withProperties(Collections.singletonMap("codenvy:trial", "true"));
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(subscriptionService.tarifficate(any(Subscription.class))).thenReturn(100D);
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+    }
+
+    @Test
     public void shouldNotBeAbleToAddSubscriptionIfServiceIdIsUnknown() throws Exception {
-        Subscription subscription = new Subscription().withAccountId(ACCOUNT_ID)
-                                                      .withServiceId("UNKNOWN_SERVICE_ID")
-                                                      .withStartDate(System.currentTimeMillis())
-                                                      .withEndDate(System.currentTimeMillis())
-                                                      .withProperties(Collections.<String, String>emptyMap());
+        Subscription newSubscription = new Subscription().withAccountId(ACCOUNT_ID)
+                                                         .withServiceId("UNKNOWN_SERVICE_ID")
+                                                         .withStartDate(System.currentTimeMillis())
+                                                         .withEndDate(System.currentTimeMillis())
+                                                         .withProperties(Collections.singletonMap("TariffPlan", "monthly"));
         when(serviceRegistry.get("UNKNOWN_SERVICE_ID")).thenReturn(null);
 
         ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, subscription);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
         assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
         assertEquals(response.getEntity().toString(), "Unknown serviceId is used");
@@ -625,6 +781,35 @@ public class AccountServiceTest {
     }
 
     @Test
+    public void shouldNotBeAbleToAddSubscriptionIfNoPropertiesSent() throws Exception {
+        NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                    .withAccountId(ACCOUNT_ID)
+                                                    .withServiceId("UNKNOWN_SERVICE_ID");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Missed subscription properties");
+        verifyZeroInteractions(accountDao, subscriptionService, serviceRegistry);
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddSubscriptionIfEmptyPropertiesSent() throws Exception {
+        NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                    .withAccountId(ACCOUNT_ID)
+                                                    .withServiceId("UNKNOWN_SERVICE_ID")
+                                                    .withProperties(Collections.<String, String>emptyMap());
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Missed subscription properties");
+        verifyZeroInteractions(accountDao, subscriptionService, serviceRegistry);
+    }
+
+    @Test
     public void shouldBeAbleToRemoveSubscriptionBySystemAdmin() throws Exception {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
@@ -632,7 +817,8 @@ public class AccountServiceTest {
                                   .withStartDate(System.currentTimeMillis())
                                   .withEndDate(System.currentTimeMillis())
                                   .withServiceId(SERVICE_ID)
-                                  .withProperties(Collections.<String, String>emptyMap()));
+                                  .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
 
         ContainerResponse response =
                 makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
@@ -677,6 +863,7 @@ public class AccountServiceTest {
         Member am2 = new Member().withRoles(Arrays.asList("account/member"))
                                  .withAccountId(ACCOUNT_ID);
         memberships.add(am2);
+
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
@@ -685,7 +872,8 @@ public class AccountServiceTest {
                                   .withEndDate(System.currentTimeMillis())
                                   .withServiceId(SERVICE_ID)
                                   .withAccountId(ACCOUNT_ID)
-                                  .withProperties(Collections.<String, String>emptyMap()));
+                                  .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
         prepareSecurityContext("user");
 
         ContainerResponse response =
@@ -768,6 +956,102 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao, times(1)).removeMember(accountOwner);
+    }
+
+    @Test
+    public void shouldBeAbleToGetSubscriptionHistoryEvents() throws Exception {
+        SubscriptionHistoryEvent pattern = new SubscriptionHistoryEvent().withUserId(USER_ID);
+        final SubscriptionHistoryEvent expectedEvent = new SubscriptionHistoryEvent().withUserId(USER_ID).withId("id").withType(
+                SubscriptionHistoryEvent.Type.CREATE);
+        when(accountDao.getSubscriptionHistoryEvents(any(SubscriptionHistoryEvent.class))).thenReturn(Arrays.asList(expectedEvent));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/history", MediaType.APPLICATION_JSON, pattern);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        @SuppressWarnings("unchecked") final List<SubscriptionHistoryEventDescriptor> events =
+                (List<SubscriptionHistoryEventDescriptor>)response.getEntity();
+        assertEquals(events, Arrays.asList(DtoFactory.getInstance().createDto(SubscriptionHistoryEventDescriptor.class).withUserId(
+                USER_ID).withId("id").withType(
+                SubscriptionHistoryEvent.Type.CREATE)));
+        verify(accountDao).getSubscriptionHistoryEvents(argThat(new ArgumentMatcher<SubscriptionHistoryEvent>() {
+            @Override
+            public boolean matches(Object argument) {
+                SubscriptionHistoryEvent actual = (SubscriptionHistoryEvent)argument;
+                return new SubscriptionHistoryEvent().withUserId(USER_ID).equals(actual);
+            }
+        }));
+    }
+
+    @Test
+    public void shouldAddUserIdIfItIsNotPresentInRequestOnGetSubscriptionHistoryEvents() throws Exception {
+        SubscriptionHistoryEvent pattern = new SubscriptionHistoryEvent();
+
+        prepareSecurityContext("user");
+
+        makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/history", MediaType.APPLICATION_JSON, pattern);
+
+        verify(accountDao).getSubscriptionHistoryEvents(argThat(new ArgumentMatcher<SubscriptionHistoryEvent>() {
+            @Override
+            public boolean matches(Object argument) {
+                SubscriptionHistoryEvent actual = (SubscriptionHistoryEvent)argument;
+                return USER_ID.equals(actual.getUserId());
+            }
+        }));
+    }
+
+    @Test
+    public void shouldNotAddUserIdIfItIsNotPresentInRequestOfSystemAdminOnGetSubscriptionHistoryEvents() throws Exception {
+        SubscriptionHistoryEvent pattern = new SubscriptionHistoryEvent();
+
+        prepareSecurityContext("system/admin");
+
+        makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/history", MediaType.APPLICATION_JSON, pattern);
+
+        verify(accountDao).getSubscriptionHistoryEvents(argThat(new ArgumentMatcher<SubscriptionHistoryEvent>() {
+            @Override
+            public boolean matches(Object argument) {
+                SubscriptionHistoryEvent actual = (SubscriptionHistoryEvent)argument;
+                return new SubscriptionHistoryEvent().equals(actual);
+            }
+        }));
+    }
+
+    @Test
+    public void shouldRespondForbiddenIfUserTriesGetEventsOfAnotherUser() throws Exception {
+        SubscriptionHistoryEvent pattern = new SubscriptionHistoryEvent().withUserId("ANOTHER USER ID");
+
+        prepareSecurityContext("user");
+
+        final ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/history", MediaType.APPLICATION_JSON, pattern);
+
+        assertEquals(response.getEntity().toString(), "You can't get subscription history for user ANOTHER USER ID");
+        verifyZeroInteractions(accountDao);
+    }
+
+    @Test
+    public void shouldBeAbleToGetEventsForAnotherUserBySystemAdmin() throws Exception {
+        SubscriptionHistoryEvent pattern = new SubscriptionHistoryEvent().withUserId("ANOTHER USER ID");
+
+        prepareSecurityContext("system/admin");
+
+        makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/history", MediaType.APPLICATION_JSON, pattern);
+
+        verify(accountDao).getSubscriptionHistoryEvents(argThat(new ArgumentMatcher<SubscriptionHistoryEvent>() {
+            @Override
+            public boolean matches(Object argument) {
+                SubscriptionHistoryEvent actual = (SubscriptionHistoryEvent)argument;
+                return new SubscriptionHistoryEvent().withUserId("ANOTHER USER ID").equals(actual);
+            }
+        }));
+    }
+
+    @Test
+    public void shouldBeAbleToPurchaseSubscription() throws Exception {
+        makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID + "/purchase", MediaType.APPLICATION_JSON, null);
+
+        verify(paymentService, never()).saveCreditCard(anyString(), any(NewCreditCard.class));
     }
 
     protected void verifyLinksRel(List<Link> links, List<String> rels) {

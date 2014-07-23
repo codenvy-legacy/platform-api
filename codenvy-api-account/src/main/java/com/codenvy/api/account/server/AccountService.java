@@ -10,20 +10,22 @@
  *******************************************************************************/
 package com.codenvy.api.account.server;
 
-import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Member;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
-import com.codenvy.api.account.server.dao.Member;
+import com.codenvy.api.account.shared.dto.CreditCardDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
+import com.codenvy.api.account.shared.dto.NewCreditCard;
 import com.codenvy.api.account.shared.dto.NewSubscription;
-import com.codenvy.api.account.shared.dto.Payment;
-import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionHistoryEventDescriptor;
+import com.codenvy.api.account.shared.dto.SubscriptionHistoryEventPattern;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -68,9 +70,6 @@ import java.util.List;
 import java.util.Set;
 
 import static com.codenvy.api.account.server.dao.Subscription.State.WAIT_FOR_PAYMENT;
-import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type;
-import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type.CREATE;
-import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type.DELETE;
 
 /**
  * Account API
@@ -313,34 +312,10 @@ public class AccountService extends Service {
     public List<SubscriptionDescriptor> getSubscriptions(@PathParam("id") String accountId,
                                                          @Context SecurityContext securityContext)
             throws NotFoundException, ForbiddenException, ServerException {
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
         final List<SubscriptionDescriptor> result = new ArrayList<>(subscriptions.size());
         for (Subscription subscription : subscriptions) {
-            final List<Link> links = new ArrayList<>(3);
-            links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getSubscriptionById").build(subscription.getId()).toString()));
-
-            if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
-                securityContext.isUserInRole("system/manager")) {
-                links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
-                                     uriBuilder.clone().path(getClass(), "removeSubscription").build(subscription.getId()).toString()));
-                if (subscription.getState() == WAIT_FOR_PAYMENT) {
-                    links.add(createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_JSON, null,
-                                         uriBuilder.clone().path(getClass(), "purchaseSubscription").build(subscription.getId())
-                                                   .toString()
-                                        ));
-                }
-            }
-            final SubscriptionDescriptor subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
-                                                                            .withId(subscription.getId())
-                                                                            .withAccountId(subscription.getAccountId())
-                                                                            .withStartDate(subscription.getStartDate())
-                                                                            .withEndDate(subscription.getEndDate())
-                                                                            .withServiceId(subscription.getServiceId())
-                                                                            .withProperties(subscription.getProperties())
-                                                                            .withState(subscription.getState()).withLinks(links);
-            result.add(subscriptionDescriptor);
+            result.add(toDescriptor(subscription, securityContext, null));
         }
         return result;
     }
@@ -353,34 +328,15 @@ public class AccountService extends Service {
                                                       @Context SecurityContext securityContext) throws ApiException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
 
-        final Set<String> roles = resolveRolesForSpecificAccount(subscription.getAccountId());
-        if (securityContext.isUserInRole("user") && !roles.contains("account/owner") && !roles.contains("account/member")) {
-            throw new ForbiddenException("Access denied");
+        Set<String> roles = null;
+        if (securityContext.isUserInRole("user")) {
+            roles = resolveRolesForSpecificAccount(subscription.getAccountId());
+            if (!roles.contains("account/owner") && !roles.contains("account/member")) {
+                throw new ForbiddenException("Access denied");
+            }
         }
 
-        final SubscriptionDescriptor subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
-                                                                        .withId(subscription.getId())
-                                                                        .withAccountId(subscription.getAccountId())
-                                                                        .withStartDate(subscription.getStartDate())
-                                                                        .withEndDate(subscription.getEndDate())
-                                                                        .withServiceId(subscription.getServiceId())
-                                                                        .withProperties(subscription.getProperties())
-                                                                        .withState(subscription.getState());
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        if (roles.contains("account/owner") || securityContext.isUserInRole("system/admin")
-            || securityContext.isUserInRole("system/manager")) {
-            final ArrayList<Link> links = new ArrayList<>(2);
-            links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
-                                 uriBuilder.clone().path(getClass(), "removeSubscription").build(
-                                         subscription.getId()).toString()
-                                ));
-            if (subscription.getState() == WAIT_FOR_PAYMENT) {
-                links.add(createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_JSON, null,
-                                     uriBuilder.clone().path(getClass(), "purchaseSubscription").build(subscription.getId()).toString()));
-            }
-            subscriptionDescriptor.setLinks(links);
-        }
-        return subscriptionDescriptor;
+        return toDescriptor(subscription, securityContext, roles);
     }
 
     @POST
@@ -395,13 +351,17 @@ public class AccountService extends Service {
         if (newSubscription == null) {
             throw new ConflictException("Missed subscription");
         }
+        if (newSubscription.getProperties() == null || newSubscription.getProperties().isEmpty()) {
+            throw new ConflictException("Missed subscription properties");
+        }
+        Set<String> roles = null;
         if (securityContext.isUserInRole("user")) {
-            final Set<String> roles = resolveRolesForSpecificAccount(newSubscription.getAccountId());
+            roles = resolveRolesForSpecificAccount(newSubscription.getAccountId());
             if (!roles.contains("account/owner")) {
                 throw new ForbiddenException("Access denied");
             }
         }
-        SubscriptionService service = registry.get(newSubscription.getServiceId());
+        final SubscriptionService service = registry.get(newSubscription.getServiceId());
         if (null == service) {
             throw new ConflictException("Unknown serviceId is used");
         }
@@ -410,64 +370,141 @@ public class AccountService extends Service {
                                                             .withProperties(newSubscription.getProperties());
         subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
 
-        subscription.setStartDate(System.currentTimeMillis());
         final Calendar calendar = Calendar.getInstance();
-        if (null != subscription.getProperties() && "yearly".equalsIgnoreCase(subscription.getProperties().get("TariffPlan"))) {
-            calendar.add(Calendar.YEAR, 1);
+        subscription.setStartDate(calendar.getTimeInMillis());
+        if (Boolean.parseBoolean(subscription.getProperties().get("codenvy:trial"))) {
+            String userId = EnvironmentContext.getCurrent().getUser().getId();
+            final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(
+                    new SubscriptionHistoryEvent().withUserId(userId).withType(SubscriptionHistoryEvent.Type.CREATE).withSubscription(
+                            new Subscription().withServiceId(subscription.getServiceId())
+                                              .withProperties(Collections.singletonMap("codenvy:trial", "true"))
+                                                                                                                                     )
+                                                                                                 );
+            if (events.size() > 0) {
+                throw new ConflictException("You can't use trial twice, please contact support");
+            }
+            try {
+                paymentService.getCreditCard(userId);
+            } catch (NotFoundException e) {
+                throw new ConflictException("You have no credit card to pay for subscription after trial");
+            }
+            calendar.add(Calendar.DAY_OF_YEAR, 7);
+            subscription.setState(Subscription.State.ACTIVE);
         } else {
-            calendar.add(Calendar.MONTH, 1);
+            String tariffPlan;
+            if (null == (tariffPlan = subscription.getProperties().get("TariffPlan"))) {
+                throw new ConflictException("TariffPlan property not found");
+            }
+            switch (tariffPlan) {
+                case "yearly":
+                    calendar.add(Calendar.YEAR, 1);
+                    break;
+                case "monthly":
+                    calendar.add(Calendar.MONTH, 1);
+                    break;
+                default:
+                    throw new ConflictException("Unknown TariffPlan is used " + tariffPlan);
+            }
+
+            final double amount = service.tarifficate(subscription);
+            if (0D == amount || securityContext.isUserInRole("system/admin")) {
+                subscription.setState(Subscription.State.ACTIVE);
+            } else {
+                subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
+            }
         }
         subscription.setEndDate(calendar.getTimeInMillis());
 
-        final double amount = service.tarifficate(subscription);
-        Response response;
-        if (0D == amount || securityContext.isUserInRole("system/admin")) {
-            subscription.setState(Subscription.State.ACTIVE);
-            response = Response.noContent().build();
-        } else {
-            subscription.setState(WAIT_FOR_PAYMENT);
-            final SubscriptionDescriptor subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
-                                                                            .withId(subscription.getId())
-                                                                            .withAccountId(subscription.getAccountId())
-                                                                            .withServiceId(subscription.getServiceId())
-                                                                            .withProperties(subscription.getProperties())
-                                                                            .withStartDate(subscription.getStartDate())
-                                                                            .withEndDate(subscription.getEndDate())
-                                                                            .withState(subscription.getState());
-            final ArrayList<Link> links = new ArrayList<>(2);
-            final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-            links.add(createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_JSON, null,
-                                 uriBuilder.clone().path(getClass(), "purchaseSubscription").build(subscription.getId()).toString()));
-            links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
-                                 uriBuilder.clone().path(getClass(), "removeSubscription").build(subscription.getId()).toString()));
-
-            response = Response.status(402).entity(subscriptionDescriptor.withLinks(links)).build();
-        }
-
         service.beforeCreateSubscription(subscription);
         accountDao.addSubscription(subscription);
-        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(subscription, CREATE));
+        accountDao.addSubscriptionHistoryEvent(
+                createSubscriptionHistoryEvent(subscription, SubscriptionHistoryEvent.Type.CREATE,
+                                               EnvironmentContext.getCurrent().getUser().getId())
+                                              );
         service.afterCreateSubscription(subscription);
+
+        Response response;
+        if (subscription.getState() == WAIT_FOR_PAYMENT) {
+            response = Response.status(402).entity(toDescriptor(subscription, securityContext, roles)).build();
+        } else {
+            response = Response.noContent().build();
+        }
 
         return response;
     }
 
+    /**
+     * Removes subscription by id
+     *
+     * @param subscriptionId
+     *         id of the subscription to remove
+     * @throws NotFoundException
+     *         if subscription with such id is not found
+     * @throws ServerException
+     *         if internal server error occurs
+     * @throws ForbiddenException
+     *         if user hasn't permissions
+     * @throws ApiException
+     */
     @DELETE
     @Path("subscriptions/{id}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public void removeSubscription(@PathParam("id") String subscriptionId, @Context SecurityContext securityContext)
-            throws ApiException {
+    public void removeSubscription(@PathParam("id") String subscriptionId, @Context SecurityContext securityContext) throws ApiException {
         final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
-        if (securityContext.isUserInRole("user")) {
-            final Set<String> roles = resolveRolesForSpecificAccount(toRemove.getAccountId());
-            if (!roles.contains("account/owner")) {
-                throw new ForbiddenException("Access denied");
-            }
+        if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
+            throw new ForbiddenException("Access denied");
         }
         final SubscriptionService service = registry.get(toRemove.getServiceId());
         accountDao.removeSubscription(subscriptionId);
-        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(toRemove, DELETE));
+        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(toRemove, SubscriptionHistoryEvent.Type.DELETE,
+                                                                              EnvironmentContext.getCurrent().getUser().getId()));
         service.onRemoveSubscription(toRemove);
+    }
+
+    /**
+     * Returns list of {@link SubscriptionHistoryEvent}s filtered by provided pattern event. User's id is set if used by user.
+     *
+     * @param pattern
+     *         filter events by filled fields of pattern
+     * @return list of {@link SubscriptionHistoryEvent}
+     * @throws ForbiddenException
+     *         if provided userId isn't equal to current userId
+     * @throws ServerException
+     *         if internal server error occurs
+     */
+    @POST
+    @Path("subscriptions/history")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<SubscriptionHistoryEventDescriptor> getSubscriptionHistory(SubscriptionHistoryEventPattern pattern,
+                                                                           @Context SecurityContext securityContext)
+            throws ServerException, ForbiddenException {
+        Subscription subscription = null;
+        final SubscriptionDescriptor sDescriptor = pattern.getSubscription();
+        if (sDescriptor != null) {
+            subscription = new Subscription().withId(sDescriptor.getId()).withAccountId(sDescriptor.getAccountId())
+                                             .withState(sDescriptor.getState()).withServiceId(sDescriptor.getServiceId())
+                                             .withProperties(sDescriptor.getProperties());
+        }
+
+        SubscriptionHistoryEvent eventPattern =
+                new SubscriptionHistoryEvent().withId(pattern.getId()).withTransactionId(pattern.getTransactionId())
+                                              .withType(pattern.getType()).withUserId(pattern.getUserId())
+                                              .withSubscription(subscription);
+        if (securityContext.isUserInRole("user")) {
+            if (eventPattern.getUserId() == null) {
+                eventPattern.setUserId(EnvironmentContext.getCurrent().getUser().getId());
+            } else if (!EnvironmentContext.getCurrent().getUser().getId().equals(eventPattern.getUserId())) {
+                throw new ForbiddenException("You can't get subscription history for user " + eventPattern.getUserId());
+            }
+        }
+
+        final List<SubscriptionHistoryEvent> subscriptionHistoryEvents = accountDao.getSubscriptionHistoryEvents(eventPattern);
+        final List<SubscriptionHistoryEventDescriptor> result = new ArrayList<>(subscriptionHistoryEvents.size());
+        for (SubscriptionHistoryEvent event : subscriptionHistoryEvents) {
+            result.add(toDescriptor(event));
+        }
+        return result;
     }
 
     @DELETE
@@ -477,35 +514,93 @@ public class AccountService extends Service {
         accountDao.remove(id);
     }
 
+    /**
+     * Purchase certain subscription.
+     *
+     * @param subscriptionId
+     *         id of the subscription
+     * @throws ConflictException
+     *         if the subscription is not found; payment is not required; if user has no stored credit card
+     * @throws ServerException
+     *         if internal server error occurs
+     */
     @POST
     @Path("subscriptions/{id}/purchase")
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void purchaseSubscription(@PathParam("id") String subscriptionId, Payment payment) throws ApiException {
-        paymentService.purchase(DtoFactory.getInstance().clone(payment).withSubscriptionId(subscriptionId));
+    public void purchaseSubscription(@PathParam("id") String subscriptionId) throws ServerException, ConflictException {
+        paymentService.purchase(EnvironmentContext.getCurrent().getUser().getId(), subscriptionId);
     }
 
     /**
-     * Can be used only in methods that is restricted with @RolesAllowed
+     * Saves user's credit card. User can have only 1 credit card at once.
+     *
+     * @param creditCard
+     *         credit card to save
+     * @throws ConflictException
+     *         if user has credit card already
+     * @throws ServerException
+     *         if internal server error occurs
+     */
+    @POST
+    @Path("credit-card")
+    @RolesAllowed("user")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void saveCreditCard(NewCreditCard creditCard) throws ServerException, ConflictException {
+        paymentService.saveCreditCard(EnvironmentContext.getCurrent().getUser().getId(), DtoFactory.getInstance().clone(creditCard));
+    }
+
+    /**
+     * Returns user's credit card
+     *
+     * @return the user's credit card, if available
+     * @throws NotFoundException
+     *         if user's credit card is not found
+     * @throws ServerException
+     *         if internal server error occurs
+     */
+    @GET
+    @Path("credit-card")
+    @RolesAllowed("user")
+    @Produces(MediaType.APPLICATION_JSON)
+    public CreditCardDescriptor getUserCreditCard() throws NotFoundException, ServerException {
+        return paymentService.getCreditCard(EnvironmentContext.getCurrent().getUser().getId());
+    }
+
+    /**
+     * Removes user credit card
+     *
+     * @throws ServerException
+     *         if internal server error occurs
+     */
+    @DELETE
+    @Path("credit-card")
+    @RolesAllowed("user")
+    public void removeCreditCard() throws ServerException {
+        paymentService.removeCreditCard(EnvironmentContext.getCurrent().getUser().getId());
+    }
+
+    /**
+     * Create {@link SubscriptionHistoryEvent} object
      *
      * @param subscription
      *         subscription to set in event
      * @param type
      *         event type to create
+     * @param userId
+     *         id of user that initiate this event
      * @return subscription history event
      */
-    private SubscriptionHistoryEvent createSubscriptionHistoryEvent(Subscription subscription, Type type) {
-        return new SubscriptionHistoryEvent()
-                .withId(NameGenerator.generate(SubscriptionHistoryEventDescriptor.class.getSimpleName().toLowerCase(),
-                                               Constants.ID_LENGTH))
-                .withType(type)
-                .withUserId(EnvironmentContext.getCurrent().getUser().getId())
-                .withTime(System.currentTimeMillis())
-                .withSubscription(subscription);
+    private SubscriptionHistoryEvent createSubscriptionHistoryEvent(Subscription subscription, SubscriptionHistoryEvent.Type type,
+                                                                    String userId) {
+        return new SubscriptionHistoryEvent().withId(
+                NameGenerator.generate(SubscriptionHistoryEvent.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH)).withType(
+                type).withUserId(userId).withTime(System.currentTimeMillis()).withSubscription(
+                subscription);
     }
 
     /**
-     * Can be used only in methods that is restricted with @RolesAllowed
+     * Can be used only in methods that is restricted with @RolesAllowed. Require "user" role.
      *
      * @param currentAccountId
      *         account id to resolve roles for
@@ -540,7 +635,8 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getMemberships")
                                        .build()
-                                       .toString()));
+                                       .toString()
+                            ));
         links.add(createLink(HttpMethod.GET,
                              Constants.LINK_REL_GET_SUBSCRIPTIONS,
                              null,
@@ -548,7 +644,8 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getSubscriptions")
                                        .build(account.getId())
-                                       .toString()));
+                                       .toString()
+                            ));
         links.add(createLink(HttpMethod.GET,
                              Constants.LINK_REL_GET_MEMBERS,
                              null,
@@ -556,7 +653,8 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getMembers")
                                        .build(account.getId())
-                                       .toString()));
+                                       .toString()
+                            ));
         links.add(createLink(HttpMethod.GET,
                              Constants.LINK_REL_GET_ACCOUNT_BY_ID,
                              null,
@@ -574,7 +672,8 @@ public class AccountService extends Service {
                                            .path(getClass(), "getByName")
                                            .queryParam("name", account.getName())
                                            .build()
-                                           .toString()));
+                                           .toString()
+                                ));
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(createLink(HttpMethod.DELETE,
@@ -583,7 +682,8 @@ public class AccountService extends Service {
                                  null,
                                  uriBuilder.clone().path(getClass(), "remove")
                                            .build(account.getId())
-                                           .toString()));
+                                           .toString()
+                                ));
         }
         return DtoFactory.getInstance().createDto(AccountDescriptor.class)
                          .withId(account.getId())
@@ -601,7 +701,8 @@ public class AccountService extends Service {
                                              uriBuilder.clone()
                                                        .path(getClass(), "removeMember")
                                                        .build(account.getId(), member.getUserId())
-                                                       .toString());
+                                                       .toString()
+                                            );
         final Link allMembers = createLink(HttpMethod.GET,
                                            Constants.LINK_REL_GET_MEMBERS,
                                            null,
@@ -609,7 +710,8 @@ public class AccountService extends Service {
                                            uriBuilder.clone()
                                                      .path(getClass(), "getMembers")
                                                      .build(account.getId())
-                                                     .toString());
+                                                     .toString()
+                                          );
         final AccountReference accountRef = DtoFactory.getInstance().createDto(AccountReference.class)
                                                       .withId(account.getId())
                                                       .withName(account.getName());
@@ -623,13 +725,69 @@ public class AccountService extends Service {
                                                                      uriBuilder.clone()
                                                                                .path(getClass(), "getById")
                                                                                .build(account.getId())
-                                                                               .toString())));
+                                                                               .toString()
+                                                                    )));
         }
         return DtoFactory.getInstance().createDto(MemberDescriptor.class)
                          .withUserId(member.getUserId())
                          .withRoles(member.getRoles())
                          .withAccountReference(accountRef)
                          .withLinks(Arrays.asList(removeMember, allMembers));
+    }
+
+    /**
+     * Create {@link SubscriptionDescriptor} form {@link Subscription}.
+     * Set with roles should be used if account roles can't be resolved with {@link SecurityContext}
+     * (If there is no id of the account in the REST path.)
+     *
+     * @param subscription
+     *         subscription that should be converted to {@link SubscriptionDescriptor}
+     * @param resolvedRoles
+     *         resolved roles. Do not use if id of the account presents in REST path.
+     */
+    private SubscriptionDescriptor toDescriptor(Subscription subscription, SecurityContext securityContext, Set<String> resolvedRoles) {
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final List<Link> links = new ArrayList<>(3);
+        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
+                             uriBuilder.clone().path(getClass(), "getSubscriptionById").build(subscription.getId()).toString()));
+
+        if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
+            securityContext.isUserInRole("system/manager") ||
+            (securityContext.isUserInRole("user") && resolvedRoles != null && resolvedRoles.contains("account/owner"))) {
+            links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
+                                 uriBuilder.clone().path(getClass(), "removeSubscription").build(subscription.getId()).toString()));
+            if (subscription.getState() == WAIT_FOR_PAYMENT) {
+                links.add(createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_JSON, null,
+                                     uriBuilder.clone().path(getClass(), "purchaseSubscription").build(subscription.getId())
+                                               .toString()
+                                    ));
+            }
+        }
+        return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
+                         .withId(subscription.getId())
+                         .withAccountId(subscription.getAccountId())
+                         .withStartDate(subscription.getStartDate())
+                         .withEndDate(subscription.getEndDate())
+                         .withServiceId(subscription.getServiceId())
+                         .withProperties(subscription.getProperties())
+                         .withState(subscription.getState()).withLinks(links);
+    }
+
+    private SubscriptionHistoryEventDescriptor toDescriptor(SubscriptionHistoryEvent event) {
+        Subscription subscription = event.getSubscription();
+        SubscriptionDescriptor subscriptionDescriptor = null;
+        if (subscription != null) {
+            subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
+                                               .withId(subscription.getId())
+                                               .withAccountId(subscription.getAccountId())
+                                               .withStartDate(subscription.getStartDate())
+                                               .withEndDate(subscription.getEndDate())
+                                               .withServiceId(subscription.getServiceId())
+                                               .withProperties(subscription.getProperties());
+        }
+        return DtoFactory.getInstance().createDto(SubscriptionHistoryEventDescriptor.class).withId(event.getId())
+                         .withAmount(event.getAmount()).withTime(event.getTime()).withTransactionId(event.getTransactionId())
+                         .withType(event.getType()).withUserId(event.getUserId()).withSubscription(subscriptionDescriptor);
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {

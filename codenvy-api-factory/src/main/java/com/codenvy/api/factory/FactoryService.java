@@ -165,7 +165,7 @@ public class FactoryService extends Service {
      *         - url context
      * @return - stored data, if id is correct.
      * @throws com.codenvy.api.core.ApiException
-     *         - with response code 404 if factory with given id doesn't exist
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
      */
     @GET
     @Path("/nonencoded")
@@ -197,7 +197,7 @@ public class FactoryService extends Service {
      *         - url context
      * @return - stored data, if id is correct.
      * @throws com.codenvy.api.core.ApiException
-     *         - with response code 404 if factory with given id doesn't exist
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
      */
     @GET
     @Path("{id}")
@@ -232,7 +232,7 @@ public class FactoryService extends Service {
      *         - url context
      * @return - stored data, if id is correct.
      * @throws com.codenvy.api.core.ApiException
-     *         - with response code 404 if factory with given id doesn't exist
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
      */
     @RolesAllowed("user")
     @GET
@@ -277,9 +277,9 @@ public class FactoryService extends Service {
      * @return - image information if ids are correct. If imageId is not set, random image of factory will be returned. But if factory has
      * no images, exception will be thrown.
      * @throws com.codenvy.api.core.ApiException
-     *         - with response code 404 if factory with given id doesn't exist
-     *         - with response code 404 if imgId is not set in request and there is no default image for factory with given id
-     *         - with response code 404 if image with given image id doesn't exist
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
+     *         - {@link com.codenvy.api.core.NotFoundException} when imgId is not set in request and there is no default image for factory with given id
+     *         - {@link com.codenvy.api.core.NotFoundException} when image with given image id doesn't exist
      */
     @GET
     @Path("{factoryId}/image")
@@ -321,7 +321,7 @@ public class FactoryService extends Service {
      *         - url context
      * @return - snippet content.
      * @throws com.codenvy.api.core.ApiException
-     *         - with response code 404 if factory with given id doesn't exist - with response code 400 if snippet type
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist - with response code 400 if snippet type
      *         is unsupported
      */
     @GET

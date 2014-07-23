@@ -10,6 +10,11 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
@@ -70,26 +75,25 @@ public class FactoryService extends Service {
      * @param uriInfo
      *         - url context
      * @return - stored data
-     * @throws FactoryUrlException
-     *         - with response code 400 if factory url json is not found
-     *         - with response code 400 if vcs is unsupported
-     *         - with response code 400 if image content can't be read
-     *         - with response code 400 if image media type is unsupported
-     *         - with response code 400 if image height or length isn't equal to 100 pixels
-     *         - with response code 413 if image is too big
-     *         - with response code 500 if internal server error occurs
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.ConflictException} when factory url json is not found
+     *         - {@link com.codenvy.api.core.ConflictException} when vcs is unsupported
+     *         - {@link com.codenvy.api.core.ConflictException} when image content can't be read
+     *         - {@link com.codenvy.api.core.ConflictException} when image media type is unsupported
+     *         - {@link com.codenvy.api.core.ConflictException} when image height or length isn't equal to 100 pixels
+     *         - {@link com.codenvy.api.core.ConflictException} when if image is too big
+     *         - {@link com.codenvy.api.core.ServerException} when internal server error occurs
      */
     @RolesAllowed("user")
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
     public Factory saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo)
-            throws FactoryUrlException {
+            throws ApiException {
         try {
             EnvironmentContext context = EnvironmentContext.getCurrent();
             if (context.getUser() == null || context.getUser().getName() == null || context.getUser().getId() == null) {
-                throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(),
-                                              "Unable to identify user from context");
+                throw new ServerException("Unable to identify user from context");
             }
 
             Set<FactoryImage> images = new HashSet<>();
@@ -101,7 +105,7 @@ public class FactoryService extends Service {
                     try {
                         factoryUrl = factoryBuilder.buildEncoded(part.getInputStream());
                     } catch (JsonSyntaxException e) {
-                        throw new FactoryUrlException(
+                        throw new ConflictException(
                                 "You have provided an invalid JSON.  For more information, please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/");
                     }
                 } else if (fieldName.equals("image")) {
@@ -117,12 +121,11 @@ public class FactoryService extends Service {
 
             if (factoryUrl == null) {
                 LOG.warn("No factory URL information found in 'factoryUrl' section of multipart form-data.");
-                throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(),
-                                              "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
+                throw new ConflictException("No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
             if (factoryUrl.getV().equals("1.0")) {
-                throw new FactoryUrlException("Storing of Factory 1.0 is unsupported.");
+                throw new ConflictException("Storing of Factory 1.0 is unsupported.");
             }
             factoryUrl.setUserid(context.getUser().getId());
             factoryUrl.setCreated(System.currentTimeMillis());
@@ -151,7 +154,7 @@ public class FactoryService extends Service {
             return factoryUrl;
         } catch (IOException | ServletException e) {
             LOG.error(e.getLocalizedMessage(), e);
-            throw new FactoryUrlException(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getLocalizedMessage(), e);
+            throw new ServerException(e.getLocalizedMessage(), e);
         }
     }
 
@@ -161,8 +164,8 @@ public class FactoryService extends Service {
      * @param uriInfo
      *         - url context
      * @return - stored data, if id is correct.
-     * @throws FactoryUrlException
-     *         - with response code 404 if factory with given id doesn't exist
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
      */
     @GET
     @Path("/nonencoded")
@@ -170,11 +173,11 @@ public class FactoryService extends Service {
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                                             @DefaultValue("false") @QueryParam("validate") Boolean validate,
                                             @Context UriInfo uriInfo)
-            throws FactoryUrlException {
+            throws ApiException {
         URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("legacy", null)
-                                                             .replaceQueryParam("token", null)
-                                                             .replaceQueryParam("validate", null)
-                                                             .build();
+                            .replaceQueryParam("token", null)
+                            .replaceQueryParam("validate", null)
+                            .build();
         Factory factory = factoryBuilder.buildNonEncoded(uri);
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
@@ -193,19 +196,19 @@ public class FactoryService extends Service {
      * @param uriInfo
      *         - url context
      * @return - stored data, if id is correct.
-     * @throws FactoryUrlException
-     *         - with response code 404 if factory with given id doesn't exist
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
      */
     @GET
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactory(@PathParam("id") String id, @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
-                              @Context UriInfo uriInfo) throws FactoryUrlException {
+                              @Context UriInfo uriInfo) throws ApiException {
         Factory factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
             LOG.warn("Factory URL with id {} is not found.", id);
-            throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), "Factory URL with id " + id + " is not found.");
+            throw new NotFoundException("Factory URL with id " + id + " is not found.");
         }
 
         if (legacy) {
@@ -214,7 +217,7 @@ public class FactoryService extends Service {
         try {
             factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
         } catch (UnsupportedEncodingException e) {
-            throw new FactoryUrlException(e.getLocalizedMessage(), e);
+            throw new ConflictException(e.getLocalizedMessage());
         }
         if (validate) {
             acceptValidator.validateOnAccept(factoryUrl, true);
@@ -228,15 +231,15 @@ public class FactoryService extends Service {
      * @param uriInfo
      *         - url context
      * @return - stored data, if id is correct.
-     * @throws FactoryUrlException
-     *         - with response code 404 if factory with given id doesn't exist
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
      */
     @RolesAllowed("user")
     @GET
     @Path("/find")
     @Produces({MediaType.APPLICATION_JSON})
     @SuppressWarnings("unchecked")
-    public List<Link> getFactoryByAttribute(@Context UriInfo uriInfo) throws FactoryUrlException {
+    public List<Link> getFactoryByAttribute(@Context UriInfo uriInfo) throws ApiException {
         List<Link> result = new ArrayList<>();
         URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("token", null).build();
         Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
@@ -247,9 +250,9 @@ public class FactoryService extends Service {
         ArrayList<Pair> pairs = new ArrayList<>();
         for (Map.Entry<String, Set<String>> entry : queryParams.entrySet()) {
             if (!entry.getValue().isEmpty())
-              pairs.add(Pair.of(entry.getKey(), entry.getValue().iterator().next()));
+                pairs.add(Pair.of(entry.getKey(), entry.getValue().iterator().next()));
         }
-        for (Factory factory : factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]))){
+        for (Factory factory : factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]))) {
             result.add(DtoFactory.getInstance().createDto(Link.class)
                                  .withMethod("GET")
                                  .withRel("self")
@@ -273,20 +276,20 @@ public class FactoryService extends Service {
      *         - image id.
      * @return - image information if ids are correct. If imageId is not set, random image of factory will be returned. But if factory has
      * no images, exception will be thrown.
-     * @throws FactoryUrlException
-     *         - with response code 404 if factory with given id doesn't exist
-     *         - with response code 404 if imgId is not set in request and there is no default image for factory with given id
-     *         - with response code 404 if image with given image id doesn't exist
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
+     *         - {@link com.codenvy.api.core.NotFoundException} when imgId is not set in request and there is no default image for factory with given id
+     *         - {@link com.codenvy.api.core.NotFoundException} when image with given image id doesn't exist
      */
     @GET
     @Path("{factoryId}/image")
     @Produces("image/*")
     public Response getImage(@PathParam("factoryId") String factoryId, @DefaultValue("") @QueryParam("imgId") String imageId)
-            throws FactoryUrlException {
+            throws ApiException {
         Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(factoryId, null);
         if (factoryImages == null) {
             LOG.warn("Factory URL with id {} is not found.", factoryId);
-            throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), "Factory URL with id " + factoryId + " is not found.");
+            throw new NotFoundException("Factory URL with id " + factoryId + " is not found.");
         }
         if (imageId.isEmpty()) {
             if (factoryImages.size() > 0) {
@@ -294,8 +297,7 @@ public class FactoryService extends Service {
                 return Response.ok(image.getImageData(), image.getMediaType()).build();
             } else {
                 LOG.warn("Default image for factory {} is not found.", factoryId);
-                throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(),
-                                              "Default image for factory " + factoryId + " is not found.");
+                throw new NotFoundException("Default image for factory " + factoryId + " is not found.");
             }
         } else {
             for (FactoryImage image : factoryImages) {
@@ -305,29 +307,33 @@ public class FactoryService extends Service {
             }
         }
         LOG.warn("Image with id {} is not found.", imageId);
-        throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), "Image with id " + imageId + " is not found.");
+        throw new NotFoundException("Image with id " + imageId + " is not found.");
     }
 
     /**
      * Get factory snippet by factory id and snippet type. If snippet type is not set, "url" type will be used as default.
-     * 
-     * @param id - factory id.
-     * @param type - type of snippet.
-     * @param uriInfo - url context
+     *
+     * @param id
+     *         - factory id.
+     * @param type
+     *         - type of snippet.
+     * @param uriInfo
+     *         - url context
      * @return - snippet content.
-     * @throws FactoryUrlException - with response code 404 if factory with given id doesn't exist - with response code 400 if snippet type
-     *             is unsupported
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist - with response code 400 if snippet type
+     *         is unsupported
      */
     @GET
     @Path("{id}/snippet")
     @Produces({MediaType.TEXT_PLAIN})
     public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type,
                                     @Context UriInfo uriInfo)
-                                                             throws FactoryUrlException {
+            throws ApiException {
         Factory factory = factoryStore.getFactory(id);
         if (factory == null) {
             LOG.warn("Factory URL with id {} is not found.", id);
-            throw new FactoryUrlException(Status.NOT_FOUND.getStatusCode(), "Factory URL with id " + id + " is not found.");
+            throw new NotFoundException("Factory URL with id " + id + " is not found.");
         }
 
         switch (type) {
@@ -343,13 +349,14 @@ public class FactoryService extends Service {
                 Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(id, null);
                 String imageId = (factoryImages.size() > 0) ? factoryImages.iterator().next().getName() : null;
                 return SnippetGenerator
-                                       .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
-                                                                          .queryParam("id", id).build().toString(), id,
-                                                                imageId, factory.getStyle(),
-                                                                UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString());
+                        .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                           .queryParam("id", id).build().toString(), id,
+                                                 imageId, factory.getStyle(),
+                                                 UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString()
+                                                );
             default:
                 LOG.warn("Snippet type {} is unsupported", type);
-                throw new FactoryUrlException(Status.BAD_REQUEST.getStatusCode(), "Snippet type \"" + type + "\" is unsupported.");
+                throw new ConflictException("Snippet type \"" + type + "\" is unsupported.");
         }
     }
 

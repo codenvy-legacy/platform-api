@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+
 import java.io.*;
 import java.util.Arrays;
 
@@ -103,9 +106,9 @@ public class FactoryImage {
      * @param name
      *         - image name
      * @return - {@code FactoryImage} if {@code FactoryImage} was created, null if input stream has no content
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
-    public static FactoryImage createImage(InputStream is, String mediaType, String name) throws FactoryUrlException {
+    public static FactoryImage createImage(InputStream is, String mediaType, String name) throws ApiException {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
@@ -113,7 +116,7 @@ public class FactoryImage {
             while ((read = is.read(buffer, 0, buffer.length)) != -1) {
                 baos.write(buffer, 0, read);
                 if (baos.size() > 1024 * 1024) {
-                    throw new FactoryUrlException(413, "Maximum upload size exceeded.");
+                    throw new ConflictException("Maximum upload size exceeded.");
                 }
             }
 
@@ -124,7 +127,7 @@ public class FactoryImage {
 
             return new FactoryImage(baos.toByteArray(), mediaType, name);
         } catch (IOException e) {
-            throw new FactoryUrlException(e.getLocalizedMessage(), e);
+            throw new ConflictException(e.getLocalizedMessage());
         }
     }
 }

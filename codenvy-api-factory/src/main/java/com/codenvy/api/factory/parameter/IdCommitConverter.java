@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.factory.parameter;
 
-import com.codenvy.api.factory.FactoryUrlException;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 
 /**
@@ -21,10 +21,10 @@ import com.codenvy.api.factory.dto.Factory;
 public class IdCommitConverter implements LegacyConverter {
 
     @Override
-    public void convert(Factory factory) throws FactoryUrlException {
+    public void convert(Factory factory) throws ApiException {
 
         if (factory.getCommitid() != null && factory.getIdcommit() != null) {
-            throw new FactoryUrlException("Parameters 'commitid' and 'idcommit' are mutually exclusive.");
+            throw new ApiException("Parameters 'commitid' and 'idcommit' are mutually exclusive.");
         } else if (factory.getCommitid() == null) {
             factory.setCommitid(factory.getIdcommit());
             factory.setIdcommit(null);

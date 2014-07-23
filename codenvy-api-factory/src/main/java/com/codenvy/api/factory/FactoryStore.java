@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.commons.lang.Pair;
 
@@ -26,18 +27,18 @@ public interface FactoryStore {
      * @param images
      *         - factory images
      * @return - if of stored factory
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
-    public String saveFactory(Factory factoryUrl, Set<FactoryImage> images) throws FactoryUrlException;
+    public String saveFactory(Factory factoryUrl, Set<FactoryImage> images) throws ApiException;
 
     /**
      * Remove factory by id
      *
      * @param id
      *         - id of factory to remove
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
-    public void removeFactory(String id) throws FactoryUrlException;
+    public void removeFactory(String id) throws ApiException;
 
     /**
      * Retrieve factory data by its id
@@ -45,9 +46,9 @@ public interface FactoryStore {
      * @param id
      *         - factory id
      * @return - {@code AdvancedFactoryUrl} if factory exist and found, null otherwise
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
-    public Factory getFactory(String id) throws FactoryUrlException;
+    public Factory getFactory(String id) throws ApiException;
 
     /**
      * Retrieve factory by given attribute name and value.
@@ -56,9 +57,9 @@ public interface FactoryStore {
      *              - attribute pairs to search for
      *
      * @return - List {@code AdvancedFactoryUrl} if factory(s) exist and found, empty list otherwise
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
-    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws FactoryUrlException;
+    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws ApiException;
 
     /**
      * Retrieve factory images by factory id
@@ -68,7 +69,7 @@ public interface FactoryStore {
      * @param imageId
      *         - id of the requested image. When null, all images for given factory will be returned.
      * @return - {@code Set} of images if factory found, empty set otherwise
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
-    public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws FactoryUrlException;
+    public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws ApiException;
 }

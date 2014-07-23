@@ -10,16 +10,23 @@
  *******************************************************************************/
 package com.codenvy.api.local;
 
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.factory.FactoryImage;
 import com.codenvy.api.factory.FactoryStore;
-import com.codenvy.api.factory.FactoryUrlException;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -31,7 +38,7 @@ public class InMemoryFactoryStore implements FactoryStore {
     private static final ReentrantReadWriteLock         lock      = new ReentrantReadWriteLock();
 
     @Override
-    public String saveFactory(Factory factoryUrl, Set<FactoryImage> images) throws FactoryUrlException {
+    public String saveFactory(Factory factoryUrl, Set<FactoryImage> images) throws ApiException {
         lock.writeLock().lock();
         try {
             Factory newFactoryUrl = DtoFactory.getInstance().clone(factoryUrl);
@@ -49,14 +56,14 @@ public class InMemoryFactoryStore implements FactoryStore {
 
             return newFactoryUrl.getId();
         } catch (IOException e) {
-            throw new FactoryUrlException(e.getLocalizedMessage(), e);
+            throw new ConflictException(e.getLocalizedMessage());
         } finally {
             lock.writeLock().unlock();
         }
     }
 
     @Override
-    public void removeFactory(String id) throws FactoryUrlException {
+    public void removeFactory(String id) throws ApiException {
         lock.writeLock().lock();
         try {
             factories.remove(id);
@@ -66,7 +73,7 @@ public class InMemoryFactoryStore implements FactoryStore {
     }
 
     @Override
-    public Factory getFactory(String id) throws FactoryUrlException {
+    public Factory getFactory(String id) throws ApiException {
         lock.readLock().lock();
         try {
             return factories.get(id);
@@ -76,12 +83,12 @@ public class InMemoryFactoryStore implements FactoryStore {
     }
 
     @Override
-    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws FactoryUrlException {
+    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws ApiException {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws FactoryUrlException {
+    public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws ApiException {
         lock.readLock().lock();
         try {
             if (imageId == null)

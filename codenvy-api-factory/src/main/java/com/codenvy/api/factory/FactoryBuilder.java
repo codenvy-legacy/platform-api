@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.factory.parameter.*;
 import com.codenvy.commons.lang.URLEncodedUtils;
@@ -93,9 +95,9 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - uri with factory parameters.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildNonEncoded(URI uri) throws FactoryUrlException {
+    public Factory buildNonEncoded(URI uri) throws ApiException {
         if (uri == null) {
-            throw new FactoryUrlException("Passed in invalid query parameters.");
+            throw new ConflictException("Passed in invalid query parameters.");
         }
         Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
 
@@ -104,10 +106,10 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         // there is unsupported parameters in query
         if (!queryParams.isEmpty()) {
             String nameInvalidParams = queryParams.keySet().iterator().next();
-            throw new FactoryUrlException(
+            throw new ConflictException(
                     String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, nameInvalidParams, factory.getV()));
         } else if (null == factory) {
-            throw new FactoryUrlException(MISSING_MANDATORY_MESSAGE);
+            throw new ConflictException(MISSING_MANDATORY_MESSAGE);
         }
 
         checkValid(factory, FactoryFormat.NONENCODED);
@@ -122,7 +124,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - json  Reader from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildEncoded(Reader json) throws IOException, FactoryUrlException {
+    public Factory buildEncoded(Reader json) throws IOException, ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
 
         checkValid(factory, FactoryFormat.ENCODED);
@@ -136,7 +138,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - json  string from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildEncoded(String json) throws FactoryUrlException {
+    public Factory buildEncoded(String json) throws ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
 
         checkValid(factory, FactoryFormat.ENCODED);
@@ -150,7 +152,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - json  InputStream from encoded factory.
      * @return - Factory object represented by given factory string.
      */
-    public Factory buildEncoded(InputStream json) throws IOException, FactoryUrlException {
+    public Factory buildEncoded(InputStream json) throws IOException, ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
         checkValid(factory, FactoryFormat.ENCODED);
         return factory;
@@ -163,21 +165,21 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - factory object to validate
      * @param sourceFormat
      *         - is it encoded factory or not
-     * @throws FactoryUrlException
+     * @throws ApiException
      */
-    public void checkValid(Factory factory, FactoryFormat sourceFormat) throws FactoryUrlException {
+    public void checkValid(Factory factory, FactoryFormat sourceFormat) throws ApiException {
         if (factory == null) {
-            throw new FactoryUrlException(UNPARSEABLE_FACTORY_MESSAGE);
+            throw new ConflictException(UNPARSEABLE_FACTORY_MESSAGE);
         }
         if (factory.getV() == null) {
-            throw new FactoryUrlException(INVALID_VERSION_MESSAGE);
+            throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
 
         Version v;
         try {
             v = Version.fromString(factory.getV());
         } catch (IllegalArgumentException e) {
-            throw new FactoryUrlException(INVALID_VERSION_MESSAGE);
+            throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
 
         String orgid = factory.getOrgid() != null && !factory.getOrgid().isEmpty() ? factory.getOrgid() : null;
@@ -194,7 +196,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                 usedFactoryVersion = FactoryV1_2.class;
                 break;
             default:
-                throw new FactoryUrlException(INVALID_VERSION_MESSAGE);
+                throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
 
 
@@ -208,9 +210,9 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      * @param factory
      *         - given factory.
      * @return - factory in latest format.
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
-    public Factory convertToLatest(Factory factory) throws FactoryUrlException {
+    public Factory convertToLatest(Factory factory) throws ApiException {
         Factory resultFactory = DtoFactory.getInstance().clone(factory);
         resultFactory.setV("1.2");
         for (LegacyConverter converter : LEGACY_CONVERTERS) {
@@ -239,12 +241,12 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - orgid of a factory
      * @param parentName
      *         - parent parameter queryParameterName
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
     private void validateCompatibility(Object object, Class methodsProvider, Class allowedMethodsProvider,
                                        Version version,
                                        FactoryFormat sourceFormat, String orgid,
-                                       String parentName) throws FactoryUrlException {
+                                       String parentName) throws ApiException {
         // get all methods recursively
         for (Method method : methodsProvider.getMethods()) {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
@@ -258,7 +260,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     // should never happen
                     LOG.error(e.getLocalizedMessage(), e);
-                    throw new FactoryUrlException(INVALID_PARAMETER_MESSAGE);
+                    throw new ConflictException(INVALID_PARAMETER_MESSAGE);
                 }
 
                 // if value is null or empty collection or default value for primitives
@@ -267,29 +269,29 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
                         factoryParameter.deprecatedSince().compareTo(version) > 0 &&
                         factoryParameter.ignoredSince().compareTo(version) > 0) {
-                        throw new FactoryUrlException(MISSING_MANDATORY_MESSAGE);
+                        throw new ConflictException(MISSING_MANDATORY_MESSAGE);
                     }
                 } else if (!method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {
-                    throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
+                    throw new ConflictException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                 } else {
                     // is parameter deprecated
                     if (factoryParameter.deprecatedSince().compareTo(version) <= 0) {
-                        throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
+                        throw new ConflictException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                     }
 
                     if (factoryParameter.setByServer()) {
-                        throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
+                        throw new ConflictException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                     }
 
                     // check that field satisfies format rules
                     if (!FactoryFormat.BOTH.equals(factoryParameter.format()) &&
                         !factoryParameter.format().equals(sourceFormat)) {
-                        throw new FactoryUrlException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
+                        throw new ConflictException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
                     }
 
                     // check tracked-only fields
                     if (orgid == null && factoryParameter.trackedOnly()) {
-                        throw new FactoryUrlException(String.format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName, orgid));
+                        throw new ConflictException(String.format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName, orgid));
                     }
 
 
@@ -317,10 +319,10 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      * @param cl
      *         - class of the object to build.
      * @return - built object
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      */
     private <T> T buildDtoObject(Map<String, Set<String>> queryParams, String parentName, Class<T> cl)
-            throws FactoryUrlException {
+            throws ApiException {
         T result = DtoFactory.getInstance().createDto(cl);
         boolean returnNull = true;
         // get all methods of object recursively
@@ -334,7 +336,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
 
                     if (factoryParameter.format() == FactoryFormat.ENCODED) {
                         if (queryParams.containsKey(fullName)) {
-                            throw new FactoryUrlException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
+                            throw new ConflictException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
                         } else {
                             continue;
                         }
@@ -345,8 +347,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     if (queryParams.containsKey(fullName)) {
                         Set<String> values;
                         if ((values = queryParams.remove(fullName)) == null || values.size() != 1) {
-                            throw new FactoryUrlException(String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName,
-                                                                        null != values ? values.toString() : "null"));
+                            throw new ConflictException(String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName,
+                                                                      null != values ? values.toString() : "null"));
                         }
                         param = ValueHelper.createValue(returnClass, values);
                         if (param == null) {
@@ -354,12 +356,12 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                 try {
                                     param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
                                 } catch (Exception e) {
-                                    throw new FactoryUrlException(
+                                    throw new ConflictException(
                                             String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
                                 }
                             } else {
                                 // should never happen
-                                throw new FactoryUrlException(
+                                throw new ConflictException(
                                         String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
                             }
                         }
@@ -377,11 +379,11 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         returnNull = false;
                     }
                 }
-            } catch (FactoryUrlException e) {
+            } catch (ApiException e) {
                 throw e;
             } catch (Exception e) {
                 LOG.error(e.getLocalizedMessage(), e);
-                throw new FactoryUrlException(
+                throw new ConflictException(
                         "Can't validate '" + factoryParameter.queryParameterName() + "' parameter.");
             }
         }

@@ -11,6 +11,7 @@
 package com.codenvy.api.factory;
 
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 
 /**
@@ -22,12 +23,12 @@ public interface FactoryUrlAcceptValidator {
 
     /**
      * Validates factory url object on accept stage. Implementation should throw
-     * {@link com.codenvy.api.factory.FactoryUrlException} if factory url object is invalid.
+     * {@link com.codenvy.api.core.ApiException} if factory url object is invalid.
      *
      * @param factory
      *         factory object to validate
-     * @throws FactoryUrlException
+     * @throws com.codenvy.api.core.ApiException
      *         - in case if factory is not valid
      */
-    void validateOnAccept(Factory factory, boolean encoded) throws FactoryUrlException;
+    void validateOnAccept(Factory factory, boolean encoded) throws ApiException;
 }

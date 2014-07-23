@@ -90,8 +90,11 @@ public class WorkspaceService extends Service {
     private final AccountDao     accountDao;
 
     @Inject
-    public WorkspaceService(WorkspaceDao workspaceDao, UserDao userDao, MemberDao memberDao,
-                            UserProfileDao userProfileDao, AccountDao accountDao) {
+    public WorkspaceService(WorkspaceDao workspaceDao,
+                            UserDao userDao,
+                            MemberDao memberDao,
+                            UserProfileDao userProfileDao,
+                            AccountDao accountDao) {
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
@@ -219,7 +222,6 @@ public class WorkspaceService extends Service {
 
     @GET
     @Path("{id}")
-    @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_ID)
     @Produces(MediaType.APPLICATION_JSON)
     public WorkspaceDescriptor getById(@Context SecurityContext securityContext, @PathParam("id") String id)
             throws NotFoundException, ServerException, ForbiddenException {
@@ -374,7 +376,6 @@ public class WorkspaceService extends Service {
 
     @GET
     @Path("{id}/members")
-    @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_MEMBERS)
     @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembers(@PathParam("id") String wsId, @Context SecurityContext securityContext)
@@ -464,7 +465,6 @@ public class WorkspaceService extends Service {
 
     @DELETE
     @Path("{id}")
-    @GenerateLink(rel = Constants.LINK_REL_REMOVE_WORKSPACE)
     @RolesAllowed({"workspace/admin", "system/admin"})
     public void remove(@PathParam("id") String wsId, @Context SecurityContext securityContext)
             throws NotFoundException, ServerException, ForbiddenException, ConflictException {

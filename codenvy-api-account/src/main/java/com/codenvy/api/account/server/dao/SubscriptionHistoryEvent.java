@@ -23,13 +23,13 @@ public class SubscriptionHistoryEvent {
         DELETE
     }
 
-    private long                time;
-    private String              id;
-    private String              userId;
-    private Type                type;
-    private Subscription        subscription;
-    private String transactionId;
-    private double amount;
+    private long         time;
+    private double       amount;
+    private String       id;
+    private String       userId;
+    private Type         type;
+    private Subscription subscription;
+    private String       transactionId;
 
     public SubscriptionHistoryEvent() {
     }

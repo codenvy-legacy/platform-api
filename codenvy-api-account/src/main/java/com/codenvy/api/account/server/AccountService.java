@@ -299,6 +299,9 @@ public class AccountService extends Service {
             }
         }
         if (update.getAttributes() != null) {
+            for (String attributeName : account.getAttributes().keySet()) {
+                validateAttributeName(attributeName);
+            }
             account.getAttributes().putAll(update.getAttributes());
         }
         accountDao.update(account);

@@ -10,17 +10,17 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.cache.Cache;
-import com.codenvy.commons.lang.cache.LoadingValueSLRUCache;
-import com.codenvy.commons.lang.cache.SynchronizedCache;
+import com.codenvy.commons.lang.cache.SLRUCache;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author andrew00x
@@ -50,7 +52,8 @@ public final class DefaultProjectManager implements ProjectManager {
     private static final int CACHE_MASK = CACHE_NUM - 1;
     private static final int SEG_SIZE   = 32;
 
-    private final Cache<Pair<String, String>, ProjectMisc>[] cache;
+    private final Lock[]                                     miscLocks;
+    private final Cache<Pair<String, String>, ProjectMisc>[] miscCaches;
 
     private final ProjectTypeRegistry               projectTypeRegistry;
     private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
@@ -73,49 +76,32 @@ public final class DefaultProjectManager implements ProjectManager {
         for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
             this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
         }
-        this.cache = new Cache[CACHE_NUM];
+        this.miscCaches = new Cache[CACHE_NUM];
+        this.miscLocks = new Lock[CACHE_NUM];
         for (int i = 0; i < CACHE_NUM; i++) {
-            cache[i] = new SynchronizedCache<>(new LoadingValueSLRUCache<Pair<String, String>, ProjectMisc>(SEG_SIZE, SEG_SIZE) {
-                @Override
-                protected ProjectMisc loadValue(Pair<String, String> key) {
-                    try {
-                        return loadProjectMisc(key.first, key.second);
-                    } catch (IOException e) {
-                        throw new IllegalStateException(e);
-                    }
-                }
-
+            miscLocks[i] = new ReentrantLock();
+            miscCaches[i] = new SLRUCache<Pair<String, String>, ProjectMisc>(SEG_SIZE, SEG_SIZE) {
                 @Override
                 protected void evict(Pair<String, String> key, ProjectMisc value) {
-                    try {
-                        save(key.first, key.second, value);
-                    } catch (IOException e) {
-                        LOG.error(e.getMessage(), e);
+                    if (value.isUpdated()) {
+                        final int index = key.hashCode() & CACHE_MASK;
+                        miscLocks[index].lock();
+                        try {
+                            writeProjectMisc(getProject(key.first, key.second), value);
+                        } catch (Exception e) {
+                            LOG.error(e.getMessage(), e);
+                        } finally {
+                            miscLocks[index].unlock();
+                        }
+                        super.evict(key, value);
                     }
-                    super.evict(key, value);
                 }
-            });
+            };
         }
-    }
-
-    private ProjectMisc loadProjectMisc(String workspace, String projectPath) throws IOException {
-        final Project project = getProject(workspace, projectPath);
-        if (project == null) {
-            return null;
-        }
-        final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
-        if (miscFile != null) {
-            try (InputStream in = miscFile.getInputStream()) {
-                final Properties properties = new Properties();
-                properties.loadFromXML(in);
-                return new ProjectMisc(properties);
-            }
-        }
-        return new ProjectMisc();
     }
 
     @Override
-    public List<Project> getProjects(String workspace) {
+    public List<Project> getProjects(String workspace) throws ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final List<Project> projects = new ArrayList<>();
         for (FolderEntry f : myRoot.getChildFolders()) {
@@ -127,9 +113,9 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
     @Override
-    public Project getProject(String workspace, String projectPath) {
+    public Project getProject(String workspace, String projectPath) throws ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
-        final AbstractVirtualFileEntry child = myRoot.getChild(projectPath.startsWith("/") ? projectPath.substring(1) : projectPath);
+        final VirtualFileEntry child = myRoot.getChild(projectPath.startsWith("/") ? projectPath.substring(1) : projectPath);
         if (child != null && child.isFolder() && ((FolderEntry)child).isProjectFolder()) {
             return new Project(workspace, (FolderEntry)child, this);
         }
@@ -137,51 +123,105 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
     @Override
-    public Project createProject(String workspace, String name, ProjectDescription projectDescription) throws IOException {
+    public Project createProject(String workspace, String name, ProjectDescription projectDescription)
+            throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(workspace, projectFolder, this);
         project.updateDescription(projectDescription);
-        getProjectMisc(workspace, projectFolder.getPath()).setCreationDate(System.currentTimeMillis());
+        getProjectMisc(project).setCreationDate(System.currentTimeMillis());
         return project;
     }
 
     @Override
-    public FolderEntry getProjectsRoot(String workspace) {
-        final VirtualFile vfsRoot;
+    public FolderEntry getProjectsRoot(String workspace) throws ServerException {
+        return new FolderEntry(fileSystemRegistry.getProvider(workspace).getMountPoint(true).getRoot());
+    }
+
+    @Override
+    public ProjectMisc getProjectMisc(Project project) throws ServerException {
+        final String workspace = project.getWorkspace();
+        final String path = project.getPath();
+        final Pair<String, String> key = Pair.of(workspace, path);
+        final int index = key.hashCode() & CACHE_MASK;
+        miscLocks[index].lock();
         try {
-            vfsRoot = fileSystemRegistry.getProvider(workspace).getMountPoint(true).getRoot();
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
+            ProjectMisc misc = miscCaches[index].get(key);
+            if (misc == null) {
+                miscCaches[index].put(key, misc = readProjectMisc(project));
+            }
+            return misc;
+        } finally {
+            miscLocks[index].unlock();
         }
-        return new FolderEntry(vfsRoot);
+    }
+
+    private ProjectMisc readProjectMisc(Project project) throws ServerException {
+        try {
+            ProjectMisc misc;
+            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
+            if (miscFile != null) {
+                try (InputStream in = miscFile.getInputStream()) {
+                    final Properties properties = new Properties();
+                    properties.loadFromXML(in);
+                    misc = new ProjectMisc(properties, project);
+                } catch (IOException e) {
+                    throw new ServerException(e.getMessage(), e);
+                }
+            } else {
+                misc = new ProjectMisc(project);
+            }
+            return misc;
+        } catch (ForbiddenException e) {
+            // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
+            throw new ServerException(e.getServiceError());
+        }
     }
 
     @Override
-    public ProjectMisc getProjectMisc(String workspace, String project) {
-        final Pair<String, String> key = Pair.of(workspace, project);
-        return cache[key.hashCode() & CACHE_MASK].get(key);
-    }
-
-    @Override
-    public void save(String workspace, String projectPath, ProjectMisc misc) throws IOException {
+    public void saveProjectMisc(Project project, ProjectMisc misc) throws ServerException {
         if (misc.isUpdated()) {
-            final Project project = getProject(workspace, projectPath);
-            // be sure project exists
-            if (project != null) {
-                final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            final String workspace = project.getWorkspace();
+            final String path = project.getPath();
+            final Pair<String, String> key = Pair.of(workspace, path);
+            final int index = key.hashCode() & CACHE_MASK;
+            miscLocks[index].lock();
+            try {
+                miscCaches[index].remove(key);
+                writeProjectMisc(project, misc);
+                miscCaches[index].put(key, misc);
+            } finally {
+                miscLocks[index].unlock();
+            }
+        }
+    }
+
+    private void writeProjectMisc(Project project, ProjectMisc misc) throws ServerException {
+        try {
+            final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            try {
                 misc.asProperties().storeToXML(bout, null);
-                final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
-                if (miscFile != null) {
-                    miscFile.updateContent(bout.toByteArray(), "application/xml");
-                } else {
-                    final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER);
-                    if (codenvy != null) {
+            } catch (IOException e) {
+                throw new ServerException(e.getMessage(), e);
+            }
+            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
+            if (miscFile != null) {
+                miscFile.updateContent(bout.toByteArray(), "application/xml");
+            } else {
+                final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER);
+                if (codenvy != null) {
+                    try {
                         codenvy.createFile("misc.xml", bout.toByteArray(), "application/xml");
+                    } catch (ConflictException e) {
+                        // Not expected, existence of file already checked
+                        throw new ServerException(e.getServiceError());
                     }
                 }
-                LOG.debug("Save misc file of project {} in {}", projectPath, workspace);
             }
+            LOG.debug("Save misc file of project {} in {}", project.getPath(), project.getWorkspace());
+        } catch (ForbiddenException e) {
+            // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
+            throw new ServerException(e.getServiceError());
         }
     }
 
@@ -206,26 +246,32 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
     @PostConstruct
-    private void start() {
+    void start() {
         eventService.subscribe(new EventSubscriber<VirtualFileEvent>() {
             @Override
             public void onEvent(VirtualFileEvent event) {
                 final String workspace = event.getWorkspaceId();
                 final String path = event.getPath();
-                final int length = path.length();
+                if (path.endsWith(Constants.CODENVY_FOLDER + "/misc.xml")) {
+                    return;
+                }
                 switch (event.getType()) {
                     case CONTENT_UPDATED:
                     case CREATED:
                     case DELETED:
                     case MOVED:
                     case RENAMED: {
+                        final int length = path.length();
                         for (int i = 1; i < length && (i = path.indexOf('/', i)) > 0; i++) {
                             final String projectPath = path.substring(0, i);
-                            if (getProject(workspace, projectPath) == null) {
-                                break;
+                            try {
+                                final Project project = getProject(workspace, projectPath);
+                                if (project != null) {
+                                    getProjectMisc(project).setModificationDate(System.currentTimeMillis());
+                                }
+                            } catch (Exception e) {
+                                LOG.error(e.getMessage(), e);
                             }
-                            final Pair<String, String> key = Pair.of(workspace, projectPath);
-                            cache[key.hashCode() & CACHE_MASK].get(key).setModificationDate(System.currentTimeMillis());
                         }
                         break;
                     }
@@ -235,9 +281,14 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
     @PreDestroy
-    private void stop() {
-        for (Cache<Pair<String, String>, ProjectMisc> e : cache) {
-            e.clear();
+    void stop() {
+        for (int i = 0, length = miscLocks.length; i < length; i++) {
+            miscLocks[i].lock();
+            try {
+                miscCaches[i].clear();
+            } finally {
+                miscLocks[i].unlock();
+            }
         }
     }
 }

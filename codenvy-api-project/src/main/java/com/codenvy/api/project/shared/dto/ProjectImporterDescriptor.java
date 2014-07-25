@@ -22,6 +22,8 @@ public interface ProjectImporterDescriptor {
 
     void setId(String id);
 
+    ProjectImporterDescriptor withId(String id);
+
     /**
      * @return true if this importer uses only internal und not accessible for users call
      * otherwise false
@@ -35,8 +37,6 @@ public interface ProjectImporterDescriptor {
     void setInternal(boolean isInternal);
 
     ProjectImporterDescriptor withInternal(boolean isInternal);
-
-    ProjectImporterDescriptor withId(String id);
 
     /** Get description of project importer. */
     String getDescription();

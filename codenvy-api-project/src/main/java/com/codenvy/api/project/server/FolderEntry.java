@@ -10,11 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -24,17 +27,17 @@ import java.util.List;
 /**
  * @author andrew00x
  */
-public class FolderEntry extends AbstractVirtualFileEntry {
+public class FolderEntry extends VirtualFileEntry {
     private static final VirtualFileFilter FOLDER_FILTER = new VirtualFileFilter() {
         @Override
-        public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+        public boolean accept(VirtualFile file) {
             return file.isFolder();
         }
     };
 
     private static final VirtualFileFilter FILES_FILTER = new VirtualFileFilter() {
         @Override
-        public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+        public boolean accept(VirtualFile file) {
             return file.isFile();
         }
     };
@@ -43,115 +46,175 @@ public class FolderEntry extends AbstractVirtualFileEntry {
         super(virtualFile);
     }
 
-    public FolderEntry copyTo(String newParent) {
-        try {
-            final VirtualFile vf = getVirtualFile();
-            final MountPoint mp = vf.getMountPoint();
-            return new FolderEntry(vf.copyTo(mp.getVirtualFile(newParent)));
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
+    public FolderEntry copyTo(String newParent) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
+        final VirtualFile vf = getVirtualFile();
+        final MountPoint mp = vf.getMountPoint();
+        return new FolderEntry(vf.copyTo(mp.getVirtualFile(newParent)));
     }
 
-    public AbstractVirtualFileEntry getChild(String path) {
-        try {
-            final VirtualFile child = getVirtualFile().getChild(path);
-            if (child == null) {
-                return null;
-            }
-            if (child.isFile()) {
-                return new FileEntry(child);
-            }
-            return new FolderEntry(child);
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
+    /**
+     * Get child by relative path.
+     *
+     * @param path
+     *         relative path
+     * @return child
+     * @throws ForbiddenException
+     *         if access to child item is forbidden
+     * @throws ServerException
+     *         if other error occurs
+     */
+    public VirtualFileEntry getChild(String path) throws ForbiddenException, ServerException {
+        final VirtualFile child = getVirtualFile().getChild(path);
+        if (child == null) {
+            return null;
         }
+        if (child.isFile()) {
+            return new FileEntry(child);
+        }
+        return new FolderEntry(child);
     }
 
-    public List<AbstractVirtualFileEntry> getChildren() {
+    /**
+     * Get children of this folder. If current user doesn't have read access to some child they aren't added in result list.
+     *
+     * @throws ServerException
+     *         if an error occurs
+     */
+    public List<VirtualFileEntry> getChildren() throws ServerException {
         return getChildren(VirtualFileFilter.ALL);
     }
 
-    public List<FileEntry> getChildFiles() {
-        try {
-            final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(FILES_FILTER);
-            final List<FileEntry> children = new ArrayList<>();
-            while (vfChildren.hasNext()) {
-                children.add(new FileEntry(vfChildren.next()));
-            }
-            return children;
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
+    /**
+     * Get child files of this folder. If current user doesn't have read access to some child they aren't added in result list.
+     *
+     * @throws ServerException
+     *         if an error occurs
+     */
+    public List<FileEntry> getChildFiles() throws ServerException {
+        final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(FILES_FILTER);
+        final List<FileEntry> children = new ArrayList<>();
+        while (vfChildren.hasNext()) {
+            children.add(new FileEntry(vfChildren.next()));
         }
+        return children;
     }
 
-    public List<FolderEntry> getChildFolders() {
-        try {
-            final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(FOLDER_FILTER);
-            final List<FolderEntry> children = new ArrayList<>();
-            while (vfChildren.hasNext()) {
-                children.add(new FolderEntry(vfChildren.next()));
-            }
-            return children;
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
+    /**
+     * Gets child folders of this folder. If current user doesn't have read access to some child they aren't added in result list.
+     *
+     * @throws ServerException
+     *         if an error occurs
+     */
+    public List<FolderEntry> getChildFolders() throws ServerException {
+        final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(FOLDER_FILTER);
+        final List<FolderEntry> children = new ArrayList<>();
+        while (vfChildren.hasNext()) {
+            children.add(new FolderEntry(vfChildren.next()));
         }
+        return children;
     }
 
-    List<AbstractVirtualFileEntry> getChildren(VirtualFileFilter filter) {
-        try {
-            final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(filter);
-            final List<AbstractVirtualFileEntry> children = new ArrayList<>();
-            while (vfChildren.hasNext()) {
-                final VirtualFile vf = vfChildren.next();
-                if (vf.isFile()) {
-                    children.add(new FileEntry(vf));
-                } else {
-                    children.add(new FolderEntry(vf));
-                }
+    List<VirtualFileEntry> getChildren(VirtualFileFilter filter) throws ServerException {
+        final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(filter);
+        final List<VirtualFileEntry> children = new ArrayList<>();
+        while (vfChildren.hasNext()) {
+            final VirtualFile vf = vfChildren.next();
+            if (vf.isFile()) {
+                children.add(new FileEntry(vf));
+            } else {
+                children.add(new FolderEntry(vf));
             }
-            return children;
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
         }
+        return children;
     }
 
-    public FileEntry createFile(String name, byte[] content, String mediaType) {
+    /**
+     * Creates new file in this folder.
+     *
+     * @param name
+     *         name
+     * @param content
+     *         content. In case of {@code null} empty file is created
+     * @param mediaType
+     *         media type of content, may be {@code null}
+     * @return newly create VirtualFile
+     * @throws ForbiddenException
+     *         if copy operation is forbidden
+     * @throws ConflictException
+     *         if operation causes conflict, e.g. name conflict
+     * @throws ServerException
+     *         if other error occurs
+     * @see com.codenvy.api.vfs.server.VirtualFile#createFile(String, String, java.io.InputStream)
+     */
+    public FileEntry createFile(String name, byte[] content, String mediaType)
+            throws ForbiddenException, ConflictException, ServerException {
         if (isRoot(getVirtualFile())) {
-            throw new ProjectStructureConstraintException("Can't create file in root folder.");
+            throw new ForbiddenException("Can't create file in root folder.");
         }
         return createFile(name, content == null ? null : new ByteArrayInputStream(content), mediaType);
     }
 
-    public FileEntry createFile(String name, InputStream content, String mediaType) {
+    /**
+     * Creates new file in this folder.
+     *
+     * @param name
+     *         name
+     * @param content
+     *         content. In case of {@code null} empty file is created
+     * @param mediaType
+     *         media type of content, may be {@code null}
+     * @return newly create VirtualFile
+     * @throws ForbiddenException
+     *         if copy operation is forbidden
+     * @throws ConflictException
+     *         if operation causes conflict, e.g. name conflict
+     * @throws ServerException
+     *         if other error occurs
+     * @see com.codenvy.api.vfs.server.VirtualFile#createFile(String, String, java.io.InputStream)
+     */
+    public FileEntry createFile(String name, InputStream content, String mediaType)
+            throws ForbiddenException, ConflictException, ServerException {
         if (isRoot(getVirtualFile())) {
-            throw new ProjectStructureConstraintException("Can't create file in root folder.");
+            throw new ForbiddenException("Can't create file in root folder.");
         }
-        try {
-            return new FileEntry(getVirtualFile().createFile(name, mediaType, content));
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
+        return new FileEntry(getVirtualFile().createFile(name, mediaType, content));
     }
 
-    public FolderEntry createFolder(String name) {
-        try {
-            return new FolderEntry(getVirtualFile().createFolder(name));
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
+    /**
+     * Creates new VirtualFile which denotes folder and use this one as parent folder.
+     *
+     * @param name
+     *         name. If name is string separated by '/' all nonexistent parent folders must be created.
+     * @return newly create VirtualFile that denotes folder
+     * @throws ForbiddenException
+     *         if copy operation is forbidden
+     * @throws ConflictException
+     *         if item with specified {@code name} already exists
+     * @throws ServerException
+     *         if other error occurs
+     */
+    public FolderEntry createFolder(String name) throws ConflictException, ServerException, ForbiddenException {
+        return new FolderEntry(getVirtualFile().createFolder(name));
     }
 
-    public boolean isProjectFolder() {
-        final AbstractVirtualFileEntry projectFile = getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+    /**
+     * Tests whether this VirtualFile is a root folder.
+     *
+     * @throws ServerException
+     *         if an error occurs
+     */
+    public boolean isProjectFolder() throws ServerException {
+        final VirtualFileEntry projectFile;
+        try {
+            projectFile = getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        } catch (ForbiddenException e) {
+            // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
+            throw new ServerException(e.getServiceError());
+        }
         return projectFile != null && projectFile.isFile();
     }
 
-    private boolean isRoot(VirtualFile virtualFile) {
-        try {
-            return virtualFile.isRoot();
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
+    private boolean isRoot(VirtualFile virtualFile) throws ServerException {
+        return virtualFile.isRoot();
     }
 }

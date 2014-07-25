@@ -10,7 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 
 import java.io.IOException;
 
@@ -25,13 +27,10 @@ public interface ProjectImporter {
      */
     String getId();
 
-
     /**
-     * @return true if this importer uses only internal und not accessible for users call
-     * otherwise false
+     * @return {@code true} if this importer uses only internal and not accessible for users call otherwise {@code false}
      */
     boolean isInternal();
-
 
     /**
      * @return human readable description about this importer
@@ -45,6 +44,15 @@ public interface ProjectImporter {
      *         base project folder
      * @param location
      *         location to the import sources
+     * @throws ForbiddenException
+     *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
+     *         baseFolder}
+     * @throws ConflictException
+     *         if import causes any conflicts, e.g. if import operation causes name conflicts in {@code baseFolder}
+     * @throws ServerException
+     *         if import causes some errors that should be treated as internal errors
+     * @throws IOException
+     *         if any i/o errors occur, e.g. when try to access {@code location}
      */
-    void importSources(FolderEntry baseFolder, String location) throws IOException, ApiException;
+    void importSources(FolderEntry baseFolder, String location) throws ForbiddenException, ConflictException, IOException, ServerException;
 }

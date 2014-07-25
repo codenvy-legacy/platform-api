@@ -10,34 +10,30 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.dto.server.DtoFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author andrew00x
  * @author Eugene Voevodin
  */
 public class Project {
-
-    private static final Set<String> BASIC_PERMISSIONS = new HashSet<>(Arrays.asList("read", "write", "update_acl", "all"));
 
     private final String         workspace;
     private final FolderEntry    baseFolder;
@@ -57,23 +53,31 @@ public class Project {
         return baseFolder.getName();
     }
 
-    public String getId() {
-        return baseFolder.getId();
+    public String getPath() {
+        return baseFolder.getPath();
     }
 
     public FolderEntry getBaseFolder() {
         return baseFolder;
     }
 
-    public long getModificationDate() {
-        return manager.getProjectMisc(workspace, baseFolder.getPath()).getModificationDate();
+    public long getModificationDate() throws ServerException {
+        return getMisc().getModificationDate();
     }
 
-    public long getCreationDate() {
-        return manager.getProjectMisc(workspace, baseFolder.getPath()).getCreationDate();
+    public long getCreationDate() throws ServerException {
+        return getMisc().getCreationDate();
     }
 
-    public List<Project> getModules() {
+    public ProjectMisc getMisc() throws ServerException {
+        return manager.getProjectMisc(this);
+    }
+
+    public void saveMisc(ProjectMisc misc) throws ServerException {
+        manager.saveProjectMisc(this, misc);
+    }
+
+    public List<Project> getModules() throws ServerException, ForbiddenException {
         final List<Project> modules = new ArrayList<>();
         for (FolderEntry child : baseFolder.getChildFolders()) {
             if (child.isProjectFolder()) {
@@ -83,14 +87,15 @@ public class Project {
         return modules;
     }
 
-    public Project createModule(String name, ProjectDescription projectDescription) throws IOException {
+    public Project createModule(String name, ProjectDescription projectDescription)
+            throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry projectFolder = baseFolder.createFolder(name);
         final Project module = new Project(workspace, projectFolder, manager);
         module.updateDescription(projectDescription);
         return module;
     }
 
-    public final ProjectDescription getDescription() throws IOException {
+    public final ProjectDescription getDescription() throws ServerException {
         // Create copy of original project descriptor.
         // Mainly do that to be independent to type of ValueProvider.
         // Caller gets description of project update some attributes or(and) type of project than caller sends description back with method
@@ -98,7 +103,7 @@ public class Project {
         return new ProjectDescription(doGetDescription());
     }
 
-    protected ProjectDescription doGetDescription() throws IOException {
+    protected ProjectDescription doGetDescription() throws ServerException {
         final ProjectProperties projectProperties = ProjectProperties.load(this);
         final String projectTypeId = projectProperties.getType();
         if (projectTypeId == null) {
@@ -139,7 +144,7 @@ public class Project {
         return projectDescription;
     }
 
-    public final void updateDescription(ProjectDescription projectDescriptionUpdate) throws IOException {
+    public final void updateDescription(ProjectDescription projectDescriptionUpdate) throws ServerException {
         final ProjectDescription thisProjectDescription = doGetDescription();
         final ProjectProperties projectProperties = new ProjectProperties();
         projectProperties.setType(projectDescriptionUpdate.getProjectType().getId());
@@ -172,173 +177,70 @@ public class Project {
         projectProperties.save(this);
     }
 
-    public String getVisibility() {
-        try {
-            final List<AccessControlEntry> acl = baseFolder.getVirtualFile().getACL();
-            if (acl.isEmpty()) {
+    public String getVisibility() throws ServerException {
+        final List<AccessControlEntry> acl = baseFolder.getVirtualFile().getACL();
+        if (acl.isEmpty()) {
+            return "public";
+        }
+        final Principal guest = DtoFactory.getInstance().createDto(Principal.class).withName("any").withType(Principal.Type.USER);
+        for (AccessControlEntry ace : acl) {
+            if (guest.equals(ace.getPrincipal()) && ace.getPermissions().contains("read")) {
                 return "public";
             }
-            final Principal guest = DtoFactory.getInstance().createDto(Principal.class)
-                                              .withName("any")
-                                              .withType(Principal.Type.USER);
-            for (AccessControlEntry ace : acl) {
-                if (guest.equals(ace.getPrincipal()) && ace.getPermissions().contains("read")) {
-                    return "public";
-                }
-            }
-            return "private";
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
+        }
+        return "private";
+    }
+
+    public void setVisibility(String projectVisibility) throws ServerException, ForbiddenException {
+        switch (projectVisibility) {
+            case "private":
+                final List<AccessControlEntry> acl = new ArrayList<>(1);
+                final Principal developer = DtoFactory.getInstance().createDto(Principal.class)
+                                                      .withName("workspace/developer")
+                                                      .withType(Principal.Type.GROUP);
+                acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                  .withPrincipal(developer)
+                                  .withPermissions(Arrays.asList("all")));
+                baseFolder.getVirtualFile().updateACL(acl, true, null);
+                break;
+            case "public":
+                // Remove ACL. Default behaviour of underlying virtual filesystem: everyone can read but can't update.
+                baseFolder.getVirtualFile().updateACL(Collections.<AccessControlEntry>emptyList(), true, null);
+                break;
         }
     }
 
-    public void setVisibility(String projectVisibility) {
-        try {
-            switch (projectVisibility) {
-                case "private":
-                    final List<AccessControlEntry> acl = new ArrayList<>(1);
-                    final Principal developer = DtoFactory.getInstance().createDto(Principal.class)
-                                                          .withName("workspace/developer")
-                                                          .withType(Principal.Type.GROUP);
-                    acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                                      .withPrincipal(developer)
-                                      .withPermissions(Arrays.asList("all")));
-                    baseFolder.getVirtualFile().updateACL(acl, true, null);
-                    break;
-                case "public":
-                    // Remove ACL. Default behaviour of underlying virtual filesystem: everyone can read but can't update.
-                    baseFolder.getVirtualFile().updateACL(Collections.<AccessControlEntry>emptyList(), true, null);
-                    break;
-            }
-        } catch (VirtualFileSystemException e) {
-            throw new FileSystemLevelException(e.getMessage(), e);
-        }
-    }
+    static final String   ALL_PERMISSIONS      = BasicPermissions.ALL.value();
+    static final String[] ALL_PERMISSIONS_LIST = {BasicPermissions.READ.value(), BasicPermissions.WRITE.value(),
+                                                  BasicPermissions.UPDATE_ACL.value(), "build", "run"};
 
-    public List<AccessControlEntry> getPermissions() {
-        //we should use map to join misc and vfs permissions with same principal
-        final Map<Principal, AccessControlEntry> map = new HashMap<>();
-        try {
-            VirtualFile current = baseFolder.getVirtualFile();
-            while (current != null) {
-                final List<AccessControlEntry> acl = current.getACL();
-                if (!acl.isEmpty()) {
-                    for (AccessControlEntry ace : acl) {
-                        map.put(ace.getPrincipal(), ace);
+    public List<AccessControlEntry> getPermissions() throws ServerException {
+        VirtualFile virtualFile = baseFolder.getVirtualFile();
+        while (virtualFile != null) {
+            final List<AccessControlEntry> acl = virtualFile.getACL();
+            if (!acl.isEmpty()) {
+                for (AccessControlEntry ace : acl) {
+                    final List<String> permissions = ace.getPermissions();
+                    // replace "all" shortcut with list
+                    if (permissions.remove(ALL_PERMISSIONS)) {
+                        Collections.addAll(permissions, ALL_PERMISSIONS_LIST);
                     }
-                    break;
-                } else {
-                    current = current.getParent();
                 }
+                return acl;
+            } else {
+                virtualFile = virtualFile.getParent();
             }
-            final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
-            for (AccessControlEntry ace : misc.getAccessControlList()) {
-                final Principal principal = ace.getPrincipal();
-                final AccessControlEntry vfsAce = map.get(principal);
-                if (vfsAce != null) {
-                    ace.getPermissions().addAll(vfsAce.getPermissions());
-                }
-                map.put(principal, ace);
-            }
-        } catch (VirtualFileSystemException vfsEx) {
-            throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
         }
-        return new ArrayList<>(map.values());
+        return new ArrayList<>(4);
     }
 
     /**
-     * <p>Sets permissions to project.
-     * Given list of permissions can contain either {@link #BASIC_PERMISSIONS}
-     * or any custom permissions.
-     * Each AccessControlEntry that contains not only {@link #BASIC_PERMISSIONS}
-     * will be split into 2 entries and stored in different places.
-     * The first entry with {@link #BASIC_PERMISSIONS} will be stored in project acl,
-     * the second one entry with custom permissions will be stored in project misc.</p>
+     * Sets permissions to project.
      *
      * @param acl
      *         list of {@link com.codenvy.api.vfs.shared.dto.AccessControlEntry}
-     * @throws FileSystemLevelException
-     *         when some error occurred while saving basic entries
-     * @throws IOException
-     *         when some error occurred while saving misc entries
      */
-    public void setPermissions(List<AccessControlEntry> acl) throws IOException {
-        final Map<Principal, AccessControlEntry> miscEntries = new HashMap<>();
-        final Map<Principal, AccessControlEntry> basicEntries = new HashMap<>();
-        final DtoFactory dto = DtoFactory.getInstance();
-        //split entries on basic and misc
-        for (AccessControlEntry entry : acl) {
-            requireNotNull(entry, "Permissions");
-            requireNotNull(entry.getPrincipal(), "Principal");
-            requireNotNull(entry.getPrincipal().getName(), "Principal name");
-            requireNotNull(entry.getPrincipal().getType(), "Principal type");
-            final Set<String> customPermissions = new HashSet<>();
-            final Set<String> basicPermissions = new HashSet<>();
-            for (String permission : entry.getPermissions()) {
-                if (BASIC_PERMISSIONS.contains(permission)) {
-                    basicPermissions.add(permission);
-                } else {
-                    customPermissions.add(permission);
-                }
-            }
-            final Principal principal = dto.createDto(Principal.class)
-                                           .withName(entry.getPrincipal().getName())
-                                           .withType(entry.getPrincipal().getType());
-            basicEntries.put(principal, dto.createDto(AccessControlEntry.class)
-                                           .withPrincipal(principal)
-                                           .withPermissions(new ArrayList<>(basicPermissions)));
-            if (!customPermissions.isEmpty()) {
-                miscEntries.put(principal, dto.createDto(AccessControlEntry.class)
-                                              .withPrincipal(principal)
-                                              .withPermissions(new ArrayList<>(customPermissions)));
-            } else {
-                miscEntries.put(principal, null);
-            }
-        }
-        //updating basic permissions
-        try {
-            final List<AccessControlEntry> existedAcl = baseFolder.getVirtualFile().getACL();
-            final Map<Principal, AccessControlEntry> update = new HashMap<>(existedAcl.size());
-            for (AccessControlEntry ace : existedAcl) {
-                update.put(ace.getPrincipal(), ace);
-            }
-            //removing entries with empty permissions
-            for (AccessControlEntry ace : basicEntries.values()) {
-                if (ace.getPermissions().isEmpty()) {
-                    update.remove(ace.getPrincipal());
-                } else {
-                    update.put(ace.getPrincipal(), ace);
-                }
-            }
-            baseFolder.getVirtualFile().updateACL(new ArrayList<>(update.values()), true, null);
-        } catch (VirtualFileSystemException vfsEx) {
-            throw new FileSystemLevelException(vfsEx.getMessage(), vfsEx);
-        }
-        //updating misc permissions
-        final ProjectMisc misc = manager.getProjectMisc(workspace, baseFolder.getPath());
-        for (Map.Entry<Principal, AccessControlEntry> entry : miscEntries.entrySet()) {
-            if (entry.getValue() != null) {
-                misc.putAccessControlEntry(entry.getValue());
-            } else {
-                misc.removeAccessControlEntry(entry.getKey());
-            }
-        }
-        manager.save(workspace, getName(), misc);
-    }
-
-    /**
-     * Checks reference is not {@code null}.
-     * The main difference with {@link java.util.Objects#requireNonNull(Object, String)} )}
-     * is that {@link com.codenvy.api.core.ServerException} will be thrown
-     *
-     * @param object
-     *         reference to check
-     * @param name
-     *         specified name, will be used in exception message "{name} should not be a null"
-     */
-    private void requireNotNull(Object object, String name) {
-        if (object == null) {
-            throw new IllegalArgumentException(String.format("%s should not be a null", name));
-        }
+    public void setPermissions(List<AccessControlEntry> acl) throws ServerException, ForbiddenException {
+        baseFolder.getVirtualFile().updateACL(acl, false, null);
     }
 }

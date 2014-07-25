@@ -10,7 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.json.JsonHelper;
@@ -27,52 +29,66 @@ import java.util.List;
  * @author andrew00x
  */
 public class ProjectProperties {
-    public static ProjectProperties load(Project project) throws IOException {
-        final AbstractVirtualFileEntry projectFile = project.getBaseFolder().getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+    public static ProjectProperties load(Project project) throws ServerException {
+        final VirtualFileEntry projectFile;
+        try {
+            projectFile = project.getBaseFolder().getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+        } catch (ForbiddenException e) {
+            // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
+            throw new ServerException(e.getServiceError());
+        }
         if (projectFile == null || !projectFile.isFile()) {
             return new ProjectProperties();
         }
         try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
             return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
-        } catch (JsonParseException e) {
-            throw new ProjectStructureConstraintException("Unable parse project properties. " + e.getMessage());
+        } catch (JsonParseException | IOException e) {
+            throw new ServerException("Unable parse project properties. " + e.getMessage());
         }
     }
 
-    public void save(Project project) throws IOException {
-        final FolderEntry baseFolder = project.getBaseFolder();
-        AbstractVirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
-        if (projectFile != null) {
-            if (!projectFile.isFile()) {
-                throw new ProjectStructureConstraintException(
-                        String.format("Unable save project properties. Path %s/%s exists but is not a file.",
-                                      baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
-            }
-            ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes());
-        } else {
-            AbstractVirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
-            if (codenvyDir == null) {
-                codenvyDir = baseFolder.createFolder(Constants.CODENVY_FOLDER);
-                // Need to be able update files in .codenvy folder independently to user actions.
-                final List<AccessControlEntry> acl = new ArrayList<>(1);
-                acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                           .withName("any")
-                                                           .withType(Principal.Type.USER))
-                                  .withPermissions(Arrays.asList("all")));
-                try {
-                    codenvyDir.getVirtualFile().updateACL(acl, true, null);
-                } catch (VirtualFileSystemException e) {
-                    throw new FileSystemLevelException(e.getMessage(), e);
+    public void save(Project project) throws ServerException {
+        try {
+            final FolderEntry baseFolder = project.getBaseFolder();
+            VirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+            if (projectFile != null) {
+                if (!projectFile.isFile()) {
+                    throw new ServerException(String.format("Unable save project properties. Path %s/%s exists but is not a file.",
+                                                            baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
                 }
-            } else if (!codenvyDir.isFolder()) {
-                throw new ProjectStructureConstraintException(
-                        String.format("Unable save project properties. Path %s/%s exists but is not a folder.",
-                                      baseFolder.getPath(), Constants.CODENVY_FOLDER));
+                ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes());
+            } else {
+                VirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
+                if (codenvyDir == null) {
+                    try {
+                        codenvyDir = baseFolder.createFolder(Constants.CODENVY_FOLDER);
+                    } catch (ConflictException e) {
+                        // Already checked existence of folder ".codenvy".
+                        throw new ServerException(e.getServiceError());
+                    }
+                    // Need to be able update files in .codenvy folder independently to user actions.
+                    final List<AccessControlEntry> acl = new ArrayList<>(1);
+                    acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
+                                      .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                               .withName("any")
+                                                               .withType(Principal.Type.USER))
+                                      .withPermissions(Arrays.asList("all")));
+                    codenvyDir.getVirtualFile().updateACL(acl, true, null);
+                } else if (!codenvyDir.isFolder()) {
+                    throw new ServerException(String.format("Unable save project properties. Path %s/%s exists but is not a folder.",
+                                                            baseFolder.getPath(), Constants.CODENVY_FOLDER));
+                }
+                try {
+                    ((FolderEntry)codenvyDir)
+                            .createFile(Constants.CODENVY_PROJECT_FILE, JsonHelper.toJson(this).getBytes(), "application/json");
+                } catch (ConflictException e) {
+                    // Already checked existence of file ".codenvy/project.json".
+                    throw new ServerException(e.getServiceError());
+                }
             }
-            ((FolderEntry)codenvyDir).createFile(Constants.CODENVY_PROJECT_FILE,
-                                                 JsonHelper.toJson(this).getBytes(),
-                                                 "application/json");
+        }catch (ForbiddenException e) {
+            // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
+            throw new ServerException(e.getServiceError());
         }
     }
 

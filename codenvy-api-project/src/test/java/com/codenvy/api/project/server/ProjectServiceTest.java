@@ -10,7 +10,11 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
@@ -25,7 +29,6 @@ import com.codenvy.api.vfs.server.ContentStreamWriter;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
@@ -60,7 +63,6 @@ import org.testng.annotations.Test;
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Arrays;
@@ -83,7 +85,7 @@ import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissi
  */
 @Listeners(value = {MockitoTestNGListener.class})
 public class ProjectServiceTest {
-    private static final String      vfsUserName   = "dev";
+    private static final String      vfsUser       = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
 
     private ProjectManager           pm;
@@ -118,7 +120,7 @@ public class ProjectServiceTest {
                 new MemoryFileSystemProvider("my_ws", eventService, new VirtualFileSystemUserContext() {
                     @Override
                     public VirtualFileSystemUser getVirtualFileSystemUser() {
-                        return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
+                        return new VirtualFileSystemUser(vfsUser, vfsUserGroups);
                     }
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
@@ -141,15 +143,14 @@ public class ProjectServiceTest {
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
         providers.addMessageBodyWriter(new ContentStreamWriter());
-        providers.addExceptionMapper(new FileSystemLevelExceptionMapper());
-        providers.addExceptionMapper(new ProjectStructureConstraintExceptionMapper());
+        providers.addExceptionMapper(new ApiExceptionMapper());
         RequestHandler requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
                                                                providers, dependencies, new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         resources.addResource(ProjectService.class, null);
 
         env = com.codenvy.commons.env.EnvironmentContext.getCurrent();
-        env.setUser(new UserImpl(vfsUserName, vfsUserName, "dummy_token", vfsUserGroups));
+        env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", vfsUserGroups));
         env.setWorkspaceName("my_ws");
         env.setWorkspaceId("my_ws");
         launcher = new ResourceLauncher(requestHandler);
@@ -233,7 +234,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetProjectCheckUserPermissions() throws Exception {
-        env.setUser(new UserImpl(vfsUserName, vfsUserName, "dummy_token", Collections.<String>emptySet()));
+        env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", Collections.<String>emptySet()));
         ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
@@ -349,12 +350,16 @@ public class ProjectServiceTest {
                                                  .withProjectTypeId(newProjectTypeId)
                                                  .withDescription("new project")
                                                  .withAttributes(attributeValues);
+        ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws?name=new_project",
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
+                                                      writer,
                                                       null);
-        Assert.assertEquals(response.getStatus(), 400);
+        Assert.assertEquals(response.getStatus(), 500);
+        String message = new String(writer.getBody());
+        Assert.assertTrue(message.contains("Invalid project type"));
         Project project = pm.getProject("my_ws", "new_project");
         Assert.assertNull(project);
     }
@@ -417,7 +422,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
                             URI.create("http://localhost:8080/api/project/my_ws/file/my_project/test.txt"));
-        AbstractVirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test.txt");
+        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test.txt");
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), "text/plain");
@@ -447,7 +452,7 @@ public class ProjectServiceTest {
                                                       formData,
                                                       env);
         Assert.assertEquals(response.getStatus(), 200);
-        AbstractVirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild(fileName);
+        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild(fileName);
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), fileMediaType);
@@ -475,7 +480,7 @@ public class ProjectServiceTest {
         ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/file/my_project/test",
                                                       "http://localhost:8080/api", headers, myContent.getBytes(), null);
         Assert.assertEquals(response.getStatus(), 200);
-        AbstractVirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
+        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), "text/xml");
@@ -489,7 +494,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
                             URI.create("http://localhost:8080/api/project/my_ws/children/my_project/test"));
-        AbstractVirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
+        VirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
         Assert.assertTrue(folder.isFolder());
     }
 
@@ -500,7 +505,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
                             URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/b/c"));
-        AbstractVirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("a/b/c");
+        VirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("a/b/c");
         Assert.assertTrue(folder.isFolder());
     }
 
@@ -687,13 +692,10 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void importSources(FolderEntry baseFolder, String location) throws IOException {
+            public void importSources(FolderEntry baseFolder, String location)
+                    throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
-                try {
-                    baseFolder.getVirtualFile().unzip(zip, true);
-                } catch (VirtualFileSystemException e) {
-                    throw new IOException(e.getMessage(), e);
-                }
+                baseFolder.getVirtualFile().unzip(zip, true);
                 folderHolder.set(baseFolder);
             }
         });
@@ -749,7 +751,8 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, String> options) throws IOException {
+            public void generateProject(FolderEntry baseFolder, Map<String, String> options)
+                    throws ConflictException, ForbiddenException, ServerException {
                 baseFolder.createFolder("a");
                 baseFolder.createFolder("b");
                 baseFolder.createFile("test.txt", "test".getBytes(), "text/plain");
@@ -862,12 +865,12 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=private",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
-        Map<Principal, Set<BasicPermissions>> permissions = myProject.getBaseFolder().getVirtualFile().getPermissions();
+        Map<Principal, Set<String>> permissions = myProject.getBaseFolder().getVirtualFile().getPermissions();
         Assert.assertEquals(permissions.size(), 1);
         Principal principal = DtoFactory.getInstance().createDto(Principal.class)
                                         .withName("workspace/developer")
                                         .withType(Principal.Type.GROUP);
-        Assert.assertEquals(permissions.get(principal), Arrays.asList(BasicPermissions.ALL));
+        Assert.assertEquals(permissions.get(principal), Arrays.asList(BasicPermissions.ALL.value()));
 
         response = launcher.service("GET",
                                     "http://localhost:8080/api/project/my_ws/my_project",
@@ -885,7 +888,7 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=public",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
-        Map<Principal, Set<BasicPermissions>> permissions =
+        Map<Principal, Set<String>> permissions =
                 myProject.getBaseFolder().getVirtualFile().getPermissions();
         Assert.assertEquals(permissions.size(), 0);
 
@@ -992,7 +995,7 @@ public class ProjectServiceTest {
         AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("all"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(vfsUserName)
+                                                                      .withName(vfsUser)
                                                                       .withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
@@ -1017,7 +1020,7 @@ public class ProjectServiceTest {
         AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("custom"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(vfsUserName)
+                                                                      .withName(vfsUser)
                                                                       .withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
@@ -1027,9 +1030,9 @@ public class ProjectServiceTest {
                          null
                         );
         List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
-        Assert.assertEquals(acl.size(), 0);
-        ProjectMisc misc = pm.getProjectMisc("my_ws", "my_project");
-        Assert.assertEquals(misc.getAccessControlEntry(entry.getPrincipal()), entry);
+        Assert.assertEquals(acl.size(), 1);
+        Assert.assertEquals(acl.get(0).getPrincipal(), entry.getPrincipal());
+        Assert.assertTrue(acl.get(0).getPermissions().containsAll(entry.getPermissions()));
     }
 
     @Test
@@ -1043,7 +1046,7 @@ public class ProjectServiceTest {
         AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("build", "run", "update_acl", "read", "write"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(vfsUserName)
+                                                                      .withName(vfsUser)
                                                                       .withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
@@ -1053,23 +1056,10 @@ public class ProjectServiceTest {
                          null
                         );
 
-        //check project ACL it should contain entry with "read" and "write" permissions
         List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
         Assert.assertEquals(acl.size(), 1);
-        AccessControlEntry expected = DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                                                .withPermissions(Arrays.asList("read", "write", "update_acl"))
-                                                .withPrincipal(entry.getPrincipal());
-        Assert.assertTrue(acl.contains(expected));
-
-        //check project misc it should contain entry with "run" and "build" permissions
-        expected.setPermissions(Arrays.asList("run", "build"));
-        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
-        AccessControlEntry actual = misc.getAccessControlEntry(entry.getPrincipal());
-        Assert.assertEquals(actual.getPrincipal(), expected.getPrincipal());
-        Assert.assertEquals(actual.getPermissions().size(), expected.getPermissions().size());
-        for (String expectedPermission : expected.getPermissions()) {
-            Assert.assertTrue(actual.getPermissions().contains(expectedPermission));
-        }
+        Assert.assertEquals(acl.get(0).getPrincipal(), entry.getPrincipal());
+        Assert.assertTrue(acl.get(0).getPermissions().containsAll(entry.getPermissions()));
     }
 
     @Test
@@ -1083,13 +1073,10 @@ public class ProjectServiceTest {
         AccessControlEntry newEntry2 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                  .withPermissions(Arrays.asList("all"))
                                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                          .withName(vfsUserName)
+                                                                          .withName(vfsUser)
                                                                           .withType(Principal.Type.USER));
         //set up basic permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
-        //set up custom permissions
-        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
-        misc.putAccessControlEntry(newEntry.withPermissions(Arrays.asList("run", "build")));
 
         HashMap<String, List<String>> headers = new HashMap<>(1);
         headers.put("Content-Type", Arrays.asList("application/json"));
@@ -1097,7 +1084,7 @@ public class ProjectServiceTest {
         AccessControlEntry update = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                               .withPermissions(Arrays.asList("only_custom"))
                                               .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                       .withName(vfsUserName)
+                                                                       .withName(vfsUser)
                                                                        .withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
@@ -1107,8 +1094,16 @@ public class ProjectServiceTest {
                          null
                         );
 
-        Assert.assertEquals(misc.getAccessControlEntry(update.getPrincipal()), update);
-        Assert.assertEquals(myProject.getBaseFolder().getVirtualFile().getACL().size(), 1);
+        List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
+        Assert.assertEquals(acl.size(), 2);
+        Map<Principal, Set<String>> map = new HashMap<>(2);
+        for (AccessControlEntry ace : acl) {
+            map.put(ace.getPrincipal(), new HashSet<>(ace.getPermissions()));
+        }
+        Assert.assertNotNull(map.get(newEntry.getPrincipal()));
+        Assert.assertNotNull(map.get(newEntry2.getPrincipal()));
+        Assert.assertTrue(map.get(newEntry.getPrincipal()).containsAll(newEntry.getPermissions()));
+        Assert.assertTrue(map.get(newEntry2.getPrincipal()).containsAll(newEntry2.getPermissions()));
     }
 
     @Test
@@ -1117,22 +1112,19 @@ public class ProjectServiceTest {
         AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                 .withPermissions(Arrays.asList("all"))
                                                 .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                         .withName(vfsUserName)
+                                                                         .withName(vfsUser)
                                                                          .withType(Principal.Type.USER));
         AccessControlEntry newEntry2 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                  .withPermissions(Arrays.asList("all"))
                                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
                                                                           .withName("other")
                                                                           .withType(Principal.Type.USER));
-        //set up basic permissions
+        //set up permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
-        //set up custom permissions
-        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
-        misc.putAccessControlEntry(newEntry.withPermissions(Arrays.asList("run", "build")));
 
         ContainerResponse response = launcher.service("GET",
                                                       "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
-                                                      vfsUserName,
+                                                      vfsUser,
                                                       "http://localhost:8080/api",
                                                       null,
                                                       null,
@@ -1143,7 +1135,7 @@ public class ProjectServiceTest {
         List<AccessControlEntry> entries = (List<AccessControlEntry>)response.getEntity();
 
         Assert.assertEquals(entries.size(), 1);
-        //"all" should be replaced with "read" & "write" & "update_acl"
+        //"all" should be replaced with "read" & "write" & "update_acl", etc
         Set<String> permissions = new HashSet<>(entries.get(0).getPermissions());
         Assert.assertTrue(permissions.contains("read"));
         Assert.assertTrue(permissions.contains("write"));
@@ -1158,18 +1150,15 @@ public class ProjectServiceTest {
         AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                 .withPermissions(Arrays.asList("all"))
                                                 .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                         .withName(vfsUserName)
+                                                                         .withName(vfsUser)
                                                                          .withType(Principal.Type.USER));
         AccessControlEntry newEntry2 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                  .withPermissions(Arrays.asList("all"))
                                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
                                                                           .withName("other")
                                                                           .withType(Principal.Type.USER));
-        //set up basic permissions
+        //set up permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
-        //set up custom permissions
-        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
-        misc.putAccessControlEntry(newEntry.withPermissions(Arrays.asList("run", "build")));
 
         ContainerResponse response = launcher.service("GET",
                                                       "http://localhost:8080/api/project/my_ws/permissions/my_project",
@@ -1191,13 +1180,10 @@ public class ProjectServiceTest {
         AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("all"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(vfsUserName)
+                                                                      .withName(vfsUser)
                                                                       .withType(Principal.Type.USER));
-        //set up basic permissions
+        //set up permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(entry), false, null);
-        //set up custom permissions
-        ProjectMisc misc = pm.getProjectMisc("my_ws", myProject.getBaseFolder().getPath());
-        misc.putAccessControlEntry(entry.withPermissions(Arrays.asList("run", "build")));
 
         HashMap<String, List<String>> headers = new HashMap<>(1);
         headers.put("Content-Type", Arrays.asList("application/json"));
@@ -1211,10 +1197,9 @@ public class ProjectServiceTest {
                         );
 
         Assert.assertEquals(myProject.getBaseFolder().getVirtualFile().getACL().size(), 0);
-        Assert.assertNull(misc.getAccessControlEntry(entry.getPrincipal()));
     }
 
-    private void clearAcl(Project project) throws VirtualFileSystemException {
+    private void clearAcl(Project project) throws ServerException, ForbiddenException {
         project.getBaseFolder().getVirtualFile().updateACL(Collections.<AccessControlEntry>emptyList(), true, null);
     }
 }

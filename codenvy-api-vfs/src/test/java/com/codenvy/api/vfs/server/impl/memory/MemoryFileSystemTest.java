@@ -100,7 +100,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
         deployer.publish(new VirtualFileSystemApplication());
 
         // RUNTIME VARIABLES
-        User user = new UserImpl("john", null, Arrays.asList("workspace/developer"));
+        User user = new UserImpl("john", "john", null, Arrays.asList("workspace/developer"));
         EnvironmentContext.getCurrent().setUser(user);
     }
 

@@ -23,6 +23,7 @@ import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,7 @@ public class GetACLTest extends MemoryFileSystemTest {
         Map<Principal, Set<String>> permissions = new HashMap<>(1);
         permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         User previousUser = EnvironmentContext.getCurrent().getUser();
-        EnvironmentContext.getCurrent().setUser(new UserImpl("admin"));
+        EnvironmentContext.getCurrent().setUser(new UserImpl("admin", "admin", null, Arrays.asList("workspace/admin")));
         file.updateACL(createAcl(permissions), true, null);
 
         EnvironmentContext.getCurrent().setUser(previousUser); // restore

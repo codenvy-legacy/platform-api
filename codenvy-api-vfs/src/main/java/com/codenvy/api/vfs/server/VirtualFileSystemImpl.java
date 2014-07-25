@@ -213,7 +213,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
 
         if (!virtualFile.isFolder()) {
-            throw new ServerException(String.format("Unable get children. Item '%s' is not a folder. ", virtualFile.getPath()));
+            throw new ForbiddenException(String.format("Unable get children. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
 
         final VirtualFileFilter filter;

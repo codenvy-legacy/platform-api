@@ -12,7 +12,6 @@ package com.codenvy.api.vfs.server.util;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 /**
  * Provides factory method to create AND, OR filters based on set of VirtualFileFilter.
@@ -38,7 +37,7 @@ public class VirtualFileFilters {
         }
 
         @Override
-        public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+        public boolean accept(VirtualFile file) {
             for (VirtualFileFilter filter : filters) {
                 if (!filter.accept(file)) {
                     return false;
@@ -65,7 +64,7 @@ public class VirtualFileFilters {
         }
 
         @Override
-        public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+        public boolean accept(VirtualFile file) {
             for (VirtualFileFilter filter : filters) {
                 if (filter.accept(file)) {
                     return true;

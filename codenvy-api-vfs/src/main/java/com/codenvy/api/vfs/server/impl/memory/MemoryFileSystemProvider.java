@@ -10,9 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.vfs.server.*;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.vfs.server.MountPoint;
+import com.codenvy.api.vfs.server.VirtualFileSystem;
+import com.codenvy.api.vfs.server.VirtualFileSystemProvider;
+import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
+import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.search.LuceneSearcherProvider;
 import com.codenvy.api.vfs.server.search.Searcher;
 
@@ -29,7 +33,7 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
         MemoryLuceneSearcher searcher;
 
         @Override
-        public Searcher getSearcher(MountPoint mountPoint, boolean create) throws VirtualFileSystemException {
+        public Searcher getSearcher(MountPoint mountPoint, boolean create) throws ServerException {
             if (searcher == null) {
                 searcher = new MemoryLuceneSearcher(getIndexedMediaTypes());
                 searcher.init(mountPoint);
@@ -46,7 +50,8 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
 
     private MemoryMountPoint memoryMountPoint;
 
-    public MemoryFileSystemProvider(String workspaceId, EventService eventService, VirtualFileSystemUserContext userContext, VirtualFileSystemRegistry vfsRegistry) {
+    public MemoryFileSystemProvider(String workspaceId, EventService eventService, VirtualFileSystemUserContext userContext,
+                                    VirtualFileSystemRegistry vfsRegistry) {
         super(workspaceId);
         this.workspaceId = workspaceId;
         this.eventService = eventService;
@@ -60,7 +65,7 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     }
 
     @Override
-    public VirtualFileSystem newInstance(URI baseUri) throws VirtualFileSystemException {
+    public VirtualFileSystem newInstance(URI baseUri) throws ServerException {
         final MemoryMountPoint memoryMountPoint = (MemoryMountPoint)getMountPoint(true);
         return new MemoryFileSystem(
                 baseUri == null ? URI.create("") : baseUri,
@@ -72,7 +77,7 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
     }
 
     @Override
-    public MountPoint getMountPoint(boolean create) throws VirtualFileSystemException {
+    public MountPoint getMountPoint(boolean create) throws ServerException {
         if (memoryMountPoint == null && create) {
             memoryMountPoint = new MemoryMountPoint(workspaceId, eventService, searcherProvider, userContext);
         }
@@ -89,7 +94,7 @@ public class MemoryFileSystemProvider extends VirtualFileSystemProvider {
                     searcher.close();
                 }
             }
-        } catch (VirtualFileSystemException e) {
+        } catch (ServerException e) {
             LOG.error(e.getMessage(), e);
         }
         super.close();

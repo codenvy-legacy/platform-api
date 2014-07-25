@@ -10,17 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -54,11 +53,11 @@ public class MoveTest extends MemoryFileSystemTest {
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be moved. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Not found file in destination location. ");
         }
     }
@@ -68,11 +67,10 @@ public class MoveTest extends MemoryFileSystemTest {
         String originPath = fileForMove.getPath();
         String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(409, response.getStatus());
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
     }
@@ -83,11 +81,10 @@ public class MoveTest extends MemoryFileSystemTest {
                 mountPoint.getRoot().createFile("destination", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         String path = SERVICE_URI + "move/" + fileForMove.getId() + '?' + "parentId=" + destination.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.INVALID_ARGUMENT, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(403, response.getStatus());
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
     }
@@ -103,11 +100,11 @@ public class MoveTest extends MemoryFileSystemTest {
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be moved. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Not found file in destination location. ");
         }
     }
@@ -119,26 +116,26 @@ public class MoveTest extends MemoryFileSystemTest {
         String originPath = fileForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
         log.info(new String(writer.getBody()));
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("File must not be moved since it is locked. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
     public void testMoveFileNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         fileForMove.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -150,22 +147,22 @@ public class MoveTest extends MemoryFileSystemTest {
         String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("File must not be moved since permissions restriction.");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
     public void testMoveFileDestinationNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         moveTestDestinationFolder.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -177,13 +174,13 @@ public class MoveTest extends MemoryFileSystemTest {
         String expectedPath = moveTestDestinationFolder.getPath() + '/' + fileForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("File must not be moved since permissions restriction on destination folder. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
@@ -196,16 +193,16 @@ public class MoveTest extends MemoryFileSystemTest {
         try {
             mountPoint.getVirtualFile(originPath);
             fail("Folder must be moved. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Not found folder in destination location. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath + "/file");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Child of folder missing after moving. ");
         }
     }
@@ -215,17 +212,17 @@ public class MoveTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         String originPath = folderForMove.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         String expectedPath = moveTestDestinationFolder.getPath() + '/' + folderForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("Folder must not be moved since it contains locked file. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
@@ -233,9 +230,9 @@ public class MoveTest extends MemoryFileSystemTest {
         VirtualFile myFile = folderForMove.getChild("file");
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         myFile.updateACL(createAcl(permissions), true, null);
 
         String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
@@ -245,13 +242,13 @@ public class MoveTest extends MemoryFileSystemTest {
         String expectedPath = moveTestDestinationFolder.getPath() + '/' + folderForMove.getName();
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("Folder must not be moved since permissions restriction. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
@@ -259,7 +256,6 @@ public class MoveTest extends MemoryFileSystemTest {
         moveTestDestinationFolder.createFolder(folderForMove.getName());
         String path = SERVICE_URI + "move/" + folderForMove.getId() + '?' + "parentId=" + moveTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(409, response.getStatus());
     }
 }

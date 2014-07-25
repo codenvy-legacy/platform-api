@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-
 /**
  * This interface defines the visit method. When an implementation of this interface is passed to {@link
  * VirtualFile#accept(VirtualFileVisitor)} the <code>visit</code> method is called.
@@ -25,8 +23,6 @@ public interface VirtualFileVisitor {
      *
      * @param virtualFile
      *         VirtualFile which is accepting this visitor
-     * @throws VirtualFileSystemException
-     *         if an error occurs
      */
-    void visit(VirtualFile virtualFile) throws VirtualFileSystemException;
+    void visit(VirtualFile virtualFile);
 }

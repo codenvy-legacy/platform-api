@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.search;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
@@ -31,5 +32,5 @@ public interface SearcherProvider {
      *         yet
      * @see com.codenvy.api.vfs.server.MountPoint
      */
-    Searcher getSearcher(MountPoint mountPoint, boolean create) throws VirtualFileSystemException;
+    Searcher getSearcher(MountPoint mountPoint, boolean create) throws ServerException;
 }

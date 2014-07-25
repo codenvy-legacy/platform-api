@@ -10,10 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystem;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
 
 import java.io.ByteArrayInputStream;
 
@@ -48,7 +48,7 @@ public class CloneTest extends MemoryFileSystemTest {
 
         try {
             mountPoint.getVirtualFile(sourceFile.getPath());
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found.");
         }
 
@@ -59,7 +59,7 @@ public class CloneTest extends MemoryFileSystemTest {
         // check the result
         try {
             destMountPoint.getVirtualFile(sourceFile.getPath());
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Destination file not found.");
         }
     }
@@ -107,7 +107,7 @@ public class CloneTest extends MemoryFileSystemTest {
             destMountPoint.getVirtualFile(file3.getPath());
             destMountPoint.getVirtualFile(file4.getPath());
             destMountPoint.getVirtualFile(file5.getPath());
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Destination file not found. " + e.getMessage());
         }
     }

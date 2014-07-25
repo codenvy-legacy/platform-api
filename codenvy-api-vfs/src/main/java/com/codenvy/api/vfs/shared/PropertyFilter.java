@@ -10,14 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.shared;
 
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public class PropertyFilter {
     /** Property filter for all properties. */
     public static final String ALL = "*";
@@ -42,14 +40,13 @@ public class PropertyFilter {
      * Construct new Property Filter.
      *
      * @param filterString
-     *         the string that contains either '*' or comma-separated list of properties names. An arbitrary
-     *         number of space allowed before and after each comma. If filterString is 'none' it minds all properties should be
-     *         rejected by filter.
+     *         the string that contains either '*' or comma-separated list of properties names. An arbitrary number of space allowed before
+     *         and after each comma. If filterString is 'none' it minds all properties should be rejected by filter.
      * @return PropertyFilter instance
-     * @throws InvalidArgumentException
-     *         if <code>filterString</code> is invalid
+     * @throws IllegalArgumentException
+     *         if {@code filterString} is invalid
      */
-    public static PropertyFilter valueOf(String filterString) throws InvalidArgumentException {
+    public static PropertyFilter valueOf(String filterString) {
         if (filterString == null || filterString.length() == 0 || ALL.equals(filterString = filterString.trim())) {
             return ALL_FILTER;
         } else if (filterString.equalsIgnoreCase(NONE)) {
@@ -74,26 +71,25 @@ public class PropertyFilter {
      * Construct new Property Filter.
      *
      * @param filterString
-     *         the string that contains either '*' or comma-separated list of properties names. An arbitrary
-     *         number of
-     *         space allowed before and after each comma.
-     * @throws InvalidArgumentException
-     *         if <code>filterString</code> is invalid
+     *         the string that contains either '*' or comma-separated list of properties names. An arbitrary number of space allowed before
+     *         and after each comma.
+     * @throws IllegalArgumentException
+     *         if {@code filterString} is invalid
      */
-    private PropertyFilter(String filterString) throws InvalidArgumentException {
+    private PropertyFilter(String filterString) {
         this.propertyNames = new HashSet<>();
         for (String token : SPLITTER.split(filterString)) {
             if (token.length() > 0 && !token.equals(ALL)) {
                 for (char ch : token.toCharArray()) {
                     if (Character.isWhitespace(ch) || ILLEGAL_CHARACTERS.indexOf(ch) != -1) {
-                        throw new InvalidArgumentException("Invalid filter '" + filterString
-                                                           + "' contains illegal characters.");
+                        throw new IllegalArgumentException(String.format("Invalid filter '%s' contains illegal characters.", filterString));
                     }
                 }
                 this.propertyNames.add(token);
             } else {
-                throw new InvalidArgumentException("Invalid filter '" + filterString
-                                                   + "'. Filter must contains either '*' OR comma-separated list of properties.");
+                throw new IllegalArgumentException(
+                        String.format("Invalid filter '%s'. Filter must contains either '*' OR comma-separated list of properties.",
+                                      filterString));
             }
         }
     }

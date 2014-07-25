@@ -10,9 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.search;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,7 +29,7 @@ import java.util.Set;
 public abstract class LuceneSearcherProvider implements SearcherProvider {
 
     @Override
-    public abstract Searcher getSearcher(MountPoint mountPoint, boolean create) throws VirtualFileSystemException;
+    public abstract Searcher getSearcher(MountPoint mountPoint, boolean create) throws ServerException;
 
     /** Get list of media type of virtual files which must be indexed. */
     protected Set<String> getIndexedMediaTypes() {
@@ -55,8 +54,7 @@ public abstract class LuceneSearcherProvider implements SearcherProvider {
                     }
                 }
             } catch (IOException e) {
-                throw new VirtualFileSystemRuntimeException(
-                        String.format("Failed to get list of media types for indexing. %s", e.getMessage()));
+                throw new RuntimeException(String.format("Failed to get list of media types for indexing. %s", e.getMessage()));
             } finally {
                 if (reader != null) {
                     try {
@@ -73,8 +71,8 @@ public abstract class LuceneSearcherProvider implements SearcherProvider {
             }
         }
         if (forIndex == null || forIndex.isEmpty()) {
-            throw new VirtualFileSystemRuntimeException("Failed to get list of media types for indexing. " +
-                                                        "File 'META-INF/indices_types.txt not found or empty. ");
+            throw new RuntimeException(
+                    "Failed to get list of media types for indexing. File 'META-INF/indices_types.txt not found or empty. ");
         }
         return forIndex;
     }

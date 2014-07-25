@@ -38,10 +38,10 @@ public abstract class VirtualFileSystemUserContext {
         public VirtualFileSystemUser getVirtualFileSystemUser() {
             final EnvironmentContext context = EnvironmentContext.getCurrent();
 
-            if (context.getUser() == null) {
+            final User user = context.getUser();
+            if (user == null) {
                 return new VirtualFileSystemUser(VirtualFileSystemInfo.ANONYMOUS_PRINCIPAL, Collections.<String>emptySet());
             }
-            final User user = context.getUser();
             final Set<String> groups = new HashSet<>(2);
             if (user.isMemberOf("workspace/developer")) {
                 groups.add("workspace/developer");

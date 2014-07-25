@@ -10,14 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.ConstraintExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.LockExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.NotSupportedExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.PermissionDeniedExceptionMapper;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeExceptionMapper;
+import com.codenvy.api.core.rest.ApiExceptionMapper;
 
 import javax.ws.rs.core.Application;
 import java.util.HashSet;
@@ -33,16 +26,9 @@ public class VirtualFileSystemApplication extends Application {
         classes = new HashSet<>(2);
         classes.add(VirtualFileSystemFactory.class);
         classes.add(NoCacheJsonWriter.class);
-        singletons = new HashSet<>(9);
+        singletons = new HashSet<>(2);
         singletons.add(new ContentStreamWriter());
-        singletons.add(new ConstraintExceptionMapper());
-        singletons.add(new InvalidArgumentExceptionMapper());
-        singletons.add(new LockExceptionMapper());
-        singletons.add(new ItemNotFoundExceptionMapper());
-        singletons.add(new ItemAlreadyExistExceptionMapper());
-        singletons.add(new NotSupportedExceptionMapper());
-        singletons.add(new PermissionDeniedExceptionMapper());
-        singletons.add(new VirtualFileSystemRuntimeExceptionMapper());
+        singletons.add(new ApiExceptionMapper());
     }
 
     /** @see javax.ws.rs.core.Application#getClasses() */

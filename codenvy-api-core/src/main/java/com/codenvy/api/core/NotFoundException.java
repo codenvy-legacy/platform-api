@@ -12,7 +12,13 @@ package com.codenvy.api.core;
 
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * A {@code NotFoundException} is thrown if requested resource was not found.
+ * <p/>
+ * Typically in REST API such errors are converted in HTTP response with status 404.
+ *
+ * @author andrew00x
+ */
 @SuppressWarnings("serial")
 public final class NotFoundException extends ApiException {
     public NotFoundException(String message) {

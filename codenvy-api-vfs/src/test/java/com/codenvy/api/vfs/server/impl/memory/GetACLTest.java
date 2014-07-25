@@ -17,12 +17,12 @@ import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.commons.user.UserImpl;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,9 +43,9 @@ public class GetACLTest extends MemoryFileSystemTest {
 
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         file.updateACL(createAcl(permissions), true, null);
 
         fileId = file.getId();
@@ -69,8 +69,8 @@ public class GetACLTest extends MemoryFileSystemTest {
 
     public void testGetACLNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         User previousUser = EnvironmentContext.getCurrent().getUser();
         EnvironmentContext.getCurrent().setUser(new UserImpl("admin"));
         file.updateACL(createAcl(permissions), true, null);

@@ -14,13 +14,13 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +57,8 @@ public class UpdateACLTest extends MemoryFileSystemTest {
 
     public void testUpdateAclOverride() throws Exception {
         Principal anyPrincipal = createPrincipal("any", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(anyPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(anyPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         mountPoint.getVirtualFileById(objectId).updateACL(createAcl(permissions), false, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -79,8 +79,8 @@ public class UpdateACLTest extends MemoryFileSystemTest {
 
     public void testUpdateAclMerge() throws Exception {
         Principal anyPrincipal = createPrincipal("any", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(anyPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(anyPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         mountPoint.getVirtualFileById(objectId).updateACL(createAcl(permissions), false, null);
 
         String path = SERVICE_URI + "acl/" + objectId;
@@ -124,16 +124,16 @@ public class UpdateACLTest extends MemoryFileSystemTest {
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, body.getBytes(), writer, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 
     public void testUpdateAclNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         mountPoint.getVirtualFileById(objectId).updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();

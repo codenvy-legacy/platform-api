@@ -10,14 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.ConstraintException;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
-import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.server.exceptions.LockException;
-import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
-import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.File;
@@ -39,8 +35,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -50,50 +46,59 @@ import java.util.List;
  */
 public interface VirtualFileSystem {
     /**
-     * Create copy of item <code>id</code> in <code>parentId</code> folder.
+     * Create copy of item {@code id} in {@code parentId} folder.
      *
      * @param id
      *         id of source item
      * @param parentId
      *         id of parent for new copy
      * @return newly created copy of item
-     * @throws ItemNotFoundException
-     *         if <code>source</code> or <code>parentId</code> does not exist
-     * @throws ConstraintException
-     *         if <code>parentId</code> is not a folder
-     * @throws ItemAlreadyExistException
-     *         if <code>parentId</code> already contains item with the same name
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code id} or {@code parentId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if {@code parentId} already contains item with the same name
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("copy")
     @Produces({MediaType.APPLICATION_JSON})
-    Item copy(String id, String parentId) throws ItemNotFoundException, ConstraintException, ItemAlreadyExistException,
-                                                 PermissionDeniedException, VirtualFileSystemException;
+    Item copy(String id, String parentId) throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
      * Clone tree of items to destination Virtual File System.
      *
      * @param id
-     *          id of source item
+     *         id of source item
      * @param vfsId
-     *          id of destination Virtual File System
+     *         id of destination Virtual File System
      * @param parentId
-     *          id of parent for new copy
+     *         id of parent for new copy
      * @param name
-     *          new name for root item
-     * @throws ItemNotFoundException
-     *         if <code>id</code> or <code>parentId</code> does not exist
-     * @throws VirtualFileSystemException
+     *         new name for root item
+     * @throws NotFoundException
+     *         if {@code id} or {@code parentId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if {@code parentId} already contains item with the same name
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("clone")
-    void clone(String id, String vfsId, String parentId, String name) throws ItemNotFoundException, ConstraintException,
-                                                                PermissionDeniedException, VirtualFileSystemException;
+    void clone(String id, String vfsId, String parentId, String name)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
      * Create new File in specified folder.
@@ -107,27 +112,24 @@ public interface VirtualFileSystem {
      * @param content
      *         content of File
      * @return newly created file
-     * @throws ItemNotFoundException
-     *         if <code>parentId</code> does not exist
-     * @throws InvalidArgumentException
+     * @throws NotFoundException
+     *         if {@code parentId} doesn't exist
+     * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>parentId</code> is not a folder</li>
-     *         <li><code>name</code> is not specified</li>
+     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
      *         </ul>
-     * @throws ItemAlreadyExistException
-     *         if <code>parentId</code> already contains item with the same name
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws ConflictException
+     *         if {@code parentId} already contains item with specified {@code name}
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("file")
     @Produces({MediaType.APPLICATION_JSON})
     File createFile(String parentId, String name, MediaType mediaType, InputStream content)
-            throws ItemNotFoundException, InvalidArgumentException, ItemAlreadyExistException, PermissionDeniedException,
-                   VirtualFileSystemException;
+            throws NotFoundException, ConflictException, ForbiddenException, ServerException;
 
     /**
      * Create new folder in specified folder.
@@ -135,62 +137,53 @@ public interface VirtualFileSystem {
      * @param parentId
      *         id of parent for new folder
      * @param name
-     *         name of new folder. If name is string separated by '/' all nonexistent parent folders must be
-     *         created.
+     *         name of new folder. If name is string separated by '/' all nonexistent parent folders must be created.
      * @return newly created folder
-     * @throws ItemNotFoundException
-     *         if <code>parentId</code> does not exist
-     * @throws InvalidArgumentException
+     * @throws NotFoundException
+     *         if {@code parentId} doesn't exist
+     * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>parentId</code> is not a folder</li>
-     *         <li><code>name</code> is not specified</li>
+     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
      *         </ul>
-     * @throws ItemAlreadyExistException
-     *         if <code>parentId</code> already contains item with the same name
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws ConflictException
+     *         if {@code parentId} already contains item with specified {@code name}
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("folder")
     @Produces({MediaType.APPLICATION_JSON})
-    Folder createFolder(String parentId, String name) throws ItemNotFoundException, InvalidArgumentException,
-                                                             ItemAlreadyExistException, PermissionDeniedException,
-                                                             VirtualFileSystemException;
+    Folder createFolder(String parentId, String name) throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Delete item <code>id</code>. If item is folder then all children of this folder should be removed or
-     * ConstraintException must be thrown.
+     * Delete item {@code id}. If item is folder then all children of this folder should be removed.
      *
      * @param id
      *         id of item to be removed
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if
-     *         there is no lock token, e.g. item is not locked
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws ConstraintException
-     *         if item is folder which has children and implementation is not supported removing not
-     *         empty folders
-     * @throws LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does
-     *         not matched
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     *         lock token. This lock token will be used if {@code id} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         not locked
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code id} is root folder</li>
+     *         <li>item {@code id} is locked file and {@code lockToken} is {code null} or doesn't match or if iem is folder that contains
+     *         at least one locked file</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("delete")
-    void delete(String id, String lockToken) throws ItemNotFoundException, ConstraintException, LockException,
-                                                    PermissionDeniedException, VirtualFileSystemException;
+    void delete(String id, String lockToken) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Get ACL applied to <code>id</code>. If there is no any ACL applied to item this method must return empty list.
-     * Example of
-     * JSON response:
+     * Get ACL applied to {@code id}. If there is no any ACL applied to item this method must return empty list. Example of JSON response:
      * <p/>
      * <pre>
      * [{"principal":"john","permissions":["all"]},{"principal":"marry","permissions":["read"]}]
@@ -204,22 +197,19 @@ public interface VirtualFileSystem {
      *
      * @param id
      *         id of item
-     * @return ACL applied to item or(and) inherited from its parent
-     * @throws NotSupportedException
-     *         if ACL is not supported
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @return ACL applied to item
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if user which perform operation has no permissions
+     * @throws ServerException
      *         if any other errors occur
      * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getAclCapability()
      */
     @GET
     @Path("acl")
     @Produces({MediaType.APPLICATION_JSON})
-    List<AccessControlEntry> getACL(String id) throws NotSupportedException, ItemNotFoundException,
-                                                      PermissionDeniedException, VirtualFileSystemException;
+    List<AccessControlEntry> getACL(String id) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
      * Get children of specified folder. Example of JSON response:
@@ -243,59 +233,51 @@ public interface VirtualFileSystem {
      *   ],
      *   "numItems":1
      * }
-     *
      * </pre>
      *
      * @param folderId
      *         folder's id
      * @param maxItems
-     *         max number of items in response. If -1 then no limit of max items in result set
+     *         max number of items in response. If {@code -1} then no limit of max items in result set
      * @param skipCount
-     *         skip items. Must be equals or greater then 0
+     *         skip items. Must be equals or greater then {@code 0}
      * @param itemType
-     *         item type filter. If not null then only item of specified type returned in result list.
-     *         Expected one of type (case insensitive):
+     *         item type filter. If not null then only item of specified type returned in result list. Expected one of type (case
+     *         insensitive):
      *         <ul>
      *         <li>file</li>
      *         <li>folder</li>
      *         </ul>
      * @param includePermissions
-     *         if <code>true</code> add permissions for current user for each item. See {@link
-     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
-     *         implementation specific.
+     *         if {@code true} add permissions for current user for each item. See {@link com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.
+     *         If parameter isn't set then result is implementation specific.
      * @param propertyFilter
-     *         only properties which are accepted by filter should be included in response. See
-     *         {@link PropertyFilter#accept(String)}
+     *         only properties which are accepted by filter should be included in response. See {@link PropertyFilter#accept(String)}
      * @return list of children of specified folder
-     * @throws ItemNotFoundException
-     *         if <code>folderId</code> does not exist
-     * @throws InvalidArgumentException
+     * @throws NotFoundException
+     *         if {@code folderId} doesn't exist
+     * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>folderId</code> is not a folder</li>
-     *         <li><code>skipCount</code> is negative or greater then total number of items</li>
-     *         <li><code>itemType</code> is not <code>null</code> and not one of the known item types</li>
+     *         <li>{@code folderId} isn't a folder</li>
+     *         <li>{@code itemType} is set but not one of the known item types (neither 'file' nor 'folder')</li>
+     *         <li>user which perform operation has no permissions</li>
      *         </ul>
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws ConflictException
+     *         {@code skipCount} is negative or greater then total number of items
+     * @throws ServerException
      *         if any other errors occur
      * @see com.codenvy.api.vfs.shared.ItemType
      */
     @GET
     @Path("children")
     @Produces({MediaType.APPLICATION_JSON})
-    ItemList getChildren(String folderId,
-                         int maxItems,
-                         int skipCount,
-                         String itemType,
-                         Boolean includePermissions,
-                         PropertyFilter propertyFilter)
-            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+    ItemList getChildren(String folderId, int maxItems, int skipCount, String itemType, Boolean includePermissions,
+                         PropertyFilter propertyFilter) throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
-    // For local usage. This method is not accessible over REST interface.
+    // For local usage. This method isn't accessible over REST interface.
     ItemList getChildren(String folderId, int maxItems, int skipCount, String itemType, boolean includePermissions)
-            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
      * Get tree of items starts from specified folder.
@@ -303,86 +285,90 @@ public interface VirtualFileSystem {
      * @param folderId
      *         folder's id
      * @param depth
-     *         depth for discover children if -1 then children at all levels
+     *         depth for discover children if {@code -1} then get children at all levels
      * @param includePermissions
-     *         if <code>true</code> add permissions for current user for each item. See {@link
-     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
-     *         implementation specific.
+     *         if {@code true} add permissions for current user for each item. See {@link com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.
+     *         If parameter isn't set then result is implementation specific.
      * @param propertyFilter
-     *         only properties which are accepted by filter should be included in response. See
-     *         {@link PropertyFilter#accept(String)}
+     *         only properties which are accepted by filter should be included in response. See {@link PropertyFilter#accept(String)}
      * @return items tree started from specified folder
-     * @throws ItemNotFoundException
-     *         if <code>folderId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>folderId</code> is not a folder
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code folderId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code folderId} isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @GET
     @Path("tree")
     @Produces({MediaType.APPLICATION_JSON})
     ItemNode getTree(String folderId, int depth, Boolean includePermissions, PropertyFilter propertyFilter)
-            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ServerException;
 
-    // For local usage. This method is not accessible over REST interface.
+    // For local usage. This method isn't accessible over REST interface.
     ItemNode getTree(String folderId, int depth, boolean includePermissions)
-            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Get binary content of File.
+     * Get content of File.
      *
      * @param id
      *         id of File
      * @return content
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>id</code> is not File
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code id} isn't a file</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @GET
     @Path("content")
-    ContentStream getContent(String id) throws ItemNotFoundException, InvalidArgumentException,
-                                               PermissionDeniedException, VirtualFileSystemException;
+    ContentStream getContent(String id) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Get binary content of File by path.
+     * Get content of File by path.
      *
      * @param path
      *         path of File
      * @param versionId
-     *         version id for File item. If<code>null</code> content of latest version returned.
+     *         version id for File item. If {@code null} content of latest version returned. If versioning isn't supported this parameter
+     *         must be {@code null}
      * @return content
-     * @throws ItemNotFoundException
-     *         if <code>path</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>path</code> is not File
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code path} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code path} isn't a file</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#isVersioningSupported()
      */
     @GET
     @Path("contentbypath")
-    ContentStream getContent(String path, String versionId) throws ItemNotFoundException, InvalidArgumentException,
-                                                                   PermissionDeniedException, VirtualFileSystemException;
+    ContentStream getContent(String path, String versionId) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
      * Get information about virtual file system and its capabilities.
      *
      * @return info about this virtual file system
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if any errors occur in VFS
      */
     @GET
     @Produces({MediaType.APPLICATION_JSON})
-    VirtualFileSystemInfo getInfo() throws VirtualFileSystemException;
+    VirtualFileSystemInfo getInfo() throws ServerException;
 
     /**
      * Get item by id. Example of JSON response:
@@ -405,29 +391,27 @@ public interface VirtualFileSystem {
      * @param id
      *         id of item
      * @param includePermissions
-     *         if <code>true</code> add permissions for current user in item description. See {@link
-     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
-     *         implementation specific.
+     *         if {@code true} add permissions for current user in item description. If parameter isn't set then result is implementation
+     *         specific
      * @param propertyFilter
-     *         only properties which are accepted by filter should be included in response. See
-     *         {@link PropertyFilter#accept(String)}
+     *         only properties which are accepted by filter should be included in response. See {@link PropertyFilter#accept(String)}
      * @return item
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if user which perform operation has no permissions
+     * @throws ServerException
      *         if any other errors occur
+     * @see com.codenvy.api.vfs.shared.dto.Item#getPermissions()
      */
     @GET
     @Path("item")
     @Produces({MediaType.APPLICATION_JSON})
     Item getItem(String id, Boolean includePermissions, PropertyFilter propertyFilter)
-            throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ServerException;
 
-    // For local usage. This method is not accessible over REST interface.
-    Item getItem(String id, boolean includePermissions)
-            throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
+    // For local usage. This method isn't accessible over REST interface.
+    Item getItem(String id, boolean includePermissions) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
      * Get item by path.
@@ -435,62 +419,63 @@ public interface VirtualFileSystem {
      * @param path
      *         item path
      * @param versionId
-     *         version id for File item. Pass <code>null</code> to get last version. Must be <code>null</code> for Folders.
+     *         version id for File item. Pass {@code null} to get last version. Must be {@code null} for Folders. If versioning isn't
+     *         supported this parameter must be {@code null}
      * @param includePermissions
-     *         if <code>true</code> add permissions for current user in item description. See {@link
-     *         com.codenvy.api.vfs.shared.dto.Item#getPermissions()}.  If parameter is not set (<code>null</code>) then result is
-     *         implementation specific.
+     *         if {@code true} add permissions for current user in item description. If parameter isn't set then result is implementation
+     *         specific
      * @param propertyFilter
-     *         only properties which are accepted by filter should be included in response. See
-     *         {@link PropertyFilter#accept(String)}
+     *         only properties which are accepted by filter should be included in response. See {@link PropertyFilter#accept(String)}
      * @return item
-     * @throws ItemNotFoundException
-     *         if <code>path</code> does not exist
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code path} or its version doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code versionId} is specified by item {@code path} isn't a file</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#isVersioningSupported()
+     * @see com.codenvy.api.vfs.shared.dto.Item#getPermissions()
      */
     @GET
     @Path("itembypath")
     @Produces({MediaType.APPLICATION_JSON})
     Item getItemByPath(String path, String versionId, Boolean includePermissions, PropertyFilter propertyFilter)
-            throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ServerException;
 
-    // For local usage. This method is not accessible over REST interface.
+    // For local usage. This method isn't accessible over REST interface.
     Item getItemByPath(String path, String versionId, boolean includePermissions)
-            throws ItemNotFoundException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Get binary content of version of File item.
+     * Get content of version of File item.
      *
      * @param id
      *         id of item
      * @param versionId
      *         version id
      * @return content response
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws InvalidArgumentException
+     * @throws NotFoundException
+     *         if {@code id} or its version doesn't exist
+     * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>id</code> is not File</li>
-     *         <li><code>versionId</code> points to version that does not exist</li>
+     *         <li>{@code id} isn't a file</li>
+     *         <li>user which perform operation has no permissions</li>
      *         </ul>
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if any other errors occur
      */
     @GET
     @Path("version")
-    ContentStream getVersion(String id, String versionId) throws ItemNotFoundException, InvalidArgumentException,
-                                                                 PermissionDeniedException, VirtualFileSystemException;
+    ContentStream getVersion(String id, String versionId) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Get list of versions of File. Even if File is not versionable result must contain at least one item (current
-     * version of
-     * File). Example of JSON response:
+     * Get list of versions of File. Even if File isn't versionable result must contain at least one item (current version of File).
+     * Example of JSON response:
      * <p/>
      * <pre>
      * {
@@ -540,35 +525,34 @@ public interface VirtualFileSystem {
      * @param id
      *         id of File
      * @param maxItems
-     *         max number of items in response. If -1 then no limit of max items in result set
+     *         max number of items in response. If {@code -1} then no limit of max items in result set
      * @param skipCount
-     *         the skip items. Must be equals or greater then 0
+     *         the skip items. Must be equals or greater then {@code 0}
      * @param propertyFilter
-     *         only properties which are accepted by filter should be included in response. See
-     *         {@link PropertyFilter#accept(String)}
+     *         only properties which are accepted by filter should be included in response. See {@link PropertyFilter#accept(String)}
      * @return versions of file
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws InvalidArgumentException
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>id</code>item is not a File</li>
-     *         <li><code>skipCount</code> is negative or greater then total number of items</li>
+     *         <li>{@code id} isn't a file</li>
+     *         <li>user which perform operation has no permissions</li>
      *         </ul>
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws ConflictException
+     *         {@code skipCount} is negative or greater then total number of items
+     * @throws ServerException
      *         if any other errors occur
      */
     @GET
     @Path("version-history")
     @Produces({MediaType.APPLICATION_JSON})
     ItemList getVersions(String id, int maxItems, int skipCount, PropertyFilter propertyFilter)
-            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
-    // For local usage. This method is not accessible over REST interface.
+    // For local usage. This method isn't accessible over REST interface.
     ItemList getVersions(String id, int maxItems, int skipCount)
-            throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException, VirtualFileSystemException;
+            throws NotFoundException, ConflictException, ForbiddenException, ServerException;
 
     /**
      * Place lock on File item. Example of JSON response if locking is successful:
@@ -580,31 +564,30 @@ public interface VirtualFileSystem {
      * @param id
      *         item to be locked
      * @param timeout
-     *         optional lock timeout in milliseconds, default value is <code>0</code> which means no timeout. After specified timeout lock
-     *         will be removed.
+     *         optional lock timeout in milliseconds, default value is {@code 0} which means no timeout. After specified timeout lock will
+     *         be removed.
      * @return lock token
-     * @throws NotSupportedException
-     *         if locking is not supported
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>id</code> is not File item
-     * @throws LockException
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code id} isn't a file</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ConflictException
      *         if item already locked
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if any other errors occur
      * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#isLockSupported()
      */
     @POST
     @Path("lock")
     @Produces({MediaType.APPLICATION_JSON})
-    Lock lock(String id, long timeout) throws NotSupportedException, ItemNotFoundException, InvalidArgumentException,
-                                              LockException, PermissionDeniedException, VirtualFileSystemException;
+    Lock lock(String id, long timeout) throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Move item <code>id</code> in <code>newparentId</code> folder. Example of JSON response:
+     * Move item {@code id} in {@code newparentId} folder. Example of JSON response:
      * <p/>
      * <pre>
      * {"id":"/TESTROOT/NEW_PARENT/DOCUMENT01.txt"}
@@ -615,29 +598,28 @@ public interface VirtualFileSystem {
      * @param parentId
      *         id of new parent
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if
-     *         there is no lock token, e.g. item is not locked @return moved item
+     *         lock token. This lock token will be used if {@code id} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         not locked
      * @return moved item
-     * @throws ItemNotFoundException
-     *         if <code>id</code> or <code>newparentId</code> does not exist
-     * @throws ConstraintException
-     *         if <code>newparentId</code> is not a folder
-     * @throws ItemAlreadyExistException
-     *         if <code>newparentId</code> already contains item with the same name
-     * @throws LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does
-     *         not matched
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code id} or {@code newparentId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>item {@code id} is locked and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if {@code parentId} already contains item with the same name
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("move")
     @Produces({MediaType.APPLICATION_JSON})
-    Item move(String id, String parentId, String lockToken) throws ItemNotFoundException, ConstraintException,
-                                                                   ItemAlreadyExistException, LockException, PermissionDeniedException,
-                                                                   VirtualFileSystemException;
+    Item move(String id, String parentId, String lockToken)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
      * Rename and(or) set content type for Item.
@@ -647,59 +629,46 @@ public interface VirtualFileSystem {
      * @param mediaType
      *         new media type. May be not specified if not need to change media type, e.g. need rename only
      * @param newname
-     *         new name of Item. May be not specified if not need to change name, e.g. need update media type
-     *         only
+     *         new name of Item. May be not specified if not need to change name, e.g. need update media type only
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if
-     *         there is no lock token, e.g. item is not locked
+     *         lock token. This lock token will be used if {@code id} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         not locked
      * @return renamed item
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does
-     *         not matched
-     * @throws ConstraintException
-     *         if file can't be updated cause to any constraint
-     * @throws ItemAlreadyExistException
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ConflictException
      *         if parent folder already contains item with specified name
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>item {@code id} is locked and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("rename")
     @Produces({MediaType.APPLICATION_JSON})
-    Item rename(String id, MediaType mediaType, String newname, String lockToken) throws ItemNotFoundException,
-                                                                                         LockException, ConstraintException,
-                                                                                         ItemAlreadyExistException,
-                                                                                         PermissionDeniedException,
-                                                                                         VirtualFileSystemException;
+    Item rename(String id, MediaType mediaType, String newname, String lockToken)
+            throws NotFoundException, ConflictException, ForbiddenException, ServerException;
 
     /**
      * Executes a SQL query statement against the contents of virtual file system.
      *
      * @param query
-     *         set of opaque parameters of query statement. Set of parameters that can be passed by client and how
-     *         SQL statement (in case of SQL storage )created from this parameters is implementation specific
+     *         set of opaque parameters of query statement. Set of parameters that can be passed by client and how SQL statement (in case
+     *         of SQL storage) created from this parameters is implementation specific
      * @param maxItems
-     *         max number of items in response. If -1 then no limit of max items in result set
+     *         max number of items in response. If {@code -1} then no limit of max items in result set
      * @param skipCount
-     *         the skip items. Must be equals or greater the 0
+     *         the skip items. Must be equals or greater then {@code 0}
      * @param propertyFilter
-     *         only properties which are accepted by filter should be included in response. See
-     *         {@link PropertyFilter#accept(String)}
+     *         only properties which are accepted by filter should be included in response. See {@link PropertyFilter#accept(String)}
      * @return query result
-     * @throws NotSupportedException
-     *         query is not supported at all or specified query type is not supported, e.g. if
-     *         full text query is not supported but corresponded parameter specified
-     * @throws InvalidArgumentException
-     *         if any of following conditions are met:
-     *         <ul>
-     *         <li>set of parameters is incorrect and as result is not possible to create correct SQL statement</li>
-     *         <li><code>skipCount</code> is negative or greater then total number of items</li>
-     *         </ul>
-     * @throws VirtualFileSystemException
+     * @throws ConflictException
+     *         {@code skipCount} is negative or greater then total number of items
+     * @throws ServerException
      *         if any other errors occur
      * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getQueryCapability()
      */
@@ -707,11 +676,10 @@ public interface VirtualFileSystem {
     @Path("search")
     @Produces({MediaType.APPLICATION_JSON})
     ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount, PropertyFilter propertyFilter)
-            throws NotSupportedException, InvalidArgumentException, VirtualFileSystemException;
+            throws ConflictException, ServerException;
 
-    // For local usage. This method is not accessible over REST interface.
-    ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount)
-            throws NotSupportedException, InvalidArgumentException, VirtualFileSystemException;
+    // For local usage. This method isn't accessible over REST interface.
+    ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount) throws ConflictException, ServerException;
 
     /**
      * Execute a SQL query statement against the contents of virtual file system.
@@ -719,84 +687,77 @@ public interface VirtualFileSystem {
      * @param statement
      *         query statement
      * @param maxItems
-     *         max number of items in response. If -1 then no limit of max items in result set
+     *         max number of items in response. If {@code -1} then no limit of max items in result set
      * @param skipCount
-     *         the skip items. Must be equals or greater the 0
+     *         the skip items. Must be equals or greater then {@code 0}
      * @return query result
-     * @throws NotSupportedException
-     *         if query is not supported at all of specified query type is not supported, e.g. if
-     *         full text query is not supported but CONTAINS clause specified
-     * @throws InvalidArgumentException
-     *         if any of following conditions are met:
-     *         <ul>
-     *         <li>query statement syntax is invalid</li>
-     *         <li><code>skipCount</code> is negative or greater then total number of items</li>
-     *         </ul>
-     * @throws VirtualFileSystemException
+     * @throws ForbiddenException
+     *         if query statement syntax is invalid
+     * @throws ConflictException
+     *         {@code skipCount} is negative or greater then total number of items
+     * @throws ServerException
      *         if any other errors occur
      * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getQueryCapability()
      */
     @GET
     @Path("search")
     @Produces({MediaType.APPLICATION_JSON})
-    ItemList search(String statement, int maxItems, int skipCount) throws NotSupportedException,
-                                                                          InvalidArgumentException, VirtualFileSystemException;
+    ItemList search(String statement, int maxItems, int skipCount) throws ConflictException, ForbiddenException, ServerException;
 
     /**
-     * Remove lock from item.
+     * Remove lock from file.
      *
      * @param id
      *         id of item to be unlocked
      * @param lockToken
      *         lock token
-     * @throws NotSupportedException
-     *         if locking is not supported
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws LockException
-     *         if item is not locked or <code>lockToken</code> is <code>null</code> or does not matched
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if item isn't locked
+     * @throws ServerException
      *         if any other errors occur
+     * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#isLockSupported()
      */
     @POST
     @Path("unlock")
-    void unlock(String id, String lockToken) throws NotSupportedException, ItemNotFoundException, LockException,
-                                                    PermissionDeniedException, VirtualFileSystemException;
+    void unlock(String id, String lockToken) throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
      * Update ACL of item. Example of JSON message:
      * <p/>
      * <pre>
-     * [{"principal":"john","permissions":["all"]},{"principal":"marry","permissions":["read"]}]
+     * [{"principal":"john","type":"USER","permissions":["all"]},{"principal":"marry","type":"USER","permissions":["read"]}]
      * </pre>
      * <p/>
-     * JSON message as above will set "all" permissions for principal "john" and "read" permission only for principal
-     * "marry".
+     * JSON message as above will set "all" permissions for principal "john" and "read" permission only for principal "marry".
      *
      * @param id
      *         id of item for ACL updates
      * @param acl
-     *         ACL to be applied to item. If method {@link AccessControlEntry#getPermissions()} for any principal
-     *         return empty set of permissions then all permissions for this principal will be removed.
+     *         ACL to be applied to item. If method {@link AccessControlEntry#getPermissions()} for any principal return empty set of
+     *         permissions then all permissions for this principal will be removed.
      * @param override
-     *         if <code>true</code> then previous ACL will be overridden, if <code>false</code> then specified
-     *         ACL will be merged with previous if any. If such parameters is not specified then behavior is implementation
-     *         specific
+     *         if {@code true} then previous ACL will be overridden, if {@code false} then specified ACL will be merged with previous if
+     *         any. If such parameters isn't specified then behavior is implementation specific
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if
-     *         there is no lock token, e.g. item is not locked
-     * @throws NotSupportedException
-     *         if ACL is not supported at all or managing of ACL is not supported
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does
-     *         not matched
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     *         lock token. This lock token will be used if {@code id} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         not locked
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      * @see com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo#getAclCapability()
      */
@@ -804,38 +765,36 @@ public interface VirtualFileSystem {
     @Path("acl")
     @Consumes({MediaType.APPLICATION_JSON})
     void updateACL(String id, List<AccessControlEntry> acl, Boolean override, String lockToken)
-            throws NotSupportedException, ItemNotFoundException, LockException, PermissionDeniedException,
-                   VirtualFileSystemException;
+            throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Update binary content of File.
+     * Update content of File.
      *
      * @param id
      *         id of File
      * @param mediaType
      *         media type of content
-     * @param newcontent
+     * @param newContent
      *         new content of File
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if there is no lock token,
-     *         e.g.
-     *         item is not locked
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>id</code> is not File
-     * @throws LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does not matched
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     *         lock token. This lock token will be used if {@code id} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         not locked
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code id} isn't a file</li>
+     *         <li>item {@code id} is locked and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("content")
-    void updateContent(String id, MediaType mediaType, InputStream newcontent, String lockToken)
-            throws ItemNotFoundException, InvalidArgumentException, LockException, PermissionDeniedException,
-                   VirtualFileSystemException;
+    void updateContent(String id, MediaType mediaType, InputStream newContent, String lockToken)
+            throws NotFoundException, ForbiddenException, ServerException;
 
     /**
      * Update properties of item.
@@ -845,54 +804,51 @@ public interface VirtualFileSystem {
      * @param properties
      *         new properties
      * @param lockToken
-     *         lock token. This lock token will be used if <code>id</code> is locked. Pass <code>null</code> if
-     *         there is no lock token, e.g. item is not locked
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does
-     *         not matched
-     * @throws ConstraintException
-     *         if property can't be updated cause to any constraint, e.g. property is read only
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     *         lock token. This lock token will be used if {@code id} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         not locked
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>property can't be updated cause to any constraint, e.g. property is read only</li>
+     *         <li>item {@code id} is locked and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("item")
     @Consumes({MediaType.APPLICATION_JSON})
     @Produces({MediaType.APPLICATION_JSON})
-    Item updateItem(String id, List<Property> properties, String lockToken) throws ItemNotFoundException,
-                                                                                   LockException, PermissionDeniedException,
-                                                                                   VirtualFileSystemException;
+    Item updateItem(String id, List<Property> properties, String lockToken) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Export content of <code>folderId</code> to ZIP archive.
+     * Export content of {@code folderId} to ZIP archive.
      *
      * @param folderId
      *         folder for ZIP
      * @return ZIP as stream
-     * @throws ItemNotFoundException
-     *         if <code>folderId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>folderId</code> item is not a folder
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws IOException
-     *         if any i/o errors occur
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code folderId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code folderId} item isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @GET
     @Path("export")
     @Produces({"application/zip"})
-    ContentStream exportZip(String folderId) throws ItemNotFoundException, InvalidArgumentException,
-                                                    PermissionDeniedException, IOException, VirtualFileSystemException;
+    ContentStream exportZip(String folderId) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Export content of <code>folderId</code> to ZIP archive. Unlike to the method {@link #exportZip(String)} this method includes in the
-     * zip response only updated files. Caller must send list of files with their md5sums in next format:
+     * Export content of {@code folderId} to ZIP archive. Unlike to the method {@link #exportZip(String)} this method includes in the zip
+     * response only updated files. Caller must send list of files with their md5sums in next format:
      * <pre>
      * &lt;md5sum&gt;&lt;space&gt;&lt;file path relative to requested folder&gt;
      * ...
@@ -909,7 +865,7 @@ public interface VirtualFileSystem {
      * <li>In some point of time caller likes to get updates</li>
      * <li>Caller traverses local tree and count md5sum for each file, folders must be omitted</li>
      * <li>Caller sends request. See about format of request body above</li>
-     * <li>Response contains only files for which the md5sum does not match. Comma-separated list of names of removed files is added in
+     * <li>Response contains only files for which the md5sum doesn't match. Comma-separated list of names of removed files is added in
      * response header: <i>x-removed-paths</i></li>
      * <li>If there is no any updates this method return response with status: 204 No Content</li>
      * <li>Depending to the response caller updates his local copy of this folder</li>
@@ -920,26 +876,25 @@ public interface VirtualFileSystem {
      * @param in
      *         stream, see above about its format
      * @return ZIP as stream
-     * @throws ItemNotFoundException
-     *         if <code>folderId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>folderId</code> item is not a folder
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws IOException
-     *         if any i/o errors occur
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code folderId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code folderId} item isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("export")
     @Produces({"application/zip"})
     @Consumes({"text/plain"})
-    Response exportZip(String folderId, InputStream in) throws ItemNotFoundException, InvalidArgumentException,
-                                                               PermissionDeniedException, IOException, VirtualFileSystemException;
+    Response exportZip(String folderId, InputStream in) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Export content of <code>folderId</code> to ZIP archive. Unlike to the method {@link #exportZip(String)} this method includes in the
+     * Export content of {@code folderId} to ZIP archive. Unlike to the method {@link #exportZip(String)} this method includes in the
      * zip response only updated files. Caller must send list of files with their md5sums in next format:
      * <pre>
      * &lt;md5sum&gt;&lt;space&gt;&lt;file path relative to requested folder&gt;
@@ -957,7 +912,7 @@ public interface VirtualFileSystem {
      * <li>In some point of time caller likes to get updates</li>
      * <li>Caller traverses local tree and count md5sum for each file, folders must be omitted</li>
      * <li>Caller sends request. See about format of request body above</li>
-     * <li>Multipart/form-data response contains archive with files for which the md5sum does not match (field 'updates') and list of names
+     * <li>Multipart/form-data response contains archive with files for which the md5sum doesn't match (field 'updates') and list of names
      * of removed files (field 'removed-paths')</li>
      * <li>If there is no any updates this method return response with status: 204 No Content</li>
      * <li>Depending to the response caller updates his local copy of this folder</li>
@@ -968,23 +923,22 @@ public interface VirtualFileSystem {
      * @param in
      *         stream, see above about its format
      * @return ZIP as stream
-     * @throws ItemNotFoundException
-     *         if <code>folderId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>folderId</code> item is not a folder
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws IOException
-     *         if any i/o errors occur
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code folderId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code folderId} item isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("export")
     @Produces({"multipart/form-data"})
     @Consumes({"text/plain"})
-    Response exportZipMultipart(String folderId, InputStream in) throws ItemNotFoundException, InvalidArgumentException,
-                                                                        PermissionDeniedException, IOException, VirtualFileSystemException;
+    Response exportZipMultipart(String folderId, InputStream in) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
      * Import ZIP content.
@@ -994,135 +948,128 @@ public interface VirtualFileSystem {
      * @param in
      *         ZIP content
      * @param overwrite
-     *         overwrite or not existing files. If such parameters is not specified then behavior is
-     *         implementation specific
-     * @throws ItemNotFoundException
-     *         if <code>parentId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>parentId</code> item is not a Folder
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws IOException
-     *         if any i/o errors occur
-     * @throws VirtualFileSystemException
+     *         overwrite or not existing files. If such parameters isn't specified then behavior is implementation specific
+     * @throws NotFoundException
+     *         if {@code parentId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code parentId} item isn't a folder</li>
+     *         <li>{@code parentId} contains at least one locked child</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if {@code overwrite} parameter is set to {@code false} and any item in zipped content causes name conflict
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("import")
     @Consumes({"application/zip"})
-    void importZip(String parentId, InputStream in, Boolean overwrite) throws ItemNotFoundException,
-                                                                              InvalidArgumentException, PermissionDeniedException,
-                                                                              IOException, VirtualFileSystemException;
+    void importZip(String parentId, InputStream in, Boolean overwrite)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Download binary content of File. Response must contains 'Content-Disposition' header to force web browser saves file.
+     * Download content of File. Response must contains 'Content-Disposition' header to force web browser saves file.
      *
      * @param id
      *         id of File
      * @return Response with file content for download.
-     * @throws ItemNotFoundException
-     *         if <code>id</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>id</code> is not File
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code id} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code id} isn't a file</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @GET
     @Path("downloadfile")
-    Response downloadFile(String id) throws ItemNotFoundException, InvalidArgumentException, PermissionDeniedException,
-                                            VirtualFileSystemException;
+    Response downloadFile(String id) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Upload content of file. Content of file is part of 'multipart/form-data request', e.g. content sent from HTML form.
+     * Upload content of file. Content of file is part of multipart/form-data request, e.g. content sent from HTML form.
      *
      * @param parentId
      *         id of parent for new File
      * @param formData
-     *         content of file and optional additional form fields. Set of additional field is implementation
-     *         specific.
+     *         content of file and optional additional form fields. Set of additional field is implementation specific.
      * @return Response that represents response in HTML format.
-     * @throws ItemNotFoundException
-     *         if <code>parentId</code> does not exist
-     * @throws InvalidArgumentException
+     * @throws NotFoundException
+     *         if {@code parentId} doesn't exist
+     * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li><code>parentId</code> is not a folder</li>
-     *         <li>If form does not contain all required fields. Set of fields is implementation specific.</li>
+     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>form doesn't contain all required fields. Set of fields is implementation specific</li>
+     *         <li>user which perform operation has no permissions</li>
      *         </ul>
-     * @throws ItemAlreadyExistException
-     *         if <code>parentId</code> already contains item with the same name. It is
-     *         possible to prevent such type of exception by sending some form parameters that allow to overwrite file
-     *         content.
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws IOException
-     *         if any i/o errors occur
-     * @throws VirtualFileSystemException
+     * @throws ConflictException
+     *         if {@code parentId} already contains item with the same name. It is possible to prevent such type of exception by sending
+     *         some form parameters that allow to overwrite file content
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("uploadfile")
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.TEXT_HTML})
-    Response uploadFile(String parentId, java.util.Iterator<FileItem> formData) throws ItemNotFoundException,
-                                                                                       InvalidArgumentException, ItemAlreadyExistException,
-                                                                                       PermissionDeniedException,
-                                                                                       VirtualFileSystemException,
-                                                                                       IOException;
+    Response uploadFile(String parentId, Iterator<FileItem> formData)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Download content of <code>folderId</code> as ZIP archive. Response must contains 'Content-Disposition' header to force web browser
-     * saves file.
+     * Download content of {@code folderId} as ZIP archive. Response must contains 'Content-Disposition' header to force web browser saves
+     * file.
      *
      * @param folderId
      *         folder for ZIP
      * @return Response with ZIPed content of folder
-     * @throws ItemNotFoundException
-     *         if <code>folderId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>folderId</code> item is not a folder
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws IOException
-     *         if any i/o errors occur
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code folderId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code folderId} isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if any other errors occur
      */
     @GET
     @Path("downloadzip")
     @Produces({"application/zip"})
-    Response downloadZip(String folderId) throws ItemNotFoundException, InvalidArgumentException,
-                                                 PermissionDeniedException, IOException, VirtualFileSystemException;
+    Response downloadZip(String folderId) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Import ZIP content. ZIP content is part of 'multipart/form-data request', e.g. content sent from HTML form.
+     * Import ZIP content. ZIP content is part of multipart/form-data request, e.g. content sent from HTML form.
      *
      * @param parentId
      *         id of folder to unzip
      * @param formData
-     *         contains ZIPed folder and add optional additional form fields. Set of additional field is
-     *         implementation specific.
+     *         contains ZIPed folder and add optional additional form fields. Set of additional field is implementation specific.
      * @return Response that represents response in HTML format.
-     * @throws ItemNotFoundException
-     *         if <code>parentId</code> does not exist
-     * @throws InvalidArgumentException
-     *         if <code>parentId</code> item is not a Folder
-     * @throws PermissionDeniedException
-     *         if user which perform operation has no permissions to do it
-     * @throws IOException
-     *         if any i/o errors occur
-     * @throws VirtualFileSystemException
+     * @throws NotFoundException
+     *         if {@code parentId} doesn't exist
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if item in zipped content causes name conflict
+     * @throws ServerException
      *         if any other errors occur
      */
     @POST
     @Path("uploadzip")
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.TEXT_HTML})
-    Response uploadZip(String parentId, java.util.Iterator<FileItem> formData) throws ItemNotFoundException,
-                                                                                      InvalidArgumentException, PermissionDeniedException,
-                                                                                      IOException, VirtualFileSystemException;
-    MountPoint getMountPoint();
+    Response uploadZip(String parentId, Iterator<FileItem> formData)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
+    MountPoint getMountPoint();
 }

@@ -8,17 +8,19 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.server;
+package com.codenvy.api.core;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
-/**
- * Wrapper for all virtual filesystem exceptions. Basically caller should not catch such exceptions.
- *
- * @author andrew00x
- */
-public final class FileSystemLevelException extends RuntimeException {
-    public FileSystemLevelException(String message, VirtualFileSystemException cause) {
-        super(message, cause);
+/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+@SuppressWarnings("serial")
+@Deprecated
+public final class InvalidArgumentException extends ApiException {
+    public InvalidArgumentException(String message) {
+        super(message);
+    }
+
+    public InvalidArgumentException(ServiceError serviceError) {
+        super(serviceError);
     }
 }

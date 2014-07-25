@@ -10,18 +10,17 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -53,17 +52,17 @@ public class CopyTest extends MemoryFileSystemTest {
         String expectedPath = copyTestDestinationFolder.getPath() + '/' + fileForCopy.getName();
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Not found file in destination location. ");
         }
         try {
             mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Copied file not accessible by id. ");
         }
     }
@@ -73,11 +72,10 @@ public class CopyTest extends MemoryFileSystemTest {
         copyTestDestinationFolder.createFile("CopyTest_FILE", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(409, response.getStatus());
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
     }
@@ -88,11 +86,10 @@ public class CopyTest extends MemoryFileSystemTest {
                 mountPoint.getRoot().createFile("destination", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         String path = SERVICE_URI + "copy/" + fileForCopy.getId() + '?' + "parentId=" + destination.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.INVALID_ARGUMENT, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(403, response.getStatus());
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
     }
@@ -101,9 +98,9 @@ public class CopyTest extends MemoryFileSystemTest {
         final String originPath = fileForCopy.getPath();
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         copyTestDestinationFolder.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -113,13 +110,13 @@ public class CopyTest extends MemoryFileSystemTest {
         assertEquals(403, response.getStatus());
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(copyTestDestinationFolder.getPath() + "/CopyTest_FILE");
             fail("File must not be copied since destination accessible for reading only. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
@@ -131,28 +128,28 @@ public class CopyTest extends MemoryFileSystemTest {
         final String originPath = folderForCopy.getPath();
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source folder not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Not found folder in destination location. ");
         }
         try {
             mountPoint.getVirtualFileById(((Item)response.getEntity()).getId());
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Copied folder not accessible by id. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath + "/CopyTest_FILE");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Child of folder missing after coping. ");
         }
         String childCopyId = mountPoint.getVirtualFile(expectedPath + "/CopyTest_FILE").getId();
         try {
             mountPoint.getVirtualFileById(childCopyId);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Child of copied folder not accessible by id. ");
         }
     }
@@ -160,8 +157,8 @@ public class CopyTest extends MemoryFileSystemTest {
     public void testCopyFolderNoPermissionForChild() throws Exception {
         VirtualFile myFile = folderForCopy.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         myFile.updateACL(createAcl(permissions), true, null);
 
         String path = SERVICE_URI + "copy/" + folderForCopy.getId() + '?' + "parentId=" + copyTestDestinationFolder.getId();
@@ -177,11 +174,10 @@ public class CopyTest extends MemoryFileSystemTest {
         copyTestDestinationFolder.createFolder("CopyTest_FOLDER");
         String path = SERVICE_URI + "copy/" + folderForCopy.getId() + "?" + "parentId=" + copyTestDestinationFolder.getId();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(409, response.getStatus());
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source folder not found. ");
         }
     }

@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ServerException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +40,10 @@ public abstract class VirtualFileSystemProvider {
      * @param baseUri
      *         base URI. Virtual filesystem uses it to provide correct links for set of operation with its items
      * @return instance of VirtualFileSystem
-     * @throws VirtualFileSystemException
+     * @throws ServerException
+     *         if an error occurs
      */
-    public abstract VirtualFileSystem newInstance(URI baseUri) throws VirtualFileSystemException;
+    public abstract VirtualFileSystem newInstance(URI baseUri) throws ServerException;
 
     /**
      * Get mount point of virtual filesystem.
@@ -51,11 +52,11 @@ public abstract class VirtualFileSystemProvider {
      *         <code>true</code> to create MountPoint if necessary; <code>false</code> to return <code>null</code> if MountPoint is not
      *         initialized yet
      * @return <code>MountPoint</code> or <code>null</code> if <code>create</code> is <code>false</code> and the MountPoint is not
-     *         initialized yet
-     * @throws VirtualFileSystemException
+     * initialized yet
+     * @throws ServerException
      *         if an error occurs
      */
-    public abstract MountPoint getMountPoint(boolean create) throws VirtualFileSystemException;
+    public abstract MountPoint getMountPoint(boolean create) throws ServerException;
 
     /**
      * Close this provider. Call this method after unregister provider from VirtualFileSystemRegistry. Typically this

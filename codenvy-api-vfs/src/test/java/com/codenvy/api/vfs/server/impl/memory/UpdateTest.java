@@ -12,13 +12,13 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +66,7 @@ public class UpdateTest extends MemoryFileSystemTest {
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
         ContainerResponse response = launcher.service("POST", path, BASE_URI, h, properties.getBytes(), null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         file = mountPoint.getVirtualFileById(fileId);
         assertEquals(null, file.getPropertyValue("MyProperty"));
     }
@@ -75,9 +75,9 @@ public class UpdateTest extends MemoryFileSystemTest {
         VirtualFile file = mountPoint.getVirtualFileById(fileId);
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<VirtualFileSystemInfo.BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         file.updateACL(createAcl(permissions), true, null);
         String properties = "[{\"name\":\"MyProperty\", \"value\":[\"MyValue\"]}]";
         String path = SERVICE_URI + "item/" + fileId;

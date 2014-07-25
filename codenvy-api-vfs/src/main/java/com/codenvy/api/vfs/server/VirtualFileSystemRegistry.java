@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ServerException;
 
 import javax.inject.Singleton;
 import java.util.Collection;
@@ -28,20 +28,20 @@ import java.util.concurrent.ConcurrentMap;
 public class VirtualFileSystemRegistry {
     private final ConcurrentMap<String, VirtualFileSystemProvider> providers = new ConcurrentHashMap<>();
 
-    public void registerProvider(String vfsId, VirtualFileSystemProvider provider) throws VirtualFileSystemException {
+    public void registerProvider(String vfsId, VirtualFileSystemProvider provider) throws ServerException {
         if (providers.putIfAbsent(id(vfsId), provider) != null) {
-            throw new VirtualFileSystemException(String.format("Virtual file system %s already registered. ", vfsId));
+            throw new ServerException(String.format("Virtual file system %s already registered. ", vfsId));
         }
     }
 
-    public void unregisterProvider(String vfsId) throws VirtualFileSystemException {
+    public void unregisterProvider(String vfsId) throws ServerException {
         final VirtualFileSystemProvider removed = providers.remove(id(vfsId));
         if (removed != null) {
             removed.close();
         }
     }
 
-    public VirtualFileSystemProvider getProvider(String vfsId) throws VirtualFileSystemException {
+    public VirtualFileSystemProvider getProvider(String vfsId) throws ServerException {
         String myId = id(vfsId);
         VirtualFileSystemProvider provider = providers.get(myId);
         if (provider == null) {
@@ -52,17 +52,17 @@ public class VirtualFileSystemRegistry {
                     provider = newProvider;
                 }
             } else {
-                throw new VirtualFileSystemException(String.format("Virtual file system %s does not exist. ", vfsId));
+                throw new ServerException(String.format("Virtual file system %s does not exist. ", vfsId));
             }
         }
         return provider;
     }
 
-    protected VirtualFileSystemProvider loadProvider(String vfsId) throws VirtualFileSystemException {
+    protected VirtualFileSystemProvider loadProvider(String vfsId) throws ServerException {
         return null;
     }
 
-    public Collection<VirtualFileSystemProvider> getRegisteredProviders() throws VirtualFileSystemException {
+    public Collection<VirtualFileSystemProvider> getRegisteredProviders() throws ServerException {
         return Collections.unmodifiableCollection(providers.values());
     }
 

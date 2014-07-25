@@ -12,7 +12,14 @@ package com.codenvy.api.core;
 
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * A {@code ConflictException} is throws when operation could not be performed because of conflict with prior state. For example, there is
+ * an existing resource prevents creation of a new one.
+ * <p/>
+ *  Typically in REST API such errors are converted in HTTP response with status 409.
+ *
+ * @author andrew00x
+ */
 @SuppressWarnings("serial")
 public final class ConflictException extends ApiException {
 

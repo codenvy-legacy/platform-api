@@ -11,9 +11,8 @@
 package com.codenvy.api.local;
 
 
-import com.codenvy.api.user.shared.dto.Attribute;
-import com.codenvy.api.user.shared.dto.Profile;
-import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.api.user.server.dao.Profile;
+import com.google.gson.Gson;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,9 +26,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 
 /**
  * Allows to save the profile data in the file and obtain this data from the file.
@@ -40,7 +37,8 @@ import java.util.List;
 @Singleton
 public class ProfileStorage {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProfileStorage.class);
+    private static final Logger LOG  = LoggerFactory.getLogger(ProfileStorage.class);
+    private static final Gson   gson = new Gson();
     private final String storageFile;
 
     /**
@@ -51,7 +49,6 @@ public class ProfileStorage {
      */
     @Inject
     public ProfileStorage(@Nullable @Named("profile.store_location") String dirPath) {
-
         if (dirPath == null || dirPath.isEmpty()) {
             storageFile = System.getProperty("java.io.tmpdir") + "/ProfileStorage.json";
         } else {
@@ -76,14 +73,11 @@ public class ProfileStorage {
         try {
             if (file.exists()) {
                 inputStreamReader = new InputStreamReader(new FileInputStream(file));
-                profile =
-                        DtoFactory.getInstance().createDtoFromJson(inputStreamReader, Profile.class);
-
+                profile = new Profile();
             } else {
-                List<Attribute> attributes = new ArrayList<>();
-                attributes.add(DtoFactory.getInstance().createDto(Attribute.class).withName("First Name").withValue("Felix")
-                                         .withDescription("User's first name"));
-                profile = DtoFactory.getInstance().createDto(Profile.class).withId(id).withUserId("codenvy").withAttributes(attributes);
+                profile = new Profile().withId(id)
+                                       .withUserId("codenvy")
+                                       .withAttributes(Collections.singletonMap("First Name", "Felix"));
                 update(profile);
             }
         } catch (IOException e) {
@@ -106,7 +100,7 @@ public class ProfileStorage {
      *         if an i/o error occurs
      */
     public synchronized void update(Profile profile) throws IOException {
-        String profileJson = DtoFactory.getInstance().toJson(profile);
+        String profileJson = gson.toJson(profile);
         File file = new File(storageFile);
         FileWriter fileWriter = null;
         try {

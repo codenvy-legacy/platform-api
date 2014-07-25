@@ -14,10 +14,9 @@ package com.codenvy.api.user.server.dao;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.user.shared.dto.Profile;
 
 /**
- * DAO interface offers means to perform CRUD operations with {@link Profile} data.
+ * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.user.server.dao.Profile} data.
  *
  * @author Eugene Voevodin
  * @author Max Shaposhnik
@@ -28,7 +27,7 @@ public interface UserProfileDao {
      * Adds profile to persistent layer.
      *
      * @param profile
-     *         - POJO representation of profile entity
+     *         profile to save
      */
     void create(Profile profile) throws ConflictException, ServerException;
 
@@ -36,7 +35,7 @@ public interface UserProfileDao {
      * Updates already present in persistent layer profile.
      *
      * @param profile
-     *         - POJO representation of profile entity
+     *         profile to update
      */
     void update(Profile profile) throws NotFoundException, ServerException;
 
@@ -44,7 +43,7 @@ public interface UserProfileDao {
      * Removes profile from persistent layer.
      *
      * @param id
-     *         - profile identifier
+     *         profile identifier
      */
     void remove(String id) throws NotFoundException, ServerException;
 
@@ -53,7 +52,7 @@ public interface UserProfileDao {
      *
      * @param id
      *         profile identifier
-     * @return profile POJO
+     * @return profile with given {@code id}
      * @throws com.codenvy.api.core.NotFoundException
      *         when profile doesn't exist
      */
@@ -64,7 +63,7 @@ public interface UserProfileDao {
      *         profile identifier
      * @param filter
      *         reg-exp for filtering preferences keys
-     * @return profile POJO
+     * @return profile with given {@code id}
      * @throws com.codenvy.api.core.NotFoundException
      *         when profile doesn't exist
      */

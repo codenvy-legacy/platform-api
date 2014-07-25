@@ -23,10 +23,9 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
+import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.Attribute;
-import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -50,6 +49,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -83,18 +83,14 @@ public class UserService extends Service {
         }
         final String userEmail = tokenValidator.validateToken(token);
         final User user = DtoFactory.getInstance().createDto(User.class);
-        String userId = NameGenerator.generate(User.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
+        final String userId = NameGenerator.generate(User.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         user.setId(userId);
         user.setEmail(userEmail);
         user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
-        Profile profile = DtoFactory.getInstance().createDto(Profile.class);
-        profile.setId(userId);
-        profile.setUserId(userId);
-        profile.setAttributes(Arrays.asList(DtoFactory.getInstance().createDto(Attribute.class)
-                                                      .withName("temporary")
-                                                      .withValue(String.valueOf(isTemporary))
-                                                      .withDescription("Indicates is this user is temporary")));
+        final Profile profile = new Profile().withId(userId)
+                                             .withUserId(userId)
+                                             .withAttributes(Collections.singletonMap("temporary", String.valueOf(isTemporary)));
         profileDao.create(profile);
 
         user.setPassword("<none>");

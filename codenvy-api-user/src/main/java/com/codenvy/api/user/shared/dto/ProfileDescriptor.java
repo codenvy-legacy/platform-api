@@ -20,35 +20,35 @@ import java.util.Map;
  * @author andrew00x
  */
 @DTO
-public interface Profile {
+public interface ProfileDescriptor {
 
     void setId(String id);
 
     String getId();
 
-    Profile withId(String id);
+    ProfileDescriptor withId(String id);
 
     String getUserId();
 
     void setUserId(String id);
 
-    Profile withUserId(String id);
+    ProfileDescriptor withUserId(String id);
 
-    List<Attribute> getAttributes();
+    Map<String, String> getAttributes();
 
-    void setAttributes(List<Attribute> attributes);
+    void setAttributes(Map<String, String> attributes);
 
-    Profile withAttributes(List<Attribute> attributes);
+    ProfileDescriptor withAttributes(Map<String, String> attributes);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    Profile withLinks(List<Link> links);
+    ProfileDescriptor withLinks(List<Link> links);
 
     Map<String, String> getPreferences();
 
     void setPreferences(Map<String, String> prefs);
 
-    Profile withPreferences(Map<String, String> prefs);
+    ProfileDescriptor withPreferences(Map<String, String> prefs);
 }

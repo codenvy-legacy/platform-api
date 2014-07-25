@@ -25,6 +25,8 @@ public final class Constants {
     public static final String LINK_REL_CREATE_USER                 = "create user";
     public static final String LINK_REL_GET_CURRENT_USER            = "get current";
     public static final String LINK_REL_UPDATE_PASSWORD             = "update password";
+    public static final String LINK_REL_REMOVE_PREFERENCES          = "remove preferences";
+    public static final String LINK_REL_REMOVE_ATTRIBUTES           = "remove attributes";
     public static final String LINK_REL_GET_USER_BY_ID              = "get user by id";
     public static final String LINK_REL_GET_USER_BY_EMAIL           = "get user by email";
     public static final String LINK_REL_REMOVE_USER_BY_ID           = "remove user by id";

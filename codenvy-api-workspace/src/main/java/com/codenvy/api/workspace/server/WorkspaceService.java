@@ -25,11 +25,11 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.UserService;
+import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.workspace.server.dao.Member;
-import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
@@ -65,7 +65,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -195,13 +194,9 @@ public class WorkspaceService extends Service {
                              .withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
             userDao.create(user);
             try {
-                final Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(user.getId()).withUserId(user.getId())
-                                                  .withAttributes(Arrays.asList(DtoFactory.getInstance().createDto(
-                                                          com.codenvy.api.user.shared.dto.Attribute.class)
-                                                                                          .withName("temporary")
-                                                                                          .withValue(String.valueOf(true))
-                                                                                          .withDescription("Indicates user as temporary")));
-                userProfileDao.create(profile);
+                userProfileDao.create(new Profile().withId(user.getId())
+                                                   .withUserId(user.getId())
+                                                   .withAttributes(Collections.singletonMap("temporary", "true")));
             } catch (ApiException e) {
                 userDao.remove(user.getId());
                 throw e;

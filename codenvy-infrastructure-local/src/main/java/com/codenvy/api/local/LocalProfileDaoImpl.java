@@ -10,8 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.local;
 
+import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.Profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,7 @@ public class LocalProfileDaoImpl implements UserProfileDao {
     }
 
     @Override
-    public void create(Profile profile)  {
+    public void create(Profile profile) {
         throw new RuntimeException("Not implemented");
     }
 
@@ -46,12 +46,12 @@ public class LocalProfileDaoImpl implements UserProfileDao {
     }
 
     @Override
-    public void remove(String id)  {
+    public void remove(String id) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public Profile getById(String id)  {
+    public Profile getById(String id) {
         try {
             return profileStorage.get(id);
         } catch (IOException e) {
@@ -61,7 +61,7 @@ public class LocalProfileDaoImpl implements UserProfileDao {
     }
 
     @Override
-    public Profile getById(String id, String filter)  {
+    public Profile getById(String id, String filter) {
         throw new RuntimeException("Not implemented");
     }
 }

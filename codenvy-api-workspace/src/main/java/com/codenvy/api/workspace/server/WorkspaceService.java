@@ -134,7 +134,7 @@ public class WorkspaceService extends Service {
             throw new ConflictException("You can create workspace associated only to your own account");
         }
         if (securityContext.isUserInRole("user")) {
-            if (actualAcc.getAttributes().get("codenvy_workspace_multiple_till") == null &&
+            if (!"true".equals(actualAcc.getAttributes().get("codenvy:multi-ws")) &&
                 workspaceDao.getByAccount(accountId).size() > 0) {
                 throw new ForbiddenException("You have not access to create more workspaces");
             }

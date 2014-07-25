@@ -52,7 +52,7 @@ public abstract class VirtualFileSystemUserContext {
             if (user.isMemberOf("workspace/admin")) {
                 groups.add("workspace/admin");
             }
-            return new VirtualFileSystemUser(user.getName(), groups);
+            return new VirtualFileSystemUser(user.getId(), groups);
         }
     }
 }

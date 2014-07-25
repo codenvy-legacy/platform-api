@@ -19,7 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** @author andrew00x */
+/**
+ * Stores information about registered (known) project types.
+ *
+ * @author andrew00x
+ */
 @Singleton
 public class ProjectTypeRegistry {
     private final Map<String, ProjectType> types;
@@ -29,10 +33,25 @@ public class ProjectTypeRegistry {
         types = new ConcurrentHashMap<>();
     }
 
+    /**
+     * Registers new project type. Identifier returned by method {@link ProjectType#getId()} is used as unique key. If ProjectType with the
+     * same identifier already registered it will be overwritten.
+     *
+     * @param type
+     *         ProjectType
+     * @see ProjectType#getId()
+     */
     public void registerProjectType(ProjectType type) {
         types.put(type.getId(), type);
     }
 
+    /**
+     * Removes ProjectType from this registry.
+     *
+     * @param id
+     *         project type's id
+     * @return removed ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+     */
     public ProjectType unregisterProjectType(String id) {
         if (id == null) {
             return null;
@@ -40,6 +59,13 @@ public class ProjectTypeRegistry {
         return types.remove(id);
     }
 
+    /**
+     * Gets ProjectType by id.
+     *
+     * @param id
+     *         project type's id
+     * @return ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+     */
     public ProjectType getProjectType(String id) {
         if (id == null) {
             return null;
@@ -47,14 +73,34 @@ public class ProjectTypeRegistry {
         return types.get(id);
     }
 
+    /**
+     * Tests whether ProjectType with specified id is registered.
+     *
+     * @param id
+     *         project type's id
+     * @return {@code true} if ProjectType with specified {@code id} is registered and {@code false} otherwise
+     */
     public boolean isProjectTypeRegistered(String id) {
         return id != null && types.get(id) != null;
     }
 
+    /**
+     * Tests whether specified ProjectType is registered.
+     *
+     * @param type
+     *         project type
+     * @return {@code true} if ProjectType is registered and {@code false} otherwise
+     */
     public boolean isProjectTypeRegistered(ProjectType type) {
         return types.get(type.getId()) != null;
     }
 
+    /**
+     * Gets all registered project types. Modifications to the returned {@code List} will not affect the internal state of {@code
+     * ProjectTypeRegistry}.
+     *
+     * @return registered project types
+     */
     public List<ProjectType> getRegisteredTypes() {
         return new ArrayList<>(types.values());
     }

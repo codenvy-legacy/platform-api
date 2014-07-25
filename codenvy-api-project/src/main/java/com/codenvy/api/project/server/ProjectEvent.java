@@ -11,6 +11,8 @@
 package com.codenvy.api.project.server;
 
 /**
+ * A {@code ProjectEvent} represents event notifications for changes files and folders within a project.
+ *
  * @author andrew00x
  */
 public class ProjectEvent {

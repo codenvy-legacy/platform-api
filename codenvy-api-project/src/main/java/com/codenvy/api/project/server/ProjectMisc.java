@@ -16,6 +16,7 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
+ * Stores additional information about single project.
  * @author andrew00x
  */
 public class ProjectMisc {

@@ -53,17 +53,74 @@ public interface ProjectManager {
      */
     Project getProject(String workspace, String projectPath) throws ForbiddenException, ServerException;
 
+    /**
+     * Creates new project.
+     *
+     * @param workspace
+     *         id of workspace
+     * @param name
+     *         project's name
+     * @param projectDescription
+     *         project description
+     * @return newly created project
+     * @throws ConflictException
+     *         if operation causes conflict, e.g. name conflict if project with specified name already exists
+     * @throws ForbiddenException
+     *         if user which perform operation doesn't have required permissions
+     * @throws ServerException
+     *         if other error occurs
+     */
     Project createProject(String workspace, String name, ProjectDescription projectDescription)
             throws ConflictException, ForbiddenException, ServerException;
 
+    /**
+     * Gets root folder od project tree.
+     *
+     * @param workspace
+     *         id of workspace
+     * @return root folder
+     * @throws ServerException
+     *         if an error occurs
+     */
     FolderEntry getProjectsRoot(String workspace) throws ServerException;
 
+    /**
+     * Gets ProjectMisc.
+     *
+     * @param project
+     *         project
+     * @return ProjectMisc
+     * @throws ServerException
+     *         if an error occurs
+     * @see ProjectMisc
+     */
     ProjectMisc getProjectMisc(Project project) throws ServerException;
 
+    /**
+     * Gets ProjectMisc.
+     *
+     * @param project
+     *         project
+     * @param misc
+     *         ProjectMisc
+     * @throws ServerException
+     *         if an error occurs
+     * @see ProjectMisc
+     */
     void saveProjectMisc(Project project, ProjectMisc misc) throws ServerException;
 
+    /**
+     * Gets ProjectTypeRegistry.
+     *
+     * @see ProjectTypeRegistry
+     */
     ProjectTypeRegistry getProjectTypeRegistry();
 
+    /**
+     * Gets ProjectTypeDescriptionRegistry.
+     *
+     * @see ProjectTypeDescriptionRegistry
+     */
     ProjectTypeDescriptionRegistry getTypeDescriptionRegistry();
 
     Map<String, ValueProviderFactory> getValueProviderFactories();

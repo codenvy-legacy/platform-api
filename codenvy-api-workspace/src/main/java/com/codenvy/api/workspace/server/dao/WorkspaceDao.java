@@ -32,7 +32,7 @@ public interface WorkspaceDao {
      * Adds workspace to persistent layer.
      *
      * @param workspace
-     *         - POJO representation of workspace entity
+     *         POJO representation of workspace entity
      */
     void create(Workspace workspace) throws ConflictException, ServerException;
 
@@ -40,7 +40,7 @@ public interface WorkspaceDao {
      * Updates already present in persistent layer workspace.
      *
      * @param workspace
-     *         - POJO representation of workspace entity
+     *         POJO representation of workspace entity
      */
     void update(Workspace workspace) throws NotFoundException, ConflictException, ServerException;
 
@@ -48,15 +48,15 @@ public interface WorkspaceDao {
      * Removes workspace from persistent layer.
      *
      * @param id
-     *         - workspace identifier
+     *         workspace identifier
      */
-    void remove(String id) throws NotFoundException, ServerException, ConflictException;
+    void remove(String id) throws NotFoundException, ServerException;
 
     /**
      * Gets workspace from persistent layer.
      *
      * @param id
-     *         - workspace identifier
+     *         workspace identifier
      * @return workspace POJO
      * @throws com.codenvy.api.core.NotFoundException
      *         when workspace doesn't exist
@@ -67,7 +67,7 @@ public interface WorkspaceDao {
      * Gets workspace from persistent layer.
      *
      * @param name
-     *         - workspace identifier
+     *         workspace identifier
      * @return workspace POJO
      * @throws com.codenvy.api.core.NotFoundException
      *         when workspace doesn't exist
@@ -79,7 +79,7 @@ public interface WorkspaceDao {
      * Gets workspaces from persistent layer related to specified account.
      *
      * @param accountId
-     *         - account identifier
+     *         account identifier
      * @return List of workspaces
      */
     List<Workspace> getByAccount(String accountId) throws ServerException;

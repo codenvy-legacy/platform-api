@@ -478,7 +478,7 @@ public class WorkspaceServiceTest {
 
         ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + WS_ID + "/members", MediaType.APPLICATION_JSON, membership);
 
-        assertEquals(response.getEntity().toString(), "Roles required");
+        assertEquals(response.getEntity().toString(), "Roles should not be empty");
     }
 
     @Test

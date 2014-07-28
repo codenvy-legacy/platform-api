@@ -14,6 +14,7 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.workspace.server.dao.MemberDao;
@@ -25,6 +26,7 @@ import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
 import com.codenvy.api.workspace.server.dao.Workspace;
+import com.codenvy.api.workspace.shared.dto.NewWorkspace;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
 import com.codenvy.commons.json.JsonHelper;
@@ -85,40 +87,26 @@ public class WorkspaceServiceTest {
     private static final String PRINCIPAL_NAME = "Yoda@starwars.com";
 
     @Mock
-    private WorkspaceDao workspaceDao;
-
+    private WorkspaceDao       workspaceDao;
     @Mock
-    private UserDao userDao;
-
+    private UserDao            userDao;
     @Mock
-    private MemberDao memberDao;
-
+    private MemberDao          memberDao;
     @Mock
-    private AccountDao accountDao;
-
+    private AccountDao         accountDao;
     @Mock
-    private UserProfileDao userProfileDao;
-
+    private UserProfileDao     userProfileDao;
     @Mock
-    private SecurityContext securityContext;
-
+    private SecurityContext    securityContext;
     @Mock
     private EnvironmentContext environmentContext;
-
-    protected Workspace workspace;
-
-    protected ProviderBinder providers;
-
-    protected ResourceBinderImpl resources;
-
-    protected RequestHandlerImpl requestHandler;
-
-    protected ResourceLauncher launcher;
+    private Workspace          workspace;
+    private ResourceLauncher   launcher;
 
     @BeforeMethod
     public void setUp() throws Exception {
-        resources = new ResourceBinderImpl();
-        providers = new ApplicationProviderBinder();
+        final ResourceBinderImpl resources = new ResourceBinderImpl();
+        final ProviderBinder providers = new ApplicationProviderBinder();
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         dependencies.addComponent(WorkspaceDao.class, workspaceDao);
         dependencies.addComponent(MemberDao.class, memberDao);
@@ -126,8 +114,10 @@ public class WorkspaceServiceTest {
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
         dependencies.addComponent(AccountDao.class, accountDao);
         resources.addResource(WorkspaceService.class, null);
-        requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
-                                                providers, dependencies, new EverrestConfiguration());
+        final RequestHandlerImpl requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
+                                                                         providers,
+                                                                         dependencies,
+                                                                         new EverrestConfiguration());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
         launcher = new ResourceLauncher(requestHandler);
         //count of attributes should be > 0
@@ -193,6 +183,33 @@ public class WorkspaceServiceTest {
         workspace.getAttributes().put("codenvy:god_mode", "true");
         ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, workspace);
         assertEquals(response.getEntity().toString(), "Attribute name 'codenvy:god_mode' is not valid");
+    }
+
+    @Test
+    public void shouldBeAbleToCreateMultiWorkspaces() throws Exception {
+        when(workspaceDao.getByAccount("test1")).thenReturn(Collections.singletonList(new Workspace().withId("test1")
+                                                                                                     .withName("test1")
+                                                                                                     .withTemporary(false)
+                                                                                                     .withAccountId("test1")));
+        final Account test = new Account().withId("test")
+                                          .withName("test")
+                                          .withAttributes(Collections.singletonMap("codenvy:multi_ws", "true"));
+        when(accountDao.getById(test.getId())).thenReturn(test);
+        when(accountDao.getByOwner(USER_ID)).thenReturn(Collections.singletonList(test));
+
+        final NewWorkspace newWorkspace = DtoFactory.getInstance().createDto(NewWorkspace.class)
+                                                    .withName("test2")
+                                                    .withAccountId("test");
+        ContainerResponse response = makeRequest("POST",
+                                                 SERVICE_PATH,
+                                                 MediaType.APPLICATION_JSON,
+                                                 newWorkspace);
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        verify(workspaceDao).create(any(Workspace.class));
+        verify(memberDao).create(any(Member.class));
+        final WorkspaceDescriptor descriptor = (WorkspaceDescriptor)response.getEntity();
+        assertEquals(descriptor.getName(), "test2");
+        assertEquals(descriptor.getAccountId(), "test");
     }
 
     @Test

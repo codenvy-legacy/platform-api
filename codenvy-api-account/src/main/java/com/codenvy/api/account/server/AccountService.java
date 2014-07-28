@@ -373,9 +373,8 @@ public class AccountService extends Service {
                                                             .withProperties(newSubscription.getProperties());
         subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
 
-        final Calendar calendar = Calendar.getInstance();
-        subscription.setStartDate(calendar.getTimeInMillis());
-        if (Boolean.parseBoolean(subscription.getProperties().get("codenvy:trial"))) {
+
+        if ("true".equals((subscription.getProperties().get("codenvy:trial")))) {
             String userId = EnvironmentContext.getCurrent().getUser().getId();
             final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(
                     new SubscriptionHistoryEvent().withUserId(userId).withType(SubscriptionHistoryEvent.Type.CREATE).withSubscription(
@@ -386,29 +385,15 @@ public class AccountService extends Service {
             if (events.size() > 0) {
                 throw new ConflictException("You can't use trial twice, please contact support");
             }
-            try {
-                paymentService.getCreditCard(userId);
-            } catch (NotFoundException e) {
-                throw new ConflictException("You have no credit card to pay for subscription after trial");
-            }
-            calendar.add(Calendar.DAY_OF_YEAR, 7);
-            subscription.setState(Subscription.State.ACTIVE);
-        } else {
-            String tariffPlan;
-            if (null == (tariffPlan = subscription.getProperties().get("TariffPlan"))) {
-                throw new ConflictException("TariffPlan property not found");
-            }
-            switch (tariffPlan) {
-                case "yearly":
-                    calendar.add(Calendar.YEAR, 1);
-                    break;
-                case "monthly":
-                    calendar.add(Calendar.MONTH, 1);
-                    break;
-                default:
-                    throw new ConflictException("Unknown TariffPlan is used " + tariffPlan);
-            }
 
+            if (!securityContext.isUserInRole("system/admin")) {
+                try {
+                    paymentService.getCreditCard(userId);
+                } catch (NotFoundException e) {
+                    throw new ConflictException("You have no credit card to pay for subscription after trial");
+                }
+            }
+        } else {
             final double amount = service.tarifficate(subscription);
             if (0D == amount || securityContext.isUserInRole("system/admin")) {
                 subscription.setState(Subscription.State.ACTIVE);
@@ -416,7 +401,6 @@ public class AccountService extends Service {
                 subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
             }
         }
-        subscription.setEndDate(calendar.getTimeInMillis());
 
         service.beforeCreateSubscription(subscription);
         accountDao.addSubscription(subscription);
@@ -665,7 +649,8 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getById")
                                        .build(account.getId())
-                                       .toString()));
+                                       .toString()
+                            ));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink(HttpMethod.GET,
                                  Constants.LINK_REL_GET_ACCOUNT_BY_NAME,

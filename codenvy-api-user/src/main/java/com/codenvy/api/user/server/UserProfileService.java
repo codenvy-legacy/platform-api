@@ -11,19 +11,18 @@
 package com.codenvy.api.user.server;
 
 
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.rest.shared.dto.LinkParameter;
+import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.Attribute;
-import com.codenvy.api.user.shared.dto.Profile;
+import com.codenvy.api.user.shared.dto.ProfileDescriptor;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -32,18 +31,29 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 
 /**
- * User profile API
+ * User Profile API
  *
  * @author Eugene Voevodin
  * @author Max Shaposhnik
@@ -66,8 +76,8 @@ public class UserProfileService extends Service {
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = "current profile")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getCurrent(@Context SecurityContext securityContext,
-                              @Description("Preferences path filter") @QueryParam("filter") String filter)
+    public ProfileDescriptor getCurrent(@Context SecurityContext securityContext,
+                                        @Description("Preferences path filter") @QueryParam("filter") String filter)
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
@@ -77,17 +87,8 @@ public class UserProfileService extends Service {
         } else {
             profile = profileDao.getById(user.getId(), filter);
         }
-        final List<Attribute> attrs = new ArrayList<>();
-        if (profile.getAttributes() != null) {
-            attrs.addAll(profile.getAttributes());
-        }
-        attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
-                            .withDescription("User email")
-                            .withName("email")
-                            .withValue(user.getEmail()));
-        profile.setAttributes(attrs);
-        injectLinks(profile, securityContext);
-        return profile;
+        profile.getAttributes().put("email", user.getEmail());
+        return toDescriptor(profile, securityContext);
     }
 
     @POST
@@ -95,167 +96,177 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = "update current")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updateCurrent(@Context SecurityContext securityContext, @Description("updates for profile") List<Attribute> updates)
+    public ProfileDescriptor updateCurrent(@Context SecurityContext securityContext,
+                                           @Description("updates for profile") Map<String, String> updates)
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         final Profile profile = profileDao.getById(user.getId());
         if (updates != null) {
-            Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
-            for (Attribute attribute : updates) {
-                m.put(attribute.getName(), attribute);
-            }
-            for (Iterator<Attribute> i = profile.getAttributes().iterator(); i.hasNext(); ) {
-                Attribute attribute = i.next();
-                if (m.containsKey(attribute.getName())) {
-                    i.remove();
-                }
-            }
-            profile.getAttributes().addAll(updates);
-        } else {
-            //if updates are null - clear profile attributes
-            profile.setAttributes(new ArrayList<Attribute>());
+            profile.getAttributes().putAll(updates);
+        }
+        //if updates are null or empty - clear profile attributes
+        if (updates == null || updates.isEmpty()) {
+            profile.getAttributes().clear();
         }
         profileDao.update(profile);
-        injectLinks(profile, securityContext);
-
         logEventUserUpdateProfile(user, profile.getAttributes());
-
-        return profile;
+        return toDescriptor(profile, securityContext);
     }
 
     @GET
     @Path("{id}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    @GenerateLink(rel = "get by id")
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile getById(@PathParam("id") String profileId, @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException {
+    public ProfileDescriptor getById(@PathParam("id") String profileId,
+                                     @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
         final User user = userDao.getById(profile.getUserId());
-        profile.setPreferences(Collections.<String, String>emptyMap());
-        List<Attribute> attrs = new ArrayList<>();
-        if (profile.getAttributes() != null) {
-            attrs.addAll(profile.getAttributes());
-        }
-        attrs.add(DtoFactory.getInstance().createDto(Attribute.class)
-                            .withDescription("User email")
-                            .withName("email")
-                            .withValue(user.getEmail()));
-        profile.setAttributes(attrs);
-        injectLinks(profile, securityContext);
-        return profile;
+        profile.getPreferences().clear();
+        profile.getAttributes().put("email", user.getEmail());
+        return toDescriptor(profile, securityContext);
     }
 
     @POST
     @Path("{id}")
     @RolesAllowed({"system/admin", "system/manager"})
-    @GenerateLink(rel = "update")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile update(@PathParam("id") String profileId, @Required @Description("updates for profile") List<Attribute> updates,
-                          @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException {
-        Profile profile = profileDao.getById(profileId);
-        //if updates are not null, append it to existed attributes
+    public ProfileDescriptor update(@PathParam("id") String profileId,
+                                    Map<String, String> updates,
+                                    @Context SecurityContext securityContext) throws NotFoundException, ServerException {
+        final Profile profile = profileDao.getById(profileId);
+        //if updates are not null or empty, append it to existed attributes
         if (updates != null) {
-            Map<String, Attribute> m = new LinkedHashMap<>(updates.size());
-            for (Attribute attribute : updates) {
-                m.put(attribute.getName(), attribute);
-            }
-            for (Iterator<Attribute> i = profile.getAttributes().iterator(); i.hasNext(); ) {
-                Attribute attribute = i.next();
-                if (m.containsKey(attribute.getName())) {
-                    i.remove();
-                }
-            }
-            profile.getAttributes().addAll(updates);
-        } else {
-            //if updates are null - clear profile attributes
-            profile.setAttributes(new ArrayList<Attribute>());
+            profile.getAttributes().putAll(updates);
+        }
+        //if updates are null or empty - clear profile attributes
+        if (updates == null || updates.isEmpty()) {
+            profile.getAttributes().clear();
         }
         profileDao.update(profile);
-        injectLinks(profile, securityContext);
-
         final User user = userDao.getById(profile.getUserId());
         logEventUserUpdateProfile(user, profile.getAttributes());
-
-        return profile;
+        return toDescriptor(profile, securityContext);
     }
 
     @POST
     @Path("prefs")
-    @RolesAllowed({"user","temp_user"})
+    @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFERENCES)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Profile updatePreferences(@Context SecurityContext securityContext,
-                                     @Description("preferences to update") Map<String, String> preferencesToUpdate)
+    public ProfileDescriptor updatePreferences(@Context SecurityContext securityContext,
+                                               @Description("preferences to update") Map<String, String> preferencesToUpdate)
             throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final Profile currentProfile = profileDao.getById(current.getId());
         //if given preferences are not null append it to existed preferences
         if (preferencesToUpdate != null) {
-            Map<String, String> currentPreferences = currentProfile.getPreferences();
-            currentPreferences.putAll(preferencesToUpdate);
-            currentProfile.setPreferences(currentPreferences);
-        } else {
-            //if given preferences are null - clear profile preferences
-            currentProfile.setPreferences(new HashMap<String, String>());
+            currentProfile.getPreferences().putAll(preferencesToUpdate);
+        }
+        //if given preferences are null or empty - clear profile preferences
+        if (preferencesToUpdate == null || preferencesToUpdate.isEmpty()) {
+            currentProfile.getPreferences().clear();
         }
         profileDao.update(currentProfile);
-        injectLinks(currentProfile, securityContext);
-        return currentProfile;
+        return toDescriptor(currentProfile, securityContext);
+    }
+
+    @DELETE
+    @Path("attributes")
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTES)
+    @RolesAllowed({"user", "temp_user"})
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void removeAttributes(@Required @Description("Attributes names to remove") List<String> attrNames,
+                                 @Context SecurityContext securityContext) throws NotFoundException, ServerException, ConflictException {
+        if (attrNames == null) {
+            throw new ConflictException("Attributes names required");
+        }
+        final Principal principal = securityContext.getUserPrincipal();
+        final User current = userDao.getByAlias(principal.getName());
+        final Profile currentProfile = profileDao.getById(current.getId());
+        final Map<String, String> attributes = currentProfile.getAttributes();
+        for (String attributeName : attrNames) {
+            attributes.remove(attributeName);
+        }
+        profileDao.update(currentProfile);
     }
 
     @DELETE
     @Path("prefs")
-    @RolesAllowed({"user","temp_user"})
+    @GenerateLink(rel = Constants.LINK_REL_REMOVE_PREFERENCES)
+    @RolesAllowed({"user", "temp_user"})
     @Consumes(MediaType.APPLICATION_JSON)
-    public void removePreference(@Required List<String> prefNames, @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException {
+    public void removePreferences(@Required List<String> prefNames,
+                                  @Context SecurityContext securityContext) throws NotFoundException, ConflictException, ServerException {
+        if (prefNames == null) {
+            throw new ConflictException("Preferences names required");
+        }
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final Profile currentProfile = profileDao.getById(current.getId());
-        if (prefNames == null) {
-            throw new ServerException("Preferences names required");
-        }
-        Map<String, String> currentPreferences = currentProfile.getPreferences();
-        for (String pref : prefNames) {
-            currentPreferences.remove(pref);
+        final Map<String, String> currentPreferences = currentProfile.getPreferences();
+        for (String prefName : prefNames) {
+            currentPreferences.remove(prefName);
         }
         profileDao.update(currentProfile);
     }
 
-    private void injectLinks(Profile profile, SecurityContext securityContext) {
-        final List<Link> links = new ArrayList<>();
+    private ProfileDescriptor toDescriptor(Profile profile, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final List<Link> links = new LinkedList<>();
         if (securityContext.isUserInRole("user")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_PROFILE, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
+                                 null,
                                  MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "updateCurrent").build().toString())
-                              .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
-                                                                      .withDescription("update profile")
-                                                                      .withRequired(true)
-                                                                      .withType(ParameterType.Object))));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PREFERENCES, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "updatePreferences").build().toString()));
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getCurrent")
+                                           .build()
+                                           .toString()));
+            links.add(createLink("POST",
+                                 Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE,
+                                 MediaType.APPLICATION_JSON,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "updateCurrent")
+                                           .build()
+                                           .toString()));
+            links.add(createLink("POST",
+                                 Constants.LINK_REL_UPDATE_PREFERENCES,
+                                 MediaType.APPLICATION_JSON,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "updatePreferences")
+                                           .build()
+                                           .toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getById").build(profile.getId()).toString()));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
+                                 null,
                                  MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "update").build(profile.getId()).toString())
-                              .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
-                                                                      .withDescription("update profile")
-                                                                      .withRequired(true)
-                                                                      .withType(ParameterType.Object))));
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getById")
+                                           .build(profile.getId())
+                                           .toString()));
+            links.add(createLink("POST",
+                                 Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID,
+                                 MediaType.APPLICATION_JSON,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "update")
+                                           .build(profile.getId())
+                                           .toString()));
         }
-        profile.setLinks(links);
+        return DtoFactory.getInstance().createDto(ProfileDescriptor.class)
+                         .withId(profile.getId())
+                         .withUserId(profile.getUserId())
+                         .withAttributes(profile.getAttributes())
+                         .withPreferences(profile.getPreferences())
+                         .withLinks(links);
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {
@@ -267,22 +278,17 @@ public class UserProfileService extends Service {
                          .withHref(href);
     }
 
-    private void logEventUserUpdateProfile(User user, List<Attribute> attributes) {
-        Map<String, String> m = new LinkedHashMap<>(attributes.size());
-        for (Attribute attribute : attributes) {
-            m.put(attribute.getName(), attribute.getValue());
-        }
-
-        Set<String> emails = new HashSet<>(user.getAliases());
+    private void logEventUserUpdateProfile(User user, Map<String, String> attributes) {
+        final Set<String> emails = new HashSet<>(user.getAliases());
         emails.add(user.getEmail());
 
         LOG.info("EVENT#user-update-profile# USER#{}# FIRSTNAME#{}# LASTNAME#{}# COMPANY#{}# PHONE#{}# JOBTITLE#{}# EMAILS#{}# USER-ID#{}#",
                  user.getEmail(),
-                 nullToEmpty(m.get("firstName")),
-                 nullToEmpty(m.get("lastName")),
-                 nullToEmpty(m.get("employer")),
-                 nullToEmpty(m.get("phone")),
-                 nullToEmpty(m.get("jobtitle")),
+                 nullToEmpty(attributes.get("firstName")),
+                 nullToEmpty(attributes.get("lastName")),
+                 nullToEmpty(attributes.get("employer")),
+                 nullToEmpty(attributes.get("phone")),
+                 nullToEmpty(attributes.get("jobtitle")),
                  user.getAliases(),
                  user.getId());
     }

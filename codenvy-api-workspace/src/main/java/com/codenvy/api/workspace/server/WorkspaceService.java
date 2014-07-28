@@ -25,11 +25,11 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.UserService;
+import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.workspace.server.dao.Member;
-import com.codenvy.api.user.shared.dto.Profile;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
@@ -65,7 +65,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -102,39 +101,63 @@ public class WorkspaceService extends Service {
         this.accountDao = accountDao;
     }
 
+    /**
+     * Creates new workspace and adds current user as member to created workspace
+     * with roles "workspace/admin" and "workspace/developer". Returns status code {@code 204}
+     * and {@link WorkspaceDescriptor} if workspace has been created successfully.
+     * Each {@code newWorkspace} should contain at least workspace name and account identifier.
+     *
+     * @param newWorkspace
+     *         new workspace
+     * @return descriptor of created workspace
+     * @throws ConflictException
+     *         when current user account identifier and given account identifier are different,
+     *         or when {@code newWorkspace} is {@code null},
+     *         or any of {@code newWorkspace.getName()}
+     *         or {@code newWorkspace.getAccountId()} returns {@code null}
+     * @throws NotFoundException
+     *         when account with given identifier does not exist
+     * @throws ServerException
+     *         when some error occurred while getting/persisting {@link Account},
+     *         {@link Workspace} or {@link Member}
+     * @throws ForbiddenException
+     *         when user has not access to create workspaces
+     * @see NewWorkspace
+     * @see WorkspaceDescriptor
+     */
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_WORKSPACE)
     @RolesAllowed({"user", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext,
-                           @Required @Description("new workspace") NewWorkspace newWorkspace)
-            throws ConflictException, NotFoundException, ServerException, ForbiddenException {
-        if (newWorkspace == null) {
-            throw new ConflictException("Required new workspace");
-        }
+    public Response create(@Required @Description("new workspace") NewWorkspace newWorkspace,
+                           @Context SecurityContext securityContext) throws ConflictException,
+                                                                            NotFoundException,
+                                                                            ServerException,
+                                                                            ForbiddenException {
+        requiredNotNull(newWorkspace, "New workspace");
+        requiredNotNull(newWorkspace.getAccountId(), "Account identifier");
+        requiredNotNull(newWorkspace.getName(), "Workspace name");
         if (newWorkspace.getAttributes() != null) {
             for (String attributeName : newWorkspace.getAttributes().keySet()) {
                 validateAttributeName(attributeName);
             }
         }
-        final String accountId = newWorkspace.getAccountId();
-        final Account actualAcc;
-        if (accountId == null || accountId.isEmpty() || (actualAcc = accountDao.getById(accountId)) == null) {
-            throw new ConflictException("Incorrect account to associate workspace with");
-        }
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
+        //check current user is account owner
         final List<Account> accounts = accountDao.getByOwner(user.getId());
+        final String accountId = newWorkspace.getAccountId();
+        final Account actualAccount = accountDao.getById(accountId);
         boolean isCurrentUserAccountOwner = false;
         for (int i = 0; i < accounts.size() && !isCurrentUserAccountOwner; ++i) {
-            isCurrentUserAccountOwner = accounts.get(i).getId().equals(actualAcc.getId());
+            isCurrentUserAccountOwner = accounts.get(i).getId().equals(actualAccount.getId());
         }
         if (!isCurrentUserAccountOwner) {
             throw new ConflictException("You can create workspace associated only to your own account");
         }
         if (securityContext.isUserInRole("user")) {
-            if (!"true".equals(actualAcc.getAttributes().get("codenvy:multi-ws")) &&
+            if (!"true".equals(actualAccount.getAttributes().get("codenvy:multi-ws")) &&
                 workspaceDao.getByAccount(accountId).size() > 0) {
                 throw new ForbiddenException("You have not access to create more workspaces");
             }
@@ -157,6 +180,29 @@ public class WorkspaceService extends Service {
         return Response.status(Response.Status.CREATED).entity(workspaceDescriptor).build();
     }
 
+    /**
+     * Creates new temporary workspace and adds current user
+     * as member to created workspace with roles "workspace/admin" and "workspace/developer".
+     * If user does not exist, it will be created with role "tmp_user".
+     * Returns status code {@code 204} and {@link WorkspaceDescriptor} if workspace
+     * has been created successfully. Each {@code newWorkspace} should contain
+     * at least workspace name and account identifier.
+     *
+     * @param newWorkspace
+     *         object that contains basic information needed to create new workspace.
+     * @return descriptor of created workspace
+     * @throws ConflictException
+     *         when current user account identifier and given account identifier are different,
+     *         or when {@code newWorkspace} is {@code null},
+     *         or any of {@code newWorkspace.getName()}
+     *         or {@code newWorkspace.getAccountId()} returns {@code null}
+     * @throws NotFoundException
+     *         when account with given identifier does not exist
+     * @throws ServerException
+     *         when some error occurred while getting/persisting {@link Account},
+     *         {@link Workspace}, {@link Member} or {@link Profile}
+     * @see WorkspaceDescriptor
+     */
     @POST
     @Path("temp")
     @GenerateLink(rel = Constants.LINK_REL_CREATE_TEMP_WORKSPACE)
@@ -166,9 +212,7 @@ public class WorkspaceService extends Service {
     public Response createTemporary(@Context SecurityContext securityContext,
                                     @Required @Description("New temporary workspace") NewWorkspace newWorkspace)
             throws ConflictException, NotFoundException, ServerException {
-        if (newWorkspace == null) {
-            throw new ConflictException("Missed workspace to create");
-        }
+        requiredNotNull(newWorkspace, "New workspace");
         if (newWorkspace.getAttributes() != null) {
             for (String attributeName : newWorkspace.getAttributes().keySet()) {
                 validateAttributeName(attributeName);
@@ -195,13 +239,9 @@ public class WorkspaceService extends Service {
                              .withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
             userDao.create(user);
             try {
-                final Profile profile = DtoFactory.getInstance().createDto(Profile.class).withId(user.getId()).withUserId(user.getId())
-                                                  .withAttributes(Arrays.asList(DtoFactory.getInstance().createDto(
-                                                          com.codenvy.api.user.shared.dto.Attribute.class)
-                                                                                          .withName("temporary")
-                                                                                          .withValue(String.valueOf(true))
-                                                                                          .withDescription("Indicates user as temporary")));
-                userProfileDao.create(profile);
+                userProfileDao.create(new Profile().withId(user.getId())
+                                                   .withUserId(user.getId())
+                                                   .withAttributes(Collections.singletonMap("temporary", "true")));
             } catch (ApiException e) {
                 userDao.remove(user.getId());
                 throw e;
@@ -220,11 +260,24 @@ public class WorkspaceService extends Service {
         return Response.status(Response.Status.CREATED).entity(workspaceDescriptor).build();
     }
 
+    /**
+     * Returns {@link WorkspaceDescriptor} for certain Workspace.
+     * If user that has called this method is not "workspace/admin" or "workspace/developer"
+     * workspace attributes will not be added to response.
+     *
+     * @param id
+     *         workspace identifier
+     * @return descriptor of found workspace
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving {@link Workspace}
+     */
     @GET
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public WorkspaceDescriptor getById(@Context SecurityContext securityContext, @PathParam("id") String id)
-            throws NotFoundException, ServerException, ForbiddenException {
+    public WorkspaceDescriptor getById(@Context SecurityContext securityContext,
+                                       @PathParam("id") String id) throws NotFoundException, ServerException {
         final Workspace workspace = workspaceDao.getById(id);
         try {
             ensureUserHasAccessToWorkspace(securityContext, workspace.getId(), "workspace/admin", "workspace/developer");
@@ -244,15 +297,28 @@ public class WorkspaceService extends Service {
         return toDescriptor(workspace, securityContext);
     }
 
+    /**
+     * Returns {@link WorkspaceDescriptor} for certain Workspace.
+     * If user that has called this method is not "workspace/admin" or "workspace/developer"
+     * workspace attributes will not be added to response.
+     *
+     * @param name
+     *         workspace name
+     * @return descriptor of found Workspace
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving {@link Workspace}
+     */
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_NAME)
     @Produces(MediaType.APPLICATION_JSON)
-    public WorkspaceDescriptor getByName(@Context SecurityContext securityContext,
-                                         @Required @Description("workspace name") @QueryParam("name") String name)
-            throws NotFoundException, ServerException, ConflictException, ForbiddenException {
-        if (name == null) {
-            throw new ConflictException("Missed parameter name");
-        }
+    public WorkspaceDescriptor getByName(@Required @Description("workspace name") @QueryParam("name") String name,
+                                         @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                          ServerException,
+                                                                                          ConflictException,
+                                                                                          ForbiddenException {
+        requiredNotNull(name, "Workspace name");
         final Workspace workspace = workspaceDao.getByName(name);
         try {
             ensureUserHasAccessToWorkspace(securityContext, workspace.getId(), "workspace/admin", "workspace/developer");
@@ -272,6 +338,25 @@ public class WorkspaceService extends Service {
         return toDescriptor(workspace, securityContext);
     }
 
+    /**
+     * Updates workspace. Existed workspace attributes with same name as
+     * update attributes will be replaced with new attributes values.
+     *
+     * @param id
+     *         workspace identifier
+     * @param update
+     *         workspace update
+     * @return descriptor of updated workspace
+     * @throws NotFoundException
+     *         when workspace with given name doesn't exist
+     * @throws ConflictException
+     *         when update is {@code null} or updated attributes contains
+     *         attribute with not valid name
+     * @throws ServerException
+     *         when some error occurred while getting workspace
+     * @see WorkspaceUpdate
+     * @see WorkspaceDescriptor
+     */
     @POST
     @Path("{id}")
     @RolesAllowed({"workspace/admin", "system/admin"})
@@ -279,11 +364,10 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public WorkspaceDescriptor update(@Context SecurityContext securityContext,
                                       @PathParam("id") String id,
-                                      WorkspaceUpdate update)
-            throws NotFoundException, ConflictException, ServerException, ForbiddenException {
-        if (update == null) {
-            throw new ConflictException("Missed workspace to update");
-        }
+                                      WorkspaceUpdate update) throws NotFoundException,
+                                                                     ConflictException,
+                                                                     ServerException {
+        requiredNotNull(update, "Workspace update");
         final Workspace workspace = workspaceDao.getById(id);
         if (update.getAttributes() != null) {
             for (String attributeName : update.getAttributes().keySet()) {
@@ -301,32 +385,50 @@ public class WorkspaceService extends Service {
         return toDescriptor(workspace, securityContext);
     }
 
+    /**
+     * Returns workspace descriptors for certain workspaces with given account identifier.
+     *
+     * @param accountId
+     *         account identifier
+     * @return workspace descriptors
+     * @throws ConflictException
+     *         account identifier is {@code null}
+     * @throws ServerException
+     *         when some error occurred while getting workspace
+     * @see WorkspaceDescriptor
+     */
     @GET
     @Path("find/account")
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACES_BY_ACCOUNT)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<WorkspaceDescriptor> getWorkspacesByAccount(@Context SecurityContext securityContext,
-                                                            @Required @Description("Account id to get workspaces")
-                                                            @QueryParam("id") String accountId)
-            throws NotFoundException, ConflictException, ServerException {
-        if (accountId == null) {
-            throw new ConflictException("Account id required");
+                                                            @Required @QueryParam("id") String accountId) throws ConflictException,
+                                                                                                                 ServerException {
+        requiredNotNull(accountId, "Account id");
+        final List<Workspace> workspaces = workspaceDao.getByAccount(accountId);
+        final List<WorkspaceDescriptor> descriptors = new ArrayList<>(workspaces.size());
+        for (Workspace workspace : workspaces) {
+            descriptors.add(toDescriptor(workspace, securityContext));
         }
-        final List<WorkspaceDescriptor> result = new LinkedList<>();
-        for (Workspace workspace : workspaceDao.getByAccount(accountId)) {
-            result.add(toDescriptor(workspace, securityContext));
-        }
-        return result;
+        return descriptors;
     }
 
+    /**
+     * Returns all memberships of current user.
+     *
+     * @return current user memberships
+     * @throws ServerException
+     *         when some error occurred while getting user or members
+     * @see MemberDescriptor
+     */
     @GET
     @Path("all")
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES)
     @RolesAllowed({"user", "temp_user"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembershipsOfCurrentUser(@Context SecurityContext securityContext)
-            throws NotFoundException, ServerException {
+    public List<MemberDescriptor> getMembershipsOfCurrentUser(@Context SecurityContext securityContext) throws NotFoundException,
+                                                                                                               ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         final List<Member> members = memberDao.getUserRelationships(user.getId());
@@ -345,22 +447,33 @@ public class WorkspaceService extends Service {
         return memberships;
     }
 
+    /**
+     * Returns all memberships of certain user.
+     *
+     * @param userId
+     *         user identifier to search memberships
+     * @return certain user memberships
+     * @throws NotFoundException
+     *         when user with given identifier doesn't exist
+     * @throws ConflictException
+     *         when user identifier is {@code null}
+     * @throws ServerException
+     *         when some error occurred while getting user or members
+     * @see MemberDescriptor
+     */
     @GET
     @Path("find")
     @GenerateLink(rel = Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembershipsOfSpecificUser(@Context SecurityContext securityContext,
-                                                               @Required @Description("user id to find workspaces")
-                                                               @QueryParam("userid") String userId)
-            throws NotFoundException, ConflictException, ServerException {
-        if (userId == null) {
-            throw new ConflictException("User identifier required");
-        }
+                                                               @Required @QueryParam("userid") String userId) throws NotFoundException,
+                                                                                                                     ConflictException,
+                                                                                                                     ServerException {
+        requiredNotNull(userId, "User identifier");
         userDao.getById(userId);
         final List<Member> members = memberDao.getUserRelationships(userId);
         final List<MemberDescriptor> memberships = new ArrayList<>(members.size());
-
         for (Member member : members) {
             final Workspace workspace;
             try {
@@ -374,12 +487,25 @@ public class WorkspaceService extends Service {
         return memberships;
     }
 
+    /**
+     * Returns all workspace members.
+     *
+     * @param wsId
+     *         workspace identifier
+     * @return workspace members
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while getting workspace or members
+     * @see MemberDescriptor
+     */
     @GET
     @Path("{id}/members")
     @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembers(@PathParam("id") String wsId, @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException, ForbiddenException {
+    public List<MemberDescriptor> getMembers(@PathParam("id") String wsId,
+                                             @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                              ServerException {
         final Workspace workspace = workspaceDao.getById(wsId);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final List<MemberDescriptor> descriptors = new ArrayList<>(members.size());
@@ -389,20 +515,55 @@ public class WorkspaceService extends Service {
         return descriptors;
     }
 
+    /**
+     * Removes attribute from certain workspace
+     *
+     * @param wsId
+     *         workspace identifier
+     * @param attributeName
+     *         attribute name to remove
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while getting or updating workspace
+     * @throws ConflictException
+     *         when given attribute name is not valid
+     */
     @DELETE
     @Path("{id}/attribute")
-    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTE)
     @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
     public void removeAttribute(@PathParam("id") String wsId,
-                                @Required @Description("The name of attribute") @QueryParam("name") String attributeName,
-                                @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException, ConflictException, ForbiddenException {
-        final Workspace workspace = workspaceDao.getById(wsId);
+                                @QueryParam("name") String attributeName,
+                                @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                 ServerException,
+                                                                                 ConflictException {
         validateAttributeName(attributeName);
+        final Workspace workspace = workspaceDao.getById(wsId);
         workspace.getAttributes().remove(attributeName);
         workspaceDao.update(workspace);
     }
 
+    /**
+     * Creates new workspace {@link Member}.
+     *
+     * @param wsId
+     *         workspace identifier
+     * @param newMembership
+     *         new membership
+     * @return descriptor of created member
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while getting workspace, user
+     *         or persisting new workspace member
+     * @throws ConflictException
+     *         when {@code newMembership} is {@code null}
+     *         or {@code newMembership.getUserId()} is {@code null}
+     *         or {@code newMembership.getRoles()} is {@code null} or empty
+     * @throws ForbiddenException
+     *         when current user hasn't access to workspace with given identifier
+     * @see MemberDescriptor
+     */
     @POST
     @Path("{id}/members")
     @RolesAllowed({"user", "temp_user"})
@@ -410,30 +571,51 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public MemberDescriptor addMember(@PathParam("id") String wsId,
                                       NewMembership newMembership,
-                                      @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException, ConflictException, ForbiddenException {
-        if (newMembership == null) {
-            throw new ConflictException("Membership required");
-        }
+                                      @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                       ServerException,
+                                                                                       ConflictException,
+                                                                                       ForbiddenException {
+        requiredNotNull(newMembership, "New membership");
+        requiredNotNull(newMembership.getRoles(), "Roles");
+        requiredNotNull(newMembership.getUserId(), "User identifier");
         if (newMembership.getRoles().isEmpty()) {
-            throw new ConflictException("Roles required");
+            throw new ConflictException("Roles should not be empty");
         }
         final Workspace workspace = workspaceDao.getById(wsId);
+        final User user = userDao.getById(newMembership.getUserId());
         if (!"true".equalsIgnoreCase(workspace.getAttributes().get("allowAnyoneAddMember"))) {
             ensureUserHasAccessToWorkspace(securityContext, wsId, "workspace/admin");
         }
         final Member newMember = new Member().withWorkspaceId(wsId)
-                                             .withUserId(newMembership.getUserId())
+                                             .withUserId(user.getId())
                                              .withRoles(newMembership.getRoles());
         memberDao.create(newMember);
         return toDescriptor(newMember, workspace);
     }
 
+    /**
+     * Removes member from certain workspace.
+     *
+     * @param wsId
+     *         workspace identifier
+     * @param userId
+     *         user identifier to remove member
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     *         or
+     * @throws ServerException
+     *         when some error occurred while getting workspace, members or removing member
+     * @throws ConflictException
+     *         when removal member is last "workspace/admin" in given workspace
+     */
     @DELETE
     @Path("{id}/members/{userid}")
     @RolesAllowed("workspace/admin")
-    public void removeMember(@PathParam("id") String wsId, @PathParam("userid") String userId, @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException, ForbiddenException, ConflictException {
+    public void removeMember(@PathParam("id") String wsId,
+                             @PathParam("userid") String userId,
+                             @Context SecurityContext securityContext) throws NotFoundException,
+                                                                              ServerException,
+                                                                              ConflictException {
         workspaceDao.getById(wsId);
         final List<Member> wsMembers = memberDao.getWorkspaceMembers(wsId);
         Member toRemove = null;
@@ -459,15 +641,31 @@ public class WorkspaceService extends Service {
             }
             memberDao.remove(toRemove);
         } else {
-            throw new NotFoundException(String.format("User %s doesn't have membership with workspace %s", userId, wsId));
+            throw new NotFoundException(String.format("User %s doesn't have membership in workspace %s", userId, wsId));
         }
     }
 
+    /**
+     * Removes certain workspace.
+     * BTW all workspace members are going to be removed as well.
+     *
+     * @param wsId
+     *         workspace identifier to remove workspace
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while getting workspace, members
+     *         or removing workspace, members
+     * @throws ConflictException
+     *         if some error occurred while removing member
+     */
     @DELETE
     @Path("{id}")
     @RolesAllowed({"workspace/admin", "system/admin"})
-    public void remove(@PathParam("id") String wsId, @Context SecurityContext securityContext)
-            throws NotFoundException, ServerException, ForbiddenException, ConflictException {
+    public void remove(@PathParam("id") String wsId,
+                       @Context SecurityContext securityContext) throws NotFoundException,
+                                                                        ServerException,
+                                                                        ConflictException {
         workspaceDao.getById(wsId); // check workspaces' existence
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
@@ -476,7 +674,10 @@ public class WorkspaceService extends Service {
         workspaceDao.remove(wsId);
     }
 
-    private MemberDescriptor toDescriptor(Member member, Workspace workspace/*, SecurityContext securityContext*/) {
+    /**
+     * Converts member to member descriptor
+     */
+    private MemberDescriptor toDescriptor(Member member, Workspace workspace) {
         final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
         final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
         final Link wsLink = createLink("GET",
@@ -533,6 +734,9 @@ public class WorkspaceService extends Service {
                          .withLinks(Arrays.asList(userLink, removeLink, allMembersLink));
     }
 
+    /**
+     * Converts workspace to workspace descriptor
+     */
     private WorkspaceDescriptor toDescriptor(Workspace workspace, SecurityContext securityContext) {
         final WorkspaceDescriptor workspaceDescriptor = DtoFactory.getInstance().createDto(WorkspaceDescriptor.class)
                                                                   .withId(workspace.getId())
@@ -621,12 +825,39 @@ public class WorkspaceService extends Service {
         return workspaceDescriptor.withLinks(links);
     }
 
+    /**
+     * Checks object reference is not {@code null}
+     *
+     * @param object
+     *         object reference to check
+     * @param subject
+     *         used as subject of exception message "{subject} should not be null"
+     * @throws ConflictException
+     *         when object reference is {@code null}
+     */
+    private void requiredNotNull(Object object, String subject) throws ConflictException {
+        if (object == null) {
+            throw new ConflictException(subject + " should not be null");
+        }
+    }
+
+    /**
+     * Validates attribute name.
+     *
+     * @param attributeName
+     *         attribute name to check
+     * @throws ConflictException
+     *         when attribute name is {@code null}, empty or it starts with "codenvy"
+     */
     private void validateAttributeName(String attributeName) throws ConflictException {
         if (attributeName == null || attributeName.isEmpty() || attributeName.toLowerCase().startsWith("codenvy")) {
             throw new ConflictException(String.format("Attribute name '%s' is not valid", attributeName));
         }
     }
 
+    /**
+     * Checks current user has access to workspace with given role
+     */
     private void ensureUserHasAccessToWorkspace(SecurityContext securityContext, String wsId, String role)
             throws NotFoundException, ServerException, ForbiddenException {
         if ((securityContext.isUserInRole("user") || securityContext.isUserInRole("temp_user")) &&
@@ -635,6 +866,9 @@ public class WorkspaceService extends Service {
         }
     }
 
+    /**
+     * Checks current user has access to workspace with given roles
+     */
     private void ensureUserHasAccessToWorkspace(SecurityContext securityContext, String wsId, String role1, String role2)
             throws NotFoundException, ServerException, ForbiddenException {
         if (securityContext.isUserInRole("user") || securityContext.isUserInRole("temp_user")) {
@@ -645,6 +879,9 @@ public class WorkspaceService extends Service {
         }
     }
 
+    /**
+     * Gets current user roles to certain workspace
+     */
     private Set<String> getCurrentUserRoles(String wsId, SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
@@ -656,6 +893,9 @@ public class WorkspaceService extends Service {
         return Collections.emptySet();
     }
 
+    /**
+     * Creates {@link Link}
+     */
     private Link createLink(String method, String rel, String consumes, String produces, String href) {
         return DtoFactory.getInstance().createDto(Link.class)
                          .withMethod(method)

@@ -108,7 +108,7 @@ public class PathLockFactoryTest extends TestCase {
             // Here we must be failed to get exclusive permit.
             timeoutExclusiveLock.acquire(100);
             fail();
-        } catch (PathLockTimeoutException e) {
+        } catch (RuntimeException e) {
             // OK
         }
     }

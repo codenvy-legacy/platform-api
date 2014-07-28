@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.vfs.server.exceptions;
+package com.codenvy.api.vfs.server;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;

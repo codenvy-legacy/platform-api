@@ -14,6 +14,7 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -98,31 +99,9 @@ public class ProjectService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProjectReference> getProjects(@PathParam("ws-id") String workspace) throws IOException, ServerException {
         final List<Project> projects = projectManager.getProjects(workspace);
-        final List<ProjectReference> projectRefs = new ArrayList<>();
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final String wsName = EnvironmentContext.getCurrent().getWorkspaceName();
-        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        final List<ProjectReference> projectRefs = new ArrayList<>(projects.size());
         for (Project project : projects) {
-            final ProjectDescription description = project.getDescription();
-            final ProjectType type = description.getProjectType();
-            final String name = project.getName();
-            final String path = project.getPath();
-
-            projectRefs.add(dtoFactory.createDto(ProjectReference.class)
-                                      .withName(name)
-                                      .withWorkspaceId(workspace)
-                                      .withWorkspaceName(wsName)
-                                      .withProjectTypeId(type.getId())
-                                      .withProjectTypeName(type.getName())
-                                      .withVisibility(project.getVisibility())
-                                      .withCreationDate(project.getCreationDate())
-                                      .withModificationDate(project.getModificationDate())
-                                      .withDescription(description.getDescription())
-                                      .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspace, name).toString())
-                                      .withIdeUrl(wsName != null
-                                                  ? uriBuilder.clone().replacePath("ide").path(wsName).path(path).build().toString()
-                                                  : null)
-                           );
+            projectRefs.add(toReference(project));
         }
         return projectRefs;
     }
@@ -357,7 +336,7 @@ public class ProjectService extends Service {
     public ProjectDescriptor importProject(@PathParam("ws-id") String workspace,
                                            @PathParam("path") String path,
                                            ImportSourceDescriptor importDescriptor)
-            throws ConflictException, ForbiddenException, IOException, ServerException {
+            throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
         final ProjectImporter importer = importers.getImporter(importDescriptor.getType());
         if (importer == null) {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
@@ -697,6 +676,12 @@ public class ProjectService extends Service {
     }
 
     private ProjectDescriptor toDescriptor(Project project) throws ServerException {
+        final ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class);
+        fillDescriptor(project, descriptor);
+        return descriptor;
+    }
+
+    private void fillDescriptor(Project project, ProjectDescriptor descriptor) throws ServerException {
         final String workspace = project.getWorkspace();
         final ProjectDescription description = project.getDescription();
         final ProjectType type = description.getProjectType();
@@ -721,21 +706,44 @@ public class ProjectService extends Service {
                 }
             }
         }
-        return DtoFactory.getInstance().createDto(ProjectDescriptor.class)
-                         .withName(project.getName())
-                         .withPath(project.getBaseFolder().getPath())
-                         .withBaseUrl(getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace)
-                                                         .toString())
+        descriptor.withName(project.getName())
+                  .withPath(project.getBaseFolder().getPath())
+                  .withBaseUrl(
+                          getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
+                  .withProjectTypeId(type.getId())
+                  .withProjectTypeName(type.getName())
+                  .withWorkspaceId(workspace)
+                  .withDescription(description.getDescription())
+                  .withVisibility(project.getVisibility())
+                  .withCurrentUserPermissions(userPermissions)
+                  .withAttributes(attributeValues)
+                  .withCreationDate(project.getCreationDate())
+                  .withModificationDate(project.getModificationDate())
+                  .withLinks(generateProjectLinks(workspace, project));
+    }
+
+    private ProjectReference toReference(Project project) throws ServerException {
+        final String workspaceId = project.getWorkspace();
+        final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
+        final ProjectDescription description = project.getDescription();
+        final ProjectType type = description.getProjectType();
+        final String name = project.getName();
+        final String path = project.getPath();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        return DtoFactory.getInstance().createDto(ProjectReference.class)
+                         .withName(name)
+                         .withWorkspaceId(workspaceId)
+                         .withWorkspaceName(workspaceName)
                          .withProjectTypeId(type.getId())
                          .withProjectTypeName(type.getName())
-                         .withWorkspaceId(workspace)
-                         .withDescription(description.getDescription())
                          .withVisibility(project.getVisibility())
-                         .withCurrentUserPermissions(userPermissions)
-                         .withAttributes(attributeValues)
                          .withCreationDate(project.getCreationDate())
                          .withModificationDate(project.getModificationDate())
-                         .withLinks(generateProjectLinks(workspace, project));
+                         .withDescription(description.getDescription())
+                         .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspaceId, name).toString())
+                         .withIdeUrl(workspaceName != null
+                                     ? uriBuilder.clone().replacePath("ide").path(workspaceName).path(path).build().toString()
+                                     : null);
     }
 
     private List<Link> generateProjectLinks(String workspace, Project project) {

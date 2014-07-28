@@ -13,7 +13,6 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import javax.inject.Singleton;
 import java.io.IOException;

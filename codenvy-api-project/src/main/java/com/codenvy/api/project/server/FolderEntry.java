@@ -198,7 +198,7 @@ public class FolderEntry extends VirtualFileEntry {
     }
 
     /**
-     * Tests whether this VirtualFile is a root folder.
+     * Tests whether this FolderEntry contains project structure.
      *
      * @throws ServerException
      *         if an error occurs
@@ -214,7 +214,14 @@ public class FolderEntry extends VirtualFileEntry {
         return projectFile != null && projectFile.isFile();
     }
 
-    private boolean isRoot(VirtualFile virtualFile) throws ServerException {
+    /**
+     * Tests whether this FolderEntry is a root folder.
+     */
+    public boolean isRoot() {
+        return isRoot(getVirtualFile());
+    }
+
+    private boolean isRoot(VirtualFile virtualFile) {
         return virtualFile.isRoot();
     }
 }

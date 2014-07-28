@@ -10,18 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
-
 import javax.servlet.http.HttpServletRequest;
 
 /**
  * Prevent access to VirtualFileSystem REST API from outside the IDE.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class RefererHeaderValidator implements RequestValidator {
     @Override
-    public void validate(HttpServletRequest request) throws VirtualFileSystemRuntimeException {
+    public void validate(HttpServletRequest request) {
         String requestURL = request.getScheme() + "://" + request.getServerName();
         int port = request.getServerPort();
         if (port != 80 && port != 443) {
@@ -29,7 +27,7 @@ public final class RefererHeaderValidator implements RequestValidator {
         }
         String referer = request.getHeader("Referer");
         if (referer == null || !referer.startsWith(requestURL)) {
-            throw new VirtualFileSystemRuntimeException("Access forbidden from outside of IDE. ");
+            throw new RuntimeException("Access forbidden from outside of IDE. ");
         }
     }
 }

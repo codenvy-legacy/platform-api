@@ -13,6 +13,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 
 import java.io.IOException;
 
@@ -49,10 +50,13 @@ public interface ProjectImporter {
      *         baseFolder}
      * @throws ConflictException
      *         if import causes any conflicts, e.g. if import operation causes name conflicts in {@code baseFolder}
-     * @throws ServerException
-     *         if import causes some errors that should be treated as internal errors
+     * @throws UnauthorizedException
+     *         if user isn't authorized to access to access {@code location}
      * @throws IOException
      *         if any i/o errors occur, e.g. when try to access {@code location}
+     * @throws ServerException
+     *         if import causes some errors that should be treated as internal errors
      */
-    void importSources(FolderEntry baseFolder, String location) throws ForbiddenException, ConflictException, IOException, ServerException;
+    void importSources(FolderEntry baseFolder, String location)
+            throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException;
 }

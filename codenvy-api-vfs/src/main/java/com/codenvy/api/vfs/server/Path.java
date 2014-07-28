@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,7 +18,7 @@ import java.util.regex.Pattern;
 /**
  * Path of VirtualFile.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class Path {
     /** Create new path. */
@@ -42,7 +40,7 @@ public final class Path {
             if ("..".equals(token)) {
                 int size = newTokens.size();
                 if (size == 0) {
-                    throw new VirtualFileSystemRuntimeException(String.format("Invalid path '%s', '..' on root. ", raw));
+                    throw new IllegalArgumentException(String.format("Invalid path '%s', '..' on root. ", raw));
                 }
                 newTokens.remove(size - 1);
             } else if (!".".equals(token)) {

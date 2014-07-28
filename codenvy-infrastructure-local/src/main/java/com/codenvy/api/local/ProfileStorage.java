@@ -26,7 +26,8 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Allows to save the profile data in the file and obtain this data from the file.
@@ -73,11 +74,13 @@ public class ProfileStorage {
         try {
             if (file.exists()) {
                 inputStreamReader = new InputStreamReader(new FileInputStream(file));
-                profile = new Profile();
+                profile = gson.fromJson(inputStreamReader, Profile.class);
             } else {
+                final Map<String, String> attributes = new HashMap<>(1);
+                attributes.put("First Name", "Felix");
                 profile = new Profile().withId(id)
                                        .withUserId("codenvy")
-                                       .withAttributes(Collections.singletonMap("First Name", "Felix"));
+                                       .withAttributes(attributes);
                 update(profile);
             }
         } catch (IOException e) {
@@ -95,7 +98,7 @@ public class ProfileStorage {
      * Profile data stored to the file.
      *
      * @param profile
-     *         - POJO representation of profile entity
+     *         POJO representation of profile entity
      * @throws IOException
      *         if an i/o error occurs
      */

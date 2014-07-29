@@ -47,10 +47,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * User API
@@ -88,11 +85,14 @@ public class UserService extends Service {
         user.setEmail(userEmail);
         user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("temporary", String.valueOf(isTemporary));
+        attributes.put("codenvy:created", Long.toString(System.currentTimeMillis()));
         final Profile profile = new Profile().withId(userId)
                                              .withUserId(userId)
-                                             .withAttributes(Collections.singletonMap("temporary", String.valueOf(isTemporary)));
+                                             .withAttributes(attributes);
         profileDao.create(profile);
-
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return Response.status(Response.Status.CREATED).entity(user).build();

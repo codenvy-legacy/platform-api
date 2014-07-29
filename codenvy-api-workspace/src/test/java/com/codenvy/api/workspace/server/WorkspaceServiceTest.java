@@ -14,7 +14,6 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
-import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.workspace.server.dao.MemberDao;
@@ -187,10 +186,10 @@ public class WorkspaceServiceTest {
 
     @Test
     public void shouldBeAbleToCreateMultiWorkspaces() throws Exception {
-        when(workspaceDao.getByAccount("test1")).thenReturn(Collections.singletonList(new Workspace().withId("test1")
-                                                                                                     .withName("test1")
-                                                                                                     .withTemporary(false)
-                                                                                                     .withAccountId("test1")));
+        when(workspaceDao.getByAccount("test")).thenReturn(Collections.singletonList(new Workspace().withId("test1")
+                                                                                                    .withName("test1")
+                                                                                                    .withTemporary(false)
+                                                                                                    .withAccountId("test1")));
         final Account test = new Account().withId("test")
                                           .withName("test")
                                           .withAttributes(Collections.singletonMap("codenvy:multi_ws", "true"));
@@ -204,12 +203,39 @@ public class WorkspaceServiceTest {
                                                  SERVICE_PATH,
                                                  MediaType.APPLICATION_JSON,
                                                  newWorkspace);
+
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(workspaceDao).create(any(Workspace.class));
         verify(memberDao).create(any(Member.class));
         final WorkspaceDescriptor descriptor = (WorkspaceDescriptor)response.getEntity();
         assertEquals(descriptor.getName(), "test2");
         assertEquals(descriptor.getAccountId(), "test");
+    }
+
+    @Test
+    public void shouldNotBeAbleToCreateMultiWorkspaces() throws Exception {
+        when(workspaceDao.getByAccount("test")).thenReturn(Collections.singletonList(new Workspace().withId("test1")
+                                                                                                    .withName("test1")
+                                                                                                    .withTemporary(false)
+                                                                                                    .withAccountId("test1")));
+        final Account test = new Account().withId("test")
+                                          .withName("test")
+                                          .withAttributes(Collections.singletonMap("codenvy:multi_ws", "false"));
+        when(accountDao.getById(test.getId())).thenReturn(test);
+        when(accountDao.getByOwner(USER_ID)).thenReturn(Collections.singletonList(test));
+        prepareSecurityContext("user");
+
+        final NewWorkspace newWorkspace = DtoFactory.getInstance().createDto(NewWorkspace.class)
+                                                    .withName("test2")
+                                                    .withAccountId("test");
+        ContainerResponse response = makeRequest("POST",
+                                                 SERVICE_PATH,
+                                                 MediaType.APPLICATION_JSON,
+                                                 newWorkspace);
+        assertEquals(response.getEntity().toString(), "You have not access to create more workspaces");
+
+        verify(workspaceDao, times(0)).create(any(Workspace.class));
+        verify(memberDao, times(0)).create(any(Member.class));
     }
 
     @Test

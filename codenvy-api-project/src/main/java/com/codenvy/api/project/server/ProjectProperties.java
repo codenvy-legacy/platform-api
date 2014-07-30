@@ -41,8 +41,16 @@ public class ProjectProperties {
             return new ProjectProperties();
         }
         try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
+            return load(inputStream);
+        } catch (IOException e) {
+            throw new ServerException("Unable parse project properties. " + e.getMessage());
+        }
+    }
+
+    public static ProjectProperties load(InputStream inputStream) throws ServerException {
+        try  {
             return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
-        } catch (JsonParseException | IOException e) {
+        } catch (JsonParseException e) {
             throw new ServerException("Unable parse project properties. " + e.getMessage());
         }
     }

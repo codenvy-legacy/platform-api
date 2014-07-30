@@ -55,7 +55,7 @@ public class TestVersionService {
     @Test
     public void shouldReturnNotFoundStatusIfComponentUnknown() throws Exception {
         Response response = given().when().get("version/la-la-la");
-        assertEquals(response.statusCode(), javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.statusCode(), javax.ws.rs.core.Response.Status.NOT_FOUND.getStatusCode());
     }
 }
 

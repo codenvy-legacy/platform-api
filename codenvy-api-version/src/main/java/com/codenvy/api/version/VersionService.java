@@ -11,8 +11,6 @@
 package com.codenvy.api.version;
 
 
-import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.dto.server.JsonStringMapImpl;
@@ -55,7 +53,7 @@ public class VersionService extends Service {
     @GET
     @Path("{component}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getVersion(@PathParam("component") String component) throws ApiException {
+    public Response getVersion(@PathParam("component") String component) {
         if (versions.containsKey(component)) {
             Map<String, String> result = new HashMap<>(2);
             result.put(COMPONENT, component);
@@ -63,7 +61,7 @@ public class VersionService extends Service {
 
             return Response.status(Response.Status.OK).entity(new JsonStringMapImpl<>(result)).build();
         } else {
-            throw new NotFoundException("Component '" + component + "' not found");
+            return Response.status(Response.Status.NOT_FOUND).entity("Component '" + component + "' not found").build();
         }
     }
 }

@@ -526,7 +526,7 @@ public class MemoryVirtualFile implements VirtualFile {
     public ContentStream getContent() throws ForbiddenException, ServerException {
         checkExist();
         if (!isFile()) {
-            throw new ForbiddenException(String.format("Unable get content. Item '%s' is not a file. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to retrieve the content. Item '%s' is not a file. ", getPath()));
         }
         if (content == null) {
             content = new byte[0];
@@ -539,18 +539,19 @@ public class MemoryVirtualFile implements VirtualFile {
     public VirtualFile updateContent(String mediaType, InputStream content, String lockToken) throws ForbiddenException, ServerException {
         checkExist();
         if (!isFile()) {
-            throw new ForbiddenException(String.format("Unable update content. Item '%s' is not a file. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to update the content. Item '%s' is not a file. ", getPath()));
         }
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("Unable update content of file '%s'. Operation not permitted. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to update item '%s'." +
+                                                       " You do not have the correct permissions to complete this operation.", getPath()));
         }
         if (isFile() && !validateLockTokenIfLocked(lockToken)) {
-            throw new ForbiddenException(String.format("Unable update content of file '%s'. File is locked. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to update the content of file '%s'. The file is locked. ", getPath()));
         }
         try {
             this.content = ByteStreams.toByteArray(content);
         } catch (IOException e) {
-            throw new ServerException(String.format("Unable set content of '%s'. %s", getPath(), e.getMessage()));
+            throw new ServerException(String.format("We were unable to set the content of '%s'. ", getPath()));
         }
         properties.put("vfs:mimeType", Arrays.asList(mediaType));
         SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
@@ -745,10 +746,11 @@ public class MemoryVirtualFile implements VirtualFile {
         checkExist();
         checkName(newName);
         if (isRoot()) {
-            throw new ForbiddenException("Unable rename root folder. ");
+            throw new ForbiddenException("We were unable to rename a root folder.");
         }
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("Unable delete item '%s'. Operation not permitted. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to delete an item '%s'."+
+                                                       " You do not have the correct permissions to complete this operation.", getPath()));
         }
         final String myPath = getPath();
         final boolean folder = isFolder();
@@ -765,11 +767,13 @@ public class MemoryVirtualFile implements VirtualFile {
                         }
                         if (!((MemoryVirtualFile)virtualFile).hasPermission(BasicPermissions.WRITE.value(), false)) {
                             throw new ForbiddenException(
-                                    String.format("Unable rename item '%s'. Operation not permitted. ", virtualFile.getPath()));
+                                    String.format("We were unable to rename an item '%s'." +
+                                                  " You do not have the correct permissions to complete this operation.", virtualFile.getPath()));
                         }
                         if (virtualFile.isFile() && virtualFile.isLocked()) {
                             throw new ForbiddenException(
-                                    String.format("Unable rename item '%s'. Child item '%s' is locked. ", getPath(),
+                                    String.format("We were unable to rename an item '%s'." +
+                                                  " The child item '%s' is currently locked by the system.", getPath(),
                                                   virtualFile.getPath()));
                         }
                     } catch (ServerException | ForbiddenException e) {
@@ -789,7 +793,8 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         } else {
             if (!validateLockTokenIfLocked(lockToken)) {
-                throw new ForbiddenException(String.format("Unable rename item '%s'. Item is locked. ", getPath()));
+                throw new ForbiddenException(String.format("We were unable to rename an item '%s'." +
+                                                           " The item is currently locked by the system.", getPath()));
             }
         }
 
@@ -828,7 +833,8 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new ForbiddenException("Unable delete root folder. ");
         }
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("Unable delete item '%s'. Operation not permitted. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to delete an item '%s'." +
+                                                       " You do not have the correct permissions to complete this operation.", getPath()));
         }
         final String myPath = getPath();
         final boolean folder = isFolder();
@@ -846,7 +852,8 @@ public class MemoryVirtualFile implements VirtualFile {
                         }
                         if (!((MemoryVirtualFile)virtualFile).hasPermission(BasicPermissions.WRITE.value(), false)) {
                             throw new ForbiddenException(
-                                    String.format("Unable delete item '%s'. Operation not permitted. ", virtualFile.getPath()));
+                                    String.format("We were unable to delete an item '%s'." +
+                                                  " You do not have the correct permissions to complete this operation.", virtualFile.getPath()));
                         }
 
                         if (virtualFile.isFile() && virtualFile.isLocked()) {

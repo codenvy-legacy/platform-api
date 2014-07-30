@@ -297,7 +297,8 @@ public class RunQueue {
             try {
                 final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
                 if (buildLink == null) {
-                    throw new RunnerException("Unable get URL for starting build of the application");
+                    throw new RunnerException("You requested a run and your project has not been built." +
+                                              " The runner was unable to get the proper build URL to initiate a build.");
                 }
                 buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
             } catch (IOException e) {
@@ -535,7 +536,7 @@ public class RunQueue {
         checkStarted();
         final RunQueueTask task = tasks.get(id);
         if (task == null) {
-            throw new NotFoundException(String.format("Not found task %d. It may be cancelled by timeout.", id));
+            throw new NotFoundException(String.format("Not found task %d. It may be canceled by timeout.", id));
         }
         return task;
     }
@@ -784,7 +785,7 @@ public class RunQueue {
 
     protected void checkStarted() {
         if (!started.get()) {
-            throw new IllegalStateException("Is not started yet.");
+            throw new IllegalStateException("The runner has not started yet and there is a delay.");
         }
     }
 

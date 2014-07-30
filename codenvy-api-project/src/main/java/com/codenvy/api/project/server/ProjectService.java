@@ -652,7 +652,7 @@ public class ProjectService extends Service {
         final FolderEntry root = projectManager.getProjectsRoot(workspace);
         final VirtualFileEntry entry = root.getChild(path);
         if (entry == null) {
-            throw new NotFoundException(String.format("Path '%s' doesn't exists. ", path));
+            throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
         }
         return entry;
     }

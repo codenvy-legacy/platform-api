@@ -551,7 +551,7 @@ public class BuildQueue {
     public BuildQueueTask getTask(Long id) throws NotFoundException {
         final BuildQueueTask task = tasks.get(id);
         if (task == null) {
-            throw new NotFoundException(String.format("Not found task %d. It may be cancelled by timeout.", id));
+            throw new NotFoundException(String.format("Not found task %d. It may be canceled by timeout.", id));
         }
         return task;
     }

@@ -333,7 +333,7 @@ public class RunQueue {
         resourceCheckerLocks[index].lock();
         try {
             final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
-            final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMemSize;
+            final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMaxMemorySize;
             if (availableMem < request.getMemorySize()) {
                 throw new RunnerException(
                         String.format("Not enough resources to start application. Available memory %dM but %dM required. ",

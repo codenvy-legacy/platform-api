@@ -74,8 +74,8 @@ public abstract class Runner {
         }
     };
 
-    protected static final String                   DATETIME_PATTERN   = "MM/dd/yyyy HH:mm:ss";
-    protected static final SimpleDateFormat         DATETIME_FORMAT    = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
+    protected static final String           DATETIME_PATTERN = "MM/dd/yyyy HH:mm:ss";
+    protected static final SimpleDateFormat DATETIME_FORMAT  = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
 
     private final Map<Long, RunnerProcessImpl> processes;
     private final Map<Long, RunnerProcessImpl> expiredProcesses;
@@ -207,10 +207,15 @@ public abstract class Runner {
             result.add(dtoFactory.createDto(RunnerMetric.class).withName("startTime").withValue(format.format(started))
                                  .withDescription("Time when application was started"));
             if (stopped <= 0) {
-                long terminationTimeMillis = started + TimeUnit.SECONDS.toMillis(process.getConfiguration().getRequest().getLifetime());
+                long lifetime = process.getConfiguration().getRequest().getLifetime();
+                String terminationTime;
+                if (lifetime >= Integer.MAX_VALUE)
+                    terminationTime = "Always-On";
+                else
+                    terminationTime = format.format(started + TimeUnit.SECONDS.toMillis(lifetime));
                 result.add(dtoFactory.createDto(RunnerMetric.class)
                                      .withName("terminationTime")
-                                     .withValue(format.format(terminationTimeMillis))
+                                     .withValue(terminationTime)
                                      .withDescription("Time after that this application might be terminated"));
             }
         }
@@ -343,6 +348,7 @@ public abstract class Runner {
         if (url == null) {
             return NO_SOURCES;
         }
+
         final ValueHolder<IOException> errorHolder = new ValueHolder<>();
         final ValueHolder<DeploymentSources> resultHolder = new ValueHolder<>();
         downloadPlugin.download(url, downloadDir, new DownloadPlugin.Callback() {
@@ -549,7 +555,8 @@ public abstract class Runner {
                 throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
             }
             executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName() + "-Runner-", true));
-            cleanScheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerCleanSchedulerPool-", true));
+            cleanScheduler =
+                    Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerCleanSchedulerPool-", true));
             cleanScheduler.scheduleAtFixedRate(new CleanupTask(), 1, 1, TimeUnit.MINUTES);
         } else {
             throw new IllegalStateException("Already started");

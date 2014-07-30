@@ -73,8 +73,8 @@ public abstract class Builder {
     /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#QUEUE_SIZE} */
     public static final String INTERNAL_QUEUE_SIZE     = Constants.QUEUE_SIZE;
 
-    protected static final String                      DATETIME_PATTERN        = "MM/dd/yyyy HH:mm:ss";
-    protected static final SimpleDateFormat            DATETIME_FORMAT         = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
+    protected static final String           DATETIME_PATTERN = "MM/dd/yyyy HH:mm:ss";
+    protected static final SimpleDateFormat DATETIME_FORMAT  = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
 
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
@@ -303,10 +303,12 @@ public abstract class Builder {
     public List<BuilderMetric> getStats() throws BuilderException {
         List<BuilderMetric> global = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        global.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.NUMBER_OF_WORKERS).withValue(Integer.toString(getNumberOfWorkers())));
+        global.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.NUMBER_OF_WORKERS)
+                             .withValue(Integer.toString(getNumberOfWorkers())));
         global.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.NUMBER_OF_ACTIVE_WORKERS)
                              .withValue(Integer.toString(getNumberOfActiveWorkers())));
-        global.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.QUEUE_SIZE).withValue(Integer.toString(getInternalQueueSize())));
+        global.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.QUEUE_SIZE)
+                             .withValue(Integer.toString(getInternalQueueSize())));
         global.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.MAX_QUEUE_SIZE)
                              .withValue(Integer.toString(getMaxInternalQueueSize())));
         return global;
@@ -529,7 +531,6 @@ public abstract class Builder {
         if (task == null) {
             throw new NotFoundException(String.format("Invalid build task id: %d", id));
         }
-        task.setLastUsageTime(System.currentTimeMillis());
         return task;
     }
 
@@ -596,7 +597,7 @@ public abstract class Builder {
         private BuildResult result;
         private long        startTime;
         private long        endTime;
-        private long        lastUsageTime;
+//        private long        lastUsageTime;
 
         protected FutureBuildTask(Callable<Boolean> callable,
                                   Long id,
@@ -614,7 +615,6 @@ public abstract class Builder {
             this.callback = callback;
             startTime = -1L;
             endTime = -1L;
-            lastUsageTime = System.currentTimeMillis();
         }
 
         @Override
@@ -737,11 +737,8 @@ public abstract class Builder {
         }
 
         synchronized boolean isExpired() {
-            return (lastUsageTime + keepResultTimeMillis) < System.currentTimeMillis();
-        }
-
-        synchronized void setLastUsageTime(long time) {
-            lastUsageTime = time;
+            return endTime > 0
+                   && (endTime + keepResultTimeMillis) < System.currentTimeMillis();
         }
 
         @Override

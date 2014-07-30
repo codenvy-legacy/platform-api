@@ -25,11 +25,6 @@ import java.util.HashMap;
  */
 public final class Constants {
 
-    public static HashMap<String, String> attributes = new HashMap<>();
-     static {
-         attributes.put("codenvy:runner_lifetime", "-1");
-     }
-
     public static final User USER = DtoFactory.getInstance().createDto(User.class)
                                               .withId("codenvy")
                                               .withEmail("codenvy@codenvy.com")
@@ -39,9 +34,7 @@ public final class Constants {
 
     public static final Workspace WORKSPACE = new Workspace().withId("1q2w3e")
                                                              .withName("default")
-                                                             .withTemporary(false)
-    .withAttributes(attributes);
-
+                                                             .withTemporary(false);
 
     public static final Member MEMBER = new Member().withUserId("codenvy")
                                                     .withWorkspaceId(WORKSPACE.getId())

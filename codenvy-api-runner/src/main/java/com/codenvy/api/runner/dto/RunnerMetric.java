@@ -19,6 +19,21 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface RunnerMetric {
+
+    String ALWAYS_ON = "Always On";
+
+    String TERMINATION_TIME = "terminationTime";
+
+    String START_TIME = "startTime";
+
+    String STOP_TIME = "stopTime";
+
+    String UP_TIME = "uptime";
+
+    String TOTAL_APPS = "totalApps";
+
+    String RUNNING_APPS = "runningApps";
+
     String getName();
 
     RunnerMetric withName(String name);

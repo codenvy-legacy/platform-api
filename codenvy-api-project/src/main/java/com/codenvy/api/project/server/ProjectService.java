@@ -732,6 +732,7 @@ public class ProjectService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         return DtoFactory.getInstance().createDto(ProjectReference.class)
                          .withName(name)
+                         .withId(project.getBaseFolder().getVirtualFile().getId())
                          .withWorkspaceId(workspaceId)
                          .withWorkspaceName(workspaceName)
                          .withProjectTypeId(type.getId())

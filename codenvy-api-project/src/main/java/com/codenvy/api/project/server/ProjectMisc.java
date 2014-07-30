@@ -36,6 +36,10 @@ public class ProjectMisc {
         this.project = project;
     }
 
+    final Project getProject() {
+        return project;
+    }
+
     public long getModificationDate() {
         return data.getLong(UPDATED, -1L);
     }

@@ -43,15 +43,15 @@ public class ProjectProperties {
         try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
             return load(inputStream);
         } catch (IOException e) {
-            throw new ServerException("Unable parse project properties. " + e.getMessage());
+            throw new ServerException(e.getMessage(), e);
         }
     }
 
-    public static ProjectProperties load(InputStream inputStream) throws ServerException {
-        try  {
+    public static ProjectProperties load(InputStream inputStream) throws IOException {
+        try {
             return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
         } catch (JsonParseException e) {
-            throw new ServerException("Unable parse project properties. " + e.getMessage());
+            throw new IOException("Unable parse project properties. " + e.getMessage());
         }
     }
 
@@ -94,7 +94,7 @@ public class ProjectProperties {
                     throw new ServerException(e.getServiceError());
                 }
             }
-        }catch (ForbiddenException e) {
+        } catch (ForbiddenException e) {
             // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
             throw new ServerException(e.getServiceError());
         }
@@ -160,6 +160,28 @@ public class ProjectProperties {
         for (ProjectProperty property : myProperties) {
             if (name.equals(property.getName())) {
                 return property;
+            }
+        }
+        return null;
+    }
+
+    public String getPropertyValue(String name) {
+        final ProjectProperty myProperty = findProperty(name);
+        if (myProperty != null) {
+            final List<String> value = myProperty.getValue();
+            if (value != null && !value.isEmpty()) {
+                return value.get(0);
+            }
+        }
+        return null;
+    }
+
+    public List<String> getPropertyValues(String name) {
+        final ProjectProperty myProperty = findProperty(name);
+        if (myProperty != null) {
+            final List<String> value = myProperty.getValue();
+            if (value != null) {
+                return new ArrayList<>(value);
             }
         }
         return null;

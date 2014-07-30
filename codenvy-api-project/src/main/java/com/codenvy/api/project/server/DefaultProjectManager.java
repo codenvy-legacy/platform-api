@@ -87,7 +87,7 @@ public final class DefaultProjectManager implements ProjectManager {
                         final int index = key.hashCode() & CACHE_MASK;
                         miscLocks[index].lock();
                         try {
-                            writeProjectMisc(getProject(key.first, key.second), value);
+                            writeProjectMisc(value.getProject(), value);
                         } catch (Exception e) {
                             LOG.error(e.getMessage(), e);
                         } finally {

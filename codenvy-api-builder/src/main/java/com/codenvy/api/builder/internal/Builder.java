@@ -696,6 +696,14 @@ public abstract class Builder {
                 getExecutor().execute(new Runnable() {
                     @Override
                     public void run() {
+                        try {
+                            // Need a bit time for process that post this task to finish. Problem arises if builder is easy loaded. In this
+                            // case BuildQueue gets notification event about starting build task even before process that posts build task
+                            // ends. This might make problem to see all phases of build process:
+                            // IN_QUEUE, IN_PROGRESS, SUCCESSFUL|FAILED|CANCELLED.
+                            Thread.sleep(300);
+                        } catch (InterruptedException ignored) {
+                        }
                         callback.begin(FutureBuildTask.this);
                     }
                 });

@@ -658,13 +658,7 @@ public class BuildQueue {
                             case DONE:
                                 bm.setChannel(String.format("builder:status:%d", id));
                                 try {
-                                    final BuildTaskDescriptor descriptor = getTask(id).getDescriptor();
-                                    // Force set "in progress" state if get begin event. Task in queue in same case might show incorrect
-                                    // state but we know exactly build process is started cause to "begin" event.
-                                    if (event.getType() == BuilderEvent.EventType.BEGIN) {
-                                        descriptor.setStatus(BuildStatus.IN_PROGRESS);
-                                    }
-                                    bm.setBody(DtoFactory.getInstance().toJson(descriptor));
+                                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
                                 } catch (BuilderException re) {
                                     bm.setType(ChannelBroadcastMessage.Type.ERROR);
                                     bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));

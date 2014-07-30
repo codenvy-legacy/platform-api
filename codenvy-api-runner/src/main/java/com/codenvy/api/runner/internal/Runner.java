@@ -142,8 +142,8 @@ public abstract class Runner {
     public List<RunnerMetric> getStats() throws RunnerException {
         List<RunnerMetric> global = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        global.add(dtoFactory.createDto(RunnerMetric.class).withName("totalApps").withValue(Integer.toString(getTotalAppsNum())));
-        global.add(dtoFactory.createDto(RunnerMetric.class).withName("runningApps").withValue(Integer.toString(getRunningAppsNum())));
+        global.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.TOTAL_APPS).withValue(Integer.toString(getTotalAppsNum())));
+        global.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.RUNNING_APPS).withValue(Integer.toString(getRunningAppsNum())));
         return global;
     }
 
@@ -204,23 +204,23 @@ public abstract class Runner {
         final long started = process.getStartTime();
         final long stopped = process.getStopTime();
         if (started > 0) {
-            result.add(dtoFactory.createDto(RunnerMetric.class).withName("startTime").withValue(format.format(started))
+            result.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.START_TIME).withValue(format.format(started))
                                  .withDescription("Time when application was started"));
             if (stopped <= 0) {
                 long lifetime = process.getConfiguration().getRequest().getLifetime();
                 String terminationTime;
                 if (lifetime >= Integer.MAX_VALUE)
-                    terminationTime = "Always-On";
+                    terminationTime = RunnerMetric.ALWAYS_ON;
                 else
-                    terminationTime = format.format(started + TimeUnit.SECONDS.toMillis(lifetime));
+                    terminationTime = Long.toString(started + TimeUnit.SECONDS.toMillis(lifetime));
                 result.add(dtoFactory.createDto(RunnerMetric.class)
-                                     .withName("terminationTime")
+                                     .withName(RunnerMetric.TERMINATION_TIME)
                                      .withValue(terminationTime)
                                      .withDescription("Time after that this application might be terminated"));
             }
         }
         if (stopped > 0) {
-            result.add(dtoFactory.createDto(RunnerMetric.class).withName("stopTime").withValue(format.format(stopped))
+            result.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.STOP_TIME).withValue(format.format(stopped))
                                  .withDescription("Time when application was stopped"));
         }
         final long uptime = process.getUptime();
@@ -233,7 +233,7 @@ public abstract class Runner {
             long minutes = TimeUnit.MILLISECONDS.toMinutes(millis);
             millis -= TimeUnit.MINUTES.toMillis(minutes);
             long seconds = TimeUnit.MILLISECONDS.toSeconds(millis);
-            result.add(dtoFactory.createDto(RunnerMetric.class).withName("uptime")
+            result.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.UP_TIME)
                                  .withValue(String.format("%dd:%02dh:%02dm:%02ds", days, hours, minutes, seconds))
                                  .withDescription("Application's uptime"));
         }

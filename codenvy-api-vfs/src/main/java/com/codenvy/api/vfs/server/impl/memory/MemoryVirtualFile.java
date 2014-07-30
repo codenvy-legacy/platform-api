@@ -506,7 +506,8 @@ public class MemoryVirtualFile implements VirtualFile {
             if (((MemoryVirtualFile)child).hasPermission(BasicPermissions.READ.value(), false)) {
                 return child;
             }
-            throw new ForbiddenException(String.format("Unable get item '%s'. Operation not permitted. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to get an item '%s'.  " +
+                                                       "You do not have the correct permissions to complete this operation. ", getPath()));
         }
         return null;
     }
@@ -1116,7 +1117,8 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new ForbiddenException("Unable create new folder. Item specified as parent is not a folder. ");
         }
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("Unable create new folder in '%s'. Operation not permitted. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to create a new folder in '%s' as part of the import. " +
+                                                       "You do not have the correct permissions to complete this operation. ", getPath()));
         }
         MemoryVirtualFile newFolder = null;
         MemoryVirtualFile current = this;

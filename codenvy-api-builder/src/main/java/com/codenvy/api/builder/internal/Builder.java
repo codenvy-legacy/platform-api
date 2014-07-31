@@ -597,7 +597,6 @@ public abstract class Builder {
         private BuildResult result;
         private long        startTime;
         private long        endTime;
-//        private long        lastUsageTime;
 
         protected FutureBuildTask(Callable<Boolean> callable,
                                   Long id,

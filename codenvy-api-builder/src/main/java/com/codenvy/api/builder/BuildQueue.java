@@ -609,6 +609,7 @@ public class BuildQueue {
                             }
                             if (remote == null) {
                                 i.remove();
+                                successfulBuilds.remove(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L));
                                 num++;
                             } else if ((remote.getCreationTime() + keepResultTimeMillis) < System.currentTimeMillis()) {
                                 try {

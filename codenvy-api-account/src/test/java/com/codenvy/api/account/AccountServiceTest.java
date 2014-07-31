@@ -571,14 +571,6 @@ public class AccountServiceTest {
         assertEquals(actualSubscription.getAccountId(), ACCOUNT_ID);
         assertEquals(actualSubscription.getServiceId(), SERVICE_ID);
         assertEquals(actualSubscription.getProperties(), Collections.singletonMap("TariffPlan", "yearly"));
-        Calendar now = Calendar.getInstance();
-        Calendar yearLater = Calendar.getInstance();
-        yearLater.setTimeInMillis(now.getTimeInMillis());
-        yearLater.add(Calendar.YEAR, 1);
-        // may fail in debug if user spends too much time
-        assertFalse(now.getTimeInMillis() - actualSubscription.getStartDate() > TimeUnit.SECONDS.toMillis(1));
-        assertEquals(actualSubscription.getEndDate() - actualSubscription.getStartDate(),
-                     yearLater.getTimeInMillis() - now.getTimeInMillis());
         assertEqualsNoOrder(actualSubscription.getLinks().toArray(), new Link[]{
                 DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE)
                           .withHref(SERVICE_PATH + "/subscriptions/" + actualSubscription.getId()),
@@ -620,19 +612,6 @@ public class AccountServiceTest {
                     return false;
                 }
 
-                Calendar now = Calendar.getInstance();
-                Calendar monthLater = Calendar.getInstance();
-                monthLater.setTimeInMillis(now.getTimeInMillis());
-                monthLater.add(Calendar.MONTH, 1);
-                // may fail in debug if user spends too much time
-                if (now.getTimeInMillis() - actual.getStartDate() > TimeUnit.SECONDS.toMillis(1)) {
-                    return false;
-                }
-
-                if (actual.getEndDate() - actual.getStartDate() != monthLater.getTimeInMillis() - now.getTimeInMillis()) {
-                    return false;
-                }
-
                 return true;
             }
         }));
@@ -666,19 +645,6 @@ public class AccountServiceTest {
                     return false;
                 }
 
-                Calendar now = Calendar.getInstance();
-                Calendar sevenDaysLater = Calendar.getInstance();
-                sevenDaysLater.setTimeInMillis(now.getTimeInMillis());
-                sevenDaysLater.add(Calendar.DAY_OF_YEAR, 7);
-                // may fail in debug if user spends too much time
-                if (now.getTimeInMillis() - actual.getStartDate() > TimeUnit.SECONDS.toMillis(100)) {
-                    return false;
-                }
-
-                if (actual.getEndDate() - actual.getStartDate() != sevenDaysLater.getTimeInMillis() - now.getTimeInMillis()) {
-                    return false;
-                }
-
                 return true;
             }
         }));
@@ -689,7 +655,7 @@ public class AccountServiceTest {
             @Override
             public boolean matches(Object argument) {
                 Subscription actual = (Subscription)argument;
-                if (actual.getState() == ACTIVE && ACCOUNT_ID.equals(actual.getAccountId()) && SERVICE_ID.equals(actual.getServiceId()) &&
+                if (ACCOUNT_ID.equals(actual.getAccountId()) && SERVICE_ID.equals(actual.getServiceId()) &&
                     Collections.singletonMap("codenvy:trial", "true").equals(actual.getProperties())) {
                     return true;
                 }

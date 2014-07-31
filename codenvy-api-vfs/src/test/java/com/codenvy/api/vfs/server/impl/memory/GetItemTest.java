@@ -16,13 +16,13 @@ import com.codenvy.api.vfs.shared.dto.Item;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,8 +127,8 @@ public class GetItemTest extends MemoryFileSystemTest {
 
     public void testGetFileNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         mountPoint.getVirtualFileById(fileId).updateACL(createAcl(permissions), true, null);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "item/" + fileId;
@@ -139,8 +139,8 @@ public class GetItemTest extends MemoryFileSystemTest {
 
     public void testGetFileByPathNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         mountPoint.getVirtualFileById(fileId).updateACL(createAcl(permissions), true, null);
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "itembypath" + filePath;
@@ -180,6 +180,6 @@ public class GetItemTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "itembypath" + folderPath + '?' + "versionId=" + "0";
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, writer, null);
         log.info(new String(writer.getBody()));
-        assertEquals(400, response.getStatus());
+        assertEquals(403, response.getStatus());
     }
 }

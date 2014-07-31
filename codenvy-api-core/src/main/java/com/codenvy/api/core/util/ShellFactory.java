@@ -50,6 +50,15 @@ public class ShellFactory {
                             case '"':
                             case '\'':
                             case '&':
+                            case '(':
+                            case ')':
+                            case '~':
+                            case '@':
+                            case '#':
+                            case '%':
+                            case '!':
+                            case '^':
+                            case '*':
                                 buff.append('\\');
                                 buff.append(c);
                                 break;

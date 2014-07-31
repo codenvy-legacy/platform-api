@@ -14,7 +14,8 @@ package com.codenvy.api.project.server;
  * Listener for project events.
  *
  * @author andrew00x
- * @see com.codenvy.api.project.server.ProjectEventService
+ * @see ProjectEventService
+ * @see ProjectEvent
  */
 public interface ProjectEventListener {
     void onEvent(ProjectEvent event);

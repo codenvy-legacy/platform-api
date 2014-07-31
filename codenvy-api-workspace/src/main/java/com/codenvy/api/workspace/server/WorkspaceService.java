@@ -62,7 +62,16 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Workspace API
@@ -231,7 +240,7 @@ public class WorkspaceService extends Service {
                              .withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
             userDao.create(user);
             try {
-                Map<String, String> attributes = new HashMap<>();
+                final Map<String, String> attributes = new HashMap<>(2);
                 attributes.put("temporary", String.valueOf(true));
                 attributes.put("codenvy:created", Long.toString(System.currentTimeMillis()));
                 userProfileDao.create(new Profile().withId(user.getId())

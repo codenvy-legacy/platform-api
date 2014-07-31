@@ -10,7 +10,11 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.Path;
@@ -18,9 +22,6 @@ import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.VirtualFileVisitor;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.server.exceptions.PermissionDeniedException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
@@ -63,22 +64,22 @@ public class MemoryMountPoint implements MountPoint {
     }
 
     @Override
-    public VirtualFile getVirtualFileById(String id) throws VirtualFileSystemException {
+    public VirtualFile getVirtualFileById(String id) throws NotFoundException, ForbiddenException, ServerException {
         if (id.equals(root.getId())) {
             return getRoot();
         }
         final VirtualFile virtualFile = entries.get(id);
         if (virtualFile == null) {
-            throw new ItemNotFoundException(String.format("Object '%s' does not exists. ", id));
+            throw new NotFoundException(String.format("Object '%s' does not exists. ", id));
         }
-        if (!((MemoryVirtualFile)virtualFile).hasPermission(VirtualFileSystemInfo.BasicPermissions.READ, true)) {
-            throw new PermissionDeniedException(String.format("Unable get item '%s'. Operation not permitted. ", id));
+        if (!((MemoryVirtualFile)virtualFile).hasPermission(VirtualFileSystemInfo.BasicPermissions.READ.value(), true)) {
+            throw new ForbiddenException(String.format("Unable get item '%s'. Operation not permitted. ", id));
         }
         return virtualFile;
     }
 
     @Override
-    public VirtualFile getVirtualFile(String path) throws VirtualFileSystemException {
+    public VirtualFile getVirtualFile(String path) throws NotFoundException, ForbiddenException, ServerException {
         if (path == null) {
             throw new IllegalArgumentException("Item path may not be null. ");
         }
@@ -98,7 +99,7 @@ public class MemoryMountPoint implements MountPoint {
             }
         }
         if (virtualFile == null) {
-            throw new ItemNotFoundException(String.format("Object '%s' does not exists. ", path));
+            throw new NotFoundException(String.format("Object '%s' does not exists. ", path));
         }
 
         return virtualFile;
@@ -109,21 +110,30 @@ public class MemoryMountPoint implements MountPoint {
         entries.clear();
     }
 
-    void putItem(MemoryVirtualFile item) throws VirtualFileSystemException {
+    void putItem(MemoryVirtualFile item) throws ServerException {
         if (item.isFolder()) {
             final Map<String, VirtualFile> flatten = new HashMap<>();
+            final ValueHolder<ServerException> errorHolder = new ValueHolder<>();
             item.accept(new VirtualFileVisitor() {
                 @Override
-                public void visit(VirtualFile virtualFile) throws VirtualFileSystemException {
-                    if (virtualFile.isFolder()) {
-                        final LazyIterator<VirtualFile> children = virtualFile.getChildren(VirtualFileFilter.ALL);
-                        while (children.hasNext()) {
-                            children.next().accept(this);
+                public void visit(VirtualFile virtualFile) {
+                    try {
+                        if (virtualFile.isFolder()) {
+                            final LazyIterator<VirtualFile> children = virtualFile.getChildren(VirtualFileFilter.ALL);
+                            while (children.hasNext()) {
+                                children.next().accept(this);
+                            }
                         }
+                        flatten.put(virtualFile.getId(), virtualFile);
+                    } catch (ServerException e) {
+                        errorHolder.set(e);
                     }
-                    flatten.put(virtualFile.getId(), virtualFile);
                 }
             });
+            final ServerException error = errorHolder.get();
+            if (error != null) {
+                throw error;
+            }
             entries.putAll(flatten);
         } else {
             entries.put(item.getId(), item);

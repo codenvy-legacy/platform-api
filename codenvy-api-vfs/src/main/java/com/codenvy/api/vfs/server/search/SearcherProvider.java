@@ -10,8 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.search;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.MountPoint;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 /**
  * Manages instances of Searcher.
@@ -25,11 +25,9 @@ public interface SearcherProvider {
      * @param mountPoint
      *         MountPoint
      * @param create
-     *         <code>true</code> to create new Searcher if necessary; <code>false</code> to return <code>null</code> if Searcher is not
-     *         initialized yet
-     * @return <code>Searcher</code> or <code>null</code> if <code>create</code> is <code>false</code> and the Searcher is not initialized
-     *         yet
+     *         {@code true} to create new Searcher if necessary; {@code false} to return {@code null} if Searcher is not initialized yet
+     * @return {@code Searcher} or {@code null} if {@code create} is {@code false} and the Searcher is not initialized yet
      * @see com.codenvy.api.vfs.server.MountPoint
      */
-    Searcher getSearcher(MountPoint mountPoint, boolean create) throws VirtualFileSystemException;
+    Searcher getSearcher(MountPoint mountPoint, boolean create) throws ServerException;
 }

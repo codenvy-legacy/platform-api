@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import javax.annotation.Nullable;
@@ -48,7 +48,7 @@ public class VirtualFileSystemFactory {
     private String                    vfsId;
 
     @Path("v2")
-    public VirtualFileSystem getFileSystem() throws VirtualFileSystemException {
+    public VirtualFileSystem getFileSystem() throws ServerException {
         validateRequest();
         //final String vfsId = (String)EnvironmentContext.getCurrent().getVariable(EnvironmentContext.WORKSPACE_ID);
         VirtualFileSystemProvider provider = registry.getProvider(vfsId);
@@ -57,7 +57,7 @@ public class VirtualFileSystemFactory {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Collection<VirtualFileSystemInfo> getAvailableFileSystems() throws VirtualFileSystemException {
+    public Collection<VirtualFileSystemInfo> getAvailableFileSystems() throws ServerException {
         validateRequest();
         final Collection<VirtualFileSystemProvider> vfsProviders = registry.getRegisteredProviders();
         final List<VirtualFileSystemInfo> result = new ArrayList<>(vfsProviders.size());

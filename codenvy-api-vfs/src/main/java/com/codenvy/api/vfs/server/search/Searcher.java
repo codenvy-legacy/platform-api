@@ -10,9 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.search;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.search.QueryExpression;
 
 public interface Searcher {
     /**
@@ -21,40 +20,40 @@ public interface Searcher {
      * @param query
      *         query expression
      * @return paths of matched items
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    String[] search(QueryExpression query) throws VirtualFileSystemException;
+    String[] search(QueryExpression query) throws ServerException;
 
     /**
      * Add VirtualFile to index.
      *
      * @param virtualFile
      *         VirtualFile to add
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    void add(VirtualFile virtualFile) throws VirtualFileSystemException;
+    void add(VirtualFile virtualFile) throws ServerException;
 
     /**
      * Delete VirtualFile to index.
      *
      * @param path
      *         path of VirtualFile
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    void delete(String path) throws VirtualFileSystemException;
+    void delete(String path) throws ServerException;
 
     /**
      * Updated indexed VirtualFile.
      *
      * @param virtualFile
      *         VirtualFile to add
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    void update(VirtualFile virtualFile) throws VirtualFileSystemException;
+    void update(VirtualFile virtualFile) throws ServerException;
 
     /** Close Searcher. */
     void close();

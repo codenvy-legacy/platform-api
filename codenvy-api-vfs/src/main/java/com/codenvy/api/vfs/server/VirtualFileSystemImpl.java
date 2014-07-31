@@ -10,12 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.HtmlErrorFormatter;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
-import com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.server.exceptions.NotSupportedException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.search.QueryExpression;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.server.util.LinksHelper;
@@ -103,28 +101,28 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     @Path("copy/{id}")
     @Override
-    public Item copy(@PathParam("id") String id, @QueryParam("parentId") String parentId) throws VirtualFileSystemException {
-        final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        if (!parent.isFolder()) {
-            throw new InvalidArgumentException("Unable create copy item. Item specified as parent is not a folder. ");
-        }
-        final VirtualFile virtualFileCopy = mountPoint.getVirtualFileById(id).copyTo(parent);
+    public Item copy(@PathParam("id") String id, @QueryParam("parentId") String parentId)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
+        final VirtualFile virtualFileCopy = mountPoint.getVirtualFileById(id).copyTo(mountPoint.getVirtualFileById(parentId));
         return fromVirtualFile(virtualFileCopy, false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("clone/{id}")
     @Override
-    public void clone(@PathParam("id") String id, @QueryParam("vfsId") String vfsId, @QueryParam("parentId") String parentId, @QueryParam("name") String name)
-            throws VirtualFileSystemException {
+    public void clone(@PathParam("id") String id,
+                      @QueryParam("vfsId") String vfsId,
+                      @QueryParam("parentId") String parentId,
+                      @QueryParam("name") String name) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile item = mountPoint.getVirtualFileById(id);
         final VirtualFile destination = vfsRegistry.getProvider(vfsId).getMountPoint(true).getVirtualFileById(parentId);
         if (!destination.isFolder()) {
-            throw new InvalidArgumentException("Unable to perform cloning. Item specified as parent is not a folder.");
+            throw new ForbiddenException("Unable to perform cloning. Item specified as parent is not a folder.");
         }
         doClone(item, destination, name);
     }
 
-    private void doClone(VirtualFile item, VirtualFile destination, String name) throws VirtualFileSystemException {
+    private void doClone(VirtualFile item, VirtualFile destination, String name)
+            throws ForbiddenException, ConflictException, ServerException {
         if (item.isFile()) {
             InputStream input = null;
             try {
@@ -152,41 +150,37 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     public File createFile(@PathParam("parentId") String parentId,
                            @QueryParam("name") String name,
                            @DefaultValue(MediaType.APPLICATION_OCTET_STREAM) @HeaderParam("Content-Type") MediaType mediaType,
-                           InputStream content) throws VirtualFileSystemException {
+                           InputStream content) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        if (!parent.isFolder()) {
-            throw new InvalidArgumentException("Unable create new file. Item specified as parent is not a folder. ");
-        }
         final VirtualFile newVirtualFile = parent.createFile(name, mediaType != null ? mediaType.toString() : null, content);
         return (File)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("folder/{parentId}")
     @Override
-    public Folder createFolder(@PathParam("parentId") String parentId, @QueryParam("name") String name) throws VirtualFileSystemException {
+    public Folder createFolder(@PathParam("parentId") String parentId, @QueryParam("name") String name)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        if (!parent.isFolder()) {
-            throw new InvalidArgumentException("Unable create new folder. Item specified as parent is not a folder. ");
-        }
         final VirtualFile newVirtualFile = parent.createFolder(name);
         return (Folder)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("delete/{id}")
     @Override
-    public void delete(@PathParam("id") String id, @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
+    public void delete(@PathParam("id") String id, @QueryParam("lockToken") String lockToken)
+            throws NotFoundException, ForbiddenException, ServerException {
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
         if (virtualFile.isRoot()) {
-            throw new InvalidArgumentException("Unable delete root folder. ");
+            throw new ForbiddenException("Unable delete root folder. ");
         }
         virtualFile.delete(lockToken);
     }
 
     @Path("acl/{id}")
     @Override
-    public List<AccessControlEntry> getACL(@PathParam("id") String id) throws VirtualFileSystemException {
+    public List<AccessControlEntry> getACL(@PathParam("id") String id) throws NotFoundException, ForbiddenException, ServerException {
         if (getInfo().getAclCapability() == ACLCapability.NONE) {
-            throw new NotSupportedException("ACL feature is not supported. ");
+            throw new ServerException("ACL feature is not supported. ");
         }
         return mountPoint.getVirtualFileById(id).getACL();
     }
@@ -199,9 +193,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                 @QueryParam("itemType") String itemType,
                                 @DefaultValue("false") @QueryParam("includePermissions") Boolean includePermissions,
                                 @DefaultValue(PropertyFilter.NONE) @QueryParam("propertyFilter") PropertyFilter propertyFilter)
-            throws VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         if (skipCount < 0) {
-            throw new InvalidArgumentException("'skipCount' parameter is negative. ");
+            throw new ConflictException("'skipCount' parameter is negative. ");
         }
 
         final ItemType itemTypeType;
@@ -209,7 +203,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             try {
                 itemTypeType = ItemType.fromValue(itemType);
             } catch (IllegalArgumentException e) {
-                throw new InvalidArgumentException(String.format("Unknown type: %s", itemType));
+                throw new ForbiddenException(String.format("Unknown type: %s", itemType));
             }
         } else {
             itemTypeType = null;
@@ -218,7 +212,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
 
         if (!virtualFile.isFolder()) {
-            throw new InvalidArgumentException(String.format("Unable get children. Item '%s' is not a folder. ", virtualFile.getPath()));
+            throw new ForbiddenException(String.format("Unable get children. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
 
         final VirtualFileFilter filter;
@@ -227,9 +221,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         } else {
             filter = new VirtualFileFilter() {
                 @Override
-                public boolean accept(VirtualFile file) throws VirtualFileSystemException {
-                    return (itemTypeType == ItemType.FILE && file.isFile())
-                           || (itemTypeType == ItemType.FOLDER && file.isFolder());
+                public boolean accept(VirtualFile file) {
+                    try {
+                        return (itemTypeType == ItemType.FILE && file.isFile()) || (itemTypeType == ItemType.FOLDER && file.isFolder());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
                 }
             };
         }
@@ -239,7 +236,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 children.skip(skipCount);
             }
         } catch (NoSuchElementException nse) {
-            throw new InvalidArgumentException("'skipCount' parameter is greater then total number of items. ");
+            throw new ConflictException("'skipCount' parameter is greater then total number of items. ");
         }
 
         final List<Item> items = new ArrayList<>();
@@ -252,7 +249,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     @Override
     public ItemList getChildren(String folderId, int maxItems, int skipCount, String itemType, boolean includePermissions)
-            throws VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         return getChildren(folderId, maxItems, skipCount, itemType, includePermissions, PropertyFilter.ALL_FILTER);
     }
 
@@ -262,10 +259,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                             @DefaultValue("-1") @QueryParam("depth") int depth,
                             @DefaultValue("false") @QueryParam("includePermissions") Boolean includePermissions,
                             @DefaultValue(PropertyFilter.NONE) @QueryParam("propertyFilter") PropertyFilter propertyFilter)
-            throws VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ServerException {
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
         if (!virtualFile.isFolder()) {
-            throw new InvalidArgumentException(String.format("Unable get tree. Item '%s' is not a folder. ", virtualFile.getPath()));
+            throw new ForbiddenException(String.format("Unable get tree. Item '%s' is not a folder. ", virtualFile.getPath()));
         }
         return DtoFactory.getInstance().createDto(ItemNode.class)
                          .withItem(fromVirtualFile(virtualFile, includePermissions, propertyFilter))
@@ -273,12 +270,13 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     }
 
     @Override
-    public ItemNode getTree(String folderId, int depth, boolean includePermissions) throws VirtualFileSystemException {
+    public ItemNode getTree(String folderId, int depth, boolean includePermissions)
+            throws NotFoundException, ForbiddenException, ServerException {
         return getTree(folderId, depth, includePermissions, PropertyFilter.ALL_FILTER);
     }
 
     private List<ItemNode> getTreeLevel(VirtualFile virtualFile, int depth, boolean includePermissions, PropertyFilter propertyFilter)
-            throws VirtualFileSystemException {
+            throws ServerException {
         if (depth == 0 || !virtualFile.isFolder()) {
             return null;
         }
@@ -295,39 +293,31 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     @Path("content/{id}")
     @Override
-    public ContentStream getContent(@PathParam("id") String id) throws VirtualFileSystemException {
-        final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
-        if (!virtualFile.isFile()) {
-            throw new InvalidArgumentException(String.format("Unable get content. Item '%s' is not a file. ", virtualFile.getPath()));
-        }
-        return virtualFile.getContent();
+    public ContentStream getContent(@PathParam("id") String id) throws NotFoundException, ForbiddenException, ServerException {
+        return mountPoint.getVirtualFileById(id).getContent();
     }
 
     @Path("contentbypath/{path:.*}")
     @Override
     public ContentStream getContent(@PathParam("path") String path, @QueryParam("versionId") String versionId)
-            throws VirtualFileSystemException {
-        final VirtualFile virtualFile = mountPoint.getVirtualFile(path);
-        if (!virtualFile.isFile()) {
-            throw new InvalidArgumentException(String.format("Unable get content. Item '%s' is not a file. ", path));
-        }
-        return virtualFile.getContent();
+            throws NotFoundException, ForbiddenException, ServerException {
+        return mountPoint.getVirtualFile(path).getContent();
     }
 
     @Override
-    public abstract VirtualFileSystemInfo getInfo() throws VirtualFileSystemException;
+    public abstract VirtualFileSystemInfo getInfo() throws ServerException;
 
     @Path("item/{id}")
     @Override
     public Item getItem(@PathParam("id") String id,
                         @DefaultValue("false") @QueryParam("includePermissions") Boolean includePermissions,
                         @DefaultValue(PropertyFilter.ALL) @QueryParam("propertyFilter") PropertyFilter propertyFilter)
-            throws VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ServerException {
         return fromVirtualFile(mountPoint.getVirtualFileById(id), includePermissions, propertyFilter);
     }
 
     @Override
-    public Item getItem(String id, boolean includePermissions) throws VirtualFileSystemException {
+    public Item getItem(String id, boolean includePermissions) throws NotFoundException, ForbiddenException, ServerException {
         return getItem(id, includePermissions, PropertyFilter.ALL_FILTER);
     }
 
@@ -337,28 +327,29 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                               @QueryParam("versionId") String versionId,
                               @DefaultValue("false") @QueryParam("includePermissions") Boolean includePermissions,
                               @DefaultValue(PropertyFilter.ALL) @QueryParam("propertyFilter") PropertyFilter propertyFilter)
-            throws VirtualFileSystemException {
-        VirtualFile virtualFile = getVirtualFileByPath(path);
+            throws NotFoundException, ForbiddenException, ServerException {
+        VirtualFile virtualFile = mountPoint.getVirtualFile(path);
         if (virtualFile.isFile()) {
             if (versionId != null) {
                 virtualFile = virtualFile.getVersion(versionId);
             }
         } else if (versionId != null) {
-            throw new InvalidArgumentException(String.format("Object '%s' is not a file. Version ID must not be set. ", path));
+            throw new ForbiddenException(String.format("Object '%s' is not a file. Version ID must not be set. ", path));
         }
 
         return fromVirtualFile(virtualFile, includePermissions, propertyFilter);
     }
 
     @Override
-    public Item getItemByPath(String path, String versionId, boolean includePermissions) throws VirtualFileSystemException {
+    public Item getItemByPath(String path, String versionId, boolean includePermissions)
+            throws NotFoundException, ForbiddenException, ServerException {
         return getItemByPath(path, versionId, includePermissions, PropertyFilter.ALL_FILTER);
     }
 
     @Path("version/{id}/{versionId}")
     @Override
     public ContentStream getVersion(@PathParam("id") String id, @PathParam("versionId") String versionId)
-            throws VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ServerException {
         return mountPoint.getVirtualFileById(id).getVersion(versionId).getContent();
     }
 
@@ -368,13 +359,13 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                                 @DefaultValue("-1") @QueryParam("maxItems") int maxItems,
                                 @QueryParam("skipCount") int skipCount,
                                 @DefaultValue(PropertyFilter.ALL) @QueryParam("propertyFilter") PropertyFilter propertyFilter)
-            throws VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         if (skipCount < 0) {
-            throw new InvalidArgumentException("'skipCount' parameter is negative. ");
+            throw new ConflictException("'skipCount' parameter is negative. ");
         }
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
         if (!virtualFile.isFile()) {
-            throw new InvalidArgumentException(
+            throw new ForbiddenException(
                     String.format("Unable get versions of '%s'. Versioning allowed for files only. ", virtualFile.getPath()));
         }
         final LazyIterator<VirtualFile> versions = virtualFile.getVersions(VirtualFileFilter.ALL);
@@ -383,7 +374,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 versions.skip(skipCount);
             }
         } catch (NoSuchElementException nse) {
-            throw new InvalidArgumentException("'skipCount' parameter is greater then total number of items. ");
+            throw new ConflictException("'skipCount' parameter is greater then total number of items. ");
         }
 
         final List<Item> items = new ArrayList<>();
@@ -395,22 +386,23 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     }
 
     @Override
-    public ItemList getVersions(String id, int maxItems, int skipCount) throws VirtualFileSystemException {
+    public ItemList getVersions(String id, int maxItems, int skipCount)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         return getVersions(id, maxItems, skipCount, PropertyFilter.ALL_FILTER);
     }
 
     @Path("lock/{id}")
     @Override
     public Lock lock(@PathParam("id") String id,
-                     @DefaultValue("0") @QueryParam("timeout") long timeout) throws NotSupportedException, VirtualFileSystemException {
+                     @DefaultValue("0") @QueryParam("timeout") long timeout)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         if (!getInfo().isLockSupported()) {
-            throw new NotSupportedException("Locking is not supported. ");
+            throw new ServerException("Locking is not supported. ");
         }
         final VirtualFileSystemUser user = userContext.getVirtualFileSystemUser();
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
         if (!virtualFile.isFile()) {
-            throw new InvalidArgumentException(
-                    String.format("Unable lock '%s'. Locking allowed for files only. ", virtualFile.getPath()));
+            throw new ForbiddenException(String.format("Unable lock '%s'. Locking allowed for files only. ", virtualFile.getPath()));
         }
         final String lockToken = mountPoint.getVirtualFileById(id).lock(timeout);
         return DtoFactory.getInstance().createDto(Lock.class).withLockToken(lockToken).withOwner(user.getUserId()).withTimeout(timeout);
@@ -420,13 +412,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Override
     public Item move(@PathParam("id") String id,
                      @QueryParam("parentId") String parentId,
-                     @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
-        final VirtualFile origin = mountPoint.getVirtualFileById(id);
-        final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        if (!parent.isFolder()) {
-            throw new InvalidArgumentException("Unable create move item. Item specified as parent is not a folder. ");
-        }
-        return fromVirtualFile(origin.moveTo(parent, lockToken), false, PropertyFilter.ALL_FILTER);
+                     @QueryParam("lockToken") String lockToken)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
+        return fromVirtualFile(mountPoint.getVirtualFileById(id).moveTo(mountPoint.getVirtualFileById(parentId), lockToken),
+                               false, PropertyFilter.ALL_FILTER);
     }
 
     @Path("rename/{id}")
@@ -434,7 +423,8 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     public Item rename(@PathParam("id") String id,
                        @QueryParam("mediaType") MediaType newMediaType,
                        @QueryParam("newname") String newName,
-                       @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
+                       @QueryParam("lockToken") String lockToken)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         if ((newName == null || newName.isEmpty()) && newMediaType == null) {
             // Nothing to do. Return unchanged object.
             return getItem(id, false, PropertyFilter.ALL_FILTER);
@@ -450,10 +440,10 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                            @DefaultValue("-1") @QueryParam("maxItems") int maxItems,
                            @QueryParam("skipCount") int skipCount,
                            @DefaultValue(PropertyFilter.ALL) @QueryParam("propertyFilter") PropertyFilter propertyFilter)
-            throws NotSupportedException, VirtualFileSystemException {
+            throws ConflictException, ServerException {
         if (searcherProvider != null) {
             if (skipCount < 0) {
-                throw new InvalidArgumentException("'skipCount' parameter is negative. ");
+                throw new ConflictException("'skipCount' parameter is negative. ");
             }
             final QueryExpression expr = new QueryExpression()
                     .setPath(query.getFirst("path"))
@@ -464,7 +454,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             final String[] result = searcherProvider.getSearcher(mountPoint, true).search(expr);
             if (skipCount > 0) {
                 if (skipCount > result.length) {
-                    throw new InvalidArgumentException("'skipCount' parameter is greater then total number of items. ");
+                    throw new ConflictException("'skipCount' parameter is greater then total number of items. ");
                 }
             }
             final int length = maxItems > 0 ? Math.min(result.length, maxItems) : result.length;
@@ -472,42 +462,41 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             for (int i = skipCount; i < length; i++) {
                 String path = result[i];
                 try {
-                    items.add(fromVirtualFile(getVirtualFileByPath(path), false, propertyFilter));
-                } catch (ItemNotFoundException ignored) {
+                    items.add(fromVirtualFile(mountPoint.getVirtualFile(path), false, propertyFilter));
+                } catch (NotFoundException | ForbiddenException ignored) {
                 }
             }
 
             return DtoFactory.getInstance().createDto(ItemList.class).withItems(items).withNumItems(result.length)
                              .withHasMoreItems(length < result.length);
         }
-        throw new NotSupportedException("Not supported. ");
+        throw new ServerException("Not supported. ");
     }
 
     @Override
-    public ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount)
-            throws NotSupportedException, VirtualFileSystemException {
+    public ItemList search(MultivaluedMap<String, String> query, int maxItems, int skipCount) throws ConflictException, ServerException {
         return search(query, maxItems, skipCount, PropertyFilter.ALL_FILTER);
     }
 
     @Override
     public ItemList search(@QueryParam("statement") String statement,
                            @DefaultValue("-1") @QueryParam("maxItems") int maxItems,
-                           @QueryParam("skipCount") int skipCount) throws NotSupportedException, VirtualFileSystemException {
+                           @QueryParam("skipCount") int skipCount) throws ServerException {
         // No plan to support SQL at the moment.
-        throw new NotSupportedException("Not supported. ");
+        throw new ServerException("Not supported. ");
     }
 
     @Path("unlock/{id}")
     @Override
     public void unlock(@PathParam("id") String id, @QueryParam("lockToken") String lockToken)
-            throws NotSupportedException, VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         if (!getInfo().isLockSupported()) {
-            throw new NotSupportedException("Locking is not supported. ");
+            throw new ServerException("Locking is not supported. ");
         }
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
         if (!virtualFile.isFile()) {
-            throw new VirtualFileSystemException(
-                    String.format("Unable unlock '%s'. Locking allowed for files only. ", virtualFile.getPath()));
+            throw new ConflictException(
+                    String.format("Unable unlock '%s'. Item isn't locked. Locking allowed for files only. ", virtualFile.getPath()));
         }
         virtualFile.unlock(lockToken);
     }
@@ -517,9 +506,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     public void updateACL(@PathParam("id") String id,
                           List<AccessControlEntry> acl,
                           @DefaultValue("false") @QueryParam("override") Boolean override,
-                          @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
+                          @QueryParam("lockToken") String lockToken) throws NotFoundException, ForbiddenException, ServerException {
         if (getInfo().getAclCapability() != ACLCapability.MANAGE) {
-            throw new NotSupportedException("Managing of ACL is not supported. ");
+            throw new ServerException("Managing of ACL is not supported. ");
         }
         mountPoint.getVirtualFileById(id).updateACL(acl, override, lockToken);
     }
@@ -530,19 +519,15 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             @PathParam("id") String id,
             @DefaultValue(MediaType.APPLICATION_OCTET_STREAM) @HeaderParam("Content-Type") MediaType mediaType,
             InputStream newContent,
-            @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
-        final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
-        if (!virtualFile.isFile()) {
-            throw new InvalidArgumentException(String.format("Unable update content. Item '%s' is not a file. ", id));
-        }
-        virtualFile.updateContent(mediaType != null ? mediaType.toString() : null, newContent, lockToken);
+            @QueryParam("lockToken") String lockToken) throws NotFoundException, ForbiddenException, ServerException {
+        mountPoint.getVirtualFileById(id).updateContent(mediaType != null ? mediaType.toString() : null, newContent, lockToken);
     }
 
     @Path("item/{id}")
     @Override
     public Item updateItem(@PathParam("id") String id,
                            List<Property> properties,
-                           @QueryParam("lockToken") String lockToken) throws VirtualFileSystemException {
+                           @QueryParam("lockToken") String lockToken) throws NotFoundException, ForbiddenException, ServerException {
         final VirtualFile virtualFile = mountPoint.getVirtualFileById(id);
         virtualFile.updateProperties(properties, lockToken);
         return fromVirtualFile(virtualFile, false, PropertyFilter.ALL_FILTER);
@@ -550,42 +535,31 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     @Path("export/{folderId}")
     @Override
-    public ContentStream exportZip(@PathParam("folderId") String folderId) throws IOException, VirtualFileSystemException {
-        final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
-        if (!virtualFile.isFolder()) {
-            throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
-        }
-        return exportZip(virtualFile);
+    public ContentStream exportZip(@PathParam("folderId") String folderId) throws NotFoundException, ForbiddenException, ServerException {
+        return exportZip(mountPoint.getVirtualFileById(folderId));
     }
 
     // For usage from Project API.
-    public static ContentStream exportZip(VirtualFile folder) throws IOException, VirtualFileSystemException {
+    public static ContentStream exportZip(VirtualFile folder) throws ForbiddenException, ServerException {
         return folder.zip(VirtualFileFilter.ALL);
     }
 
     @Path("export/{folderId}")
     @Override
-    public Response exportZip(@PathParam("folderId") String folderId, InputStream in) throws IOException, VirtualFileSystemException {
-        final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
-        if (!virtualFile.isFolder()) {
-            throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
-        }
-        return exportZip(virtualFile, in);
+    public Response exportZip(@PathParam("folderId") String folderId, InputStream in)
+            throws NotFoundException, ForbiddenException, ServerException {
+        return exportZip(mountPoint.getVirtualFileById(folderId), in);
     }
 
     @Path("export/{folderId}")
     @Override
     public Response exportZipMultipart(@PathParam("folderId") String folderId, InputStream in)
-            throws IOException, VirtualFileSystemException {
-        final VirtualFile virtualFile = mountPoint.getVirtualFileById(folderId);
-        if (!virtualFile.isFolder()) {
-            throw new InvalidArgumentException(String.format("Unable export to zip. Item '%s' is not a folder. ", virtualFile.getPath()));
-        }
-        return exportZipMultipart(virtualFile, in);
+            throws NotFoundException, ForbiddenException, ServerException {
+        return exportZipMultipart(mountPoint.getVirtualFileById(folderId), in);
     }
 
     // For usage from Project API.
-    public static Response exportZipMultipart(VirtualFile folder, InputStream in) throws IOException, VirtualFileSystemException {
+    public static Response exportZipMultipart(VirtualFile folder, InputStream in) throws ForbiddenException, ServerException {
         final List<String> deleted = new LinkedList<>();
         final ContentStream zip = exportZip(folder, in, deleted);
         if (zip == null) {
@@ -611,7 +585,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
 
     // For usage from Project API.
-    public static Response exportZip(VirtualFile folder, InputStream in) throws IOException, VirtualFileSystemException {
+    public static Response exportZip(VirtualFile folder, InputStream in) throws ForbiddenException, ServerException {
         final List<String> deleted = new LinkedList<>();
         final ContentStream zip = exportZip(folder, in, deleted);
         if (zip == null) {
@@ -637,19 +611,23 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     // For usage from Project API.
     protected static ContentStream exportZip(VirtualFile folder, InputStream in, List<String> deleted)
-            throws IOException, VirtualFileSystemException {
+            throws ForbiddenException, ServerException {
         final List<Pair<String, String>> remote = new LinkedList<>();
         final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         String line;
-        while ((line = reader.readLine()) != null) {
-            String hash = line.substring(0, 32); // 32 is length of MD-5 hash sum
-            int startPath = 33;
-            int l = line.length();
-            while (startPath < l && Character.isWhitespace(line.charAt(startPath))) {
-                startPath++;
+        try {
+            while ((line = reader.readLine()) != null) {
+                String hash = line.substring(0, 32); // 32 is length of MD-5 hash sum
+                int startPath = 33;
+                int l = line.length();
+                while (startPath < l && Character.isWhitespace(line.charAt(startPath))) {
+                    startPath++;
+                }
+                String relPath = line.substring(startPath);
+                remote.add(Pair.of(hash, relPath));
             }
-            String relPath = line.substring(startPath);
-            remote.add(Pair.of(hash, relPath));
+        } catch (IOException e) {
+            throw new ServerException(e.getMessage(), e);
         }
         if (remote.isEmpty()) {
             return folder.zip(VirtualFileFilter.ALL);
@@ -707,7 +685,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
         final ContentStream zip = folder.zip(new VirtualFileFilter() {
             @Override
-            public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+            public boolean accept(VirtualFile file) {
                 for (Pair<String, com.codenvy.api.vfs.server.Path> pair : diff) {
                     if (pair.second != null
                         && (pair.second.equals(file.getVirtualFilePath()) || pair.second.isChild(file.getVirtualFilePath()))) {
@@ -732,19 +710,20 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     public void importZip(@PathParam("parentId") String parentId,
                           InputStream in,
                           @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite)
-            throws VirtualFileSystemException, IOException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
         importZip(parent, in, overwrite);
     }
 
     // For usage from Project API.
-    public static void importZip(VirtualFile parent, InputStream in, boolean overwrite) throws VirtualFileSystemException, IOException {
+    public static void importZip(VirtualFile parent, InputStream in, boolean overwrite)
+            throws ForbiddenException, ConflictException, ServerException {
         parent.unzip(in, overwrite);
     }
 
     @Path("downloadfile/{id}")
     @Override
-    public Response downloadFile(@PathParam("id") String id) throws VirtualFileSystemException {
+    public Response downloadFile(@PathParam("id") String id) throws NotFoundException, ForbiddenException, ServerException {
         final ContentStream content = getContent(id);
         return Response
                 .ok(content.getStream(), content.getMimeType())
@@ -757,11 +736,12 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Path("uploadfile/{parentId}")
     @Override
     public Response uploadFile(@PathParam("parentId") String parentId, Iterator<FileItem> formData)
-            throws IOException, VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         return uploadFile(mountPoint.getVirtualFileById(parentId), formData);
     }
 
-    public static Response uploadFile(VirtualFile parent, Iterator<FileItem> formData) throws IOException, VirtualFileSystemException {
+    public static Response uploadFile(VirtualFile parent, Iterator<FileItem> formData)
+            throws ForbiddenException, ConflictException, ServerException {
         try {
             FileItem contentItem = null;
             String mediaType = null;
@@ -774,7 +754,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                     if (contentItem == null) {
                         contentItem = item;
                     } else {
-                        throw new InvalidArgumentException("More then one upload file is found but only one should be. ");
+                        throw new ServerException("More then one upload file is found but only one should be. ");
                     }
                 } else if ("mimeType".equals(item.getFieldName())) {
                     mediaType = item.getString().trim();
@@ -786,7 +766,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             }
 
             if (contentItem == null) {
-                throw new InvalidArgumentException("Cannot find file for upload. ");
+                throw new ServerException("Cannot find file for upload. ");
             }
             if (name == null || name.isEmpty()) {
                 name = contentItem.getName();
@@ -796,16 +776,21 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             }
 
             try {
-                parent.createFile(name, mediaType == null ? MediaType.APPLICATION_OCTET_STREAM : mediaType, contentItem.getInputStream());
-            } catch (ItemAlreadyExistException e) {
-                if (!overwrite) {
-                    throw new ItemAlreadyExistException("Unable upload file. Item with the same name exists. ");
+                try {
+                    parent.createFile(name, mediaType == null ? MediaType.APPLICATION_OCTET_STREAM : mediaType,
+                                      contentItem.getInputStream());
+                } catch (ConflictException e) {
+                    if (!overwrite) {
+                        throw new ConflictException("Unable upload file. Item with the same name exists. ");
+                    }
+                    parent.getChild(name).updateContent(mediaType, contentItem.getInputStream(), null);
                 }
-                parent.getChild(name).updateContent(mediaType, contentItem.getInputStream(), null);
+            } catch (IOException ioe) {
+                throw new ServerException(ioe.getMessage(), ioe);
             }
 
             return Response.ok("", MediaType.TEXT_HTML).build();
-        } catch (VirtualFileSystemException | IOException e) {
+        } catch (ForbiddenException | ConflictException | ServerException e) {
             HtmlErrorFormatter.sendErrorAsHTML(e);
             // never thrown
             throw e;
@@ -814,7 +799,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
     @Path("downloadzip/{folderId}")
     @Override
-    public Response downloadZip(@PathParam("folderId") String folderId) throws IOException, VirtualFileSystemException {
+    public Response downloadZip(@PathParam("folderId") String folderId) throws NotFoundException, ForbiddenException, ServerException {
         final ContentStream zip = exportZip(folderId);
         return Response //
                 .ok(zip.getStream(), zip.getMimeType()) //
@@ -827,7 +812,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Path("uploadzip/{parentId}")
     @Override
     public Response uploadZip(@PathParam("parentId") String parentId, Iterator<FileItem> formData)
-            throws IOException, VirtualFileSystemException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         try {
             FileItem contentItem = null;
             boolean overwrite = false;
@@ -837,18 +822,22 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                     if (contentItem == null) {
                         contentItem = item;
                     } else {
-                        throw new InvalidArgumentException("More then one upload file is found but only one should be. ");
+                        throw new ServerException("More then one upload file is found but only one should be. ");
                     }
                 } else if ("overwrite".equals(item.getFieldName())) {
                     overwrite = Boolean.parseBoolean(item.getString().trim());
                 }
             }
             if (contentItem == null) {
-                throw new InvalidArgumentException("Cannot find file for upload. ");
+                throw new ServerException("Cannot find file for upload. ");
             }
-            importZip(parentId, contentItem.getInputStream(), overwrite);
+            try {
+                importZip(parentId, contentItem.getInputStream(), overwrite);
+            } catch (IOException ioe) {
+                throw new ServerException(ioe.getMessage(), ioe);
+            }
             return Response.ok("", MediaType.TEXT_HTML).build();
-        } catch (VirtualFileSystemException | IOException e) {
+        } catch (NotFoundException | ForbiddenException | ConflictException | ServerException e) {
             HtmlErrorFormatter.sendErrorAsHTML(e);
             // never thrown
             throw e;
@@ -857,17 +846,17 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
 
    /* ==================================================================== */
 
-    protected VirtualFile getVirtualFileByPath(String path) throws VirtualFileSystemException {
+    protected VirtualFile getVirtualFileByPath(String path) throws NotFoundException, ForbiddenException, ServerException {
         return mountPoint.getVirtualFile(path);
     }
 
     protected Item fromVirtualFile(VirtualFile virtualFile, boolean includePermissions, PropertyFilter propertyFilter)
-            throws VirtualFileSystemException {
+            throws ServerException {
         return fromVirtualFile(virtualFile, includePermissions, propertyFilter, true);
     }
 
     protected Item fromVirtualFile(VirtualFile virtualFile, boolean includePermissions, PropertyFilter propertyFilter, boolean addLinks)
-            throws VirtualFileSystemException {
+            throws ServerException {
         final String id = virtualFile.getId();
         final String name = virtualFile.getName();
         final String path = virtualFile.getPath();
@@ -918,33 +907,27 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             VirtualFileSystemUser user = userContext.getVirtualFileSystemUser();
             VirtualFile current = virtualFile;
             while (current != null) {
-                final Map<Principal, Set<BasicPermissions>> objectPermissions = current.getPermissions();
+                final Map<Principal, Set<String>> objectPermissions = current.getPermissions();
                 if (!objectPermissions.isEmpty()) {
                     Set<String> userPermissions = new HashSet<>(4);
                     final Principal userPrincipal =
                             DtoFactory.getInstance().createDto(Principal.class).withName(user.getUserId()).withType(Principal.Type.USER);
-                    Set<BasicPermissions> permissionsSet = objectPermissions.get(userPrincipal);
-                    if (permissionsSet != null) {
-                        for (BasicPermissions basicPermission : permissionsSet) {
-                            userPermissions.add(basicPermission.value());
-                        }
+                    Set<String> permissionsSet = objectPermissions.get(userPrincipal);
+                    if (!(permissionsSet == null || permissionsSet.isEmpty())) {
+                        userPermissions.addAll(permissionsSet);
                     }
                     final Principal anyPrincipal = DtoFactory.getInstance().createDto(Principal.class)
                                                              .withName(VirtualFileSystemInfo.ANY_PRINCIPAL).withType(Principal.Type.USER);
                     permissionsSet = objectPermissions.get(anyPrincipal);
-                    if (permissionsSet != null) {
-                        for (BasicPermissions basicPermission : permissionsSet) {
-                            userPermissions.add(basicPermission.value());
-                        }
+                    if (!(permissionsSet == null || permissionsSet.isEmpty())) {
+                        userPermissions.addAll(permissionsSet);
                     }
                     for (String group : user.getGroups()) {
                         final Principal groupPrincipal =
                                 DtoFactory.getInstance().createDto(Principal.class).withName(group).withType(Principal.Type.GROUP);
                         permissionsSet = objectPermissions.get(groupPrincipal);
-                        if (permissionsSet != null) {
-                            for (BasicPermissions basicPermission : permissionsSet) {
-                                userPermissions.add(basicPermission.value());
-                            }
+                        if (!(permissionsSet == null || permissionsSet.isEmpty())) {
+                            userPermissions.addAll(permissionsSet);
                         }
                     }
                     item.setPermissions(new ArrayList<>(userPermissions));

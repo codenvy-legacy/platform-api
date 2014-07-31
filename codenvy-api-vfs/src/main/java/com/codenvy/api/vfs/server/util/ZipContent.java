@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.util;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
-
 import org.apache.commons.io.input.CountingInputStream;
 
 import java.io.ByteArrayInputStream;
@@ -23,7 +21,7 @@ import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public final class ZipContent {
     /** Memory threshold. If zip stream over this size it spooled in file. */
     private static final int  BUFFER        = 100 * 1024; // 100k
@@ -106,7 +104,7 @@ public final class ZipContent {
                     if (uncompressedBytes > ZIP_THRESHOLD) {
                         long compressedBytes = compressedCounter.getByteCount(); // number of compressed bytes
                         if (uncompressedBytes > (ZIP_RATIO * compressedBytes)) {
-                            throw new VirtualFileSystemRuntimeException("Zip bomb detected. ");
+                            throw new RuntimeException("Zip bomb detected. ");
                         }
                     }
                 }

@@ -35,6 +35,14 @@ public interface ProjectReference {
 
     ProjectReference withId(String id);
 
+    /** Get path of project. */
+    String getPath();
+
+    /** Set path of project. */
+    void setPath(String path);
+
+    ProjectReference withPath(String path);
+
     /** Get unique ID of type of project. */
     String getProjectTypeId();
 

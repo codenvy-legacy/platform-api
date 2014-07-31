@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +25,7 @@ import java.net.URLStreamHandlerFactory;
  * correct {@link URLStreamHandler} by system property 'java.protocol.handler.pkgs'. Bug in Oracle JDK:
  * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4648098
  *
- * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class URLHandlerFactorySetup {
     private static final Logger LOG = LoggerFactory.getLogger(URLHandlerFactorySetup.class);
@@ -55,7 +54,7 @@ public class URLHandlerFactorySetup {
                 URLStreamHandlerFactory vfsURLFactory = new VirtualFileSystemURLHandlerFactory(currentFactory, registry);
                 factoryField.set(null, vfsURLFactory);
             } catch (SecurityException | NoSuchFieldException | IllegalAccessException se) {
-                throw new VirtualFileSystemRuntimeException(se.getMessage(), se);
+                throw new RuntimeException(se.getMessage(), se);
             }
 
             // Check 'ide+vfs' again. From now it should be possible to use such URLs.
@@ -70,7 +69,7 @@ public class URLHandlerFactorySetup {
                     LOG.debug("--> URLStreamHandlerFactory installed. ");
                 }
             } catch (MalformedURLException e) {
-                throw new VirtualFileSystemRuntimeException(e.getMessage(), e);
+                throw new RuntimeException(e.getMessage(), e);
             }
         }
     }

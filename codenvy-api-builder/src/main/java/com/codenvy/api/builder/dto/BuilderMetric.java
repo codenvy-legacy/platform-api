@@ -17,6 +17,24 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface BuilderMetric {
+
+    String START_TIME = "startTime";
+
+    String TERMINATION_TIME = "terminationTime";
+
+    String END_TIME = "endTime";
+
+    String RUNNING_TIME  = "runningTime";
+
+    String NUMBER_OF_WORKERS = "numberOfWorkers";
+
+    String NUMBER_OF_ACTIVE_WORKERS = "numberOfActiveWorkers";
+
+    String QUEUE_SIZE = "queueSize";
+
+    String MAX_QUEUE_SIZE = "maxQueueSize";
+
+
     String getName();
 
     BuilderMetric withName(String name);

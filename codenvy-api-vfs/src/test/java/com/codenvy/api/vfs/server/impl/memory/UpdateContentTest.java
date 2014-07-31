@@ -12,14 +12,14 @@ package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,16 +62,16 @@ public class UpdateContentTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "content/" + folderId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, content.getBytes(), writer, null);
-        assertEquals(400, response.getStatus());
+        assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 
     public void testUpdateContentNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<VirtualFileSystemInfo.BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(VirtualFileSystemInfo.BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         VirtualFile file = mountPoint.getVirtualFileById(fileId);
         file.updateACL(createAcl(permissions), true, null);
 
@@ -106,7 +106,7 @@ public class UpdateContentTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "content/" + fileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 }

@@ -114,7 +114,6 @@ public class UploadFileTest extends MemoryFileSystemTest {
         assertEquals(200, response.getStatus());
         String entity = (String)response.getEntity();
         assertTrue(entity.contains("Item with the same name exists"));
-        assertTrue(entity.contains("Code: 102"));
         log.info(entity);
     }
 

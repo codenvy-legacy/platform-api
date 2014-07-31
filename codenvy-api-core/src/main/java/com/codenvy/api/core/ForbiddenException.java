@@ -12,7 +12,14 @@ package com.codenvy.api.core;
 
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * A {@code ForbiddenException} is thrown when required operation is forbidden. For example, if caller doesn't have rights or required
+ * operation is not allowed for some resource.
+ * <p/>
+ * Typically in REST API such errors are converted in HTTP response with status 403.
+ *
+ * @author andrew00x
+ */
 @SuppressWarnings("serial")
 public final class ForbiddenException extends ApiException {
     public ForbiddenException(String message) {

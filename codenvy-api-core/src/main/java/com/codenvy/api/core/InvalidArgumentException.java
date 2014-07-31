@@ -8,20 +8,19 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.vfs.server.exceptions;
+package com.codenvy.api.core;
 
-/**
- * Thrown if requested item does not exist.
- *
- * @author <a href="mailto:andrey.parfonov@exoplatform.com">Andrey Parfonov</a>
- */
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
+
+/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
 @SuppressWarnings("serial")
-public class ItemNotFoundException extends VirtualFileSystemException {
-    /**
-     * @param message
-     *         the message
-     */
-    public ItemNotFoundException(String message) {
+@Deprecated
+public final class InvalidArgumentException extends ApiException {
+    public InvalidArgumentException(String message) {
         super(message);
+    }
+
+    public InvalidArgumentException(ServiceError serviceError) {
+        super(serviceError);
     }
 }

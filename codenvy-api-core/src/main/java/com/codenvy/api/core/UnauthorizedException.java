@@ -12,7 +12,13 @@ package com.codenvy.api.core;
 
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
-/** @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a> */
+/**
+ * A {@code UnauthorizedException} is thrown when caller isn't authorized to access some resource.
+ * <p/>
+ * Typically in REST API such errors are converted in HTTP response with status 401.
+ *
+ * @author andrew00x
+ */
 @SuppressWarnings("serial")
 public final class UnauthorizedException extends ApiException {
 

@@ -10,9 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.util;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -31,13 +31,18 @@ public class MediaTypeFilter implements VirtualFileFilter {
     }
 
     @Override
-    public boolean accept(VirtualFile file) throws VirtualFileSystemException {
+    public boolean accept(VirtualFile file) {
         return mediaTypes.contains(getMediaType(file));
     }
 
     /** Get virtual file media type. Any additional parameters (e.g. 'charset') are removed. */
-    private String getMediaType(VirtualFile virtualFile) throws VirtualFileSystemException {
-        String mediaType = virtualFile.getMediaType();
+    private String getMediaType(VirtualFile virtualFile) {
+        String mediaType;
+        try {
+            mediaType = virtualFile.getMediaType();
+        } catch (ServerException e) {
+            throw new RuntimeException(e.getMessage());
+        }
         final int paramStartIndex = mediaType.indexOf(';');
         if (paramStartIndex != -1) {
             mediaType = mediaType.substring(0, paramStartIndex).trim();

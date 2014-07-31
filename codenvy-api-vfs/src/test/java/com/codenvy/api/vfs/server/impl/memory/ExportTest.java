@@ -11,7 +11,6 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.ExitCodes;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
@@ -112,8 +111,7 @@ public class ExportTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "export/" + file.getId();
         ContainerResponse response = launcher.service("GET", path, BASE_URI, null, null, writer, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.INVALID_ARGUMENT, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(403, response.getStatus());
     }
 
     private void checkZipItems(Set<String> expected, ZipInputStream zip) throws Exception {

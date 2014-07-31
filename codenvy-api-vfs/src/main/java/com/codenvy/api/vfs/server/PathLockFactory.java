@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
-
 /**
  * Advisory file locks. It does not prevent access to the file from other programs.
  * <p/>
@@ -64,7 +62,7 @@ public final class PathLockFactory {
                 wait();
             } catch (InterruptedException e) {
                 notify();
-                throw new VirtualFileSystemRuntimeException(e);
+                throw new RuntimeException(e);
             }
         }
     }
@@ -77,11 +75,11 @@ public final class PathLockFactory {
                 wait(waitTime);
             } catch (InterruptedException e) {
                 notify();
-                throw new VirtualFileSystemRuntimeException(e);
+                throw new RuntimeException(e);
             }
             long now = System.currentTimeMillis();
             if (now >= endTime) {
-                throw new PathLockTimeoutException(String.format("Get lock timeout for '%s'. ", path));
+                throw new RuntimeException(String.format("Get lock timeout for '%s'. ", path));
             }
             waitTime = endTime - now;
         }

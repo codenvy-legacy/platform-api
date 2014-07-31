@@ -105,7 +105,7 @@ public class RemoteRunnerProcess {
                     LOG.debug("Can't stop process, status is {}", descriptor.getStatus());
                     return descriptor;
                 default:
-                    throw new RunnerException("Can't stop application. Link for stop application is not available");
+                    throw new RunnerException("Can't stop application. Link for stop application is not available.");
             }
         }
         try {

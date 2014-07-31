@@ -51,7 +51,7 @@ public class UnlockTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "unlock/" + lockedFileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 
@@ -59,7 +59,7 @@ public class UnlockTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "unlock/" + lockedFileId + '?' + "lockToken=" + fileLockToken + "_WRONG";
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 
@@ -68,7 +68,7 @@ public class UnlockTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "unlock/" + notLockedFileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(409, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 }

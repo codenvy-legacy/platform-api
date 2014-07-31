@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ServerException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -25,7 +25,7 @@ import java.util.Set;
 public final class VirtualFileSystemRegistryPlugin {
     @Inject
     public VirtualFileSystemRegistryPlugin(VirtualFileSystemRegistry registry, Set<VirtualFileSystemProvider> providers)
-            throws VirtualFileSystemException {
+            throws ServerException {
         for (VirtualFileSystemProvider provider : providers) {
             registry.registerProvider(provider.getWorkspaceId(), provider);
         }

@@ -24,6 +24,7 @@ import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -98,9 +99,16 @@ public class ProjectTest {
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new DefaultProjectManager(ptr, ptdr, vpf, vfsRegistry, eventService);
+        ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_FOLDER).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
     }
+
+    @AfterMethod
+    public void tearDown() {
+        ((DefaultProjectManager)pm).stop();
+    }
+
 
     @Test
     public void testGetProject() throws Exception {
@@ -213,5 +221,15 @@ public class ProjectTest {
         Assert.assertEquals(myModuleDescription.getProjectType().getId(), "my_module_type");
         Assert.assertEquals(myModuleDescription.getProjectType().getName(), "my_module_type");
         Assert.assertEquals(myModuleDescription.getProjectType().getCategory(), "my_module_type");
+    }
+
+    @Test
+    public void testModificationDate() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        long modificationDate1 = myProject.getModificationDate();
+        Thread.sleep(1000);
+        myProject.getBaseFolder().createFile("test.txt", "test".getBytes(), "text/plain");
+        long modificationDate2 = myProject.getModificationDate();
+        Assert.assertTrue(modificationDate2 > modificationDate1);
     }
 }

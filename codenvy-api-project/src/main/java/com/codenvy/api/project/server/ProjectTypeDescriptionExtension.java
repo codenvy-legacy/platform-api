@@ -16,13 +16,17 @@ import com.codenvy.api.project.shared.ProjectType;
 import java.util.List;
 
 /**
- * ProjectDescriptionExtension
+ * A {@code ProjectTypeDescriptionExtension} helps register information about project type in {@link ProjectTypeDescriptionRegistry}.
+ * <p/>
+ * Unlike {@link ProjectTypeExtension} {@code ProjectTypeDescriptionExtension} registers list of ProjectType instead single ProjectType.
+ * A {@code ProjectTypeDescriptionExtension} helps maps list of {@code AttributeDescription} to multiple {@code ProjectType}.
  *
  * @author gazarenkov
  */
 public interface ProjectTypeDescriptionExtension {
+    /** Gets list of ProjectType registered with this {@code ProjectTypeDescriptionExtension}. */
     List<ProjectType> getProjectTypes();
 
+    /** Gets list of AttributeDescription that may be defined for project type. */
     List<AttributeDescription> getAttributeDescriptions();
-
 }

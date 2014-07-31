@@ -10,15 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
-
 /**
- * Check is it allowed to use {@link VirtualFileSystem} for client that makes specified HttpServletRequest.
- * Implementation of this interface may check any parameter of HTTP request and throw {@link
- * VirtualFileSystemRuntimeException} if tested parameter has unexpected value.
+ * Check is it allowed to use {@link VirtualFileSystem} for client that makes specified HttpServletRequest. Implementation of this
+ * interface
+ * may check any parameter of HTTP request and throw {@link RuntimeException} if tested parameter has unexpected value.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface RequestValidator {
-    void validate(javax.servlet.http.HttpServletRequest request) throws VirtualFileSystemRuntimeException;
+    void validate(javax.servlet.http.HttpServletRequest request) throws RuntimeException;
 }

@@ -10,15 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.Property;
-import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.lang.Pair;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -31,109 +32,123 @@ import java.util.Set;
  */
 public interface VirtualFile extends Comparable<VirtualFile> {
     /**
-     * Get unique id.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
+     * Gets unique id.
      */
-    String getId() throws VirtualFileSystemException;
+    String getId();
 
     /**
-     * Get name.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
+     * Gets unique id of version of this VirtualFile.
      */
-    String getName() throws VirtualFileSystemException;
+    String getVersionId();
 
     /**
-     * Get path. Path of root folder is "/".
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
+     * Gets name.
      */
-    String getPath() throws VirtualFileSystemException;
+    String getName();
 
-    /** Get internal representation of path of item. */
-    Path getVirtualFilePath() throws VirtualFileSystemException;
+    /**
+     * Gets path. Path of root folder is "/".
+     */
+    String getPath();
+
+    /**
+     * Gets internal representation of path of item.
+     */
+    Path getVirtualFilePath();
 
     /**
      * Tests whether this VirtualFile exists.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
      */
-    boolean exists() throws VirtualFileSystemException;
+    boolean exists();
 
     /**
      * Tests whether this VirtualFile is a root folder.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
      */
-    boolean isRoot() throws VirtualFileSystemException;
+    boolean isRoot();
 
     /**
      * Tests whether this VirtualFile is a regular file.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
      */
-    boolean isFile() throws VirtualFileSystemException;
+    boolean isFile();
 
     /**
      * Tests whether this VirtualFile is a folder. Folder may contain other files.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
      */
-    boolean isFolder() throws VirtualFileSystemException;
+    boolean isFolder();
 
     /**
-     * Get parent folder. If this folder is root folder this method always returns <code>null</code>.
+     * Gets creation time in long format or {@code -1} if creation time is unknown.
+     */
+    long getCreationDate();
+
+    /**
+     * Gets time of last modification in long format or {@code -1} if time is unknown.
+     */
+    long getLastModificationDate();
+
+    /**
+     * Gets parent folder. If this item is root folder this method always returns {@code null}.
      *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
      * @see #isRoot()
      */
-    VirtualFile getParent() throws VirtualFileSystemException;
+    VirtualFile getParent();
 
     /**
-     * Get iterator over files in this folder. If this VirtualFile is not folder this method returns empty iterator. If current user has
-     * not read access to some child they should not be included in returned result.
+     * Gets media type of the VirtualFile. This method should not return {@code null}.
+     *
+     * @throws ServerException
+     *         if an error occurs
+     */
+    String getMediaType() throws ServerException;
+
+    /**
+     * Sets media type of the VirtualFile.
+     *
+     * @param mediaType
+     *         new media type
+     * @throws ServerException
+     *         if an error occurs
+     */
+    VirtualFile setMediaType(String mediaType) throws ServerException;
+
+    /**
+     * Gets iterator over files in this folder. If this VirtualFile isn't a folder this method returns empty iterator. If current user
+     * doesn't have read access to some child they should not be included in returned result.
      *
      * @param filter
      *         virtual files filter
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    LazyIterator<VirtualFile> getChildren(VirtualFileFilter filter) throws VirtualFileSystemException;
+    LazyIterator<VirtualFile> getChildren(VirtualFileFilter filter) throws ServerException;
 
     /**
-     * Get child by name. If this VirtualFile is not folder this method returns <code>null</code>.
+     * Gets child by relative path. If this VirtualFile isn't folder this method returns {@code null}.
      *
      * @param path
      *         child item path
      * @return child
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if current user has not read permission to the child
-     * @throws VirtualFileSystemException
+     * @throws ForbiddenException
+     *         if current user doesn't have read permission to the child
+     * @throws ServerException
      *         if other error occurs
      */
-    VirtualFile getChild(String path) throws VirtualFileSystemException;
+    VirtualFile getChild(String path) throws ForbiddenException, ServerException;
 
     /**
-     * Get content of the file.
+     * Gets content of the file.
      *
      * @return content ot he file
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile denotes folder or other error occurs
+     * @throws ForbiddenException
+     *         if this item isn't a file
+     * @throws ServerException
+     *         if other error occurs
      * @see #isFile()
      */
-    ContentStream getContent() throws VirtualFileSystemException;
+    ContentStream getContent() throws ForbiddenException, ServerException;
 
     /**
-     * Update content of the file.
+     * Updates content of the file.
      *
      * @param mediaType
      *         media type of content
@@ -142,377 +157,372 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      * @param lockToken
      *         lock token. This parameter is required if the file is locked
      * @return VirtualFile after updating content
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does not matched
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile denotes folder or other error occurs
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>this item isn't a file</li>
+     *         <li>this file is locked and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ServerException
+     *         if other error occurs
      * @see #isFile()
      */
-    VirtualFile updateContent(String mediaType, InputStream content, String lockToken) throws VirtualFileSystemException;
+    VirtualFile updateContent(String mediaType, InputStream content, String lockToken) throws ForbiddenException, ServerException;
 
     /**
-     * Get media type of the VirtualFile. This method should not return <code>null</code>.
+     * Get length of content of the file. Always returns {@code 0} for folders.
      *
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    String getMediaType() throws VirtualFileSystemException;
+    long getLength() throws ServerException;
 
     /**
-     * Set media type of the VirtualFile.
+     * Gets properties of the file.
      *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
-     */
-    VirtualFile setMediaType(String mediaType) throws VirtualFileSystemException;
-
-    /**
-     * Get creation time in long format or <code>-1</code> if creation time is unknown.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
-     */
-    long getCreationDate() throws VirtualFileSystemException;
-
-    /**
-     * Get time of last modification in long format or <code>-1</code> if time is unknown.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
-     */
-    long getLastModificationDate() throws VirtualFileSystemException;
-
-    /**
-     * Get length of content of the file. Always returns <code>0</code> for folders.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
-     */
-    long getLength() throws VirtualFileSystemException;
-
-    /**
-     * Get properties of the file.
-     *
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      * @see PropertyFilter
      */
-    List<Property> getProperties(PropertyFilter filter) throws VirtualFileSystemException;
+    List<Property> getProperties(PropertyFilter filter) throws ServerException;
 
     /**
-     * Update properties of the file.
+     * Updates properties of the file.
      *
      * @param properties
      *         list of properties to update
      * @param lockToken
      *         lock token. This parameter is required if the file is locked
      * @return VirtualFile after updating properties
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         if item <code>id</code> is locked and <code>lockToken</code> is <code>null</code> or does not matched
-     * @throws VirtualFileSystemException
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>this item is locked file and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>at least one property can't be updated cause to any constraint, e.g. property is read only</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if other error occurs
      */
-    VirtualFile updateProperties(List<Property> properties, String lockToken) throws VirtualFileSystemException;
+    VirtualFile updateProperties(List<Property> properties, String lockToken) throws ForbiddenException, ServerException;
 
     /**
-     * Get value of property. If property has multiple values this method returns the first value in the set.
+     * Gets value of property. If property has multiple values this method returns the first value in the set.
      *
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      * @see #getPropertyValues(String)
      */
-    String getPropertyValue(String name) throws VirtualFileSystemException;
+    String getPropertyValue(String name) throws ServerException;
 
     /**
-     * Get multiple values of property.
+     * Gets multiple values of property.
      *
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    String[] getPropertyValues(String name) throws VirtualFileSystemException;
+    String[] getPropertyValues(String name) throws ServerException;
 
     /**
-     * Copy this file to the new parent.
+     * Copies this file to the new parent.
      *
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission to the specified <code>parent</code>
-     * @throws VirtualFileSystemException
-     *         if the specified <code>parent</code> does not denote a folder or other error occurs
+     * @throws ForbiddenException
+     *         if specified {@code parent} doesn't denote a folder or user doesn't have write permission to the specified {@code parent}
+     * @throws ConflictException
+     *         if {@code parent} already contains item with the same name as this virtual file has
+     * @throws ServerException
+     *         if other error occurs
      * @see #isFolder()
      */
-    VirtualFile copyTo(VirtualFile parent) throws VirtualFileSystemException;
+    VirtualFile copyTo(VirtualFile parent) throws ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Move this file to the new parent.
+     * Moves this file to the new parent.
      *
      * @param parent
-     *         parent to copy
+     *         parent to move
      * @param lockToken
      *         lock token. This parameter is required if the file is locked
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission to the specified <code>parent</code> or this VirtualFile (include any of its children)
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         if this VirtualFile is regular locked file and <code>lockToken</code> is invalid or if this VirtualFile is folder and
-     *         contains at least one locked child
-     * @throws com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException
-     *         if destination folder already contains item this the same name as this VirtualFile
-     * @throws VirtualFileSystemException
-     *         if the specified <code>parent</code> does not denote a folder or other error occurs
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>specified {@code parent} doesn't denote a folder</li>
+     *         <li>user doesn't have write permission to the specified {@code parent} or this item</li>
+     *         <li>this item is locked file and {@code lockToken} is {@code null} or doesn't match</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if {@code parent} already contains item with the same name as this virtual file has
+     * @throws ServerException
+     *         if other error occurs
      * @see #isFolder()
      */
-    VirtualFile moveTo(VirtualFile parent, String lockToken) throws VirtualFileSystemException;
+    VirtualFile moveTo(VirtualFile parent, String lockToken) throws ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Rename and (or) update media type of this VirtualFile.
+     * Renames and (or) update media type of this VirtualFile.
      *
      * @param newName
      *         new name
      * @param newMediaType
-     *         new media type, may be <code>null</code> if need change name only
+     *         new media type, may be {@code null} if need change name only
      * @param lockToken
      *         lock token. This parameter is required if the file is locked
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission for this VirtualFile (include any of its children)
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         if this VirtualFile is regular locked file and <code>lockToken</code> is invalid or if this VirtualFile is folder and
-     *         contains at least one locked child
-     * @throws VirtualFileSystemException
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>this item is locked file and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if parent of this item already contains other item with {@code newName}
+     * @throws ServerException
      *         if other error occurs
      */
-    VirtualFile rename(String newName, String newMediaType, String lockToken) throws VirtualFileSystemException;
+    VirtualFile rename(String newName, String newMediaType, String lockToken) throws ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Delete this VirtualFile.
+     * Deletes this VirtualFile.
      *
      * @param lockToken
      *         lock token. This parameter is required if the file is locked
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission for this VirtualFile (include any of its children)
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         if this VirtualFile is regular locked file and <code>lockToken</code> is invalid or if this VirtualFile is folder and
-     *         contains at least one locked child
-     * @throws VirtualFileSystemException
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>this item is locked file and {@code lockToken} is {code null} or doesn't match or if this item is folder that contains
+     *         at least one locked file</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if other error occurs
      */
-    void delete(String lockToken) throws VirtualFileSystemException;
+    void delete(String lockToken) throws ForbiddenException, ServerException;
 
     /**
-     * Get zipped content of folder denoted by this VirtualFile.
+     * Gets zipped content of folder denoted by this VirtualFile. All child items that user doesn't have read permission are not added in
+     * result archive.
      *
      * @param filter
      *         filter of file. Only files that are matched to the filter are added in the zip archive
      * @return zipped content of folder denoted by this VirtualFile
-     * @throws IOException
-     *         if i/o error occurs
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile does not denote a folder or other error occurs
+     * @throws ForbiddenException
+     *         if this item doesn't denote a folder
+     * @throws ServerException
+     *         if other error occurs
      */
-    ContentStream zip(VirtualFileFilter filter) throws IOException, VirtualFileSystemException;
+    ContentStream zip(VirtualFileFilter filter) throws ForbiddenException, ServerException;
 
     /**
-     * Import ZIP content to the folder denoted by this VirtualFile.
+     * Imports ZIP content to the folder denoted by this VirtualFile.
      *
      * @param zipped
      *         ZIP content
      * @param overwrite
      *         overwrite or not existing files
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission for this VirtualFile (include any of its children)
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         this folder contains at least one locked child
-     * @throws com.codenvy.api.vfs.server.exceptions.ItemAlreadyExistException
-     *         if <code>overwrite</code> is <code>false</code> and any item in zipped content conflicts with existed item
-     * @throws IOException
-     *         if i/o error occurs
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile does not denote a folder or other error occurs
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>if this item doesn't denote a folder</li>
+     *         <li>user which perform operation doesn't have write permissions (include children)</li>
+     *         <li>this folder contains at least one locked child</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if {@code overwrite} is {@code false} and any item in zipped content causes name conflict
+     * @throws ServerException
+     *         if other error occurs
      */
-    void unzip(InputStream zipped, boolean overwrite) throws IOException, VirtualFileSystemException;
+    void unzip(InputStream zipped, boolean overwrite) throws ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Lock this VirtualFile.
+     * Locks this VirtualFile.
      *
      * @param timeout
-     *         lock timeout in milliseconds, pass <code>0</code> to create lock without timeout
+     *         lock timeout in milliseconds, pass {@code 0} to create lock without timeout
      * @return lock token. User should pass this token when tries update, delete or unlock locked file
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission for this VirtualFile
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         this VirtualFile is already locked
-     * @throws com.codenvy.api.vfs.server.exceptions.NotSupportedException
-     *         if locking feature is not supported
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile does not denote a regular file or other error occurs
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>this VirtualFile doesn't denote a regular file</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if this file already locked
+     * @throws ServerException
+     *         if other error occurs
      */
-    String lock(long timeout) throws VirtualFileSystemException;
+    String lock(long timeout) throws ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Unlock this VirtualFile.
+     * Unlocks this VirtualFile.
      *
      * @param lockToken
      *         lock token
      * @return VirtualFile after unlock
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         this VirtualFile is not locked or specified <code>lockToken</code> is invalid
-     * @throws com.codenvy.api.vfs.server.exceptions.NotSupportedException
-     *         if locking feature is not supported
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile does not denote a regular file or other error occurs
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code lockToken} is {@code null} or does not match</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if this item isn't locked
+     * @throws ServerException
+     *         if any other errors occur
      */
-    VirtualFile unlock(String lockToken) throws VirtualFileSystemException;
+    VirtualFile unlock(String lockToken) throws ForbiddenException, ConflictException, ServerException;
 
     /**
      * Tests whether this VirtualFile is locked.
      *
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    boolean isLocked() throws VirtualFileSystemException;
+    boolean isLocked() throws ServerException;
 
     /**
-     * Get permissions of this VirtualFile.
+     * Gets permissions of this VirtualFile.
      *
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    Map<Principal, Set<BasicPermissions>> getPermissions() throws VirtualFileSystemException;
+    Map<Principal, Set<String>> getPermissions() throws ServerException;
 
     /**
-     * Get ACL.
+     * Gets ACL.
      *
      * @return ACL
-     * @throws com.codenvy.api.vfs.server.exceptions.NotSupportedException
-     *         if ACL feature is not supported
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    List<AccessControlEntry> getACL() throws VirtualFileSystemException;
+    List<AccessControlEntry> getACL() throws ServerException;
 
     /**
-     * Update ACL.
+     * Updates ACL.
      *
      * @param acl
      *         ACL
      * @param override
-     *         if <code>true</code> clear old ACL and apply new ACL, otherwise merge existed ACL and new one
+     *         if {@code true} clear old ACL and apply new ACL, otherwise merge existed ACL and new one
      * @param lockToken
      *         lock token. This parameter is required if the file is locked
      * @return VirtualFile after updating ACL
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not update_acl permission for this VirtualFile
-     * @throws com.codenvy.api.vfs.server.exceptions.LockException
-     *         this VirtualFile is locked and <code>lockToken</code> invalid
-     * @throws com.codenvy.api.vfs.server.exceptions.NotSupportedException
-     *         if managing ACL feature is not supported
-     * @throws VirtualFileSystemException
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>{@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation doesn't have update_acl permissions</li>
+     *         </ul>
+     * @throws ServerException
      *         if other error occurs
      */
-    VirtualFile updateACL(List<AccessControlEntry> acl, boolean override, String lockToken) throws VirtualFileSystemException;
+    VirtualFile updateACL(List<AccessControlEntry> acl, boolean override, String lockToken) throws ForbiddenException, ServerException;
 
     /**
-     * Get unique id of version of this VirtualFile.
-     *
-     * @throws VirtualFileSystemException
-     *         if an error occurs
-     */
-    String getVersionId() throws VirtualFileSystemException;
-
-    /**
-     * Get all versions of this VirtualFile. If versioning is not supported this iterator always contains just one item which denotes this
+     * Get all versions of this VirtualFile. If versioning isn't supported this iterator always contains just one item which denotes this
      * VirtualFile.
      *
      * @param filter
      *         virtual files filter
      * @return iterator over all versions
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile is not regular file or other error occurs
+     * @throws ForbiddenException
+     *         if this VirtualFile isn't regular file
+     * @throws ServerException
+     *         if other error occurs
      * @see #isFile()
      */
-    LazyIterator<VirtualFile> getVersions(VirtualFileFilter filter) throws VirtualFileSystemException;
+    LazyIterator<VirtualFile> getVersions(VirtualFileFilter filter) throws ForbiddenException, ServerException;
 
     /**
-     * Get single version of VirtualFile. If versioning is not supported this method should return <code>this</code> instance if specified
-     * <code>versionId</code> equals to the value returned by method {@link #getVersionId()}. If versioning is not supported and
-     * <code>versionId</code> is not equals to the version id of this file {@link com.codenvy.api.vfs.server.exceptions.NotSupportedException}
-     * should be thrown.
+     * Gets single version of VirtualFile. If versioning isn't supported this method should return {@code this} instance if specified
+     * {@code versionId} equals to the value returned by method {@link #getVersionId()}. If versioning isn't supported and
+     * {@code versionId} isn't equals to the version id of this file {@link com.codenvy.api.core.NotFoundException} should be thrown.
      *
      * @param versionId
      *         id of version
      * @return single version of VirtualFile
-     * @throws com.codenvy.api.vfs.server.exceptions.InvalidArgumentException
-     *         if there is no version with <code>versionId</code>
-     * @throws com.codenvy.api.vfs.server.exceptions.NotSupportedException
-     *         if versioning is not supported and <code>versionId</code> is not equals to the version id of this VirtualFile
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile is not regular file or other error occurs
+     * @throws NotFoundException
+     *         if there is no version with {@code versionId}
+     * @throws ForbiddenException
+     *         if this VirtualFile isn't regular file
+     * @throws ServerException
+     *         if other error occurs
      * @see #isFile()
      */
-    VirtualFile getVersion(String versionId) throws VirtualFileSystemException;
+    VirtualFile getVersion(String versionId) throws NotFoundException, ForbiddenException, ServerException;
 
     /**
-     * Create new VirtualFile which denotes regular file and use this one as parent folder.
+     * Creates new VirtualFile which denotes regular file and use this one as parent folder.
      *
      * @param name
      *         name
      * @param mediaType
      *         media type of content, may be {@code null}
      * @param content
-     *         content. In case of {@code null} empty file's created.
+     *         content. In case of {@code null} empty file is created
      * @return newly create VirtualFile
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission for this VirtualFile
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile does not denote a folder or other error occurs
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>this VirtualFile does not denote a folder</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if parent already contains item with specified {@code name}
+     * @throws ServerException
+     *         if other error occurs
      */
-    VirtualFile createFile(String name, String mediaType, InputStream content) throws VirtualFileSystemException;
+    VirtualFile createFile(String name, String mediaType, InputStream content)
+            throws ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Create new VirtualFile which denotes folder and use this one as parent folder.
+     * Creates new VirtualFile which denotes folder and use this one as parent folder.
      *
      * @param name
-     *         name
-     * @return newly create VirtualFile
-     * @throws com.codenvy.api.vfs.server.exceptions.PermissionDeniedException
-     *         if user has not write permission for this VirtualFile
-     * @throws VirtualFileSystemException
-     *         if this VirtualFile does not denote a folder or other error occurs
+     *         name. If name is string separated by '/' all nonexistent parent folders must be created.
+     * @return newly create VirtualFile that denotes folder
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>this VirtualFile doesn't denote a folder</li>
+     *         <li>user which perform operation doesn't have write permissions</li>
+     *         </ul>
+     * @throws ConflictException
+     *         if item with specified {@code name} already exists
+     * @throws ServerException
+     *         if other error occurs
      */
-    VirtualFile createFolder(String name) throws VirtualFileSystemException;
+    VirtualFile createFolder(String name) throws ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Get {@link MountPoint} to which this VirtualFile belongs.
+     * Gets {@link MountPoint} to which this VirtualFile belongs.
      *
      * @return MountPoint
      */
     MountPoint getMountPoint();
 
     /**
-     * Accepts an <code>VirtualFileVisitor</code>. Calls the <code>VirtualFileVisitor</code> <code>visit</code> method.
+     * Accepts an {@code VirtualFileVisitor}. Calls the {@link VirtualFileVisitor#visit(VirtualFile)} method.
      *
      * @param visitor
      *         VirtualFileVisitor to be accepted
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if an error occurs
      */
-    void accept(VirtualFileVisitor visitor) throws VirtualFileSystemException;
+    void accept(VirtualFileVisitor visitor) throws ServerException;
 
     /**
-     * Traverse recursively all files in current folder and count md5sum for each file. Method returns
-     * <code>Pair&lt;String, String&gt;</code> for each file, all folders are omitted. Each <code>Pair</code> contains following structure:
+     * Traverses recursively all files in current folder and count md5sum for each file. Method returns {@code Pair&lt;String, String&gt;}
+     * for each file, all folders are omitted. Each {@code Pair} contains following structure:
      * <pre>
      *     Pair&lt;String,String&gt; pair = ...
      *     pair.first // md5sum of file represented as HEX String
      *     pair.second // Path of file that is relative to this file
      * </pre>
-     * If this VirtualFile is not a folder this method returns empty iterator. Note: any order of items in the returned iterator is not
+     * If this VirtualFile isn't a folder this method returns empty iterator. Note: any order of items in the returned iterator isn't
      * guaranteed.
      *
-     * @throws VirtualFileSystemException
+     * @throws ServerException
      *         if any error occurs
      */
-    LazyIterator<Pair<String, String>> countMd5Sums() throws VirtualFileSystemException;
+    LazyIterator<Pair<String, String>> countMd5Sums() throws ServerException;
 }

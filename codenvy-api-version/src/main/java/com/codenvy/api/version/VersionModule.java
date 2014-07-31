@@ -8,17 +8,17 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.server;
+package com.codenvy.api.version;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
 
-/**
- * Wrapper for all virtual filesystem exceptions. Basically caller should not catch such exceptions.
- *
- * @author andrew00x
- */
-public final class FileSystemLevelException extends RuntimeException {
-    public FileSystemLevelException(String message, VirtualFileSystemException cause) {
-        super(message, cause);
+/** @author Anatoliy Bazko */
+@DynaModule
+public class VersionModule extends AbstractModule {
+
+    @Override
+    protected void configure() {
+        bind(VersionService.class);
     }
 }

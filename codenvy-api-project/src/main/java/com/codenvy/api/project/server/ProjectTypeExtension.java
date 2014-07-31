@@ -15,18 +15,21 @@ import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- * ProjectTypeExtension
+ * A {@code ProjectTypeExtension} helps register information about project type in {@link ProjectTypeDescriptionRegistry}. One
+ * implementation of {@code ProjectTypeExtension} is used to register one project type with its predefined attributes and templates.
+ * Information about predefined attributes and templates are optional.
  *
  * @author gazarenkov
  */
 public interface ProjectTypeExtension {
+    /** Gets ProjectType registered with this {@code ProjectTypeExtension}. */
     ProjectType getProjectType();
 
+    /** Gets list of predefined attributes for ProjectType registered with this {@code ProjectTypeExtension}. */
     List<Attribute> getPredefinedAttributes();
 
+    /** Gets list of templates ofr ProjectType registered with this {@code ProjectTypeExtension}. */
     List<ProjectTemplateDescription> getTemplates();
-
 }

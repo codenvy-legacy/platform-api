@@ -103,7 +103,7 @@ public class ProjectEventTest {
     }
 
     @Test
-    public void testCreateFile() {
+    public void testCreateFile() throws Exception {
         final List<ProjectEvent> events = new ArrayList<>();
         Assert.assertTrue(projectEventService.addListener("my_ws", "my_project", new ProjectEventListener() {
             @Override
@@ -121,7 +121,7 @@ public class ProjectEventTest {
     }
 
     @Test
-    public void testCreateFolder() {
+    public void testCreateFolder() throws Exception {
         final List<ProjectEvent> events = new ArrayList<>();
         Assert.assertTrue(projectEventService.addListener("my_ws", "my_project", new ProjectEventListener() {
             @Override
@@ -158,7 +158,7 @@ public class ProjectEventTest {
     }
 
     @Test
-    public void testDelete() {
+    public void testDelete() throws Exception {
         FileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", "test".getBytes(), "text/plain");
         final List<ProjectEvent> events = new ArrayList<>();
         Assert.assertTrue(projectEventService.addListener("my_ws", "my_project", new ProjectEventListener() {
@@ -177,7 +177,7 @@ public class ProjectEventTest {
     }
 
     @Test
-    public void testMove() {
+    public void testMove() throws Exception {
         FileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", "test".getBytes(), "text/plain");
         FolderEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().createFolder("a/b/c");
         final List<ProjectEvent> events = new ArrayList<>();
@@ -202,7 +202,7 @@ public class ProjectEventTest {
     }
 
     @Test
-    public void testRename() {
+    public void testRename() throws Exception {
         FileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", "test".getBytes(), "text/plain");
         final List<ProjectEvent> events = new ArrayList<>();
         Assert.assertTrue(projectEventService.addListener("my_ws", "my_project", new ProjectEventListener() {

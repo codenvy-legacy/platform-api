@@ -17,6 +17,7 @@ import com.codenvy.api.vfs.shared.dto.ItemList;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
@@ -24,7 +25,6 @@ import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -76,8 +76,8 @@ public class ChildrenTest extends MemoryFileSystemTest {
 
     public void testGetChildrenNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         mountPoint.getVirtualFileById(folderId).updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -91,8 +91,8 @@ public class ChildrenTest extends MemoryFileSystemTest {
         // Special behaviour for root folder.
         // Never check permission when read root folder but hide content of it.
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         mountPoint.getRoot().updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -107,8 +107,8 @@ public class ChildrenTest extends MemoryFileSystemTest {
         VirtualFile folder = mountPoint.getVirtualFileById(folderId);
         VirtualFile protectedItem = folder.getChild("ChildrenTest_FILE01");
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(1);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
+        Map<Principal, Set<String>> permissions = new HashMap<>(1);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
         // after that item must not appear in response
         protectedItem.updateACL(createAcl(permissions), true, null);
 

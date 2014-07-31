@@ -10,7 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.shared.ItemType;
 import com.codenvy.api.vfs.shared.PropertyFilter;
 import com.codenvy.api.vfs.shared.dto.File;
@@ -75,7 +78,7 @@ public final class VirtualFileSystemURLConnection extends URLConnection {
             item = (itemIdentifier.startsWith("/")) //
                    ? vfs.getItemByPath(itemIdentifier, null, false, PropertyFilter.NONE_FILTER) //
                    : vfs.getItem(itemIdentifier, false, PropertyFilter.NONE_FILTER);
-        } catch (VirtualFileSystemException e) {
+        } catch (ForbiddenException | NotFoundException | ServerException e) {
             throw new IOException(e.getMessage(), e);
         }
         connected = true;
@@ -177,7 +180,7 @@ public final class VirtualFileSystemURLConnection extends URLConnection {
             w.flush();
             w.close();
             return new ByteArrayInputStream(out.toByteArray());
-        } catch (VirtualFileSystemException e) {
+        } catch (ForbiddenException | ConflictException | NotFoundException | ServerException e) {
             throw new IOException(e.getMessage(), e);
         }
     }

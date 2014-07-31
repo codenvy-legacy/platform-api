@@ -11,15 +11,14 @@
 package com.codenvy.api.vfs.server.impl.memory;
 
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -59,16 +58,16 @@ public class LockTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "lock/" + fileId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(409, response.getStatus());
         log.info(new String(writer.getBody()));
     }
 
     public void testLockFileNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         VirtualFile file = mountPoint.getVirtualFileById(fileId);
         file.updateACL(createAcl(permissions), true, null);
 
@@ -85,8 +84,7 @@ public class LockTest extends MemoryFileSystemTest {
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
         String path = SERVICE_URI + "lock/" + folderId;
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.INVALID_ARGUMENT, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(403, response.getStatus());
     }
 
     public void testLockTimeout() throws Exception {

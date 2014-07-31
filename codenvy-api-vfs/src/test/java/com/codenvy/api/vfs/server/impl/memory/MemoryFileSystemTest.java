@@ -27,7 +27,6 @@ import com.codenvy.api.vfs.shared.dto.Link;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.Property;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
-import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.commons.user.UserImpl;
@@ -101,7 +100,7 @@ public abstract class MemoryFileSystemTest extends TestCase {
         deployer.publish(new VirtualFileSystemApplication());
 
         // RUNTIME VARIABLES
-        User user = new UserImpl("john", null, Arrays.asList("workspace/developer"));
+        User user = new UserImpl("john", "john", null, Arrays.asList("workspace/developer"));
         EnvironmentContext.getCurrent().setUser(user);
     }
 
@@ -130,14 +129,14 @@ public abstract class MemoryFileSystemTest extends TestCase {
         return principal;
     }
 
-    protected List<AccessControlEntry> createAcl(Map<Principal, Set<BasicPermissions>> permissions) {
+    protected List<AccessControlEntry> createAcl(Map<Principal, Set<String>> permissions) {
         final List<AccessControlEntry> acl = new ArrayList<>(permissions.size());
-        for (Map.Entry<Principal, Set<BasicPermissions>> e : permissions.entrySet()) {
-            final Set<BasicPermissions> basicPermissions = e.getValue();
+        for (Map.Entry<Principal, Set<String>> e : permissions.entrySet()) {
+            final Set<String> basicPermissions = e.getValue();
             final Principal principal = e.getKey();
             final List<String> plainPermissions = new ArrayList<>(basicPermissions.size());
-            for (BasicPermissions permission : e.getValue()) {
-                plainPermissions.add(permission.value());
+            for (String permission : e.getValue()) {
+                plainPermissions.add(permission);
             }
             final Principal copyPrincipal = DtoFactory.getInstance().clone(principal);
             final AccessControlEntry ace = DtoFactory.getInstance().createDto(AccessControlEntry.class)

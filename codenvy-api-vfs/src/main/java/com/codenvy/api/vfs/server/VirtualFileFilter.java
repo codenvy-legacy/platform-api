@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-
 /**
  * Filter for virtual files.
  *
@@ -19,7 +17,7 @@ import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
  */
 public interface VirtualFileFilter {
     /** Tests whether specified file should be included in result. */
-    boolean accept(VirtualFile file) throws VirtualFileSystemException;
+    boolean accept(VirtualFile file);
 
     VirtualFileFilter ALL = new VirtualFileFilter() {
         @Override

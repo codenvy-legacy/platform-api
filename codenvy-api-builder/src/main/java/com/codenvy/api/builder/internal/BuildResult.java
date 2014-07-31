@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * Represents result of build or analysis dependencies process.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class BuildResult {
     private final boolean success;
@@ -55,7 +55,7 @@ public class BuildResult {
         return success;
     }
 
-    /** Build artifacts or {@code null} if build failed or there is no any result of build process. */
+    /** Gets build artifacts. */
     public List<java.io.File> getResults() {
         if (artifacts == null) {
             artifacts = new ArrayList<>();

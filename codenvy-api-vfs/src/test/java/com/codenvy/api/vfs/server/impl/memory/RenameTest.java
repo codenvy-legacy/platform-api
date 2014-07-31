@@ -10,17 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.vfs.server.VirtualFile;
-import com.codenvy.api.vfs.server.exceptions.ItemNotFoundException;
-import com.codenvy.api.vfs.shared.ExitCodes;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.google.common.collect.Sets;
 
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 
 import java.io.ByteArrayInputStream;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -56,11 +55,11 @@ public class RenameTest extends MemoryFileSystemTest {
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be renamed. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Can't find file after rename. ");
         }
 
@@ -72,8 +71,7 @@ public class RenameTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "rename/" + fileId + '?' + "newname=" + "_FILE_NEW_NAME_" + '&' + "mediaType=" +
                       "text/*;charset=ISO-8859-1";
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(400, response.getStatus());
-        assertEquals(ExitCodes.ITEM_EXISTS, Integer.parseInt((String)response.getHttpHeaders().getFirst("X-Exit-Code")));
+        assertEquals(409, response.getStatus());
     }
 
     public void testRenameFileLocked() throws Exception {
@@ -87,11 +85,11 @@ public class RenameTest extends MemoryFileSystemTest {
         try {
             mountPoint.getVirtualFile(originPath);
             fail("File must be renamed. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Can't find file after rename. ");
         }
     }
@@ -103,27 +101,27 @@ public class RenameTest extends MemoryFileSystemTest {
                       "text/*;charset=ISO-8859-1";
         String originPath = file.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, writer, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         log.info(new String(writer.getBody()));
         String expectedPath = renameTestFolder.getPath() + '/' + "_FILE_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("File must not be renamed since it is locked. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
     public void testRenameFileNoPermissions() throws Exception {
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         file.updateACL(createAcl(permissions), true, null);
 
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -135,13 +133,13 @@ public class RenameTest extends MemoryFileSystemTest {
         String expectedPath = renameTestFolder.getPath() + '/' + "_FILE_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("File must not be renamed since permissions restriction. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
@@ -154,11 +152,11 @@ public class RenameTest extends MemoryFileSystemTest {
         try {
             mountPoint.getVirtualFile(originPath);
             fail("Folder must be renamed. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Can't folder file after rename. ");
         }
     }
@@ -168,17 +166,17 @@ public class RenameTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "rename/" + folderId + '?' + "newname=" + "_FOLDER_NEW_NAME_";
         String originPath = folder.getPath();
         ContainerResponse response = launcher.service("POST", path, BASE_URI, null, null, null);
-        assertEquals(423, response.getStatus());
+        assertEquals(403, response.getStatus());
         String expectedPath = renameTestFolder.getPath() + '/' + "_FOLDER_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("Folder must not be renamed since it contains locked file. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 
@@ -186,9 +184,9 @@ public class RenameTest extends MemoryFileSystemTest {
         VirtualFile myFile = folder.createFile("file", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
         Principal adminPrincipal = createPrincipal("admin", Principal.Type.USER);
         Principal userPrincipal = createPrincipal("john", Principal.Type.USER);
-        Map<Principal, Set<BasicPermissions>> permissions = new HashMap<>(2);
-        permissions.put(adminPrincipal, EnumSet.of(BasicPermissions.ALL));
-        permissions.put(userPrincipal, EnumSet.of(BasicPermissions.READ));
+        Map<Principal, Set<String>> permissions = new HashMap<>(2);
+        permissions.put(adminPrincipal, Sets.newHashSet(BasicPermissions.ALL.value()));
+        permissions.put(userPrincipal, Sets.newHashSet(BasicPermissions.READ.value()));
         myFile.updateACL(createAcl(permissions), true, null);
 
         String path = SERVICE_URI + "rename/" + folderId + '?' + "newname=" + "_FOLDER_NEW_NAME_";
@@ -198,13 +196,13 @@ public class RenameTest extends MemoryFileSystemTest {
         String expectedPath = renameTestFolder.getPath() + '/' + "_FOLDER_NEW_NAME_";
         try {
             mountPoint.getVirtualFile(originPath);
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
             fail("Source file not found. ");
         }
         try {
             mountPoint.getVirtualFile(expectedPath);
             fail("Folder must not be renamed since permissions restriction. ");
-        } catch (ItemNotFoundException e) {
+        } catch (NotFoundException e) {
         }
     }
 }

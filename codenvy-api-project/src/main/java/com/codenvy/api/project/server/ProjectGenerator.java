@@ -10,7 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import java.io.IOException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
+
 import java.util.Map;
 
 /**
@@ -29,8 +32,13 @@ public interface ProjectGenerator {
      *         base project folder
      * @param options
      *         generator options
-     * @throws IOException
-     *         if i/o error occurs
+     * @throws ForbiddenException
+     *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
+     *         baseFolder}
+     * @throws ConflictException
+     *         if project generation causes any conflicts, e.g. if import operation causes name conflicts in {@code baseFolder}
+     * @throws ServerException
+     *         if project generation causes some errors that should be treated as internal errors
      */
-    void generateProject(FolderEntry baseFolder, Map<String, String> options) throws IOException;
+    void generateProject(FolderEntry baseFolder, Map<String, String> options) throws ForbiddenException, ConflictException, ServerException;
 }

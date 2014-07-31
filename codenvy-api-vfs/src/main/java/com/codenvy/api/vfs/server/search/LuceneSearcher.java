@@ -10,13 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.search;
 
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.LazyIterator;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileFilter;
-import com.codenvy.api.vfs.server.exceptions.InvalidArgumentException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 import com.codenvy.api.vfs.server.util.MediaTypeFilter;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -76,17 +75,17 @@ public abstract class LuceneSearcher implements Searcher {
         return new SimpleAnalyzer();
     }
 
-    protected abstract Directory makeDirectory() throws VirtualFileSystemException;
+    protected abstract Directory makeDirectory() throws ServerException;
 
     /**
      * Init lucene index. Need call this method if index directory is clean. Scan all files in virtual filesystem and add to index.
      *
      * @param mountPoint
      *         MountPoint
-     * @throws com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException
+     * @throws ServerException
      *         if any virtual filesystem error
      */
-    public synchronized void init(MountPoint mountPoint) throws VirtualFileSystemException {
+    public synchronized void init(MountPoint mountPoint) throws ServerException {
         final long start = System.currentTimeMillis();
         try {
             luceneIndexDirectory = makeDirectory();
@@ -94,7 +93,7 @@ public abstract class LuceneSearcher implements Searcher {
             luceneIndexSearcher = new IndexSearcher(luceneIndexWriter.getReader());
             addTree(mountPoint.getRoot());
         } catch (IOException e) {
-            throw new VirtualFileSystemException(e);
+            throw new ServerException(e);
         }
         final long end = System.currentTimeMillis();
         LOG.debug("Index creation time: {} ms", (end - start));
@@ -139,7 +138,7 @@ public abstract class LuceneSearcher implements Searcher {
                 wait();
             } catch (InterruptedException e) {
                 notify();
-                throw new VirtualFileSystemRuntimeException(e);
+                throw new RuntimeException(e);
             }
         }
 
@@ -170,7 +169,7 @@ public abstract class LuceneSearcher implements Searcher {
     }
 
     @Override
-    public String[] search(QueryExpression query) throws VirtualFileSystemException {
+    public String[] search(QueryExpression query) throws ServerException {
         final BooleanQuery luceneQuery = new BooleanQuery();
         final String name = query.getName();
         final String path = query.getPath();
@@ -190,7 +189,7 @@ public abstract class LuceneSearcher implements Searcher {
             try {
                 luceneQuery.add(qParser.parse(text), BooleanClause.Occur.MUST);
             } catch (ParseException e) {
-                throw new InvalidArgumentException(e.getMessage());
+                throw new ServerException(e.getMessage());
             }
         }
         IndexSearcher luceneSearcher = null;
@@ -198,8 +197,7 @@ public abstract class LuceneSearcher implements Searcher {
             luceneSearcher = getLuceneSearcher();
             final TopDocs topDocs = luceneSearcher.search(luceneQuery, RESULT_LIMIT);
             if (topDocs.totalHits > RESULT_LIMIT) {
-                throw new VirtualFileSystemException(
-                        String.format("Too many (%d) matched results found. ", topDocs.totalHits));
+                throw new ServerException(String.format("Too many (%d) matched results found. ", topDocs.totalHits));
             }
             final String[] result = new String[topDocs.scoreDocs.length];
             for (int i = 0, length = result.length; i < length; i++) {
@@ -207,7 +205,7 @@ public abstract class LuceneSearcher implements Searcher {
             }
             return result;
         } catch (IOException e) {
-            throw new VirtualFileSystemException(e.getMessage(), e);
+            throw new ServerException(e.getMessage(), e);
         } finally {
             if (luceneSearcher != null) {
                 try {
@@ -220,11 +218,11 @@ public abstract class LuceneSearcher implements Searcher {
     }
 
     @Override
-    public final void add(VirtualFile virtualFile) throws VirtualFileSystemException {
+    public final void add(VirtualFile virtualFile) throws ServerException {
         doAdd(virtualFile);
     }
 
-    protected void doAdd(VirtualFile virtualFile) throws VirtualFileSystemException {
+    protected void doAdd(VirtualFile virtualFile) throws ServerException {
         if (virtualFile.isFolder()) {
             addTree(virtualFile);
         } else {
@@ -232,7 +230,7 @@ public abstract class LuceneSearcher implements Searcher {
         }
     }
 
-    protected void addTree(VirtualFile tree) throws VirtualFileSystemException {
+    protected void addTree(VirtualFile tree) throws ServerException {
         final LinkedList<VirtualFile> q = new LinkedList<>();
         q.add(tree);
         int indexedFiles = 0;
@@ -254,7 +252,7 @@ public abstract class LuceneSearcher implements Searcher {
         LOG.debug("Indexed {} files from {}", indexedFiles, tree.getPath());
     }
 
-    protected void addFile(VirtualFile virtualFile) throws VirtualFileSystemException {
+    protected void addFile(VirtualFile virtualFile) throws ServerException {
         if (virtualFile.exists()) {
             Reader fContentReader = null;
             try {
@@ -265,7 +263,9 @@ public abstract class LuceneSearcher implements Searcher {
                 close();
                 throw oome;
             } catch (IOException e) {
-                throw new VirtualFileSystemException(e.getMessage(), e);
+                throw new ServerException(e.getMessage(), e);
+            } catch (ForbiddenException e) {
+                throw new ServerException(e.getServiceError());
             } finally {
                 if (fContentReader != null) {
                     try {
@@ -278,27 +278,27 @@ public abstract class LuceneSearcher implements Searcher {
     }
 
     @Override
-    public final void delete(String path) throws VirtualFileSystemException {
+    public final void delete(String path) throws ServerException {
         doDelete(new Term("path", path));
     }
 
-    protected void doDelete(Term deleteTerm) throws VirtualFileSystemException {
+    protected void doDelete(Term deleteTerm) throws ServerException {
         try {
             luceneIndexWriter.deleteDocuments(new PrefixQuery(deleteTerm));
         } catch (OutOfMemoryError oome) {
             close();
             throw oome;
         } catch (IOException e) {
-            throw new VirtualFileSystemException(e.getMessage(), e);
+            throw new ServerException(e.getMessage(), e);
         }
     }
 
     @Override
-    public final void update(VirtualFile virtualFile) throws VirtualFileSystemException {
+    public final void update(VirtualFile virtualFile) throws ServerException {
         doUpdate(new Term("path", virtualFile.getPath()), virtualFile);
     }
 
-    protected void doUpdate(Term deleteTerm, VirtualFile virtualFile) throws VirtualFileSystemException {
+    protected void doUpdate(Term deleteTerm, VirtualFile virtualFile) throws ServerException {
         Reader fContentReader = null;
         try {
             fContentReader =
@@ -308,7 +308,9 @@ public abstract class LuceneSearcher implements Searcher {
             close();
             throw oome;
         } catch (IOException e) {
-            throw new VirtualFileSystemException(e.getMessage(), e);
+            throw new ServerException(e.getMessage(), e);
+        } catch (ForbiddenException e) {
+            throw new ServerException(e.getServiceError());
         } finally {
             if (fContentReader != null) {
                 try {
@@ -319,7 +321,7 @@ public abstract class LuceneSearcher implements Searcher {
         }
     }
 
-    protected Document createDocument(VirtualFile virtualFile, Reader inReader) throws VirtualFileSystemException {
+    protected Document createDocument(VirtualFile virtualFile, Reader inReader) throws ServerException {
         final Document doc = new Document();
         doc.add(new Field("path", virtualFile.getPath(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         doc.add(new Field("name", virtualFile.getName(), Field.Store.YES, Field.Index.NOT_ANALYZED));
@@ -331,7 +333,7 @@ public abstract class LuceneSearcher implements Searcher {
     }
 
     /** Get virtual file media type. Any additional parameters (e.g. 'charset') are removed. */
-    private String getMediaType(VirtualFile virtualFile) throws VirtualFileSystemException {
+    private String getMediaType(VirtualFile virtualFile) throws ServerException {
         String mediaType = virtualFile.getMediaType();
         final int paramStartIndex = mediaType.indexOf(';');
         if (paramStartIndex != -1) {

@@ -10,7 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 
 import javax.inject.Singleton;
 import java.io.IOException;
@@ -38,7 +40,8 @@ public class ZipProjectImporter implements ProjectImporter {
     }
 
     @Override
-    public void importSources(FolderEntry baseFolder, String location) throws IOException {
+    public void importSources(FolderEntry baseFolder, String location) throws ForbiddenException, ConflictException, IOException,
+                                                                              ServerException {
         URL url;
         if (location.startsWith("http://") || location.startsWith("https://")) {
             url = new URL(location);
@@ -56,8 +59,6 @@ public class ZipProjectImporter implements ProjectImporter {
         }
         try (InputStream zip = url.openStream()) {
             baseFolder.getVirtualFile().unzip(zip, true);
-        } catch (VirtualFileSystemException e) {
-            throw new IOException(e.getMessage(), e);
         }
     }
 }

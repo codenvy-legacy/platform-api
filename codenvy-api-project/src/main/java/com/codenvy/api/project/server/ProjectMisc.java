@@ -10,32 +10,34 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
-import com.codenvy.api.vfs.shared.dto.Principal;
-import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.api.core.ServerException;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 /**
+ * Stores additional information about single project.
  * @author andrew00x
  */
 public class ProjectMisc {
-    static final String UPDATED         = "updated";
-    static final String CREATED         = "created";
-    static final String PERMISSIONS_KEY = "PERMISSIONS#";
+    static final String UPDATED = "updated";
+    static final String CREATED = "created";
 
     private final InternalMisc data;
+    private final Project project;
 
-    public ProjectMisc(Properties properties) {
+    public ProjectMisc(Properties properties, Project project) {
         this.data = new InternalMisc(properties);
+        this.project = project;
     }
 
-    public ProjectMisc() {
+    public ProjectMisc(Project project) {
         this.data = new InternalMisc();
+        this.project = project;
+    }
+
+    final Project getProject() {
+        return project;
     }
 
     public long getModificationDate() {
@@ -46,11 +48,6 @@ public class ProjectMisc {
         return data.getLong(CREATED, -1L);
     }
 
-    public AccessControlEntry getAccessControlEntry(Principal principal) {
-        final DtoFactory dto = DtoFactory.getInstance();
-        return dto.createDtoFromJson(data.get(PERMISSIONS_KEY + dto.toJson(principal)), AccessControlEntry.class);
-    }
-
     public void setModificationDate(long date) {
         data.setLong(UPDATED, date);
     }
@@ -59,26 +56,11 @@ public class ProjectMisc {
         data.setLong(CREATED, date);
     }
 
-    public void putAccessControlEntry(AccessControlEntry entry) {
-        final DtoFactory dto = DtoFactory.getInstance();
-        data.set(PERMISSIONS_KEY + dto.toJson(entry.getPrincipal()), dto.toJson(entry));
+    public void save() throws ServerException {
+        project.saveMisc(this);
     }
 
-    public void removeAccessControlEntry(Principal principal) {
-        data.set(PERMISSIONS_KEY + DtoFactory.getInstance().toJson(principal), null);
-    }
-
-    public List<AccessControlEntry> getAccessControlList() {
-        final List<AccessControlEntry> acl = new LinkedList<>();
-        for (Map.Entry entry : asProperties().entrySet()) {
-            if (entry.getKey().toString().startsWith(PERMISSIONS_KEY)) {
-                acl.add(DtoFactory.getInstance().createDtoFromJson(entry.getValue().toString(), AccessControlEntry.class));
-            }
-        }
-        return acl;
-    }
-
-    public boolean isUpdated() {
+    boolean isUpdated() {
         return data.isUpdated();
     }
 

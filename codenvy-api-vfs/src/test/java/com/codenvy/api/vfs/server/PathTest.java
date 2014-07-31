@@ -12,7 +12,6 @@ package com.codenvy.api.vfs.server;
 
 import junit.framework.TestCase;
 
-import com.codenvy.api.vfs.server.exceptions.VirtualFileSystemRuntimeException;
 import com.codenvy.commons.lang.Pair;
 
 import java.util.Arrays;
@@ -88,7 +87,7 @@ public class PathTest extends TestCase {
             try {
                 Path.fromString(s);
                 fail(String.format("IllegalArgumentException expected for path '%s' ", s));
-            } catch (VirtualFileSystemRuntimeException ok) {
+            } catch (IllegalArgumentException ok) {
                 //System.err.println(ok.getMessage());
             }
         }

@@ -945,7 +945,8 @@ public class MemoryVirtualFile implements VirtualFile {
     public void unzip(InputStream zipped, boolean overwrite) throws ForbiddenException, ServerException {
         checkExist();
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("Unable import from zip to '%s'. Operation not permitted. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to import a ZIP file to '%s' as part of the import." +
+                                                       " You do not have the correct permissions to complete this operation.", getPath()));
         }
 
         ZipInputStream zip = null;
@@ -988,7 +989,8 @@ public class MemoryVirtualFile implements VirtualFile {
                         }
                         if (!((MemoryVirtualFile)file).hasPermission(BasicPermissions.WRITE.value(), true)) {
                             throw new ForbiddenException(
-                                    String.format("Unable update file '%s'. Operation not permitted. ", file.getPath()));
+                                    String.format("We were unable to update file '%s' as part of the import." +
+                                                  " You do not have the correct permissions to complete this operation.", file.getPath()));
                         }
                         if (!overwrite) {
                             throw new ForbiddenException(String.format("File '%s' already exists. ", file.getPath()));

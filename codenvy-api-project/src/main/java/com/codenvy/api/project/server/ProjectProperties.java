@@ -51,7 +51,9 @@ public class ProjectProperties {
         try {
             return JsonHelper.fromJson(inputStream, ProjectProperties.class, null);
         } catch (JsonParseException e) {
-            throw new IOException("Unable parse project properties. " + e.getMessage());
+            throw new IOException("Unable to parse the project's property file.  " +
+                                  "Check the project.json file for corruption or modification.  Consider reloading the project. " +
+                                  e.getMessage());
         }
     }
 
@@ -61,8 +63,9 @@ public class ProjectProperties {
             VirtualFileEntry projectFile = baseFolder.getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
             if (projectFile != null) {
                 if (!projectFile.isFile()) {
-                    throw new ServerException(String.format("Unable save project properties. Path %s/%s exists but is not a file.",
-                                                            baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
+                    throw new ServerException(String.format(
+                            "Unable to save the project's properties to the file system. Path %s/%s exists but is not a file.",
+                            baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
                 }
                 ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes());
             } else {
@@ -83,8 +86,9 @@ public class ProjectProperties {
                                       .withPermissions(Arrays.asList("all")));
                     codenvyDir.getVirtualFile().updateACL(acl, true, null);
                 } else if (!codenvyDir.isFolder()) {
-                    throw new ServerException(String.format("Unable save project properties. Path %s/%s exists but is not a folder.",
-                                                            baseFolder.getPath(), Constants.CODENVY_FOLDER));
+                    throw new ServerException(String.format(
+                            "Unable to save the project's properties to the file system. Path %s/%s exists but is not a folder.",
+                            baseFolder.getPath(), Constants.CODENVY_FOLDER));
                 }
                 try {
                     ((FolderEntry)codenvyDir)

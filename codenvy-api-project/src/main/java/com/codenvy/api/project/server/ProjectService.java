@@ -339,10 +339,8 @@ public class ProjectService extends Service {
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
         final ProjectImporter importer = importers.getImporter(importDescriptor.getType());
         if (importer == null) {
-            throw new ServerException(
-                    String.format("Unable to import source files from '%s'. Source type '%s' is not currently supported.  " +
-                                  "Contact support to have this type added as a supported configuration. ",
-                                  importDescriptor.getLocation(), importDescriptor.getType()));
+            throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
+                                                    importDescriptor.getLocation(), importDescriptor.getType()));
         }
         // create project descriptor based on query parameters
         ProjectUpdate descriptorToUpdate = DtoFactory.getInstance().createDto(ProjectUpdate.class);

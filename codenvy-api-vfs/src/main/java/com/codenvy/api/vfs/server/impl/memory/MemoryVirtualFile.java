@@ -546,7 +546,8 @@ public class MemoryVirtualFile implements VirtualFile {
                                                        " You do not have the correct permissions to complete this operation.", getPath()));
         }
         if (isFile() && !validateLockTokenIfLocked(lockToken)) {
-            throw new ForbiddenException(String.format("We were unable to update the content of file '%s'. The file is locked. ", getPath()));
+            throw new ForbiddenException(
+                    String.format("We were unable to update the content of file '%s'. The file is locked. ", getPath()));
         }
         try {
             this.content = ByteStreams.toByteArray(content);
@@ -749,7 +750,7 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new ForbiddenException("We were unable to rename a root folder.");
         }
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("We were unable to delete an item '%s'."+
+            throw new ForbiddenException(String.format("We were unable to delete an item '%s'." +
                                                        " You do not have the correct permissions to complete this operation.", getPath()));
         }
         final String myPath = getPath();
@@ -768,7 +769,8 @@ public class MemoryVirtualFile implements VirtualFile {
                         if (!((MemoryVirtualFile)virtualFile).hasPermission(BasicPermissions.WRITE.value(), false)) {
                             throw new ForbiddenException(
                                     String.format("We were unable to rename an item '%s'." +
-                                                  " You do not have the correct permissions to complete this operation.", virtualFile.getPath()));
+                                                  " You do not have the correct permissions to complete this operation.",
+                                                  virtualFile.getPath()));
                         }
                         if (virtualFile.isFile() && virtualFile.isLocked()) {
                             throw new ForbiddenException(
@@ -853,7 +855,8 @@ public class MemoryVirtualFile implements VirtualFile {
                         if (!((MemoryVirtualFile)virtualFile).hasPermission(BasicPermissions.WRITE.value(), false)) {
                             throw new ForbiddenException(
                                     String.format("We were unable to delete an item '%s'." +
-                                                  " You do not have the correct permissions to complete this operation.", virtualFile.getPath()));
+                                                  " You do not have the correct permissions to complete this operation.",
+                                                  virtualFile.getPath()));
                         }
 
                         if (virtualFile.isFile() && virtualFile.isLocked()) {
@@ -945,7 +948,8 @@ public class MemoryVirtualFile implements VirtualFile {
     public void unzip(InputStream zipped, boolean overwrite) throws ForbiddenException, ServerException {
         checkExist();
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("Unable import from zip to '%s'. Operation not permitted. ", getPath()));
+            throw new ForbiddenException(String.format("We were unable to import a ZIP file to '%s' as part of the import. " +
+                                                       "You do not have the correct permissions to complete this operation. ", getPath()));
         }
 
         ZipInputStream zip = null;
@@ -988,7 +992,8 @@ public class MemoryVirtualFile implements VirtualFile {
                         }
                         if (!((MemoryVirtualFile)file).hasPermission(BasicPermissions.WRITE.value(), true)) {
                             throw new ForbiddenException(
-                                    String.format("Unable update file '%s'. Operation not permitted. ", file.getPath()));
+                                    String.format("We were unable to update file '%s' as part of the import. " +
+                                                  "You do not have the correct permissions to complete this operation. ", file.getPath()));
                         }
                         if (!overwrite) {
                             throw new ForbiddenException(String.format("File '%s' already exists. ", file.getPath()));
@@ -1217,7 +1222,7 @@ public class MemoryVirtualFile implements VirtualFile {
 
     private void checkExist() {
         if (!exists) {
-            throw new RuntimeException("Item already removed. ");
+            throw new RuntimeException("We attempted to delete an item, and it was already removed. ");
         }
     }
 

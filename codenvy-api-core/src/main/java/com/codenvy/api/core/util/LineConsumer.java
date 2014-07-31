@@ -16,9 +16,19 @@ import java.io.IOException;
 /**
  * Consumes text line by line for analysing, writing, storing, etc.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface LineConsumer extends Closeable {
     /** Consumes single line. */
     void writeLine(String line) throws IOException;
+
+    LineConsumer DEV_NULL = new LineConsumer() {
+        @Override
+        public void writeLine(String line) {
+        }
+
+        @Override
+        public void close() {
+        }
+    };
 }

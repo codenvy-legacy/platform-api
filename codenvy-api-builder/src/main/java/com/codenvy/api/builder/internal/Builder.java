@@ -14,6 +14,7 @@ import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildRequest;
 import com.codenvy.api.builder.dto.BuilderDescriptor;
+import com.codenvy.api.builder.dto.BuilderEnvironment;
 import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.core.ApiException;
@@ -35,11 +36,13 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -120,14 +123,17 @@ public abstract class Builder {
      */
     public abstract String getDescription();
 
-    public BuilderDescriptor getDescriptor() {
-        return DtoFactory.getInstance().createDto(BuilderDescriptor.class)
-                         .withName(getName())
-                         .withDescription(getDescription());
+    /**
+     * Gets environments that are supported by the builder. Each environment presupposes an existing some embedded pre-configured
+     * environment for build, e.g. different versions of JVM. By default this method returns empty map that means usage single environment
+     * for all builds.
+     */
+    public Map<String, BuilderEnvironment> getEnvironments() {
+        return Collections.emptyMap();
     }
 
     /**
-     * Get result of FutureBuildTask. Getting result is implementation specific and mostly depends to build system, e.g. maven usually
+     * Gets result of FutureBuildTask. Getting result is implementation specific and mostly depends to build system, e.g. maven usually
      * stores build result in directory 'target' but it is not rule for ant. Regular users are not expected to use this method directly.
      * They should always use method {@link BuildTask#getResult()} instead.
      *
@@ -522,8 +528,7 @@ public abstract class Builder {
     /**
      * Get build task by its {@code id}. Typically build process takes some time, so client start process of build or analyze dependencies
      * and periodically check is process already done. Client also may use {@link BuildListener} to be notified when build process starts
-     * or
-     * ends.
+     * or ends.
      *
      * @param id
      *         id of BuildTask

@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.runner.dto;
+package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
 
@@ -18,38 +18,38 @@ import java.util.Map;
  * @author andrew00x
  */
 @DTO
-public interface RunnerEnvironment {
+public interface BuilderEnvironment {
     /**
-     * Get unique id of RunnerEnvironment.
+     * Get unique id of BuilderEnvironment.
      *
-     * @return unique id of RunnerEnvironment
+     * @return unique id of BuilderEnvironment
      */
     String getId();
 
     void setId(String id);
 
-    RunnerEnvironment withId(String id);
+    BuilderEnvironment withId(String id);
 
     /**
-     * Get description of RunnerEnvironment.
+     * Get description of BuilderEnvironment.
      *
-     * @return description of RunnerEnvironment
+     * @return description of BuilderEnvironment
      */
     String getDescription();
 
     void setDescription(String description);
 
-    RunnerEnvironment withDescription(String description);
+    BuilderEnvironment withDescription(String description);
 
     boolean getIsDefault();
 
     void setIsDefault(boolean isDefault);
 
-    RunnerEnvironment withIsDefault(boolean isDefault);
+    BuilderEnvironment withIsDefault(boolean isDefault);
 
     Map<String, String> getProperties();
 
     void setProperties(Map<String, String> properties);
 
-    RunnerEnvironment withProperties(Map<String, String> properties);
+    BuilderEnvironment withProperties(Map<String, String> properties);
 }

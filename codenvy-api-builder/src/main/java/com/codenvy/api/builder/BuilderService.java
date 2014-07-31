@@ -12,9 +12,8 @@ package com.codenvy.api.builder;
 
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
-import com.codenvy.api.builder.dto.BuildRequest;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.internal.BuildTask;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
@@ -140,5 +139,21 @@ public final class BuilderService extends Service {
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
         buildQueue.getTask(id).download(path, new HttpServletProxyResponse(httpServletResponse));
+    }
+
+    @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_BUILDERS)
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("builders")
+    public List<BuilderDescriptor> getRegisteredServers(@PathParam("ws-id") String workspace) throws Exception {
+        final List<RemoteBuilderServer> runnerServers = buildQueue.getRegisterBuilderServers();
+        final List<BuilderDescriptor> result = new LinkedList<>();
+        for (RemoteBuilderServer builderServer : runnerServers) {
+            final String assignedWorkspace = builderServer.getAssignedWorkspace();
+            if (assignedWorkspace == null || assignedWorkspace.equals(workspace)) {
+                result.addAll(builderServer.getAvailableBuilders());
+            }
+        }
+        return result;
     }
 }

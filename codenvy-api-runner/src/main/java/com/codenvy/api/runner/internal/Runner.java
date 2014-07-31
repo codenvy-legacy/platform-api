@@ -125,8 +125,8 @@ public abstract class Runner {
     public abstract String getDescription();
 
     /**
-     * Get environments that are supported by the runner. Each environment presupposes an existing some embedded pre-configured environment
-     * for running application, e.g. type of server or its configuration. By default this method returns empty list that means usage of one
+     * Gets environments that are supported by the runner. Each environment presupposes an existing some embedded pre-configured environment
+     * for running application, e.g. type of server or its configuration. By default this method returns empty map that means usage single
      * runtime environment for running an application.
      */
     public Map<String, RunnerEnvironment> getEnvironments() {
@@ -134,7 +134,7 @@ public abstract class Runner {
     }
 
     /**
-     * Get global stats for this runner.
+     * Gets global stats for this runner.
      *
      * @throws RunnerException
      *         if any error occurs while getting runner metrics
@@ -156,7 +156,7 @@ public abstract class Runner {
     }
 
     /**
-     * Get root directory for deploy all applications.
+     * Gets root directory for deploy all applications.
      *
      * @return root directory for deploy all applications.
      */
@@ -165,7 +165,7 @@ public abstract class Runner {
     }
 
     /**
-     * Get process by its {@code id}.
+     * Gets process by its {@code id}.
      *
      * @param id
      *         id of process
@@ -185,7 +185,7 @@ public abstract class Runner {
     }
 
     /**
-     * Get stats related to the specified process.
+     * Gets stats related to the specified process.
      *
      * @throws NotFoundException
      *         if id of RunnerProcess is invalid
@@ -332,7 +332,7 @@ public abstract class Runner {
     }
 
     /**
-     * Get validator for DeploymentSources. By default this method returns validator that does nothing. Sub-classes may override this
+     * Gets validator for DeploymentSources. By default this method returns validator that does nothing. Sub-classes may override this
      * method
      * and provide proper implementation of DeploymentSourcesValidator.
      *
@@ -546,7 +546,7 @@ public abstract class Runner {
         }
     }
 
-    /** Initialize Runner. Sub-classes should invoke {@code super.start} at the begin of this method. */
+    /** Initializes Runner. Sub-classes should invoke {@code super.start} at the begin of this method. */
     @PostConstruct
     public void start() {
         if (started.compareAndSet(false, true)) {

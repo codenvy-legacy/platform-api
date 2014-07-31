@@ -19,7 +19,7 @@ public class Constants {
     // rels for known builder links
     public static final String LINK_REL_REGISTER_BUILDER_SERVICE   = "register builder service";
     public static final String LINK_REL_UNREGISTER_BUILDER_SERVICE = "unregister builder service";
-    public static final String LINK_REL_REGISTERED_BUILDER_SERVER  = "registered runner server";
+    public static final String LINK_REL_REGISTERED_BUILDER_SERVER  = "registered builder server";
     public static final String LINK_REL_QUEUE_STATE                = "queue state";
 
     public static final String LINK_REL_AVAILABLE_BUILDERS    = "available builders";
@@ -36,7 +36,7 @@ public class Constants {
     public static final String LINK_REL_CANCEL          = "cancel";
 
     // config properties
-    /** URLs of slave runners that should be registered in RunQueue. */
+    /** URLs of slave builders that should be registered in RunQueue. */
     public static final String BUILDER_SLAVE_BUILDER_URLS = "builder.slave_builder_urls";
     /** Name of configuration parameter that points to the directory where all builds stored. */
     public static final String BASE_DIRECTORY             = "builder.base_directory";

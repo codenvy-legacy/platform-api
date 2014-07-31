@@ -60,9 +60,9 @@ public interface BuilderDescriptor {
 
     BuilderDescriptor withDescription(String description);
 
-    Map<String, String> getProperties();
+    Map<String, BuilderEnvironment> getEnvironments();
 
-    void setProperties(Map<String, String> properties);
+    void setEnvironments(Map<String, BuilderEnvironment> environments);
 
-    BuilderDescriptor withProperties(Map<String, String> properties);
+    BuilderDescriptor withEnvironments(Map<String, BuilderEnvironment> environments);
 }

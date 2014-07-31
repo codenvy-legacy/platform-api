@@ -63,8 +63,12 @@ public final class SlaveBuilderService extends Service {
     public List<BuilderDescriptor> availableBuilders() {
         final Set<Builder> all = builders.getAll();
         final List<BuilderDescriptor> list = new ArrayList<>(all.size());
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (Builder builder : all) {
-            list.add(builder.getDescriptor());
+            list.add(dtoFactory.createDto(BuilderDescriptor.class)
+                               .withName(builder.getName())
+                               .withDescription(builder.getDescription())
+                               .withEnvironments(builder.getEnvironments()));
         }
         return list;
     }

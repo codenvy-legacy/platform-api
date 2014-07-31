@@ -376,21 +376,22 @@ public class AccountService extends Service {
 
         if ("true".equals((subscription.getProperties().get("codenvy:trial")))) {
             String userId = EnvironmentContext.getCurrent().getUser().getId();
-            final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(
-                    new SubscriptionHistoryEvent().withUserId(userId).withType(SubscriptionHistoryEvent.Type.CREATE).withSubscription(
-                            new Subscription().withServiceId(subscription.getServiceId())
-                                              .withProperties(Collections.singletonMap("codenvy:trial", "true"))
-                                                                                                                                     )
-                                                                                                 );
-            if (events.size() > 0) {
-                throw new ConflictException("You can't use trial twice, please contact support");
-            }
 
             if (!securityContext.isUserInRole("system/admin")) {
                 try {
                     paymentService.getCreditCard(userId);
                 } catch (NotFoundException e) {
                     throw new ConflictException("You have no credit card to pay for subscription after trial");
+                }
+
+                final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(
+                        new SubscriptionHistoryEvent().withUserId(userId).withType(SubscriptionHistoryEvent.Type.CREATE).withSubscription(
+                                new Subscription().withServiceId(subscription.getServiceId())
+                                                  .withProperties(Collections.singletonMap("codenvy:trial", "true"))
+                                                                                                                                         )
+                                                                                                     );
+                if (events.size() > 0) {
+                    throw new ConflictException("You can't use trial twice, please contact support");
                 }
             }
         } else {

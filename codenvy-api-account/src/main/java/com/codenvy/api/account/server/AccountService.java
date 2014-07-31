@@ -394,6 +394,8 @@ public class AccountService extends Service {
                     throw new ConflictException("You can't use trial twice, please contact support");
                 }
             }
+
+            subscription.setState(Subscription.State.ACTIVE);
         } else {
             final double amount = service.tarifficate(subscription);
             if (0D == amount || securityContext.isUserInRole("system/admin")) {

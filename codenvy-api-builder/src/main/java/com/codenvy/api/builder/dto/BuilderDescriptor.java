@@ -12,10 +12,12 @@ package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.Map;
+
 /**
  * Describes of {@link com.codenvy.api.builder.internal.Builder}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see com.codenvy.api.builder.internal.Builder
  * @see com.codenvy.api.builder.internal.Builder#getName()
  * @see com.codenvy.api.builder.internal.Builder#getDescription()
@@ -57,4 +59,10 @@ public interface BuilderDescriptor {
     void setDescription(String description);
 
     BuilderDescriptor withDescription(String description);
+
+    Map<String, String> getProperties();
+
+    void setProperties(Map<String, String> properties);
+
+    BuilderDescriptor withProperties(Map<String, String> properties);
 }

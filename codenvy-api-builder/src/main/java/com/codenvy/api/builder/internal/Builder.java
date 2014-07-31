@@ -13,6 +13,7 @@ package com.codenvy.api.builder.internal;
 import com.codenvy.api.builder.BuilderException;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.core.ApiException;
@@ -118,6 +119,12 @@ public abstract class Builder {
      * @return the description of builder
      */
     public abstract String getDescription();
+
+    public BuilderDescriptor getDescriptor() {
+        return DtoFactory.getInstance().createDto(BuilderDescriptor.class)
+                         .withName(getName())
+                         .withDescription(getDescription());
+    }
 
     /**
      * Get result of FutureBuildTask. Getting result is implementation specific and mostly depends to build system, e.g. maven usually

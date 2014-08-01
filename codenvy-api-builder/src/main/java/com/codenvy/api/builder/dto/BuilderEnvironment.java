@@ -28,7 +28,14 @@ public interface BuilderEnvironment {
 
     void setId(String id);
 
-    BuilderEnvironment withId(String id);
+    BuilderEnvironment withId(String name);
+
+    /** Display name of BuilderEnvironment. */
+    String getDisplayName();
+
+    void setDisplayName(String id);
+
+    BuilderEnvironment withDisplayName(String name);
 
     /**
      * Get description of BuilderEnvironment.

@@ -599,7 +599,7 @@ public class AccountServiceTest {
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
-        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
             @Override
             public boolean matches(Object argument) {
@@ -632,7 +632,7 @@ public class AccountServiceTest {
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
-        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao, times(1)).addSubscription(argThat(new ArgumentMatcher<Subscription>() {
             @Override
             public boolean matches(Object argument) {
@@ -716,7 +716,7 @@ public class AccountServiceTest {
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
-        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
     }
 
     @Test
@@ -742,36 +742,7 @@ public class AccountServiceTest {
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, null);
 
         assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Missed subscription");
-        verifyZeroInteractions(accountDao, subscriptionService, serviceRegistry);
-    }
-
-    @Test
-    public void shouldNotBeAbleToAddSubscriptionIfNoPropertiesSent() throws Exception {
-        NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
-                                                    .withAccountId(ACCOUNT_ID)
-                                                    .withServiceId("UNKNOWN_SERVICE_ID");
-
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
-
-        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Missed subscription properties");
-        verifyZeroInteractions(accountDao, subscriptionService, serviceRegistry);
-    }
-
-    @Test
-    public void shouldNotBeAbleToAddSubscriptionIfEmptyPropertiesSent() throws Exception {
-        NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
-                                                    .withAccountId(ACCOUNT_ID)
-                                                    .withServiceId("UNKNOWN_SERVICE_ID")
-                                                    .withProperties(Collections.<String, String>emptyMap());
-
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
-
-        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        assertEquals(response.getEntity().toString(), "Missed subscription properties");
+        assertEquals(response.getEntity().toString(), "New subscription required");
         verifyZeroInteractions(accountDao, subscriptionService, serviceRegistry);
     }
 
@@ -873,7 +844,7 @@ public class AccountServiceTest {
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + account.getId() + "/members?userid=" + USER_ID, null, null);
 
-        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao, times(1)).addMember(any(Member.class));
     }
 

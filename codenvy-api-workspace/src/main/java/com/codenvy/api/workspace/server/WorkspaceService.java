@@ -104,27 +104,27 @@ public class WorkspaceService extends Service {
 
     /**
      * Creates new workspace and adds current user as member to created workspace
-     * with roles "workspace/admin" and "workspace/developer". Returns status code {@code 204}
+     * with roles <i>"workspace/admin"</i> and <i>"workspace/developer"</i>. Returns status code <strong>201 CREATED</strong>
      * and {@link WorkspaceDescriptor} if workspace has been created successfully.
-     * Each {@code newWorkspace} should contain at least workspace name and account identifier.
+     * Each new workspace should contain at least name and account identifier.
      *
      * @param newWorkspace
      *         new workspace
      * @return descriptor of created workspace
      * @throws ConflictException
      *         when current user account identifier and given account identifier are different,
-     *         or when {@code newWorkspace} is {@code null},
-     *         or any of {@code newWorkspace.getName()}
-     *         or {@code newWorkspace.getAccountId()} returns {@code null}
+     *         or when new workspace is {@code null},
+     *         or any of workspace name or account id is {@code null}
      * @throws NotFoundException
      *         when account with given identifier does not exist
      * @throws ServerException
-     *         when some error occurred while getting/persisting {@link Account},
-     *         {@link Workspace} or {@link Member}
+     *         when some error occurred while retrieving/persisting account, workspace or member
      * @throws ForbiddenException
      *         when user has not access to create workspaces
      * @see NewWorkspace
      * @see WorkspaceDescriptor
+     * @see #getById(String, SecurityContext)
+     * @see #getByName(String, SecurityContext)
      */
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_WORKSPACE)
@@ -183,26 +183,26 @@ public class WorkspaceService extends Service {
 
     /**
      * Creates new temporary workspace and adds current user
-     * as member to created workspace with roles "workspace/admin" and "workspace/developer".
-     * If user does not exist, it will be created with role "tmp_user".
-     * Returns status code {@code 204} and {@link WorkspaceDescriptor} if workspace
-     * has been created successfully. Each {@code newWorkspace} should contain
+     * as member to created workspace with roles <i>"workspace/admin"</i> and <i>"workspace/developer"</i>.
+     * If user does not exist, it will be created with role <i>"tmp_user"</i>.
+     * Returns status code <strong>201 CREATED</strong> and {@link WorkspaceDescriptor} if workspace
+     * has been created successfully. Each new workspace should contain
      * at least workspace name and account identifier.
      *
      * @param newWorkspace
-     *         object that contains basic information needed to create new workspace.
+     *         new workspace
      * @return descriptor of created workspace
      * @throws ConflictException
      *         when current user account identifier and given account identifier are different,
-     *         or when {@code newWorkspace} is {@code null},
-     *         or any of {@code newWorkspace.getName()}
-     *         or {@code newWorkspace.getAccountId()} returns {@code null}
+     *         or when new workspace is {@code null},
+     *         or any of workspace name or account identifier is {@code null}
      * @throws NotFoundException
      *         when account with given identifier does not exist
      * @throws ServerException
-     *         when some error occurred while getting/persisting {@link Account},
-     *         {@link Workspace}, {@link Member} or {@link Profile}
+     *         when some error occurred while retrieving/persisting account, workspace, member or profile
      * @see WorkspaceDescriptor
+     * @see #getById(String, SecurityContext)
+     * @see #getByName(String, SecurityContext)
      */
     @POST
     @Path("temp")
@@ -240,7 +240,7 @@ public class WorkspaceService extends Service {
                              .withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
             userDao.create(user);
             try {
-                final Map<String, String> attributes = new HashMap<>(2);
+                final Map<String, String> attributes = new HashMap<>(4);
                 attributes.put("temporary", String.valueOf(true));
                 attributes.put("codenvy:created", Long.toString(System.currentTimeMillis()));
                 userProfileDao.create(new Profile().withId(user.getId())
@@ -266,7 +266,7 @@ public class WorkspaceService extends Service {
 
     /**
      * Returns {@link WorkspaceDescriptor} for certain Workspace.
-     * If user that has called this method is not "workspace/admin" or "workspace/developer"
+     * If user that has called this method is not <i>"workspace/admin"</i> or <i>"workspace/developer"</i>
      * workspace attributes will not be added to response.
      *
      * @param id
@@ -275,13 +275,15 @@ public class WorkspaceService extends Service {
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
      * @throws ServerException
-     *         when some error occurred while retrieving {@link Workspace}
+     *         when some error occurred while retrieving workspace
+     * @see WorkspaceDescriptor
+     * @see #getByName(String, SecurityContext)
      */
     @GET
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public WorkspaceDescriptor getById(@Context SecurityContext securityContext,
-                                       @PathParam("id") String id) throws NotFoundException, ServerException {
+    public WorkspaceDescriptor getById(@PathParam("id") String id,
+                                       @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Workspace workspace = workspaceDao.getById(id);
         try {
             ensureUserHasAccessToWorkspace(securityContext, workspace.getId(), "workspace/admin", "workspace/developer");
@@ -303,7 +305,7 @@ public class WorkspaceService extends Service {
 
     /**
      * Returns {@link WorkspaceDescriptor} for certain Workspace.
-     * If user that has called this method is not "workspace/admin" or "workspace/developer"
+     * If user that has called this method is not <i>"workspace/admin"</i> or <i>"workspace/developer"</i>
      * workspace attributes will not be added to response.
      *
      * @param name
@@ -312,7 +314,9 @@ public class WorkspaceService extends Service {
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
      * @throws ServerException
-     *         when some error occurred while retrieving {@link Workspace}
+     *         when some error occurred while retrieving workspace
+     * @see WorkspaceDescriptor
+     * @see #getById(String, SecurityContext)
      */
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_NAME)
@@ -343,8 +347,11 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Updates workspace. Existed workspace attributes with same name as
-     * update attributes will be replaced with new attributes values.
+     * <p>
+     * Updates workspace.
+     * </p>
+     * <strong>Note: existed workspace attributes with same name as
+     * update attributes - will be replaced with update attributes.</strong>
      *
      * @param id
      *         workspace identifier
@@ -357,9 +364,10 @@ public class WorkspaceService extends Service {
      *         when update is {@code null} or updated attributes contains
      *         attribute with not valid name
      * @throws ServerException
-     *         when some error occurred while getting workspace
+     *         when some error occurred while retrieving/updating workspace
      * @see WorkspaceUpdate
      * @see WorkspaceDescriptor
+     * @see #removeAttribute(String, String, SecurityContext)
      */
     @POST
     @Path("{id}")
@@ -394,11 +402,11 @@ public class WorkspaceService extends Service {
      *
      * @param accountId
      *         account identifier
-     * @return workspace descriptors
+     * @return workspaces descriptors
      * @throws ConflictException
-     *         account identifier is {@code null}
+     *         when account identifier is {@code null}
      * @throws ServerException
-     *         when some error occurred while getting workspace
+     *         when some error occurred while retrieving workspace
      * @see WorkspaceDescriptor
      */
     @GET
@@ -423,7 +431,7 @@ public class WorkspaceService extends Service {
      *
      * @return current user memberships
      * @throws ServerException
-     *         when some error occurred while getting user or members
+     *         when some error occurred while retrieving user or members
      * @see MemberDescriptor
      */
     @GET
@@ -462,7 +470,7 @@ public class WorkspaceService extends Service {
      * @throws ConflictException
      *         when user identifier is {@code null}
      * @throws ServerException
-     *         when some error occurred while getting user or members
+     *         when some error occurred while retrieving user or members
      * @see MemberDescriptor
      */
     @GET
@@ -500,16 +508,17 @@ public class WorkspaceService extends Service {
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
      * @throws ServerException
-     *         when some error occurred while getting workspace or members
+     *         when some error occurred while retrieving workspace or members
      * @see MemberDescriptor
+     * @see #addMember(String, NewMembership, SecurityContext)
+     * @see #removeMember(String, String, SecurityContext)
      */
     @GET
     @Path("{id}/members")
     @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembers(@PathParam("id") String wsId,
-                                             @Context SecurityContext securityContext) throws NotFoundException,
-                                                                                              ServerException {
+                                             @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Workspace workspace = workspaceDao.getById(wsId);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final List<MemberDescriptor> descriptors = new ArrayList<>(members.size());
@@ -520,7 +529,7 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Removes attribute from certain workspace
+     * Removes attribute from certain workspace.
      *
      * @param wsId
      *         workspace identifier
@@ -548,7 +557,7 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Creates new workspace {@link Member}.
+     * Creates new workspace member.
      *
      * @param wsId
      *         workspace identifier
@@ -558,15 +567,17 @@ public class WorkspaceService extends Service {
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
      * @throws ServerException
-     *         when some error occurred while getting workspace, user
-     *         or persisting new workspace member
+     *         when some error occurred while retrieving {@link Workspace}, {@link User}
+     *         or persisting new {@link Member}
      * @throws ConflictException
-     *         when {@code newMembership} is {@code null}
-     *         or {@code newMembership.getUserId()} is {@code null}
-     *         or {@code newMembership.getRoles()} is {@code null} or empty
+     *         when new membership is {@code null}
+     *         or if new membership user id is {@code null} or
+     *         of new membership roles is {@code null} or empty
      * @throws ForbiddenException
      *         when current user hasn't access to workspace with given identifier
      * @see MemberDescriptor
+     * @see #removeMember(String, String, SecurityContext)
+     * @see #getMembers(String, SecurityContext)
      */
     @POST
     @Path("{id}/members")
@@ -598,7 +609,7 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Removes member from certain workspace.
+     * Removes user with given identifier as member from certain workspace.
      *
      * @param wsId
      *         workspace identifier
@@ -606,11 +617,12 @@ public class WorkspaceService extends Service {
      *         user identifier to remove member
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
-     *         or
      * @throws ServerException
-     *         when some error occurred while getting workspace, members or removing member
+     *         when some error occurred while retrieving workspace or removing member
      * @throws ConflictException
-     *         when removal member is last "workspace/admin" in given workspace
+     *         when removal member is last <i>"workspace/admin"</i> in given workspace
+     * @see #addMember(String, NewMembership, SecurityContext)
+     * @see #getMembers(String, SecurityContext)
      */
     @DELETE
     @Path("{id}/members/{userid}")
@@ -658,8 +670,7 @@ public class WorkspaceService extends Service {
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
      * @throws ServerException
-     *         when some error occurred while getting workspace, members
-     *         or removing workspace, members
+     *         when some error occurred while retrieving/removing workspace or member
      * @throws ConflictException
      *         if some error occurred while removing member
      */
@@ -667,9 +678,7 @@ public class WorkspaceService extends Service {
     @Path("{id}")
     @RolesAllowed({"workspace/admin", "system/admin"})
     public void remove(@PathParam("id") String wsId,
-                       @Context SecurityContext securityContext) throws NotFoundException,
-                                                                        ServerException,
-                                                                        ConflictException {
+                       @Context SecurityContext securityContext) throws NotFoundException, ServerException, ConflictException {
         workspaceDao.getById(wsId); // check workspaces' existence
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         for (Member member : members) {
@@ -679,7 +688,7 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Converts member to member descriptor
+     * Converts {@link Member} to {@link MemberDescriptor}
      */
     private MemberDescriptor toDescriptor(Member member, Workspace workspace) {
         final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
@@ -739,7 +748,7 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Converts workspace to workspace descriptor
+     * Converts {@link Workspace} to {@link WorkspaceDescriptor}
      */
     private WorkspaceDescriptor toDescriptor(Workspace workspace, SecurityContext securityContext) {
         final WorkspaceDescriptor workspaceDescriptor = DtoFactory.getInstance().createDto(WorkspaceDescriptor.class)
@@ -835,13 +844,13 @@ public class WorkspaceService extends Service {
      * @param object
      *         object reference to check
      * @param subject
-     *         used as subject of exception message "{subject} should not be null"
+     *         used as subject of exception message "{subject} required"
      * @throws ConflictException
      *         when object reference is {@code null}
      */
     private void requiredNotNull(Object object, String subject) throws ConflictException {
         if (object == null) {
-            throw new ConflictException(subject + " should not be null");
+            throw new ConflictException(subject + " required");
         }
     }
 

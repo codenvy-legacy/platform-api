@@ -32,7 +32,6 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -61,7 +60,6 @@ import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -86,24 +84,44 @@ public class AccountService extends Service {
     private final PaymentService              paymentService;
 
     @Inject
-    public AccountService(AccountDao accountDao, UserDao userDao, SubscriptionServiceRegistry registry, PaymentService paymentService) {
+    public AccountService(AccountDao accountDao,
+                          UserDao userDao,
+                          SubscriptionServiceRegistry registry,
+                          PaymentService paymentService) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.registry = registry;
         this.paymentService = paymentService;
     }
 
+    /**
+     * Creates new account and adds current user as member to created account
+     * with role <i>"account/owner"</i>. Returns status <b>201 CREATED</b>
+     * and {@link AccountDescriptor} of created account if account has been created successfully.
+     * Each new account should contain at least name.
+     *
+     * @param newAccount
+     *         new account
+     * @return descriptor of created account
+     * @throws NotFoundException
+     *         when some error occurred while retrieving account
+     * @throws ConflictException
+     *         when new account is {@code null}
+     *         or new account name is {@code null}
+     * @throws ServerException
+     * @see AccountDescriptor
+     * @see #getById(String, SecurityContext)
+     * @see #getByName(String, SecurityContext)
+     */
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_ACCOUNT)
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext,
-                           @Required @Description("Account to create") NewAccount newAccount)
-            throws NotFoundException, ConflictException, ServerException {
-        if (newAccount == null) {
-            throw new ConflictException("Missed account to create");
-        }
+                           @Required NewAccount newAccount) throws NotFoundException, ConflictException, ServerException {
+        requiredNotNull(newAccount, "New account");
+        requiredNotNull(newAccount.getName(), "Account name");
         if (newAccount.getAttributes() != null) {
             for (String attributeName : newAccount.getAttributes().keySet()) {
                 validateAttributeName(attributeName);
@@ -114,9 +132,6 @@ public class AccountService extends Service {
         //for now account <-One to One-> user
         if (accountDao.getByOwner(current.getId()).size() != 0) {
             throw new ConflictException(String.format("Account which owner is %s already exists", current.getId()));
-        }
-        if (newAccount.getName() == null) {
-            throw new ConflictException("Account name required");
         }
         try {
             accountDao.getByName(newAccount.getName());
@@ -133,15 +148,26 @@ public class AccountService extends Service {
                                          .withRoles(Arrays.asList("account/owner"));
         accountDao.create(account);
         accountDao.addMember(owner);
-        return Response.status(Response.Status.CREATED).entity(toDescriptor(account, securityContext)).build();
+        return Response.status(Response.Status.CREATED)
+                       .entity(toDescriptor(account, securityContext))
+                       .build();
     }
 
+    /**
+     * Returns all accounts memberships for current user.
+     *
+     * @return accounts memberships of current user
+     * @throws NotFoundException
+     *         when any of memberships contains account that doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving accounts or memberships
+     * @see MemberDescriptor
+     */
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMemberships(@Context SecurityContext securityContext)
-            throws NotFoundException, ServerException {
+    public List<MemberDescriptor> getMemberships(@Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final List<Member> memberships = accountDao.getByMember(current.getId());
@@ -152,18 +178,30 @@ public class AccountService extends Service {
         return result;
     }
 
+    /**
+     * Returns all accounts memberships for user with given identifier.
+     *
+     * @param userId
+     *         user identifier to search memberships
+     * @return accounts memberships
+     * @throws ConflictException
+     *         when user identifier is {@code null}
+     * @throws NotFoundException
+     *         when user with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving user or memberships
+     * @see MemberDescriptor
+     */
     @GET
     @Path("memberships")
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembershipsOfSpecificUser(
-            @Required @Description("User id to get accounts") @QueryParam("userid") String userId,
-            @Context SecurityContext securityContext)
-            throws ConflictException, NotFoundException, ServerException {
-        if (userId == null) {
-            throw new ConflictException("Missed userid to search");
-        }
+    public List<MemberDescriptor> getMembershipsOfSpecificUser(@Required @QueryParam("userid") String userId,
+                                                               @Context SecurityContext securityContext) throws ConflictException,
+                                                                                                                NotFoundException,
+                                                                                                                ServerException {
+        requiredNotNull(userId, "User identifier");
         final User user = userDao.getById(userId);
         final List<Member> memberships = accountDao.getByMember(user.getId());
         final List<MemberDescriptor> result = new ArrayList<>(memberships.size());
@@ -173,66 +211,142 @@ public class AccountService extends Service {
         return result;
     }
 
+    /**
+     * Removes attribute with given name from certain account.
+     *
+     * @param accountId
+     *         account identifier
+     * @param attributeName
+     *         attribute name to remove attribute
+     * @throws ConflictException
+     *         if attribute name is not valid
+     * @throws NotFoundException
+     *         if account with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while getting/updating account
+     */
     @DELETE
     @Path("{id}/attribute")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public void removeAttribute(@PathParam("id") String accountId, @QueryParam("name") String attributeName)
-            throws ConflictException, NotFoundException, ForbiddenException, ServerException {
-        final Account account = accountDao.getById(accountId);
+    public void removeAttribute(@PathParam("id") String accountId,
+                                @QueryParam("name") String attributeName) throws ConflictException, NotFoundException, ServerException {
         validateAttributeName(attributeName);
+        final Account account = accountDao.getById(accountId);
         account.getAttributes().remove(attributeName);
         accountDao.update(account);
     }
 
     //TODO: add method for removing list of attributes
+
+    /**
+     * Returns {@link AccountDescriptor} for account with given identifier.
+     *
+     * @param id
+     *         account identifier
+     * @return descriptor of found account
+     * @throws NotFoundException
+     *         when account with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving account
+     * @see AccountDescriptor
+     * @see #getByName(String, SecurityContext)
+     */
     @GET
     @Path("{id}")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public AccountDescriptor getById(@Context SecurityContext securityContext, @PathParam("id") String id)
-            throws NotFoundException, ServerException {
+    public AccountDescriptor getById(@PathParam("id") String id,
+                                     @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Account account = accountDao.getById(id);
         return toDescriptor(account, securityContext);
     }
 
+    /**
+     * Returns {@link AccountDescriptor} for account with given name.
+     *
+     * @param name
+     *         account name
+     * @return descriptor of found account
+     * @throws NotFoundException
+     *         when account with given name doesn't exist
+     * @throws ConflictException
+     *         when account name is {@code null}
+     * @throws ServerException
+     *         when some error occurred while retrieving account
+     * @see AccountDescriptor
+     * @see #getById(String, SecurityContext)
+     */
     @GET
     @Path("find")
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_NAME)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public AccountDescriptor getByName(@Context SecurityContext securityContext,
-                                       @Required @Description("Account name to search") @QueryParam("name") String name)
-            throws NotFoundException, ConflictException, ServerException {
-        if (name == null) {
-            throw new ConflictException("Missed account name");
-        }
+    public AccountDescriptor getByName(@Required @QueryParam("name") String name,
+                                       @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                        ConflictException,
+                                                                                        ServerException {
+        requiredNotNull(name, "Account name");
         final Account account = accountDao.getByName(name);
         return toDescriptor(account, securityContext);
     }
 
+    /**
+     * Creates new account member with role <i>"account/member"</i>.
+     *
+     * @param accountId
+     *         account identifier
+     * @param userId
+     *         user identifier
+     * @return descriptor of created member
+     * @throws ConflictException
+     *         when user identifier is {@code null}
+     * @throws NotFoundException
+     *         when user or account with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while getting user or adding new account member
+     * @see MemberDescriptor
+     * @see #removeMember(String, String)
+     * @see #getMembers(String, SecurityContext)
+     */
     @POST
     @Path("{id}/members")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public void addMember(@PathParam("id") String accountId,
-                          @QueryParam("userid") String userId,
-                          @Context SecurityContext securityContext)
-            throws ConflictException, NotFoundException, ForbiddenException, ServerException {
-        if (userId == null) {
-            throw new ConflictException("Missed user id");
-        }
+    public Response addMember(@PathParam("id") String accountId,
+                              @QueryParam("userid") String userId,
+                              @Context SecurityContext securityContext) throws ConflictException, NotFoundException, ServerException {
+        requiredNotNull(userId, "User identifier");
+        userDao.getById(userId);//check user exists
+        final Account account = accountDao.getById(accountId);
         final Member newMember = new Member().withAccountId(accountId)
                                              .withUserId(userId)
                                              .withRoles(Arrays.asList("account/member"));
         accountDao.addMember(newMember);
+        return Response.status(Response.Status.CREATED)
+                       .entity(toDescriptor(newMember, account, securityContext))
+                       .build();
     }
 
+    /**
+     * Returns all members of certain account.
+     *
+     * @param id
+     *         account identifier
+     * @return account members
+     * @throws NotFoundException
+     *         when account with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving accounts or members
+     * @see MemberDescriptor
+     * @see #addMember(String, String, SecurityContext)
+     * @see #removeMember(String, String)
+     */
     @GET
     @Path("{id}/members")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembers(@PathParam("id") String id, @Context SecurityContext securityContext)
-            throws NotFoundException, ForbiddenException, ServerException {
+    public List<MemberDescriptor> getMembers(@PathParam("id") String id,
+                                             @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Account account = accountDao.getById(id);
         final List<Member> members = accountDao.getMembers(id);
         final List<MemberDescriptor> result = new ArrayList<>(members.size());
@@ -242,16 +356,32 @@ public class AccountService extends Service {
         return result;
     }
 
+    /**
+     * Removes user with given identifier as member from certain account.
+     *
+     * @param accountId
+     *         account identifier
+     * @param userId
+     *         user identifier
+     * @throws NotFoundException
+     *         when user or account with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving account members or removing certain member
+     * @throws ConflictException
+     *         when removal member is last <i>"account/owner"</i>
+     * @see #addMember(String, String, SecurityContext)
+     * @see #getMembers(String, SecurityContext)
+     */
     @DELETE
     @Path("{id}/members/{userid}")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public void removeMember(@PathParam("id") String accountId, @PathParam("userid") String userId)
-            throws NotFoundException, ForbiddenException, ServerException, ConflictException {
+    public void removeMember(@PathParam("id") String accountId,
+                             @PathParam("userid") String userId) throws NotFoundException, ServerException, ConflictException {
         final List<Member> accMembers = accountDao.getMembers(accountId);
         Member toRemove = null;
         //search for member
         for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && toRemove == null; ) {
-            Member current = mIt.next();
+            final Member current = mIt.next();
             if (current.getUserId().equals(userId)) {
                 toRemove = current;
             }
@@ -264,8 +394,7 @@ public class AccountService extends Service {
                 boolean isOtherAccOwnerPresent = false;
                 for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && !isOtherAccOwnerPresent; ) {
                     final Member current = mIt.next();
-                    isOtherAccOwnerPresent = !current.getUserId().equals(userId)
-                                             && current.getRoles().contains("account/owner");
+                    isOtherAccOwnerPresent = !current.getUserId().equals(userId) && current.getRoles().contains("account/owner");
                 }
                 if (!isOtherAccOwnerPresent) {
                     throw new ConflictException("Account should have at least 1 owner");
@@ -277,6 +406,26 @@ public class AccountService extends Service {
         }
     }
 
+    /**
+     * <p>
+     * Updates account.
+     * </p>
+     * <strong>Note: existed account attributes with same name as
+     * update attributes - will be replaced with update attributes.</strong>
+     *
+     * @param accountId
+     *         account identifier
+     * @param update
+     *         account update
+     * @return descriptor of updated account
+     * @throws NotFoundException
+     *         when account with given identifier doesn't exist
+     * @throws ConflictException
+     *         when account update is {@code null}
+     * @throws ServerException
+     *         when some error occurred while retrieving/persisting account
+     * @see AccountDescriptor
+     */
     @POST
     @Path("{id}")
     @RolesAllowed({"account/owner"})
@@ -284,11 +433,10 @@ public class AccountService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     public AccountDescriptor update(@PathParam("id") String accountId,
                                     AccountUpdate update,
-                                    @Context SecurityContext securityContext)
-            throws NotFoundException, ConflictException, ForbiddenException, ServerException {
-        if (update == null) {
-            throw new ConflictException("Missed account to update");
-        }
+                                    @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                     ConflictException,
+                                                                                     ServerException {
+        requiredNotNull(update, "Account update");
         final Account account = accountDao.getById(accountId);
         //current user should be account owner to update it
         if (update.getName() != null) {
@@ -308,13 +456,25 @@ public class AccountService extends Service {
         return toDescriptor(account, securityContext);
     }
 
+    /**
+     * Returns list of subscriptions descriptors for certain account.
+     *
+     * @param accountId
+     *         account identifier
+     * @return subscriptions descriptors
+     * @throws NotFoundException
+     *         when account with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving subscriptions
+     * @see SubscriptionDescriptor
+     */
     @GET
     @Path("{id}/subscriptions")
     @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<SubscriptionDescriptor> getSubscriptions(@PathParam("id") String accountId,
-                                                         @Context SecurityContext securityContext)
-            throws NotFoundException, ForbiddenException, ServerException {
+                                                         @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                                          ServerException {
         final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
         final List<SubscriptionDescriptor> result = new ArrayList<>(subscriptions.size());
         for (Subscription subscription : subscriptions) {
@@ -323,14 +483,29 @@ public class AccountService extends Service {
         return result;
     }
 
+    /**
+     * Returns {@link SubscriptionDescriptor} for subscription with given identifier.
+     *
+     * @param subscriptionId
+     *         subscription identifier
+     * @return descriptor of subscription
+     * @throws NotFoundException
+     *         when subscription with given identifier doesn't exist
+     * @throws ForbiddenException
+     *         when user hasn't access to call this method
+     * @see SubscriptionDescriptor
+     * @see #getSubscriptions(String, SecurityContext)
+     * @see #removeSubscription(String, SecurityContext)
+     */
     @GET
     @Path("subscriptions/{subscriptionId}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public SubscriptionDescriptor getSubscriptionById(@PathParam("subscriptionId") String subscriptionId,
-                                                      @Context SecurityContext securityContext) throws ApiException {
+                                                      @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                                       ServerException,
+                                                                                                       ForbiddenException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
-
         Set<String> roles = null;
         if (securityContext.isUserInRole("user")) {
             roles = resolveRolesForSpecificAccount(subscription.getAccountId());
@@ -338,64 +513,86 @@ public class AccountService extends Service {
                 throw new ForbiddenException("Access denied");
             }
         }
-
         return toDescriptor(subscription, securityContext, roles);
     }
 
+    /**
+     * <p>
+     * Creates new subscription.
+     * </p>
+     * <p>
+     * Returns {@link SubscriptionDescriptor}
+     * when subscription has been created successfully
+     * and status code:
+     * <ul>
+     * <li> <strong>201 CREATED</strong> when subscription is <i>free</i></li>
+     * <li> <strong>402 PAYMENT REQUIRED</strong> when subscription requires payment</li>
+     * </ul>
+     * </p>
+     * <p>Each new subscription should contain service id and account id </p>
+     *
+     * @param newSubscription
+     *         new subscription
+     * @return descriptor of created subscription
+     * @throws ConflictException
+     *         when new subscription is {@code null}
+     *         or any of new subscription service identifier
+     *         or new subscription account identifier is {@code null}
+     * @see SubscriptionDescriptor
+     * @see #getSubscriptionById(String, SecurityContext)
+     * @see #removeSubscription(String, SecurityContext)
+     */
     @POST
     @Path("subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response addSubscription(@Required @Description("subscription to add") NewSubscription newSubscription,
-                                    @Context SecurityContext securityContext)
-            throws ApiException {
-        if (newSubscription == null) {
-            throw new ConflictException("Missed subscription");
-        }
-        if (newSubscription.getProperties() == null || newSubscription.getProperties().isEmpty()) {
-            throw new ConflictException("Missed subscription properties");
-        }
-        Set<String> roles = null;
+    public Response addSubscription(@Required NewSubscription newSubscription,
+                                    @Context SecurityContext securityContext) throws ApiException {
+        requiredNotNull(newSubscription, "New subscription");
+        requiredNotNull(newSubscription.getAccountId(), "Account identifier");
+        requiredNotNull(newSubscription.getServiceId(), "Service identifier");
+        //check user has access to add subscription
+        final Set<String> roles = new HashSet<>();
         if (securityContext.isUserInRole("user")) {
-            roles = resolveRolesForSpecificAccount(newSubscription.getAccountId());
+            roles.addAll(resolveRolesForSpecificAccount(newSubscription.getAccountId()));
             if (!roles.contains("account/owner")) {
                 throw new ForbiddenException("Access denied");
             }
         }
+        //check service exists
         final SubscriptionService service = registry.get(newSubscription.getServiceId());
         if (null == service) {
             throw new ConflictException("Unknown serviceId is used");
         }
+        //create new subscription
         final Subscription subscription = new Subscription().withAccountId(newSubscription.getAccountId())
                                                             .withServiceId(newSubscription.getServiceId())
                                                             .withProperties(newSubscription.getProperties());
         subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
-
-
-        if ("true".equals((subscription.getProperties().get("codenvy:trial")))) {
-            String userId = EnvironmentContext.getCurrent().getUser().getId();
-
+        //Is a user does not have system/admin role,
+        // check if he has a credit card and if has previously used trial
+        if ("true".equalsIgnoreCase((subscription.getProperties().get("codenvy:trial")))) {
+            final String userId = EnvironmentContext.getCurrent().getUser().getId();
             if (!securityContext.isUserInRole("system/admin")) {
                 try {
                     paymentService.getCreditCard(userId);
                 } catch (NotFoundException e) {
                     throw new ConflictException("You have no credit card to pay for subscription after trial");
                 }
-
-                final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(
-                        new SubscriptionHistoryEvent().withUserId(userId).withType(SubscriptionHistoryEvent.Type.CREATE).withSubscription(
-                                new Subscription().withServiceId(subscription.getServiceId())
-                                                  .withProperties(Collections.singletonMap("codenvy:trial", "true"))
-                                                                                                                                         )
-                                                                                                     );
-                if (events.size() > 0) {
+                final SubscriptionHistoryEvent trial = new SubscriptionHistoryEvent()
+                        .withUserId(userId)
+                        .withType(SubscriptionHistoryEvent.Type.CREATE)
+                        .withSubscription(new Subscription().withServiceId(subscription.getServiceId())
+                                                            .withProperties(Collections.singletonMap("codenvy:trial", "true")));
+                final List<SubscriptionHistoryEvent> events = accountDao.getSubscriptionHistoryEvents(trial);
+                if (!events.isEmpty()) {
                     throw new ConflictException("You can't use trial twice, please contact support");
                 }
             }
-
             subscription.setState(Subscription.State.ACTIVE);
+            //if it is not trial subscription we should check is it free or not
         } else {
             final double amount = service.tarifficate(subscription);
             if (0D == amount || securityContext.isUserInRole("system/admin")) {
@@ -404,23 +601,21 @@ public class AccountService extends Service {
                 subscription.setState(Subscription.State.WAIT_FOR_PAYMENT);
             }
         }
-
         service.beforeCreateSubscription(subscription);
         accountDao.addSubscription(subscription);
-        accountDao.addSubscriptionHistoryEvent(
-                createSubscriptionHistoryEvent(subscription, SubscriptionHistoryEvent.Type.CREATE,
-                                               EnvironmentContext.getCurrent().getUser().getId())
-                                              );
+        accountDao.addSubscriptionHistoryEvent(createSubscriptionHistoryEvent(subscription,
+                                                                              SubscriptionHistoryEvent.Type.CREATE,
+                                                                              EnvironmentContext.getCurrent().getUser().getId()));
         service.afterCreateSubscription(subscription);
-
-        Response response;
         if (subscription.getState() == WAIT_FOR_PAYMENT) {
-            response = Response.status(402).entity(toDescriptor(subscription, securityContext, roles)).build();
+            return Response.status(402)
+                           .entity(toDescriptor(subscription, securityContext, roles))
+                           .build();
         } else {
-            response = Response.noContent().build();
+            return Response.status(Response.Status.CREATED)
+                           .entity(toDescriptor(subscription, securityContext, roles))
+                           .build();
         }
-
-        return response;
     }
 
     /**
@@ -435,6 +630,8 @@ public class AccountService extends Service {
      * @throws ForbiddenException
      *         if user hasn't permissions
      * @throws ApiException
+     * @see #addSubscription(NewSubscription, SecurityContext)
+     * @see #getSubscriptions(String, SecurityContext)
      */
     @DELETE
     @Path("subscriptions/{id}")
@@ -615,6 +812,9 @@ public class AccountService extends Service {
         }
     }
 
+    /**
+     * Converts {@link Account} to {@link AccountDescriptor}
+     */
     private AccountDescriptor toDescriptor(Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();
@@ -625,8 +825,7 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getMemberships")
                                        .build()
-                                       .toString()
-                            ));
+                                       .toString()));
         links.add(createLink(HttpMethod.GET,
                              Constants.LINK_REL_GET_SUBSCRIPTIONS,
                              null,
@@ -634,8 +833,7 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getSubscriptions")
                                        .build(account.getId())
-                                       .toString()
-                            ));
+                                       .toString()));
         links.add(createLink(HttpMethod.GET,
                              Constants.LINK_REL_GET_MEMBERS,
                              null,
@@ -643,8 +841,7 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getMembers")
                                        .build(account.getId())
-                                       .toString()
-                            ));
+                                       .toString()));
         links.add(createLink(HttpMethod.GET,
                              Constants.LINK_REL_GET_ACCOUNT_BY_ID,
                              null,
@@ -652,8 +849,7 @@ public class AccountService extends Service {
                              uriBuilder.clone()
                                        .path(getClass(), "getById")
                                        .build(account.getId())
-                                       .toString()
-                            ));
+                                       .toString()));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink(HttpMethod.GET,
                                  Constants.LINK_REL_GET_ACCOUNT_BY_NAME,
@@ -663,8 +859,7 @@ public class AccountService extends Service {
                                            .path(getClass(), "getByName")
                                            .queryParam("name", account.getName())
                                            .build()
-                                           .toString()
-                                ));
+                                           .toString()));
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(createLink(HttpMethod.DELETE,
@@ -673,8 +868,7 @@ public class AccountService extends Service {
                                  null,
                                  uriBuilder.clone().path(getClass(), "remove")
                                            .build(account.getId())
-                                           .toString()
-                                ));
+                                           .toString()));
         }
         return DtoFactory.getInstance().createDto(AccountDescriptor.class)
                          .withId(account.getId())
@@ -683,6 +877,9 @@ public class AccountService extends Service {
                          .withLinks(links);
     }
 
+    /**
+     * Converts {@link Member} to {@link MemberDescriptor}
+     */
     private MemberDescriptor toDescriptor(Member member, Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final Link removeMember = createLink(HttpMethod.DELETE,
@@ -701,8 +898,7 @@ public class AccountService extends Service {
                                            uriBuilder.clone()
                                                      .path(getClass(), "getMembers")
                                                      .build(account.getId())
-                                                     .toString()
-                                          );
+                                                     .toString());
         final AccountReference accountRef = DtoFactory.getInstance().createDto(AccountReference.class)
                                                       .withId(account.getId())
                                                       .withName(account.getName());
@@ -716,8 +912,7 @@ public class AccountService extends Service {
                                                                      uriBuilder.clone()
                                                                                .path(getClass(), "getById")
                                                                                .build(account.getId())
-                                                                               .toString()
-                                                                    )));
+                                                                               .toString())));
         }
         return DtoFactory.getInstance().createDto(MemberDescriptor.class)
                          .withUserId(member.getUserId())
@@ -727,7 +922,23 @@ public class AccountService extends Service {
     }
 
     /**
-     * Create {@link SubscriptionDescriptor} form {@link Subscription}.
+     * Checks object reference is not {@code null}
+     *
+     * @param object
+     *         object reference to check
+     * @param subject
+     *         used as subject of exception message "{subject} required"
+     * @throws ConflictException
+     *         when object reference is {@code null}
+     */
+    private void requiredNotNull(Object object, String subject) throws ConflictException {
+        if (object == null) {
+            throw new ConflictException(subject + " required");
+        }
+    }
+
+    /**
+     * Create {@link SubscriptionDescriptor} from {@link Subscription}.
      * Set with roles should be used if account roles can't be resolved with {@link SecurityContext}
      * (If there is no id of the account in the REST path.)
      *
@@ -739,19 +950,34 @@ public class AccountService extends Service {
     private SubscriptionDescriptor toDescriptor(Subscription subscription, SecurityContext securityContext, Set<String> resolvedRoles) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new ArrayList<>(3);
-        links.add(createLink(HttpMethod.GET, Constants.LINK_REL_GET_SUBSCRIPTION, null, MediaType.APPLICATION_JSON,
-                             uriBuilder.clone().path(getClass(), "getSubscriptionById").build(subscription.getId()).toString()));
-
+        links.add(createLink(HttpMethod.GET,
+                             Constants.LINK_REL_GET_SUBSCRIPTION,
+                             null,
+                             MediaType.APPLICATION_JSON,
+                             uriBuilder.clone()
+                                       .path(getClass(), "getSubscriptionById")
+                                       .build(subscription.getId())
+                                       .toString()));
         if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
             securityContext.isUserInRole("system/manager") ||
             (securityContext.isUserInRole("user") && resolvedRoles != null && resolvedRoles.contains("account/owner"))) {
-            links.add(createLink(HttpMethod.DELETE, Constants.LINK_REL_REMOVE_SUBSCRIPTION, null, null,
-                                 uriBuilder.clone().path(getClass(), "removeSubscription").build(subscription.getId()).toString()));
+            links.add(createLink(HttpMethod.DELETE,
+                                 Constants.LINK_REL_REMOVE_SUBSCRIPTION,
+                                 null,
+                                 null,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "removeSubscription")
+                                           .build(subscription.getId())
+                                           .toString()));
             if (subscription.getState() == WAIT_FOR_PAYMENT) {
-                links.add(createLink(HttpMethod.POST, Constants.LINK_REL_PURCHASE_SUBSCRIPTION, MediaType.APPLICATION_JSON, null,
-                                     uriBuilder.clone().path(getClass(), "purchaseSubscription").build(subscription.getId())
-                                               .toString()
-                                    ));
+                links.add(createLink(HttpMethod.POST,
+                                     Constants.LINK_REL_PURCHASE_SUBSCRIPTION,
+                                     MediaType.APPLICATION_JSON,
+                                     null,
+                                     uriBuilder.clone()
+                                               .path(getClass(), "purchaseSubscription")
+                                               .build(subscription.getId())
+                                               .toString()));
             }
         }
         return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
@@ -764,8 +990,11 @@ public class AccountService extends Service {
                          .withState(subscription.getState()).withLinks(links);
     }
 
+    /**
+     * Converts {@link SubscriptionHistoryEvent} to {@link SubscriptionHistoryEventDescriptor}
+     */
     private SubscriptionHistoryEventDescriptor toDescriptor(SubscriptionHistoryEvent event) {
-        Subscription subscription = event.getSubscription();
+        final Subscription subscription = event.getSubscription();
         SubscriptionDescriptor subscriptionDescriptor = null;
         if (subscription != null) {
             subscriptionDescriptor = DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
@@ -776,9 +1005,14 @@ public class AccountService extends Service {
                                                .withServiceId(subscription.getServiceId())
                                                .withProperties(subscription.getProperties());
         }
-        return DtoFactory.getInstance().createDto(SubscriptionHistoryEventDescriptor.class).withId(event.getId())
-                         .withAmount(event.getAmount()).withTime(event.getTime()).withTransactionId(event.getTransactionId())
-                         .withType(event.getType()).withUserId(event.getUserId()).withSubscription(subscriptionDescriptor);
+        return DtoFactory.getInstance().createDto(SubscriptionHistoryEventDescriptor.class)
+                         .withId(event.getId())
+                         .withAmount(event.getAmount())
+                         .withTime(event.getTime())
+                         .withTransactionId(event.getTransactionId())
+                         .withType(event.getType())
+                         .withUserId(event.getUserId())
+                         .withSubscription(subscriptionDescriptor);
     }
 
     private Link createLink(String method, String rel, String consumes, String produces, String href) {

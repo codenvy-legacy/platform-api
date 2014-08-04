@@ -112,15 +112,15 @@ public class WorkspaceService extends Service {
      *         new workspace
      * @return descriptor of created workspace
      * @throws ConflictException
-     *         when current user account identifier and given account identifier are different,
-     *         or when new workspace is {@code null},
-     *         or any of workspace name or account id is {@code null}
+     *         when current user account identifier and given account identifier are different
      * @throws NotFoundException
      *         when account with given identifier does not exist
      * @throws ServerException
      *         when some error occurred while retrieving/persisting account, workspace or member
      * @throws ForbiddenException
-     *         when user has not access to create workspaces
+     *         when user has not access to create workspaces,
+     *         or when new workspace is {@code null},
+     *         or any of workspace name or account id is {@code null}
      * @see NewWorkspace
      * @see WorkspaceDescriptor
      * @see #getById(String, SecurityContext)
@@ -193,8 +193,9 @@ public class WorkspaceService extends Service {
      *         new workspace
      * @return descriptor of created workspace
      * @throws ConflictException
-     *         when current user account identifier and given account identifier are different,
-     *         or when new workspace is {@code null},
+     *         when current user account identifier and given account identifier are different
+     * @throws ForbiddenException
+     *         when new workspace is {@code null},
      *         or any of workspace name or account identifier is {@code null}
      * @throws NotFoundException
      *         when account with given identifier does not exist
@@ -210,9 +211,11 @@ public class WorkspaceService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("static-access")
-    public Response createTemporary(@Context SecurityContext securityContext,
-                                    @Required @Description("New temporary workspace") NewWorkspace newWorkspace)
-            throws ConflictException, NotFoundException, ServerException {
+    public Response createTemporary(@Required @Description("New temporary workspace") NewWorkspace newWorkspace,
+                                    @Context SecurityContext securityContext) throws ConflictException,
+                                                                                     NotFoundException,
+                                                                                     ForbiddenException,
+                                                                                     ServerException {
         requiredNotNull(newWorkspace, "New workspace");
         if (newWorkspace.getAttributes() != null) {
             for (String attributeName : newWorkspace.getAttributes().keySet()) {
@@ -265,7 +268,7 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Returns {@link WorkspaceDescriptor} for certain Workspace.
+     * Searches for workspace with given identifier and returns {@link WorkspaceDescriptor} if found.
      * If user that has called this method is not <i>"workspace/admin"</i> or <i>"workspace/developer"</i>
      * workspace attributes will not be added to response.
      *
@@ -304,13 +307,13 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * Returns {@link WorkspaceDescriptor} for certain Workspace.
+     * Searches for workspace with given name and return {@link WorkspaceDescriptor} for it.
      * If user that has called this method is not <i>"workspace/admin"</i> or <i>"workspace/developer"</i>
      * workspace attributes will not be added to response.
      *
      * @param name
      *         workspace name
-     * @return descriptor of found Workspace
+     * @return descriptor of found workspace
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
      * @throws ServerException
@@ -347,11 +350,9 @@ public class WorkspaceService extends Service {
     }
 
     /**
-     * <p>
-     * Updates workspace.
-     * </p>
-     * <strong>Note: existed workspace attributes with same name as
-     * update attributes - will be replaced with update attributes.</strong>
+     * <p>Updates workspace.</p>
+     * <strong>Note:</strong> existed workspace attributes with same name as
+     * update attributes will be replaced with update attributes.
      *
      * @param id
      *         workspace identifier
@@ -361,8 +362,9 @@ public class WorkspaceService extends Service {
      * @throws NotFoundException
      *         when workspace with given name doesn't exist
      * @throws ConflictException
+     *         when attribute with not valid name
+     * @throws ForbiddenException
      *         when update is {@code null} or updated attributes contains
-     *         attribute with not valid name
      * @throws ServerException
      *         when some error occurred while retrieving/updating workspace
      * @see WorkspaceUpdate
@@ -378,6 +380,7 @@ public class WorkspaceService extends Service {
                                       @PathParam("id") String id,
                                       WorkspaceUpdate update) throws NotFoundException,
                                                                      ConflictException,
+                                                                     ForbiddenException,
                                                                      ServerException {
         requiredNotNull(update, "Workspace update");
         final Workspace workspace = workspaceDao.getById(id);
@@ -403,7 +406,7 @@ public class WorkspaceService extends Service {
      * @param accountId
      *         account identifier
      * @return workspaces descriptors
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when account identifier is {@code null}
      * @throws ServerException
      *         when some error occurred while retrieving workspace
@@ -415,8 +418,8 @@ public class WorkspaceService extends Service {
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
     public List<WorkspaceDescriptor> getWorkspacesByAccount(@Context SecurityContext securityContext,
-                                                            @Required @QueryParam("id") String accountId) throws ConflictException,
-                                                                                                                 ServerException {
+                                                            @Required @QueryParam("id") String accountId) throws ServerException,
+                                                                                                                 ForbiddenException {
         requiredNotNull(accountId, "Account id");
         final List<Workspace> workspaces = workspaceDao.getByAccount(accountId);
         final List<WorkspaceDescriptor> descriptors = new ArrayList<>(workspaces.size());
@@ -467,7 +470,7 @@ public class WorkspaceService extends Service {
      * @return certain user memberships
      * @throws NotFoundException
      *         when user with given identifier doesn't exist
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when user identifier is {@code null}
      * @throws ServerException
      *         when some error occurred while retrieving user or members
@@ -480,7 +483,7 @@ public class WorkspaceService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembershipsOfSpecificUser(@Context SecurityContext securityContext,
                                                                @Required @QueryParam("userid") String userId) throws NotFoundException,
-                                                                                                                     ConflictException,
+                                                                                                                     ForbiddenException,
                                                                                                                      ServerException {
         requiredNotNull(userId, "User identifier");
         userDao.getById(userId);
@@ -845,12 +848,12 @@ public class WorkspaceService extends Service {
      *         object reference to check
      * @param subject
      *         used as subject of exception message "{subject} required"
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when object reference is {@code null}
      */
-    private void requiredNotNull(Object object, String subject) throws ConflictException {
+    private void requiredNotNull(Object object, String subject) throws ForbiddenException {
         if (object == null) {
-            throw new ConflictException(subject + " required");
+            throw new ForbiddenException(subject + " required");
         }
     }
 

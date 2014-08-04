@@ -72,13 +72,27 @@ public class UserProfileService extends Service {
         this.userDao = userDao;
     }
 
+    /**
+     * <p>Returns {@link ProfileDescriptor} for current user profile.</p>
+     * <p>By default user email will be added to attributes with key <i>'email'</i>.</p>
+     *
+     * @param filter
+     *         preferences filter regex, if it is not {@code null}
+     *         only preferences matched to filter will be fetched
+     * @return descriptor of profile
+     * @throws ServerException
+     *         when some error occurred while retrieving/updating profile
+     * @see ProfileDescriptor
+     * @see #updateCurrent(Map, SecurityContext)
+     * @see #updatePreferences(Map, SecurityContext)
+     */
     @GET
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = "current profile")
     @Produces(MediaType.APPLICATION_JSON)
-    public ProfileDescriptor getCurrent(@Context SecurityContext securityContext,
-                                        @Description("Preferences path filter") @QueryParam("filter") String filter)
-            throws NotFoundException, ServerException {
+    public ProfileDescriptor getCurrent(@Description("Preferences path filter")
+                                        @QueryParam("filter") String filter,
+                                        @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         final Profile profile;
@@ -91,14 +105,28 @@ public class UserProfileService extends Service {
         return toDescriptor(profile, securityContext);
     }
 
+    /**
+     * <p>Updates attributes of current user profile.</p>
+     * <p><strong>Note:</strong>if updates are {@code null} or <i>empty</i>
+     * then all current user profile attributes will be removed,
+     * existed profile attributes with same names as update attributes
+     * will be replaced with update attributes.</p>
+     *
+     * @param updates
+     *         attributes to update
+     * @return descriptor of updated profile
+     * @throws ServerException
+     *         when some error occurred while retrieving/persisting profile
+     * @see ProfileDescriptor
+     * @see #updatePreferences(Map, SecurityContext)
+     */
     @POST
     @RolesAllowed("user")
     @GenerateLink(rel = "update current")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProfileDescriptor updateCurrent(@Context SecurityContext securityContext,
-                                           @Description("updates for profile") Map<String, String> updates)
-            throws NotFoundException, ServerException {
+    public ProfileDescriptor updateCurrent(@Description("attributes to update") Map<String, String> updates,
+                                           @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         final Profile profile = profileDao.getById(user.getId());
@@ -114,19 +142,25 @@ public class UserProfileService extends Service {
         return toDescriptor(profile, securityContext);
     }
 
-    @GET
-    @Path("{id}")
-    @RolesAllowed({"user", "system/admin", "system/manager"})
-    @Produces(MediaType.APPLICATION_JSON)
-    public ProfileDescriptor getById(@PathParam("id") String profileId,
-                                     @Context SecurityContext securityContext) throws NotFoundException, ServerException {
-        final Profile profile = profileDao.getById(profileId);
-        final User user = userDao.getById(profile.getUserId());
-        profile.getPreferences().clear();
-        profile.getAttributes().put("email", user.getEmail());
-        return toDescriptor(profile, securityContext);
-    }
-
+    /**
+     * <p>Updates attributes of certain profile.</p>
+     * <p><strong>Note:</strong>if updates are {@code null} or <i>empty</i>
+     * then all current user profile attributes will be removed,
+     * existed profile attributes with same names as update attributes
+     * will be replaced with update attributes.</p>
+     *
+     * @param profileId
+     *         profile identifier
+     * @param updates
+     *         attributes to update
+     * @return descriptor of updated profile
+     * @throws NotFoundException
+     *         when profile with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving/updating profile
+     * @see ProfileDescriptor
+     * @see #getById(String, SecurityContext)
+     */
     @POST
     @Path("{id}")
     @RolesAllowed({"system/admin", "system/manager"})
@@ -150,15 +184,55 @@ public class UserProfileService extends Service {
         return toDescriptor(profile, securityContext);
     }
 
+    /**
+     * Searches for profile with given identifier and {@link ProfileDescriptor} if found.
+     *
+     * @param profileId
+     *         profile identifier
+     * @return descriptor of found profile
+     * @throws NotFoundException
+     *         when profile with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving user or profile
+     * @see ProfileDescriptor
+     * @see #getById(String, SecurityContext)
+     */
+    @GET
+    @Path("{id}")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public ProfileDescriptor getById(@PathParam("id") String profileId,
+                                     @Context SecurityContext securityContext) throws NotFoundException, ServerException {
+        final Profile profile = profileDao.getById(profileId);
+        final User user = userDao.getById(profile.getUserId());
+        profile.getPreferences().clear();
+        profile.getAttributes().put("email", user.getEmail());
+        return toDescriptor(profile, securityContext);
+    }
+
+    /**
+     * <p>Updates preferences of current user profile.</p>
+     * <p><strong>Note:</strong>if updates are {@code null} or <i>empty</i>
+     * then all current user profile preferences will be removed,
+     * existed profile preferences with same names as update preferences
+     * will be replaced with update preferences.</p>
+     *
+     * @param preferencesToUpdate
+     *         update preferences
+     * @return descriptor of updated profile
+     * @throws ServerException
+     *         when some error occurred while retrieving/updating profile
+     * @see ProfileDescriptor
+     * @see #updateCurrent(Map, SecurityContext)
+     */
     @POST
     @Path("prefs")
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFERENCES)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProfileDescriptor updatePreferences(@Context SecurityContext securityContext,
-                                               @Description("preferences to update") Map<String, String> preferencesToUpdate)
-            throws NotFoundException, ServerException {
+    public ProfileDescriptor updatePreferences(@Description("preferences to update") Map<String, String> preferencesToUpdate,
+                                               @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final Profile currentProfile = profileDao.getById(current.getId());
@@ -174,6 +248,17 @@ public class UserProfileService extends Service {
         return toDescriptor(currentProfile, securityContext);
     }
 
+    /**
+     * Removes attributes with given names from current user profile.
+     *
+     * @param attrNames
+     *         attributes names to remove
+     * @throws ConflictException
+     *         when given list of attributes names is {@code null}
+     * @throws ServerException
+     *         when some error occurred while retrieving/updating profile
+     * @see #removePreferences(List, SecurityContext)
+     */
     @DELETE
     @Path("attributes")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTES)
@@ -194,6 +279,17 @@ public class UserProfileService extends Service {
         profileDao.update(currentProfile);
     }
 
+    /**
+     * Removes preferences with given name from current user profile.
+     *
+     * @param prefNames
+     *         preferences names to remove
+     * @throws ConflictException
+     *         when given list of preferences names is {@code null}
+     * @throws ServerException
+     *         when some error occurred while retrieving/updating profile
+     * @see #removeAttributes(List, SecurityContext)
+     */
     @DELETE
     @Path("prefs")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_PREFERENCES)
@@ -214,6 +310,9 @@ public class UserProfileService extends Service {
         profileDao.update(currentProfile);
     }
 
+    /**
+     * Converts {@link Profile} to {@link ProfileDescriptor}
+     */
     private ProfileDescriptor toDescriptor(Profile profile, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();

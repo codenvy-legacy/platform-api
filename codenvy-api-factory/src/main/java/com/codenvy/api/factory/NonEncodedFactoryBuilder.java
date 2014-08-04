@@ -81,6 +81,18 @@ public abstract class NonEncodedFactoryBuilder {
             if (projectattributes.getPtype() != null) {
                 builder.append("&projectattributes.ptype=").append(projectattributes.getPtype());
             }
+
+            if (projectattributes.getRunnername() != null) {
+                builder.append("&projectattributes.runnername=").append(projectattributes.getRunnername());
+            }
+
+            if (projectattributes.getRunnerenvironmentid() != null) {
+                builder.append("&projectattributes.runnerenvironmentid=").append(projectattributes.getRunnerenvironmentid());
+            }
+
+            if (projectattributes.getBuildername() != null) {
+                builder.append("&projectattributes.buildername=").append(projectattributes.getBuildername());
+            }
         }
 
         if (factory.getContactmail() != null) {

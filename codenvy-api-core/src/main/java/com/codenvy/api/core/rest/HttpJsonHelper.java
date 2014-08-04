@@ -134,30 +134,15 @@ public class HttpJsonHelper {
                     final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
                     if (serviceError.getMessage() != null) {
                         if (responseCode == Response.Status.FORBIDDEN.getStatusCode()) {
-                            throw new ForbiddenException("We received an error response from the Codenvy server." +
-                                                         " The message is '403 Forbidden'." +
-                                                         " This occurs when there are communication issues between your client and Codenvy." +
-                                                         " Retry the request. If this issue continues, contact. support.");
+                            throw new ForbiddenException(serviceError);
                         } else if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {
-                            throw new NotFoundException("We received an error response from the Codenvy server." +
-                                                        " The message is '404 Not Found'." +
-                                                        " This occurs when there are communication issues between your client and Codenvy." +
-                                                        " Retry the request. If this issue continues, contact. support.");
+                            throw new NotFoundException(serviceError);
                         } else if (responseCode == Response.Status.UNAUTHORIZED.getStatusCode()) {
-                            throw new UnauthorizedException("We received an error response from the Codenvy server." +
-                                                            " The message is '401 Unauthorized'." +
-                                                            " This occurs when there are communication issues between your client and Codenvy." +
-                                                            " Retry the request. If this issue continues, contact. support.");
+                            throw new UnauthorizedException(serviceError);
                         } else if (responseCode == Response.Status.CONFLICT.getStatusCode()) {
-                            throw new ConflictException("We received an error response from the Codenvy server." +
-                                                        " The message is '409 Conflict'." +
-                                                        " This occurs when there are communication issues between your client and Codenvy." +
-                                                        " Retry the request. If this issue continues, contact. support.");
+                            throw new ConflictException(serviceError);
                         } else if (responseCode == Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
-                            throw new ServerException("We received an error response from the Codenvy server." +
-                                                      " The message is '500 Internal Server Error'." +
-                                                      " This occurs when there are communication issues between your client and Codenvy." +
-                                                      " Retry the request. If this issue continues, contact. support.");
+                            throw new ServerException(serviceError);
                         }
                         throw new ServerException(serviceError);
                     }

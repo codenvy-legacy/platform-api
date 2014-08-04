@@ -434,7 +434,10 @@ public class FactoryBuilderTest {
                 DtoFactory.getInstance().createDto(Git.class).withConfigbranchmerge("refs/for/master").withConfigpushdefault("upstream")
                           .withConfigremoteoriginfetch("changes/41/1841/1");
 
-        ProjectAttributes attributes = DtoFactory.getInstance().createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname");
+        ProjectAttributes attributes =
+                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname")
+                          .withRunnername("runnername").withRunnerenvironmentid("runnerenvironmentid")
+                          .withBuildername("buildername");
 
         Variable variable = DtoFactory.getInstance().createDto(Variable.class);
         Replacement replacement = DtoFactory.getInstance().createDto(Replacement.class);
@@ -456,6 +459,9 @@ public class FactoryBuilderTest {
         sb.append("commitid=").append(expected.getCommitid()).append("&");
         sb.append("projectattributes.ptype=").append(expected.getProjectattributes().getPtype()).append("&");
         sb.append("projectattributes.pname=").append(expected.getProjectattributes().getPname()).append("&");
+        sb.append("projectattributes.runnername=").append(expected.getProjectattributes().getRunnername()).append("&");
+        sb.append("projectattributes.buildername=").append(expected.getProjectattributes().getBuildername()).append("&");
+        sb.append("projectattributes.runnerenvironmentid=").append(expected.getProjectattributes().getRunnerenvironmentid()).append("&");
         sb.append("action=").append(expected.getAction()).append("&");
         sb.append("contactmail=").append(expected.getContactmail()).append("&");
         sb.append("author=").append(expected.getAuthor()).append("&");

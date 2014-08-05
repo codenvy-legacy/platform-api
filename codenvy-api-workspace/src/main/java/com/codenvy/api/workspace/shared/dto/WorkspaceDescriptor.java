@@ -12,6 +12,7 @@ package com.codenvy.api.workspace.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModel;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import java.util.Map;
  * @author andrew00x
  */
 @DTO
+@ApiModel
 public interface WorkspaceDescriptor {
     String getId();
 

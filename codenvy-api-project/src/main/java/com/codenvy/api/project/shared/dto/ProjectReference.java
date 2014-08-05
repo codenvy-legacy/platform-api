@@ -11,6 +11,8 @@
 package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * Reference to the IDE Project.
@@ -18,8 +20,10 @@ import com.codenvy.dto.shared.DTO;
  * @author andrew00x
  */
 @DTO
+@ApiModel(description = "Short information about project, it doesn't contain any project attributes.")
 public interface ProjectReference {
     /** Get name of project. */
+    @ApiModelProperty(value = "Name of the project", position = 1)
     String getName();
 
     /** Set name of project. */
@@ -28,6 +32,7 @@ public interface ProjectReference {
     ProjectReference withName(String name);
 
     /** Get unique ID of project */
+    @ApiModelProperty(value = "ID of the project", position = 3)
     String getId();
 
     /** Set unique ID of project */
@@ -36,6 +41,7 @@ public interface ProjectReference {
     ProjectReference withId(String id);
 
     /** Get path of project. */
+    @ApiModelProperty(value = "Full path of the project", position = 2)
     String getPath();
 
     /** Set path of project. */
@@ -44,6 +50,7 @@ public interface ProjectReference {
     ProjectReference withPath(String path);
 
     /** Get unique ID of type of project. */
+    @ApiModelProperty(value = "Unique ID of project's type", position = 4)
     String getProjectTypeId();
 
     /** Set unique ID of type of project. */
@@ -52,6 +59,7 @@ public interface ProjectReference {
     ProjectReference withProjectTypeId(String id);
 
     /** Get display name of type of project. */
+    @ApiModelProperty(value = "Display name of project's type", position = 5)
     String getProjectTypeName();
 
     /** Set display name of type of project. */
@@ -60,6 +68,7 @@ public interface ProjectReference {
     ProjectReference withProjectTypeName(String name);
 
     /** Get URL for getting detailed information about project. */
+    @ApiModelProperty(value = "URL for getting detailed information about the project", position = 5)
     String getUrl();
 
     /** Set URL for getting detailed information about project. */
@@ -68,6 +77,7 @@ public interface ProjectReference {
     ProjectReference withUrl(String url);
 
     /** Get URL for opening project in Codenvy IDE. */
+    @ApiModelProperty(value = "URL for opening project in Codenvy IDE", position = 6)
     String getIdeUrl();
 
     /** Set URL for  opening project in Codenvy IDE. */
@@ -76,6 +86,7 @@ public interface ProjectReference {
     ProjectReference withIdeUrl(String url);
 
     /** Get id of workspace this project belongs to. */
+    @ApiModelProperty(value = "ID of workspace which the project belongs to", position = 7)
     String getWorkspaceId();
 
     /** Set id of workspace this project belongs to. */
@@ -84,6 +95,7 @@ public interface ProjectReference {
     ProjectReference withWorkspaceId(String id);
 
     /** Get name of workspace this project belongs to. */
+    @ApiModelProperty(value = "Name of workspace which the project belongs to", position = 8)
     String getWorkspaceName();
 
     /** Set name of workspace this project belongs to. */
@@ -92,6 +104,7 @@ public interface ProjectReference {
     ProjectReference withWorkspaceName(String name);
 
     /** Get project visibility, e.g. private or public. */
+    @ApiModelProperty(value = "Visibility of the project", allowableValues = "public,private", position = 9)
     String getVisibility();
 
     /** Set project visibility, e.g. private or public. */
@@ -100,6 +113,7 @@ public interface ProjectReference {
     ProjectReference withVisibility(String visibility);
 
     /** Get creation date of project. */
+    @ApiModelProperty(value = "Time that the project was created or -1 if creation time in unknown", dataType="long", position = 9)
     long getCreationDate();
 
     /** Set creation date of project. */
@@ -108,6 +122,9 @@ public interface ProjectReference {
     ProjectReference withCreationDate(long date);
 
     /** Get modification date of project. */
+    @ApiModelProperty(value = "Time that the project was last modified or -1 if modification time date in unknown",
+                      dataType="long",
+                      position = 10)
     long getModificationDate();
 
     /** Set modification date of project. */
@@ -116,6 +133,7 @@ public interface ProjectReference {
     ProjectReference withModificationDate(long date);
 
     /** Get optional description of project. */
+    @ApiModelProperty(value = "Optional description of the project", position = 11)
     String getDescription();
 
     /** Set optional description of project. */

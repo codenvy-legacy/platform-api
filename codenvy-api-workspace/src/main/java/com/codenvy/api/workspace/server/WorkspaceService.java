@@ -20,6 +20,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.user.server.UserService;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -33,6 +34,11 @@ import com.codenvy.api.workspace.shared.dto.*;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +57,8 @@ import java.util.*;
  * @author Eugene Voevodin
  * @author Max Shaposhnik
  */
+@Api(value = "/workspace",
+     description = "Workspace manager")
 @Path("workspace")
 public class WorkspaceService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceService.class);
@@ -296,13 +304,23 @@ public class WorkspaceService extends Service {
      * @see WorkspaceDescriptor
      * @see #getById(String, SecurityContext)
      */
+    @ApiOperation(value = "Gets workspace by name",
+                  response = WorkspaceDescriptor.class,
+                  position = 1)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Workspace with specified name doesn't exist"),
+            @ApiResponse(code = 403, message = "Access to requested workspace is forbidden"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACE_BY_NAME)
     @Produces(MediaType.APPLICATION_JSON)
-    public WorkspaceDescriptor getByName(@Required @Description("workspace name") @QueryParam("name") String name,
+    public WorkspaceDescriptor getByName(@ApiParam(value = "Name of workspace", required = true)
+                                         @Required
+                                         @Description("workspace name")
+                                         @QueryParam("name") String name,
                                          @Context SecurityContext securityContext) throws NotFoundException,
                                                                                           ServerException,
-                                                                                          ConflictException,
                                                                                           ForbiddenException {
         requiredNotNull(name, "Workspace name");
         final Workspace workspace = workspaceDao.getByName(name);

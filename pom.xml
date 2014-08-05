@@ -26,6 +26,7 @@
     <modules>
         <module>codenvy-dto</module>
         <module>codenvy-dto-maven-plugin</module>
+        <module>codenvy-api-docs</module>
         <module>codenvy-api-core</module>
         <module>codenvy-api-vfs</module>
         <module>codenvy-api-project</module>
@@ -39,7 +40,6 @@
         <module>codenvy-api-auth</module>
         <module>codenvy-api-version</module>
         <module>codenvy-infrastructure-local</module>
-        <module>codenvy-api-docs</module>
     </modules>
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>

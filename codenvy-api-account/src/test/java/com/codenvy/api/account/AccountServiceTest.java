@@ -40,9 +40,8 @@ import org.everrest.core.impl.ApplicationProviderBinder;
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.impl.EnvironmentContext;
 import org.everrest.core.impl.EverrestConfiguration;
+import org.everrest.core.impl.EverrestProcessor;
 import org.everrest.core.impl.ProviderBinder;
-import org.everrest.core.impl.RequestDispatcher;
-import org.everrest.core.impl.RequestHandlerImpl;
 import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
@@ -63,13 +62,11 @@ import javax.ws.rs.core.SecurityContext;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static com.codenvy.api.account.server.dao.Subscription.State.ACTIVE;
 import static com.codenvy.api.account.server.dao.Subscription.State.WAIT_FOR_PAYMENT;
@@ -84,7 +81,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertEqualsNoOrder;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.fail;
@@ -136,7 +132,6 @@ public class AccountServiceTest {
 
     protected ProviderBinder     providers;
     protected ResourceBinderImpl resources;
-    protected RequestHandlerImpl requestHandler;
     protected ResourceLauncher   launcher;
 
     @BeforeMethod
@@ -149,10 +144,9 @@ public class AccountServiceTest {
         dependencies.addComponent(SubscriptionServiceRegistry.class, serviceRegistry);
         dependencies.addComponent(PaymentService.class, paymentService);
         resources.addResource(AccountService.class, null);
-        requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
-                                                providers, dependencies, new EverrestConfiguration());
+        EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
+        launcher = new ResourceLauncher(processor);
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
-        launcher = new ResourceLauncher(requestHandler);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("secret", "bit secret");
         account = new Account().withId(ACCOUNT_ID)

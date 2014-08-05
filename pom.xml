@@ -39,6 +39,7 @@
         <module>codenvy-api-auth</module>
         <module>codenvy-api-version</module>
         <module>codenvy-infrastructure-local</module>
+        <module>codenvy-api-docs</module>
     </modules>
     <scm>
         <connection>scm:git:git@github.com:codenvy/platform-api.git</connection>

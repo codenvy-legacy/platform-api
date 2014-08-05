@@ -53,18 +53,8 @@ import java.util.Map;
 @Path("project-description")
 public class ProjectTypeDescriptionService extends Service {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectTypeDescriptionService.class);
-
     @Inject
     private ProjectTypeDescriptionRegistry registry;
-
-    @Inject
-    @Named("project.icons.path")
-    private String path;
-
-    @Inject
-    @Named("project.icons.url")
-    private String urlSegment;
 
     private DirectoryStream.Filter<java.nio.file.Path> iconFilter = new DirectoryStream.Filter<java.nio.file.Path>() {
 
@@ -112,34 +102,4 @@ public class ProjectTypeDescriptionService extends Service {
         }
         return types;
     }
-
-    @GET
-    @Path("icons/{projectTypeId}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Map<String, Link> getIconsUrls(@PathParam("projectTypeId") String projectTypeId, @Context UriInfo uriInfo) {
-        File directory = new File(path, projectTypeId + "/icons");
-        final DtoFactory dto = DtoFactory.getInstance();
-        Map<String, Link> result = new HashMap<>();
-        if (directory.exists()) {
-            try (DirectoryStream<java.nio.file.Path> stream = Files.newDirectoryStream(directory.toPath(), iconFilter)) {
-                String url =
-                        uriInfo.getBaseUri().getScheme() + "://" + uriInfo.getBaseUri().getHost() + ":" + uriInfo.getBaseUri().getPort() +
-                        "/" + urlSegment + "/" + projectTypeId + "/icons/";
-                for (java.nio.file.Path icon : stream) {
-                    if (!icon.toFile().isDirectory()) {
-                        Link link = dto.createDto(Link.class);
-                        link.withMethod("GET").withHref(url + icon.getFileName())
-                            .withProduces(ContentTypeGuesser.guessContentType(icon.toFile()));
-                        String name = icon.getFileName().toString();
-                        result.put(name.substring(0, name.lastIndexOf('.')), link);
-                    }
-                }
-
-            } catch (IOException e) {
-                LOG.error("Error while reading: " + directory.getPath(), e);
-            }
-        }
-        return result;
-    }
-
 }

@@ -192,9 +192,10 @@ public class WorkspaceServiceTest {
                                                                                                     .withAccountId("test1")));
         final Account test = new Account().withId("test")
                                           .withName("test")
-                                          .withAttributes(Collections.singletonMap("codenvy:multi_ws", "true"));
+                                          .withAttributes(Collections.singletonMap("codenvy:multi-ws", "true"));
         when(accountDao.getById(test.getId())).thenReturn(test);
         when(accountDao.getByOwner(USER_ID)).thenReturn(Collections.singletonList(test));
+        prepareSecurityContext("user");
 
         final NewWorkspace newWorkspace = DtoFactory.getInstance().createDto(NewWorkspace.class)
                                                     .withName("test2")
@@ -220,7 +221,7 @@ public class WorkspaceServiceTest {
                                                                                                     .withAccountId("test1")));
         final Account test = new Account().withId("test")
                                           .withName("test")
-                                          .withAttributes(Collections.singletonMap("codenvy:multi_ws", "false"));
+                                          .withAttributes(Collections.singletonMap("codenvy:multi-ws", "false"));
         when(accountDao.getById(test.getId())).thenReturn(test);
         when(accountDao.getByOwner(USER_ID)).thenReturn(Collections.singletonList(test));
         prepareSecurityContext("user");

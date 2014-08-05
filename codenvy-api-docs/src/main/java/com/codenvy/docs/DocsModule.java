@@ -26,6 +26,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 
 /**
  * @author andrew00x
@@ -41,6 +42,7 @@ public class DocsModule extends AbstractModule {
     }
 
     @Path("/docs")
+    @Produces("application/json")
     public static class CodenvyApiDocsService extends ApiListingResource {
     }
 

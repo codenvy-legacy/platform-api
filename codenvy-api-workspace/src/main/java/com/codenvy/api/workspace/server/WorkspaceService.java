@@ -11,13 +11,9 @@
 package com.codenvy.api.workspace.server;
 
 
-import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
-import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ForbiddenException;
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.ServerException;
+import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.core.*;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -26,19 +22,14 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.UserService;
 import com.codenvy.api.user.server.dao.Profile;
-import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
-import com.codenvy.api.workspace.shared.dto.NewMembership;
-import com.codenvy.api.workspace.shared.dto.NewWorkspace;
+import com.codenvy.api.workspace.server.dao.Member;
+import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.workspace.server.dao.Workspace;
-import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
-import com.codenvy.api.workspace.shared.dto.WorkspaceReference;
-import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
+import com.codenvy.api.workspace.server.dao.WorkspaceDao;
+import com.codenvy.api.workspace.shared.dto.*;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -48,30 +39,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriBuilder;
+import javax.inject.Named;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Workspace API
@@ -88,18 +60,21 @@ public class WorkspaceService extends Service {
     private final MemberDao      memberDao;
     private final UserProfileDao userProfileDao;
     private final AccountDao     accountDao;
+    private final boolean        isOrgAddonEnabledByDefault;
 
     @Inject
     public WorkspaceService(WorkspaceDao workspaceDao,
                             UserDao userDao,
                             MemberDao memberDao,
                             UserProfileDao userProfileDao,
-                            AccountDao accountDao) {
+                            AccountDao accountDao,
+                            @Named("subscription.orgaddon.enabled") String isOrgAddonEnabledByDefault) {
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
         this.userProfileDao = userProfileDao;
         this.accountDao = accountDao;
+        this.isOrgAddonEnabledByDefault = Boolean.parseBoolean(isOrgAddonEnabledByDefault);
     }
 
     /**
@@ -157,7 +132,7 @@ public class WorkspaceService extends Service {
         if (!isCurrentUserAccountOwner) {
             throw new ConflictException("You can create workspace associated only to your own account");
         }
-        if (securityContext.isUserInRole("user")) {
+        if (!isOrgAddonEnabledByDefault && securityContext.isUserInRole("user")) {
             if (!"true".equals(actualAccount.getAttributes().get("codenvy:multi-ws")) &&
                 workspaceDao.getByAccount(accountId).size() > 0) {
                 throw new ForbiddenException("You have not access to create more workspaces");

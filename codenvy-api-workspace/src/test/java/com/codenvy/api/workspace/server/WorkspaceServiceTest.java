@@ -101,12 +101,24 @@ public class WorkspaceServiceTest {
     private EnvironmentContext environmentContext;
     private Workspace          workspace;
     private ResourceLauncher   launcher;
+    private String isOrgAddonEnabledByDefault;
 
     @BeforeMethod
     public void setUp() throws Exception {
+        isOrgAddonEnabledByDefault = "false";
         final ResourceBinderImpl resources = new ResourceBinderImpl();
         final ProviderBinder providers = new ApplicationProviderBinder();
-        DependencySupplierImpl dependencies = new DependencySupplierImpl();
+        DependencySupplierImpl dependencies = new DependencySupplierImpl(){
+
+
+            @Override
+            public Object getComponentByName(String name) {
+                if("subscription.orgaddon.enabled".equals(name)){
+                    return isOrgAddonEnabledByDefault;
+                }
+                return super.getComponentByName(name);
+            }
+        };
         dependencies.addComponent(WorkspaceDao.class, workspaceDao);
         dependencies.addComponent(MemberDao.class, memberDao);
         dependencies.addComponent(UserDao.class, userDao);
@@ -237,6 +249,35 @@ public class WorkspaceServiceTest {
 
         verify(workspaceDao, times(0)).create(any(Workspace.class));
         verify(memberDao, times(0)).create(any(Member.class));
+    }
+
+    @Test
+    public void shouldBeAbleToCreateMultiWorkspacesWithOrgAddon() throws Exception {
+        isOrgAddonEnabledByDefault = "true";
+        when(workspaceDao.getByAccount("test")).thenReturn(Collections.singletonList(new Workspace().withId("test1")
+                                                                                                    .withName("test1")
+                                                                                                    .withTemporary(false)
+                                                                                                    .withAccountId("test1")));
+        final Account test = new Account().withId("test")
+                                          .withName("test");
+        when(accountDao.getById(test.getId())).thenReturn(test);
+        when(accountDao.getByOwner(USER_ID)).thenReturn(Collections.singletonList(test));
+        prepareSecurityContext("user");
+
+        final NewWorkspace newWorkspace = DtoFactory.getInstance().createDto(NewWorkspace.class)
+                                                    .withName("test2")
+                                                    .withAccountId("test");
+        ContainerResponse response = makeRequest("POST",
+                                                 SERVICE_PATH,
+                                                 MediaType.APPLICATION_JSON,
+                                                 newWorkspace);
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        verify(workspaceDao).create(any(Workspace.class));
+        verify(memberDao).create(any(Member.class));
+        final WorkspaceDescriptor descriptor = (WorkspaceDescriptor)response.getEntity();
+        assertEquals(descriptor.getName(), "test2");
+        assertEquals(descriptor.getAccountId(), "test");
+
     }
 
     @Test

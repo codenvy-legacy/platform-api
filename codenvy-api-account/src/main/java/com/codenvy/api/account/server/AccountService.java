@@ -105,9 +105,11 @@ public class AccountService extends Service {
      * @return descriptor of created account
      * @throws NotFoundException
      *         when some error occurred while retrieving account
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when new account is {@code null}
      *         or new account name is {@code null}
+     * @throws ConflictException
+     *         when any of new account attributes is not valid
      * @throws ServerException
      * @see AccountDescriptor
      * @see #getById(String, SecurityContext)
@@ -119,7 +121,10 @@ public class AccountService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext,
-                           @Required NewAccount newAccount) throws NotFoundException, ConflictException, ServerException {
+                           @Required NewAccount newAccount) throws NotFoundException,
+                                                                   ConflictException,
+                                                                   ServerException,
+                                                                   ForbiddenException {
         requiredNotNull(newAccount, "New account");
         requiredNotNull(newAccount.getName(), "Account name");
         if (newAccount.getAttributes() != null) {
@@ -184,7 +189,7 @@ public class AccountService extends Service {
      * @param userId
      *         user identifier to search memberships
      * @return accounts memberships
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when user identifier is {@code null}
      * @throws NotFoundException
      *         when user with given identifier doesn't exist
@@ -198,7 +203,7 @@ public class AccountService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembershipsOfSpecificUser(@Required @QueryParam("userid") String userId,
-                                                               @Context SecurityContext securityContext) throws ConflictException,
+                                                               @Context SecurityContext securityContext) throws ForbiddenException,
                                                                                                                 NotFoundException,
                                                                                                                 ServerException {
         requiredNotNull(userId, "User identifier");
@@ -239,7 +244,7 @@ public class AccountService extends Service {
     //TODO: add method for removing list of attributes
 
     /**
-     * Returns {@link AccountDescriptor} for account with given identifier.
+     * Searches for account with given identifier and returns {@link AccountDescriptor} for it.
      *
      * @param id
      *         account identifier
@@ -262,14 +267,14 @@ public class AccountService extends Service {
     }
 
     /**
-     * Returns {@link AccountDescriptor} for account with given name.
+     * Searches for account with given name and returns {@link AccountDescriptor} for it.
      *
      * @param name
      *         account name
      * @return descriptor of found account
      * @throws NotFoundException
      *         when account with given name doesn't exist
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when account name is {@code null}
      * @throws ServerException
      *         when some error occurred while retrieving account
@@ -283,7 +288,7 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public AccountDescriptor getByName(@Required @QueryParam("name") String name,
                                        @Context SecurityContext securityContext) throws NotFoundException,
-                                                                                        ConflictException,
+                                                                                        ForbiddenException,
                                                                                         ServerException {
         requiredNotNull(name, "Account name");
         final Account account = accountDao.getByName(name);
@@ -298,7 +303,7 @@ public class AccountService extends Service {
      * @param userId
      *         user identifier
      * @return descriptor of created member
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when user identifier is {@code null}
      * @throws NotFoundException
      *         when user or account with given identifier doesn't exist
@@ -314,7 +319,10 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response addMember(@PathParam("id") String accountId,
                               @QueryParam("userid") String userId,
-                              @Context SecurityContext securityContext) throws ConflictException, NotFoundException, ServerException {
+                              @Context SecurityContext securityContext) throws ConflictException,
+                                                                               NotFoundException,
+                                                                               ServerException,
+                                                                               ForbiddenException {
         requiredNotNull(userId, "User identifier");
         userDao.getById(userId);//check user exists
         final Account account = accountDao.getById(accountId);
@@ -407,11 +415,9 @@ public class AccountService extends Service {
     }
 
     /**
-     * <p>
-     * Updates account.
-     * </p>
-     * <strong>Note: existed account attributes with same name as
-     * update attributes - will be replaced with update attributes.</strong>
+     * <p>Updates account.</p>
+     * <strong>Note:</strong> existed account attributes with same names as
+     * update attributes will be replaced with update attributes.
      *
      * @param accountId
      *         account identifier
@@ -420,8 +426,10 @@ public class AccountService extends Service {
      * @return descriptor of updated account
      * @throws NotFoundException
      *         when account with given identifier doesn't exist
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when account update is {@code null}
+     * @throws ConflictException
+     *         when account with given name already exists
      * @throws ServerException
      *         when some error occurred while retrieving/persisting account
      * @see AccountDescriptor
@@ -434,6 +442,7 @@ public class AccountService extends Service {
     public AccountDescriptor update(@PathParam("id") String accountId,
                                     AccountUpdate update,
                                     @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                     ForbiddenException,
                                                                                      ConflictException,
                                                                                      ServerException {
         requiredNotNull(update, "Account update");
@@ -517,13 +526,8 @@ public class AccountService extends Service {
     }
 
     /**
-     * <p>
-     * Creates new subscription.
-     * </p>
-     * <p>
-     * Returns {@link SubscriptionDescriptor}
-     * when subscription has been created successfully
-     * and status code:
+     * <p>Creates new subscription. Returns {@link SubscriptionDescriptor}
+     * when subscription has been created successfully and status code:
      * <ul>
      * <li> <strong>201 CREATED</strong> when subscription is <i>free</i></li>
      * <li> <strong>402 PAYMENT REQUIRED</strong> when subscription requires payment</li>
@@ -928,12 +932,12 @@ public class AccountService extends Service {
      *         object reference to check
      * @param subject
      *         used as subject of exception message "{subject} required"
-     * @throws ConflictException
+     * @throws ForbiddenException
      *         when object reference is {@code null}
      */
-    private void requiredNotNull(Object object, String subject) throws ConflictException {
+    private void requiredNotNull(Object object, String subject) throws ForbiddenException {
         if (object == null) {
-            throw new ConflictException(subject + " required");
+            throw new ForbiddenException(subject + " required");
         }
     }
 

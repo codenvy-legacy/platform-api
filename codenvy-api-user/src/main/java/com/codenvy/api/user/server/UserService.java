@@ -72,24 +72,47 @@ public class UserService extends Service {
         this.tokenValidator = tokenValidator;
     }
 
+    /**
+     * Creates new user and profile.
+     * Returns status code <strong>201 CREATED</strong> and {@link User} entity.
+     *
+     * @param token
+     *         authentication token
+     * @param isTemporary
+     *         if it is {@code true} creates temporary user
+     * @return entity of created user
+     * @throws UnauthorizedException
+     *         when token is {@code null}
+     * @throws ConflictException
+     *         when token is not valid
+     * @throws ServerException
+     *         when some error occurred while persisting user or user profile
+     * @see User
+     * @see #getCurrent(SecurityContext)
+     * @see #updatePassword(String, SecurityContext)
+     * @see #getById(String, SecurityContext)
+     * @see #getByEmail(String, SecurityContext)
+     * @see #remove(String)
+     * @see com.codenvy.api.user.server.UserProfileService#getCurrent(String, SecurityContext)
+     */
     @POST
     @Path("create")
     @GenerateLink(rel = Constants.LINK_REL_CREATE_USER)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context SecurityContext securityContext, @Required @QueryParam("token") String token,
-                           @Description("is user temporary") @QueryParam("temporary") boolean isTemporary)
-            throws UnauthorizedException, ConflictException, ServerException {
+    public Response create(@Required @QueryParam("token") String token,
+                           @Description("is user temporary") @QueryParam("temporary") boolean isTemporary,
+                           @Context SecurityContext securityContext) throws UnauthorizedException, ConflictException, ServerException {
         if (token == null) {
             throw new UnauthorizedException("Missed token parameter");
         }
         final String userEmail = tokenValidator.validateToken(token);
-        final User user = DtoFactory.getInstance().createDto(User.class);
         final String userId = NameGenerator.generate(User.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
-        user.setId(userId);
-        user.setEmail(userEmail);
-        user.setPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
+        final User user = DtoFactory.getInstance().createDto(User.class)
+                                    .withId(userId)
+                                    .withEmail(userEmail)
+                                    .withPassword(NameGenerator.generate("pass", Constants.PASSWORD_LENGTH));
         userDao.create(user);
-        final Map<String, String> attributes = new HashMap<>(2);
+        final Map<String, String> attributes = new HashMap<>(4);
         attributes.put("temporary", String.valueOf(isTemporary));
         attributes.put("codenvy:created", Long.toString(System.currentTimeMillis()));
         final Profile profile = new Profile().withId(userId)
@@ -98,9 +121,20 @@ public class UserService extends Service {
         profileDao.create(profile);
         user.setPassword("<none>");
         injectLinks(user, securityContext);
-        return Response.status(Response.Status.CREATED).entity(user).build();
+        return Response.status(Response.Status.CREATED)
+                       .entity(user)
+                       .build();
     }
 
+    /**
+     * Returns current {@link User}.
+     *
+     * @return entity of current user.
+     * @throws ServerException
+     *         when some error occurred while retrieving current user
+     * @see User
+     * @see #updatePassword(String, SecurityContext)
+     */
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER)
     @RolesAllowed({"user", "temp_user"})
@@ -113,13 +147,24 @@ public class UserService extends Service {
         return user;
     }
 
+    /**
+     * Updates current user password.
+     *
+     * @param password
+     *         new user password
+     * @throws ForbiddenException
+     *         when given password is {@code null}
+     * @throws ServerException
+     *         when some error occurred while updating profile
+     * @see User
+     */
     @POST
     @Path("password")
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PASSWORD)
     @RolesAllowed("user")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public void updatePassword(@Context SecurityContext securityContext, @FormParam("password") String password)
-            throws ForbiddenException, NotFoundException, ServerException {
+    public void updatePassword(@FormParam("password") String password,
+                               @Context SecurityContext securityContext) throws ForbiddenException, NotFoundException, ServerException {
         if (password == null) {
             throw new ForbiddenException("Password required");
         }
@@ -129,26 +174,54 @@ public class UserService extends Service {
         userDao.update(user);
     }
 
+    /**
+     * Searches for {@link User} with given identifier.
+     *
+     * @param id
+     *         identifier to search user
+     * @return entity of found user
+     * @throws NotFoundException
+     *         when user with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving user
+     * @see User
+     * @see #getByEmail(String, SecurityContext)
+     */
     @GET
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_GET_USER_BY_ID)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public User getById(@Context SecurityContext securityContext, @PathParam("id") String id)
-            throws NotFoundException, ServerException {
+    public User getById(@PathParam("id") String id, @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final User user = userDao.getById(id);
         user.setPassword("<none>");
         injectLinks(user, securityContext);
         return user;
     }
 
+    /**
+     * Searches for {@link User} with given email.
+     *
+     * @param email
+     *         email to search user
+     * @return entity of found user
+     * @throws ForbiddenException
+     *         when given email is {@code null}
+     * @throws NotFoundException
+     *         when user with given email doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving user
+     * @see User
+     * @see #getById(String, SecurityContext)
+     * @see #remove(String)
+     */
     @GET
     @Path("find")
     @GenerateLink(rel = Constants.LINK_REL_GET_USER_BY_EMAIL)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public User getByEmail(@Context SecurityContext securityContext, @Required @Description("user email") @QueryParam("email") String email)
-            throws ForbiddenException, NotFoundException, ServerException {
+    public User getByEmail(@Required @Description("user email") @QueryParam("email") String email,
+                           @Context SecurityContext securityContext) throws ForbiddenException, NotFoundException, ServerException {
         if (email == null) {
             throw new ForbiddenException("Missed parameter email");
         }
@@ -158,6 +231,18 @@ public class UserService extends Service {
         return user;
     }
 
+    /**
+     * Removes user with given identifier.
+     *
+     * @param id
+     *         identifier to remove user
+     * @throws NotFoundException
+     *         when user with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while removing user
+     * @throws ConflictException
+     *         when some error occurred while removing user
+     */
     @DELETE
     @Path("{id}")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_USER_BY_ID)
@@ -170,36 +255,67 @@ public class UserService extends Service {
         final List<Link> links = new ArrayList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (securityContext.isUserInRole("user")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER_PROFILE, null, MediaType.APPLICATION_JSON,
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().path(UserProfileService.class)
-                                                    .path(UserProfileService.class, "getCurrent").build().toString()
-                                ));
-            links.add(createLink("GET", Constants.LINK_REL_GET_CURRENT_USER, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getCurrent").build().toString()));
-            links.add(createLink("POST", Constants.LINK_REL_UPDATE_PASSWORD, MediaType.APPLICATION_FORM_URLENCODED, null,
-                                 uriBuilder.clone().path(getClass(), "updatePassword").build().toString())
-                              .withParameters(Arrays.asList(DtoFactory.getInstance().createDto(LinkParameter.class)
-                                                                      .withRequired(true)
-                                                                      .withName("password")
-                                                                      .withDescription("new password")
-                                                                      .withType(ParameterType.String))));
+                                                    .path(UserProfileService.class, "getCurrent")
+                                                    .build()
+                                                    .toString()));
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_CURRENT_USER,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getCurrent")
+                                           .build()
+                                           .toString()));
+            links.add(createLink("POST",
+                                 Constants.LINK_REL_UPDATE_PASSWORD,
+                                 MediaType.APPLICATION_FORM_URLENCODED,
+                                 null,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "updatePassword")
+                                           .build()
+                                           .toString()));
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_ID, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getById").build(user.getId()).toString()));
-            links.add(createLink("GET", Constants.LINK_REL_GET_USER_PROFILE_BY_ID, null, MediaType.APPLICATION_JSON,
-                                 getServiceContext().getBaseUriBuilder().path(UserProfileService.class).path(
-                                         UserProfileService.class, "getById")
-                                                    .build(user.getId()).toString()
-                                ));
-            links.add(createLink("GET", Constants.LINK_REL_GET_USER_BY_EMAIL, null, MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone().path(getClass(), "getByEmail").queryParam("email", user.getEmail()).build()
-                                           .toString()
-                                ));
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_USER_BY_ID,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getById")
+                                           .build(user.getId())
+                                           .toString()));
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 getServiceContext().getBaseUriBuilder()
+                                                    .path(UserProfileService.class).path(UserProfileService.class, "getById")
+                                                    .build(user.getId())
+                                                    .toString()));
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_USER_BY_EMAIL,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getByEmail")
+                                           .queryParam("email", user.getEmail())
+                                           .build()
+                                           .toString()));
         }
         if (securityContext.isUserInRole("system/admin")) {
-            links.add(createLink("DELETE", Constants.LINK_REL_REMOVE_USER_BY_ID, null, null,
-                                 uriBuilder.clone().path(getClass(), "remove").build(user.getId()).toString()));
+            links.add(createLink("DELETE",
+                                 Constants.LINK_REL_REMOVE_USER_BY_ID,
+                                 null,
+                                 null,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "remove")
+                                           .build(user.getId())
+                                           .toString()));
         }
         user.setLinks(links);
     }

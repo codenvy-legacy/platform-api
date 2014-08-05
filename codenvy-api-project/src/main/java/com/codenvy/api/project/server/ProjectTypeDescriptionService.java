@@ -12,6 +12,8 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.ContentTypeGuesser;
 import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
@@ -21,14 +23,27 @@ import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTypeDescriptor;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.inject.name.Named;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ProjectDescriptionService
@@ -37,8 +52,28 @@ import java.util.List;
  */
 @Path("project-description")
 public class ProjectTypeDescriptionService extends Service {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectTypeDescriptionService.class);
+
     @Inject
     private ProjectTypeDescriptionRegistry registry;
+
+    @Inject
+    @Named("project.icons.path")
+    private String path;
+
+    @Inject
+    @Named("project.icons.url")
+    private String urlSegment;
+
+    private DirectoryStream.Filter<java.nio.file.Path> iconFilter = new DirectoryStream.Filter<java.nio.file.Path>() {
+
+        @Override
+        public boolean accept(java.nio.file.Path entry) throws IOException {
+            String name = entry.getFileName().toString();
+            return name.endsWith("svg") || name.endsWith("png") || name.endsWith("jpg") || name.endsWith("jpeg");
+        }
+    };
 
     @GenerateLink(rel = Constants.LINK_REL_PROJECT_TYPES)
     @GET
@@ -61,12 +96,15 @@ public class ProjectTypeDescriptionService extends Service {
             final List<ProjectTemplateDescriptor> templateDescriptors = new ArrayList<>();
             for (ProjectTemplateDescription templateDescription : registry.getTemplates(projectType)) {
                 ProjectTemplateDescriptor templateDescriptor = DtoFactory.getInstance().createDto(ProjectTemplateDescriptor.class)
-                        .withDisplayName(templateDescription.getDisplayName())
-                        .withSource(DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
-                                              .withType(templateDescription.getImporterType())
-                                              .withLocation(templateDescription.getLocation()))
-                        .withCategory(templateDescription.getCategory())
-                        .withDescription(templateDescription.getDescription());
+                                                                         .withDisplayName(templateDescription.getDisplayName())
+                                                                         .withSource(DtoFactory.getInstance()
+                                                                                               .createDto(ImportSourceDescriptor.class)
+                                                                                               .withType(templateDescription
+                                                                                                                 .getImporterType())
+                                                                                               .withLocation(
+                                                                                                       templateDescription.getLocation()))
+                                                                         .withCategory(templateDescription.getCategory())
+                                                                         .withDescription(templateDescription.getDescription());
                 templateDescriptors.add(templateDescriptor);
             }
             descriptor.setTemplates(templateDescriptors);
@@ -74,4 +112,34 @@ public class ProjectTypeDescriptionService extends Service {
         }
         return types;
     }
+
+    @GET
+    @Path("icons/{projectTypeId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Map<String, Link> getIconsUrls(@PathParam("projectTypeId") String projectTypeId, @Context UriInfo uriInfo) {
+        File directory = new File(path, projectTypeId + "/icons");
+        final DtoFactory dto = DtoFactory.getInstance();
+        Map<String, Link> result = new HashMap<>();
+        if (directory.exists()) {
+            try (DirectoryStream<java.nio.file.Path> stream = Files.newDirectoryStream(directory.toPath(), iconFilter)) {
+                String url =
+                        uriInfo.getBaseUri().getScheme() + "://" + uriInfo.getBaseUri().getHost() + ":" + uriInfo.getBaseUri().getPort() +
+                        "/" + urlSegment + "/" + projectTypeId + "/icons/";
+                for (java.nio.file.Path icon : stream) {
+                    if (!icon.toFile().isDirectory()) {
+                        Link link = dto.createDto(Link.class);
+                        link.withMethod("GET").withHref(url + icon.getFileName())
+                            .withProduces(ContentTypeGuesser.guessContentType(icon.toFile()));
+                        String name = icon.getFileName().toString();
+                        result.put(name.substring(0, name.lastIndexOf('.')), link);
+                    }
+                }
+
+            } catch (IOException e) {
+                LOG.error("Error while reading: " + directory.getPath(), e);
+            }
+        }
+        return result;
+    }
+
 }

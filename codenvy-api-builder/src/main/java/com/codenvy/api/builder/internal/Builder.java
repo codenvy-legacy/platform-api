@@ -77,9 +77,6 @@ public abstract class Builder {
     /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#QUEUE_SIZE} */
     public static final String INTERNAL_QUEUE_SIZE     = Constants.QUEUE_SIZE;
 
-    protected static final String           DATETIME_PATTERN = "MM/dd/yyyy HH:mm:ss";
-    protected static final SimpleDateFormat DATETIME_FORMAT  = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
-
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
     private final ConcurrentMap<Long, FutureBuildTask> tasks;
@@ -562,28 +559,25 @@ public abstract class Builder {
     protected List<BuilderMetric> getStats(BuildTask task) throws BuilderException {
         final List<BuilderMetric> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        SimpleDateFormat format = (SimpleDateFormat)DATETIME_FORMAT.clone();
         final long started = task.getStartTime();
         final long ended = task.getEndTime();
         if (started > 0) {
-            result.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.START_TIME).withValue(format.format(started))
+            result.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.START_TIME).withValue(Long.toString(started))
                                  .withDescription("Time when build task was started"));
             if (ended <= 0) {
                 long terminationTimeMillis = started + TimeUnit.SECONDS.toMillis(task.getConfiguration().getRequest().getTimeout());
-                result.add(dtoFactory.createDto(BuilderMetric.class)
-                                     .withName(BuilderMetric.TERMINATION_TIME)
+                result.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.TERMINATION_TIME)
                                      .withValue(Long.toString(terminationTimeMillis))
                                      .withDescription("Time after that build task might be terminated"));
             }
         }
         if (ended > 0) {
-            result.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.END_TIME).withValue(format.format(ended))
+            result.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.END_TIME).withValue(Long.toString(ended))
                                  .withDescription("Time when build task was finished"));
         }
         final long runningTime = task.getRunningTime();
         if (runningTime > 0) {
-            result.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.RUNNING_TIME)
-                                 .withValue(String.format("%.3fs", (double)(runningTime / 1000)))
+            result.add(dtoFactory.createDto(BuilderMetric.class).withName(BuilderMetric.RUNNING_TIME).withValue(Long.toString(runningTime))
                                  .withDescription("Running time of build task"));
         }
         return result;

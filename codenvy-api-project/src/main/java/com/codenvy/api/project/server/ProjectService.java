@@ -811,7 +811,7 @@ public class ProjectService extends Service {
                          .withDescription(description.getDescription())
                          .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspaceId, name).toString())
                          .withIdeUrl(workspaceName != null
-                                     ? uriBuilder.clone().replacePath("ide").path(workspaceName).path(path).build().toString()
+                                     ? uriBuilder.clone().replacePath("ws").path(workspaceName).path(path).build().toString()
                                      : null);
     }
 

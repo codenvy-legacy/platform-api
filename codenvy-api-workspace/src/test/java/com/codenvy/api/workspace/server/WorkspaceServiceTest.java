@@ -12,19 +12,19 @@ package com.codenvy.api.workspace.server;
 
 import sun.security.acl.PrincipalImpl;
 
-import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
+import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.Profile;
-import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.workspace.server.dao.Member;
+import com.codenvy.api.workspace.server.dao.MemberDao;
+import com.codenvy.api.workspace.server.dao.Workspace;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
 import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
 import com.codenvy.api.workspace.shared.dto.NewMembership;
-import com.codenvy.api.workspace.server.dao.Workspace;
 import com.codenvy.api.workspace.shared.dto.NewWorkspace;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
@@ -36,9 +36,8 @@ import org.everrest.core.impl.ApplicationProviderBinder;
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.impl.EnvironmentContext;
 import org.everrest.core.impl.EverrestConfiguration;
+import org.everrest.core.impl.EverrestProcessor;
 import org.everrest.core.impl.ProviderBinder;
-import org.everrest.core.impl.RequestDispatcher;
-import org.everrest.core.impl.RequestHandlerImpl;
 import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
@@ -125,12 +124,9 @@ public class WorkspaceServiceTest {
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
         dependencies.addComponent(AccountDao.class, accountDao);
         resources.addResource(WorkspaceService.class, null);
-        final RequestHandlerImpl requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
-                                                                         providers,
-                                                                         dependencies,
-                                                                         new EverrestConfiguration());
+        EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
+        launcher = new ResourceLauncher(processor);
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
-        launcher = new ResourceLauncher(requestHandler);
         //count of attributes should be > 0
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("default_attribute", "default_value");

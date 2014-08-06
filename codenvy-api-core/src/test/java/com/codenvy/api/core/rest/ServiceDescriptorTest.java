@@ -14,21 +14,18 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
+import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
-import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 
-import org.everrest.core.RequestHandler;
 import org.everrest.core.ResourceBinder;
 import org.everrest.core.impl.ApplicationContextImpl;
 import org.everrest.core.impl.ApplicationProviderBinder;
-import org.everrest.core.impl.ApplicationPublisher;
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.impl.EverrestConfiguration;
+import org.everrest.core.impl.EverrestProcessor;
 import org.everrest.core.impl.ProviderBinder;
-import org.everrest.core.impl.RequestDispatcher;
-import org.everrest.core.impl.RequestHandlerImpl;
 import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
@@ -92,13 +89,10 @@ public class ServiceDescriptorTest {
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
-        RequestHandler requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
-                                                               providers, dependencies, new EverrestConfiguration());
+        EverrestProcessor processor = new EverrestProcessor(resources,providers,dependencies,new EverrestConfiguration(), null);
+        launcher = new ResourceLauncher(processor);
+        processor.addApplication(new Deployer());
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
-        launcher = new ResourceLauncher(requestHandler);
-
-        ApplicationPublisher deployer = new ApplicationPublisher(resources, providers);
-        deployer.publish(new Deployer());
     }
 
     @Test

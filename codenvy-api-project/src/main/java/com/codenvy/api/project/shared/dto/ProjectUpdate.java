@@ -11,6 +11,7 @@
 package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModel;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import java.util.Map;
  * @author andrew00x
  */
 @DTO
+@ApiModel(description = "Update project")
 public interface ProjectUpdate {
     /** Get unique ID of type of project. */
     String getProjectTypeId();

@@ -38,16 +38,14 @@ import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.core.RequestHandler;
 import org.everrest.core.ResourceBinder;
 import org.everrest.core.impl.ApplicationContextImpl;
 import org.everrest.core.impl.ApplicationProviderBinder;
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.impl.EnvironmentContext;
 import org.everrest.core.impl.EverrestConfiguration;
+import org.everrest.core.impl.EverrestProcessor;
 import org.everrest.core.impl.ProviderBinder;
-import org.everrest.core.impl.RequestDispatcher;
-import org.everrest.core.impl.RequestHandlerImpl;
 import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.ByteArrayContainerResponseWriter;
 import org.everrest.core.tools.DependencySupplierImpl;
@@ -61,6 +59,7 @@ import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Application;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -142,18 +141,27 @@ public class ProjectServiceTest {
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
-        providers.addMessageBodyWriter(new ContentStreamWriter());
-        providers.addExceptionMapper(new ApiExceptionMapper());
-        RequestHandler requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
-                                                               providers, dependencies, new EverrestConfiguration());
+        EverrestProcessor processor = new EverrestProcessor(resources,providers,dependencies,new EverrestConfiguration(), null);
+        launcher = new ResourceLauncher(processor);
+
+        processor.addApplication(new Application() {
+            @Override
+            public Set<Class<?>> getClasses() {
+                return java.util.Collections.<Class<?>>singleton(ProjectService.class);
+            }
+
+            @Override
+            public Set<Object> getSingletons() {
+                return new HashSet<>(Arrays.asList(new ContentStreamWriter(), new ApiExceptionMapper()));
+            }
+        });
+
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
-        resources.addResource(ProjectService.class, null);
 
         env = com.codenvy.commons.env.EnvironmentContext.getCurrent();
         env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", vfsUserGroups));
         env.setWorkspaceName("my_ws");
         env.setWorkspaceId("my_ws");
-        launcher = new ResourceLauncher(requestHandler);
     }
 
     @Test

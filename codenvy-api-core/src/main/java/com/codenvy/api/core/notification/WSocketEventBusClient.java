@@ -68,9 +68,9 @@ public final class WSocketEventBusClient {
     private ExecutorService executor;
 
     @Inject
-    WSocketEventBusClient(EventService eventService,
-                          @Nullable @Named("notification.client.event_subscriptions") Pair<String, String>[] eventSubscriptions,
-                          @Nullable ClientEventPropagationPolicy policy) {
+    public WSocketEventBusClient(EventService eventService,
+                                 @Nullable @Named("notification.client.event_subscriptions") Pair<String, String>[] eventSubscriptions,
+                                 @Nullable ClientEventPropagationPolicy policy) {
         this.eventService = eventService;
         this.eventSubscriptions = eventSubscriptions;
         this.policy = policy;

@@ -37,7 +37,7 @@ public final class WSocketEventBusServer {
     private final AtomicBoolean                start;
 
     @Inject
-    WSocketEventBusServer(EventService eventService, @Nullable ServerEventPropagationPolicy policy) {
+    public WSocketEventBusServer(EventService eventService, @Nullable ServerEventPropagationPolicy policy) {
         this.eventService = eventService;
         this.policy = policy;
 

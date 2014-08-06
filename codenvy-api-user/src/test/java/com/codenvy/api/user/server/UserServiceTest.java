@@ -17,7 +17,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.ProfileDescriptor;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -27,9 +26,8 @@ import org.everrest.core.impl.ApplicationProviderBinder;
 import org.everrest.core.impl.ContainerResponse;
 import org.everrest.core.impl.EnvironmentContext;
 import org.everrest.core.impl.EverrestConfiguration;
+import org.everrest.core.impl.EverrestProcessor;
 import org.everrest.core.impl.ProviderBinder;
-import org.everrest.core.impl.RequestDispatcher;
-import org.everrest.core.impl.RequestHandlerImpl;
 import org.everrest.core.impl.ResourceBinderImpl;
 import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
@@ -44,7 +42,6 @@ import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -96,7 +93,6 @@ public class UserServiceTest {
 
     protected ProviderBinder     providers;
     protected ResourceBinderImpl resources;
-    protected RequestHandlerImpl requestHandler;
     protected ResourceLauncher   launcher;
 
     @BeforeMethod
@@ -108,10 +104,9 @@ public class UserServiceTest {
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(TokenValidator.class, tokenValidator);
         resources.addResource(UserService.class, null);
-        requestHandler = new RequestHandlerImpl(new RequestDispatcher(resources),
-                                                providers, dependencies, new EverrestConfiguration());
+        EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
+        launcher = new ResourceLauncher(processor);
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
-        launcher = new ResourceLauncher(requestHandler);
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(USER_EMAIL));

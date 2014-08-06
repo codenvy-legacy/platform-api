@@ -26,6 +26,7 @@
     <modules>
         <module>codenvy-dto</module>
         <module>codenvy-dto-maven-plugin</module>
+        <module>codenvy-api-docs</module>
         <module>codenvy-api-core</module>
         <module>codenvy-api-vfs</module>
         <module>codenvy-api-project</module>

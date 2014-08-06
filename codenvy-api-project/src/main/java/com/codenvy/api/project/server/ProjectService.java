@@ -42,6 +42,11 @@ import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
@@ -81,7 +86,9 @@ import java.util.Set;
  * @author andrew00x
  * @author Eugene Voevodin
  */
-@Path("project/{ws-id}")
+@Api(value = "/project/{ws-id}",
+     description = "Project manager")
+@Path("/project/{ws-id}")
 public class ProjectService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectService.class);
 
@@ -94,10 +101,18 @@ public class ProjectService extends Service {
     @Inject
     private SearcherProvider         searcherProvider;
 
+    @ApiOperation(value = "Gets list of projects in root folder",
+                  response = ProjectReference.class,
+                  responseContainer = "List",
+                  position = 1)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GenerateLink(rel = Constants.LINK_REL_GET_PROJECTS)
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectReference> getProjects(@PathParam("ws-id") String workspace) throws IOException, ServerException {
+    public List<ProjectReference> getProjects(@ApiParam(value = "ID of workspace to get projects", required = true)
+                                              @PathParam("ws-id") String workspace) throws IOException, ServerException {
         final List<Project> projects = projectManager.getProjects(workspace);
         final List<ProjectReference> projectRefs = new ArrayList<>(projects.size());
         for (Project project : projects) {
@@ -106,10 +121,21 @@ public class ProjectService extends Service {
         return projectRefs;
     }
 
+    @ApiOperation(value = "Gets project by ID of workspace and project's path",
+                  response = ProjectDescriptor.class,
+                  position = 2)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Project with specified path doesn't exist in workspace"),
+            @ApiResponse(code = 403, message = "Access to requested project is forbidden"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GET
-    @Path("{path:.*}")
+    @Path("/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor getProject(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+    public ProjectDescriptor getProject(@ApiParam(value = "ID of workspace to get projects", required = true)
+                                        @PathParam("ws-id") String workspace,
+                                        @ApiParam(value = "Path to requested project", required = true)
+                                        @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
@@ -118,12 +144,24 @@ public class ProjectService extends Service {
         return toDescriptor(project);
     }
 
+    @ApiOperation(value = "Creates new project",
+                  response = ProjectDescriptor.class,
+                  position = 3)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "Operation is forbidden"),
+            @ApiResponse(code = 409, message = "Project with specified name already exist in workspace"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor createProject(@PathParam("ws-id") String workspace,
-                                           @Required @Description("project name") @QueryParam("name") String name,
+    public ProjectDescriptor createProject(@ApiParam(value = "ID of workspace to create project", required = true)
+                                           @PathParam("ws-id") String workspace,
+                                           @ApiParam(value = "Name for new project", required = true)
+                                           @Required
+                                           @Description("project name")
+                                           @QueryParam("name") String name,
                                            @Description("descriptor of project") NewProject newProject)
             throws ConflictException, ForbiddenException, ServerException {
         final Project project = projectManager.createProject(workspace, name, toDescription(newProject));
@@ -156,7 +194,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("{path:.*}")
+    @Path("/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor createModule(@PathParam("ws-id") String workspace,
@@ -176,11 +214,22 @@ public class ProjectService extends Service {
         return descriptor;
     }
 
+    @ApiOperation(value = "Updates existed project",
+                  response = ProjectDescriptor.class,
+                  position = 4)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Project with specified path doesn't exist in workspace"),
+            @ApiResponse(code = 403, message = "Operation is forbidden"),
+            @ApiResponse(code = 409, message = "Update operation causes conflicts"),
+            @ApiResponse(code = 500, message = "Server error")})
     @PUT
-    @Path("{path:.*}")
+    @Path("/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor updateProject(@PathParam("ws-id") String workspace,
+    public ProjectDescriptor updateProject(@ApiParam(value = "ID of workspace", required = true)
+                                           @PathParam("ws-id") String workspace,
+                                           @ApiParam(value = "Path to updated project", required = true)
                                            @PathParam("path") String path,
                                            ProjectUpdate update)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
@@ -206,7 +255,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("folder/{path:.*}")
+    @Path("/folder/{path:.*}")
     public Response createFolder(@PathParam("ws-id") String workspace, @PathParam("path") String path)
             throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry newFolder = projectManager.getProjectsRoot(workspace).createFolder(path);
@@ -218,7 +267,7 @@ public class ProjectService extends Service {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.TEXT_HTML})
-    @Path("uploadFile/{parent:.*}")
+    @Path("/uploadFile/{parent:.*}")
     public Response uploadFile(@PathParam("ws-id") String workspace,
                                @PathParam("parent") String parentPath,
                                Iterator<FileItem> formData)
@@ -228,7 +277,7 @@ public class ProjectService extends Service {
     }
 
     @GET
-    @Path("file/{path:.*}")
+    @Path("/file/{path:.*}")
     public Response getFile(@PathParam("ws-id") String workspace, @PathParam("path") String path)
             throws IOException, NotFoundException, ForbiddenException, ServerException {
         final FileEntry file = asFile(workspace, path);
@@ -236,7 +285,7 @@ public class ProjectService extends Service {
     }
 
     @PUT
-    @Path("file/{path:.*}")
+    @Path("/file/{path:.*}")
     public Response updateFile(@PathParam("ws-id") String workspace,
                                @PathParam("path") String path,
                                @HeaderParam("content-type") String contentType,
@@ -247,7 +296,7 @@ public class ProjectService extends Service {
     }
 
     @DELETE
-    @Path("{path:.*}")
+    @Path("/{path:.*}")
     public void delete(@PathParam("ws-id") String workspace, @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
@@ -265,7 +314,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("copy/{path:.*}")
+    @Path("/copy/{path:.*}")
     public Response copy(@PathParam("ws-id") String workspace,
                          @PathParam("path") String path,
                          @QueryParam("to") String newParent)
@@ -287,7 +336,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("move/{path:.*}")
+    @Path("/move/{path:.*}")
     public Response move(@PathParam("ws-id") String workspace,
                          @PathParam("path") String path,
                          @QueryParam("to") String newParent)
@@ -311,7 +360,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("rename/{path:.*}")
+    @Path("/rename/{path:.*}")
     public Response rename(@PathParam("ws-id") String workspace,
                            @PathParam("path") String path,
                            @QueryParam("name") String newName,
@@ -330,7 +379,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("import/{path:.*}")
+    @Path("/import/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor importProject(@PathParam("ws-id") String workspace,
@@ -384,7 +433,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("generate/{path:.*}")
+    @Path("/generate/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor generateProject(@PathParam("ws-id") String workspace,
@@ -408,7 +457,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("import/{path:.*}")
+    @Path("/import/{path:.*}")
     @Consumes("application/zip")
     public Response importZip(@PathParam("ws-id") String workspace,
                               @PathParam("path") String path,
@@ -427,7 +476,7 @@ public class ProjectService extends Service {
     }
 
     @GET
-    @Path("export/{path:.*}")
+    @Path("/export/{path:.*}")
     @Produces("application/zip")
     public ContentStream exportZip(@PathParam("ws-id") String workspace, @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
@@ -436,7 +485,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("export/{path:.*}")
+    @Path("/export/{path:.*}")
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces("application/zip")
     public Response exportDiffZip(@PathParam("ws-id") String workspace, @PathParam("path") String path, InputStream in)
@@ -446,7 +495,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("export/{path:.*}")
+    @Path("/export/{path:.*}")
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.MULTIPART_FORM_DATA)
     public Response exportDiffZipMultipart(@PathParam("ws-id") String workspace, @PathParam("path") String path, InputStream in)
@@ -456,7 +505,7 @@ public class ProjectService extends Service {
     }
 
     @GET
-    @Path("children/{parent:.*}")
+    @Path("/children/{parent:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public List<ItemReference> getChildren(@PathParam("ws-id") String workspace, @PathParam("parent") String path)
             throws NotFoundException, ForbiddenException, ServerException {
@@ -483,7 +532,7 @@ public class ProjectService extends Service {
     }
 
     @GET
-    @Path("tree/{parent:.*}")
+    @Path("/tree/{parent:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public TreeElement getTree(@PathParam("ws-id") String workspace,
                                @PathParam("parent") String path,
@@ -522,7 +571,7 @@ public class ProjectService extends Service {
     }
 
     @GET
-    @Path("search/{path:.*}")
+    @Path("/search/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public List<ItemReference> search(@PathParam("ws-id") String workspace,
                                       @PathParam("path") String path,
@@ -576,7 +625,7 @@ public class ProjectService extends Service {
     }
 
     @GET
-    @Path("permissions/{path:.*}")
+    @Path("/permissions/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
     public List<AccessControlEntry> getPermissions(@PathParam("ws-id") String wsId,
@@ -601,7 +650,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("switch_visibility/{path:.*}")
+    @Path("/switch_visibility/{path:.*}")
     @RolesAllowed("workspace/admin")
     public void switchVisibility(@PathParam("ws-id") String wsId,
                                  @PathParam("path") String path,
@@ -618,7 +667,7 @@ public class ProjectService extends Service {
     }
 
     @POST
-    @Path("permissions/{path:.*}")
+    @Path("/permissions/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
     public void setPermissions(@PathParam("ws-id") String wsId,
@@ -655,6 +704,24 @@ public class ProjectService extends Service {
             throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
         }
         return entry;
+    }
+
+    private ProjectDescription toDescription(NewProject newProject) throws ServerException {
+        final ProjectType projectType = projectManager.getProjectTypeRegistry().getProjectType(newProject.getProjectTypeId());
+        if (projectType == null) {
+            throw new ServerException(String.format("Invalid project type '%s'. ", newProject.getProjectTypeId()));
+        }
+        final ProjectDescription projectDescription = new ProjectDescription(projectType);
+        final Map<String, List<String>> projectAttributeValues = newProject.getAttributes();
+        if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {
+            final List<Attribute> projectAttributes = new ArrayList<>(projectAttributeValues.size());
+            for (Map.Entry<String, List<String>> e : projectAttributeValues.entrySet()) {
+                projectAttributes.add(new Attribute(e.getKey(), e.getValue()));
+            }
+            projectDescription.setAttributes(projectAttributes);
+        }
+        projectDescription.setDescription(newProject.getDescription());
+        return projectDescription;
     }
 
     private ProjectDescription toDescription(ProjectUpdate update) throws ServerException {
@@ -732,6 +799,7 @@ public class ProjectService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         return DtoFactory.getInstance().createDto(ProjectReference.class)
                          .withName(name)
+                         .withPath(path)
                          .withId(project.getBaseFolder().getVirtualFile().getId())
                          .withWorkspaceId(workspaceId)
                          .withWorkspaceName(workspaceName)
@@ -743,7 +811,7 @@ public class ProjectService extends Service {
                          .withDescription(description.getDescription())
                          .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspaceId, name).toString())
                          .withIdeUrl(workspaceName != null
-                                     ? uriBuilder.clone().replacePath("ide").path(workspaceName).path(path).build().toString()
+                                     ? uriBuilder.clone().replacePath("ws").path(workspaceName).path(path).build().toString()
                                      : null);
     }
 

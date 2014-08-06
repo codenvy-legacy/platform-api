@@ -28,6 +28,11 @@
             <version>${codenvy.commons.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-api-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.wordnik</groupId>
             <artifactId>swagger-jaxrs_2.10</artifactId>
             <version>${com.wordnik.swagger.version}</version>

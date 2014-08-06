@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.docs;
 
-import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 import com.wordnik.swagger.config.ConfigFactory;
 import com.wordnik.swagger.config.ScannerFactory;
@@ -20,6 +19,7 @@ import com.wordnik.swagger.jaxrs.listing.ApiDeclarationProvider;
 import com.wordnik.swagger.jaxrs.listing.ApiListingResource;
 import com.wordnik.swagger.jaxrs.listing.ResourceListingProvider;
 import com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader;
+import com.wordnik.swagger.model.ApiInfo;
 import com.wordnik.swagger.reader.ClassReaders;
 
 import javax.annotation.PostConstruct;
@@ -31,7 +31,6 @@ import javax.ws.rs.Produces;
 /**
  * @author andrew00x
  */
-@DynaModule
 public class DocsModule extends AbstractModule {
     @Override
     protected void configure() {
@@ -55,6 +54,16 @@ public class DocsModule extends AbstractModule {
         public void init() {
             final SwaggerConfig config = ConfigFactory.config();
             config.setBasePath(baseApiUrl);
+            config.setApiVersion(com.codenvy.api.core.rest.Constants.API_VERSION);
+            final ApiInfo apiInfo = new ApiInfo(
+                    "Codenvy REST API", // title
+                    "", // description
+                    "", // termsOfServiceUrl
+                    "", // contacts
+                    "Eclipse Public License v1.0", // license
+                    "http://www.eclipse.org/legal/epl-v10.html"  // license URL
+            );
+            config.setApiInfo(apiInfo);
             ScannerFactory.setScanner(new DefaultJaxrsScanner());
             ClassReaders.setReader(new DefaultJaxrsApiReader());
         }

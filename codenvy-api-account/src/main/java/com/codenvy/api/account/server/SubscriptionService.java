@@ -90,17 +90,6 @@ public abstract class SubscriptionService {
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
 
     /**
-     * Generates service amount
-     *
-     * @param subscription
-     *         subscription that going to be analyzed for getting amount
-     * @return service amount
-     * @throws ApiException
-     *         when it is not possible to generate amount
-     */
-    public abstract double tarifficate(Subscription subscription) throws ApiException;
-
-    /**
      * @return service identifier
      */
     public String getServiceId() {

@@ -15,6 +15,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Account} data.
@@ -164,24 +165,6 @@ public interface AccountDao {
     List<Member> getByMember(String userId) throws NotFoundException, ServerException;
 
     /**
-     * Add new event to the history of subscriptions
-     *
-     * @param historyEvent
-     *         history event to add
-     */
-    void addSubscriptionHistoryEvent(SubscriptionHistoryEvent historyEvent) throws ServerException, ConflictException;
-
-    /**
-     * Get list of history events which contain the same data as specified event
-     *
-     * @param event
-     *         event data to search for
-     * @return list of {@link SubscriptionHistoryEvent}
-     * @throws ServerException
-     */
-    List<SubscriptionHistoryEvent> getSubscriptionHistoryEvents(SubscriptionHistoryEvent event) throws ServerException;
-
-    /**
      * Retrieve all existing subscriptions.
      * <p>Use carefully because this operation can use a lot of resources
      *
@@ -189,4 +172,10 @@ public interface AccountDao {
      * @throws ServerException
      */
     List<Subscription> getSubscriptions() throws ServerException;
+
+    void addBillingProperties(String subscriptionId, Map<String, String> billingProperties) throws ServerException, NotFoundException;
+
+    Map<String, String> getBillingProperties(String subscriptionId) throws ServerException;
+
+    void removeBillingProperties(String subscriptionId) throws ServerException, NotFoundException;
 }

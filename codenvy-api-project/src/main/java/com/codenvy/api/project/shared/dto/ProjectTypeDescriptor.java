@@ -63,4 +63,16 @@ public interface ProjectTypeDescriptor {
     void setIconRegistry(Map<String, String> iconRegistry);
 
     ProjectTypeDescriptor withIconRegistry(Map<String, String> iconRegistry);
+
+    String getBuilderName();
+
+    ProjectTypeDescriptor withBuilderName(String builderName);
+
+    void setBuilderName(String builderName);
+
+    String getRunnerName();
+
+    ProjectTypeDescriptor withRunnerName(String runnerName);
+
+    void setRunnerName(String runnerName);
 }

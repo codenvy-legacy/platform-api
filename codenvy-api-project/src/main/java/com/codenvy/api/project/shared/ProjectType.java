@@ -11,8 +11,7 @@
 package com.codenvy.api.project.shared;
 
 /**
- * ProjectType
- * the named group of attributes for Project Description
+ * ProjectType is the named group of attributes for Project Description.
  *
  * @author gazarenkov
  */
@@ -22,26 +21,74 @@ public class ProjectType {
     private final String name;
     private final String category;
 
-    public ProjectType(String id, String name, String category) {
+    private String builderName;
+    private String runnerName;
+
+    public ProjectType(String id, String name, String category, String builderName, String runnerName) {
         this.name = name;
         this.id = id;
         this.category = category;
+        this.builderName = builderName;
+        this.runnerName = runnerName;
     }
 
-    /** @return type ID supposed to be unique within IDE */
+    public ProjectType(String id, String name, String category) {
+        this(name, id, category, null, null);
+    }
+
+    /**
+     * Ges ID of this project type. Type ID supposed to be unique within IDE.
+     *
+     * @return ID of this project type
+     */
     public String getId() {
         return id;
     }
 
-    /** @return type display name */
+    /**
+     * Gets display name of this project type.
+     *
+     * @return display name of this project type
+     */
     public String getName() {
         return name;
     }
 
-
-    /** @return the project type category */
+    /**
+     * Gets category of project type. Categories maybe used for creation group of similar project types.
+     *
+     * @return category of project type
+     */
     public String getCategory() {
         return category;
+    }
+
+    /**
+     * Gets name of builder that should be used for projects of this type.
+     *
+     * @return name of builder that should be used for projects of this type
+     */
+    public String getBuilderName() {
+        return builderName;
+    }
+
+    /** @see #getBuilderName() */
+    public void setbuilderName(String builderName) {
+        this.builderName = builderName;
+    }
+
+    /**
+     * Gets name of runner that should be used for projects of this type.
+     *
+     * @return name of runner that should be used for projects of this type
+     */
+    public String getRunnerName() {
+        return runnerName;
+    }
+
+    /** @see #getRunnerName() */
+    public void setRunnerName(String runnerName) {
+        this.runnerName = runnerName;
     }
 
     @Override
@@ -50,6 +97,8 @@ public class ProjectType {
                "id='" + id + '\'' +
                ", name='" + name + '\'' +
                ", category='" + category + '\'' +
+               ", builderName='" + builderName + '\'' +
+               ", runnerName='" + runnerName + '\'' +
                '}';
     }
 }

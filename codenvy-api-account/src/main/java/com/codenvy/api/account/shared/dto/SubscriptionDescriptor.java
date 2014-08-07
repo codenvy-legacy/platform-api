@@ -55,12 +55,6 @@ public interface SubscriptionDescriptor {
 
     SubscriptionDescriptor withProperties(Map<String, String> properties);
 
-    Map<String, String> getBillingProperties();
-
-    void setBillingProperties(Map<String, String> properties);
-
-    SubscriptionDescriptor withBillingProperties(Map<String, String> properties);
-
     void setLinks(List<Link> links);
 
     List<Link> getLinks();

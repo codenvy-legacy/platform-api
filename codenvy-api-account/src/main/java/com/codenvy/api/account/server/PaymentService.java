@@ -31,6 +31,6 @@ public interface PaymentService {
      * @throws ServerException
      *         if internal server error occurs
      */
-    void purchase(Subscription subscription, Map<String, String> billingProperties)
+    void addSubscription(Subscription subscription, Map<String, String> billingProperties)
             throws ConflictException, ServerException, ForbiddenException;
 }

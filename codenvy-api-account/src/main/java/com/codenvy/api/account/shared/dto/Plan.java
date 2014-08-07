@@ -15,6 +15,8 @@ import com.codenvy.dto.shared.DTO;
 import java.util.Map;
 
 /**
+ * Represents tariff plan
+ *
  * @author Alexander Garagatyi
  */
 @DTO

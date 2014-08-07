@@ -141,7 +141,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void addBillingProperties(String subscriptionId, Map<String, String> billingProperties) {
+    public void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) {
         throw new RuntimeException("Not implemented");
     }
 

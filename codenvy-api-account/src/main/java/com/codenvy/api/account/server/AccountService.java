@@ -546,8 +546,8 @@ public class AccountService extends Service {
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public SubscriptionDescriptor addSubscription(@Required NewSubscription newSubscription,
-                                                  @Context SecurityContext securityContext) throws ApiException {
+    public Response addSubscription(@Required NewSubscription newSubscription,
+                                    @Context SecurityContext securityContext) throws ApiException {
         requiredNotNull(newSubscription, "New subscription");
         requiredNotNull(newSubscription.getAccountId(), "Account identifier");
         requiredNotNull(newSubscription.getPlanId(), "Plan identifier");
@@ -576,13 +576,15 @@ public class AccountService extends Service {
         service.beforeCreateSubscription(subscription);
 
         if (plan.isPaid() && !securityContext.isUserInRole("system/admin")) {
-            paymentService.purchase(subscription, newSubscription.getBillingProperties());
+            paymentService.addSubscription(subscription, newSubscription.getBillingProperties());
         }
         accountDao.addSubscription(subscription);
-        accountDao.addBillingProperties(subscription.getId(), newSubscription.getBillingProperties());
+        accountDao.saveBillingProperties(subscription.getId(), newSubscription.getBillingProperties());
 
         service.afterCreateSubscription(subscription);
-        return toDescriptor(subscription, securityContext, roles);
+        return Response.status(Response.Status.CREATED)
+                       .entity(toDescriptor(subscription, securityContext, roles))
+                       .build();
     }
 
     /**
@@ -602,7 +604,7 @@ public class AccountService extends Service {
      */
     @DELETE
     @Path("subscriptions/{id}")
-    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @RolesAllowed({"user", "system/admin"})
     public void removeSubscription(@PathParam("id") String subscriptionId, @Context SecurityContext securityContext) throws ApiException {
         final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {

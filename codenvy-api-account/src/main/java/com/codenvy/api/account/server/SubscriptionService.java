@@ -18,6 +18,7 @@ import com.codenvy.api.core.ApiException;
  * Base class for any service which may communicate with account via subscriptions
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 public abstract class SubscriptionService {
 

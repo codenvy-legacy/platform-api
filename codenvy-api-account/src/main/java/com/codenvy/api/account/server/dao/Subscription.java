@@ -19,6 +19,7 @@ import java.util.Objects;
  * {@link com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 public class Subscription {
     private String              id;

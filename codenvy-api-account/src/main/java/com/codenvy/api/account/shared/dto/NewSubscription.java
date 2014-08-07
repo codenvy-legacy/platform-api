@@ -19,6 +19,7 @@ import java.util.Map;
  * com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 @DTO
 public interface NewSubscription {

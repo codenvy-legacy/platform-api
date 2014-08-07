@@ -28,9 +28,9 @@ public interface PlanDao {
      * @param planId
      *         id of required plan
      * @return stored plan
-     * @throws com.codenvy.api.core.NotFoundException
+     * @throws NotFoundException
      *         when account doesn't exist
-     * @throws com.codenvy.api.core.ServerException
+     * @throws ServerException
      */
     public Plan getPlanById(String planId) throws NotFoundException, ServerException;
 

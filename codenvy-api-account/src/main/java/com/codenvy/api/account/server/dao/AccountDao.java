@@ -27,6 +27,7 @@ import java.util.Map;
  * mean that such kind of inconsistencies are expected by design and may be treated further. </p>
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 public interface AccountDao {
 
@@ -173,9 +174,31 @@ public interface AccountDao {
      */
     List<Subscription> getSubscriptions() throws ServerException;
 
-    void addBillingProperties(String subscriptionId, Map<String, String> billingProperties) throws ServerException, NotFoundException;
+    /**
+     * Add billing properties of certain subscription
+     *
+     * @param subscriptionId subscription identifier of billing properties
+     * @param billingProperties properties to save
+     * @throws NotFoundException if subscription with given id is not found
+     * @throws ServerException
+     */
+    void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) throws ServerException, NotFoundException;
 
+    /**
+     * Get billing properties of certain subscription
+     *
+     * @param subscriptionId subscription identifier
+     * @return billing properties of subscription
+     * @throws ServerException
+     */
     Map<String, String> getBillingProperties(String subscriptionId) throws ServerException;
 
+    /**
+     * Remove billing properties of certain subscription
+     *
+     * @param subscriptionId subscription identifier
+     * @throws NotFoundException if subscription is not found
+     * @throws ServerException
+     */
     void removeBillingProperties(String subscriptionId) throws ServerException, NotFoundException;
 }

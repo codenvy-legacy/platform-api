@@ -24,11 +24,9 @@ import com.codenvy.dto.server.DtoFactory;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -36,9 +34,6 @@ import java.util.concurrent.Future;
  * @author andrew00x
  */
 public final class BuildQueueTask implements Cancellable {
-    private static final String           DATETIME_PATTERN = "MM/dd/yyyy HH:mm:ss";
-    private static final SimpleDateFormat DATETIME_FORMAT  = new SimpleDateFormat(DATETIME_PATTERN, Locale.US);
-
     private final Long               id;
     private final long               created;
     private final long               waitingTimeout;
@@ -158,10 +153,9 @@ public final class BuildQueueTask implements Cancellable {
                                 .withMethod("POST")
                                 .withProduces(MediaType.APPLICATION_JSON));
             final List<BuilderMetric> buildStats = new ArrayList<>(1);
-            final SimpleDateFormat format = (SimpleDateFormat)DATETIME_FORMAT.clone();
             buildStats.add(dtoFactory.createDto(BuilderMetric.class)
-                                   .withName("waitingTimeLimit")
-                                   .withValue(format.format(created + waitingTimeout))
+                                   .withName(BuilderMetric.WAITING_TIME_LIMIT)
+                                   .withValue(Long.toString(created + waitingTimeout))
                                    .withDescription("Waiting for start limit"));
             descriptor = dtoFactory.createDto(BuildTaskDescriptor.class)
                                    .withTaskId(id)

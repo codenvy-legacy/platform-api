@@ -20,6 +20,10 @@ import com.codenvy.dto.shared.DTO;
 @DTO
 public interface RunnerMetric {
 
+    String WAITING_TIME = "waitingTime";
+
+    String WAITING_TIME_LIMIT = "waitingTimeLimit";
+
     String ALWAYS_ON = "Always On";
 
     String TERMINATION_TIME = "terminationTime";

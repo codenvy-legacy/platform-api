@@ -109,14 +109,13 @@ public class Project {
         if (projectTypeId == null) {
             return new ProjectDescription();
         }
-        ProjectType projectType = manager.getProjectTypeRegistry().getProjectType(projectTypeId);
+        ProjectType projectType = manager.getTypeDescriptionRegistry().getProjectType(projectTypeId);
         if (projectType == null) {
             // TODO : Decide how should we treat such situation?
             // For now just show type what is set in configuration of project.
             projectType = new ProjectType(projectTypeId, projectTypeId, projectTypeId);
         }
         final ProjectDescription projectDescription = new ProjectDescription(projectType);
-        final ProjectTypeDescription projectTypeDescription = manager.getTypeDescriptionRegistry().getDescription(projectType);
         final List<Attribute> tmpList = new ArrayList<>();
         // Merge project's attributes.
         // 1. predefined
@@ -126,10 +125,13 @@ public class Project {
         projectDescription.setAttributes(tmpList);
         tmpList.clear();
         // 2. "calculated"
-        for (AttributeDescription attributeDescription : projectTypeDescription.getAttributeDescriptions()) {
-            final ValueProviderFactory factory = manager.getValueProviderFactories().get(attributeDescription.getName());
-            if (factory != null) {
-                tmpList.add(new Attribute(attributeDescription.getName(), factory.newInstance(this)));
+        final ProjectTypeDescription projectTypeDescription = manager.getTypeDescriptionRegistry().getDescription(projectType);
+        if (projectTypeDescription!=null) {
+            for (AttributeDescription attributeDescription : projectTypeDescription.getAttributeDescriptions()) {
+                final ValueProviderFactory factory = manager.getValueProviderFactories().get(attributeDescription.getName());
+                if (factory != null) {
+                    tmpList.add(new Attribute(attributeDescription.getName(), factory.newInstance(this)));
+                }
             }
         }
         projectDescription.setAttributes(tmpList);

@@ -18,6 +18,8 @@ import com.codenvy.dto.shared.DTO;
 @DTO
 public interface BuilderMetric {
 
+    String WAITING_TIME_LIMIT = "waitingTimeLimit";
+
     String START_TIME = "startTime";
 
     String TERMINATION_TIME = "terminationTime";

@@ -11,6 +11,7 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
@@ -28,19 +29,18 @@ import java.util.List;
  */
 public class ProjectTypeDescriptionRegistryTest {
 
-    ProjectTypeRegistry            typeRegistry;
     ProjectTypeDescriptionRegistry descriptionRegistry;
 
     @BeforeMethod
     public void setUp() {
-        typeRegistry = new ProjectTypeRegistry();
-        descriptionRegistry = new ProjectTypeDescriptionRegistry(typeRegistry);
+        descriptionRegistry = new ProjectTypeDescriptionRegistry();
     }
 
     @Test
     public void testRegisterProjectType() {
         final ProjectType type = new ProjectType("my_type", "my_type", "my_category");
         final List<Attribute> attributes = Arrays.asList(new Attribute("name1", "value1"), new Attribute("name2", "value2"));
+        final List<AttributeDescription> attributeDescriptions = Arrays.asList(new AttributeDescription("name3", "description3"));
         descriptionRegistry.registerProjectType(new ProjectTypeExtension() {
             @Override
             public ProjectType getProjectType() {
@@ -57,13 +57,26 @@ public class ProjectTypeDescriptionRegistryTest {
                 return Collections.emptyList();
             }
         });
-        ProjectType myType = typeRegistry.getProjectType("my_type");
+        descriptionRegistry.registerDescription(new ProjectTypeDescriptionExtension() {
+            @Override
+            public List<ProjectType> getProjectTypes() {
+                return Arrays.asList(type);
+            }
+
+            @Override
+            public List<AttributeDescription> getAttributeDescriptions() {
+                return attributeDescriptions;
+            }
+        });
+        ProjectType myType = descriptionRegistry.getProjectType("my_type");
         Assert.assertNotNull(myType);
         Assert.assertEquals(myType.getName(), "my_type");
         Assert.assertEquals(myType.getId(), "my_type");
         Assert.assertEquals(myType.getCategory(), "my_category");
         ProjectTypeDescription myTypeDescription = descriptionRegistry.getDescription(myType);
         Assert.assertNotNull(myTypeDescription);
+        AttributeDescription ad = myTypeDescription.getAttributeDescription("name3");
+        Assert.assertNotNull(ad);
         List<Attribute> predefinedAttributes = descriptionRegistry.getPredefinedAttributes(myType);
         Assert.assertEquals(predefinedAttributes.size(), 2);
         Attribute a = findAttribute("name1", predefinedAttributes);

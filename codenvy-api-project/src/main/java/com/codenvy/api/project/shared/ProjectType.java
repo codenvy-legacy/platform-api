@@ -49,6 +49,7 @@ public class ProjectType {
         return "ProjectType{" +
                "id='" + id + '\'' +
                ", name='" + name + '\'' +
+               ", category='" + category + '\'' +
                '}';
     }
 }

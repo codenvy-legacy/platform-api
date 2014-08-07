@@ -49,6 +49,7 @@
     </scm>
     <properties>
         <maven.model.version>3.0.5</maven.model.version>
+        <specification.version>1.0.0</specification.version>
     </properties>
     <repositories>
         <repository>

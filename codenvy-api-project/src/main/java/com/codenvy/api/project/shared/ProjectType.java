@@ -33,7 +33,7 @@ public class ProjectType {
     }
 
     public ProjectType(String id, String name, String category) {
-        this(name, id, category, null, null);
+        this(id, name, category, null, null);
     }
 
     /**

@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
-import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
@@ -22,6 +21,7 @@ import java.util.Map;
  * com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 @DTO
 public interface SubscriptionDescriptor {
@@ -43,29 +43,17 @@ public interface SubscriptionDescriptor {
 
     SubscriptionDescriptor withServiceId(String id);
 
-    long getStartDate();
+    String getPlanId();
 
-    void setStartDate(long date);
+    void setPlanId(String planId);
 
-    SubscriptionDescriptor withStartDate(long date);
-
-    long getEndDate();
-
-    void setEndDate(long date);
-
-    SubscriptionDescriptor withEndDate(long date);
+    SubscriptionDescriptor withPlanId(String planId);
 
     Map<String, String> getProperties();
 
     void setProperties(Map<String, String> properties);
 
     SubscriptionDescriptor withProperties(Map<String, String> properties);
-
-    Subscription.State getState();
-
-    void setState(Subscription.State state);
-
-    SubscriptionDescriptor withState(Subscription.State state);
 
     void setLinks(List<Link> links);
 

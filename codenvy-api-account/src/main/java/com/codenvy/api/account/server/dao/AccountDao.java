@@ -15,6 +15,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Account} data.
@@ -26,6 +27,7 @@ import java.util.List;
  * mean that such kind of inconsistencies are expected by design and may be treated further. </p>
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 public interface AccountDao {
 
@@ -164,24 +166,6 @@ public interface AccountDao {
     List<Member> getByMember(String userId) throws NotFoundException, ServerException;
 
     /**
-     * Add new event to the history of subscriptions
-     *
-     * @param historyEvent
-     *         history event to add
-     */
-    void addSubscriptionHistoryEvent(SubscriptionHistoryEvent historyEvent) throws ServerException, ConflictException;
-
-    /**
-     * Get list of history events which contain the same data as specified event
-     *
-     * @param event
-     *         event data to search for
-     * @return list of {@link SubscriptionHistoryEvent}
-     * @throws ServerException
-     */
-    List<SubscriptionHistoryEvent> getSubscriptionHistoryEvents(SubscriptionHistoryEvent event) throws ServerException;
-
-    /**
      * Retrieve all existing subscriptions.
      * <p>Use carefully because this operation can use a lot of resources
      *
@@ -189,4 +173,32 @@ public interface AccountDao {
      * @throws ServerException
      */
     List<Subscription> getSubscriptions() throws ServerException;
+
+    /**
+     * Add billing properties of certain subscription
+     *
+     * @param subscriptionId subscription identifier of billing properties
+     * @param billingProperties properties to save
+     * @throws NotFoundException if subscription with given id is not found
+     * @throws ServerException
+     */
+    void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) throws ServerException, NotFoundException;
+
+    /**
+     * Get billing properties of certain subscription
+     *
+     * @param subscriptionId subscription identifier
+     * @return billing properties of subscription
+     * @throws ServerException
+     */
+    Map<String, String> getBillingProperties(String subscriptionId) throws ServerException;
+
+    /**
+     * Remove billing properties of certain subscription
+     *
+     * @param subscriptionId subscription identifier
+     * @throws NotFoundException if subscription is not found
+     * @throws ServerException
+     */
+    void removeBillingProperties(String subscriptionId) throws ServerException, NotFoundException;
 }

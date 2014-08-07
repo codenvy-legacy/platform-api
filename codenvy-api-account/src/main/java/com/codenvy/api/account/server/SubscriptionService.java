@@ -18,6 +18,7 @@ import com.codenvy.api.core.ApiException;
  * Base class for any service which may communicate with account via subscriptions
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 public abstract class SubscriptionService {
 
@@ -88,17 +89,6 @@ public abstract class SubscriptionService {
      *         when some error occurs while processing {@code subscription}
      */
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
-
-    /**
-     * Generates service amount
-     *
-     * @param subscription
-     *         subscription that going to be analyzed for getting amount
-     * @return service amount
-     * @throws ApiException
-     *         when it is not possible to generate amount
-     */
-    public abstract double tarifficate(Subscription subscription) throws ApiException;
 
     /**
      * @return service identifier

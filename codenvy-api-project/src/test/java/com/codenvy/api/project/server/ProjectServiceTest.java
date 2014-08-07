@@ -99,8 +99,7 @@ public class ProjectServiceTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        ProjectTypeRegistry ptr = new ProjectTypeRegistry();
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry(ptr);
+        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry();
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
@@ -124,7 +123,7 @@ public class ProjectServiceTest {
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new DefaultProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
+        pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
         ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
@@ -135,7 +134,6 @@ public class ProjectServiceTest {
         generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
-        dependencies.addComponent(ProjectTypeRegistry.class, ptr);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
         dependencies.addComponent(ProjectGeneratorRegistry.class, generatorRegistry);
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());

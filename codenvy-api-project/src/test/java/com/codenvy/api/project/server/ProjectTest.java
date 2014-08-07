@@ -50,8 +50,7 @@ public class ProjectTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        ProjectTypeRegistry ptr = new ProjectTypeRegistry();
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry(ptr);
+        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry();
         final String projectType = "my_project_type";
         final String category = "my_category";
         Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
@@ -98,7 +97,7 @@ public class ProjectTest {
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new DefaultProjectManager(ptr, ptdr, vpf, vfsRegistry, eventService);
+        pm = new DefaultProjectManager(ptdr, vpf, vfsRegistry, eventService);
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_FOLDER).createFile(Constants.CODENVY_PROJECT_FILE, null, null);

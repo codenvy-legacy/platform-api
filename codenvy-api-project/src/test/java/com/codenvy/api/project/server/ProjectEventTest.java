@@ -44,8 +44,7 @@ public class ProjectEventTest {
     @BeforeMethod
     public void setUp() throws Exception {
         EventService eventService = new EventService();
-        ProjectTypeRegistry ptr = new ProjectTypeRegistry();
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry(ptr);
+        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry();
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {
@@ -68,7 +67,7 @@ public class ProjectEventTest {
                 }, vfsRegistry);
 
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new DefaultProjectManager(ptr, ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
+        pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
         ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));

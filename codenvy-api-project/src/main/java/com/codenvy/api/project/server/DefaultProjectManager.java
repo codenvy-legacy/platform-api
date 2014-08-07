@@ -55,7 +55,6 @@ public final class DefaultProjectManager implements ProjectManager {
     private final Lock[]                                     miscLocks;
     private final Cache<Pair<String, String>, ProjectMisc>[] miscCaches;
 
-    private final ProjectTypeRegistry               projectTypeRegistry;
     private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
     private final Map<String, ValueProviderFactory> valueProviderFactories;
     private final VirtualFileSystemRegistry         fileSystemRegistry;
@@ -63,12 +62,10 @@ public final class DefaultProjectManager implements ProjectManager {
 
     @Inject
     @SuppressWarnings("unchecked")
-    public DefaultProjectManager(ProjectTypeRegistry projectTypeRegistry,
-                                 ProjectTypeDescriptionRegistry typeDescriptionRegistry,
+    public DefaultProjectManager(ProjectTypeDescriptionRegistry typeDescriptionRegistry,
                                  Set<ValueProviderFactory> valueProviderFactories,
                                  VirtualFileSystemRegistry fileSystemRegistry,
                                  EventService eventService) {
-        this.projectTypeRegistry = projectTypeRegistry;
         this.typeDescriptionRegistry = typeDescriptionRegistry;
         this.fileSystemRegistry = fileSystemRegistry;
         this.valueProviderFactories = new HashMap<>();
@@ -223,11 +220,6 @@ public final class DefaultProjectManager implements ProjectManager {
             // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
             throw new ServerException(e.getServiceError());
         }
-    }
-
-    @Override
-    public ProjectTypeRegistry getProjectTypeRegistry() {
-        return projectTypeRegistry;
     }
 
     @Override

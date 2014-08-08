@@ -38,7 +38,6 @@
         <module>codenvy-api-workspace</module>
         <module>codenvy-api-account</module>
         <module>codenvy-api-auth</module>
-        <module>codenvy-api-version</module>
         <module>codenvy-infrastructure-local</module>
     </modules>
     <scm>

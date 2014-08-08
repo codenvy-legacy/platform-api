@@ -46,6 +46,10 @@ public class ProjectTemplateDescription {
      *         description of this template
      * @param location
      *         location of template, importer uses it when import templates to IDE
+     * @param defaultBuilderEnvironment
+     *         ID of default builder environment that should be used for projects created from this template
+     * @param defaultRunnerEnvironment
+     *         ID of default runner environment that should be used for projects created from this template
      */
     public ProjectTemplateDescription(String category,
                                       String importerType,
@@ -145,9 +149,9 @@ public class ProjectTemplateDescription {
     }
 
     /**
-     * Gets default name of builder environment that should be used for projects created from this template.
+     * Gets ID of default builder environment that should be used for projects created from this template.
      *
-     * @return default name of builder environment that should be used for projects created from this template
+     * @return ID of default builder environment that should be used for projects created from this template
      */
     public String getDefaultBuilderEnvironment() {
         return defaultBuilderEnvironment;
@@ -159,9 +163,9 @@ public class ProjectTemplateDescription {
     }
 
     /**
-     * Gets default name of runner environment that should be used for projects created from this template.
+     * Gets ID of default runner environment that should be used for projects created from this template.
      *
-     * @return default name of runner environment that should be used for projects created from this template
+     * @return ID of default runner environment that should be used for projects created from this template
      */
     public String getDefaultRunnerEnvironment() {
         return defaultRunnerEnvironment;
@@ -173,21 +177,22 @@ public class ProjectTemplateDescription {
     }
 
     /**
-     * Gets predefined configuration for builder environment by environment's name. Configuration may contains some recommended parameters
+     * Gets predefined configuration for builder environment by environment's ID. Configuration may contains some recommended parameters
      * for builder environments. Builder may use own configuration parameters if this method returns {@code null} or if returned
      * configuration doesn't contains required parameters or if parameters specified in configuration are not applicable.
      */
-    public BuilderEnvironmentConfiguration getBuilderEnvironmentConfiguration(String envName) {
-        return builderEnvConfigs.get(envName);
+    public BuilderEnvironmentConfiguration getBuilderEnvironmentConfiguration(String env) {
+        return builderEnvConfigs.get(env);
     }
 
     /**
-     * Gets predefined configuration for runner environment by environment's name. Configuration may contains some recommended parameters
-     * for runner environments. Runner may use own configuration parameters if this method returns {@code null} or if returned configuration
+     * Gets predefined configuration for runner environment by environment's ID. Configuration may contains some recommended parameters
+     * for runner environments. Runner may use own configuration parameters if this method returns {@code null} or if returned
+     * configuration
      * doesn't contains required parameters or if parameters specified in configuration are not applicable.
      */
-    public RunnerEnvironmentConfiguration getRunnerEnvironmentConfiguration(String envName) {
-        return runnerEnvConfigs.get(envName);
+    public RunnerEnvironmentConfiguration getRunnerEnvironmentConfiguration(String env) {
+        return runnerEnvConfigs.get(env);
     }
 
     @Override
@@ -198,6 +203,8 @@ public class ProjectTemplateDescription {
                ", displayName='" + displayName + '\'' +
                ", description='" + description + '\'' +
                ", location='" + location + '\'' +
+               ", defaultBuilderEnvironment='" + defaultBuilderEnvironment + '\'' +
+               ", defaultRunnerEnvironment='" + defaultRunnerEnvironment + '\'' +
                '}';
     }
 }

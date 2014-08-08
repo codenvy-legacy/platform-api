@@ -1,0 +1,32 @@
+{
+    "type": "maven",
+    "builder": "maven",
+    "runner": "javaweb",
+    "description": "test project",
+
+    "defaultBuilderEnvironment": "my_env",
+    "defaultRunnerEnvironment": "my_env",
+
+    "builderEnvironmentConfigurations": {
+        "my_env": {
+        }
+    },
+
+    "runnerEnvironmentConfigurations": {
+        "my_env": {
+            "requiredMemorySize": 128,
+            "recommendedMemorySize": 256
+        }
+    },
+
+    "properties": [
+        {
+            "name": "language.version",
+            "value": ["1.6"]
+        },
+        {
+            "name": "framework",
+            "value": ["spring"]
+        }
+    ]
+}

@@ -8,19 +8,13 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.shared.dto;
+
+import com.codenvy.dto.shared.DTO;
 
 /**
  * @author andrew00x
  */
-public class BuilderEnvironmentConfiguration {
-    private final String envId;
-
-    public BuilderEnvironmentConfiguration(String envId) {
-        this.envId = envId;
-    }
-
-    public String getEnvironmentId() {
-        return envId;
-    }
+@DTO
+public interface BuilderEnvironmentConfigurationDescriptor {
 }

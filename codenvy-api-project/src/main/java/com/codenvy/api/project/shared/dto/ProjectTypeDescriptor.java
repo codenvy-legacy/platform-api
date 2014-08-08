@@ -64,15 +64,39 @@ public interface ProjectTypeDescriptor {
 
     ProjectTypeDescriptor withIconRegistry(Map<String, String> iconRegistry);
 
-    String getBuilderName();
+    String getBuilder();
 
-    ProjectTypeDescriptor withBuilderName(String builderName);
+    ProjectTypeDescriptor withBuilder(String builder);
 
-    void setBuilderName(String builderName);
+    void setBuilder(String builder);
 
-    String getRunnerName();
+    String getRunner();
 
-    ProjectTypeDescriptor withRunnerName(String runnerName);
+    ProjectTypeDescriptor withRunner(String runner);
 
-    void setRunnerName(String runnerName);
+    void setRunner(String runner);
+
+    String getDefaultBuilderEnvironment();
+
+    ProjectTypeDescriptor withDefaultBuilderEnvironment(String envId);
+
+    void setDefaultBuilderEnvironment(String envId);
+
+    String getDefaultRunnerEnvironment();
+
+    ProjectTypeDescriptor withDefaultRunnerEnvironment(String envId);
+
+    void setDefaultRunnerEnvironment(String envId);
+
+    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
+
+    ProjectTypeDescriptor withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
+
+    ProjectTypeDescriptor withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+
+    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
 }

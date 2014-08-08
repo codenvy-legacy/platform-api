@@ -21,15 +21,15 @@ public class ProjectType {
     private final String name;
     private final String category;
 
-    private String builderName;
-    private String runnerName;
+    private String builder;
+    private String runner;
 
-    public ProjectType(String id, String name, String category, String builderName, String runnerName) {
+    public ProjectType(String id, String name, String category, String builder, String runner) {
         this.name = name;
         this.id = id;
         this.category = category;
-        this.builderName = builderName;
-        this.runnerName = runnerName;
+        this.builder = builder;
+        this.runner = runner;
     }
 
     public ProjectType(String id, String name, String category) {
@@ -68,13 +68,13 @@ public class ProjectType {
      *
      * @return name of builder that should be used for projects of this type
      */
-    public String getBuilderName() {
-        return builderName;
+    public String getBuilder() {
+        return builder;
     }
 
-    /** @see #getBuilderName() */
-    public void setbuilderName(String builderName) {
-        this.builderName = builderName;
+    /** @see #getBuilder() */
+    public void setbuilder(String builder) {
+        this.builder = builder;
     }
 
     /**
@@ -82,13 +82,13 @@ public class ProjectType {
      *
      * @return name of runner that should be used for projects of this type
      */
-    public String getRunnerName() {
-        return runnerName;
+    public String getRunner() {
+        return runner;
     }
 
-    /** @see #getRunnerName() */
-    public void setRunnerName(String runnerName) {
-        this.runnerName = runnerName;
+    /** @see #getRunner() */
+    public void setRunner(String runner) {
+        this.runner = runner;
     }
 
     @Override
@@ -97,8 +97,8 @@ public class ProjectType {
                "id='" + id + '\'' +
                ", name='" + name + '\'' +
                ", category='" + category + '\'' +
-               ", builderName='" + builderName + '\'' +
-               ", runnerName='" + runnerName + '\'' +
+               ", builderName='" + builder + '\'' +
+               ", runnerName='" + runner + '\'' +
                '}';
     }
 }

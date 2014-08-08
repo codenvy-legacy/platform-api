@@ -8,19 +8,24 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.shared.dto;
+
+import com.codenvy.dto.shared.DTO;
 
 /**
  * @author andrew00x
  */
-public class BuilderEnvironmentConfiguration {
-    private final String envId;
+@DTO
+public interface RunnerEnvironmentConfigurationDescriptor {
+    int getRequiredMemorySize();
 
-    public BuilderEnvironmentConfiguration(String envId) {
-        this.envId = envId;
-    }
+    RunnerEnvironmentConfigurationDescriptor withRequiredMemorySize(int requiredMemorySize);
 
-    public String getEnvironmentId() {
-        return envId;
-    }
+    void setRequiredMemorySize(int requiredMemorySize);
+
+    int getRecommendedMemorySize();
+
+    RunnerEnvironmentConfigurationDescriptor withRecommendedMemorySize(int recommendedMemorySize);
+
+    void setRecommendedMemorySize(int recommendedMemorySize);
 }

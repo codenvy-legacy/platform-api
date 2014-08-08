@@ -68,8 +68,8 @@ public class ProjectTypeService extends Service {
                                                             .withProjectTypeId(projectType.getId())
                                                             .withProjectTypeName(projectType.getName())
                                                             .withProjectTypeCategory(projectType.getCategory())
-                                                            .withBuilderName(projectType.getBuilderName())
-                                                            .withRunnerName(projectType.getRunnerName());
+                                                            .withBuilder(projectType.getBuilder())
+                                                            .withRunner(projectType.getRunner());
             final List<AttributeDescriptor> attributeDescriptors = new LinkedList<>();
             for (AttributeDescription attributeDescription : typeDescription.getAttributeDescriptions()) {
                 attributeDescriptors.add(factory.createDto(AttributeDescriptor.class).withName(attributeDescription.getName()));

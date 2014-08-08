@@ -10,12 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
 /** @author andrew00x */
-@DynaModule
 public class VirtualFileSystemModule extends AbstractModule {
     @Override
     protected void configure() {

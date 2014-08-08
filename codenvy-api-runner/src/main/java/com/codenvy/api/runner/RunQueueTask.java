@@ -85,7 +85,10 @@ public final class RunQueueTask implements Cancellable {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         ApplicationProcessDescriptor descriptor;
         if (future.isCancelled()) {
-            descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class).withProcessId(id).withStatus(ApplicationStatus.CANCELLED);
+            descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
+                                   .withProcessId(id)
+                                   .withCreationTime(created)
+                                   .withStatus(ApplicationStatus.CANCELLED);
         } else {
             final RemoteRunnerProcess remoteProcess = getRemoteProcess();
             if (remoteProcess == null) {
@@ -107,6 +110,7 @@ public final class RunQueueTask implements Cancellable {
                                        .withDescription("Waiting for start limit"));
                 descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
                                        .withProcessId(id)
+                                       .withCreationTime(created)
                                        .withStatus(ApplicationStatus.NEW)
                                        .withRunStats(runStats)
                                        .withLinks(links)
@@ -117,7 +121,10 @@ public final class RunQueueTask implements Cancellable {
             } else {
                 final ApplicationProcessDescriptor remoteDescriptor = remoteProcess.getApplicationProcessDescriptor();
                 // re-write some parameters, we are working as revers-proxy
-                descriptor = dtoFactory.clone(remoteDescriptor).withProcessId(id).withLinks(rewriteKnownLinks(remoteDescriptor.getLinks()));
+                descriptor = dtoFactory.clone(remoteDescriptor)
+                                       .withProcessId(id)
+                                       .withCreationTime(created)
+                                       .withLinks(rewriteKnownLinks(remoteDescriptor.getLinks()));
                 final long started = descriptor.getStartTime();
                 final long waitingTimeMillis = started > 0 ? started - created : System.currentTimeMillis() - created;
                 final List<RunnerMetric> runStats = descriptor.getRunStats();

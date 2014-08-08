@@ -37,6 +37,12 @@ public interface ApplicationProcessDescriptor {
 
     ApplicationProcessDescriptor withStatus(ApplicationStatus status);
 
+    long getCreationTime();
+
+    ApplicationProcessDescriptor withCreationTime(long creationTime);
+
+    void setCreationTime(long creationTime);
+
     long getStartTime();
 
     ApplicationProcessDescriptor withStartTime(long startTime);

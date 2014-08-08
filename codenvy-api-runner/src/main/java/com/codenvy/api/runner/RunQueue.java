@@ -663,6 +663,12 @@ public class RunQueue {
                                     bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(event.getError())));
                                 }
                                 break;
+                            case RUN_TASK_QUEUE_TIME_EXCEEDED:
+                                bm.setChannel(String.format("runner:status:%d", id));
+                                bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                                bm.setBody(String.format("{\"message\":%s}",
+                                                         "Unable to start application, currently there are no resources to start your application. Max waiting time for available resources has been reached. Contact support for assistance."));
+                                break;
                             case MESSAGE_LOGGED:
                                 final RunnerEvent.LoggedMessage message = event.getMessage();
                                 if (message != null) {

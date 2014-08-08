@@ -27,7 +27,9 @@ import com.codenvy.dto.server.DtoFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author andrew00x
@@ -225,7 +227,10 @@ public class Project {
                     final List<String> permissions = ace.getPermissions();
                     // replace "all" shortcut with list
                     if (permissions.remove(ALL_PERMISSIONS)) {
-                        Collections.addAll(permissions, ALL_PERMISSIONS_LIST);
+                        final Set<String> set = new LinkedHashSet<>(permissions);
+                        Collections.addAll(set, ALL_PERMISSIONS_LIST);
+                        permissions.clear();
+                        permissions.addAll(set);
                     }
                 }
                 return acl;

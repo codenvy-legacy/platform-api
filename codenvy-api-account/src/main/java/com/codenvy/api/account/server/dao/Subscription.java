@@ -19,32 +19,23 @@ import java.util.Objects;
  * {@link com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
+ * @author Alexander Garagatyi
  */
 public class Subscription {
-
-    public enum State {
-        WAIT_FOR_PAYMENT,
-        ACTIVE
-    }
-
-    private long                startDate;
-    private long                endDate;
     private String              id;
     private String              accountId;
     private String              serviceId;
-    private State               state;
+    private String              planId;
     private Map<String, String> properties;
 
     public Subscription() {
     }
 
     public Subscription(Subscription other) {
-        this.startDate = other.startDate;
-        this.endDate = other.endDate;
         this.id = other.id;
         this.accountId = other.accountId;
         this.serviceId = other.serviceId;
-        this.state = other.state;
+        this.planId = other.planId;
         this.properties = new HashMap<>(other.getProperties());
     }
 
@@ -87,29 +78,16 @@ public class Subscription {
         return this;
     }
 
-    public long getStartDate() {
-        return startDate;
+    public String getPlanId() {
+        return planId;
     }
 
-    public void setStartDate(long startDate) {
-        this.startDate = startDate;
+    public void setPlanId(String planId) {
+        this.planId = planId;
     }
 
-    public Subscription withStartDate(long startDate) {
-        this.startDate = startDate;
-        return this;
-    }
-
-    public long getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(long endDate) {
-        this.endDate = endDate;
-    }
-
-    public Subscription withEndDate(long endDate) {
-        this.endDate = endDate;
+    public Subscription withPlanId(String planId) {
+        this.planId = planId;
         return this;
     }
 
@@ -129,19 +107,6 @@ public class Subscription {
         return this;
     }
 
-    public State getState() {
-        return state;
-    }
-
-    public void setState(State state) {
-        this.state = state;
-    }
-
-    public Subscription withState(State state) {
-        this.state = state;
-        return this;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -151,24 +116,20 @@ public class Subscription {
             return false;
         }
         final Subscription other = (Subscription)obj;
-        return startDate == other.startDate &&
-               endDate == other.endDate &&
-               state == other.state &&
-               Objects.equals(id, other.id) &&
+        return Objects.equals(id, other.id) &&
                Objects.equals(accountId, other.accountId) &&
                Objects.equals(serviceId, other.serviceId) &&
+               Objects.equals(planId, other.planId) &&
                Objects.equals(getProperties(), other.getProperties());
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 31 * hash + (int)(startDate ^ (startDate >>> 32));
-        hash = 31 * hash + (int)(endDate ^ (endDate >>> 32));
-        hash = 31 * hash + Objects.hashCode(state);
         hash = 31 * hash + Objects.hashCode(id);
         hash = 31 * hash + Objects.hashCode(accountId);
         hash = 31 * hash + Objects.hashCode(serviceId);
+        hash = 31 * hash + Objects.hashCode(planId);
         hash = 31 * hash + Objects.hashCode(getProperties());
         return hash;
     }

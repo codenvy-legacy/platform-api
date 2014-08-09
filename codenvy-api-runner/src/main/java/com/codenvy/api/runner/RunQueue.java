@@ -30,6 +30,7 @@ import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
+import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -196,6 +197,38 @@ public class RunQueue {
         }
     }
 
+    public int getUsedRAM(String workspaceId) throws RunnerException {
+        int usedRAM = 0;
+        for (RunQueueTask task : tasks.values()) {
+            final RunRequest request = task.getRequest();
+            if (workspaceId.equals(request.getWorkspace())) {
+                try {
+                    ApplicationStatus status;
+                    if (task.isWaiting()
+                        || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
+                        || status == ApplicationStatus.NEW) {
+                        usedRAM += request.getMemorySize();
+                    }
+                } catch (NotFoundException ignored) {
+                    // If remote process is not found, it is stopped and removed from remote server.
+                }
+            }
+        }
+        return usedRAM;
+    }
+
+    public int getTotalRAM(WorkspaceDescriptor workspace) {
+        final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
+        return availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMaxMemorySize;
+    }
+
+    public ResourcesDescriptor getResources(String workspaceId, ServiceContext serviceContext) throws RunnerException {
+        WorkspaceDescriptor workspaceDescriptor = getWorkspaceDescriptor(workspaceId, serviceContext);
+        return DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
+                .withTotalRAM(String.valueOf(getTotalRAM(workspaceDescriptor)))
+                .withUsedRAM(String.valueOf(getUsedRAM(workspaceId)));
+    }
+
     public RunQueueTask run(String wsId, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(wsId, project, serviceContext);
@@ -333,8 +366,7 @@ public class RunQueue {
         // Lock to be sure other threads don't try to start application in the same workspace.
         resourceCheckerLocks[index].lock();
         try {
-            final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
-            final int availableMem = availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMaxMemorySize;
+            final int availableMem = getTotalRAM(workspace);
             if (availableMem < request.getMemorySize()) {
                 throw new RunnerException(
                         String.format("Not enough resources to start application. Available memory %dM but %dM required. ",

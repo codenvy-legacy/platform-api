@@ -16,6 +16,7 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -109,6 +110,13 @@ public class RunnerService extends Service {
     public void getLogs(@PathParam("id") Long id, @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response is written directly to the servlet request stream
         runQueue.getTask(id).readLogs(new HttpServletProxyResponse(httpServletResponse));
+    }
+
+    @GET
+    @Path("resources")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ResourcesDescriptor getResources(@PathParam("ws-id") String workspace) throws Exception {
+        return runQueue.getResources(workspace, getServiceContext());
     }
 
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)

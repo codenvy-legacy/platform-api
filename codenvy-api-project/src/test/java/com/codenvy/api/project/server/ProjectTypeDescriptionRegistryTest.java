@@ -22,7 +22,9 @@ import org.testng.annotations.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -33,7 +35,7 @@ public class ProjectTypeDescriptionRegistryTest {
 
     @BeforeMethod
     public void setUp() {
-        descriptionRegistry = new ProjectTypeDescriptionRegistry();
+        descriptionRegistry = new ProjectTypeDescriptionRegistry("test/host");
     }
 
     @Test
@@ -55,6 +57,11 @@ public class ProjectTypeDescriptionRegistryTest {
             @Override
             public List<ProjectTemplateDescription> getTemplates() {
                 return Collections.emptyList();
+            }
+
+            @Override
+            public Map<String, String> getIconRegistry() {
+                return Collections.emptyMap();
             }
         });
         descriptionRegistry.registerDescription(new ProjectTypeDescriptionExtension() {
@@ -85,6 +92,42 @@ public class ProjectTypeDescriptionRegistryTest {
         a = findAttribute("name2", predefinedAttributes);
         Assert.assertNotNull(a);
         Assert.assertEquals(a.getValue(), "value2");
+    }
+
+    @Test
+    public void testRegisterProjectTypeWithIconRegistry() {
+        final ProjectType type = new ProjectType("my_type", "my_type", "my_category");
+        final List<Attribute> attributes = Arrays.asList(new Attribute("name1", "value1"), new Attribute("name2", "value2"));
+        descriptionRegistry.registerProjectType(new ProjectTypeExtension() {
+            @Override
+            public ProjectType getProjectType() {
+                return type;
+            }
+
+            @Override
+            public List<Attribute> getPredefinedAttributes() {
+                return attributes;
+            }
+
+            @Override
+            public List<ProjectTemplateDescription> getTemplates() {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public Map<String, String> getIconRegistry() {
+                Map<String, String> icons = new HashMap<String, String>();
+                icons.put("BIG", "/aaa/bbb/ccc.xml");
+                return icons;
+            }
+        });
+        ProjectType myType = descriptionRegistry.getProjectType("my_type");
+        Assert.assertNotNull(myType);
+        Map<String, String> iconRegistry = descriptionRegistry.getIconRegistry(myType);
+        Assert.assertNotNull(iconRegistry);
+        Assert.assertTrue(iconRegistry.containsKey("BIG"));
+        Assert.assertEquals(iconRegistry.get("BIG"), "test/host/aaa/bbb/ccc.xml");
+
     }
 
     private Attribute findAttribute(String name, List<Attribute> list) {

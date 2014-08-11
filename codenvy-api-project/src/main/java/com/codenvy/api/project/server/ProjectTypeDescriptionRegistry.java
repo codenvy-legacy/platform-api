@@ -14,11 +14,13 @@ import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
+import com.google.inject.name.Named;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,16 +33,24 @@ import java.util.concurrent.ConcurrentHashMap;
 @Singleton
 public class ProjectTypeDescriptionRegistry {
     private final ProjectTypeRegistry                           projectTypeRegistry;
+    private final String                                        iconsBaseUrl;
     private final Map<String, ProjectTypeDescription>           descriptions;
     private final Map<String, List<Attribute>>                  predefinedAttributes;
     private final Map<String, List<ProjectTemplateDescription>> templates;
+    private final Map<String, Map<String, String>>              iconRegistry;
 
     @Inject
-    public ProjectTypeDescriptionRegistry() {
+    public ProjectTypeDescriptionRegistry(@Named("project.base_icon_url") String iconsBaseUrl) {
         projectTypeRegistry = new ProjectTypeRegistry();
+        if (!iconsBaseUrl.endsWith("/")) {
+            iconsBaseUrl = iconsBaseUrl + "/";
+        }
+        this.iconsBaseUrl = iconsBaseUrl;
         descriptions = new ConcurrentHashMap<>();
         predefinedAttributes = new ConcurrentHashMap<>();
         templates = new ConcurrentHashMap<>();
+        iconRegistry = new ConcurrentHashMap<>();
+
     }
 
     /**
@@ -62,6 +72,18 @@ public class ProjectTypeDescriptionRegistry {
         final List<ProjectTemplateDescription> templates = extension.getTemplates();
         if (templates != null && !templates.isEmpty()) {
             this.templates.put(type.getId(), new ArrayList<>(templates));
+        }
+        final Map<String, String> iconRegistry = extension.getIconRegistry();
+        if (iconRegistry != null && !iconRegistry.isEmpty()) {
+            Map<String, String> iconRegistryWithUrl = new HashMap<>();
+            for (String key : iconRegistry.keySet()) {
+                String path = iconRegistry.get(key);
+                if(path.startsWith("/")) {
+                    path = path.substring(1);
+                }
+                iconRegistryWithUrl.put(key, iconsBaseUrl + path);
+            }
+            this.iconRegistry.put(type.getId(), iconRegistryWithUrl);
         }
     }
 
@@ -213,7 +235,20 @@ public class ProjectTypeDescriptionRegistry {
         }
         return Collections.emptyList();
     }
-
+    
+    /**
+     * Gets unmodifiable map of of registered project icons.
+     *
+     * @return unmodifiable map of registered project icons.
+     */
+    public Map<String, String> getIconRegistry(ProjectType type) {
+        Map<String, String> iconRegistry = this.iconRegistry.get(type.getId());
+        if (iconRegistry != null) {
+            return Collections.unmodifiableMap(iconRegistry);
+        }
+        return Collections.emptyMap();
+    }
+    
     /**
      * Stores information about registered (known) project types.
      */

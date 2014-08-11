@@ -189,9 +189,10 @@ public interface AccountDao {
      *
      * @param subscriptionId subscription identifier
      * @return billing properties of subscription
+     * @throws NotFoundException if subscription billing properties with given id are not found
      * @throws ServerException
      */
-    Map<String, String> getBillingProperties(String subscriptionId) throws ServerException;
+    Map<String, String> getBillingProperties(String subscriptionId) throws ServerException, NotFoundException;
 
     /**
      * Remove billing properties of certain subscription

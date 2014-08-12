@@ -197,7 +197,7 @@ public class RunQueue {
     }
 
     public int getUsedMemory(String workspaceId) throws RunnerException {
-        int usedRAM = 0;
+        int usedMemory = 0;
         for (RunQueueTask task : tasks.values()) {
             final RunRequest request = task.getRequest();
             if (workspaceId.equals(request.getWorkspace())) {
@@ -206,14 +206,14 @@ public class RunQueue {
                     if (task.isWaiting()
                         || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
                         || status == ApplicationStatus.NEW) {
-                        usedRAM += request.getMemorySize();
+                        usedMemory += request.getMemorySize();
                     }
                 } catch (NotFoundException ignored) {
                     // If remote process is not found, it is stopped and removed from remote server.
                 }
             }
         }
-        return usedRAM;
+        return usedMemory;
     }
 
     public int getTotalMemory(WorkspaceDescriptor workspace) throws RunnerException {

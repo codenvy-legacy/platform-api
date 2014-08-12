@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -65,8 +65,8 @@ public class ProjectTemplateDescription {
         this.location = location;
         this.defaultBuilderEnvironment = defaultBuilderEnvironment;
         this.defaultRunnerEnvironment = defaultRunnerEnvironment;
-        builderEnvConfigs = new HashMap<>();
-        runnerEnvConfigs = new HashMap<>();
+        builderEnvConfigs = new LinkedHashMap<>();
+        runnerEnvConfigs = new LinkedHashMap<>();
     }
 
     /**
@@ -188,11 +188,28 @@ public class ProjectTemplateDescription {
     /**
      * Gets predefined configuration for runner environment by environment's ID. Configuration may contains some recommended parameters
      * for runner environments. Runner may use own configuration parameters if this method returns {@code null} or if returned
-     * configuration
-     * doesn't contains required parameters or if parameters specified in configuration are not applicable.
+     * configuration doesn't contains required parameters or if parameters specified in configuration are not applicable.
      */
     public RunnerEnvironmentConfiguration getRunnerEnvironmentConfiguration(String env) {
         return runnerEnvConfigs.get(env);
+    }
+
+    /**
+     * Gets predefined configuration for builder environment.
+     *
+     * @see #getBuilderEnvironmentConfiguration(String)
+     */
+    public Map<String, BuilderEnvironmentConfiguration> getBuilderEnvironmentConfigurations() {
+        return new LinkedHashMap<>(builderEnvConfigs);
+    }
+
+    /**
+     * Gets predefined configurations for runner environment.
+     *
+     * @see #getRunnerEnvironmentConfiguration(String)
+     */
+    public Map<String, RunnerEnvironmentConfiguration> getRunnerEnvironmentConfigurations() {
+        return new LinkedHashMap<>(runnerEnvConfigs);
     }
 
     @Override
@@ -205,6 +222,8 @@ public class ProjectTemplateDescription {
                ", location='" + location + '\'' +
                ", defaultBuilderEnvironment='" + defaultBuilderEnvironment + '\'' +
                ", defaultRunnerEnvironment='" + defaultRunnerEnvironment + '\'' +
+               ", builderEnvConfigs=" + builderEnvConfigs +
+               ", runnerEnvConfigs=" + runnerEnvConfigs +
                '}';
     }
 }

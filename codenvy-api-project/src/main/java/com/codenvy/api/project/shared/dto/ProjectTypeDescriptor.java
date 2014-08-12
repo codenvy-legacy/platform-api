@@ -75,28 +75,4 @@ public interface ProjectTypeDescriptor {
     ProjectTypeDescriptor withRunner(String runner);
 
     void setRunner(String runner);
-
-    String getDefaultBuilderEnvironment();
-
-    ProjectTypeDescriptor withDefaultBuilderEnvironment(String envId);
-
-    void setDefaultBuilderEnvironment(String envId);
-
-    String getDefaultRunnerEnvironment();
-
-    ProjectTypeDescriptor withDefaultRunnerEnvironment(String envId);
-
-    void setDefaultRunnerEnvironment(String envId);
-
-    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
-
-    ProjectTypeDescriptor withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
-
-    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
-
-    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
-
-    ProjectTypeDescriptor withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
-
-    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
 }

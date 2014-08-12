@@ -27,8 +27,6 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,15 +44,6 @@ public class ProjectTypeService extends Service {
     public ProjectTypeService(ProjectTypeDescriptionRegistry registry) {
         this.registry = registry;
     }
-
-    private DirectoryStream.Filter<java.nio.file.Path> iconFilter = new DirectoryStream.Filter<java.nio.file.Path>() {
-
-        @Override
-        public boolean accept(java.nio.file.Path entry) throws IOException {
-            String name = entry.getFileName().toString();
-            return name.endsWith("svg") || name.endsWith("png") || name.endsWith("jpg") || name.endsWith("jpeg");
-        }
-    };
 
     @GenerateLink(rel = Constants.LINK_REL_PROJECT_TYPES)
     @GET
@@ -87,6 +76,7 @@ public class ProjectTypeService extends Service {
                 templateDescriptors.add(templateDescriptor);
             }
             descriptor.setTemplates(templateDescriptors);
+            descriptor.setIconRegistry(registry.getIconRegistry(projectType));
             types.add(descriptor);
         }
         return types;

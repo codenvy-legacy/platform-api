@@ -14,13 +14,9 @@ package com.codenvy.api.project.shared;
  * @author andrew00x
  */
 public class BuilderEnvironmentConfiguration {
-    private final String envId;
-
-    public BuilderEnvironmentConfiguration(String envId) {
-        this.envId = envId;
+    public BuilderEnvironmentConfiguration(BuilderEnvironmentConfiguration origin) {
     }
 
-    public String getEnvironmentId() {
-        return envId;
+    public BuilderEnvironmentConfiguration() {
     }
 }

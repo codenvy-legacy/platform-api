@@ -23,14 +23,18 @@ import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
+import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -712,6 +716,29 @@ public class ProjectService extends Service {
             throw new ServerException(String.format("Invalid project type '%s'. ", newProject.getProjectTypeId()));
         }
         final ProjectDescription projectDescription = new ProjectDescription(projectType);
+        projectDescription.setBuilder(newProject.getBuilder());
+        projectDescription.setRunner(newProject.getRunner());
+        projectDescription.setDefaultBuilderEnvironment(newProject.getDefaultBuilderEnvironment());
+        projectDescription.setDefaultRunnerEnvironment(newProject.getDefaultRunnerEnvironment());
+        projectDescription.setDescription(newProject.getDescription());
+        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors =
+                newProject.getBuilderEnvironmentConfigurations();
+        if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
+            for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
+                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(), new BuilderEnvironmentConfiguration());
+            }
+        }
+        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
+                newProject.getRunnerEnvironmentConfigurations();
+        if (!(runnerEnvConfigDescriptors == null || runnerEnvConfigDescriptors.isEmpty())) {
+            for (Map.Entry<String, RunnerEnvironmentConfigurationDescriptor> e : runnerEnvConfigDescriptors.entrySet()) {
+                final RunnerEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
+                projectDescription.getRunnerEnvironmentConfigurations().put(e.getKey(),
+                                                                            new RunnerEnvironmentConfiguration(
+                                                                                    envConfigDescriptor.getRequiredMemorySize(),
+                                                                                    envConfigDescriptor.getRecommendedMemorySize()));
+            }
+        }
         final Map<String, List<String>> projectAttributeValues = newProject.getAttributes();
         if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {
             final List<Attribute> projectAttributes = new ArrayList<>(projectAttributeValues.size());
@@ -720,7 +747,6 @@ public class ProjectService extends Service {
             }
             projectDescription.setAttributes(projectAttributes);
         }
-        projectDescription.setDescription(newProject.getDescription());
         return projectDescription;
     }
 
@@ -730,6 +756,29 @@ public class ProjectService extends Service {
             throw new ServerException(String.format("Invalid project type '%s'. ", update.getProjectTypeId()));
         }
         final ProjectDescription projectDescription = new ProjectDescription(projectType);
+        projectDescription.setBuilder(update.getBuilder());
+        projectDescription.setRunner(update.getRunner());
+        projectDescription.setDefaultBuilderEnvironment(update.getDefaultBuilderEnvironment());
+        projectDescription.setDefaultRunnerEnvironment(update.getDefaultRunnerEnvironment());
+        projectDescription.setDescription(update.getDescription());
+        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors =
+                update.getBuilderEnvironmentConfigurations();
+        if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
+            for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
+                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(), new BuilderEnvironmentConfiguration());
+            }
+        }
+        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
+                update.getRunnerEnvironmentConfigurations();
+        if (!(runnerEnvConfigDescriptors == null || runnerEnvConfigDescriptors.isEmpty())) {
+            for (Map.Entry<String, RunnerEnvironmentConfigurationDescriptor> e : runnerEnvConfigDescriptors.entrySet()) {
+                final RunnerEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
+                projectDescription.getRunnerEnvironmentConfigurations().put(e.getKey(),
+                                                                            new RunnerEnvironmentConfiguration(
+                                                                                    envConfigDescriptor.getRequiredMemorySize(),
+                                                                                    envConfigDescriptor.getRecommendedMemorySize()));
+            }
+        }
         final Map<String, List<String>> projectAttributeValues = update.getAttributes();
         if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {
             final List<Attribute> projectAttributes = new ArrayList<>(projectAttributeValues.size());
@@ -738,7 +787,6 @@ public class ProjectService extends Service {
             }
             projectDescription.setAttributes(projectAttributes);
         }
-        projectDescription.setDescription(update.getDescription());
         return projectDescription;
     }
 
@@ -773,6 +821,21 @@ public class ProjectService extends Service {
                 }
             }
         }
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs = description.getBuilderEnvironmentConfigurations();
+        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors = new LinkedHashMap<>();
+        for (Map.Entry<String, BuilderEnvironmentConfiguration> e : builderEnvConfigs.entrySet()) {
+            builderEnvConfigDescriptors.put(e.getKey(), dtoFactory.createDto(BuilderEnvironmentConfigurationDescriptor.class));
+        }
+        final Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs = description.getRunnerEnvironmentConfigurations();
+        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors = new LinkedHashMap<>();
+        for (Map.Entry<String, RunnerEnvironmentConfiguration> e : runnerEnvConfigs.entrySet()) {
+            final RunnerEnvironmentConfiguration envConfig = e.getValue();
+            runnerEnvConfigDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
+                                                                 .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
+                                                                 .withRequiredMemorySize(envConfig.getRequiredMemorySize()));
+        }
+
         descriptor.withName(project.getName())
                   .withPath(project.getBaseFolder().getPath())
                   .withBaseUrl(
@@ -780,6 +843,12 @@ public class ProjectService extends Service {
                   .withProjectTypeId(type.getId())
                   .withProjectTypeName(type.getName())
                   .withWorkspaceId(workspace)
+                  .withBuilder(description.getBuilder())
+                  .withRunner(description.getRunner())
+                  .withDefaultBuilderEnvironment(description.getDefaultBuilderEnvironment())
+                  .withDefaultRunnerEnvironment(description.getDefaultRunnerEnvironment())
+                  .withBuilderEnvironmentConfigurations(builderEnvConfigDescriptors)
+                  .withRunnerEnvironmentConfigurations(runnerEnvConfigDescriptors)
                   .withDescription(description.getDescription())
                   .withVisibility(project.getVisibility())
                   .withCurrentUserPermissions(userPermissions)

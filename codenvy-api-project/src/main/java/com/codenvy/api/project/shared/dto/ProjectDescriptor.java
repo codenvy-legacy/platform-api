@@ -116,6 +116,42 @@ public interface ProjectDescriptor {
 
     ProjectDescriptor withCurrentUserPermissions(List<String> permissions);
 
+    String getBuilder();
+
+    ProjectDescriptor withBuilder(String builder);
+
+    void setBuilder(String builder);
+
+    String getRunner();
+
+    ProjectDescriptor withRunner(String runner);
+
+    void setRunner(String runner);
+
+    String getDefaultBuilderEnvironment();
+
+    ProjectDescriptor withDefaultBuilderEnvironment(String envId);
+
+    void setDefaultBuilderEnvironment(String envId);
+
+    String getDefaultRunnerEnvironment();
+
+    ProjectDescriptor withDefaultRunnerEnvironment(String envId);
+
+    void setDefaultRunnerEnvironment(String envId);
+
+    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
+
+    ProjectDescriptor withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
+
+    ProjectDescriptor withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+
+    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+
     List<Link> getLinks();
 
     ProjectDescriptor withLinks(List<Link> links);

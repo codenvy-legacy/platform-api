@@ -12,6 +12,8 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.Map;
+
 /** @author Vitaly Parfonov */
 @DTO
 public interface ProjectTemplateDescriptor {
@@ -37,6 +39,30 @@ public interface ProjectTemplateDescriptor {
     void setDisplayName(String displayName);
 
     ProjectTemplateDescriptor withDisplayName(String displayName);
+
+    String getDefaultBuilderEnvironment();
+
+    ProjectTemplateDescriptor withDefaultBuilderEnvironment(String envId);
+
+    void setDefaultBuilderEnvironment(String envId);
+
+    String getDefaultRunnerEnvironment();
+
+    ProjectTemplateDescriptor withDefaultRunnerEnvironment(String envId);
+
+    void setDefaultRunnerEnvironment(String envId);
+
+    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
+
+    ProjectTemplateDescriptor withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
+
+    ProjectTemplateDescriptor withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+
+    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
 
     /** Get description of project template. */
     String getDescription();

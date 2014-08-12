@@ -36,6 +36,10 @@ public class ProjectType {
         this(id, name, category, null, null);
     }
 
+    public ProjectType(ProjectType origin) {
+        this(origin.getId(), origin.getName(), origin.getCategory(), origin.getBuilder(), origin.getRunner());
+    }
+
     /**
      * Ges ID of this project type. Type ID supposed to be unique within IDE.
      *
@@ -97,8 +101,8 @@ public class ProjectType {
                "id='" + id + '\'' +
                ", name='" + name + '\'' +
                ", category='" + category + '\'' +
-               ", builderName='" + builder + '\'' +
-               ", runnerName='" + runner + '\'' +
+               ", builder='" + builder + '\'' +
+               ", runner='" + runner + '\'' +
                '}';
     }
 }

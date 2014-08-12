@@ -161,7 +161,7 @@ public class ProjectTest {
         List<ProjectProperty> propertiesList = new ArrayList<>(2);
         propertiesList.add(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")));
         propertiesList.add(new ProjectProperty("my_property_2", Arrays.asList("value_3", "value_4")));
-        new ProjectProperties().withType("my_project_type").withProperties(propertiesList).save(myProject);
+        new ProjectJson().withType("my_project_type").withProperties(propertiesList).save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         Assert.assertEquals(myProjectDescription.getProjectType().getId(), "my_project_type");
         Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
@@ -184,12 +184,12 @@ public class ProjectTest {
     @Test
     public void testUpdateProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        ProjectProperties properties = new ProjectProperties("my_project_type",
-                                                             null,
-                                                             Arrays.asList(new ProjectProperty("my_property_1",
-                                                                                               Arrays.asList("value_1",
-                                                                                                             "value_2"))));
-        properties.save(myProject);
+        ProjectJson projectJson = new ProjectJson("my_project_type",
+                                                  null,
+                                                  Arrays.asList(new ProjectProperty("my_property_1",
+                                                                                    Arrays.asList("value_1",
+                                                                                                  "value_2"))));
+        projectJson.save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
         myProjectDescription.getAttribute("calculated_attribute").setValue("updated calculated_attribute");
@@ -198,12 +198,12 @@ public class ProjectTest {
 
         myProject.updateDescription(myProjectDescription);
 
-        properties = ProjectProperties.load(myProject);
+        projectJson = ProjectJson.load(myProject);
 
-        Assert.assertEquals(properties.getType(), "new_project_type");
+        Assert.assertEquals(projectJson.getType(), "new_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
         Map<String, ProjectProperty> pm = new LinkedHashMap<>(2);
-        for (ProjectProperty projectProperty : properties.getProperties()) {
+        for (ProjectProperty projectProperty : projectJson.getProperties()) {
             pm.put(projectProperty.getName(), projectProperty);
         }
         Assert.assertEquals(pm.size(), 2);

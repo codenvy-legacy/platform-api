@@ -53,4 +53,12 @@ public class AttributeDescription {
     public String getDescription() {
         return description;
     }
+
+    @Override
+    public String toString() {
+        return "AttributeDescription{" +
+               "name='" + name + '\'' +
+               ", description='" + description + '\'' +
+               '}';
+    }
 }

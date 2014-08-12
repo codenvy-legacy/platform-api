@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
+import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -43,8 +43,7 @@ public class ProjectJsonTest {
         Assert.assertEquals(projectJson.getDefaultBuilderEnvironment(), "my_env");
         Assert.assertEquals(projectJson.getDefaultRunnerEnvironment(), "my_env");
         Assert.assertNotNull(projectJson.getBuilderEnvironmentConfigurations().get("my_env"));
-        RunnerEnvironmentConfigurationDescriptor runnerEnvironmentConfiguration =
-                projectJson.getRunnerEnvironmentConfigurations().get("my_env");
+        RunnerEnvironmentConfiguration runnerEnvironmentConfiguration = projectJson.getRunnerEnvironmentConfigurations().get("my_env");
         Assert.assertNotNull(runnerEnvironmentConfiguration);
         Assert.assertEquals(runnerEnvironmentConfiguration.getRequiredMemorySize(), 128);
         Assert.assertEquals(runnerEnvironmentConfiguration.getRecommendedMemorySize(), 256);

@@ -22,18 +22,20 @@ import java.util.Map;
  * @author gazarenkov
  */
 public class ProjectDescription {
-    private ProjectType            projectType;
-    private String                 description;
-    private Map<String, Attribute> attributes;
-
-    public ProjectDescription(ProjectType projectType, List<Attribute> attributes) {
-        this.attributes = new LinkedHashMap<>();
-        setProjectType(projectType);
-        setAttributes(attributes);
-    }
+    private ProjectType                                  projectType;
+    private String                                       builder;
+    private String                                       runner;
+    private String                                       defaultBuilderEnvironment;
+    private String                                       defaultRunnerEnvironment;
+    private Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs;
+    private Map<String, RunnerEnvironmentConfiguration>  runnerEnvConfigs;
+    private Map<String, Attribute>                       attributes;
+    private String                                       description;
 
     public ProjectDescription(ProjectType projectType) {
         this.attributes = new LinkedHashMap<>();
+        this.builderEnvConfigs = new LinkedHashMap<>();
+        this.runnerEnvConfigs = new LinkedHashMap<>();
         setProjectType(projectType);
     }
 
@@ -42,16 +44,25 @@ public class ProjectDescription {
     }
 
     public ProjectDescription(ProjectDescription origin) {
-        final ProjectType originProjectType = origin.getProjectType();
-        setProjectType(new ProjectType(originProjectType.getId(), originProjectType.getName(), originProjectType.getCategory()));
-        final List<Attribute> originAttributes = origin.getAttributes();
-        final List<Attribute> copyAttributes = new ArrayList<>();
-        for (Attribute attribute : originAttributes) {
-            copyAttributes.add(new Attribute(attribute));
-        }
+        this.projectType = new ProjectType(origin.getProjectType());
+        this.builder = origin.getBuilder();
+        this.runner = origin.getRunner();
+        this.defaultBuilderEnvironment = origin.getDefaultBuilderEnvironment();
+        this.defaultRunnerEnvironment = origin.getDefaultRunnerEnvironment();
         this.attributes = new LinkedHashMap<>();
+        this.builderEnvConfigs = new LinkedHashMap<>();
+        this.runnerEnvConfigs = new LinkedHashMap<>();
         this.description = origin.getDescription();
-        setAttributes(copyAttributes);
+        for (Attribute attribute : origin.getAttributes()) {
+            final Attribute copy = new Attribute(attribute);
+            attributes.put(copy.getName(), copy);
+        }
+        for (Map.Entry<String, BuilderEnvironmentConfiguration> e : origin.getBuilderEnvironmentConfigurations().entrySet()) {
+            builderEnvConfigs.put(e.getKey(), new BuilderEnvironmentConfiguration(e.getValue()));
+        }
+        for (Map.Entry<String, RunnerEnvironmentConfiguration> e : origin.getRunnerEnvironmentConfigurations().entrySet()) {
+            runnerEnvConfigs.put(e.getKey(), new RunnerEnvironmentConfiguration(e.getValue()));
+        }
     }
 
     /** @return Project type */
@@ -59,11 +70,116 @@ public class ProjectDescription {
         return projectType;
     }
 
+    /** @see #getProjectType() */
     public void setProjectType(ProjectType projectType) {
         if (projectType == null) {
             throw new IllegalArgumentException("Project type may not be null. ");
         }
         this.projectType = projectType;
+    }
+
+    /**
+     * Gets name of builder that should be used for this project.
+     *
+     * @return name of builder that should be used for this project
+     */
+    public String getBuilder() {
+        return builder;
+    }
+
+    /** @see #getBuilder() */
+    public void setBuilder(String builder) {
+        this.builder = builder;
+    }
+
+    /**
+     * Gets name of runner that should be used for this project.
+     *
+     * @return name of runner that should be used for this project
+     */
+    public String getRunner() {
+        return runner;
+    }
+
+    /** @see #getRunner() */
+    public void setRunner(String runner) {
+        this.runner = runner;
+    }
+
+    /**
+     * Gets ID of default builder environment that should be used for this project.
+     *
+     * @return ID of default builder environment that should be used for this project
+     */
+    public String getDefaultBuilderEnvironment() {
+        return defaultBuilderEnvironment;
+    }
+
+    /** @see #getDefaultBuilderEnvironment() */
+    public void setDefaultBuilderEnvironment(String defaultBuilderEnvironment) {
+        this.defaultBuilderEnvironment = defaultBuilderEnvironment;
+    }
+
+    /**
+     * Gets ID of default runner environment that should be used for this project.
+     *
+     * @return ID of default runner environment that should be used for this project
+     */
+    public String getDefaultRunnerEnvironment() {
+        return defaultRunnerEnvironment;
+    }
+
+    /** @see #getDefaultRunnerEnvironment() */
+    public void setDefaultRunnerEnvironment(String defaultRunnerEnvironment) {
+        this.defaultRunnerEnvironment = defaultRunnerEnvironment;
+    }
+
+    /**
+     * Gets predefined configuration for builder environment by environment's ID. Configuration may contains some recommended parameters
+     * for builder environments. Builder may use own configuration parameters if this method returns {@code null} or if returned
+     * configuration doesn't contains required parameters or if parameters specified in configuration are not applicable.
+     */
+    public BuilderEnvironmentConfiguration getBuilderEnvironmentConfiguration(String env) {
+        return builderEnvConfigs.get(env);
+    }
+
+    /**
+     * Gets predefined configuration for runner environment by environment's ID. Configuration may contains some recommended parameters
+     * for runner environments. Runner may use own configuration parameters if this method returns {@code null} or if returned
+     * configuration doesn't contains required parameters or if parameters specified in configuration are not applicable.
+     */
+    public RunnerEnvironmentConfiguration getRunnerEnvironmentConfiguration(String env) {
+        return runnerEnvConfigs.get(env);
+    }
+
+    /**
+     * Gets predefined configuration for builder environment.
+     *
+     * @see #getBuilderEnvironmentConfiguration(String)
+     */
+    public Map<String, BuilderEnvironmentConfiguration> getBuilderEnvironmentConfigurations() {
+        return new LinkedHashMap<>(builderEnvConfigs);
+    }
+
+    public void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs) {
+        if (!(builderEnvConfigs == null || builderEnvConfigs.isEmpty())) {
+            this.builderEnvConfigs.putAll(builderEnvConfigs);
+        }
+    }
+
+    /**
+     * Gets predefined configurations for runner environment.
+     *
+     * @see #getRunnerEnvironmentConfiguration(String)
+     */
+    public Map<String, RunnerEnvironmentConfiguration> getRunnerEnvironmentConfigurations() {
+        return new LinkedHashMap<>(runnerEnvConfigs);
+    }
+
+    public void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs) {
+        if (!(runnerEnvConfigs == null || runnerEnvConfigs.isEmpty())) {
+            this.runnerEnvConfigs.putAll(runnerEnvConfigs);
+        }
     }
 
     /**
@@ -133,12 +249,6 @@ public class ProjectDescription {
         attributes.put(attribute.getName(), attribute);
     }
 
-    /** Set project type and attributes. New attributes will override exited attributes with the same names. */
-    public void setProjectTypeAndAttributes(ProjectType projectType, List<Attribute> list) {
-        setProjectType(projectType);
-        setAttributes(list);
-    }
-
     public Attribute removeAttribute(String name) {
         return attributes.remove(name);
     }
@@ -149,5 +259,20 @@ public class ProjectDescription {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    @Override
+    public String toString() {
+        return "ProjectDescription{" +
+               "projectType=" + projectType +
+               ", builder='" + builder + '\'' +
+               ", runner='" + runner + '\'' +
+               ", defaultBuilderEnvironment='" + defaultBuilderEnvironment + '\'' +
+               ", defaultRunnerEnvironment='" + defaultRunnerEnvironment + '\'' +
+               ", builderEnvConfigs=" + builderEnvConfigs +
+               ", runnerEnvConfigs=" + runnerEnvConfigs +
+               ", attributes=" + attributes +
+               ", description='" + description + '\'' +
+               '}';
     }
 }

@@ -60,4 +60,40 @@ public interface NewProject {
     void setVisibility(String visibility);
 
     NewProject withVisibility(String visibility);
+
+    String getBuilder();
+
+    NewProject withBuilder(String builder);
+
+    void setBuilder(String builder);
+
+    String getRunner();
+
+    NewProject withRunner(String runner);
+
+    void setRunner(String runner);
+
+    String getDefaultBuilderEnvironment();
+
+    NewProject withDefaultBuilderEnvironment(String envId);
+
+    void setDefaultBuilderEnvironment(String envId);
+
+    String getDefaultRunnerEnvironment();
+
+    NewProject withDefaultRunnerEnvironment(String envId);
+
+    void setDefaultRunnerEnvironment(String envId);
+
+    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
+
+    NewProject withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
+
+    NewProject withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+
+    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
 }

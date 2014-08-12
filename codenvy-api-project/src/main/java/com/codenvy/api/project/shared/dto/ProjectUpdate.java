@@ -47,4 +47,40 @@ public interface ProjectUpdate {
     void setAttributes(Map<String, List<String>> attributes);
 
     ProjectUpdate withAttributes(Map<String, List<String>> attributes);
+
+    String getBuilder();
+
+    ProjectUpdate withBuilder(String builder);
+
+    void setBuilder(String builder);
+
+    String getRunner();
+
+    ProjectUpdate withRunner(String runner);
+
+    void setRunner(String runner);
+
+    String getDefaultBuilderEnvironment();
+
+    ProjectUpdate withDefaultBuilderEnvironment(String envId);
+
+    void setDefaultBuilderEnvironment(String envId);
+
+    String getDefaultRunnerEnvironment();
+
+    ProjectUpdate withDefaultRunnerEnvironment(String envId);
+
+    void setDefaultRunnerEnvironment(String envId);
+
+    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
+
+    ProjectUpdate withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+
+    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
+
+    ProjectUpdate withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+
+    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
 }

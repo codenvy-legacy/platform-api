@@ -13,8 +13,8 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
+import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
+import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.json.JsonHelper;
@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -83,10 +84,9 @@ public class ProjectJson {
                     }
                     // Need to be able update files in .codenvy folder independently to user actions.
                     final List<AccessControlEntry> acl = new ArrayList<>(1);
-                    acl.add(DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                                      .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                               .withName("any")
-                                                               .withType(Principal.Type.USER))
+                    final DtoFactory dtoFactory = DtoFactory.getInstance();
+                    acl.add(dtoFactory.createDto(AccessControlEntry.class)
+                                      .withPrincipal(dtoFactory.createDto(Principal.class).withName("any").withType(Principal.Type.USER))
                                       .withPermissions(Arrays.asList("all")));
                     codenvyDir.getVirtualFile().updateACL(acl, true, null);
                 } else if (!codenvyDir.isFolder()) {
@@ -108,15 +108,15 @@ public class ProjectJson {
         }
     }
 
-    private String                                                 type;
-    private String                                                 builder;
-    private String                                                 runner;
-    private String                                                 defaultBuilderEnvironment;
-    private String                                                 defaultRunnerEnvironment;
-    private Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvironmentConfigurations;
-    private Map<String, RunnerEnvironmentConfigurationDescriptor>  runnerEnvironmentConfigurations;
-    private String                                                 description;
-    private List<ProjectProperty>                                  properties;
+    private String                                       type;
+    private String                                       builder;
+    private String                                       runner;
+    private String                                       defaultBuilderEnvironment;
+    private String                                       defaultRunnerEnvironment;
+    private Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations;
+    private Map<String, RunnerEnvironmentConfiguration>  runnerEnvironmentConfigurations;
+    private String                                       description;
+    private List<ProjectProperty>                        properties;
 
     public ProjectJson() {
     }
@@ -192,7 +192,7 @@ public class ProjectJson {
         return this;
     }
 
-    public Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations() {
+    public Map<String, BuilderEnvironmentConfiguration> getBuilderEnvironmentConfigurations() {
         if (builderEnvironmentConfigurations == null) {
             builderEnvironmentConfigurations = new HashMap<>();
         }
@@ -200,29 +200,27 @@ public class ProjectJson {
     }
 
     public void setBuilderEnvironmentConfigurations(
-            Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvironmentConfigurations) {
+            Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations) {
         this.builderEnvironmentConfigurations = builderEnvironmentConfigurations;
     }
 
-    public ProjectJson withBuilderEnvironmentConfigurations(
-            Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvironmentConfigurations) {
+    public ProjectJson withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations) {
         this.builderEnvironmentConfigurations = builderEnvironmentConfigurations;
         return this;
     }
 
-    public Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations() {
+    public Map<String, RunnerEnvironmentConfiguration> getRunnerEnvironmentConfigurations() {
         if (runnerEnvironmentConfigurations == null) {
             runnerEnvironmentConfigurations = new HashMap<>();
         }
         return runnerEnvironmentConfigurations;
     }
 
-    public void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvironmentConfigurations) {
+    public void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfiguration> runnerEnvironmentConfigurations) {
         this.runnerEnvironmentConfigurations = runnerEnvironmentConfigurations;
     }
 
-    public ProjectJson withRunnerEnvironmentConfigurations(
-            Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvironmentConfigurations) {
+    public ProjectJson withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfiguration> runnerEnvironmentConfigurations) {
         this.runnerEnvironmentConfigurations = runnerEnvironmentConfigurations;
         return this;
     }
@@ -270,6 +268,20 @@ public class ProjectJson {
             final List<String> value = myProperty.getValue();
             if (value != null) {
                 return new ArrayList<>(value);
+            }
+        }
+        return null;
+    }
+
+    public ProjectProperty removeProperty(String name) {
+        if (properties == null) {
+            return null;
+        }
+        for (Iterator<ProjectProperty> itr = properties.iterator(); itr.hasNext(); ) {
+            ProjectProperty property = itr.next();
+            if (name.equals(property.getName())) {
+                itr.remove();
+                return property;
             }
         }
         return null;

@@ -144,4 +144,12 @@ public class Attribute {
             valueProvider.setValues(null);
         }
     }
+
+    @Override
+    public String toString() {
+        return "Attribute{" +
+               "name='" + name + '\'' +
+               ", values=" + valueProvider.getValues() +
+               '}';
+    }
 }

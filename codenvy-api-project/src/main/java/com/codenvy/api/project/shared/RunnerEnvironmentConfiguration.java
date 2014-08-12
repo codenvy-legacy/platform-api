@@ -14,18 +14,21 @@ package com.codenvy.api.project.shared;
  * @author andrew00x
  */
 public class RunnerEnvironmentConfiguration {
-    private final String envId;
+    public RunnerEnvironmentConfiguration(RunnerEnvironmentConfiguration origin) {
+        this.recommendedMemorySize = origin.getRecommendedMemorySize();
+        this.requiredMemorySize = origin.getRequiredMemorySize();
+    }
+
+    public RunnerEnvironmentConfiguration(int requiredMemorySize, int recommendedMemorySize) {
+        this.requiredMemorySize = requiredMemorySize;
+        this.recommendedMemorySize = recommendedMemorySize;
+    }
+
+    public RunnerEnvironmentConfiguration() {
+    }
 
     private int requiredMemorySize    = -1;
     private int recommendedMemorySize = -1;
-
-    public RunnerEnvironmentConfiguration(String envId) {
-        this.envId = envId;
-    }
-
-    public String getEnvironmentId() {
-        return envId;
-    }
 
     public int getRequiredMemorySize() {
         return requiredMemorySize;

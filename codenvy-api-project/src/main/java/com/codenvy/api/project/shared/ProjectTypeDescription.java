@@ -35,7 +35,6 @@ public class ProjectTypeDescription {
         setAttributeDescriptions(attributeDescriptions);
     }
 
-
     public ProjectTypeDescription(ProjectType projectType) {
         if (projectType == null) {
             throw new IllegalArgumentException("Project type may not be null. ");
@@ -55,6 +54,9 @@ public class ProjectTypeDescription {
         setAttributeDescription(new AttributeDescription("runner.user_defined_launcher"));
         setAttributeDescription(new AttributeDescription("runner.run_scripts"));
         setAttributeDescription(new AttributeDescription("vcs.provider.name"));
+        // TODO: Remove. Added temporary, for back compatibility after change format of .codenvy/project.json file
+        setAttributeDescription(new AttributeDescription("builder.name"));
+        setAttributeDescription(new AttributeDescription("runner.name"));
     }
 
     /**
@@ -105,5 +107,13 @@ public class ProjectTypeDescription {
                 this.attributeDescriptions.put(attributeDescription.getName(), attributeDescription);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ProjectTypeDescription{" +
+               "projectType=" + projectType +
+               ", attributeDescriptions=" + attributeDescriptions +
+               '}';
     }
 }

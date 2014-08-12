@@ -106,8 +106,8 @@ public class Project {
     }
 
     protected ProjectDescription doGetDescription() throws ServerException {
-        final ProjectProperties projectProperties = ProjectProperties.load(this);
-        final String projectTypeId = projectProperties.getType();
+        final ProjectJson projectJson = ProjectJson.load(this);
+        final String projectTypeId = projectJson.getType();
         if (projectTypeId == null) {
             return new ProjectDescription();
         }
@@ -118,6 +118,13 @@ public class Project {
             projectType = new ProjectType(projectTypeId, projectTypeId, projectTypeId);
         }
         final ProjectDescription projectDescription = new ProjectDescription(projectType);
+        projectDescription.setBuilder(projectJson.getBuilder());
+        projectDescription.setRunner(projectJson.getRunner());
+        projectDescription.setDefaultBuilderEnvironment(projectJson.getDefaultBuilderEnvironment());
+        projectDescription.setDefaultRunnerEnvironment(projectJson.getDefaultRunnerEnvironment());
+        projectDescription.setBuilderEnvironmentConfigurations(projectJson.getBuilderEnvironmentConfigurations());
+        projectDescription.setRunnerEnvironmentConfigurations(projectJson.getRunnerEnvironmentConfigurations());
+        projectDescription.setDescription(projectJson.getDescription());
         final List<Attribute> tmpList = new ArrayList<>();
         // Merge project's attributes.
         // 1. predefined
@@ -128,7 +135,7 @@ public class Project {
         tmpList.clear();
         // 2. "calculated"
         final ProjectTypeDescription projectTypeDescription = manager.getTypeDescriptionRegistry().getDescription(projectType);
-        if (projectTypeDescription!=null) {
+        if (projectTypeDescription != null) {
             for (AttributeDescription attributeDescription : projectTypeDescription.getAttributeDescriptions()) {
                 final ValueProviderFactory factory = manager.getValueProviderFactories().get(attributeDescription.getName());
                 if (factory != null) {
@@ -139,46 +146,81 @@ public class Project {
         projectDescription.setAttributes(tmpList);
         tmpList.clear();
         // 3. persistent
-        for (ProjectProperty property : projectProperties.getProperties()) {
+        for (ProjectProperty property : projectJson.getProperties()) {
             tmpList.add(new Attribute(property.getName(), property.getValue()));
         }
         projectDescription.setAttributes(tmpList);
         tmpList.clear();
-        projectDescription.setDescription(projectProperties.getDescription());
+        // TODO: Remove. Added temporary, for back compatibility after change format of .codenvy/project.json file
+        if (!projectDescription.hasAttribute("builder.name")) {
+            final String builder = projectDescription.getBuilder();
+            if (builder != null) {
+                projectDescription.setAttribute(new Attribute("builder.name", builder));
+            }
+        }
+        if (!projectDescription.hasAttribute("runner.name")) {
+            final String runner = projectDescription.getRunner();
+            if (runner != null) {
+                projectDescription.setAttribute(new Attribute("runner.name", runner));
+            }
+        }
+        // ~~~
         return projectDescription;
     }
 
     public final void updateDescription(ProjectDescription projectDescriptionUpdate) throws ServerException {
         final ProjectDescription thisProjectDescription = doGetDescription();
-        final ProjectProperties projectProperties = new ProjectProperties();
-        projectProperties.setType(projectDescriptionUpdate.getProjectType().getId());
+        final ProjectJson projectJson = new ProjectJson();
+        projectJson.setType(projectDescriptionUpdate.getProjectType().getId());
+        projectJson.setBuilder(projectDescriptionUpdate.getBuilder());
+        projectJson.setRunner(projectDescriptionUpdate.getRunner());
+        projectJson.setDefaultBuilderEnvironment(projectDescriptionUpdate.getDefaultBuilderEnvironment());
+        projectJson.setDefaultRunnerEnvironment(projectDescriptionUpdate.getDefaultRunnerEnvironment());
+        projectJson.setBuilderEnvironmentConfigurations(projectDescriptionUpdate.getBuilderEnvironmentConfigurations());
+        projectJson.setRunnerEnvironmentConfigurations(projectDescriptionUpdate.getRunnerEnvironmentConfigurations());
+        projectJson.setDescription(projectDescriptionUpdate.getDescription());
         for (Attribute attributeUpdate : projectDescriptionUpdate.getAttributes()) {
             final String attributeName = attributeUpdate.getName();
             Attribute thisAttribute = null;
             if (thisProjectDescription != null) {
                 thisAttribute = thisProjectDescription.getAttribute(attributeName);
             }
-            if (thisAttribute != null) {
-                // Don't store attributes as properties of project if have specific ValueProvider.
-                if (manager.getValueProviderFactories().get(attributeName) == null) {
-                    // If don't have special ValueProvider then store attribute as project's property.
-                    projectProperties.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
-                } else {
-                    thisAttribute.setValues(attributeUpdate.getValues());
-                }
-            } else {
+            if (thisAttribute == null) {
                 final ValueProviderFactory valueProviderFactory = manager.getValueProviderFactories().get(attributeName);
                 if (valueProviderFactory == null) {
                     // New attribute without special behaviour - save it in properties.
-                    projectProperties.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
+                    projectJson.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
                 } else {
                     thisAttribute = new Attribute(attributeName, valueProviderFactory.newInstance(this));
                     thisAttribute.setValues(attributeUpdate.getValues());
                 }
+            } else {
+                // Don't store attributes as properties of project if have specific ValueProvider.
+                if (manager.getValueProviderFactories().get(attributeName) == null) {
+                    // If don't have special ValueProvider then store attribute as project's property.
+                    projectJson.getProperties().add(new ProjectProperty(attributeName, attributeUpdate.getValues()));
+                } else {
+                    thisAttribute.setValues(attributeUpdate.getValues());
+                }
             }
         }
-        projectProperties.setDescription(projectDescriptionUpdate.getDescription());
-        projectProperties.save(this);
+        // TODO: Remove. Added temporary, for back compatibility after change format of .codenvy/project.json file
+        final ProjectProperty builderNameProperty = projectJson.removeProperty("builder.name");
+        if (projectJson.getBuilder() == null && builderNameProperty != null) {
+            final String value = builderNameProperty.firstValue();
+            if (value != null) {
+                projectJson.setBuilder(value);
+            }
+        }
+        final ProjectProperty runnerNameProperty = projectJson.removeProperty("runner.name");
+        if (projectJson.getRunner() == null && runnerNameProperty != null) {
+            final String value = runnerNameProperty.firstValue();
+            if (value != null) {
+                projectJson.setRunner(value);
+            }
+        }
+        // ~~~
+        projectJson.save(this);
     }
 
     public String getVisibility() throws ServerException {

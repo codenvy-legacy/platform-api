@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -51,6 +52,23 @@ public class ProjectProperty {
     public ProjectProperty withValue(List<String> value) {
         this.value = value;
         return this;
+    }
+
+    public String firstValue() {
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        return value.get(0);
+    }
+
+    public void putSingleValue(String v) {
+        if (value == null) {
+            value = new ArrayList<>(1);
+            value.add(v);
+            return;
+        }
+        value.clear();
+        value.add(v);
     }
 
     @Override

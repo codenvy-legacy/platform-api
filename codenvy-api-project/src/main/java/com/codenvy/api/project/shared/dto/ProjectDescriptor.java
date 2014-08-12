@@ -12,6 +12,7 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -157,4 +158,46 @@ public interface ProjectDescriptor {
     ProjectDescriptor withLinks(List<Link> links);
 
     void setLinks(List<Link> links);
+
+    /**
+     * Get URL for opening project in Codenvy IDE.
+     * @return URL for opening project in Codenvy IDE.
+     */
+    @ApiModelProperty(value = "URL for opening project in Codenvy IDE", position = 6)
+    String getIdeUrl();
+
+    /**
+     * Sets URL for  opening project in Codenvy IDE.
+     * @param url the IDE URL
+     */
+    void setIdeUrl(String url);
+
+    /**
+     * Sets URL for  opening project in Codenvy IDE.
+     * @param url the IDE URL
+     * @return {@Link ProjectDescriptor}
+     */
+    ProjectDescriptor withIdeUrl(String url);
+
+    /**
+     * Get name of workspace this project belongs to.
+     * @return name of workspace this project belongs to
+     */
+    @ApiModelProperty(value = "Name of workspace which the project belongs to", position = 8)
+    String getWorkspaceName();
+
+    /**
+     * Sets name of workspace this project belongs to.
+     * @param name the name of the workspace
+     */
+    void setWorkspaceName(String name);
+
+    /**
+     * Sets name of workspace this project belongs to.
+     * @param name the name of the workspace
+     * @return {@Link ProjectDescriptor}
+     */
+    ProjectDescriptor withWorkspaceName(String name);
+
+
 }

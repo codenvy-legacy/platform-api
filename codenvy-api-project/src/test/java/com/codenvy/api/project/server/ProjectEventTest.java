@@ -44,7 +44,7 @@ public class ProjectEventTest {
     @BeforeMethod
     public void setUp() throws Exception {
         EventService eventService = new EventService();
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry();
+        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {

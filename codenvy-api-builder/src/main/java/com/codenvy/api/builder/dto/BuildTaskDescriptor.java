@@ -31,6 +31,12 @@ public interface BuildTaskDescriptor {
 
     void setStatus(BuildStatus status);
 
+    long getCreationTime();
+
+    BuildTaskDescriptor withCreationTime(long creationTime);
+
+    void setCreationTime(long creationTime);
+
     long getStartTime();
 
     BuildTaskDescriptor withStartTime(long startTime);

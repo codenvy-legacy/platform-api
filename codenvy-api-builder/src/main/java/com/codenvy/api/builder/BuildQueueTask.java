@@ -163,16 +163,21 @@ public final class BuildQueueTask implements Cancellable {
                                    .withBuildStats(buildStats)
                                    .withLinks(links)
                                    .withStartTime(-1)
-                                   .withEndTime(-1);
+                                   .withEndTime(-1)
+                                   .withCreationTime(created);
         } else if (future.isCancelled()) {
             descriptor = dtoFactory.createDto(BuildTaskDescriptor.class)
                                    .withTaskId(id)
                                    .withStatus(BuildStatus.CANCELLED)
+                                   .withCreationTime(created)
                                    .withStartTime(-1)
                                    .withEndTime(-1);
         } else {
             final BuildTaskDescriptor remote = getRemoteTask().getBuildTaskDescriptor();
-            descriptor = dtoFactory.clone(remote).withTaskId(id).withLinks(rewriteKnownLinks(remote.getLinks()));
+            descriptor = dtoFactory.clone(remote)
+                                   .withTaskId(id)
+                                   .withCreationTime(created)
+                                   .withLinks(rewriteKnownLinks(remote.getLinks()));
         }
         return descriptor;
     }

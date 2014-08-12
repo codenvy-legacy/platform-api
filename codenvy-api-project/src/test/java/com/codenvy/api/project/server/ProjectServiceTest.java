@@ -99,7 +99,7 @@ public class ProjectServiceTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry();
+        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
         ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
             @Override
             public List<ProjectType> getProjectTypes() {

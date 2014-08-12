@@ -50,7 +50,7 @@ public class ProjectTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry();
+        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
         final String projectType = "my_project_type";
         final String category = "my_category";
         Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {

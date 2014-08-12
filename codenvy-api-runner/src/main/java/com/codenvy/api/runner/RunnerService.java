@@ -23,6 +23,7 @@ import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
+import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -116,7 +117,9 @@ public class RunnerService extends Service {
     @Path("resources")
     @Produces(MediaType.APPLICATION_JSON)
     public ResourcesDescriptor getResources(@PathParam("ws-id") String workspace) throws Exception {
-        return runQueue.getResources(workspace, getServiceContext());
+        return DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
+                         .withTotalMemory(String.valueOf(runQueue.getTotalMemory(workspace, getServiceContext())))
+                         .withUsedMemory(String.valueOf(runQueue.getUsedMemory(workspace)));
     }
 
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)

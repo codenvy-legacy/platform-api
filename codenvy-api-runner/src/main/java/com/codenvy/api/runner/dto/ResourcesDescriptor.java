@@ -18,15 +18,15 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface ResourcesDescriptor {
-    String getTotalRAM();
+    String getTotalMemory();
 
-    void setTotalRAM(String RAM);
+    void setTotalMemory(String memory);
 
-    ResourcesDescriptor withTotalRAM(String RAM);
+    ResourcesDescriptor withTotalMemory(String memory);
 
-    String getUsedRAM();
+    String getUsedMemory();
 
-    void setUsedRAM(String RAM);
+    void setUsedMemory(String memory);
 
-    ResourcesDescriptor withUsedRAM(String RAM);
+    ResourcesDescriptor withUsedMemory(String memory);
 }

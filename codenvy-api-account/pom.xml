@@ -86,7 +86,6 @@
                 <directory>${dto-generator-out-directory}</directory>
             </resource>
         </resources>
-
         <plugins>
             <plugin>
                 <groupId>com.codenvy.platform-api</groupId>

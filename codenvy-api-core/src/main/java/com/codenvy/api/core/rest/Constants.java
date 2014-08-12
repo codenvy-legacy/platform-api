@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.core.rest;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public final class Constants {
     public static final String API_VERSION = "1.0";
 

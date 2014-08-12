@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
@@ -19,7 +18,6 @@ import com.google.inject.multibindings.Multibinder;
  *
  * @author andrew00x
  */
-@DynaModule
 public class RunnerModule extends AbstractModule {
     @Override
     protected void configure() {

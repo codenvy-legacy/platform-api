@@ -707,7 +707,7 @@ public class ProjectService extends Service {
     }
 
     private ProjectDescription toDescription(NewProject newProject) throws ServerException {
-        final ProjectType projectType = projectManager.getProjectTypeRegistry().getProjectType(newProject.getProjectTypeId());
+        final ProjectType projectType = projectManager.getTypeDescriptionRegistry().getProjectType(newProject.getProjectTypeId());
         if (projectType == null) {
             throw new ServerException(String.format("Invalid project type '%s'. ", newProject.getProjectTypeId()));
         }
@@ -725,7 +725,7 @@ public class ProjectService extends Service {
     }
 
     private ProjectDescription toDescription(ProjectUpdate update) throws ServerException {
-        final ProjectType projectType = projectManager.getProjectTypeRegistry().getProjectType(update.getProjectTypeId());
+        final ProjectType projectType = projectManager.getTypeDescriptionRegistry().getProjectType(update.getProjectTypeId());
         if (projectType == null) {
             throw new ServerException(String.format("Invalid project type '%s'. ", update.getProjectTypeId()));
         }
@@ -811,7 +811,7 @@ public class ProjectService extends Service {
                          .withDescription(description.getDescription())
                          .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspaceId, name).toString())
                          .withIdeUrl(workspaceName != null
-                                     ? uriBuilder.clone().replacePath("ide").path(workspaceName).path(path).build().toString()
+                                     ? uriBuilder.clone().replacePath("ws").path(workspaceName).path(path).build().toString()
                                      : null);
     }
 

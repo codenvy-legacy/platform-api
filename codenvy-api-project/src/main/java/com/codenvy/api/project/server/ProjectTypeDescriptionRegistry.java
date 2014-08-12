@@ -14,11 +14,13 @@ import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.ProjectTemplateDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ProjectTypeDescription;
+import com.google.inject.name.Named;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,16 +33,24 @@ import java.util.concurrent.ConcurrentHashMap;
 @Singleton
 public class ProjectTypeDescriptionRegistry {
     private final ProjectTypeRegistry                           projectTypeRegistry;
+    private final String                                        iconsBaseUrl;
     private final Map<String, ProjectTypeDescription>           descriptions;
     private final Map<String, List<Attribute>>                  predefinedAttributes;
     private final Map<String, List<ProjectTemplateDescription>> templates;
+    private final Map<String, Map<String, String>>              iconRegistry;
 
     @Inject
-    public ProjectTypeDescriptionRegistry(ProjectTypeRegistry projectTypeRegistry) {
-        this.projectTypeRegistry = projectTypeRegistry;
+    public ProjectTypeDescriptionRegistry(@Named("project.base_icon_url") String iconsBaseUrl) {
+        projectTypeRegistry = new ProjectTypeRegistry();
+        if (!iconsBaseUrl.endsWith("/")) {
+            iconsBaseUrl = iconsBaseUrl + "/";
+        }
+        this.iconsBaseUrl = iconsBaseUrl;
         descriptions = new ConcurrentHashMap<>();
         predefinedAttributes = new ConcurrentHashMap<>();
         templates = new ConcurrentHashMap<>();
+        iconRegistry = new ConcurrentHashMap<>();
+
     }
 
     /**
@@ -63,6 +73,18 @@ public class ProjectTypeDescriptionRegistry {
         if (templates != null && !templates.isEmpty()) {
             this.templates.put(type.getId(), new ArrayList<>(templates));
         }
+        final Map<String, String> iconRegistry = extension.getIconRegistry();
+        if (iconRegistry != null && !iconRegistry.isEmpty()) {
+            Map<String, String> iconRegistryWithUrl = new HashMap<>();
+            for (String key : iconRegistry.keySet()) {
+                String path = iconRegistry.get(key);
+                if(path.startsWith("/")) {
+                    path = path.substring(1);
+                }
+                iconRegistryWithUrl.put(key, iconsBaseUrl + path);
+            }
+            this.iconRegistry.put(type.getId(), iconRegistryWithUrl);
+        }
     }
 
     /**
@@ -82,6 +104,73 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
+     * Registers new project type. Identifier returned by method {@link com.codenvy.api.project.shared.ProjectType#getId()} is used as
+     * unique key. If ProjectType with the same identifier already registered it will be overwritten.
+     *
+     * @param type
+     *         ProjectType
+     * @see com.codenvy.api.project.shared.ProjectType#getId()
+     */
+    public void registerProjectType(ProjectType type) {
+        projectTypeRegistry.registerProjectType(type);
+    }
+
+    /**
+     * Removes ProjectType from this registry.
+     *
+     * @param typeId
+     *         project type's id
+     * @return removed ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+     */
+    public ProjectType unregisterProjectType(String typeId) {
+        unregisterDescription(typeId);
+        return projectTypeRegistry.unregisterProjectType(typeId);
+    }
+
+    /**
+     * Gets ProjectType by id.
+     *
+     * @param typeId
+     *         project type's id
+     * @return ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+     */
+    public ProjectType getProjectType(String typeId) {
+        return projectTypeRegistry.getProjectType(typeId);
+    }
+
+    /**
+     * Tests whether ProjectType with specified id is registered.
+     *
+     * @param typeId
+     *         project type's id
+     * @return {@code true} if ProjectType with specified {@code id} is registered and {@code false} otherwise
+     */
+    public boolean isProjectTypeRegistered(String typeId) {
+        return projectTypeRegistry.isProjectTypeRegistered(typeId);
+    }
+
+    /**
+     * Tests whether specified ProjectType is registered.
+     *
+     * @param type
+     *         project type
+     * @return {@code true} if ProjectType is registered and {@code false} otherwise
+     */
+    public boolean isProjectTypeRegistered(ProjectType type) {
+        return projectTypeRegistry.isProjectTypeRegistered(type);
+    }
+
+    /**
+     * Gets all registered project types. Modifications to the returned {@code List} will not affect the internal state of {@code
+     * ProjectTypeRegistry}.
+     *
+     * @return registered project types
+     */
+    public List<ProjectType> getRegisteredTypes() {
+        return projectTypeRegistry.getRegisteredTypes();
+    }
+
+    /**
      * Removes ProjectTypeDescription.
      *
      * @param type
@@ -89,9 +178,13 @@ public class ProjectTypeDescriptionRegistry {
      * @return removed ProjectTypeDescription or {@code null} if ProjectTypeDescription isn't registered
      */
     public ProjectTypeDescription unregisterDescription(ProjectType type) {
-        predefinedAttributes.remove(type.getId());
-        templates.remove(type.getId());
-        return descriptions.remove(type.getId());
+        return unregisterDescription(type.getId());
+    }
+
+    private ProjectTypeDescription unregisterDescription(String typeId) {
+        predefinedAttributes.remove(typeId);
+        templates.remove(typeId);
+        return descriptions.remove(typeId);
     }
 
     /**
@@ -102,11 +195,7 @@ public class ProjectTypeDescriptionRegistry {
      * @return ProjectTypeDescription or {@code null} if ProjectTypeDescription isn't registered
      */
     public ProjectTypeDescription getDescription(ProjectType type) {
-        final ProjectTypeDescription typeDescription = descriptions.get(type.getId());
-        if (typeDescription != null) {
-            return typeDescription;
-        }
-        return new ProjectTypeDescription(type);
+        return descriptions.get(type.getId());
     }
 
     /**
@@ -145,5 +234,101 @@ public class ProjectTypeDescriptionRegistry {
             return Collections.unmodifiableList((templates));
         }
         return Collections.emptyList();
+    }
+    
+    /**
+     * Gets unmodifiable map of of registered project icons.
+     *
+     * @return unmodifiable map of registered project icons.
+     */
+    public Map<String, String> getIconRegistry(ProjectType type) {
+        Map<String, String> iconRegistry = this.iconRegistry.get(type.getId());
+        if (iconRegistry != null) {
+            return Collections.unmodifiableMap(iconRegistry);
+        }
+        return Collections.emptyMap();
+    }
+    
+    /**
+     * Stores information about registered (known) project types.
+     */
+    static class ProjectTypeRegistry {
+        private final Map<String, ProjectType> types;
+
+        ProjectTypeRegistry() {
+            types = new ConcurrentHashMap<>();
+        }
+
+        /**
+         * Registers new project type. Identifier returned by method {@link com.codenvy.api.project.shared.ProjectType#getId()} is used as
+         * unique key. If ProjectType with the same identifier already registered it will be overwritten.
+         *
+         * @param type
+         *         ProjectType
+         * @see com.codenvy.api.project.shared.ProjectType#getId()
+         */
+        void registerProjectType(ProjectType type) {
+            types.put(type.getId(), type);
+        }
+
+        /**
+         * Removes ProjectType from this registry.
+         *
+         * @param id
+         *         project type's id
+         * @return removed ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+         */
+        ProjectType unregisterProjectType(String id) {
+            if (id == null) {
+                return null;
+            }
+            return types.remove(id);
+        }
+
+        /**
+         * Gets ProjectType by id.
+         *
+         * @param id
+         *         project type's id
+         * @return ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+         */
+        ProjectType getProjectType(String id) {
+            if (id == null) {
+                return null;
+            }
+            return types.get(id);
+        }
+
+        /**
+         * Tests whether ProjectType with specified id is registered.
+         *
+         * @param id
+         *         project type's id
+         * @return {@code true} if ProjectType with specified {@code id} is registered and {@code false} otherwise
+         */
+        boolean isProjectTypeRegistered(String id) {
+            return id != null && types.get(id) != null;
+        }
+
+        /**
+         * Tests whether specified ProjectType is registered.
+         *
+         * @param type
+         *         project type
+         * @return {@code true} if ProjectType is registered and {@code false} otherwise
+         */
+        boolean isProjectTypeRegistered(ProjectType type) {
+            return types.get(type.getId()) != null;
+        }
+
+        /**
+         * Gets all registered project types. Modifications to the returned {@code List} will not affect the internal state of {@code
+         * ProjectTypeRegistry}.
+         *
+         * @return registered project types
+         */
+        List<ProjectType> getRegisteredTypes() {
+            return new ArrayList<>(types.values());
+        }
     }
 }

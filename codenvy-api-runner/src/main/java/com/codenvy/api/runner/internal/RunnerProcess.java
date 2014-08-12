@@ -66,9 +66,9 @@ public interface RunnerProcess extends Cancellable {
     long getStopTime();
 
     /**
-     * Get uptime of application process.
+     * Get uptime of application process in milliseconds.
      *
-     * @return time when process was started or {@code 0} if process is not started yet.
+     * @return uptime of application process or {@code 0} if process is not started yet.
      */
     long getUptime();
 }

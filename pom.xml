@@ -38,7 +38,6 @@
         <module>codenvy-api-workspace</module>
         <module>codenvy-api-account</module>
         <module>codenvy-api-auth</module>
-        <module>codenvy-api-version</module>
         <module>codenvy-infrastructure-local</module>
     </modules>
     <scm>
@@ -49,6 +48,7 @@
     </scm>
     <properties>
         <maven.model.version>3.0.5</maven.model.version>
+        <specification.version>1.0-beta1</specification.version>
     </properties>
     <repositories>
         <repository>

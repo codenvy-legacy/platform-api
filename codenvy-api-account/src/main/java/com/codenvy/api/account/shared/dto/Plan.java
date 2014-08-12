@@ -15,29 +15,33 @@ import com.codenvy.dto.shared.DTO;
 import java.util.Map;
 
 /**
- * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
- * com.codenvy.api.account.server.dao.Account}
+ * Represents tariff plan
  *
- * @author Eugene Voevodin
  * @author Alexander Garagatyi
  */
 @DTO
-public interface NewSubscription {
-    String getAccountId();
+public interface Plan {
+    String getId();
 
-    void setAccountId(String orgId);
+    void setId(String id);
 
-    NewSubscription withAccountId(String orgId);
+    Plan withId(String id);
 
-    String getPlanId();
+    String getServiceId();
 
-    void setPlanId(String id);
+    void setServiceId(String serviceId);
 
-    NewSubscription withPlanId(String id);
+    Plan withServiceId(String serviceId);
 
-    Map<String, String> getBillingProperties();
+    boolean isPaid();
 
-    void setBillingProperties(Map<String, String> properties);
+    void setPaid(boolean paid);
 
-    NewSubscription withBillingProperties(Map<String, String> properties);
+    Plan withPaid(boolean paid);
+
+    Map<String, String> getProperties();
+
+    void setProperties(Map<String, String> properties);
+
+    Plan withProperties(Map<String, String> properties);
 }

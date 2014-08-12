@@ -11,7 +11,6 @@
 package com.codenvy.api.analytics;
 
 import com.codenvy.api.analytics.impl.DummyMetricHandler;
-import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 
 import org.slf4j.Logger;
@@ -25,7 +24,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
 /** @author Anatoliy Bazko */
-@DynaModule
 public class AnalyticsModule extends AbstractModule {
 
     private static final Logger LOG = LoggerFactory.getLogger(AnalyticsModule.class);

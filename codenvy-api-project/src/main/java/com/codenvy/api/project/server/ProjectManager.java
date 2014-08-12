@@ -110,13 +110,6 @@ public interface ProjectManager {
     void saveProjectMisc(Project project, ProjectMisc misc) throws ServerException;
 
     /**
-     * Gets ProjectTypeRegistry.
-     *
-     * @see ProjectTypeRegistry
-     */
-    ProjectTypeRegistry getProjectTypeRegistry();
-
-    /**
      * Gets ProjectTypeDescriptionRegistry.
      *
      * @see ProjectTypeDescriptionRegistry

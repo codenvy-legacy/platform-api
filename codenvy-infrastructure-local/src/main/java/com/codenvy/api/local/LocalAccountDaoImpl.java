@@ -10,9 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.local;
 
-import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Account;
-import com.codenvy.api.account.server.dao.SubscriptionHistoryEvent;
+import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.NotFoundException;
@@ -24,8 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-
-import static com.codenvy.api.account.server.dao.SubscriptionHistoryEvent.Type.CREATE;
+import java.util.Map;
 
 /**
  * @author Eugene Voevodin
@@ -94,8 +92,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     public Subscription getSubscriptionById(String subscriptionId) {
         return DtoFactory.getInstance().createDto(Subscription.class)
                          .withId(subscriptionId)
-                         .withStartDate(System.currentTimeMillis())
-                         .withEndDate(System.currentTimeMillis())
+                         .withPlanId("plan0xfffffffff")
                          .withServiceId("serviceId")
                          .withProperties(new HashMap<String, String>());
     }
@@ -104,8 +101,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     public List<Subscription> getSubscriptions(String accountId) {
         return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
                                        .withId("Subscription0xfffffffff")
-                                       .withStartDate(System.currentTimeMillis())
-                                       .withEndDate(System.currentTimeMillis())
+                                       .withPlanId("plan0xfffffffff")
                                        .withServiceId("serviceId")
                                        .withProperties(new HashMap<String, String>())
                             );
@@ -135,27 +131,30 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void addSubscriptionHistoryEvent(SubscriptionHistoryEvent historyEvent) {
+    public List<Subscription> getSubscriptions() throws ServerException {
+        return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
+                                       .withId("Subscription0xfffffffff")
+                                       .withPlanId("plan0xfffffffff")
+                                       .withServiceId("serviceId")
+                                       .withProperties(new HashMap<String, String>())
+                            );
+    }
+
+    @Override
+    public void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public List<SubscriptionHistoryEvent> getSubscriptionHistoryEvents(SubscriptionHistoryEvent event) throws ServerException {
-        return Arrays.asList(
-                new SubscriptionHistoryEvent().withId("SUBSCRIPTION_HISTORY_EVENT_ID").withTime(System.currentTimeMillis())
-                                              .withType(SubscriptionHistoryEvent.Type.CREATE).withUserId("userId112233322239")
-                                              .withSubscription(getSubscriptionById("Subscription0xfffffffff"))
-                            );
+    public Map<String, String> getBillingProperties(String subscriptionId) throws ServerException {
+        Map<String, String> result = new HashMap<>();
+        result.put("payment_token", "paytok");
+        result.put("payment_token", "paytok");
+        return result;
     }
 
     @Override
-    public List<Subscription> getSubscriptions() throws ServerException {
-        return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
-                                       .withId("Subscription0xfffffffff")
-                                       .withStartDate(System.currentTimeMillis())
-                                       .withEndDate(System.currentTimeMillis())
-                                       .withServiceId("serviceId")
-                                       .withProperties(new HashMap<String, String>())
-                            );
+    public void removeBillingProperties(String subscriptionId) throws ServerException, NotFoundException {
+        throw new RuntimeException("Not implemented");
     }
 }

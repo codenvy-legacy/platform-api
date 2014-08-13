@@ -38,6 +38,9 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -73,7 +76,7 @@ import java.util.Set;
  */
 @Path("account")
 public class AccountService extends Service {
-
+    private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
     private final AccountDao                  accountDao;
     private final UserDao                     userDao;
     private final SubscriptionServiceRegistry registry;
@@ -578,13 +581,19 @@ public class AccountService extends Service {
         if (plan.isPaid() && !securityContext.isUserInRole("system/admin")) {
             paymentService.addSubscription(subscription, newSubscription.getBillingProperties());
         }
-        accountDao.addSubscription(subscription);
-        // prevents NPE if admin adds subscription w/o billing properties
-        Map<String, String> billingProperties;
-        if (null == (billingProperties = newSubscription.getBillingProperties())) {
-            billingProperties = Collections.emptyMap();
+        try {
+            accountDao.addSubscription(subscription);
+            // prevents NPE if admin adds subscription w/o billing properties
+            Map<String, String> billingProperties;
+            if (null == (billingProperties = newSubscription.getBillingProperties())) {
+                billingProperties = Collections.emptyMap();
+            }
+            accountDao.saveBillingProperties(subscription.getId(), billingProperties);
+        } catch (ApiException e) {
+            LOG.error(e.getLocalizedMessage(), e);
+            paymentService.removeSubscription(subscription.getId());
+            throw e;
         }
-        accountDao.saveBillingProperties(subscription.getId(), billingProperties);
 
         service.afterCreateSubscription(subscription);
         return Response.status(Response.Status.CREATED)

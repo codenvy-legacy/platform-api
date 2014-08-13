@@ -27,6 +27,7 @@ import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -71,6 +72,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -659,6 +661,32 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
         assertEquals(response.getEntity().toString(), "New subscription required");
         verifyZeroInteractions(accountDao, subscriptionService, serviceRegistry);
+    }
+
+    @Test
+    public void shouldRemoveSubscriptionInPaymentServiceIfAddSubsInPaymentServiceWasSuccesfullButInBackendFailed()
+            throws Exception {
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                          .withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID)
+                                                          .withBillingProperties(Collections.singletonMap("billingKey", "billingValue"));
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(planDao.getPlanById(PLAN_ID)).thenReturn(plan);
+        when(accountDao.getByMember(USER_ID)).thenReturn(Arrays.asList(new Member().withRoles(Arrays.asList("account/owner"))
+                                                                                   .withAccountId(ACCOUNT_ID)
+                                                                                   .withUserId(USER_ID)));
+        doThrow(new ServerException("message")).when(accountDao).addSubscription(any(Subscription.class));
+
+        prepareSecurityContext("user");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity(), "message");
+        verify(accountDao).addSubscription(any(Subscription.class));
+        verify(paymentService).addSubscription(any(Subscription.class), anyMap());
+        verify(paymentService).removeSubscription(anyString());
+        verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
     }
 
     @Test

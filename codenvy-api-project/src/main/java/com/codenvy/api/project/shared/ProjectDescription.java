@@ -40,7 +40,7 @@ public class ProjectDescription {
     }
 
     public ProjectDescription() {
-        this(new ProjectType("nameless", "nameless", "nameless"));
+        this(new ProjectType(Constants.BLANK_ID, Constants.BLANK_ID, Constants.BLANK_CATEGORY));
     }
 
     public ProjectDescription(ProjectDescription origin) {

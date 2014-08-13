@@ -797,9 +797,11 @@ public class ProjectService extends Service {
     }
 
     private void fillDescriptor(Project project, ProjectDescriptor descriptor) throws ServerException {
-        final String workspace = project.getWorkspace();
+        final String workspaceId = project.getWorkspace();
+        final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
         final ProjectDescription description = project.getDescription();
         final ProjectType type = description.getProjectType();
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         for (Attribute attribute : description.getAttributes()) {
             attributeValues.put(attribute.getName(), attribute.getValues());
@@ -839,10 +841,11 @@ public class ProjectService extends Service {
         descriptor.withName(project.getName())
                   .withPath(project.getBaseFolder().getPath())
                   .withBaseUrl(
-                          getServiceContext().getServiceUriBuilder().path(project.getBaseFolder().getPath()).build(workspace).toString())
+                          uriBuilder.clone().path(project.getBaseFolder().getPath()).build(workspaceId).toString())
                   .withProjectTypeId(type.getId())
                   .withProjectTypeName(type.getName())
-                  .withWorkspaceId(workspace)
+                  .withWorkspaceId(workspaceId)
+                  .withWorkspaceName(workspaceName)
                   .withBuilder(description.getBuilder())
                   .withRunner(description.getRunner())
                   .withDefaultBuilderEnvironment(description.getDefaultBuilderEnvironment())
@@ -855,7 +858,10 @@ public class ProjectService extends Service {
                   .withAttributes(attributeValues)
                   .withCreationDate(project.getCreationDate())
                   .withModificationDate(project.getModificationDate())
-                  .withLinks(generateProjectLinks(workspace, project));
+                  .withLinks(generateProjectLinks(workspaceId, project))
+                  .withIdeUrl(workspaceName != null
+                              ? uriBuilder.clone().replacePath("ws").path(workspaceName).path(project.getPath()).build().toString()
+                              : null);
     }
 
     private ProjectReference toReference(Project project) throws ServerException {

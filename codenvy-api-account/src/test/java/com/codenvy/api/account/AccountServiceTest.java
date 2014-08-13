@@ -595,6 +595,24 @@ public class AccountServiceTest {
     }
 
     @Test
+    public void shouldSaveEmptyBillingPropertiesIfItIsNullInRequest() throws Exception {
+        final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
+                                                          .withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID).withBillingProperties(null);
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(planDao.getPlanById(PLAN_ID)).thenReturn(plan);
+
+        prepareSecurityContext("system/admin");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
+        verify(accountDao).addSubscription(any(Subscription.class));
+        verify(accountDao).saveBillingProperties(subscription.getId(), Collections.<String, String>emptyMap());
+    }
+
+    @Test
     public void shouldBeAbleToAddSubscriptionWithoutAddSubscriptionOnBTIfSubscriptionIsNotPaid() throws Exception {
         final NewSubscription newSubscription = DtoFactory.getInstance().createDto(NewSubscription.class)
                                                           .withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID)
@@ -657,6 +675,7 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(serviceRegistry).get(SERVICE_ID);
+        verify(paymentService).removeSubscription(SUBSCRIPTION_ID);
         verify(accountDao).removeSubscription(SUBSCRIPTION_ID);
         verify(accountDao).removeBillingProperties(SUBSCRIPTION_ID);
         verify(subscriptionService).onRemoveSubscription(any(Subscription.class));
@@ -679,6 +698,7 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(serviceRegistry).get(SERVICE_ID);
+        verify(paymentService).removeSubscription(SUBSCRIPTION_ID);
         verify(accountDao).removeSubscription(SUBSCRIPTION_ID);
         verify(accountDao).removeBillingProperties(SUBSCRIPTION_ID);
         verify(subscriptionService).onRemoveSubscription(any(Subscription.class));

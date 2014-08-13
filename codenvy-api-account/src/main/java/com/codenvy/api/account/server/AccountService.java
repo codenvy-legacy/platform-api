@@ -579,7 +579,12 @@ public class AccountService extends Service {
             paymentService.addSubscription(subscription, newSubscription.getBillingProperties());
         }
         accountDao.addSubscription(subscription);
-        accountDao.saveBillingProperties(subscription.getId(), newSubscription.getBillingProperties());
+        // prevents NPE if admin adds subscription w/o billing properties
+        Map<String, String> billingProperties;
+        if (null == (billingProperties = newSubscription.getBillingProperties())) {
+            billingProperties = Collections.emptyMap();
+        }
+        accountDao.saveBillingProperties(subscription.getId(), billingProperties);
 
         service.afterCreateSubscription(subscription);
         return Response.status(Response.Status.CREATED)
@@ -610,9 +615,10 @@ public class AccountService extends Service {
         if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
             throw new ForbiddenException("Access denied");
         }
-        final SubscriptionService service = registry.get(toRemove.getServiceId());
+        paymentService.removeSubscription(subscriptionId);
         accountDao.removeSubscription(subscriptionId);
         accountDao.removeBillingProperties(subscriptionId);
+        final SubscriptionService service = registry.get(toRemove.getServiceId());
         service.onRemoveSubscription(toRemove);
     }
 

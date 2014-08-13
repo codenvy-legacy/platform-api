@@ -13,6 +13,7 @@ package com.codenvy.api.account.server;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
 import java.util.Map;
@@ -33,4 +34,15 @@ public interface PaymentService {
      */
     void addSubscription(Subscription subscription, Map<String, String> billingProperties)
             throws ConflictException, ServerException, ForbiddenException;
+
+    /**
+     * Removes subscription from payment service.
+     *
+     * @param subscriptionId
+     *         id of the subscription to be removed
+     * @throws NotFoundException
+     *         if subscription is not found
+     * @throws ServerException
+     */
+    void removeSubscription(String subscriptionId) throws NotFoundException, ServerException, ForbiddenException;
 }

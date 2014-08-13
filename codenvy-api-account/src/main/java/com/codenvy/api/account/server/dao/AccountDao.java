@@ -11,6 +11,7 @@
 package com.codenvy.api.account.server.dao;
 
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
@@ -180,9 +181,11 @@ public interface AccountDao {
      * @param subscriptionId subscription identifier of billing properties
      * @param billingProperties properties to save
      * @throws NotFoundException if subscription with given id is not found
+     * @throws ForbiddenException if billingProperties is null
      * @throws ServerException
      */
-    void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) throws ServerException, NotFoundException;
+    void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) throws ServerException, NotFoundException,
+                                                                                                    ForbiddenException;
 
     /**
      * Get billing properties of certain subscription

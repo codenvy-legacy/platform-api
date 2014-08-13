@@ -31,15 +31,6 @@ public interface ProjectReference {
 
     ProjectReference withName(String name);
 
-    /** Get unique ID of project */
-    @ApiModelProperty(value = "ID of the project", position = 3)
-    String getId();
-
-    /** Set unique ID of project */
-    void setId(String id);
-
-    ProjectReference withId(String id);
-
     /** Get path of project. */
     @ApiModelProperty(value = "Full path of the project", position = 2)
     String getPath();

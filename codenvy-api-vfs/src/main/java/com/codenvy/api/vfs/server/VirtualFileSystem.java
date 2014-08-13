@@ -72,32 +72,34 @@ public interface VirtualFileSystem {
     Item copy(String id, String parentId) throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**
-     * Clone tree of items to destination Virtual File System.
+     * Clone item to destination Virtual File System.
      *
-     * @param id
-     *         id of source item
-     * @param vfsId
+     * @param srcPath
+     *         path of source item
+     * @param destVfsId
      *         id of destination Virtual File System
-     * @param parentId
-     *         id of parent for new copy
+     * @param parentPath
+     *         path of parent for new copy
      * @param name
-     *         new name for root item
+     *         new name for copied item
+     * @return newly created copy of item
      * @throws NotFoundException
-     *         if {@code id} or {@code parentId} doesn't exist
+     *         if {@code srcPath} or {@code parentPath} doesn't exist
      * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
-     *         <li>{@code parentId} isn't a folder</li>
+     *         <li>{@code parentPath} isn't a folder</li>
      *         <li>user which perform operation has no permissions</li>
      *         </ul>
      * @throws ConflictException
-     *         if {@code parentId} already contains item with the same name
+     *         if {@code parentPath} already contains item with the same name
      * @throws ServerException
      *         if any other errors occur
+     * @deprecated
      */
     @POST
     @Path("clone")
-    void clone(String id, String vfsId, String parentId, String name)
+    Item clone(String srcPath, String destVfsId, String parentPath, String name)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**

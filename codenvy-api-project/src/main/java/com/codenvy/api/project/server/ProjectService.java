@@ -875,7 +875,6 @@ public class ProjectService extends Service {
         return DtoFactory.getInstance().createDto(ProjectReference.class)
                          .withName(name)
                          .withPath(path)
-                         .withId(project.getBaseFolder().getVirtualFile().getId())
                          .withWorkspaceId(workspaceId)
                          .withWorkspaceName(workspaceName)
                          .withProjectTypeId(type.getId())

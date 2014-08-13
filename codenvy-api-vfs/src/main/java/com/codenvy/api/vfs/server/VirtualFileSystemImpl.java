@@ -107,27 +107,27 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         return fromVirtualFile(virtualFileCopy, false, PropertyFilter.ALL_FILTER);
     }
 
-    @Path("clone/{id}")
+    @Path("clone")
     @Override
-    public void clone(@PathParam("id") String id,
-                      @QueryParam("vfsId") String vfsId,
-                      @QueryParam("parentId") String parentId,
+    public Item clone(@QueryParam("srcPath") String srcPath,
+                      @QueryParam("destVfsId") String destVfsId,
+                      @QueryParam("parentPath") String parentPath,
                       @QueryParam("name") String name) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
-        final VirtualFile item = mountPoint.getVirtualFileById(id);
-        final VirtualFile destination = vfsRegistry.getProvider(vfsId).getMountPoint(true).getVirtualFileById(parentId);
+        final VirtualFile item = mountPoint.getVirtualFile(srcPath);
+        final VirtualFile destination = vfsRegistry.getProvider(destVfsId).getMountPoint(true).getVirtualFile(parentPath);
         if (!destination.isFolder()) {
             throw new ForbiddenException("Unable to perform cloning. Item specified as parent is not a folder.");
         }
-        doClone(item, destination, name);
+        return fromVirtualFile(clone(item, destination, name), false, PropertyFilter.ALL_FILTER);
     }
 
-    private void doClone(VirtualFile item, VirtualFile destination, String name)
+    public static VirtualFile clone(VirtualFile item, VirtualFile destination, String name)
             throws ForbiddenException, ConflictException, ServerException {
         if (item.isFile()) {
             InputStream input = null;
             try {
                 input = item.getContent().getStream();
-                destination.createFile(name != null ? name : item.getName(), item.getMediaType(), input);
+                return destination.createFile(name != null ? name : item.getName(), item.getMediaType(), input);
             } finally {
                 if (input != null) {
                     try {
@@ -140,8 +140,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             final VirtualFile newFolder = destination.createFolder(name != null ? name : item.getName());
             final LazyIterator<VirtualFile> children = item.getChildren(VirtualFileFilter.ALL);
             while (children.hasNext()) {
-                doClone(children.next(), newFolder, null);
+                clone(children.next(), newFolder, null);
             }
+            return newFolder;
         }
     }
 

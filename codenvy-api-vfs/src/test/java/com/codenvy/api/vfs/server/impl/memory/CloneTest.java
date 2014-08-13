@@ -22,46 +22,40 @@ import java.io.ByteArrayInputStream;
 /** @author Vitaliy Guliy */
 public class CloneTest extends MemoryFileSystemTest {
 
-    protected static final String DESTINATION_WORKSPACE_ID = "destination-ws";
+    protected static final String SOURCE_WORKSPACE_ID = "source-ws";
 
-    private MemoryFileSystemProvider destFileSystemProvider;
-    private MemoryMountPoint destMountPoint;
+    private MemoryFileSystemProvider srcFileSystemProvider;
+    private MemoryMountPoint         srcMountPoint;
 
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
 
-        destFileSystemProvider = new MemoryFileSystemProvider(DESTINATION_WORKSPACE_ID, new EventService(), virtualFileSystemRegistry);
-        virtualFileSystemRegistry.registerProvider(DESTINATION_WORKSPACE_ID, destFileSystemProvider);
-        destMountPoint = (MemoryMountPoint)destFileSystemProvider.getMountPoint(true);
+        srcFileSystemProvider = new MemoryFileSystemProvider(SOURCE_WORKSPACE_ID, new EventService(), virtualFileSystemRegistry);
+        virtualFileSystemRegistry.registerProvider(SOURCE_WORKSPACE_ID, srcFileSystemProvider);
+        srcMountPoint = (MemoryMountPoint)srcFileSystemProvider.getMountPoint(true);
     }
 
 
     protected void tearDown() throws Exception {
-        virtualFileSystemRegistry.unregisterProvider(DESTINATION_WORKSPACE_ID);
+        virtualFileSystemRegistry.unregisterProvider(SOURCE_WORKSPACE_ID);
         super.tearDown();
     }
 
     public void testCloneFile() throws Exception {
         // create file in 'my-ws'
-        VirtualFile rootFolder = mountPoint.getRoot();
+        VirtualFile rootFolder = srcMountPoint.getRoot();
         VirtualFile sourceFile = rootFolder.createFile("file-to-clone", "text/plain", new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
-
-        try {
-            mountPoint.getVirtualFile(sourceFile.getPath());
-        } catch (NotFoundException e) {
-            fail("Source file not found.");
-        }
 
         // clone it to 'next-ws'
         VirtualFileSystem sourceVFS = fileSystemProvider.newInstance(null);
-        Item item = sourceVFS.clone(sourceFile.getPath(), DESTINATION_WORKSPACE_ID, destMountPoint.getRoot().getPath(), null);
+        Item item = sourceVFS.clone(sourceFile.getPath(), SOURCE_WORKSPACE_ID, srcMountPoint.getRoot().getPath(), null);
         assertEquals("/file-to-clone", item.getPath());
 
         // check the result
         try {
-            destMountPoint.getVirtualFile(sourceFile.getPath());
+           mountPoint.getVirtualFile(sourceFile.getPath());
         } catch (NotFoundException e) {
             fail("Destination file not found.");
         }
@@ -80,7 +74,7 @@ public class CloneTest extends MemoryFileSystemTest {
         //     file4
         //     file5
 
-        VirtualFile rootFolder = mountPoint.getRoot();
+        VirtualFile rootFolder = srcMountPoint.getRoot();
 
         VirtualFile folder1 = rootFolder.createFolder("folder1");
             VirtualFile folder2 = folder1.createFolder("folder2");
@@ -95,22 +89,22 @@ public class CloneTest extends MemoryFileSystemTest {
 
         // clone it to 'next-ws'
         VirtualFileSystem sourceVFS = fileSystemProvider.newInstance(null);
-        Item item = sourceVFS.clone(folder1.getPath(), DESTINATION_WORKSPACE_ID, destMountPoint.getRoot().getPath(), null);
+        Item item = sourceVFS.clone(folder1.getPath(), SOURCE_WORKSPACE_ID, srcMountPoint.getRoot().getPath(), null);
         assertEquals("/folder1", item.getPath());
 
         // check the result
         try {
-            destMountPoint.getVirtualFile(folder1.getPath());
-            destMountPoint.getVirtualFile(folder2.getPath());
-            destMountPoint.getVirtualFile(folder3.getPath());
-            destMountPoint.getVirtualFile(folder4.getPath());
-            destMountPoint.getVirtualFile(folder5.getPath());
+            mountPoint.getVirtualFile(folder1.getPath());
+            mountPoint.getVirtualFile(folder2.getPath());
+            mountPoint.getVirtualFile(folder3.getPath());
+            mountPoint.getVirtualFile(folder4.getPath());
+            mountPoint.getVirtualFile(folder5.getPath());
 
-            destMountPoint.getVirtualFile(file1.getPath());
-            destMountPoint.getVirtualFile(file2.getPath());
-            destMountPoint.getVirtualFile(file3.getPath());
-            destMountPoint.getVirtualFile(file4.getPath());
-            destMountPoint.getVirtualFile(file5.getPath());
+            mountPoint.getVirtualFile(file1.getPath());
+            mountPoint.getVirtualFile(file2.getPath());
+            mountPoint.getVirtualFile(file3.getPath());
+            mountPoint.getVirtualFile(file4.getPath());
+            mountPoint.getVirtualFile(file5.getPath());
         } catch (NotFoundException e) {
             fail("Destination file not found. " + e.getMessage());
         }
@@ -129,7 +123,7 @@ public class CloneTest extends MemoryFileSystemTest {
         //     file4
         //     file5
 
-        VirtualFile rootFolder = mountPoint.getRoot();
+        VirtualFile rootFolder = srcMountPoint.getRoot();
 
         VirtualFile folder1 = rootFolder.createFolder("folder1");
         VirtualFile folder2 = folder1.createFolder("folder2");
@@ -142,27 +136,27 @@ public class CloneTest extends MemoryFileSystemTest {
         VirtualFile file4 = folder1.createFile("file4", "text/plain", new ByteArrayInputStream("file4 text".getBytes()));
         VirtualFile file5 = folder1.createFile("file5", "text/plain", new ByteArrayInputStream("file5 text".getBytes()));
 
-        VirtualFile destination = destMountPoint.getRoot().createFolder("a/b");
+        VirtualFile destination = mountPoint.getRoot().createFolder("a/b");
         // clone it to 'next-ws'
         VirtualFileSystem sourceVFS = fileSystemProvider.newInstance(null);
-        Item item = sourceVFS.clone(folder1.getPath(), DESTINATION_WORKSPACE_ID, destination.getPath(), "new_name");
+        Item item = sourceVFS.clone(folder1.getPath(), SOURCE_WORKSPACE_ID, destination.getPath(), "new_name");
         assertEquals("/a/b/new_name", item.getPath());
 
         Path basePath = destination.getVirtualFilePath().newPath("new_name");
 
         // check the result
         try {
-            destMountPoint.getVirtualFile(basePath.newPath(folder2.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(folder3.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(folder4.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(folder5.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(folder2.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(folder2.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(folder3.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(folder4.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(folder5.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(folder2.getVirtualFilePath().subPath(1)).toString());
 
-            destMountPoint.getVirtualFile(basePath.newPath(file1.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(file2.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(file3.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(file4.getVirtualFilePath().subPath(1)).toString());
-            destMountPoint.getVirtualFile(basePath.newPath(file5.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(file1.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(file2.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(file3.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(file4.getVirtualFilePath().subPath(1)).toString());
+            mountPoint.getVirtualFile(basePath.newPath(file5.getVirtualFilePath().subPath(1)).toString());
         } catch (NotFoundException e) {
             fail("Destination file not found. " + e.getMessage());
         }

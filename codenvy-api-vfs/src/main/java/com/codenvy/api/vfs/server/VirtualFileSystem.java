@@ -76,8 +76,8 @@ public interface VirtualFileSystem {
      *
      * @param srcPath
      *         path of source item
-     * @param destVfsId
-     *         id of destination Virtual File System
+     * @param srcVfsId
+     *         id of sources Virtual File System
      * @param parentPath
      *         path of parent for new copy
      * @param name
@@ -99,7 +99,7 @@ public interface VirtualFileSystem {
      */
     @POST
     @Path("clone")
-    Item clone(String srcPath, String destVfsId, String parentPath, String name)
+    Item clone(String srcPath, String srcVfsId, String parentPath, String name)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**

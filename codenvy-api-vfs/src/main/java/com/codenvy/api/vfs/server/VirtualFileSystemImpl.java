@@ -110,11 +110,11 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Path("clone")
     @Override
     public Item clone(@QueryParam("srcPath") String srcPath,
-                      @QueryParam("destVfsId") String destVfsId,
+                      @QueryParam("srcVfsId") String srcVfsId,
                       @QueryParam("parentPath") String parentPath,
                       @QueryParam("name") String name) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
-        final VirtualFile item = mountPoint.getVirtualFile(srcPath);
-        final VirtualFile destination = vfsRegistry.getProvider(destVfsId).getMountPoint(true).getVirtualFile(parentPath);
+        final VirtualFile item = vfsRegistry.getProvider(srcVfsId).getMountPoint(true).getVirtualFile(srcPath);
+        final VirtualFile destination = mountPoint.getVirtualFile(parentPath);
         if (!destination.isFolder()) {
             throw new ForbiddenException("Unable to perform cloning. Item specified as parent is not a folder.");
         }

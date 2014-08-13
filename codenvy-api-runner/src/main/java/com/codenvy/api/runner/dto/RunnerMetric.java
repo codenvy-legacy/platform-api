@@ -26,6 +26,8 @@ public interface RunnerMetric {
 
     String ALWAYS_ON = "Always On";
 
+    String LIFETIME = "lifetime";
+
     String TERMINATION_TIME = "terminationTime";
 
     String START_TIME = "startTime";

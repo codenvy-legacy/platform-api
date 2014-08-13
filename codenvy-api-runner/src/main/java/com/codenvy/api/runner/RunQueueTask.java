@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Wraps RemoteRunnerProcess.
@@ -104,10 +105,15 @@ public final class RunQueueTask implements Cancellable {
                                                              .build(request.getWorkspace(), id).toString())
                                     .withMethod("POST")
                                     .withProduces(MediaType.APPLICATION_JSON));
-                final List<RunnerMetric> runStats = new ArrayList<>(1);
+                final List<RunnerMetric> runStats = new ArrayList<>(2);
                 runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.WAITING_TIME_LIMIT)
                                        .withValue(Long.toString(created + waitingTimeout))
                                        .withDescription("Waiting for start limit"));
+                final long lifetime = request.getLifetime();
+                runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.LIFETIME)
+                                       .withValue(lifetime >= Integer.MAX_VALUE ? RunnerMetric.ALWAYS_ON
+                                                                                : Long.toString(TimeUnit.SECONDS.toMillis(lifetime)))
+                                       .withDescription("Application lifetime"));
                 descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
                                        .withProcessId(id)
                                        .withCreationTime(created)
@@ -117,7 +123,6 @@ public final class RunQueueTask implements Cancellable {
                                        .withWorkspace(request.getWorkspace())
                                        .withProject(request.getProject())
                                        .withUserName(request.getUserName());
-
             } else {
                 final ApplicationProcessDescriptor remoteDescriptor = remoteProcess.getApplicationProcessDescriptor();
                 // re-write some parameters, we are working as revers-proxy
@@ -131,6 +136,11 @@ public final class RunQueueTask implements Cancellable {
                 runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.WAITING_TIME)
                                        .withValue(Long.toString(waitingTimeMillis))
                                        .withDescription("Waiting for start duration"));
+                final long lifetime = request.getLifetime();
+                runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.LIFETIME)
+                                       .withValue(lifetime >= Integer.MAX_VALUE ? RunnerMetric.ALWAYS_ON
+                                                                                : Long.toString(TimeUnit.SECONDS.toMillis(lifetime)))
+                                       .withDescription("Application lifetime"));
             }
             if (buildTaskHolder != null) {
                 final BuildTaskDescriptor buildTaskDescriptor = buildTaskHolder.get();

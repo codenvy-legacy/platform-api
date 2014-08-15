@@ -54,6 +54,7 @@ public interface BuilderEnvironment {
 
     BuilderEnvironment withIsDefault(boolean isDefault);
 
+    /** Properties of this build environment, e.g. version of build system, some environment variables, etc. */
     Map<String, String> getProperties();
 
     void setProperties(Map<String, String> properties);

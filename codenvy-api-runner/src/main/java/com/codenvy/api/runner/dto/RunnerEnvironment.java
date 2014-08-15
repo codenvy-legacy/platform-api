@@ -54,6 +54,7 @@ public interface RunnerEnvironment {
 
     RunnerEnvironment withIsDefault(boolean isDefault);
 
+    /** Properties of this runner environment, e.g. OS type, version of runtime system, some environment variables, etc. */
     Map<String, String> getProperties();
 
     void setProperties(Map<String, String> properties);

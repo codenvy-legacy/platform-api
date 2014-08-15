@@ -444,7 +444,17 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             return getItem(id, false, PropertyFilter.ALL_FILTER);
         }
         final VirtualFile origin = mountPoint.getVirtualFileById(id);
-        final VirtualFile renamedVirtualFile = origin.rename(newName, newMediaType == null ? null : newMediaType.toString(), lockToken);
+        String newMediaTypeStr;
+        if (newMediaType == null) {
+            newMediaTypeStr = null;
+        } else {
+            newMediaTypeStr = newMediaType.toString();
+            // Use the same rules as in method createFile to make client side simpler.
+            if ("NULL".equals(newMediaTypeStr)) {
+                newMediaTypeStr = null;
+            }
+        }
+        final VirtualFile renamedVirtualFile = origin.rename(newName, newMediaTypeStr, lockToken);
         return fromVirtualFile(renamedVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 

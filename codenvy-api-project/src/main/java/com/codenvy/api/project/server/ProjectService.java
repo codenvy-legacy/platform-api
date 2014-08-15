@@ -377,7 +377,8 @@ public class ProjectService extends Service {
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (entry.isFile() && newMediaType != null) {
-            ((FileEntry)entry).rename(newName, newMediaType);
+            // Use the same rules as in method createFile to make client side simpler.
+            ((FileEntry)entry).rename(newName, "NULL".equals(newMediaType) ? null : newMediaType);
         } else {
             entry.rename(newName);
         }

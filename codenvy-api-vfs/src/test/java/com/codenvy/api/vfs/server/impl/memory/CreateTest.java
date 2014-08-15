@@ -49,7 +49,7 @@ public class CreateTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "file/" + createTestFolderId + '?' + "name=" + name; //
         Map<String, List<String>> headers = new HashMap<>();
         List<String> contentType = new ArrayList<>();
-        contentType.add("text/plain;charset=utf8");
+        contentType.add("text/plain");
         headers.put("Content-Type", contentType);
 
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
@@ -66,7 +66,7 @@ public class CreateTest extends MemoryFileSystemTest {
             fail("Created file not accessible by id. ");
         }
         VirtualFile file = mountPoint.getVirtualFile(expectedPath);
-        checkFileContext(content, "text/plain;charset=utf8", file);
+        checkFileContext(content, "text/plain", file);
     }
 
     public void testCreateFileInRoot() throws Exception {
@@ -75,7 +75,7 @@ public class CreateTest extends MemoryFileSystemTest {
         String path = SERVICE_URI + "file/" + mountPoint.getRoot().getId() + '?' + "name=" + name;
         Map<String, List<String>> headers = new HashMap<>();
         List<String> contentType = new ArrayList<>();
-        contentType.add("text/plain;charset=utf8");
+        contentType.add("text/plain");
         headers.put("Content-Type", contentType);
 
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
@@ -92,7 +92,7 @@ public class CreateTest extends MemoryFileSystemTest {
             fail("Created file not accessible by id. ");
         }
         VirtualFile file = mountPoint.getVirtualFile(expectedPath);
-        checkFileContext(content, "text/plain;charset=utf8", file);
+        checkFileContext(content, "text/plain", file);
     }
 
     public void testCreateFileNoContent() throws Exception {

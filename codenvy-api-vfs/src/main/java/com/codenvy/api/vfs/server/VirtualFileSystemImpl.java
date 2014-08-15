@@ -153,20 +153,13 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                            @HeaderParam("Content-Type") MediaType mediaType,
                            InputStream content) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        String mediaTypeStr;
-        if (mediaType == null) {
-            mediaTypeStr = null;
-        } else {
-            mediaTypeStr = mediaType.toString();
-            // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
-            // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
-            // Have agreement with client to send Content-type header with "NULL" value if client doesn't want to specify media type of new file.
-            // In this case server takes care about resolving media type of file.
-            if ("NULL".equals(mediaTypeStr)) {
-                mediaTypeStr = null;
-            }
-        }
-        final VirtualFile newVirtualFile = parent.createFile(name, mediaTypeStr, content);
+        // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
+        // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
+        // Have agreement with client to send Content-type header with "null/null" value if client doesn't want to specify media type of new file.
+        // In this case server takes care about resolving media type of file.
+        final String mt = mediaType == null || ("null".equals(mediaType.getType()) && "null".equals(mediaType.getSubtype()))
+                          ? null : mediaType.getType() + '/' + mediaType.getSubtype();
+        final VirtualFile newVirtualFile = parent.createFile(name, mt, content);
         return (File)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
@@ -444,17 +437,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             return getItem(id, false, PropertyFilter.ALL_FILTER);
         }
         final VirtualFile origin = mountPoint.getVirtualFileById(id);
-        String newMediaTypeStr;
-        if (newMediaType == null) {
-            newMediaTypeStr = null;
-        } else {
-            newMediaTypeStr = newMediaType.toString();
-            // Use the same rules as in method createFile to make client side simpler.
-            if ("NULL".equals(newMediaTypeStr)) {
-                newMediaTypeStr = null;
-            }
-        }
-        final VirtualFile renamedVirtualFile = origin.rename(newName, newMediaTypeStr, lockToken);
+        final VirtualFile renamedVirtualFile = origin.rename(newName, newMediaType == null ? null : newMediaType.toString(), lockToken);
         return fromVirtualFile(renamedVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 
@@ -544,7 +527,13 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             @DefaultValue(MediaType.APPLICATION_OCTET_STREAM) @HeaderParam("Content-Type") MediaType mediaType,
             InputStream newContent,
             @QueryParam("lockToken") String lockToken) throws NotFoundException, ForbiddenException, ServerException {
-        mountPoint.getVirtualFileById(id).updateContent(mediaType != null ? mediaType.toString() : null, newContent, lockToken);
+        // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
+        // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
+        // Have agreement with client to send Content-type header with "null/null" value if client doesn't want to specify media type of new file.
+        // In this case server takes care about resolving media type of file.
+        final String mt = mediaType == null || ("null".equals(mediaType.getType()) && "null".equals(mediaType.getSubtype()))
+                          ? null : mediaType.getType() + '/' + mediaType.getSubtype();
+        mountPoint.getVirtualFileById(id).updateContent(mt, newContent, lockToken);
     }
 
     @Path("item/{id}")
@@ -799,10 +788,14 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 mediaType = contentItem.getContentType();
             }
 
+            if (mediaType != null) {
+                final MediaType mediaTypeType = MediaType.valueOf(mediaType);
+                mediaType = mediaTypeType.getType() + '/' + mediaTypeType.getSubtype();
+            }
+
             try {
                 try {
-                    parent.createFile(name, mediaType == null ? MediaType.APPLICATION_OCTET_STREAM : mediaType,
-                                      contentItem.getInputStream());
+                    parent.createFile(name, mediaType, contentItem.getInputStream());
                 } catch (ConflictException e) {
                     if (!overwrite) {
                         throw new ConflictException("Unable upload file. Item with the same name exists. ");

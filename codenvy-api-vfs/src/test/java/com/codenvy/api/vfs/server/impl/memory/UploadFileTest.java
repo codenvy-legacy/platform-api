@@ -43,13 +43,13 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // File content.
         String fileContent = "test upload file";
         // Passed by browser.
-        String fileMediaType = "text/plain;charset=utf8";
+        String fileMediaType = "text/plain";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", false);
         assertEquals(200, response.getStatus());
         String expectedPath = uploadTestFolderPath + '/' + fileName;
         VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
-        checkFileContext(fileContent, "text/plain;charset=utf8", file);
+        checkFileContext(fileContent, "text/plain", file);
     }
 
     public void testUploadNewFileInRootFolder() throws Exception {
@@ -58,14 +58,14 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // File content.
         String fileContent = "test upload file";
         // Passed by browser.
-        String fileMediaType = "text/plain;charset=utf8";
+        String fileMediaType = "text/plain";
         uploadTestFolderId = mountPoint.getRoot().getId();
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", false);
         assertEquals(200, response.getStatus());
         String expectedPath = "/" + fileName;
         VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
-        checkFileContext(fileContent, "text/plain;charset=utf8", file);
+        checkFileContext(fileContent, "text/plain", file);
     }
 
     public void testUploadNewFileCustomizeName() throws Exception {
@@ -74,7 +74,7 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // File content.
         String fileContent = "test upload file with custom name";
         // Passed by browser.
-        String fileMediaType = "text/plain;charset=utf8";
+        String fileMediaType = "text/plain";
         // Name of file passed in HTML form. If present it should be used instead of original file name.
         String formFileName = fileName + ".txt";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", formFileName, false);
@@ -82,7 +82,7 @@ public class UploadFileTest extends MemoryFileSystemTest {
         String expectedPath = uploadTestFolderPath + '/' + formFileName;
         VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
-        checkFileContext(fileContent, "text/plain;charset=utf8", file);
+        checkFileContext(fileContent, "text/plain", file);
     }
 
     public void testUploadNewFileCustomizeMediaType() throws Exception {
@@ -95,14 +95,14 @@ public class UploadFileTest extends MemoryFileSystemTest {
         // Name of file passed in HTML form. If present it should be used instead of original file name.
         String formFileName = fileName + ".txt";
         // Media type of file passed in HTML form. If present it should be used instead of original file media type.
-        String formMediaType = "text/plain;charset=utf8";
+        String formMediaType = "text/plain";
         ContainerResponse response =
                 doUploadFile(fileName, fileMediaType, fileContent, formMediaType, formFileName, false);
         assertEquals(200, response.getStatus());
         String expectedPath = uploadTestFolderPath + '/' + formFileName;
         VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
-        checkFileContext(fileContent, "text/plain;charset=utf8", file);
+        checkFileContext(fileContent, "text/plain", file);
     }
 
     public void testUploadFileAlreadyExists() throws Exception {
@@ -124,13 +124,13 @@ public class UploadFileTest extends MemoryFileSystemTest {
         folder.createFile(fileName, fileMediaType, new ByteArrayInputStream(DEFAULT_CONTENT.getBytes()));
 
         String fileContent = "test upload and overwrite existed file";
-        fileMediaType = "text/plain; charset=utf8";
+        fileMediaType = "text/plain";
         ContainerResponse response = doUploadFile(fileName, fileMediaType, fileContent, "", "", true);
         assertEquals(200, response.getStatus());
         String expectedPath = uploadTestFolderPath + '/' + fileName;
         VirtualFile file = mountPoint.getVirtualFile(expectedPath);
         assertNotNull("File was not created in expected location. ", file);
-        checkFileContext(fileContent, "text/plain; charset=utf8", file);
+        checkFileContext(fileContent, "text/plain", file);
     }
 
     private ContainerResponse doUploadFile(String fileName, String fileMediaType, String fileContent,

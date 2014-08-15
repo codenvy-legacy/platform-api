@@ -250,14 +250,16 @@ public class ProjectService extends Service {
     public Response createFile(@PathParam("ws-id") String workspace,
                                @PathParam("parent") String parentPath,
                                @QueryParam("name") String fileName,
-                               @HeaderParam("content-type") String contentType,
+                               @HeaderParam("content-type") MediaType contentType,
                                InputStream content) throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
         // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
-        // Have agreement with client to send Content-type header with "NULL" value if client doesn't want to specify media type of new file.
+        // Have agreement with client to send Content-type header with "null/null" value if client doesn't want to specify media type of new file.
         // In this case server takes care about resolving media type of file.
-        final FileEntry newFile = asFolder(workspace, parentPath).createFile(fileName, content,
-                                                                             "NULL".equals(contentType) ? null : contentType);
+        final FileEntry newFile = asFolder(workspace, parentPath)
+                .createFile(fileName, content,
+                            contentType == null || ("null".equals(contentType.getType()) && "null".equals(contentType.getSubtype()))
+                            ? null : contentType.getType() + '/' + contentType.getSubtype());
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getFile")
                                                    .build(workspace, newFile.getPath().substring(1))).build();
@@ -297,10 +299,15 @@ public class ProjectService extends Service {
     @Path("/file/{path:.*}")
     public Response updateFile(@PathParam("ws-id") String workspace,
                                @PathParam("path") String path,
-                               @HeaderParam("content-type") String contentType,
+                               @HeaderParam("content-type") MediaType contentType,
                                InputStream content) throws NotFoundException, ForbiddenException, ServerException {
         final FileEntry file = asFile(workspace, path);
-        file.updateContent(content, contentType);
+        // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
+        // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
+        // Have agreement with client to send Content-type header with "null/null" value if client doesn't want to specify media type of new file.
+        // In this case server takes care about resolving media type of file.
+        file.updateContent(content, contentType == null || ("null".equals(contentType.getType()) && "null".equals(contentType.getSubtype()))
+                                    ? null : contentType.getType() + '/' + contentType.getSubtype());
         return Response.ok().build();
     }
 
@@ -378,7 +385,7 @@ public class ProjectService extends Service {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (entry.isFile() && newMediaType != null) {
             // Use the same rules as in method createFile to make client side simpler.
-            ((FileEntry)entry).rename(newName, "NULL".equals(newMediaType) ? null : newMediaType);
+            ((FileEntry)entry).rename(newName, newMediaType);
         } else {
             entry.rename(newName);
         }

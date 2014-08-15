@@ -131,7 +131,7 @@ public class MemoryVirtualFile implements VirtualFile {
         this.creationDate = this.lastModificationDate = System.currentTimeMillis();
         this.content = content == null ? new byte[0] : content;
         if (mediaType != null) {
-            properties.put("vfs:mimeType", Arrays.asList(mediaType));
+            setMediaType(mediaType);
         }
         children = Collections.emptyMap();
     }
@@ -260,7 +260,7 @@ public class MemoryVirtualFile implements VirtualFile {
         return parent;
     }
 
-    public String getMediaType() throws ServerException {
+    public String getMediaType() {
         checkExist();
         String mediaType = getPropertyValue("vfs:mimeType");
         if (mediaType == null) {
@@ -270,7 +270,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public VirtualFile setMediaType(String mediaType) throws ServerException {
+    public VirtualFile setMediaType(String mediaType) {
         checkExist();
         if (mediaType == null) {
             properties.remove("vfs:mimeType");
@@ -280,8 +280,7 @@ public class MemoryVirtualFile implements VirtualFile {
         return this;
     }
 
-    public VirtualFile updateACL(List<AccessControlEntry> acl, boolean override, String lockToken)
-            throws ForbiddenException, ServerException {
+    public VirtualFile updateACL(List<AccessControlEntry> acl, boolean override, String lockToken) throws ForbiddenException {
         checkExist();
         if (!hasPermission(BasicPermissions.UPDATE_ACL.value(), true)) {
             throw new ForbiddenException(String.format("Unable update ACL for '%s'. Operation not permitted. ", getPath()));
@@ -316,7 +315,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public LazyIterator<VirtualFile> getVersions(VirtualFileFilter filter) throws ForbiddenException, ServerException {
+    public LazyIterator<VirtualFile> getVersions(VirtualFileFilter filter) throws ForbiddenException {
         checkExist();
         if (!isFile()) {
             throw new ForbiddenException("Versioning allowed for files only. ");
@@ -340,18 +339,18 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public Map<Principal, Set<String>> getPermissions() throws ServerException {
+    public Map<Principal, Set<String>> getPermissions() {
         checkExist();
         final Map<Principal, Set<String>> copy = new HashMap<>(permissionsMap.size());
         for (Map.Entry<Principal, Set<String>> e : permissionsMap.entrySet()) {
             final Principal copyPrincipal = DtoFactory.getInstance().clone(e.getKey());
-            copy.put(copyPrincipal, new LinkedHashSet<String>(e.getValue()));
+            copy.put(copyPrincipal, new LinkedHashSet<>(e.getValue()));
         }
         return copy;
     }
 
     @Override
-    public List<AccessControlEntry> getACL() throws ServerException {
+    public List<AccessControlEntry> getACL() {
         checkExist();
         final Map<Principal, Set<String>> permissions = getPermissions();
         final List<AccessControlEntry> acl = new ArrayList<>(permissions.size());
@@ -366,7 +365,7 @@ public class MemoryVirtualFile implements VirtualFile {
         return acl;
     }
 
-    public List<Property> getProperties(PropertyFilter filter) throws ServerException {
+    public List<Property> getProperties(PropertyFilter filter) {
         checkExist();
         final List<Property> result = new ArrayList<>();
         for (Map.Entry<String, List<String>> e : properties.entrySet()) {
@@ -383,7 +382,7 @@ public class MemoryVirtualFile implements VirtualFile {
         return result;
     }
 
-    public VirtualFile updateProperties(List<Property> update, String lockToken) throws ForbiddenException, ServerException {
+    public VirtualFile updateProperties(List<Property> update, String lockToken) throws ForbiddenException {
         checkExist();
         if (!hasPermission(BasicPermissions.UPDATE_ACL.value(), true)) {
             throw new ForbiddenException(String.format("Unable update properties for '%s'. Operation not permitted. ", getPath()));
@@ -461,7 +460,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public LazyIterator<VirtualFile> getChildren(VirtualFileFilter filter) throws ServerException {
+    public LazyIterator<VirtualFile> getChildren(VirtualFileFilter filter) {
         checkExist();
         if (isFile()) {
             return LazyIterator.emptyIterator();
@@ -491,19 +490,19 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public VirtualFile getChild(String path) throws ForbiddenException, ServerException {
+    public VirtualFile getChild(String path) throws ForbiddenException {
         checkExist();
         String[] elements = Path.fromString(path).elements();
-        VirtualFile child = children.get(elements[0]);
+        MemoryVirtualFile child = (MemoryVirtualFile)children.get(elements[0]);
         if (child != null && elements.length > 1) {
             for (int i = 1, l = elements.length; i < l && child != null; i++) {
                 if (child.isFolder()) {
-                    child = child.getChild(elements[i]);
+                    child = (MemoryVirtualFile)child.getChild(elements[i]);
                 }
             }
         }
         if (child != null) {
-            if (((MemoryVirtualFile)child).hasPermission(BasicPermissions.READ.value(), false)) {
+            if (child.hasPermission(BasicPermissions.READ.value(), false)) {
                 return child;
             }
             throw new ForbiddenException(String.format("We were unable to get an item '%s'.  " +
@@ -512,7 +511,7 @@ public class MemoryVirtualFile implements VirtualFile {
         return null;
     }
 
-    private boolean addChild(VirtualFile child) throws ServerException {
+    private boolean addChild(VirtualFile child) {
         checkExist();
         final String childName = child.getName();
         if (children.get(childName) == null) {
@@ -523,7 +522,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public ContentStream getContent() throws ForbiddenException, ServerException {
+    public ContentStream getContent() throws ForbiddenException {
         checkExist();
         if (!isFile()) {
             throw new ForbiddenException(String.format("We were unable to retrieve the content. Item '%s' is not a file. ", getPath()));
@@ -537,7 +536,18 @@ public class MemoryVirtualFile implements VirtualFile {
 
     @Override
     public VirtualFile updateContent(String mediaType, InputStream content, String lockToken) throws ForbiddenException, ServerException {
+        return updateContent(mediaType, content, lockToken, true);
+    }
+
+    @Override
+    public VirtualFile updateContent(InputStream content, String lockToken) throws ForbiddenException, ServerException {
+        return updateContent(null, content, lockToken, false);
+    }
+
+    private VirtualFile updateContent(String mediaType, InputStream content, String lockToken, boolean updateMediaType)
+            throws ForbiddenException, ServerException {
         checkExist();
+
         if (!isFile()) {
             throw new ForbiddenException(String.format("We were unable to update the content. Item '%s' is not a file. ", getPath()));
         }
@@ -546,14 +556,20 @@ public class MemoryVirtualFile implements VirtualFile {
                                                        " You do not have the correct permissions to complete this operation.", getPath()));
         }
         if (isFile() && !validateLockTokenIfLocked(lockToken)) {
-            throw new ForbiddenException(String.format("We were unable to update the content of file '%s'. The file is locked. ", getPath()));
+            throw new ForbiddenException(
+                    String.format("We were unable to update the content of file '%s'. The file is locked. ", getPath()));
         }
+
         try {
             this.content = ByteStreams.toByteArray(content);
         } catch (IOException e) {
             throw new ServerException(String.format("We were unable to set the content of '%s'. ", getPath()));
         }
-        properties.put("vfs:mimeType", Arrays.asList(mediaType));
+
+        if (updateMediaType) {
+            setMediaType(mediaType);
+        }
+
         SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
         if (searcherProvider != null) {
             try {
@@ -568,7 +584,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public long getLength() throws ServerException {
+    public long getLength() {
         checkExist();
         if (!isFile()) {
             return 0;
@@ -577,7 +593,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public String getPropertyValue(String name) throws ServerException {
+    public String getPropertyValue(String name) {
         checkExist();
         List<Property> properties = getProperties(PropertyFilter.valueOf(name));
         if (properties.size() > 0) {
@@ -590,7 +606,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public String[] getPropertyValues(String name) throws ServerException {
+    public String[] getPropertyValues(String name) {
         checkExist();
         List<Property> properties = getProperties(PropertyFilter.valueOf(name));
         if (properties.size() > 0) {
@@ -631,7 +647,7 @@ public class MemoryVirtualFile implements VirtualFile {
         return copy;
     }
 
-    private VirtualFile doCopy(VirtualFile parent) throws ConflictException, ServerException {
+    private VirtualFile doCopy(VirtualFile parent) throws ConflictException {
         VirtualFile virtualFile;
         if (isFile()) {
             virtualFile = newFile((MemoryVirtualFile)parent, name, Arrays.copyOf(content, content.length), getMediaType());
@@ -749,7 +765,7 @@ public class MemoryVirtualFile implements VirtualFile {
             throw new ForbiddenException("We were unable to rename a root folder.");
         }
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("We were unable to delete an item '%s'."+
+            throw new ForbiddenException(String.format("We were unable to delete an item '%s'." +
                                                        " You do not have the correct permissions to complete this operation.", getPath()));
         }
         final String myPath = getPath();
@@ -768,7 +784,8 @@ public class MemoryVirtualFile implements VirtualFile {
                         if (!((MemoryVirtualFile)virtualFile).hasPermission(BasicPermissions.WRITE.value(), false)) {
                             throw new ForbiddenException(
                                     String.format("We were unable to rename an item '%s'." +
-                                                  " You do not have the correct permissions to complete this operation.", virtualFile.getPath()));
+                                                  " You do not have the correct permissions to complete this operation.",
+                                                  virtualFile.getPath()));
                         }
                         if (virtualFile.isFile() && virtualFile.isLocked()) {
                             throw new ForbiddenException(
@@ -806,7 +823,7 @@ public class MemoryVirtualFile implements VirtualFile {
         name = newName;
 
         if (newMediaType != null) {
-            properties.put("vfs:mimeType", Arrays.asList(newMediaType));
+            setMediaType(newMediaType);
         }
         lastModificationDate = System.currentTimeMillis();
         SearcherProvider searcherProvider = mountPoint.getSearcherProvider();
@@ -853,7 +870,8 @@ public class MemoryVirtualFile implements VirtualFile {
                         if (!((MemoryVirtualFile)virtualFile).hasPermission(BasicPermissions.WRITE.value(), false)) {
                             throw new ForbiddenException(
                                     String.format("We were unable to delete an item '%s'." +
-                                                  " You do not have the correct permissions to complete this operation.", virtualFile.getPath()));
+                                                  " You do not have the correct permissions to complete this operation.",
+                                                  virtualFile.getPath()));
                         }
 
                         if (virtualFile.isFile() && virtualFile.isLocked()) {
@@ -981,7 +999,6 @@ public class MemoryVirtualFile implements VirtualFile {
                     }
                 } else {
                     current.getChild(name);
-                    String mediaType;
                     VirtualFile file = current.getChild(name);
                     if (file != null) {
                         if (file.isLocked()) {
@@ -995,11 +1012,9 @@ public class MemoryVirtualFile implements VirtualFile {
                         if (!overwrite) {
                             throw new ForbiddenException(String.format("File '%s' already exists. ", file.getPath()));
                         }
-                        mediaType = file.getPropertyValue("vfs:mimeType");
-                        file.updateContent(mediaType, noCloseZip, null);
+                        file.updateContent(noCloseZip, null);
                     } else {
-                        mediaType = ContentTypeGuesser.guessContentType(name);
-                        file = newFile((MemoryVirtualFile)current, name, noCloseZip, mediaType);
+                        file = newFile((MemoryVirtualFile)current, name, noCloseZip, ContentTypeGuesser.guessContentType(name));
                         ((MemoryVirtualFile)current).addChild(file);
                         mountPoint.putItem((MemoryVirtualFile)file);
                     }
@@ -1028,7 +1043,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public String lock(long timeout) throws ForbiddenException, ConflictException, ServerException {
+    public String lock(long timeout) throws ForbiddenException, ConflictException {
         checkExist();
         if (!isFile()) {
             throw new ForbiddenException(String.format("Unable lock '%s'. Locking allowed for files only. ", getPath()));
@@ -1048,7 +1063,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public VirtualFile unlock(String lockToken) throws ForbiddenException, ConflictException, ServerException {
+    public VirtualFile unlock(String lockToken) throws ForbiddenException, ConflictException {
         checkExist();
         if (!isFile()) {
             throw new ForbiddenException(String.format("Unable unlock '%s'. Locking allowed for files only. ", getPath()));
@@ -1071,7 +1086,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public boolean isLocked() throws ServerException {
+    public boolean isLocked() {
         checkExist();
         final LockHolder myLock = lock;
         if (lock != null) {
@@ -1178,10 +1193,10 @@ public class MemoryVirtualFile implements VirtualFile {
         return getName().compareTo(o.getName());
     }
 
-    boolean hasPermission(String permission, boolean checkParent) throws ServerException {
+    boolean hasPermission(String permission, boolean checkParent) {
         checkExist();
         final VirtualFileSystemUser user = mountPoint.getUserContext().getVirtualFileSystemUser();
-        VirtualFile current = this;
+        MemoryVirtualFile current = this;
         while (current != null) {
             final Map<Principal, Set<String>> objectPermissions = current.getPermissions();
             if (!objectPermissions.isEmpty()) {
@@ -1209,7 +1224,7 @@ public class MemoryVirtualFile implements VirtualFile {
                        && (userPermissions.contains(permission) || userPermissions.contains(BasicPermissions.ALL.value()));
             }
             if (checkParent) {
-                current = current.getParent();
+                current = (MemoryVirtualFile)current.getParent();
             } else {
                 break;
             }
@@ -1229,7 +1244,7 @@ public class MemoryVirtualFile implements VirtualFile {
         }
     }
 
-    private boolean validateLockTokenIfLocked(String lockToken) throws ServerException {
+    private boolean validateLockTokenIfLocked(String lockToken) {
         if (!isLocked()) {
             return true;
         }

@@ -48,14 +48,14 @@ public class UpdateContentTest extends MemoryFileSystemTest {
 
         Map<String, List<String>> headers = new HashMap<>();
         List<String> contentType = new ArrayList<>();
-        contentType.add("text/plain;charset=utf8");
+        contentType.add("text/plain");
         headers.put("Content-Type", contentType);
 
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
         assertEquals(204, response.getStatus());
 
         VirtualFile file = mountPoint.getVirtualFileById(fileId);
-        checkFileContext(content, "text/plain;charset=utf8", file);
+        checkFileContext(content, "text/plain", file);
     }
 
     public void testUpdateContentFolder() throws Exception {
@@ -90,14 +90,14 @@ public class UpdateContentTest extends MemoryFileSystemTest {
 
         Map<String, List<String>> headers = new HashMap<>();
         List<String> contentType = new ArrayList<>();
-        contentType.add("text/plain;charset=utf8");
+        contentType.add("text/plain");
         headers.put("Content-Type", contentType);
 
         ContainerResponse response = launcher.service("POST", path, BASE_URI, headers, content.getBytes(), null);
         assertEquals(204, response.getStatus());
 
         file = mountPoint.getVirtualFileById(fileId);
-        checkFileContext(content, "text/plain;charset=utf8", file);
+        checkFileContext(content, "text/plain", file);
     }
 
     public void testUpdateContentLockedNoLockToken() throws Exception {

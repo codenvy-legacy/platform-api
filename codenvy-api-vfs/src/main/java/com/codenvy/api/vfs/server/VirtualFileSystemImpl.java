@@ -150,10 +150,23 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Override
     public File createFile(@PathParam("parentId") String parentId,
                            @QueryParam("name") String name,
-                           @DefaultValue(MediaType.APPLICATION_OCTET_STREAM) @HeaderParam("Content-Type") MediaType mediaType,
+                           @HeaderParam("Content-Type") MediaType mediaType,
                            InputStream content) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        final VirtualFile newVirtualFile = parent.createFile(name, mediaType != null ? mediaType.toString() : null, content);
+        String mediaTypeStr;
+        if (mediaType == null) {
+            mediaTypeStr = null;
+        } else {
+            mediaTypeStr = mediaType.toString();
+            // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
+            // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
+            // Have agreement with client to send Content-type header with "NULL" value if client doesn't want to specify media type of new file.
+            // In this case server takes care about resolving media type of file.
+            if ("NULL".equals(mediaTypeStr)) {
+                mediaTypeStr = null;
+            }
+        }
+        final VirtualFile newVirtualFile = parent.createFile(name, mediaTypeStr, content);
         return (File)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
     }
 

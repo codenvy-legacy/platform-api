@@ -993,79 +993,103 @@ public class ProjectServiceTest {
     @Test
     public void testSetBasicPermissions() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        myProject.setVisibility("private");
         clearAcl(myProject);
+        String user = "user";
         HashMap<String, List<String>> headers = new HashMap<>(1);
         headers.put("Content-Type", Arrays.asList("application/json"));
 
-        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+        AccessControlEntry entry1 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("all"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(vfsUser)
+                                                                      .withName(user)
                                                                       .withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
                          headers,
-                         JsonHelper.toJson(Arrays.asList(entry)).getBytes(),
+                         JsonHelper.toJson(Arrays.asList(entry1)).getBytes(),
                          null
                         );
         List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
-        Assert.assertEquals(acl.size(), 1);
-        Assert.assertTrue(acl.contains(entry));
+        AccessControlEntry entry2 = null;
+        for (AccessControlEntry ace : acl) {
+            if (ace.getPrincipal().getName().equals(user)) {
+                entry2 = ace;
+            }
+        }
+        Assert.assertNotNull(entry2, "Not found expected ACL entry after update");
+
+        Assert.assertEquals(entry2.getPrincipal(), entry1.getPrincipal());
+        Assert.assertTrue(entry2.getPermissions().containsAll(entry1.getPermissions()));
     }
 
     @Test
     public void testSetCustomPermissions() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        myProject.setVisibility("private");
         clearAcl(myProject);
+        String user = "user";
         HashMap<String, List<String>> headers = new HashMap<>(1);
         headers.put("Content-Type", Arrays.asList("application/json"));
 
-        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+        AccessControlEntry entry1 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("custom"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(vfsUser)
+                                                                      .withName(user)
                                                                       .withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
                          headers,
-                         JsonHelper.toJson(Arrays.asList(entry)).getBytes(),
+                         JsonHelper.toJson(Arrays.asList(entry1)).getBytes(),
                          null
                         );
         List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
-        Assert.assertEquals(acl.size(), 1);
-        Assert.assertEquals(acl.get(0).getPrincipal(), entry.getPrincipal());
-        Assert.assertTrue(acl.get(0).getPermissions().containsAll(entry.getPermissions()));
+        AccessControlEntry entry2 = null;
+        for (AccessControlEntry ace : acl) {
+            if (ace.getPrincipal().getName().equals(user)) {
+                entry2 = ace;
+            }
+        }
+        Assert.assertNotNull(entry2, "Not found expected ACL entry after update");
+
+        Assert.assertEquals(entry2.getPrincipal(), entry1.getPrincipal());
+        Assert.assertTrue(entry2.getPermissions().containsAll(entry1.getPermissions()));
     }
 
     @Test
     public void testSetBothBasicAndCustomPermissions() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        myProject.setVisibility("private");
         clearAcl(myProject);
+        String user = "user";
         HashMap<String, List<String>> headers = new HashMap<>(1);
         headers.put("Content-Type", Arrays.asList("application/json"));
 
-        AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
+        AccessControlEntry entry1 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("build", "run", "update_acl", "read", "write"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(vfsUser)
+                                                                      .withName(user)
                                                                       .withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
                          headers,
-                         JsonHelper.toJson(Arrays.asList(entry)).getBytes(),
+                         JsonHelper.toJson(Arrays.asList(entry1)).getBytes(),
                          null
                         );
 
         List<AccessControlEntry> acl = myProject.getBaseFolder().getVirtualFile().getACL();
-        Assert.assertEquals(acl.size(), 1);
-        Assert.assertEquals(acl.get(0).getPrincipal(), entry.getPrincipal());
-        Assert.assertTrue(acl.get(0).getPermissions().containsAll(entry.getPermissions()));
+        AccessControlEntry entry2 = null;
+        for (AccessControlEntry ace : acl) {
+            if (ace.getPrincipal().getName().equals(user)) {
+                entry2 = ace;
+            }
+        }
+        Assert.assertNotNull(entry2, "Not found expected ACL entry after update");
+
+        Assert.assertEquals(entry2.getPrincipal(), entry1.getPrincipal());
+        Assert.assertTrue(entry2.getPermissions().containsAll(entry1.getPermissions()));
+        Assert.assertEquals(acl.get(0).getPrincipal(), entry1.getPrincipal());
+        Assert.assertTrue(acl.get(0).getPermissions().containsAll(entry1.getPermissions()));
     }
 
     @Test

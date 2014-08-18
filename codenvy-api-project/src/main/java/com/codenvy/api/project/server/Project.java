@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -261,7 +262,10 @@ public class Project {
                                                   BasicPermissions.UPDATE_ACL.value(), "build", "run"};
 
     public List<AccessControlEntry> getPermissions() throws ServerException {
-        VirtualFile virtualFile = baseFolder.getVirtualFile();
+        return getPermissions(baseFolder.getVirtualFile());
+    }
+
+    private List<AccessControlEntry> getPermissions(VirtualFile virtualFile) throws ServerException {
         while (virtualFile != null) {
             final List<AccessControlEntry> acl = virtualFile.getACL();
             if (!acl.isEmpty()) {
@@ -290,6 +294,15 @@ public class Project {
      *         list of {@link com.codenvy.api.vfs.shared.dto.AccessControlEntry}
      */
     public void setPermissions(List<AccessControlEntry> acl) throws ServerException, ForbiddenException {
-        baseFolder.getVirtualFile().updateACL(acl, false, null);
+        final VirtualFile virtualFile = baseFolder.getVirtualFile();
+        if (virtualFile.getACL().isEmpty()) {
+            // Add permissions from closest parent file if project don't have own.
+            final List<AccessControlEntry> l = new LinkedList<>();
+            l.addAll(acl);
+            l.addAll(getPermissions(virtualFile.getParent()));
+            virtualFile.updateACL(l, true, null);
+        } else {
+            baseFolder.getVirtualFile().updateACL(acl, false, null);
+        }
     }
 }

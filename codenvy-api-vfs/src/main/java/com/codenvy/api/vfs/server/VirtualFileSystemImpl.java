@@ -155,9 +155,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
         // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
         // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
-        // Have agreement with client to send Content-type header with "null/null" value if client doesn't want to specify media type of new file.
-        // In this case server takes care about resolving media type of file.
-        final String mt = mediaType == null || ("null".equals(mediaType.getType()) && "null".equals(mediaType.getSubtype()))
+        // Have agreement with client to send Content-type header with "application/unknown" value if client doesn't want to specify media
+        // type of new file. In this case server takes care about resolving media type of file.
+        final String mt = mediaType == null || ("application".equals(mediaType.getType()) && "unknown".equals(mediaType.getSubtype()))
                           ? null : mediaType.getType() + '/' + mediaType.getSubtype();
         final VirtualFile newVirtualFile = parent.createFile(name, mt, content);
         return (File)fromVirtualFile(newVirtualFile, false, PropertyFilter.ALL_FILTER);
@@ -529,9 +529,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
             @QueryParam("lockToken") String lockToken) throws NotFoundException, ForbiddenException, ServerException {
         // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
         // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
-        // Have agreement with client to send Content-type header with "null/null" value if client doesn't want to specify media type of new file.
-        // In this case server takes care about resolving media type of file.
-        final String mt = mediaType == null || ("null".equals(mediaType.getType()) && "null".equals(mediaType.getSubtype()))
+        // Have agreement with client to send Content-type header with "application/unknown" value if client doesn't want to specify media
+        // type of new file. In this case server takes care about resolving media type of file.
+        final String mt = mediaType == null || ("application".equals(mediaType.getType()) && "unknown".equals(mediaType.getSubtype()))
                           ? null : mediaType.getType() + '/' + mediaType.getSubtype();
         mountPoint.getVirtualFileById(id).updateContent(mt, newContent, lockToken);
     }

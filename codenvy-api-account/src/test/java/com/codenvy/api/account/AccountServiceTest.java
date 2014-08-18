@@ -26,6 +26,7 @@ import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
@@ -733,6 +734,27 @@ public class AccountServiceTest {
     }
 
     @Test
+    public void shouldIgnoreNotFoundExceptionFromPaymentServiceOnRemoveSubscription() throws Exception {
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withServiceId(SERVICE_ID)
+                                  .withProperties(Collections.<String, String>emptyMap())
+                                                                        );
+        doThrow(new NotFoundException("exception message")).when(paymentService).removeSubscription(SUBSCRIPTION_ID);
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.DELETE, SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(serviceRegistry).get(SERVICE_ID);
+        verify(paymentService).removeSubscription(SUBSCRIPTION_ID);
+        verify(accountDao).removeSubscription(SUBSCRIPTION_ID);
+        verify(accountDao).removeBillingProperties(SUBSCRIPTION_ID);
+        verify(subscriptionService).onRemoveSubscription(any(Subscription.class));
+    }
+
+    @Test
     public void shouldRespondAccessDeniedIfUserIsNotAccountOwnerOnRemoveSubscription() throws Exception {
         ArrayList<Member> memberships = new ArrayList<>(2);
         Member am = new Member().withRoles(Arrays.asList("account/owner"))
@@ -832,6 +854,68 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(accountDao).removeMember(accountOwner);
+    }
+
+    @Test
+    public void shouldBeAbleToValidateSubscriptionAddition() throws Exception {
+        when(planDao.getPlanById(PLAN_ID)).thenReturn(plan);
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate?planId=" + PLAN_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        assertEquals(response.getEntity(),
+                     DtoFactory.getInstance().createDto(NewSubscription.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID));
+
+        verify(subscriptionService).beforeCreateSubscription(argThat(new ArgumentMatcher<Subscription>() {
+            @Override
+            public boolean matches(Object argument) {
+                Subscription actual = (Subscription)argument;
+                return SERVICE_ID.equals(actual.getServiceId()) && ACCOUNT_ID.equals(actual.getAccountId()) &&
+                       PLAN_ID.equals(actual.getPlanId()) && Collections.singletonMap("key", "value").equals(actual.getProperties());
+            }
+        }));
+    }
+
+    @Test
+    public void shouldThrowConflictExceptionIfPlanIdIsNotSetOnValidateSubscriptionAddition() throws Exception {
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate", null,
+                            null);
+
+        assertEquals(response.getEntity().toString(), "Plan identifier required");
+    }
+
+    @Test
+    public void shouldThrowNotFoundExceptionIfPlanIsNotFoundOnValidateSubscriptionAddition() throws Exception {
+        when(planDao.getPlanById(PLAN_ID)).thenThrow(new NotFoundException("message"));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate?planId=" + PLAN_ID, null, null);
+
+        assertEquals(response.getEntity().toString(), "message");
+    }
+
+    @Test
+    public void shouldNotReturnOKIfBeforeCreateSubscriptionThrowExceptionOnValidateSubscriptionAddition() throws Exception {
+        when(planDao.getPlanById(PLAN_ID)).thenReturn(plan);
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        doThrow(new ConflictException("conflict message")).when(subscriptionService).beforeCreateSubscription(any(Subscription.class));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate?planId=" + PLAN_ID, null, null);
+
+        assertEquals(response.getEntity().toString(),"conflict message");
+
+        verify(subscriptionService).beforeCreateSubscription(argThat(new ArgumentMatcher<Subscription>() {
+            @Override
+            public boolean matches(Object argument) {
+                Subscription actual = (Subscription)argument;
+                return SERVICE_ID.equals(actual.getServiceId()) && ACCOUNT_ID.equals(actual.getAccountId()) &&
+                       PLAN_ID.equals(actual.getPlanId()) && Collections.singletonMap("key", "value").equals(actual.getProperties());
+            }
+        }));
     }
 
     protected void verifyLinksRel(List<Link> links, List<String> rels) {

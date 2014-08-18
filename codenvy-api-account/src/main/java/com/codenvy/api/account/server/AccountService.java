@@ -107,11 +107,10 @@ public class AccountService extends Service {
      * @return descriptor of created account
      * @throws NotFoundException
      *         when some error occurred while retrieving account
-     * @throws ForbiddenException
+     * @throws ConflictException
      *         when new account is {@code null}
      *         or new account name is {@code null}
-     * @throws ConflictException
-     *         when any of new account attributes is not valid
+     *         or when any of new account attributes is not valid
      * @throws ServerException
      * @see AccountDescriptor
      * @see #getById(String, SecurityContext)
@@ -125,8 +124,7 @@ public class AccountService extends Service {
     public Response create(@Context SecurityContext securityContext,
                            @Required NewAccount newAccount) throws NotFoundException,
                                                                    ConflictException,
-                                                                   ServerException,
-                                                                   ForbiddenException {
+                                                                   ServerException {
         requiredNotNull(newAccount, "New account");
         requiredNotNull(newAccount.getName(), "Account name");
         if (newAccount.getAttributes() != null) {
@@ -191,7 +189,7 @@ public class AccountService extends Service {
      * @param userId
      *         user identifier to search memberships
      * @return accounts memberships
-     * @throws ForbiddenException
+     * @throws ConflictException
      *         when user identifier is {@code null}
      * @throws NotFoundException
      *         when user with given identifier doesn't exist
@@ -205,9 +203,9 @@ public class AccountService extends Service {
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembershipsOfSpecificUser(@Required @QueryParam("userid") String userId,
-                                                               @Context SecurityContext securityContext) throws ForbiddenException,
-                                                                                                                NotFoundException,
-                                                                                                                ServerException {
+                                                               @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                                                ServerException,
+                                                                                                                ConflictException {
         requiredNotNull(userId, "User identifier");
         final User user = userDao.getById(userId);
         final List<Member> memberships = accountDao.getByMember(user.getId());
@@ -276,7 +274,7 @@ public class AccountService extends Service {
      * @return descriptor of found account
      * @throws NotFoundException
      *         when account with given name doesn't exist
-     * @throws ForbiddenException
+     * @throws ConflictException
      *         when account name is {@code null}
      * @throws ServerException
      *         when some error occurred while retrieving account
@@ -290,8 +288,8 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public AccountDescriptor getByName(@Required @QueryParam("name") String name,
                                        @Context SecurityContext securityContext) throws NotFoundException,
-                                                                                        ForbiddenException,
-                                                                                        ServerException {
+                                                                                        ServerException,
+                                                                                        ConflictException {
         requiredNotNull(name, "Account name");
         final Account account = accountDao.getByName(name);
         return toDescriptor(account, securityContext);
@@ -305,7 +303,7 @@ public class AccountService extends Service {
      * @param userId
      *         user identifier
      * @return descriptor of created member
-     * @throws ForbiddenException
+     * @throws ConflictException
      *         when user identifier is {@code null}
      * @throws NotFoundException
      *         when user or account with given identifier doesn't exist
@@ -323,8 +321,7 @@ public class AccountService extends Service {
                               @QueryParam("userid") String userId,
                               @Context SecurityContext securityContext) throws ConflictException,
                                                                                NotFoundException,
-                                                                               ServerException,
-                                                                               ForbiddenException {
+                                                                               ServerException {
         requiredNotNull(userId, "User identifier");
         userDao.getById(userId);//check user exists
         final Account account = accountDao.getById(accountId);
@@ -428,10 +425,9 @@ public class AccountService extends Service {
      * @return descriptor of updated account
      * @throws NotFoundException
      *         when account with given identifier doesn't exist
-     * @throws ForbiddenException
-     *         when account update is {@code null}
      * @throws ConflictException
-     *         when account with given name already exists
+     *         when account update is {@code null}
+     *         or when account with given name already exists
      * @throws ServerException
      *         when some error occurred while retrieving/persisting account
      * @see AccountDescriptor
@@ -444,7 +440,6 @@ public class AccountService extends Service {
     public AccountDescriptor update(@PathParam("id") String accountId,
                                     AccountUpdate update,
                                     @Context SecurityContext securityContext) throws NotFoundException,
-                                                                                     ForbiddenException,
                                                                                      ConflictException,
                                                                                      ServerException {
         requiredNotNull(update, "Account update");
@@ -539,6 +534,9 @@ public class AccountService extends Service {
      *         when new subscription is {@code null}
      *         or new subscription plan identifier is {@code null}
      *         or new subscription account identifier is {@code null}
+     * @throws NotFoundException
+     *         if plan with certain identifier is not found
+     * @throws com.codenvy.api.core.ApiException
      * @see SubscriptionDescriptor
      * @see #getSubscriptionById(String, SecurityContext)
      * @see #removeSubscription(String, SecurityContext)
@@ -550,7 +548,8 @@ public class AccountService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response addSubscription(@Required NewSubscription newSubscription,
-                                    @Context SecurityContext securityContext) throws ApiException {
+                                    @Context SecurityContext securityContext)
+            throws ApiException {
         requiredNotNull(newSubscription, "New subscription");
         requiredNotNull(newSubscription.getAccountId(), "Account identifier");
         requiredNotNull(newSubscription.getPlanId(), "Plan identifier");
@@ -577,6 +576,9 @@ public class AccountService extends Service {
         subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
 
         service.beforeCreateSubscription(subscription);
+
+        LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#", subscription.getId(),
+                 EnvironmentContext.getCurrent().getUser().getId(), subscription.getAccountId(), subscription.getPlanId());
 
         if (plan.isPaid() && !securityContext.isUserInRole("system/admin")) {
             paymentService.addSubscription(subscription, newSubscription.getBillingProperties());
@@ -608,23 +610,28 @@ public class AccountService extends Service {
      *         id of the subscription to remove
      * @throws NotFoundException
      *         if subscription with such id is not found
-     * @throws ServerException
-     *         if internal server error occurs
      * @throws ForbiddenException
      *         if user hasn't permissions
-     * @throws ApiException
+     * @throws ServerException
+     *         if internal server error occurs
+     * @throws com.codenvy.api.core.ApiException
      * @see #addSubscription(NewSubscription, SecurityContext)
      * @see #getSubscriptions(String, SecurityContext)
      */
     @DELETE
     @Path("subscriptions/{id}")
     @RolesAllowed({"user", "system/admin"})
-    public void removeSubscription(@PathParam("id") String subscriptionId, @Context SecurityContext securityContext) throws ApiException {
+    public void removeSubscription(@PathParam("id") String subscriptionId, @Context SecurityContext securityContext)
+            throws ApiException {
         final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
             throw new ForbiddenException("Access denied");
         }
-        paymentService.removeSubscription(subscriptionId);
+        try {
+            paymentService.removeSubscription(subscriptionId);
+        } catch (NotFoundException ignored) {
+            LOG.info(ignored.getLocalizedMessage(), ignored);
+        }
         accountDao.removeSubscription(subscriptionId);
         accountDao.removeBillingProperties(subscriptionId);
         final SubscriptionService service = registry.get(toRemove.getServiceId());
@@ -638,6 +645,18 @@ public class AccountService extends Service {
         accountDao.remove(id);
     }
 
+    /**
+     * Returns billing properties of certain subscription
+     *
+     * @param subscriptionId
+     *         identifier of the subscription
+     * @return billing properties
+     * @throws NotFoundException
+     *         if subscription doesn't exist or billing properties are missing
+     * @throws ForbiddenException
+     *         if user is not allowed to call this method
+     * @throws ServerException
+     */
     @GET
     @Path("subscriptions/{id}/billing")
     @Produces(MediaType.APPLICATION_JSON)
@@ -649,6 +668,41 @@ public class AccountService extends Service {
             throw new ForbiddenException("Access denied");
         }
         return accountDao.getBillingProperties(subscriptionId);
+    }
+
+    /**
+     * Validates addition of the subscription
+     *
+     * @param accountId
+     *         identifier of account
+     * @param planId
+     *         identifier of plan of subscription
+     * @return {@link com.codenvy.api.account.shared.dto.NewSubscription} with set plan and account identifiers
+     * @throws NotFoundException
+     *         if requested plan is not found
+     * @throws ConflictException
+     *         if requested subscription can't be added
+     * @throws ServerException
+     */
+    @GET
+    @Path("{accountId}/subscriptions/validate")
+    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public NewSubscription validateSubscriptionAddition(@PathParam("accountId") String accountId, @QueryParam("planId") String planId)
+            throws NotFoundException, ServerException, ConflictException {
+        if (null == planId) {
+            throw new ConflictException("Plan identifier required");
+        }
+        final Plan plan = planDao.getPlanById(planId);
+        final SubscriptionService service = registry.get(plan.getServiceId());
+        //create new subscription
+        final Subscription subscription = new Subscription().withAccountId(accountId)
+                                                            .withServiceId(plan.getServiceId())
+                                                            .withPlanId(plan.getId())
+                                                            .withProperties(plan.getProperties());
+        service.beforeCreateSubscription(subscription);
+
+        return DtoFactory.getInstance().createDto(NewSubscription.class).withPlanId(planId).withAccountId(accountId);
     }
 
     /**
@@ -677,9 +731,7 @@ public class AccountService extends Service {
         }
     }
 
-    /**
-     * Converts {@link Account} to {@link AccountDescriptor}
-     */
+    /** Converts {@link Account} to {@link AccountDescriptor} */
     private AccountDescriptor toDescriptor(Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();
@@ -801,12 +853,12 @@ public class AccountService extends Service {
      *         object reference to check
      * @param subject
      *         used as subject of exception message "{subject} required"
-     * @throws ForbiddenException
+     * @throws ConflictException
      *         when object reference is {@code null}
      */
-    private void requiredNotNull(Object object, String subject) throws ForbiddenException {
+    private void requiredNotNull(Object object, String subject) throws ConflictException {
         if (object == null) {
-            throw new ForbiddenException(subject + " required");
+            throw new ConflictException(subject + " required");
         }
     }
 

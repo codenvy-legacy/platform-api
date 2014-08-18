@@ -40,6 +40,8 @@ public interface PaymentService {
      *
      * @param subscriptionId
      *         id of the subscription to be removed
+     * @throws NotFoundException
+     *         if subscription is not found
      * @throws ServerException
      */
     void removeSubscription(String subscriptionId) throws NotFoundException, ServerException, ForbiddenException;

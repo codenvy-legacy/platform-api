@@ -13,6 +13,8 @@ package com.codenvy.api.account.server;
 
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ServerException;
 
 /**
  * Base class for any service which may communicate with account via subscriptions
@@ -42,10 +44,12 @@ public abstract class SubscriptionService {
      *
      * @param subscription
      *         subscription to prepare
-     * @throws ApiException
+     * @throws ConflictException
      *         when subscription is incompatible with system
+     * @throws ServerException
+     *         if internal error occurs
      */
-    public abstract void beforeCreateSubscription(Subscription subscription) throws ApiException;
+    public abstract void beforeCreateSubscription(Subscription subscription) throws ConflictException, ServerException;
 
     /**
      * Should be invoked after subscription creation

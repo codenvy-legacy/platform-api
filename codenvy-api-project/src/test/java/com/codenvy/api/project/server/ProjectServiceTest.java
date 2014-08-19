@@ -139,7 +139,7 @@ public class ProjectServiceTest {
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
-        EverrestProcessor processor = new EverrestProcessor(resources,providers,dependencies,new EverrestConfiguration(), null);
+        EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
         launcher = new ResourceLauncher(processor);
 
         processor.addApplication(new Application() {
@@ -240,7 +240,8 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetProjectCheckUserPermissions() throws Exception {
-        env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", Collections.<String>emptySet()));
+        // Without roles Collections.<String>emptySet() should get default set of permissions
+        env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", Collections.<String>emptySet(), false));
         ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
@@ -871,6 +872,7 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=private",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
+        // Private project is accessible only for user who are in the group "workspace/developer"
         Map<Principal, Set<String>> permissions = myProject.getBaseFolder().getVirtualFile().getPermissions();
         Assert.assertEquals(permissions.size(), 1);
         Principal principal = DtoFactory.getInstance().createDto(Principal.class)
@@ -894,8 +896,8 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=public",
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
-        Map<Principal, Set<String>> permissions =
-                myProject.getBaseFolder().getVirtualFile().getPermissions();
+        // List of permissions should be cleared. After that project inherits permissions from parent folder (typically root folder)
+        Map<Principal, Set<String>> permissions = myProject.getBaseFolder().getVirtualFile().getPermissions();
         Assert.assertEquals(permissions.size(), 0);
 
         response = launcher.service("GET",
@@ -999,10 +1001,9 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
 
         AccessControlEntry entry1 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                                             .withPermissions(Arrays.asList("all"))
-                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(user)
-                                                                      .withType(Principal.Type.USER));
+                                              .withPermissions(Arrays.asList("all"))
+                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                       .withName(user).withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
@@ -1032,10 +1033,9 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
 
         AccessControlEntry entry1 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                                             .withPermissions(Arrays.asList("custom"))
-                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(user)
-                                                                      .withType(Principal.Type.USER));
+                                              .withPermissions(Arrays.asList("custom"))
+                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                       .withName(user).withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
@@ -1065,10 +1065,9 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
 
         AccessControlEntry entry1 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
-                                             .withPermissions(Arrays.asList("build", "run", "update_acl", "read", "write"))
-                                             .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                      .withName(user)
-                                                                      .withType(Principal.Type.USER));
+                                              .withPermissions(Arrays.asList("build", "run", "update_acl", "read", "write"))
+                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
+                                                                       .withName(user).withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
@@ -1088,8 +1087,6 @@ public class ProjectServiceTest {
 
         Assert.assertEquals(entry2.getPrincipal(), entry1.getPrincipal());
         Assert.assertTrue(entry2.getPermissions().containsAll(entry1.getPermissions()));
-        Assert.assertEquals(acl.get(0).getPrincipal(), entry1.getPrincipal());
-        Assert.assertTrue(acl.get(0).getPermissions().containsAll(entry1.getPermissions()));
     }
 
     @Test
@@ -1103,8 +1100,7 @@ public class ProjectServiceTest {
         AccessControlEntry newEntry2 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                  .withPermissions(Arrays.asList("all"))
                                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                          .withName(vfsUser)
-                                                                          .withType(Principal.Type.USER));
+                                                                          .withName(vfsUser).withType(Principal.Type.USER));
         //set up basic permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
 
@@ -1114,8 +1110,7 @@ public class ProjectServiceTest {
         AccessControlEntry update = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                               .withPermissions(Arrays.asList("only_custom"))
                                               .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                       .withName(vfsUser)
-                                                                       .withType(Principal.Type.USER));
+                                                                       .withName(vfsUser).withType(Principal.Type.USER));
         launcher.service("POST",
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
@@ -1132,8 +1127,10 @@ public class ProjectServiceTest {
         }
         Assert.assertNotNull(map.get(newEntry.getPrincipal()));
         Assert.assertNotNull(map.get(newEntry2.getPrincipal()));
-        Assert.assertTrue(map.get(newEntry.getPrincipal()).containsAll(newEntry.getPermissions()));
-        Assert.assertTrue(map.get(newEntry2.getPrincipal()).containsAll(newEntry2.getPermissions()));
+        Assert.assertEquals(map.get(newEntry.getPrincipal()).size(), 1);
+        Assert.assertEquals(map.get(newEntry2.getPrincipal()).size(), 1);
+        Assert.assertTrue(map.get(newEntry.getPrincipal()).contains("all"));
+        Assert.assertTrue(map.get(newEntry2.getPrincipal()).contains("only_custom"));
     }
 
     @Test
@@ -1142,13 +1139,11 @@ public class ProjectServiceTest {
         AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                 .withPermissions(Arrays.asList("all"))
                                                 .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                         .withName(vfsUser)
-                                                                         .withType(Principal.Type.USER));
+                                                                         .withName(vfsUser).withType(Principal.Type.USER));
         AccessControlEntry newEntry2 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                  .withPermissions(Arrays.asList("all"))
                                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                          .withName("other")
-                                                                          .withType(Principal.Type.USER));
+                                                                          .withName("other").withType(Principal.Type.USER));
         //set up permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
 
@@ -1180,13 +1175,11 @@ public class ProjectServiceTest {
         AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                 .withPermissions(Arrays.asList("all"))
                                                 .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                         .withName(vfsUser)
-                                                                         .withType(Principal.Type.USER));
+                                                                         .withName(vfsUser).withType(Principal.Type.USER));
         AccessControlEntry newEntry2 = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                  .withPermissions(Arrays.asList("all"))
                                                  .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
-                                                                          .withName("other")
-                                                                          .withType(Principal.Type.USER));
+                                                                          .withName("other").withType(Principal.Type.USER));
         //set up permissions
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
 
@@ -1222,7 +1215,7 @@ public class ProjectServiceTest {
                          "http://localhost:8080/api/project/my_ws/permissions/my_project",
                          "http://localhost:8080/api",
                          headers,
-                         JsonHelper.toJson(Arrays.asList(entry.withPermissions(Collections.<String>emptyList()))).getBytes(),
+                         JsonHelper.toJson(Arrays.asList(entry.withPermissions(null))).getBytes(),
                          null
                         );
 

@@ -303,6 +303,8 @@ public class MemoryVirtualFile implements VirtualFile {
                 Set<String> permissions = update.get(copyPrincipal);
                 if (permissions == null) {
                     update.put(copyPrincipal, permissions = new HashSet<>(4));
+                } else {
+                    permissions.clear();
                 }
                 permissions.addAll(acePermissions);
             }

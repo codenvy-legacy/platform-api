@@ -690,14 +690,15 @@ public class ProjectService extends Service {
     @Path("/permissions/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
-    public void setPermissions(@PathParam("ws-id") String wsId,
-                               @PathParam("path") String path,
-                               List<AccessControlEntry> acl) throws ForbiddenException, ServerException {
+    public List<AccessControlEntry> setPermissions(@PathParam("ws-id") String wsId,
+                                                   @PathParam("path") String path,
+                                                   List<AccessControlEntry> acl) throws ForbiddenException, ServerException {
         final Project project = projectManager.getProject(wsId, path);
         if (project == null) {
             throw new ServerException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, wsId));
         }
         project.setPermissions(acl);
+        return project.getPermissions();
     }
 
     private FileEntry asFile(String workspace, String path) throws ForbiddenException, NotFoundException, ServerException {

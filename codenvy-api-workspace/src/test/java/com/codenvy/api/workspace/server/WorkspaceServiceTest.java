@@ -457,7 +457,7 @@ public class WorkspaceServiceTest {
         assertEquals(descriptors.size(), 1);
         verify(memberDao, times(1)).getWorkspaceMembers(WS_ID);
         verifyLinksRel(descriptors.get(0).getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                                    Constants.LINK_REL_GET_WORKSPACE_MEMBER,
+                                                                    Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
                                                                     com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
     }
 
@@ -478,7 +478,7 @@ public class WorkspaceServiceTest {
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         verify(memberDao, times(1)).getWorkspaceMember(WS_ID, USER_ID);
         verifyLinksRel(descriptor.getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                            Constants.LINK_REL_GET_WORKSPACE_MEMBER,
+                                                            Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
                                                             com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
     }
 
@@ -503,7 +503,7 @@ public class WorkspaceServiceTest {
         assertEquals(memberDescriptor.getWorkspaceReference().getId(), WS_ID);
         verify(memberDao, times(1)).create(any(Member.class));
         verifyLinksRel(memberDescriptor.getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                                  Constants.LINK_REL_GET_WORKSPACE_MEMBER,
+                                                                  Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
                                                                   com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
     }
 
@@ -688,7 +688,7 @@ public class WorkspaceServiceTest {
         switch (role) {
             case "workspace/admin":
                 result.add(Constants.LINK_REL_ADD_WORKSPACE_MEMBER);
-                result.add(Constants.LINK_REL_GET_WORKSPACE_MEMBER);
+                result.add(Constants.LINK_REL_GET_WORKSPACE_MEMBERS);
             case "system/admin":
                 result.add(Constants.LINK_REL_REMOVE_WORKSPACE);
                 result.add(Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID);

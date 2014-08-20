@@ -570,7 +570,7 @@ public class WorkspaceService extends Service {
     @Path("{id}/membership")
     @RolesAllowed({"workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public MemberDescriptor getMembershipsOfCurrentUser(@PathParam("id") String wsId,
+    public MemberDescriptor getMembershipOfCurrentUser(@PathParam("id") String wsId,
                                                         @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                          ServerException {
         final Principal principal = securityContext.getUserPrincipal();
@@ -758,7 +758,7 @@ public class WorkspaceService extends Service {
                                                   .build(workspace.getId(), member.getUserId())
                                                   .toString()));
             links.add(createLink("GET",
-                                 Constants.LINK_REL_GET_WORKSPACE_MEMBER,
+                                 Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
                                  null,
                                  MediaType.APPLICATION_JSON,
                                  serviceUriBuilder.clone()
@@ -837,18 +837,10 @@ public class WorkspaceService extends Service {
                                            .build()
                                            .toString()));
 
-            links.add(createLink("GET",
-                                 Constants.LINK_REL_GET_WORKSPACE_MEMBER,
-                                 null,
-                                 MediaType.APPLICATION_JSON,
-                                 uriBuilder.clone()
-                                           .path(getClass(), "membership")
-                                           .build()
-                                           .toString()));
         }
         if (securityContext.isUserInRole("workspace/admin")) {
             links.add(createLink("GET",
-                                 Constants.LINK_REL_GET_WORKSPACE_MEMBER,
+                                 Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
                                  null,
                                  MediaType.APPLICATION_JSON,
                                  uriBuilder.clone()

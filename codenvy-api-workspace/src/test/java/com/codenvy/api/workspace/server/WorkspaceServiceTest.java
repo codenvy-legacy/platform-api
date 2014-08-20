@@ -29,6 +29,7 @@ import com.codenvy.api.workspace.shared.dto.NewWorkspace;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
 import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.everrest.core.impl.ApplicationContextImpl;
@@ -142,6 +143,7 @@ public class WorkspaceServiceTest {
         User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID);
         when(userDao.getById(USER_ID)).thenReturn(user);
         when(userDao.getByAlias(PRINCIPAL_NAME)).thenReturn(user);
+        com.codenvy.commons.env.EnvironmentContext.getCurrent().setUser(new UserImpl(PRINCIPAL_NAME, USER_ID, null));
     }
 
     @Test
@@ -455,7 +457,7 @@ public class WorkspaceServiceTest {
         assertEquals(descriptors.size(), 1);
         verify(memberDao, times(1)).getWorkspaceMembers(WS_ID);
         verifyLinksRel(descriptors.get(0).getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                                    Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                                                    Constants.LINK_REL_GET_WORKSPACE_MEMBER,
                                                                     com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
     }
 
@@ -476,7 +478,7 @@ public class WorkspaceServiceTest {
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         verify(memberDao, times(1)).getWorkspaceMember(WS_ID, USER_ID);
         verifyLinksRel(descriptor.getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                            Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                                            Constants.LINK_REL_GET_WORKSPACE_MEMBER,
                                                             com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
     }
 
@@ -501,7 +503,7 @@ public class WorkspaceServiceTest {
         assertEquals(memberDescriptor.getWorkspaceReference().getId(), WS_ID);
         verify(memberDao, times(1)).create(any(Member.class));
         verifyLinksRel(memberDescriptor.getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                                  Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                                                  Constants.LINK_REL_GET_WORKSPACE_MEMBER,
                                                                   com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
     }
 
@@ -686,7 +688,7 @@ public class WorkspaceServiceTest {
         switch (role) {
             case "workspace/admin":
                 result.add(Constants.LINK_REL_ADD_WORKSPACE_MEMBER);
-                result.add(Constants.LINK_REL_GET_WORKSPACE_MEMBERS);
+                result.add(Constants.LINK_REL_GET_WORKSPACE_MEMBER);
             case "system/admin":
                 result.add(Constants.LINK_REL_REMOVE_WORKSPACE);
                 result.add(Constants.LINK_REL_UPDATE_WORKSPACE_BY_ID);

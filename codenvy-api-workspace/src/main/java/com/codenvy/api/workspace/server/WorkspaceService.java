@@ -573,9 +573,10 @@ public class WorkspaceService extends Service {
     public MemberDescriptor getMembershipsOfCurrentUser(@PathParam("id") String wsId,
                                                         @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                          ServerException {
-        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        final Principal principal = securityContext.getUserPrincipal();
+        final User user = userDao.getByAlias(principal.getName());
         final Workspace workspace = workspaceDao.getById(wsId);
-        final Member member = memberDao.getWorkspaceMember(wsId, userId);
+        final Member member = memberDao.getWorkspaceMember(wsId, user.getId());
 
         return toDescriptor(member, workspace, securityContext);
     }
@@ -757,7 +758,7 @@ public class WorkspaceService extends Service {
                                                   .build(workspace.getId(), member.getUserId())
                                                   .toString()));
             links.add(createLink("GET",
-                                 Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                 Constants.LINK_REL_GET_WORKSPACE_MEMBER,
                                  null,
                                  MediaType.APPLICATION_JSON,
                                  serviceUriBuilder.clone()
@@ -835,10 +836,19 @@ public class WorkspaceService extends Service {
                                            .path(getClass(), "getMembershipsOfCurrentUser")
                                            .build()
                                            .toString()));
+
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_WORKSPACE_MEMBER,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "membership")
+                                           .build()
+                                           .toString()));
         }
         if (securityContext.isUserInRole("workspace/admin")) {
             links.add(createLink("GET",
-                                 Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                 Constants.LINK_REL_GET_WORKSPACE_MEMBER,
                                  null,
                                  MediaType.APPLICATION_JSON,
                                  uriBuilder.clone()

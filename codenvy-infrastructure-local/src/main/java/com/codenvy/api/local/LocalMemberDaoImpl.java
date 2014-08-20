@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.local;
 
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.workspace.server.dao.Member;
 
@@ -42,6 +44,11 @@ public class LocalMemberDaoImpl implements MemberDao {
         members.add(Constants.MEMBER);
         return members;
 
+    }
+
+    @Override
+    public Member getWorkspaceMember(String wsId, String userId) throws NotFoundException, ServerException {
+        return Constants.MEMBER;
     }
 
     @Override

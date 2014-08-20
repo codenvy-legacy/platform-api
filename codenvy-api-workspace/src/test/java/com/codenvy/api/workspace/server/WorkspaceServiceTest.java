@@ -100,19 +100,19 @@ public class WorkspaceServiceTest {
     private EnvironmentContext environmentContext;
     private Workspace          workspace;
     private ResourceLauncher   launcher;
-    private String isOrgAddonEnabledByDefault;
+    private String             isOrgAddonEnabledByDefault;
 
     @BeforeMethod
     public void setUp() throws Exception {
         isOrgAddonEnabledByDefault = "false";
         final ResourceBinderImpl resources = new ResourceBinderImpl();
         final ProviderBinder providers = new ApplicationProviderBinder();
-        DependencySupplierImpl dependencies = new DependencySupplierImpl(){
+        DependencySupplierImpl dependencies = new DependencySupplierImpl() {
 
 
             @Override
             public Object getComponentByName(String name) {
-                if("subscription.orgaddon.enabled".equals(name)){
+                if ("subscription.orgaddon.enabled".equals(name)) {
                     return isOrgAddonEnabledByDefault;
                 }
                 return super.getComponentByName(name);
@@ -460,6 +460,27 @@ public class WorkspaceServiceTest {
     }
 
     @Test
+    public void shouldBeAbleToGetWorkspaceMember() throws Exception {
+        Member membership = new Member().withWorkspaceId(WS_ID)
+                                        .withUserId(USER_ID)
+                                        .withRoles(Arrays.asList("workspace/admin"));
+        when(memberDao.getWorkspaceMember(WS_ID, USER_ID)).thenReturn(membership);
+        prepareSecurityContext("workspace/admin");
+
+        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID);
+        when(userDao.getById(USER_ID)).thenReturn(user);
+
+        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID + "/membership", null, null);
+        //safe cast cause WorkspaceService#getMembers always return List<Member>
+        @SuppressWarnings("unchecked") MemberDescriptor descriptor = (MemberDescriptor)response.getEntity();
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        verify(memberDao, times(1)).getWorkspaceMember(WS_ID, USER_ID);
+        verifyLinksRel(descriptor.getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
+                                                            Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                                            com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
+    }
+
+    @Test
     public void shouldBeAbleToAddWorkspaceMembership() throws Exception {
         when(memberDao.getUserRelationships(USER_ID))
                 .thenReturn(Arrays.asList(new Member().withUserId(USER_ID)
@@ -517,9 +538,7 @@ public class WorkspaceServiceTest {
         assertEquals(memberDescriptor.getUserId(), USER_ID);
         assertEquals(memberDescriptor.getWorkspaceReference().getId(), WS_ID);
         verify(memberDao, times(1)).create(any(Member.class));
-        verifyLinksRel(memberDescriptor.getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                                  Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
-                                                                  com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
+        verifyLinksRel(memberDescriptor.getLinks(), Arrays.asList(com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
     }
 
     @Test

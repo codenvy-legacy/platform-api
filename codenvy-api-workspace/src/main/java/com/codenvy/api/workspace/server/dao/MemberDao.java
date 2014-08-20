@@ -65,6 +65,15 @@ public interface MemberDao {
     public List<Member> getUserRelationships(String userId) throws ServerException;
 
     /**
+     * Gets membership for the given user in the given workspace.
+     *
+     * @param userId
+     *         user to get relationships
+     * @return member
+     */
+    public Member getWorkspaceMember(String wsId, String userId) throws NotFoundException, ServerException;
+
+    /**
      * Removes a given member from specified workspace.
      *
      * @param member

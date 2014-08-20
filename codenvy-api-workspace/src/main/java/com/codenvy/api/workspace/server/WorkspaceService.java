@@ -13,14 +13,17 @@ package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.core.*;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
-import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.user.server.UserService;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -30,7 +33,12 @@ import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.workspace.server.dao.Workspace;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.api.workspace.shared.dto.*;
+import com.codenvy.api.workspace.shared.dto.MemberDescriptor;
+import com.codenvy.api.workspace.shared.dto.NewMembership;
+import com.codenvy.api.workspace.shared.dto.NewWorkspace;
+import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
+import com.codenvy.api.workspace.shared.dto.WorkspaceReference;
+import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -46,10 +54,30 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Workspace API
@@ -450,7 +478,7 @@ public class WorkspaceService extends Service {
                                         principal.getName()));
                 continue;
             }
-            memberships.add(toDescriptor(member, workspace));
+            memberships.add(toDescriptor(member, workspace, securityContext));
         }
         return memberships;
     }
@@ -490,7 +518,7 @@ public class WorkspaceService extends Service {
                 LOG.error(String.format("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(), userId));
                 continue;
             }
-            memberships.add(toDescriptor(member, workspace));
+            memberships.add(toDescriptor(member, workspace, securityContext));
         }
         return memberships;
     }
@@ -519,9 +547,37 @@ public class WorkspaceService extends Service {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final List<MemberDescriptor> descriptors = new ArrayList<>(members.size());
         for (Member member : members) {
-            descriptors.add(toDescriptor(member, workspace));
+            descriptors.add(toDescriptor(member, workspace, securityContext));
         }
         return descriptors;
+    }
+
+    /**
+     * Returns membership for current user in the given workspace.
+     *
+     * @param wsId
+     *         workspace identifier
+     * @return workspace member
+     * @throws NotFoundException
+     *         when workspace with given identifier doesn't exist
+     * @throws ServerException
+     *         when some error occurred while retrieving workspace or members
+     * @see MemberDescriptor
+     * @see #addMember(String, NewMembership, SecurityContext)
+     * @see #removeMember(String, String, SecurityContext)
+     */
+    @GET
+    @Path("{id}/membership")
+    @RolesAllowed({"workspace/developer", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public MemberDescriptor getMembershipsOfCurrentUser(@PathParam("id") String wsId,
+                                                        @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                                         ServerException {
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        final Workspace workspace = workspaceDao.getById(wsId);
+        final Member member = memberDao.getWorkspaceMember(wsId, userId);
+
+        return toDescriptor(member, workspace, securityContext);
     }
 
     /**
@@ -601,7 +657,7 @@ public class WorkspaceService extends Service {
                                              .withUserId(user.getId())
                                              .withRoles(newMembership.getRoles());
         memberDao.create(newMember);
-        return toDescriptor(newMember, workspace);
+        return toDescriptor(newMember, workspace, securityContext);
     }
 
     /**
@@ -686,9 +742,39 @@ public class WorkspaceService extends Service {
     /**
      * Converts {@link Member} to {@link MemberDescriptor}
      */
-    private MemberDescriptor toDescriptor(Member member, Workspace workspace) {
+    private MemberDescriptor toDescriptor(Member member, Workspace workspace, SecurityContext securityContext) {
         final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
         final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
+        final List<Link> links = new LinkedList<>();
+
+        if (securityContext.isUserInRole("workspace/admin")) {
+            links.add(createLink("DELETE",
+                                 Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
+                                 null,
+                                 null,
+                                 serviceUriBuilder.clone()
+                                                  .path(getClass(), "removeMember")
+                                                  .build(workspace.getId(), member.getUserId())
+                                                  .toString()));
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 serviceUriBuilder.clone()
+                                                  .path(getClass(), "getMembers")
+                                                  .build(workspace.getId())
+                                                  .toString()));
+        }
+        links.add(createLink("GET",
+                             com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,
+                             null,
+                             MediaType.APPLICATION_JSON,
+                             baseUriBuilder.clone()
+                                           .path(UserService.class)
+                                           .path(UserService.class, "getById")
+                                           .build(member.getUserId())
+                                           .toString()));
+
         final Link wsLink = createLink("GET",
                                        Constants.LINK_REL_GET_WORKSPACE_BY_ID,
                                        null,
@@ -706,31 +792,6 @@ public class WorkspaceService extends Service {
                                                            .path(ProjectService.class, "getProjects")
                                                            .build(workspace.getId())
                                                            .toString());
-        final Link userLink = createLink("GET",
-                                         com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,
-                                         null,
-                                         MediaType.APPLICATION_JSON,
-                                         baseUriBuilder.clone()
-                                                       .path(UserService.class)
-                                                       .path(UserService.class, "getById")
-                                                       .build(member.getUserId())
-                                                       .toString());
-        final Link removeLink = createLink("DELETE",
-                                           Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                           null,
-                                           null,
-                                           serviceUriBuilder.clone()
-                                                            .path(getClass(), "removeMember")
-                                                            .build(workspace.getId(), member.getUserId())
-                                                            .toString());
-        final Link allMembersLink = createLink("GET",
-                                               Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
-                                               null,
-                                               MediaType.APPLICATION_JSON,
-                                               serviceUriBuilder.clone()
-                                                                .path(getClass(), "getMembers")
-                                                                .build(workspace.getId())
-                                                                .toString());
         final WorkspaceReference wsRef = DtoFactory.getInstance().createDto(WorkspaceReference.class)
                                                    .withId(workspace.getId())
                                                    .withName(workspace.getName())
@@ -740,7 +801,7 @@ public class WorkspaceService extends Service {
                          .withUserId(member.getUserId())
                          .withWorkspaceReference(wsRef)
                          .withRoles(member.getRoles())
-                         .withLinks(Arrays.asList(userLink, removeLink, allMembersLink));
+                         .withLinks(links);
     }
 
     /**

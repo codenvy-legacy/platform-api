@@ -502,7 +502,7 @@ public class WorkspaceService extends Service {
     @GenerateLink(rel = Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembershipsOfSpecificUsers(@Context SecurityContext securityContext,
+    public List<MemberDescriptor> getMembershipsOfSpecificUser(@Context SecurityContext securityContext,
                                                                @Required @QueryParam("userid") String userId) throws NotFoundException,
                                                                                                                      ForbiddenException,
                                                                                                                      ServerException {
@@ -570,12 +570,12 @@ public class WorkspaceService extends Service {
     @Path("{id}/membership")
     @RolesAllowed({"workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public MemberDescriptor getMembership(@PathParam("id") String wsId,
-                                                @Context SecurityContext securityContext) throws NotFoundException, ServerException {
-        final Principal principal = securityContext.getUserPrincipal();
-        final User user = userDao.getByAlias(principal.getName());
+    public MemberDescriptor getMembershipsOfCurrentUser(@PathParam("id") String wsId,
+                                                        @Context SecurityContext securityContext) throws NotFoundException,
+                                                                                                         ServerException {
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
         final Workspace workspace = workspaceDao.getById(wsId);
-        final Member member = memberDao.getWorkspaceMember(wsId, user.getId());
+        final Member member = memberDao.getWorkspaceMember(wsId, userId);
 
         return toDescriptor(member, workspace, securityContext);
     }

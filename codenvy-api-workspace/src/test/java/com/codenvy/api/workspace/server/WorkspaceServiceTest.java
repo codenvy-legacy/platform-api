@@ -684,6 +684,7 @@ public class WorkspaceServiceTest {
     private List<String> generateRels(String role) {
         List<String> result = new ArrayList<>();
         result.add(Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES);
+        result.add(Constants.LINK_REL_GET_CURRENT_USER_MEMBERSHIP);
         result.add("get projects");
         switch (role) {
             case "workspace/admin":

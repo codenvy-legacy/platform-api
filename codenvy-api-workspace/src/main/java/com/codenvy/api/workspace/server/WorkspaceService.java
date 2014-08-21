@@ -836,7 +836,14 @@ public class WorkspaceService extends Service {
                                            .path(getClass(), "getMembershipsOfCurrentUser")
                                            .build()
                                            .toString()));
-
+            links.add(createLink("GET",
+                                 Constants.LINK_REL_GET_CURRENT_USER_MEMBERSHIP,
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getMembershipOfCurrentUser")
+                                           .build(workspaceDescriptor.getId())
+                                           .toString()));
         }
         if (securityContext.isUserInRole("workspace/admin")) {
             links.add(createLink("GET",

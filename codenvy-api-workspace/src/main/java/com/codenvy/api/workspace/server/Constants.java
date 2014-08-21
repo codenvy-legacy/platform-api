@@ -24,6 +24,7 @@ public final class Constants {
     public static final String LINK_REL_GET_WORKSPACE_BY_ID          = "workspace by id";
     public static final String LINK_REL_GET_WORKSPACE_BY_NAME        = "workspace by name";
     public static final String LINK_REL_UPDATE_WORKSPACE_BY_ID       = "update by id";
+    public static final String LINK_REL_GET_CURRENT_USER_MEMBERSHIP  = "get membership in given workspace";
     public static final String LINK_REL_GET_WORKSPACE_MEMBERS        = "get members";
     public static final String LINK_REL_ADD_WORKSPACE_MEMBER         = "add member";
     public static final String LINK_REL_REMOVE_WORKSPACE_MEMBER      = "remove member";

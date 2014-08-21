@@ -53,12 +53,6 @@ public interface ItemReference {
 
     ItemReference withPath(String path);
 
-    boolean getHasChildFiles();
-
-    void setHasChildFiles(boolean hasChildFiles);
-
-    ItemReference withHasChildFiles(boolean hasChildFiles);
-
     List<Link> getLinks();
 
     ItemReference withLinks(List<Link> links);

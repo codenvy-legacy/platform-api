@@ -137,12 +137,22 @@ public class WorkspaceService extends Service {
      * @see #getById(String, SecurityContext)
      * @see #getByName(String, SecurityContext)
      */
+    @ApiOperation(value = "Create a new workspace",
+                  response = WorkspaceDescriptor.class,
+                  position = 2)
+    @ApiResponses( value = {
+            @ApiResponse(code = 201, message = "CREATED"),
+            @ApiResponse(code = 403, message = "You have no access to create more workspaces"),
+            @ApiResponse(code = 404, message = "NOT FOUND"),
+            @ApiResponse(code = 409, message = "You can create workspace associated only to your own account"),
+            @ApiResponse(code = 500, message = "INTERNAL SERVER ERROR")})
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_WORKSPACE)
     @RolesAllowed({"user", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Required @Description("new workspace") NewWorkspace newWorkspace,
+    public Response create(@ApiParam(value = "new workspace", required = true)
+                           @Required @Description("new workspace") NewWorkspace newWorkspace,
                            @Context SecurityContext securityContext) throws ConflictException,
                                                                             NotFoundException,
                                                                             ServerException,
@@ -171,7 +181,7 @@ public class WorkspaceService extends Service {
         if (!isOrgAddonEnabledByDefault && securityContext.isUserInRole("user")) {
             if (!"true".equals(actualAccount.getAttributes().get("codenvy:multi-ws")) &&
                 workspaceDao.getByAccount(accountId).size() > 0) {
-                throw new ForbiddenException("You have not access to create more workspaces");
+                throw new ForbiddenException("You have no access to create more workspaces");
             }
         }
         final String wsId = NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
@@ -216,13 +226,25 @@ public class WorkspaceService extends Service {
      * @see #getById(String, SecurityContext)
      * @see #getByName(String, SecurityContext)
      */
+    @ApiOperation(value = "Create a temporary workspace",
+                  notes = "Create a temporary workspace created by a Factory",
+                  response = WorkspaceDescriptor.class,
+                  position = 1)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = "CREATED"),
+                  @ApiResponse(code = 403, message = "You have no access to create more workspaces"),
+                  @ApiResponse(code = 404, message = "NOT FOUND"),
+                  @ApiResponse(code = 409, message = "You can create workspace associated only to your own account"),
+                  @ApiResponse(code = 500, message = "INTERNAL SERVER ERROR")
+                  })
     @POST
-    @Path("temp")
+    @Path("/temp")
     @GenerateLink(rel = Constants.LINK_REL_CREATE_TEMP_WORKSPACE)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @SuppressWarnings("static-access")
-    public Response createTemporary(@Required @Description("New temporary workspace") NewWorkspace newWorkspace,
+    public Response createTemporary(@ApiParam(value = "New Temporary worksapce", required = true)
+                                    @Required @Description("New temporary workspace") NewWorkspace newWorkspace,
                                     @Context SecurityContext securityContext) throws ConflictException,
                                                                                      NotFoundException,
                                                                                      ForbiddenException,
@@ -293,11 +315,23 @@ public class WorkspaceService extends Service {
      * @see WorkspaceDescriptor
      * @see #getByName(String, SecurityContext)
      */
+    @ApiOperation(value = "Get workspace by ID",
+                  response = WorkspaceDescriptor.class,
+                  position = 5)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Workspace with specified ID does not exist"),
+            @ApiResponse(code = 403, message = "Access to requested workspace is forbidden"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GET
-    @Path("{id}")
+    @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public WorkspaceDescriptor getById(@PathParam("id") String id,
-                                       @Context SecurityContext securityContext) throws NotFoundException, ServerException {
+    public WorkspaceDescriptor getById(@ApiParam(value = "Workspace ID", required = true)
+                                       @Required
+                                       @Description("workspace ID")
+                                       @PathParam("id") String id,
+                                       @Context SecurityContext securityContext) throws NotFoundException, ServerException, ForbiddenException {
+        requiredNotNull(id, "Workspace ID");
         final Workspace workspace = workspaceDao.getById(id);
         try {
             ensureUserHasAccessToWorkspace(securityContext, workspace.getId(), "workspace/admin", "workspace/developer");
@@ -334,7 +368,7 @@ public class WorkspaceService extends Service {
      */
     @ApiOperation(value = "Gets workspace by name",
                   response = WorkspaceDescriptor.class,
-                  position = 1)
+                  position = 4)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Workspace with specified name doesn't exist"),
@@ -392,12 +426,22 @@ public class WorkspaceService extends Service {
      * @see WorkspaceDescriptor
      * @see #removeAttribute(String, String, SecurityContext)
      */
+    @ApiOperation(value = "Update workspace",
+                  response = WorkspaceDescriptor.class,
+                  notes = "Update an existing workspace. A JSON with updated properties is sent.",
+                  position = 3)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Workspace updated"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 403, message = "Access to required workspace is forbidden"),
+            @ApiResponse(code = 500, message = "Internal server error")})
     @POST
-    @Path("{id}")
+    @Path("/{id}")
     @RolesAllowed({"workspace/admin", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public WorkspaceDescriptor update(@Context SecurityContext securityContext,
+    public WorkspaceDescriptor update(@ApiParam(value = "Workspace ID", required = true)
+                                      @Context SecurityContext securityContext,
                                       @PathParam("id") String id,
                                       WorkspaceUpdate update) throws NotFoundException,
                                                                      ConflictException,
@@ -433,12 +477,22 @@ public class WorkspaceService extends Service {
      *         when some error occurred while retrieving workspace
      * @see WorkspaceDescriptor
      */
+    @ApiOperation(value = "Get workspace by Account ID",
+                  notes = "Search for a workspace by its Account ID which is added as query parameter",
+                  response = WorkspaceDescriptor.class,
+                  responseContainer = "List",
+                  position = 6)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 403, message = "User is not authorized to call this operation"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
+
     @GET
-    @Path("find/account")
+    @Path("/find/account")
     @GenerateLink(rel = Constants.LINK_REL_GET_WORKSPACES_BY_ACCOUNT)
     @RolesAllowed("user")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<WorkspaceDescriptor> getWorkspacesByAccount(@Context SecurityContext securityContext,
+    public List<WorkspaceDescriptor> getWorkspacesByAccount(@ApiParam(value = "Account ID", required = true)
+                                                            @Context SecurityContext securityContext,
                                                             @Required @QueryParam("id") String accountId) throws ServerException,
                                                                                                                  ForbiddenException {
         requiredNotNull(accountId, "Account id");
@@ -458,12 +512,22 @@ public class WorkspaceService extends Service {
      *         when some error occurred while retrieving user or members
      * @see MemberDescriptor
      */
+    @ApiOperation(value = "Get membership of a current user",
+                  notes = "Get membership and workspace roles of a current user",
+                  response = MemberDescriptor.class,
+                  responseContainer = "List",
+                  position = 9)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("all")
+    @Path("/all")
     @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES)
     @RolesAllowed({"user", "temp_user"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembershipsOfCurrentUser(@Context SecurityContext securityContext) throws NotFoundException,
+    public List<MemberDescriptor> getMembershipsOfCurrentUser(@ApiParam(value = "Workspace memberships", required = true)
+                                                              @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                                ServerException {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
@@ -497,12 +561,23 @@ public class WorkspaceService extends Service {
      *         when some error occurred while retrieving user or members
      * @see MemberDescriptor
      */
+    @ApiOperation(value = "Get memberships by user ID",
+                  notes = "Search for a workspace by User ID which is added to URL as qyery parameter. JSON with workspace details and user roles is returned",
+                  response = MemberDescriptor.class,
+                  responseContainer = "List",
+                  position = 7)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this action"),
+                  @ApiResponse(code = 404, message = "Not Foound"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("find")
+    @Path("/find")
     @GenerateLink(rel = Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembershipsOfSpecificUser(@Context SecurityContext securityContext,
+    public List<MemberDescriptor> getMembershipsOfSpecificUser(@ApiParam(value = "User identifier", required = true)
+                                                               @Context SecurityContext securityContext,
                                                                @Required @QueryParam("userid") String userId) throws NotFoundException,
                                                                                                                      ForbiddenException,
                                                                                                                      ServerException {
@@ -537,11 +612,21 @@ public class WorkspaceService extends Service {
      * @see #addMember(String, NewMembership, SecurityContext)
      * @see #removeMember(String, String, SecurityContext)
      */
+    @ApiOperation(value = "Get workspace members by workspace ID",
+                  notes = "Get all workspace members of a specified workspace. A JSOn with members and their roles is returned",
+                  response = MemberDescriptor.class,
+                  responseContainer = "List",
+                  position = 8)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}/members")
+    @Path("/{id}/members")
     @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembers(@PathParam("id") String wsId,
+    public List<MemberDescriptor> getMembers(@ApiParam(value = "Workspace ID", required = true)
+                                             @PathParam("id") String wsId,
                                              @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Workspace workspace = workspaceDao.getById(wsId);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
@@ -566,11 +651,20 @@ public class WorkspaceService extends Service {
      * @see #addMember(String, NewMembership, SecurityContext)
      * @see #removeMember(String, String, SecurityContext)
      */
+    @ApiOperation(value = "Get user membership in a specified workspace",
+                  notes = "Returns membership of a user with roles",
+                  response = MemberDescriptor.class,
+                  position = 10)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}/membership")
+    @Path("/{id}/membership")
     @RolesAllowed({"workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public MemberDescriptor getMembershipOfCurrentUser(@PathParam("id") String wsId,
+    public MemberDescriptor getMembershipOfCurrentUser(@ApiParam(value = "Workspace ID", required = true)
+                                                        @PathParam("id") String wsId,
                                                         @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                          ServerException {
         final Principal principal = securityContext.getUserPrincipal();
@@ -595,10 +689,20 @@ public class WorkspaceService extends Service {
      * @throws ConflictException
      *         when given attribute name is not valid
      */
+    @ApiOperation(value = "Delete workspace attribute",
+                  notes = "Deletes attributes of a specified workspace",
+                  position = 11)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = ""),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "Invalid attribute name"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("{id}/attribute")
+    @Path("/{id}/attribute")
     @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
-    public void removeAttribute(@PathParam("id") String wsId,
+    public void removeAttribute(@ApiParam(value = "Workspace ID", required = true)
+                                @PathParam("id") String wsId,
+                                @ApiParam(value = "Attribute name", required = true)
                                 @QueryParam("name") String attributeName,
                                 @Context SecurityContext securityContext) throws NotFoundException,
                                                                                  ServerException,
@@ -632,12 +736,22 @@ public class WorkspaceService extends Service {
      * @see #removeMember(String, String, SecurityContext)
      * @see #getMembers(String, SecurityContext)
      */
+    @ApiOperation(value = "Create new workspace member",
+                  notes = "Add a new member into a workspace",
+                  response = MemberDescriptor.class,
+                  position = 12)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to perform this operation"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "No user ID and/or role specified")})
     @POST
-    @Path("{id}/members")
+    @Path("/{id}/members")
     @RolesAllowed({"user", "temp_user"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public MemberDescriptor addMember(@PathParam("id") String wsId,
+    public MemberDescriptor addMember(@ApiParam(value = "Workspace ID", required = true)
+                                      @PathParam("id") String wsId,
                                       NewMembership newMembership,
                                       @Context SecurityContext securityContext) throws NotFoundException,
                                                                                        ServerException,
@@ -677,10 +791,20 @@ public class WorkspaceService extends Service {
      * @see #addMember(String, NewMembership, SecurityContext)
      * @see #getMembers(String, SecurityContext)
      */
+    @ApiOperation(value = "Remove user from workspace",
+                  notes = "Remove a user from a workspace by User ID",
+                  position = 13)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = ""),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "Cannot remove workspace/admin"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("{id}/members/{userid}")
+    @Path("/{id}/members/{userid}")
     @RolesAllowed("workspace/admin")
-    public void removeMember(@PathParam("id") String wsId,
+    public void removeMember(@ApiParam(value = "Workspace ID", required = true)
+                             @PathParam("id") String wsId,
+                             @ApiParam(value = "User ID", required = true)
                              @PathParam("userid") String userId,
                              @Context SecurityContext securityContext) throws NotFoundException,
                                                                               ServerException,
@@ -727,10 +851,19 @@ public class WorkspaceService extends Service {
      * @throws ConflictException
      *         if some error occurred while removing member
      */
+    @ApiOperation(value = "Delete a workspace",
+                  notes = "Delete a workspace by its ID",
+                  position = 14)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = ""),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "Failed to removed workspace member"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("{id}")
+    @Path("/{id}")
     @RolesAllowed({"workspace/admin", "system/admin"})
-    public void remove(@PathParam("id") String wsId,
+    public void remove(@ApiParam(value = "Workspace ID", required = true)
+                       @PathParam("id") String wsId,
                        @Context SecurityContext securityContext) throws NotFoundException, ServerException, ConflictException {
         workspaceDao.getById(wsId); // check workspaces' existence
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);

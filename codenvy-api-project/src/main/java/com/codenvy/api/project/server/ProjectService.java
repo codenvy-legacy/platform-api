@@ -218,7 +218,7 @@ public class ProjectService extends Service {
         return descriptor;
     }
 
-    @ApiOperation(value = "Updates existed project",
+    @ApiOperation(value = "Updates existing project",
                   response = ProjectDescriptor.class,
                   position = 4)
     @ApiResponses(value = {

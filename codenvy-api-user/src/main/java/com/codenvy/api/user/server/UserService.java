@@ -31,6 +31,7 @@ import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.inject.Inject;
 
+
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -58,7 +59,11 @@ import java.util.Map;
  *
  * @author Eugene Voevodin
  */
+
+
+
 @Path("user")
+
 public class UserService extends Service {
 
     private final UserDao        userDao;

@@ -243,7 +243,7 @@ public class WorkspaceServiceTest {
                                                  SERVICE_PATH,
                                                  MediaType.APPLICATION_JSON,
                                                  newWorkspace);
-        assertEquals(response.getEntity().toString(), "You have not access to create more workspaces");
+        assertEquals(response.getEntity().toString(), "You have no access to create more workspaces");
 
         verify(workspaceDao, times(0)).create(any(Workspace.class));
         verify(memberDao, times(0)).create(any(Member.class));
@@ -323,7 +323,7 @@ public class WorkspaceServiceTest {
 
         ContainerResponse response = makeRequest("POST", SERVICE_PATH, MediaType.APPLICATION_JSON, workspace);
 
-        assertEquals(response.getEntity().toString(), "You have not access to create more workspaces");
+        assertEquals(response.getEntity().toString(), "You have no access to create more workspaces");
     }
 
     @Test

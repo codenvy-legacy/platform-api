@@ -14,6 +14,8 @@ import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.shared.dto.Billing;
+import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.dto.server.DtoFactory;
@@ -23,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Eugene Voevodin
@@ -141,20 +142,30 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) {
+    public void saveSubscriptionAttributes(String subscriptionId, SubscriptionAttributes subscriptionAttributes) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
-    public Map<String, String> getBillingProperties(String subscriptionId) throws ServerException {
-        Map<String, String> result = new HashMap<>();
-        result.put("payment_token", "paytok");
-        result.put("payment_token", "paytok");
-        return result;
+    public SubscriptionAttributes getSubscriptionAttributes(String subscriptionId) throws ServerException {
+        return DtoFactory.getInstance().createDto(SubscriptionAttributes.class)
+                         .withTrialDuration(5)
+                         .withStartDate("10/21/2015")
+                         .withEndDate("10/21/2015")
+                         .withDescription("description")
+                         .withCustom(Collections.singletonMap("key", "value"))
+                         .withBilling(DtoFactory.getInstance().createDto(Billing.class)
+                                                .withStartDate("10/21/2015")
+                                                .withEndDate("10/21/2015")
+                                                .withUsePaymentSystem("true")
+                                                .withPaymentToken("token")
+                                                .withContractTerm(12)
+                                                .withCycle(1)
+                                                .withCycleType(2));
     }
 
     @Override
-    public void removeBillingProperties(String subscriptionId) throws ServerException, NotFoundException {
+    public void removeSubscriptionAttributes(String subscriptionId) throws ServerException, NotFoundException {
         throw new RuntimeException("Not implemented");
     }
 }

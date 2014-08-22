@@ -35,9 +35,9 @@ public interface NewSubscription {
 
     NewSubscription withPlanId(String id);
 
-    Map<String, String> getBillingProperties();
+    SubscriptionAttributes getSubscriptionAttributes();
 
-    void setBillingProperties(Map<String, String> properties);
+    void setSubscriptionAttributes(SubscriptionAttributes subscriptionAttributes);
 
-    NewSubscription withBillingProperties(Map<String, String> properties);
+    NewSubscription withSubscriptionAttributes(SubscriptionAttributes subscriptionAttributes);
 }

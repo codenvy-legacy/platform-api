@@ -11,12 +11,11 @@
 package com.codenvy.api.account.server;
 
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-
-import java.util.Map;
 
 /**
  * Process payments.
@@ -29,10 +28,12 @@ public interface PaymentService {
      *
      * @param subscription
      *         subscription for which the user pays
+     * @param subscriptionAttributes
+     *         attributes of the subscription
      * @throws ServerException
      *         if internal server error occurs
      */
-    void addSubscription(Subscription subscription, Map<String, String> billingProperties)
+    SubscriptionAttributes addSubscription(Subscription subscription, SubscriptionAttributes subscriptionAttributes)
             throws ConflictException, ServerException, ForbiddenException;
 
     /**

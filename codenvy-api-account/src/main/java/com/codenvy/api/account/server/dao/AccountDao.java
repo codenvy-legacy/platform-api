@@ -10,13 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.account.server.dao;
 
+import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link Account} data.
@@ -176,33 +176,42 @@ public interface AccountDao {
     List<Subscription> getSubscriptions() throws ServerException;
 
     /**
-     * Add billing properties of certain subscription
+     * Add subscription attributes of certain subscription
      *
-     * @param subscriptionId subscription identifier of billing properties
-     * @param billingProperties properties to save
-     * @throws NotFoundException if subscription with given id is not found
-     * @throws ForbiddenException if billingProperties is null
+     * @param subscriptionId
+     *         subscription identifier of billing properties
+     * @param subscriptionAttributes
+     *         attributes that should be saved
+     * @throws NotFoundException
+     *         if subscription with given id is not found
+     * @throws ForbiddenException
+     *         if subscription attributes is invalid
      * @throws ServerException
      */
-    void saveBillingProperties(String subscriptionId, Map<String, String> billingProperties) throws ServerException, NotFoundException,
-                                                                                                    ForbiddenException;
+    void saveSubscriptionAttributes(String subscriptionId, SubscriptionAttributes subscriptionAttributes)
+            throws ServerException, NotFoundException,
+                   ForbiddenException;
 
     /**
-     * Get billing properties of certain subscription
+     * Get subscription attributes of certain subscription
      *
-     * @param subscriptionId subscription identifier
-     * @return billing properties of subscription
-     * @throws NotFoundException if subscription billing properties with given id are not found
+     * @param subscriptionId
+     *         subscription identifier
+     * @return subscription attributes of subscription
+     * @throws NotFoundException
+     *         if subscription attributes with given id are not found
      * @throws ServerException
      */
-    Map<String, String> getBillingProperties(String subscriptionId) throws ServerException, NotFoundException;
+    SubscriptionAttributes getSubscriptionAttributes(String subscriptionId) throws ServerException, NotFoundException;
 
     /**
-     * Remove billing properties of certain subscription
+     * Remove subscription attributes of certain subscription
      *
-     * @param subscriptionId subscription identifier
-     * @throws NotFoundException if subscription is not found
+     * @param subscriptionId
+     *         subscription identifier
+     * @throws NotFoundException
+     *         if subscription attributes is not found
      * @throws ServerException
      */
-    void removeBillingProperties(String subscriptionId) throws ServerException, NotFoundException;
+    void removeSubscriptionAttributes(String subscriptionId) throws ServerException, NotFoundException;
 }

@@ -543,7 +543,6 @@ public class ProjectService extends Service {
             } else {
                 itemReference.withType("folder")
                              .withMediaType("text/directory")
-                             .withHasChildFiles(!((FolderEntry)child).getChildFiles().isEmpty())
                              .withLinks(generateFolderLinks(workspace, (FolderEntry)child));
             }
             result.add(itemReference);
@@ -565,7 +564,6 @@ public class ProjectService extends Service {
                                              .withPath(folder.getPath())
                                              .withType("folder")
                                              .withMediaType("text/directory")
-                                             .withHasChildFiles(!folder.getChildFiles().isEmpty())
                                              .withLinks(generateFolderLinks(workspace, folder)))
                          .withChildren(getTree(workspace, folder, depth));
     }
@@ -583,7 +581,6 @@ public class ProjectService extends Service {
                                                     .withPath(childFolder.getPath())
                                                     .withType("folder")
                                                     .withMediaType("text/directory")
-                                                    .withHasChildFiles(!childFolder.getChildFiles().isEmpty())
                                                     .withLinks(generateFolderLinks(workspace, childFolder)))
                                 .withChildren(getTree(workspace, childFolder, depth - 1)));
         }

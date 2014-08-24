@@ -213,7 +213,7 @@ public class ProjectService extends Service {
     @ApiOperation(value = "Create a new module",
                   notes = "Create a new module in a specified project",
                   response = ProjectDescriptor.class,
-                  position = 7)
+                  position = 6)
     @ApiResponses(value = {
                            @ApiResponse(code = 200, message = "OK"),
                            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -271,11 +271,25 @@ public class ProjectService extends Service {
         return toDescriptor(project);
     }
 
+    @ApiOperation(value = "Create file",
+                  notes = "Create a new file in a project. If file type isn't specified the server will resolve its type.",
+                  position = 7)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 409, message = "File already exists"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
-    @Path("file/{parent:.*}")
-    public Response createFile(@PathParam("ws-id") String workspace,
+    @Consumes({MediaType.MEDIA_TYPE_WILDCARD})
+    @Path("/file/{parent:.*}")
+    public Response createFile(@ApiParam(value = "Workspace ID", required = true)
+                               @PathParam("ws-id") String workspace,
+                               @ApiParam(value = "Path to a target directory", required = true)
                                @PathParam("parent") String parentPath,
+                               @ApiParam(value = "New file name", required = true)
                                @QueryParam("name") String fileName,
+                               @ApiParam(value = "New file content type")
                                @HeaderParam("content-type") MediaType contentType,
                                InputStream content) throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
@@ -292,9 +306,21 @@ public class ProjectService extends Service {
                                                    .build(workspace, newFile.getPath().substring(1))).build();
     }
 
+    @ApiOperation(value = "Create a folder",
+                  notes = "Create a folder is a specified project",
+                  position = 8)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 409, message = "File already exists"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/folder/{path:.*}")
-    public Response createFolder(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+    public Response createFolder(@ApiParam(value = "Workspace ID", required = true)
+                                 @PathParam("ws-id") String workspace,
+                                 @ApiParam(value = "Path to a new folder destination", required = true)
+                                 @PathParam("path") String path)
             throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry newFolder = projectManager.getProjectsRoot(workspace).createFolder(path);
         return Response.created(getServiceContext().getServiceUriBuilder()
@@ -302,11 +328,22 @@ public class ProjectService extends Service {
                                                    .build(workspace, newFolder.getPath().substring(1))).build();
     }
 
+    @ApiOperation(value = "Upload a file",
+                  notes = "Upload a new file",
+                  position = 8)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 409, message = "File already exists"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.TEXT_HTML})
     @Path("/uploadFile/{parent:.*}")
-    public Response uploadFile(@PathParam("ws-id") String workspace,
+    public Response uploadFile(@ApiParam(value = "Workspace ID", required = true)
+                               @PathParam("ws-id") String workspace,
+                               @ApiParam(value = "Destination path", required = true)
                                @PathParam("parent") String parentPath,
                                Iterator<FileItem> formData)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
@@ -314,18 +351,41 @@ public class ProjectService extends Service {
         return VirtualFileSystemImpl.uploadFile(parent.getVirtualFile(), formData);
     }
 
+    @ApiOperation(value = "Get file content",
+                  notes = "Get file content by its name",
+                  position = 9)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/file/{path:.*}")
-    public Response getFile(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+    public Response getFile(@ApiParam(value = "Workspace ID", required = true)
+                            @PathParam("ws-id") String workspace,
+                            @ApiParam(value = "Path to a file", required = true)
+                            @PathParam("path") String path)
             throws IOException, NotFoundException, ForbiddenException, ServerException {
         final FileEntry file = asFile(workspace, path);
         return Response.ok().entity(file.getInputStream()).type(file.getMediaType()).build();
     }
 
+    @ApiOperation(value = "Update file",
+                  notes = "Update an existing file with new content",
+                  position = 10)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @PUT
+    @Consumes({MediaType.MEDIA_TYPE_WILDCARD})
     @Path("/file/{path:.*}")
-    public Response updateFile(@PathParam("ws-id") String workspace,
+    public Response updateFile(@ApiParam(value = "Workspace ID", required = true)
+                               @PathParam("ws-id") String workspace,
+                               @ApiParam(value = "Full path to a file", required = true)
                                @PathParam("path") String path,
+                               @ApiParam(value = "Media Type")
                                @HeaderParam("content-type") MediaType contentType,
                                InputStream content) throws NotFoundException, ForbiddenException, ServerException {
         final FileEntry file = asFile(workspace, path);
@@ -340,9 +400,20 @@ public class ProjectService extends Service {
         return Response.ok().build();
     }
 
+    @ApiOperation(value = "Delete a resource",
+                  notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to be deleted a path to the requested resource needs to be specified",
+                  position = 11)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{path:.*}")
-    public void delete(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+    public void delete(@ApiParam(value = "Workspace ID", required = true)
+                       @PathParam("ws-id") String workspace,
+                       @ApiParam(value = "Path to a resource to be deleted", required = true)
+                       @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (entry.isFolder() && ((FolderEntry)entry).isProjectFolder()) {
@@ -358,10 +429,22 @@ public class ProjectService extends Service {
         }
     }
 
+    @ApiOperation(value = "Copy resource",
+                  notes = "Copy resource to a new location which is specified in a query parameter",
+                  position = 12)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 409, message = "Resource already exists"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/copy/{path:.*}")
-    public Response copy(@PathParam("ws-id") String workspace,
+    public Response copy(@ApiParam(value = "Workspace ID", required = true)
+                         @PathParam("ws-id") String workspace,
+                         @ApiParam(value = "Path to a resource", required = true)
                          @PathParam("path") String path,
+                         @ApiParam(value = "Path to a new location", required = true)
                          @QueryParam("to") String newParent)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
@@ -380,10 +463,22 @@ public class ProjectService extends Service {
         return Response.created(location).build();
     }
 
+    @ApiOperation(value = "Move resource",
+            notes = "Move resource to a new location which is specified in a query parameter",
+            position = 13)
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/move/{path:.*}")
-    public Response move(@PathParam("ws-id") String workspace,
+    public Response move(@ApiParam(value = "Workspace ID", required = true)
+                         @PathParam("ws-id") String workspace,
+                         @ApiParam(value = "Path to a resource to be moved", required = true)
                          @PathParam("path") String path,
+                         @ApiParam(value = "Path to a new location", required = true)
                          @QueryParam("to") String newParent)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);

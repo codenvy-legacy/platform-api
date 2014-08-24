@@ -180,10 +180,23 @@ public class ProjectService extends Service {
         return descriptor;
     }
 
+    @ApiOperation(value = "Get project modules",
+                  notes = "Get project modules. Roles allowed: system/admin, system/manager.",
+                  response = ProjectDescriptor.class,
+                  responseContainer = "List",
+                  position = 5)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("modules/{path:.*}")
+    @Path("/modules/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectDescriptor> getModules(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+    public List<ProjectDescriptor> getModules(@ApiParam(value = "Workspace ID", required = true)
+                                              @PathParam("ws-id") String workspace,
+                                              @ApiParam(value = "Path to a project", required = true)
+                                              @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
@@ -197,12 +210,25 @@ public class ProjectService extends Service {
         return descriptors;
     }
 
+    @ApiOperation(value = "Create a new module",
+                  notes = "Create a new module in a specified project",
+                  response = ProjectDescriptor.class,
+                  position = 7)
+    @ApiResponses(value = {
+                           @ApiResponse(code = 200, message = "OK"),
+                           @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                           @ApiResponse(code = 404, message = "Not found"),
+                           @ApiResponse(code = 409, message = "Module already exists"),
+                           @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor createModule(@PathParam("ws-id") String workspace,
+    public ProjectDescriptor createModule(@ApiParam(value = "Workspace ID", required = true)
+                                          @PathParam("ws-id") String workspace,
+                                          @ApiParam(value = "Project name", required = true)
                                           @PathParam("path") String parentProject,
+                                          @ApiParam(value = "New module name", required = true)
                                           @QueryParam("name") String name,
                                           NewProject newProject)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {

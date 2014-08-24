@@ -26,6 +26,7 @@ import java.util.Map;
 public interface ProjectDescriptor {
 
     /** Get name of project. */
+    @ApiModelProperty(value = "Project name", position = 1)
     String getName();
 
     /** Set name of project. */
@@ -34,6 +35,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withName(String name);
 
     /** Get path of project. */
+    @ApiModelProperty(value = "Project path", position = 2)
     String getPath();
 
     /** Set path of project. */
@@ -42,12 +44,14 @@ public interface ProjectDescriptor {
     ProjectDescriptor withPath(String path);
 
     /** Id of workspace which projects belongs to. */
+    @ApiModelProperty(value = "Workspace ID", position = 3)
     String getWorkspaceId();
 
     void setWorkspaceId(String workspaceId);
 
     ProjectDescriptor withWorkspaceId(String workspaceId);
 
+    @ApiModelProperty(value = "Project URL", position = 4)
     String getBaseUrl();
 
     void setBaseUrl(String url);
@@ -55,6 +59,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withBaseUrl(String url);
 
     /** Get unique ID of type of project. */
+    @ApiModelProperty(value = "Project type ID", allowableValues = "maven,AngularJS,blank", position = 5)
     String getProjectTypeId();
 
     /** Set unique ID of type of project. */
@@ -63,6 +68,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withProjectTypeId(String id);
 
     /** Get display name of type of project. */
+    @ApiModelProperty(value = "Name of a project type", allowableValues = "Maven Project,AngularJS Project,Blank Project", position = 6)
     String getProjectTypeName();
 
     /** Set display name of type of project. */
@@ -71,6 +77,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withProjectTypeName(String name);
 
     /** Get project visibility, e.g. private or public. */
+    @ApiModelProperty(value = "Project privacy. Projects are public by default", allowableValues = "private,public", position = 7)
     String getVisibility();
 
     /** Set project visibility, e.g. private or public. */
@@ -79,6 +86,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withVisibility(String visibility);
 
     /** Get optional description of project. */
+    @ApiModelProperty(value = "Project description", position = 8)
     String getDescription();
 
     /** Set optional description of project. */
@@ -87,6 +95,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withDescription(String description);
 
     /** Get creation date of project. */
+    @ApiModelProperty(value = "Creation date in UNIX Epoch format", dataType = "long", position = 9)
     long getCreationDate();
 
     /** Set creation date of project. */
@@ -95,6 +104,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withCreationDate(long date);
 
     /** Get modification date of project. */
+    @ApiModelProperty(value = "Most recent modification date", dataType = "long", position = 10)
     long getModificationDate();
 
     /** Set modification date of project. */
@@ -103,6 +113,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withModificationDate(long date);
 
     /** Get attributes of project. */
+    @ApiModelProperty(value = "Project attributes", position = 11)
     Map<String, List<String>> getAttributes();
 
     /** Set attributes of project. */
@@ -111,6 +122,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
 
     /** Get permissions of current user on this project. Current user is user who retrieved this object. */
+    @ApiModelProperty(value = "Permissions in the project", allowableValues = "read,read,write,update_acl,build,run", position = 12)
     List<String> getCurrentUserPermissions();
 
     void setCurrentUserPermissions(List<String> permissions);

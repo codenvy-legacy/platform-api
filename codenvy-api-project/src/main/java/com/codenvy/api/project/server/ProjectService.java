@@ -802,7 +802,7 @@ public class ProjectService extends Service {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
             @ApiResponse(code = 404, message = "Not found"),
-            @ApiResponse(code = 404, message = "Conflict error"),
+            @ApiResponse(code = 409, message = "Conflict error"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/search/{path:.*}")
@@ -865,12 +865,25 @@ public class ProjectService extends Service {
         return Collections.emptyList();
     }
 
+    @ApiOperation(value = "Get user permissions in a project",
+                  notes = "Get permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
+                  response = AccessControlEntry.class,
+                  responseContainer = "List",
+                  position = 21)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/permissions/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
-    public List<AccessControlEntry> getPermissions(@PathParam("ws-id") String wsId,
+    public List<AccessControlEntry> getPermissions(@ApiParam(value = "Workspace ID", required = true)
+                                                   @PathParam("ws-id") String wsId,
+                                                   @ApiParam(value = "Path to a project", required = true)
                                                    @PathParam("path") String path,
+                                                   @ApiParam(value = "User ID", required = true)
                                                    @QueryParam("userid") Set<String> users)
             throws NotFoundException, ForbiddenException, ServerException {
         final Project project = projectManager.getProject(wsId, path);
@@ -890,11 +903,22 @@ public class ProjectService extends Service {
         return acl;
     }
 
+    @ApiOperation(value = "Set project visibility",
+                  notes = "Set project visibility. Projects can be private or public",
+                  position = 22)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/switch_visibility/{path:.*}")
     @RolesAllowed("workspace/admin")
-    public void switchVisibility(@PathParam("ws-id") String wsId,
+    public void switchVisibility(@ApiParam(value = "Workspace ID", required = true)
+                                 @PathParam("ws-id") String wsId,
+                                 @ApiParam(value = "Path to a project", required = true)
                                  @PathParam("path") String path,
+                                 @ApiParam(value = "Visibility type", required = true, allowableValues = "public,private")
                                  @QueryParam("visibility") String visibility)
             throws NotFoundException, ForbiddenException, ServerException {
         if (visibility == null || visibility.isEmpty()) {
@@ -907,11 +931,23 @@ public class ProjectService extends Service {
         project.setVisibility(visibility);
     }
 
+    @ApiOperation(value = "Set permissions for a user in a project",
+                  notes = "Set permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
+                  response = AccessControlEntry.class,
+                  responseContainer = "List",
+                  position = 23)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/permissions/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("workspace/admin")
-    public List<AccessControlEntry> setPermissions(@PathParam("ws-id") String wsId,
+    public List<AccessControlEntry> setPermissions(@ApiParam(value = "Workspace ID", required = true)
+                                                   @PathParam("ws-id") String wsId,
+                                                   @ApiParam(value = "Path to a project", required = true)
                                                    @PathParam("path") String path,
                                                    List<AccessControlEntry> acl) throws ForbiddenException, ServerException {
         final Project project = projectManager.getProject(wsId, path);

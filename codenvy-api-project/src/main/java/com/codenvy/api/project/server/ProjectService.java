@@ -704,10 +704,23 @@ public class ProjectService extends Service {
         return VirtualFileSystemImpl.exportZipMultipart(folder.getVirtualFile(), in);
     }
 
+    @ApiOperation(value = "Get project children items",
+                  notes = "Request all children items for a project, such as files and folders",
+                  response = ItemReference.class,
+                  responseContainer = "List",
+                  position = 18)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/children/{parent:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ItemReference> getChildren(@PathParam("ws-id") String workspace, @PathParam("parent") String path)
+    public List<ItemReference> getChildren(@ApiParam(value = "Workspace ID", required = true)
+                                           @PathParam("ws-id") String workspace,
+                                           @ApiParam(value = "Path to a project", required = true)
+                                           @PathParam("parent") String path)
             throws NotFoundException, ForbiddenException, ServerException {
         final FolderEntry folder = asFolder(workspace, path);
         final List<VirtualFileEntry> children = folder.getChildren();
@@ -730,11 +743,24 @@ public class ProjectService extends Service {
         return result;
     }
 
+    @ApiOperation(value = "Get project tree",
+            notes = "Get project tree. Depth is specified in a query parameter",
+            response = TreeElement.class,
+            responseContainer = "List",
+            position = 19)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/tree/{parent:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public TreeElement getTree(@PathParam("ws-id") String workspace,
+    public TreeElement getTree(@ApiParam(value = "Workspace ID", required = true)
+                               @PathParam("ws-id") String workspace,
+                               @ApiParam(value = "Path to resource. Can be project or its folders", required = true)
                                @PathParam("parent") String path,
+                               @ApiParam(value = "Tree depth. This parameter can be dropped. If not specified ?depth=1 is used by default")
                                @DefaultValue("1") @QueryParam("depth") int depth)
             throws NotFoundException, ForbiddenException, ServerException {
         final FolderEntry folder = asFolder(workspace, path);
@@ -767,15 +793,33 @@ public class ProjectService extends Service {
         return nodes;
     }
 
+    @ApiOperation(value = "Search for resources",
+            notes = "Search for resources applying a number of search filters as query parameters",
+            response = ItemReference.class,
+            responseContainer = "List",
+            position = 20)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 404, message = "Conflict error"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/search/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ItemReference> search(@PathParam("ws-id") String workspace,
+    public List<ItemReference> search(@ApiParam(value = "Workspace ID", required = true)
+                                      @PathParam("ws-id") String workspace,
+                                      @ApiParam(value = "Path to resource, i.e. where to search?", required = true)
                                       @PathParam("path") String path,
+                                      @ApiParam(value = "Resource name")
                                       @QueryParam("name") String name,
+                                      @ApiParam(value = "Media type")
                                       @QueryParam("mediatype") String mediatype,
+                                      @ApiParam(value = "Search keywords")
                                       @QueryParam("text") String text,
+                                      @ApiParam(value = "Maximum items to display. If this parameter is dropped, there are no limits")
                                       @QueryParam("maxItems") @DefaultValue("-1") int maxItems,
+                                      @ApiParam(value = "Skip count")
                                       @QueryParam("skipCount") int skipCount)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final FolderEntry folder = asFolder(workspace, path);

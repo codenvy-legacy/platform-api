@@ -499,11 +499,24 @@ public class ProjectService extends Service {
         return Response.created(location).build();
     }
 
+    @ApiOperation(value = "Rename resource",
+                  notes = "Rename resources. It can be project, module, folder or file",
+                  position = 14)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 409, message = "Resource already exists"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/rename/{path:.*}")
-    public Response rename(@PathParam("ws-id") String workspace,
+    public Response rename(@ApiParam(value = "Workspace ID", required = true)
+                           @PathParam("ws-id") String workspace,
+                           @ApiParam(value = "Path to resource to be renamed", required = true)
                            @PathParam("path") String path,
+                           @ApiParam(value = "New name", required = true)
                            @QueryParam("name") String newName,
+                           @ApiParam(value = "New media type")
                            @QueryParam("mediaType") String newMediaType)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
@@ -519,11 +532,23 @@ public class ProjectService extends Service {
         return Response.created(location).build();
     }
 
+    @ApiOperation(value = "Import resource",
+                  notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from VSC or ZIP",
+                  response = ProjectDescriptor.class,
+                  position = 15)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = ""),
+                  @ApiResponse(code = 401, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 403, message = "Forbidden operation"),
+                  @ApiResponse(code = 409, message = "Resource already exists"),
+                  @ApiResponse(code = 500, message = "Unsupported source type")})
     @POST
     @Path("/import/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor importProject(@PathParam("ws-id") String workspace,
+    public ProjectDescriptor importProject(@ApiParam(value = "Workspace ID", required = true)
+                                           @PathParam("ws-id") String workspace,
+                                           @ApiParam(value = "Path in the project", required = true)
                                            @PathParam("path") String path,
                                            ImportSourceDescriptor importDescriptor)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
@@ -573,12 +598,24 @@ public class ProjectService extends Service {
         return projectDescriptor;
     }
 
+    @ApiOperation(value = "Generate a project",
+                  notes = "Generate a project of a particular type",
+                  response = ProjectDescriptor.class,
+                  position = 16)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = ""),
+            @ApiResponse(code = 403, message = "Forbidden operation"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Unable to generate project. Unknown generator is used")})
     @POST
     @Path("/generate/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor generateProject(@PathParam("ws-id") String workspace,
+    public ProjectDescriptor generateProject(@ApiParam(value = "Workspace ID", required = true)
+                                             @PathParam("ws-id") String workspace,
+                                             @ApiParam(value = "Path to a new project", required = true)
                                              @PathParam("path") String path,
+                                             @ApiParam(value = "Project type to Generate", required = true)
                                              @QueryParam("generator") String generatorName,
                                              Map<String, String> options) throws ConflictException, ForbiddenException, ServerException {
         final ProjectGenerator generator = generators.getGenerator(generatorName);
@@ -597,10 +634,21 @@ public class ProjectService extends Service {
         return projectDescriptor;
     }
 
+    @ApiOperation(value = "Import zip",
+                  notes = "Import resources as zip",
+                  position = 16)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 409, message = "Resource already exists"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/import/{path:.*}")
     @Consumes("application/zip")
-    public Response importZip(@PathParam("ws-id") String workspace,
+    public Response importZip(@ApiParam(value = "Workspace ID", required = true)
+                              @PathParam("ws-id") String workspace,
+                              @ApiParam(value = "Path to a location (where import to?)")
                               @PathParam("path") String path,
                               InputStream zip) throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final FolderEntry parent = asFolder(workspace, path);
@@ -616,10 +664,21 @@ public class ProjectService extends Service {
                                                    .build(workspace, parent.getPath().substring(1))).build();
     }
 
+    @ApiOperation(value = "Download ZIP",
+                  notes = "Export resource as zip. It can be an entire project or folder",
+                  position = 17)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = ""),
+                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+                  @ApiResponse(code = 404, message = "Not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/export/{path:.*}")
     @Produces("application/zip")
-    public ContentStream exportZip(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+    public ContentStream exportZip(@ApiParam(value = "Workspace ID", required = true)
+                                   @PathParam("ws-id") String workspace,
+                                   @ApiParam(value = "Path to resource to be imported")
+                                   @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
         final FolderEntry folder = asFolder(workspace, path);
         return VirtualFileSystemImpl.exportZip(folder.getVirtualFile());

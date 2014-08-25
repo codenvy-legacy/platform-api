@@ -11,6 +11,7 @@
 package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author Vitaly Parfonov
@@ -26,6 +27,7 @@ public interface ImportSourceDescriptor {
     /**
      * @return type of importer e.g zip, git
      */
+    @ApiModelProperty(value = "Importer type", required = true, allowableValues = "zip,git,svn")
     String getType();
 
     /**
@@ -36,6 +38,7 @@ public interface ImportSourceDescriptor {
     /**
      * @return location to the resource
      */
+    @ApiModelProperty(value = "Location of remote resources to be imported", required = true)
     String getLocation();
 
     ImportSourceDescriptor withType(String type);

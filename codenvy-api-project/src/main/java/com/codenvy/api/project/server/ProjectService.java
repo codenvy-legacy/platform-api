@@ -281,7 +281,6 @@ public class ProjectService extends Service {
                   @ApiResponse(code = 409, message = "File already exists"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
-    @Consumes({MediaType.MEDIA_TYPE_WILDCARD})
     @Path("/file/{parent:.*}")
     public Response createFile(@ApiParam(value = "Workspace ID", required = true)
                                @PathParam("ws-id") String workspace,
@@ -379,7 +378,6 @@ public class ProjectService extends Service {
                   @ApiResponse(code = 404, message = "Not found"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @PUT
-    @Consumes({MediaType.MEDIA_TYPE_WILDCARD})
     @Path("/file/{path:.*}")
     public Response updateFile(@ApiParam(value = "Workspace ID", required = true)
                                @PathParam("ws-id") String workspace,

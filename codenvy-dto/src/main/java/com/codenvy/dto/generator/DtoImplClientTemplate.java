@@ -506,8 +506,21 @@ public class DtoImplClientTemplate extends DtoImpl {
                 builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(typeCast).append(inVar)
                        .append(".isNumber().doubleValue();\n");
             } else {
-                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(typeCast).append(inVar).append(".isNumber() != null ? ").append(inVar).append(
-                        ".isNumber().doubleValue() : null;\n");
+                if (isInteger(rawClass)) {
+                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isNumber() != null ? ((Double)").append(inVar).append(
+                            ".isNumber().doubleValue()).intValue() : null;\n");
+                } else if (isFloat(rawClass)) {
+                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isNumber() != null ? ((Double)").append(inVar).append(
+                            ".isNumber().doubleValue()).floatValue() : null;\n");
+                } else if (isLong(rawClass)) {
+                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
+                           .append(".isNumber() != null ? ((Double)").append(inVar).append(
+                            ".isNumber().doubleValue()).longValue() : null;\n");
+                } else if (isDouble(rawClass)) {
+                         builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
+                       .append(".isNumber() != null ? ((Double)").append(inVar).append(
+                        ".isNumber().doubleValue()).doubleValue() : null;\n");
+                }
             }
         } else if (isBoolean(rawClass)) {
             String primitiveName = rawClass.getSimpleName();
@@ -530,6 +543,22 @@ public class DtoImplClientTemplate extends DtoImpl {
                                                    " is not allowed to use in DTO interface.");
             }
         }
+    }
+
+    private boolean isDouble(Class<?> returnType) {
+        return  returnType.equals(Double.class);
+    }
+
+    private boolean isLong(Class<?> returnType) {
+        return  returnType.equals(Long.class);
+    }
+
+    private boolean isFloat(Class<?> returnType) {
+        return  returnType.equals(Float.class);
+    }
+
+    private boolean isInteger(Class<?> returnType) {
+      return  returnType.equals(Integer.class);
     }
 
     private void emitMockPreamble(Class<?> dtoInterface, StringBuilder builder) {

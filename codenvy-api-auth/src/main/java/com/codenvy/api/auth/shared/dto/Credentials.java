@@ -11,6 +11,7 @@
 package com.codenvy.api.auth.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author gazarenkov
@@ -18,18 +19,21 @@ import com.codenvy.dto.shared.DTO;
 @DTO
 public interface Credentials {
 
+    @ApiModelProperty(value = "Parameter used to login as system/admin. It is not necessary for users", allowableValues = "sysldap")
     String getRealm();
 
     void setRealm(String realm);
 
     Credentials withRealm(String realm);
 
+    @ApiModelProperty(value = "Codenvy login - registration email", required = true)
     String getUsername();
 
     void setUsername(String name);
 
     Credentials withUsername(String name);
 
+    @ApiModelProperty(value = "Codenvy password. If you don't know your password, restore it at /site/recover-password page", required = true)
     String getPassword();
 
     void setPassword(String password);

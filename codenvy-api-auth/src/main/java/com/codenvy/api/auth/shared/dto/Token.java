@@ -11,6 +11,7 @@
 package com.codenvy.api.auth.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * Authentication token.
@@ -19,6 +20,7 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface Token {
+    @ApiModelProperty(value = "Authentication token obtained after login", required = true)
     String getValue();
 
     void setValue(String value);

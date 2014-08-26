@@ -42,7 +42,7 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
-
+import com.wordnik.swagger.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +78,9 @@ import java.util.Set;
  * @author Eugene Voevodin
  * @author Alex Garagatyi
  */
-@Path("account")
+@Api(value = "/account",
+     description = "Account manager")
+@Path("/account")
 public class AccountService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
     private final AccountDao                      accountDao;
@@ -123,6 +125,15 @@ public class AccountService extends Service {
      * @see #getById(String, SecurityContext)
      * @see #getByName(String, SecurityContext)
      */
+    @ApiOperation(value = "Create a new account",
+                  notes = "Create a new account",
+                  response = Account.class,
+                  position = 1)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = "CREATED"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "Conflict Error"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_ACCOUNT)
     @RolesAllowed("user")

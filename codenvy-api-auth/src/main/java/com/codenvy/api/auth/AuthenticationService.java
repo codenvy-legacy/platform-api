@@ -11,6 +11,8 @@
 package com.codenvy.api.auth;
 
 import com.codenvy.api.auth.shared.dto.Credentials;
+import com.codenvy.api.auth.shared.dto.Token;
+import com.wordnik.swagger.annotations.*;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;
@@ -25,7 +27,10 @@ import javax.ws.rs.core.*;
  * @author Sergii Kabashniuk
  * @author Alexander Garagatyi
  */
-@Path("auth")
+
+@Api(value = "/auth",
+     description = "Authentication manager")
+@Path("/auth")
 public class AuthenticationService {
 
     private final AuthenticationDao dao;
@@ -45,11 +50,19 @@ public class AuthenticationService {
      * @return - auth token in JSON, session-based and persistent cookies
      * @throws AuthenticationException
      */
+    @ApiOperation(value = "Login",
+                  notes = "Login to a Codenvy account. Either auth token or cookie are used",
+                  response = Token.class,
+                  position = 2)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 400, message = "Authentication error")})
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("login")
+    @Path("/login")
     public Response authenticate(Credentials credentials,
+                                 @ApiParam(value = "Existing auth cookie. It is used to get deleted to a obtain new cookie")
                                  @CookieParam("session-access-key") Cookie tokenAccessCookie,
                                  @Context UriInfo uriInfo)
             throws AuthenticationException {
@@ -66,9 +79,17 @@ public class AuthenticationService {
      * @param tokenAccessCookie
      *         - old session-based cookie with token.
      */
+    @ApiOperation(value = "Logout",
+                  notes = "Logout from a Codenvy account",
+                  position = 1)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 400, message = "Authentication error")})
     @POST
-    @Path("logout")
-    public Response logout(@QueryParam("token") String token,
+    @Path("/logout")
+    public Response logout(@ApiParam(value = "Auth token", required = true)
+                           @QueryParam("token") String token,
+                           @ApiParam(value = "Existing auth cookie. It is used to get deleted to a obtain new cookie")
                            @CookieParam("session-access-key") Cookie tokenAccessCookie,
                            @Context UriInfo uriInfo) {
 

@@ -12,6 +12,7 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -25,24 +26,28 @@ import java.util.Map;
  */
 @DTO
 public interface SubscriptionDescriptor {
+    @ApiModelProperty(value = "Unique subscription ID")
     String getId();
 
     void setId(String id);
 
     SubscriptionDescriptor withId(String id);
 
+    @ApiModelProperty(value = "Account ID")
     String getAccountId();
 
     void setAccountId(String orgId);
 
     SubscriptionDescriptor withAccountId(String orgId);
 
+    @ApiModelProperty(value = "Service ID", allowableValues = "SaaS,OnPremises,Factory")
     String getServiceId();
 
     void setServiceId(String id);
 
     SubscriptionDescriptor withServiceId(String id);
 
+    @ApiModelProperty(value = "Plan ID that includes service, duration, package and RAM amount")
     String getPlanId();
 
     void setPlanId(String planId);

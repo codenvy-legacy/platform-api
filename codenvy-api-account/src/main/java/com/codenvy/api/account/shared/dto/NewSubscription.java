@@ -11,6 +11,7 @@
 package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.Map;
 
@@ -23,12 +24,15 @@ import java.util.Map;
  */
 @DTO
 public interface NewSubscription {
+
+    @ApiModelProperty(value = "Account ID")
     String getAccountId();
 
     void setAccountId(String orgId);
 
     NewSubscription withAccountId(String orgId);
 
+    @ApiModelProperty(value = "PLan ID")
     String getPlanId();
 
     void setPlanId(String id);

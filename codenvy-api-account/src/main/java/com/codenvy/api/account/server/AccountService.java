@@ -380,11 +380,22 @@ public class AccountService extends Service {
      * @see #removeMember(String, String)
      * @see #getMembers(String, SecurityContext)
      */
+    @ApiOperation(value = "Add a new member to account",
+            notes = "Add a new user to an account. This user will have account/member role. This API call requires account/owner, system/admin or system/manager role.",
+            response = MemberDescriptor.class,
+            position = 6)
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "No user ID specified" ),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
-    @Path("{id}/members")
+    @Path("/{id}/members")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public Response addMember(@PathParam("id") String accountId,
+    public Response addMember(@ApiParam(value = "Account ID", required = true)
+                              @PathParam("id") String accountId,
+                              @ApiParam(value = "User ID", required = true)
                               @QueryParam("userid") String userId,
                               @Context SecurityContext securityContext) throws ConflictException,
                                                                                NotFoundException,
@@ -415,11 +426,21 @@ public class AccountService extends Service {
      * @see #addMember(String, String, SecurityContext)
      * @see #removeMember(String, String)
      */
+    @ApiOperation(value = "Get account members",
+            notes = "Get all members for a specific account. This API call requires account/owner, system/admin or system/manager role.",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 7)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Account ID not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}/members")
+    @Path("/{id}/members")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembers(@PathParam("id") String id,
+    public List<MemberDescriptor> getMembers(@ApiParam(value = "Account ID")
+                                             @PathParam("id") String id,
                                              @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Account account = accountDao.getById(id);
         final List<Member> members = accountDao.getMembers(id);
@@ -446,10 +467,20 @@ public class AccountService extends Service {
      * @see #addMember(String, String, SecurityContext)
      * @see #getMembers(String, SecurityContext)
      */
+    @ApiOperation(value = "Remove user from account",
+            notes = "Remove user from a specific account. This API call requires account/owner, system/admin or system/manager role.",
+            position = 8)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 404, message = "Account ID not found"),
+                  @ApiResponse(code = 409, message = "Account should have at least 1 owner"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("{id}/members/{userid}")
+    @Path("/{id}/members/{userid}")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public void removeMember(@PathParam("id") String accountId,
+    public void removeMember(@ApiParam(value = "Account ID", required = true)
+                             @PathParam("id") String accountId,
+                             @ApiParam(value = "User ID")
                              @PathParam("userid") String userId) throws NotFoundException, ServerException, ConflictException {
         final List<Member> accMembers = accountDao.getMembers(accountId);
         Member toRemove = null;
@@ -499,12 +530,22 @@ public class AccountService extends Service {
      *         when some error occurred while retrieving/persisting account
      * @see AccountDescriptor
      */
+    @ApiOperation(value = "Update account",
+            notes = "Update account. This API call requires account/owner role.",
+            response = AccountDescriptor.class,
+            position = 9)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Account ID not found"),
+                  @ApiResponse(code = 409, message = "Invalid account ID or account name already exists"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
-    @Path("{id}")
+    @Path("/{id}")
     @RolesAllowed({"account/owner"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public AccountDescriptor update(@PathParam("id") String accountId,
+    public AccountDescriptor update(@ApiParam(value = "Account ID", required = true)
+                                    @PathParam("id") String accountId,
                                     AccountUpdate update,
                                     @Context SecurityContext securityContext) throws NotFoundException,
                                                                                      ConflictException,
@@ -541,11 +582,21 @@ public class AccountService extends Service {
      *         when some error occurred while retrieving subscriptions
      * @see SubscriptionDescriptor
      */
+    @ApiOperation(value = "Get account subscriptions",
+                  notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
+                  response = SubscriptionDescriptor.class,
+                  responseContainer = "List",
+                  position = 10)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Account ID not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}/subscriptions")
+    @Path("/{id}/subscriptions")
     @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<SubscriptionDescriptor> getSubscriptions(@PathParam("id") String accountId,
+    public List<SubscriptionDescriptor> getSubscriptions(@ApiParam(value = "Account ID", required = true)
+                                                         @PathParam("id") String accountId,
                                                          @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                           ServerException {
         final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
@@ -570,11 +621,21 @@ public class AccountService extends Service {
      * @see #getSubscriptions(String, SecurityContext)
      * @see #removeSubscription(String, SecurityContext)
      */
+    @ApiOperation(value = "Get subscription details",
+                  notes = "Get information on a particular subscription by its unique ID.",
+                  response = SubscriptionDescriptor.class,
+                  position = 11)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this method" ),
+                  @ApiResponse(code = 404, message = "Account ID not found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("subscriptions/{subscriptionId}")
+    @Path("/subscriptions/{subscriptionId}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public SubscriptionDescriptor getSubscriptionById(@PathParam("subscriptionId") String subscriptionId,
+    public SubscriptionDescriptor getSubscriptionById(@ApiParam(value = "Subscription ID", required = true)
+                                                      @PathParam("subscriptionId") String subscriptionId,
                                                       @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                        ServerException,
                                                                                                        ForbiddenException {
@@ -608,13 +669,24 @@ public class AccountService extends Service {
      * @see #getSubscriptionById(String, SecurityContext)
      * @see #removeSubscription(String, SecurityContext)
      */
+    @ApiOperation(value = "Add new subscription",
+                  notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
+                  response = SubscriptionDescriptor.class,
+                  position = 12)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 201, message = "CREATED"),
+                  @ApiResponse(code = 403, message = "Access denied" ),
+                  @ApiResponse(code = 404, message = "Invalid subscription parameter"),
+                  @ApiResponse(code = 409, message = "Unknown ServiceID is used or payment token is invalid"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
-    @Path("subscriptions")
+    @Path("/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response addSubscription(@Required NewSubscription newSubscription,
+    public Response addSubscription(@ApiParam(value = "Subscription details", required = true)
+                                    @Required NewSubscription newSubscription,
                                     @Context SecurityContext securityContext)
             throws ApiException {
         requiredNotNull(newSubscription, "New subscription");
@@ -693,10 +765,19 @@ public class AccountService extends Service {
      * @see #addSubscription(NewSubscription, SecurityContext)
      * @see #getSubscriptions(String, SecurityContext)
      */
+    @ApiOperation(value = "Remove subscription",
+                  notes = "Remove subscription from account. Roles: account/owner, system/admin.",
+                  position = 13)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 403, message = "Access denied" ),
+                  @ApiResponse(code = 404, message = "Invalid subscription ID"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("subscriptions/{id}")
+    @Path("/subscriptions/{id}")
     @RolesAllowed({"user", "system/admin"})
-    public void removeSubscription(@PathParam("id") String subscriptionId, @Context SecurityContext securityContext)
+    public void removeSubscription(@ApiParam(value = "Subscription ID", required = true)
+                                   @PathParam("id") String subscriptionId, @Context SecurityContext securityContext)
             throws ApiException {
         final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
@@ -719,10 +800,20 @@ public class AccountService extends Service {
         service.onRemoveSubscription(toRemove);
     }
 
+    @ApiOperation(value = "Remove account",
+                  notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",
+                  position = 14)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 403, message = "Access denied" ),
+                  @ApiResponse(code = 404, message = "Invalid account ID"),
+                  @ApiResponse(code = 409, message = "Cannot delete account with associated workspaces"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("{id}")
+    @Path("/{id}")
     @RolesAllowed("system/admin")
-    public void remove(@PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
+    public void remove(@ApiParam(value = "Account ID", required = true)
+                       @PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
         accountDao.remove(id);
     }
 
@@ -738,11 +829,21 @@ public class AccountService extends Service {
      *         if user is not allowed to call this method
      * @throws ServerException
      */
+    @ApiOperation(value = "Get subscription attributes",
+                  notes = "Get attributes of a specified subscription by its ID. Roles: account/owner, system/admin.",
+                  response = SubscriptionAttributesDescriptor.class,
+                  position = 15)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied" ),
+            @ApiResponse(code = 404, message = "Invalid susbscription ID"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("subscriptions/{id}/attributes")
+    @Path("/subscriptions/{id}/attributes")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public SubscriptionAttributesDescriptor getSubscriptionAttributes(@PathParam("id") String subscriptionId,
+    public SubscriptionAttributesDescriptor getSubscriptionAttributes(@ApiParam(value = "Subscription ID")
+                                                                      @PathParam("id") String subscriptionId,
                                                                       @Context SecurityContext securityContext)
             throws ServerException, NotFoundException, ForbiddenException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
@@ -766,11 +867,23 @@ public class AccountService extends Service {
      *         if requested subscription can't be added
      * @throws ServerException
      */
+    @ApiOperation(value = "Validate new subscription",
+                  notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
+                  response = NewSubscription.class,
+                  position = 16)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Invalid susbscription ID"),
+                  @ApiResponse(code = 409, message = "Plan identifier required"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{accountId}/subscriptions/validate")
+    @Path("/{accountId}/subscriptions/validate")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public NewSubscription validateSubscriptionAddition(@PathParam("accountId") String accountId, @QueryParam("planId") String planId)
+    public NewSubscription validateSubscriptionAddition(@ApiParam(value = "Account ID", required = true)
+                                                        @PathParam("accountId") String accountId,
+                                                        @ApiParam(value = "Plan ID", required = true)
+                                                        @QueryParam("planId") String planId)
             throws NotFoundException, ServerException, ConflictException {
         if (null == planId) {
             throw new ConflictException("Plan identifier required");

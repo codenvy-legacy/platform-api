@@ -186,6 +186,15 @@ public class AccountService extends Service {
      *         when some error occurred while retrieving accounts or memberships
      * @see MemberDescriptor
      */
+    @ApiOperation(value = "Get current user memberships",
+                  notes = "This API call returns a JSON with all user membership in a single or multiple accounts",
+                  response = MemberDescriptor.class,
+                  responseContainer = "List",
+                  position = 2)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed("user")
@@ -215,12 +224,23 @@ public class AccountService extends Service {
      *         when some error occurred while retrieving user or memberships
      * @see MemberDescriptor
      */
+    @ApiOperation(value = "Get memberships of a specific user",
+                  notes = "ID of a user should be specified as a query parameter. JSON with membership details is returned. For this API call system/admin or system/manager role is required",
+                  response = MemberDescriptor.class,
+                  responseContainer = "List",
+                  position = 3)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "No User ID specified"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("memberships")
+    @Path("/memberships")
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MemberDescriptor> getMembershipsOfSpecificUser(@Required @QueryParam("userid") String userId,
+    public List<MemberDescriptor> getMembershipsOfSpecificUser(@ApiParam(value = "User ID", required = true)
+                                                               @Required @QueryParam("userid") String userId,
                                                                @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                                 ServerException,
                                                                                                                 ConflictException {
@@ -248,10 +268,20 @@ public class AccountService extends Service {
      * @throws ServerException
      *         when some error occurred while getting/updating account
      */
+    @ApiOperation(value = "Delete account attribute",
+                  notes = "Remove attribute from an account. Attribute name is used as a quary parameter. For this API request account/owner, system/admin or system/manager role is required",
+                  position = 4)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "Invalid attribute name"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("{id}/attribute")
+    @Path("/{id}/attribute")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public void removeAttribute(@PathParam("id") String accountId,
+    public void removeAttribute(@ApiParam(value = "Account ID", required = true)
+                                @PathParam("id") String accountId,
+                                @ApiParam(value = "Attribute name to be removed", required = true)
                                 @QueryParam("name") String attributeName) throws ConflictException, NotFoundException, ServerException {
         validateAttributeName(attributeName);
         final Account account = accountDao.getById(accountId);
@@ -274,11 +304,20 @@ public class AccountService extends Service {
      * @see AccountDescriptor
      * @see #getByName(String, SecurityContext)
      */
+    @ApiOperation(value = "Get account by ID",
+                  notes = "Get account information by its ID. JSON with account details is returned. This API call requires account/owner, system/admin or system/manager role.",
+                  response = AccountDescriptor.class,
+                  position = 5)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}")
+    @Path("/{id}")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public AccountDescriptor getById(@PathParam("id") String id,
+    public AccountDescriptor getById(@ApiParam(value = "Account ID", required = true)
+                                     @PathParam("id") String id,
                                      @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Account account = accountDao.getById(id);
         return toDescriptor(account, securityContext);
@@ -299,12 +338,22 @@ public class AccountService extends Service {
      * @see AccountDescriptor
      * @see #getById(String, SecurityContext)
      */
+    @ApiOperation(value = "Get account by name",
+            notes = "Get account information by its name. JSON with account details is returned. This API call requires system/admin or system/manager role.",
+            response = AccountDescriptor.class,
+            position = 5)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "No account name specified" ),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("find")
+    @Path("/find")
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNT_BY_NAME)
     @RolesAllowed({"system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public AccountDescriptor getByName(@Required @QueryParam("name") String name,
+    public AccountDescriptor getByName(@ApiParam(value = "Account name", required = true)
+                                       @Required @QueryParam("name") String name,
                                        @Context SecurityContext securityContext) throws NotFoundException,
                                                                                         ServerException,
                                                                                         ConflictException {

@@ -12,6 +12,7 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 
@@ -20,12 +21,14 @@ import java.util.List;
  */
 @DTO
 public interface MemberDescriptor {
+    @ApiModelProperty(value = "User roles", allowableValues = "workspace/admin,workspace/developer")
     List<String> getRoles();
 
     void setRoles(List<String> roles);
 
     MemberDescriptor withRoles(List<String> roles);
 
+    @ApiModelProperty(value = "User ID")
     String getUserId();
 
     void setUserId(String id);

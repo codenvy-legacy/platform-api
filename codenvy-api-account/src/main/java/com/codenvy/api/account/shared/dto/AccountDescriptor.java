@@ -12,6 +12,7 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -22,18 +23,21 @@ import java.util.Map;
 @DTO
 public interface AccountDescriptor {
 
+    @ApiModelProperty(value = "Account attributes")
     Map<String, String> getAttributes();
 
     void setAttributes(Map<String, String> attributes);
 
     AccountDescriptor withAttributes(Map<String, String> attributes);
 
+    @ApiModelProperty(value = "Account name")
     String getName();
 
     void setName(String name);
 
     AccountDescriptor withName(String name);
 
+    @ApiModelProperty(value = "Account ID")
     String getId();
 
     void setId(String id);

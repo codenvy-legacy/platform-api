@@ -161,7 +161,7 @@ public class FileEntry extends VirtualFileEntry {
      *         if other error occurs
      */
     public void updateContent(InputStream content) throws ForbiddenException, ServerException {
-        updateContent(content, getMediaType());
+        getVirtualFile().updateContent(content, null);
     }
 
     /**

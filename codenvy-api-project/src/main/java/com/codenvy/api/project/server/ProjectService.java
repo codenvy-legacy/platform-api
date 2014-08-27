@@ -393,10 +393,11 @@ public class ProjectService extends Service {
         // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
         // Have agreement with client to send Content-type header with "application/unknown" value if client doesn't want to specify media
         // type of new file. In this case server takes care about resolving media type of file.
-        file.updateContent(content,
-                           contentType == null ||
-                           ("application".equals(contentType.getType()) && "unknown".equals(contentType.getSubtype()))
-                           ? null : contentType.getType() + '/' + contentType.getSubtype());
+        if (contentType == null || ("application".equals(contentType.getType()) && "unknown".equals(contentType.getSubtype()))) {
+            file.updateContent(content);
+        } else {
+            file.updateContent(content, contentType.getType() + '/' + contentType.getSubtype());
+        }
         return Response.ok().build();
     }
 

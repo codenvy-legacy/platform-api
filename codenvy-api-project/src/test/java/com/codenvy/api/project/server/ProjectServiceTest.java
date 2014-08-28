@@ -21,8 +21,10 @@ import com.codenvy.api.project.shared.AttributeDescription;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.dto.ItemReference;
+import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
+import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStreamWriter;
@@ -298,10 +300,10 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
-        ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
-                                                 .withProjectTypeId("my_project_type")
-                                                 .withDescription("new project")
-                                                 .withAttributes(attributeValues);
+        NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
+                                          .withProjectTypeId("my_project_type")
+                                          .withDescription("new project")
+                                          .withAttributes(attributeValues);
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws?name=new_project",
                                                       "http://localhost:8080/api",
                                                       headers,
@@ -325,10 +327,10 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
-        ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
-                                                 .withProjectTypeId("my_project_type")
-                                                 .withDescription("new module")
-                                                 .withAttributes(attributeValues);
+        NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
+                                          .withProjectTypeId("my_project_type")
+                                          .withDescription("new module")
+                                          .withAttributes(attributeValues);
         ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/my_project?name=new_module",
                                                       "http://localhost:8080/api",
                                                       headers,
@@ -377,10 +379,10 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));
-        ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
-                                                 .withProjectTypeId("my_project_type")
-                                                 .withDescription("updated project")
-                                                 .withAttributes(attributeValues);
+        ProjectUpdate descriptor = DtoFactory.getInstance().createDto(ProjectUpdate.class)
+                                             .withProjectTypeId("my_project_type")
+                                             .withDescription("updated project")
+                                             .withAttributes(attributeValues);
         ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project",
                                                       "http://localhost:8080/api",
                                                       headers,
@@ -404,10 +406,10 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));
-        ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class)
-                                                 .withProjectTypeId("my_project_type")
-                                                 .withDescription("updated project")
-                                                 .withAttributes(attributeValues);
+        ProjectUpdate descriptor = DtoFactory.getInstance().createDto(ProjectUpdate.class)
+                                             .withProjectTypeId("my_project_type")
+                                             .withDescription("updated project")
+                                             .withAttributes(attributeValues);
         ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project_invalid",
                                                       "http://localhost:8080/api",
                                                       headers,

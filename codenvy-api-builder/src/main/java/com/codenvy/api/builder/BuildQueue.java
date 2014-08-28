@@ -13,7 +13,6 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
@@ -336,7 +335,7 @@ public class BuildQueue {
             callable = createTaskFor(request);
         }
         final Long id = sequence.getAndIncrement();
-        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project, reuse);
+        final InternalBuildTask future = new InternalBuildTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project, reuse);
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, waitingTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
@@ -382,7 +381,7 @@ public class BuildQueue {
         request.setTimeout(getBuildTimeout(workspace));
         final Callable<RemoteTask> callable = createTaskFor(request);
         final Long id = sequence.getAndIncrement();
-        final BuildFutureTask future = new BuildFutureTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project, false);
+        final InternalBuildTask future = new InternalBuildTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project, false);
         request.setId(id);
         final BuildQueueTask task = new BuildQueueTask(id, request, waitingTimeMillis, future, serviceContext.getServiceUriBuilder());
         tasks.put(id, task);
@@ -564,13 +563,13 @@ public class BuildQueue {
                 @Override
                 protected void afterExecute(Runnable runnable, Throwable error) {
                     super.afterExecute(runnable, error);
-                    if (runnable instanceof BuildFutureTask) {
-                        final BuildFutureTask buildFutureTask = (BuildFutureTask)runnable;
-                        if (buildFutureTask.reused) {
+                    if (runnable instanceof InternalBuildTask) {
+                        final InternalBuildTask internalBuildTask = (InternalBuildTask)runnable;
+                        if (internalBuildTask.reused) {
                             // Emulate event from remote builder. In fact we didn't send request to remote builder just reuse result from previous build.
-                            eventService.publish(BuilderEvent.doneEvent(buildFutureTask.id,
-                                                                        buildFutureTask.workspace,
-                                                                        buildFutureTask.project));
+                            eventService.publish(BuilderEvent.doneEvent(internalBuildTask.id,
+                                                                        internalBuildTask.workspace,
+                                                                        internalBuildTask.project));
                         }
                     }
                 }
@@ -823,13 +822,13 @@ public class BuildQueue {
         return eventService;
     }
 
-    private static class BuildFutureTask extends FutureTask<RemoteTask> {
+    private static class InternalBuildTask extends FutureTask<RemoteTask> {
         final Long    id;
         final String  workspace;
         final String  project;
         final boolean reused;
 
-        BuildFutureTask(Callable<RemoteTask> callable, Long id, String workspace, String project, boolean reused) {
+        InternalBuildTask(Callable<RemoteTask> callable, Long id, String workspace, String project, boolean reused) {
             super(callable);
             this.id = id;
             this.workspace = workspace;

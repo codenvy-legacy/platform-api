@@ -24,6 +24,7 @@ import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
 import com.codenvy.api.account.shared.dto.NewSubscription;
+import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributesDescriptor;
@@ -42,7 +43,12 @@ import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
-import com.wordnik.swagger.annotations.*;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,10 +136,10 @@ public class AccountService extends Service {
                   response = Account.class,
                   position = 1)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = "CREATED"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 409, message = "Conflict Error"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = "CREATED"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "Conflict Error"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_ACCOUNT)
     @RolesAllowed("user")
@@ -572,9 +578,12 @@ public class AccountService extends Service {
 
     /**
      * Returns list of subscriptions descriptors for certain account.
+     * If service identifier is provided returns subscriptions that matches provided service.
      *
      * @param accountId
      *         account identifier
+     * @param serviceId
+     *         service identifier
      * @return subscriptions descriptors
      * @throws NotFoundException
      *         when account with given identifier doesn't exist
@@ -592,14 +601,17 @@ public class AccountService extends Service {
                   @ApiResponse(code = 404, message = "Account ID not found"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("/{id}/subscriptions")
+    @Path("/{accountId}/subscriptions")
     @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<SubscriptionDescriptor> getSubscriptions(@ApiParam(value = "Account ID", required = true)
-                                                         @PathParam("id") String accountId,
+                                                         @PathParam("accountId") String accountId,
+                                                         @ApiParam(value = "Service ID", required = false)
+                                                         @QueryParam("service") String serviceId,
                                                          @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                           ServerException {
-        final List<Subscription> subscriptions = accountDao.getSubscriptions(accountId);
+        final List<Subscription> subscriptions =
+                accountDao.getSubscriptions(accountId, serviceId != null && serviceId.isEmpty() ? null : serviceId);
         final List<SubscriptionDescriptor> result = new ArrayList<>(subscriptions.size());
         for (Subscription subscription : subscriptions) {
             result.add(toDescriptor(subscription, securityContext, null));
@@ -618,7 +630,7 @@ public class AccountService extends Service {
      * @throws ForbiddenException
      *         when user hasn't access to call this method
      * @see SubscriptionDescriptor
-     * @see #getSubscriptions(String, SecurityContext)
+     * @see #getSubscriptions(String, String serviceId, SecurityContext)
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Get subscription details",
@@ -722,7 +734,7 @@ public class AccountService extends Service {
                  EnvironmentContext.getCurrent().getUser().getId(), subscription.getAccountId(), subscription.getPlanId());
 
         if ("false".equals(subscriptionAttributes.getBilling().getUsePaymentSystem()) && !securityContext.isUserInRole("system/admin")) {
-            throw new ConflictException("Value of billing attribute usePaymentSystem is invalid");
+            throw new ConflictException("Given value of billing attribute usePaymentSystem is not allowed");
         }
 
         try {
@@ -763,7 +775,7 @@ public class AccountService extends Service {
      *         if internal server error occurs
      * @throws com.codenvy.api.core.ApiException
      * @see #addSubscription(NewSubscription, SecurityContext)
-     * @see #getSubscriptions(String, SecurityContext)
+     * @see #getSubscriptions(String, String, SecurityContext)
      */
     @ApiOperation(value = "Remove subscription",
                   notes = "Remove subscription from account. Roles: account/owner, system/admin.",
@@ -774,10 +786,10 @@ public class AccountService extends Service {
                   @ApiResponse(code = 404, message = "Invalid subscription ID"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("/subscriptions/{id}")
+    @Path("/subscriptions/{subscriptionId}")
     @RolesAllowed({"user", "system/admin"})
     public void removeSubscription(@ApiParam(value = "Subscription ID", required = true)
-                                   @PathParam("id") String subscriptionId, @Context SecurityContext securityContext)
+                                   @PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
             throws ApiException {
         final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
         if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
@@ -839,15 +851,16 @@ public class AccountService extends Service {
             @ApiResponse(code = 404, message = "Invalid susbscription ID"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("/subscriptions/{id}/attributes")
+    @Path("/subscriptions/{subscriptionId}/attributes")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public SubscriptionAttributesDescriptor getSubscriptionAttributes(@ApiParam(value = "Subscription ID")
-                                                                      @PathParam("id") String subscriptionId,
+                                                                      @PathParam("subscriptionId") String subscriptionId,
                                                                       @Context SecurityContext securityContext)
             throws ServerException, NotFoundException, ForbiddenException {
         final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
-        if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(subscription.getAccountId()).contains("account/owner")) {
+        if (securityContext.isUserInRole("user") &&
+            !resolveRolesForSpecificAccount(subscription.getAccountId()).contains("account/owner")) {
             throw new ForbiddenException("Access denied");
         }
         return toDescriptor(accountDao.getSubscriptionAttributes(subscriptionId));
@@ -860,7 +873,7 @@ public class AccountService extends Service {
      *         identifier of account
      * @param planId
      *         identifier of plan of subscription
-     * @return {@link com.codenvy.api.account.shared.dto.NewSubscription} with set plan and account identifiers
+     * @return {@link com.codenvy.api.account.shared.dto.NewSubscriptionTemplate}
      * @throws NotFoundException
      *         if requested plan is not found
      * @throws ConflictException
@@ -869,18 +882,18 @@ public class AccountService extends Service {
      */
     @ApiOperation(value = "Validate new subscription",
                   notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
-                  response = NewSubscription.class,
+                  response = NewSubscriptionTemplate.class,
                   position = 16)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Invalid susbscription ID"),
+                  @ApiResponse(code = 404, message = "Invalid subscription ID"),
                   @ApiResponse(code = 409, message = "Plan identifier required"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{accountId}/subscriptions/validate")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public NewSubscription validateSubscriptionAddition(@ApiParam(value = "Account ID", required = true)
+    public NewSubscriptionTemplate validateSubscriptionAddition(@ApiParam(value = "Account ID", required = true)
                                                         @PathParam("accountId") String accountId,
                                                         @ApiParam(value = "Plan ID", required = true)
                                                         @QueryParam("planId") String planId)
@@ -897,7 +910,7 @@ public class AccountService extends Service {
                                                             .withProperties(plan.getProperties());
         service.beforeCreateSubscription(subscription);
 
-        return DtoFactory.getInstance().createDto(NewSubscription.class).withPlanId(planId).withAccountId(accountId);
+        return DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withPlanId(planId).withAccountId(accountId);
     }
 
     /**

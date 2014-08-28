@@ -99,7 +99,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Subscription> getSubscriptions(String accountId) {
+    public List<Subscription> getSubscriptions(String accountId, String serviceId) {
         return Arrays.asList(DtoFactory.getInstance().createDto(Subscription.class)
                                        .withId("Subscription0xfffffffff")
                                        .withPlanId("plan0xfffffffff")

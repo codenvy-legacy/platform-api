@@ -346,7 +346,7 @@ public class RunQueue {
             callable = createTaskFor(null, request, buildTaskHolder);
         }
         final Long id = sequence.getAndIncrement();
-        final RunFutureTask future = new RunFutureTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project);
+        final InternalRunTask future = new InternalRunTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project);
         request.setId(id); // for getting callback events from remote runner
         final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildTaskHolder,
                                                    serviceContext.getServiceUriBuilder());
@@ -581,11 +581,11 @@ public class RunQueue {
                 @Override
                 protected void afterExecute(Runnable runnable, Throwable error) {
                     super.afterExecute(runnable, error);
-                    if (runnable instanceof RunFutureTask) {
-                        final RunFutureTask runFutureTask = (RunFutureTask)runnable;
+                    if (runnable instanceof InternalRunTask) {
+                        final InternalRunTask internalRunTask = (InternalRunTask)runnable;
                         if (error == null) {
                             try {
-                                runFutureTask.get();
+                                internalRunTask.get();
                             } catch (CancellationException e) {
                                 error = e;
                             } catch (ExecutionException e) {
@@ -596,7 +596,7 @@ public class RunQueue {
                         }
                         if (error != null) {
                             LOG.error(error.getMessage(), error);
-                            eventService.publish(RunnerEvent.errorEvent(runFutureTask.id, runFutureTask.workspace, runFutureTask.project,
+                            eventService.publish(RunnerEvent.errorEvent(internalRunTask.id, internalRunTask.workspace, internalRunTask.project,
                                                                         error.getMessage()));
                         }
                     }
@@ -1056,12 +1056,12 @@ public class RunQueue {
         }
     }
 
-    private static class RunFutureTask extends FutureTask<RemoteRunnerProcess> {
+    private static class InternalRunTask extends FutureTask<RemoteRunnerProcess> {
         final Long   id;
         final String workspace;
         final String project;
 
-        RunFutureTask(Callable<RemoteRunnerProcess> callable, Long id, String workspace, String project) {
+        InternalRunTask(Callable<RemoteRunnerProcess> callable, Long id, String workspace, String project) {
             super(callable);
             this.id = id;
             this.workspace = workspace;

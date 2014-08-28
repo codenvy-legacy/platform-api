@@ -12,6 +12,7 @@ package com.codenvy.api.user.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ import java.util.List;
  */
 @DTO
 public interface User {
+    @ApiModelProperty(value = "User ID")
     String getId();
 
     void setId(String id);
@@ -32,12 +34,14 @@ public interface User {
 
     User withAliases(List<String> aliases);
 
+    @ApiModelProperty(value = "User email")
     String getEmail();
 
     void setEmail(String email);
 
     User withEmail(String email);
 
+    @ApiModelProperty(value = "User password")
     String getPassword();
 
     void setPassword(String password);

@@ -578,6 +578,9 @@ public class ProjectService extends Service {
         if (project == null) {
             newProject = true;
             project = projectManager.createProject(workspace, path, new ProjectDescription());
+        } else {
+            // Project already exists.
+            throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
 

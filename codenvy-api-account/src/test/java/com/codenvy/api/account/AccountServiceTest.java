@@ -28,6 +28,7 @@ import com.codenvy.api.account.shared.dto.BillingDescriptor;
 import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewSubscription;
+import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributesDescriptor;
@@ -408,11 +409,11 @@ public class AccountServiceTest {
 
     @Test
     public void shouldBeAbleToGetSubscriptionsOfSpecificAccount() throws Exception {
-        when(accountDao.getSubscriptions(ACCOUNT_ID)).thenReturn(Arrays.asList(
+        when(accountDao.getSubscriptions(ACCOUNT_ID, null)).thenReturn(Arrays.asList(
                 new Subscription().withId(SUBSCRIPTION_ID)
                                   .withServiceId(SERVICE_ID)
                                   .withProperties(Collections.<String, String>emptyMap())
-                                                                              ));
+                                                                                    ));
         prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
@@ -429,7 +430,48 @@ public class AccountServiceTest {
                           .withMethod(HttpMethod.GET)
                           .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID + "/attributes")
                           .withProduces(MediaType.APPLICATION_JSON)});
-        verify(accountDao).getSubscriptions(ACCOUNT_ID);
+        verify(accountDao).getSubscriptions(ACCOUNT_ID, null);
+    }
+
+    @Test
+    public void shouldBeAbleToGetSubscriptionsOfSpecificAccountWithSpecifiedServiceId() throws Exception {
+        when(accountDao.getSubscriptions(ACCOUNT_ID, SERVICE_ID)).thenReturn(Arrays.asList(
+                new Subscription().withId(SUBSCRIPTION_ID)
+                                  .withServiceId(SERVICE_ID)
+                                  .withProperties(Collections.<String, String>emptyMap())
+                                                                                          ));
+        prepareSecurityContext("system/admin");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions?service=" + SERVICE_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        @SuppressWarnings("unchecked") List<SubscriptionDescriptor> subscriptions = (List<SubscriptionDescriptor>)response.getEntity();
+        assertEquals(subscriptions.size(), 1);
+        assertEqualsNoOrder(subscriptions.get(0).getLinks().toArray(), new Link[]{
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION).withMethod(HttpMethod.DELETE)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID),
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_GET_SUBSCRIPTION).withMethod(HttpMethod.GET)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID).withProduces(MediaType.APPLICATION_JSON),
+                DtoFactory.getInstance().createDto(Link.class).withRel(Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES)
+                          .withMethod(HttpMethod.GET)
+                          .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID + "/attributes")
+                          .withProduces(MediaType.APPLICATION_JSON)});
+        verify(accountDao).getSubscriptions(ACCOUNT_ID, SERVICE_ID);
+    }
+
+    @Test
+    public void shouldReturnNoSubscriptionIfThereIsNoSubscriptionWithGivenServiceIdOnGetSubscriptions() throws Exception {
+        when(accountDao.getSubscriptions(ACCOUNT_ID, SERVICE_ID)).thenReturn(Collections.EMPTY_LIST);
+        prepareSecurityContext("system/admin");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions?service=" + SERVICE_ID, null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        @SuppressWarnings("unchecked") List<SubscriptionDescriptor> subscriptions = (List<SubscriptionDescriptor>)response.getEntity();
+        assertEquals(subscriptions.size(), 0);
+        verify(accountDao).getSubscriptions(ACCOUNT_ID, SERVICE_ID);
     }
 
     @Test
@@ -661,7 +703,7 @@ public class AccountServiceTest {
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
         assertNotEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(response.getEntity(), "Value of billing attribute usePaymentSystem is invalid");
+        assertEquals(response.getEntity(), "Given value of billing attribute usePaymentSystem is not allowed");
         verify(accountDao).getByMember(USER_ID);
         verifyNoMoreInteractions(accountDao);
         verifyZeroInteractions(paymentService);
@@ -671,7 +713,8 @@ public class AccountServiceTest {
     public void shouldBeAbleToAddSubscriptionWithAddSubscriptionOnPaymentSystem() throws Exception {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         when(planDao.getPlanById(PLAN_ID)).thenReturn(plan);
-        when(paymentService.addSubscription(any(Subscription.class), any(SubscriptionAttributes.class))).thenReturn(newSubscription.getSubscriptionAttributes());
+        when(paymentService.addSubscription(any(Subscription.class), any(SubscriptionAttributes.class)))
+                .thenReturn(newSubscription.getSubscriptionAttributes());
         when(accountDao.getByMember(USER_ID)).thenReturn(Arrays.asList(new Member().withRoles(Arrays.asList("account/owner"))
                                                                                    .withAccountId(ACCOUNT_ID)
                                                                                    .withUserId(USER_ID)));
@@ -742,7 +785,6 @@ public class AccountServiceTest {
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        SubscriptionDescriptor subscription = (SubscriptionDescriptor)response.getEntity();
         verify(accountDao).addSubscription(any(Subscription.class));
         verify(paymentService, never()).addSubscription(any(Subscription.class), any(SubscriptionAttributes.class));
         verify(accountDao).saveSubscriptionAttributes(anyString(), any(SubscriptionAttributes.class));
@@ -757,7 +799,8 @@ public class AccountServiceTest {
                                                                                    .withAccountId(ACCOUNT_ID)
                                                                                    .withUserId(USER_ID)));
         doThrow(new ServerException("message")).when(accountDao).addSubscription(any(Subscription.class));
-        when(paymentService.addSubscription(any(Subscription.class), any(SubscriptionAttributes.class))).thenReturn(newSubscription.getSubscriptionAttributes());
+        when(paymentService.addSubscription(any(Subscription.class), any(SubscriptionAttributes.class)))
+                .thenReturn(newSubscription.getSubscriptionAttributes());
 
         prepareSecurityContext("user");
 
@@ -1204,7 +1247,7 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         assertEquals(response.getEntity(),
-                     DtoFactory.getInstance().createDto(NewSubscription.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID));
+                     DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID));
 
         verify(subscriptionService).beforeCreateSubscription(argThat(new ArgumentMatcher<Subscription>() {
             @Override

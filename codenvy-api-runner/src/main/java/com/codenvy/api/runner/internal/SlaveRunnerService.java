@@ -107,6 +107,8 @@ public class SlaveRunnerService extends Service {
         final ApplicationProcess application = process.getApplicationProcess();
         if (application != null) {
             application.stop();
+        } else {
+            process.cancel();
         }
         return getDescriptor(process, getServiceContext()).withRunStats(myRunner.getStats(id));
     }

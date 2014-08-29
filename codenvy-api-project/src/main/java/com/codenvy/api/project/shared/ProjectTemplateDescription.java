@@ -57,7 +57,8 @@ public class ProjectTemplateDescription {
                                       String description,
                                       String location,
                                       String defaultBuilderEnvironment,
-                                      String defaultRunnerEnvironment) {
+                                      String defaultRunnerEnvironment,
+                                      Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs) {
         this.category = category;
         this.importerType = importerType;
         this.displayName = displayName;
@@ -65,8 +66,8 @@ public class ProjectTemplateDescription {
         this.location = location;
         this.defaultBuilderEnvironment = defaultBuilderEnvironment;
         this.defaultRunnerEnvironment = defaultRunnerEnvironment;
+        this.runnerEnvConfigs = runnerEnvConfigs;
         builderEnvConfigs = new LinkedHashMap<>();
-        runnerEnvConfigs = new LinkedHashMap<>();
     }
 
     /**
@@ -84,7 +85,7 @@ public class ProjectTemplateDescription {
      *         location of template, importer uses it when import templates to IDE
      */
     public ProjectTemplateDescription(String category, String importerType, String displayName, String description, String location) {
-        this(category, importerType, displayName, description, location, null, null);
+        this(category, importerType, displayName, description, location, null, null, null);
     }
 
     /**
@@ -100,7 +101,7 @@ public class ProjectTemplateDescription {
      *         location of template, importer uses it when import templates to IDE
      */
     public ProjectTemplateDescription(String importerType, String displayName, String description, String location) {
-        this(defaultCategory, importerType, displayName, description, location, null, null);
+        this(defaultCategory, importerType, displayName, description, location, null, null, null);
     }
 
     /**
@@ -200,6 +201,7 @@ public class ProjectTemplateDescription {
      * @see #getBuilderEnvironmentConfiguration(String)
      */
     public Map<String, BuilderEnvironmentConfiguration> getBuilderEnvironmentConfigurations() {
+        if (builderEnvConfigs == null) new LinkedHashMap<>();
         return new LinkedHashMap<>(builderEnvConfigs);
     }
 
@@ -209,6 +211,7 @@ public class ProjectTemplateDescription {
      * @see #getRunnerEnvironmentConfiguration(String)
      */
     public Map<String, RunnerEnvironmentConfiguration> getRunnerEnvironmentConfigurations() {
+        if (runnerEnvConfigs == null) return new LinkedHashMap<>();
         return new LinkedHashMap<>(runnerEnvConfigs);
     }
 

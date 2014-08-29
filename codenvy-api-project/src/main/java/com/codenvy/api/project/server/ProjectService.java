@@ -574,15 +574,13 @@ public class ProjectService extends Service {
         }
 
         Project project = projectManager.getProject(workspace, path);
-        boolean newProject = false;
         if (project == null) {
-            newProject = true;
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         } else {
             // Project already exists.
             throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
         }
-        importer.importSources(project.getBaseFolder(), importDescriptor.getLocation());
+        importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters());
 
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
@@ -594,11 +592,9 @@ public class ProjectService extends Service {
         }
 
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
-        if (newProject) {
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
-                     projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                     EnvironmentContext.getCurrent().getUser().getName());
-        }
+        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
+                 projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 EnvironmentContext.getCurrent().getUser().getName());
         return projectDescriptor;
     }
 

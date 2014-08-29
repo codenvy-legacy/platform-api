@@ -16,6 +16,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Provide possibility for importing source from some resource e.g. VCS (like Git or SVN) or from ZIP archive
@@ -45,6 +46,8 @@ public interface ProjectImporter {
      *         base project folder
      * @param location
      *         location to the import sources
+     * @param parameters
+     *          optional implementation specific parameters, e.g. branch name, commit id for GIT importer
      * @throws ForbiddenException
      *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
      *         baseFolder}
@@ -57,6 +60,6 @@ public interface ProjectImporter {
      * @throws ServerException
      *         if import causes some errors that should be treated as internal errors
      */
-    void importSources(FolderEntry baseFolder, String location)
+    void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
             throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException;
 }

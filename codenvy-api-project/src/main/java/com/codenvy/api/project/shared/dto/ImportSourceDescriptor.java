@@ -13,17 +13,13 @@ package com.codenvy.api.project.shared.dto;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
+import java.util.Map;
+
 /**
  * @author Vitaly Parfonov
  */
 @DTO
 public interface ImportSourceDescriptor {
-
-    /**
-     * @param type e.g git, zip
-     */
-    void setType(String type);
-
     /**
      * @return type of importer e.g zip, git
      */
@@ -31,9 +27,11 @@ public interface ImportSourceDescriptor {
     String getType();
 
     /**
-     * @param location to the resource
+     * @param type e.g git, zip
      */
-    void setLocation(String location);
+    void setType(String type);
+
+    ImportSourceDescriptor withType(String type);
 
     /**
      * @return location to the resource
@@ -41,8 +39,23 @@ public interface ImportSourceDescriptor {
     @ApiModelProperty(value = "Location of remote resources to be imported", required = true)
     String getLocation();
 
-    ImportSourceDescriptor withType(String type);
+    /**
+     * @param location to the resource
+     */
+    void setLocation(String location);
 
     ImportSourceDescriptor withLocation(String location);
 
+    /**
+     * @return import parameters
+     */
+    @ApiModelProperty(value = "Optional import parameters", required = false)
+    Map<String, String> getParameters();
+
+    /**
+     * @param parameters import parameters
+     */
+    void setParameters(Map<String, String> parameters);
+
+    ImportSourceDescriptor withParameters(Map<String, String> parameters);
 }

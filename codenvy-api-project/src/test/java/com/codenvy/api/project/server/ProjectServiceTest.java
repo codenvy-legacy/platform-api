@@ -159,7 +159,7 @@ public class ProjectServiceTest {
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
 
         env = com.codenvy.commons.env.EnvironmentContext.getCurrent();
-        env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", vfsUserGroups));
+        env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", vfsUserGroups, false));
         env.setWorkspaceName("my_ws");
         env.setWorkspaceId("my_ws");
     }
@@ -701,7 +701,7 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void importSources(FolderEntry baseFolder, String location)
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);

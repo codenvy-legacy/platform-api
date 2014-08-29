@@ -11,6 +11,7 @@
 package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.Map;
 @DTO
 public interface BuildOptions {
     /** Get name of builder. This parameter has preference over builder name that is configured in properties of project. */
+    @ApiModelProperty(value = "Builder name. Any registered builder name: maven, ant, npm", position = 1)
     String getBuilderName();
 
     void setBuilderName(String builderName);
@@ -33,6 +35,7 @@ public interface BuildOptions {
      * Build targets, e.g. "clean", "compile", ... . Supported targets depend on builder implementation. Builder uses default targets if
      * this parameter is not provided by client.
      */
+    @ApiModelProperty(value = "Build targets. Build targets, e.g. \"clean\", \"compile\". Supported targets depend on builder implementation", position = 2)
     List<String> getTargets();
 
     BuildOptions withTargets(List<String> targets);
@@ -49,12 +52,14 @@ public interface BuildOptions {
 
     void setOptions(Map<String, String> options);
 
+    @ApiModelProperty(value = "Skit tests", allowableValues = "true,false", dataType = "boolean", position = 3)
     boolean isSkipTest();
 
     void setSkipTest(boolean skip);
 
     BuildOptions withSkipTest(boolean skip);
 
+    @ApiModelProperty(value = "Include deps", allowableValues = "true,false", dataType = "boolean", position = 4)
     boolean isIncludeDependencies();
 
     void setIncludeDependencies(boolean includeDependencies);

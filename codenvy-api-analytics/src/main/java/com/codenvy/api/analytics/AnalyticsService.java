@@ -19,6 +19,11 @@ import com.codenvy.dto.server.JsonArrayImpl;
 import com.codenvy.dto.server.JsonStringMapImpl;
 import com.google.inject.Inject;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +40,9 @@ import java.util.Map;
  *
  * @author Anatoliy Bazko
  */
-@Path("analytics")
+@Api(value = "/analytics",
+     description = "Analytics manager")
+@Path("/analytics")
 public class AnalyticsService extends Service {
 
     private static final Logger LOG = LoggerFactory.getLogger(AnalyticsService.class);
@@ -49,13 +56,24 @@ public class AnalyticsService extends Service {
         this.eventLogger = eventLogger;
     }
 
+    @ApiOperation(value = "Get metric by name",
+                  notes = "Get metric by name. Additional display filters can be used as query parameters.",
+                  response = MetricValueDTO.class,
+                  position = 1)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message  ="Not Found"),
+                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
     @GenerateLink(rel = "metric value")
     @GET
-    @Path("metric/{name}")
+    @Path("/metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getValue(@PathParam("name") String metricName,
+    public Response getValue(@ApiParam(value = "Metric name", required = true)
+                             @PathParam("name") String metricName,
+                             @ApiParam(value = "Page number. Relevant only for LONG data type")
                              @QueryParam("page") String page,
+                             @ApiParam(value = "Number of results per page.")
                              @QueryParam("per_page") String perPage,
                              @Context UriInfo uriInfo) {
         try {
@@ -71,14 +89,24 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @ApiOperation(value = "Get list of metric values",
+                  notes = "Get list of metric values",
+                  response = MetricInfoListDTO.class)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message  ="Not Found"),
+                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
+
     @GenerateLink(rel = "list of metric values")
     @POST
-    @Path("metric/{name}/list")
+    @Path("/metric/{name}/list")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getListValues(@PathParam("name") String metricName,
+    public Response getListValues(@ApiParam(value = "Metric name")
+                                  @PathParam("name") String metricName,
                                   @Context UriInfo uriInfo,
+                                  @ApiParam(value = "Search filter")
                                   List<Map<String, String>> parameters) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);

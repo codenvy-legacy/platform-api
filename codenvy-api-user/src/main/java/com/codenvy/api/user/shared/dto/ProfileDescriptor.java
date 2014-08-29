@@ -25,11 +25,12 @@ public interface ProfileDescriptor {
 
     void setId(String id);
 
-    
+    @ApiModelProperty(value = "Profile ID")
     String getId();
 
     ProfileDescriptor withId(String id);
 
+    @ApiModelProperty(value = "User ID")
     String getUserId();
 
     void setUserId(String id);

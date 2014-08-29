@@ -23,6 +23,11 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -45,29 +50,51 @@ import java.util.List;
  * @author andrew00x
  * @author Eugene Voevodin
  */
-@Path("builder/{ws-id}")
+@Api(value = "/builder/{ws-id}",
+     description = "Builder manager")
+@Path("/builder/{ws-id}")
 @Description("Builder API")
 public final class BuilderService extends Service {
     @Inject
     private BuildQueue buildQueue;
 
+    @ApiOperation(value = "Build a project",
+                  notes = "Build a project. Optional build options are passed in a JSON",
+                  response = BuildTaskDescriptor.class,
+                  position = 1)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_BUILD)
     @POST
-    @Path("build")
+    @Path("/build")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor build(@PathParam("ws-id") String workspace,
+    public BuildTaskDescriptor build(@ApiParam(value = "Workspace ID", required = true)
+                                     @PathParam("ws-id") String workspace,
+                                     @ApiParam(value = "Project name", required = true)
                                      @Required @Description("project name") @QueryParam("project") String project,
+                                     @ApiParam(value = "Build options. Here you specify optional build options like skip tests, build targets etc.")
                                      @Description("build options") BuildOptions options) throws Exception {
         return buildQueue.scheduleBuild(workspace, project, getServiceContext(), options).getDescriptor();
     }
 
+    @ApiOperation(value = "Analyze dependencies",
+                  notes = "Analyze dependencies",
+                  response = BuildTaskDescriptor.class,
+                  position = 2)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
     @POST
-    @Path("dependencies")
+    @Path("/dependencies")
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor dependencies(@PathParam("ws-id") String workspace,
+    public BuildTaskDescriptor dependencies(@ApiParam(value = "Workspace ID", required = true)
+                                            @PathParam("ws-id") String workspace,
+                                            @ApiParam(value = "Project name", required = true)
                                             @Required @Description("project name") @QueryParam("project") String project,
+                                            @ApiParam(value = "Analysis type. If dropped, list is used by default", defaultValue = "list", allowableValues = "copy,list")
                                             @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
             throws Exception {
         return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getDescriptor();

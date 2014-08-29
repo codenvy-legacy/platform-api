@@ -152,12 +152,13 @@ public class ProjectService extends Service {
                   response = ProjectDescriptor.class,
                   position = 3)
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 403, message = "Operation is forbidden"),
-            @ApiResponse(code = 409, message = "Project with specified name already exist in workspace"),
-            @ApiResponse(code = 500, message = "Server error")})
-    @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "Operation is forbidden"),
+                  @ApiResponse(code = 409, message = "Project with specified name already exist in workspace"),
+                  @ApiResponse(code = 500, message = "Server error")})
+
     @POST
+    @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor createProject(@ApiParam(value = "ID of workspace to create project", required = true)

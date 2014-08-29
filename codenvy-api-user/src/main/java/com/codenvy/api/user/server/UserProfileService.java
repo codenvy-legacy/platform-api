@@ -26,6 +26,11 @@ import com.codenvy.api.user.shared.dto.ProfileDescriptor;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.dto.server.DtoFactory;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +63,9 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
  * @author Eugene Voevodin
  * @author Max Shaposhnik
  */
-@Path("profile")
+@Api(value = "/profile",
+     description = "User profile manager")
+@Path("/profile")
 public class UserProfileService extends Service {
 
     private static final Logger LOG = LoggerFactory.getLogger(UserProfileService.class);
@@ -86,11 +93,20 @@ public class UserProfileService extends Service {
      * @see #updateCurrent(Map, SecurityContext)
      * @see #updatePreferences(Map, SecurityContext)
      */
+    @ApiOperation(value = "Get user profile",
+                  notes = "Get user profile details",
+                  response = ProfileDescriptor.class,
+                  position = 1)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = "current profile")
     @Produces(MediaType.APPLICATION_JSON)
-    public ProfileDescriptor getCurrent(@Description("Preferences path filter")
+    public ProfileDescriptor getCurrent(@ApiParam(value = "Serch filter. Regex can be used")
+                                        @Description("Preferences path filter")
                                         @QueryParam("filter") String filter,
                                         @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
@@ -142,6 +158,7 @@ public class UserProfileService extends Service {
         return toDescriptor(profile, securityContext);
     }
 
+
     /**
      * <p>Updates attributes of certain profile.</p>
      * <p><strong>Note:</strong>if updates are {@code null} or <i>empty</i>
@@ -161,8 +178,9 @@ public class UserProfileService extends Service {
      * @see ProfileDescriptor
      * @see #getById(String, SecurityContext)
      */
+
     @POST
-    @Path("{id}")
+    @Path("/{id}")
     @RolesAllowed({"system/admin", "system/manager"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -197,11 +215,20 @@ public class UserProfileService extends Service {
      * @see ProfileDescriptor
      * @see #getById(String, SecurityContext)
      */
+    @ApiOperation(value = "Get profile of a specific user",
+                  notes = "Get profile of a specific user. Roles allowed: system/admin, system/manager",
+                  response = ProfileDescriptor.class,
+                  position = 4)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}")
+    @Path("/{id}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
-    public ProfileDescriptor getById(@PathParam("id") String profileId,
+    public ProfileDescriptor getById(@ApiParam(value = "User ID", required = true)
+                                     @PathParam("id") String profileId,
                                      @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
         final User user = userDao.getById(profile.getUserId());
@@ -225,8 +252,9 @@ public class UserProfileService extends Service {
      * @see ProfileDescriptor
      * @see #updateCurrent(Map, SecurityContext)
      */
+
     @POST
-    @Path("prefs")
+    @Path("/prefs")
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFERENCES)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -246,6 +274,7 @@ public class UserProfileService extends Service {
         }
         profileDao.update(currentProfile);
         return toDescriptor(currentProfile, securityContext);
+
     }
 
     /**
@@ -259,12 +288,22 @@ public class UserProfileService extends Service {
      *         when some error occurred while retrieving/updating profile
      * @see #removePreferences(List, SecurityContext)
      */
+
+    @ApiOperation(value = "Remove attributes of a current user",
+                  notes = "Remove attributes of a current user",
+                  position = 6)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "Attributes names required"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("attributes")
+    @Path("/attributes")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTES)
     @RolesAllowed({"user", "temp_user"})
     @Consumes(MediaType.APPLICATION_JSON)
-    public void removeAttributes(@Required @Description("Attributes names to remove") List<String> attrNames,
+    public void removeAttributes(@ApiParam(value = "Attributes", required = true)
+                                 @Required @Description("Attributes names to remove") List<String> attrNames,
                                  @Context SecurityContext securityContext) throws NotFoundException, ServerException, ConflictException {
         if (attrNames == null) {
             throw new ConflictException("Attributes names required");
@@ -290,12 +329,21 @@ public class UserProfileService extends Service {
      *         when some error occurred while retrieving/updating profile
      * @see #removeAttributes(List, SecurityContext)
      */
+    @ApiOperation(value = "Remove profile references of a current user",
+                  notes = "Remove profile references of a current user",
+                  position = 7)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 204, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found"),
+                  @ApiResponse(code = 409, message = "Preferences names required"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("prefs")
+    @Path("/prefs")
     @GenerateLink(rel = Constants.LINK_REL_REMOVE_PREFERENCES)
     @RolesAllowed({"user", "temp_user"})
     @Consumes(MediaType.APPLICATION_JSON)
-    public void removePreferences(@Required List<String> prefNames,
+    public void removePreferences(@ApiParam(value = "Preferences to remove", required = true)
+                                  @Required List<String> prefNames,
                                   @Context SecurityContext securityContext) throws NotFoundException, ConflictException, ServerException {
         if (prefNames == null) {
             throw new ConflictException("Preferences names required");

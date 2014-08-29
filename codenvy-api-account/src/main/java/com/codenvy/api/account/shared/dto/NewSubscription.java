@@ -32,7 +32,7 @@ public interface NewSubscription {
 
     NewSubscription withAccountId(String orgId);
 
-    @ApiModelProperty(value = "PLan ID")
+    @ApiModelProperty(value = "Plan ID")
     String getPlanId();
 
     void setPlanId(String id);

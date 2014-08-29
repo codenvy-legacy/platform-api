@@ -100,10 +100,20 @@ public final class BuilderService extends Service {
         return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getDescriptor();
     }
 
+    @ApiOperation(value = "Get project build tasks",
+                  notes = "Get build tasks that are related to a particular project. User can see only own processes related to own projects.",
+                  response = BuildTaskDescriptor.class,
+                  responseContainer = "List",
+                  position = 3)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("builds")
+    @Path("/builds")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<BuildTaskDescriptor> builds(@PathParam("ws-id") String workspace,
+    public List<BuildTaskDescriptor> builds(@ApiParam(value = "Workspace ID", required = true)
+                                            @PathParam("ws-id") String workspace,
+                                            @ApiParam(value = "Project name", required = true)
                                             @Required @Description("project name")
                                             @QueryParam("project") String project) throws Exception {
         // handle project name

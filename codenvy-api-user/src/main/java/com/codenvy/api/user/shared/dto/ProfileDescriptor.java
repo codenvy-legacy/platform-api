@@ -12,6 +12,7 @@ package com.codenvy.api.user.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ public interface ProfileDescriptor {
 
     void setId(String id);
 
+    
     String getId();
 
     ProfileDescriptor withId(String id);

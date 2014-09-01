@@ -1,0 +1,54 @@
+/*******************************************************************************
+ * Copyright (c) 2012-2014 Codenvy, S.A.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *   Codenvy, S.A. - initial API and implementation
+ *******************************************************************************/
+package com.codenvy.api.project.server;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
+
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * @author Evgen Vidolob
+ */
+@Singleton
+public class ProjectTypeResolverRegistry {
+
+    private ProjectTypeResolver defaultResolver;
+
+    private Set<ProjectTypeResolver> resolvers = new HashSet<>();
+
+    @Inject
+    public ProjectTypeResolverRegistry(Set<ProjectTypeResolver> resolvers,
+                                       @Named("default.project.type.resolver") ProjectTypeResolver defaultResolver) {
+        this.defaultResolver = defaultResolver;
+        for (ProjectTypeResolver resolver : resolvers) {
+            register(resolver);
+        }
+    }
+
+    public ProjectTypeResolver getDefaultResolver() {
+        return defaultResolver;
+    }
+
+    public void register(ProjectTypeResolver resolver) {
+        resolvers.add(resolver);
+    }
+
+    public void unregister(ProjectTypeResolver resolver) {
+        resolvers.remove(resolver);
+    }
+
+    public Set<ProjectTypeResolver> getResolvers() {
+        return new HashSet<>(resolvers);
+    }
+}

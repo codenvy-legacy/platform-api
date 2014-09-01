@@ -104,6 +104,8 @@ public class ProjectService extends Service {
     private ProjectGeneratorRegistry generators;
     @Inject
     private SearcherProvider         searcherProvider;
+    @Inject
+    private ProjectTypeResolverRegistry resolverRegistry;
 
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,
@@ -582,6 +584,21 @@ public class ProjectService extends Service {
             throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters());
+
+        //use resolver only if project type not set
+        if(descriptorToUpdate.getProjectTypeId() == null && project.getDescription().getProjectType().getId().equals(
+                com.codenvy.api.project.shared.Constants.BLANK_ID)) {
+            Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+            for (ProjectTypeResolver resolver : resolvers) {
+                if (resolver.resolve(project, descriptorToUpdate)) {
+                    break;
+                }
+            }
+            //if we can't resolve project type, force to blank project type
+            if(descriptorToUpdate.getProjectTypeId() == null) {
+                resolverRegistry.getDefaultResolver().resolve(project, descriptorToUpdate);
+            }
+        }
 
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.

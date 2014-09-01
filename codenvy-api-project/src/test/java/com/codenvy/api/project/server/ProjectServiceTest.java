@@ -13,6 +13,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.util.ValueHolder;
@@ -64,6 +65,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Application;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Arrays;
@@ -134,11 +136,20 @@ public class ProjectServiceTest {
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
         generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
+        ProjectTypeResolverRegistry resolverRegistry = new ProjectTypeResolverRegistry(new HashSet<ProjectTypeResolver>(), new ProjectTypeResolver() {
+
+            @Override
+            public boolean resolve(Project project, ProjectUpdate description) {
+                description.setProjectTypeId("my_project_type");
+                return true;
+            }
+        });
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
         dependencies.addComponent(ProjectGeneratorRegistry.class, generatorRegistry);
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
+        dependencies.addComponent(ProjectTypeResolverRegistry.class, resolverRegistry);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
         EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
@@ -722,6 +733,56 @@ public class ProjectServiceTest {
         Assert.assertEquals(descriptor.getProjectTypeName(), "my project type");
         Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
 
+        Project newProject = pm.getProject("my_ws", "new_project");
+        Assert.assertNotNull(newProject);
+    }
+
+    @Test
+    public void testProjectTypeResolver() throws Exception {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.close();
+        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
+        final String importType = "_123_";
+        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
+        importerRegistry.register(new ProjectImporter() {
+            @Override
+            public String getId() {
+                return importType;
+            }
+
+
+            @Override
+            public boolean isInternal() {
+                return false;
+            }
+
+            @Override
+            public String getDescription() {
+                return "Chuck importer";
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+                    throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
+                // Don't really use location in this test.
+                baseFolder.getVirtualFile().unzip(zip, true);
+                folderHolder.set(baseFolder);
+            }
+        });
+
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        byte[] b = String.format("{\"type\":\"%s\"}", importType).getBytes();
+        ContainerResponse response = launcher.service("POST",
+                                                      "http://localhost:8080/api/project/my_ws/import/new_project",
+                                                      "http://localhost:8080/api", headers, b, null);
+        Assert.assertEquals(response.getStatus(), 200);
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getProjectTypeId(), "my_project_type");
         Project newProject = pm.getProject("my_ws", "new_project");
         Assert.assertNotNull(newProject);
     }

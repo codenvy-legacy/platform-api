@@ -11,7 +11,9 @@
 package com.codenvy.api.project.server;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Singleton;
 import com.google.inject.multibindings.Multibinder;
+import com.google.inject.name.Names;
 
 /** @author andrew00x */
 public class BaseProjectModule extends AbstractModule {
@@ -22,5 +24,6 @@ public class BaseProjectModule extends AbstractModule {
         Multibinder.newSetBinder(binder(), ProjectGenerator.class); /* empty binding */
         bind(ProjectTypeDescriptionsExtension.class);
         bind(BaseProjectTypeExtension.class);
+        bind(ProjectTypeResolver.class).annotatedWith(Names.named("default.project.type.resolver")).to(BlankProjectTypeResolver.class).in(Singleton.class);
     }
 }

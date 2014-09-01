@@ -58,6 +58,10 @@ public final class BuilderService extends Service {
     @Inject
     private BuildQueue buildQueue;
 
+    // Used for Swagger annotation. Don't remove
+    @ApiParam(value = "Workspace ID", required = true)
+    @PathParam("ws-id") String workspace;
+
     @ApiOperation(value = "Build a project",
                   notes = "Build a project. Optional build options are passed in a JSON",
                   response = BuildTaskDescriptor.class,
@@ -137,32 +141,57 @@ public final class BuilderService extends Service {
         return builds;
     }
 
+    @ApiOperation(value = "Get build status",
+                  notes = "Get status of a specified build",
+                  response = BuildTaskDescriptor.class,
+                  position = 4)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found")})
     @GET
-    @Path("status/{id}")
+    @Path("/status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor getStatus(@PathParam("id") Long id) throws Exception {
+    public BuildTaskDescriptor getStatus(@ApiParam(value = "Build ID", required = true)
+                                         @PathParam("id")
+                                         Long id) throws Exception {
         return buildQueue.getTask(id).getDescriptor();
     }
 
+    @ApiOperation(value = "Cancel build",
+                  notes = "Cancel build task",
+                  response = BuildTaskDescriptor.class,
+                  position = 5)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found")})
     @POST
-    @Path("cancel/{id}")
+    @Path("/cancel/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor cancel(@PathParam("id") Long id) throws Exception {
+    public BuildTaskDescriptor cancel(@ApiParam(value = "Build ID", required = true)
+                                      @PathParam("id") Long id) throws Exception {
         final BuildQueueTask task = buildQueue.getTask(id);
         task.cancel();
         return task.getDescriptor();
     }
 
+    @ApiOperation(value = "Get build log",
+            notes = "Get build log",
+            position = 5)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found")})
     @GET
-    @Path("logs/{id}")
-    public void getLogs(@PathParam("id") Long id,
+    @Path("/logs/{id}")
+    public void getLogs(@ApiParam(value = "Get build logs", required = true)
+                        @PathParam("id") Long id,
                         @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
         buildQueue.getTask(id).readLogs(new HttpServletProxyResponse(httpServletResponse));
     }
 
+
     @GET
-    @Path("report/{id}")
+    @Path("/report/{id}")
     public void getReport(@PathParam("id") Long id,
                           @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream

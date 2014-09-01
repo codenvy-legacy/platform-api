@@ -26,6 +26,11 @@ import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonSyntaxException;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +49,9 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
 import static javax.ws.rs.core.Response.Status;
 
 /** Service for factory rest api features */
-@Path("factory")
+@Api(value = "/factory",
+     description = "Factory manager")
+@Path("/factory")
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
@@ -84,11 +91,21 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.ConflictException} when if image is too big
      *         - {@link com.codenvy.api.core.ServerException} when internal server error occurs
      */
+    @ApiOperation(value = "Create a Factory and return data",
+                  notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
+                  response = Factory.class,
+                  position = 1)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
+                  @ApiResponse(code = 500, message = "Unable to identify user from context")})
     @RolesAllowed("user")
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory saveFactory(@Context HttpServletRequest request, @Context UriInfo uriInfo)
+    public Factory saveFactory(@Context HttpServletRequest request,
+                               @ApiParam(value = "Factory parameters", required = true)
+                               @Context UriInfo uriInfo)
             throws ApiException {
         try {
             EnvironmentContext context = EnvironmentContext.getCurrent();

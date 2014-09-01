@@ -41,10 +41,16 @@ public class SubscriptionServiceRegistry {
     }
 
     public SubscriptionService get(String serviceId) {
+        if (serviceId == null) {
+            return null;
+        }
         return services.get(serviceId);
     }
 
     public SubscriptionService remove(String serviceId) {
+        if (serviceId == null) {
+            return null;
+        }
         return services.remove(serviceId);
     }
 

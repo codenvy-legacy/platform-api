@@ -579,9 +579,9 @@ public class ProjectService extends Service {
         }
 
         Project project = projectManager.getProject(workspace, path);
-        if (project == null || force) {
+        if (project == null) {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
-        } else {
+        } else if (!force) {
             // Project already exists.
             throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
         }

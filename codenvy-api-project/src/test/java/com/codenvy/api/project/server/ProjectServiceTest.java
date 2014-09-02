@@ -687,9 +687,9 @@ public class ProjectServiceTest {
         zipOut.write("to be or not to be".getBytes());
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_FOLDER + "/"));
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
-        zipOut.write(("{\"type\":\"my_project_type\"," +
+        zipOut.write(("{\"projectTypeId\":\"my_project_type\"," +
                       "\"description\":\"import test\"," +
-                      "\"properties\":[{\"name\":\"x\",\"value\":[\"a\",\"b\"]}]}").getBytes());
+                      "\"attributes\":{\"x\": [\"a\",\"b\"]}}").getBytes());
         zipOut.close();
         final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
         final String importType = "_123_";

@@ -36,7 +36,7 @@ public class ProjectJsonTest {
         } finally {
             json.close();
         }
-        Assert.assertEquals(projectJson.getType(), "maven");
+        Assert.assertEquals(projectJson.getProjectTypeId(), "maven");
         Assert.assertEquals(projectJson.getBuilder(), "maven");
         Assert.assertEquals(projectJson.getRunner(), "javaweb");
         Assert.assertEquals(projectJson.getDescription(), "test project");
@@ -47,7 +47,7 @@ public class ProjectJsonTest {
         Assert.assertNotNull(runnerEnvironmentConfiguration);
         Assert.assertEquals(runnerEnvironmentConfiguration.getRequiredMemorySize(), 128);
         Assert.assertEquals(runnerEnvironmentConfiguration.getRecommendedMemorySize(), 256);
-        Assert.assertEquals(projectJson.getPropertyValue("language.version"), "1.6");
-        Assert.assertEquals(projectJson.getPropertyValue("framework"), "spring");
+        Assert.assertEquals(projectJson.getAttributeValue("language.version"), "1.6");
+        Assert.assertEquals(projectJson.getAttributeValue("framework"), "spring");
     }
 }

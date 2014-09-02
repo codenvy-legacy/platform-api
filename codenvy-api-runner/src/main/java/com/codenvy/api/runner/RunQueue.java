@@ -251,11 +251,10 @@ public class RunQueue {
         if (runner == null) {
             runner = getProjectAttributeValue(Constants.RUNNER_CUSTOM_LAUNCHER, projectAttributes);
             if (runner == null) {
-                runner = getProjectAttributeValue(Constants.RUNNER_NAME, projectAttributes);
+                runner = descriptor.getRunner();
             }
             if (runner == null) {
-                throw new RunnerException(
-                        String.format("Name of runner is not specified, be sure property of project %s is set", Constants.RUNNER_NAME));
+                throw new RunnerException("Name of runner is not specified, be sure corresponded property of project is set");
             }
             request.setRunner(runner);
         }
@@ -265,7 +264,7 @@ public class RunQueue {
 
         String runnerEnvId = request.getEnvironmentId();
         if (runnerEnvId == null) {
-            runnerEnvId = getProjectAttributeValue(Constants.RUNNER_ENV_ID, projectAttributes);
+            runnerEnvId = descriptor.getDefaultRunnerEnvironment();
             request.setEnvironmentId(runnerEnvId);
         }
         request.setRunnerScriptUrls(getRunnerScript(descriptor));
@@ -311,8 +310,7 @@ public class RunQueue {
         final ValueHolder<BuildTaskDescriptor> buildTaskHolder = skipBuild ? null : new ValueHolder<BuildTaskDescriptor>();
         final Callable<RemoteRunnerProcess> callable;
         if (!skipBuild
-            && ((buildOptions != null && buildOptions.getBuilderName() != null)
-                || getProjectAttributeValue(com.codenvy.api.builder.internal.Constants.BUILDER_NAME, descriptor.getAttributes()) != null)) {
+            && ((buildOptions != null && buildOptions.getBuilderName() != null) || descriptor.getBuilder() != null)) {
             LOG.debug("Need build project first");
             if (buildOptions == null) {
                 buildOptions = DtoFactory.getInstance().createDto(BuildOptions.class);

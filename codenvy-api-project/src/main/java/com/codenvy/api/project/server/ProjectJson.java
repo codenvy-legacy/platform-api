@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -108,7 +107,7 @@ public class ProjectJson {
         }
     }
 
-    private String                                       type;
+    private String                                       projectTypeId;
     private String                                       builder;
     private String                                       runner;
     private String                                       defaultBuilderEnvironment;
@@ -116,27 +115,27 @@ public class ProjectJson {
     private Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations;
     private Map<String, RunnerEnvironmentConfiguration>  runnerEnvironmentConfigurations;
     private String                                       description;
-    private List<ProjectProperty>                        properties;
+    private Map<String, List<String>>                    attributes;
 
     public ProjectJson() {
     }
 
-    public ProjectJson(String type, String description, List<ProjectProperty> properties) {
-        this.type = type;
+    public ProjectJson(String projectTypeId, String description, Map<String, List<String>> attributes) {
+        this.projectTypeId = projectTypeId;
         this.description = description;
-        this.properties = properties;
+        this.attributes = attributes;
     }
 
-    public String getType() {
-        return type;
+    public String getProjectTypeId() {
+        return projectTypeId;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setProjectTypeId(String projectTypeId) {
+        this.projectTypeId = projectTypeId;
     }
 
     public ProjectJson withType(String type) {
-        this.type = type;
+        this.projectTypeId = type;
         return this;
     }
 
@@ -225,36 +224,25 @@ public class ProjectJson {
         return this;
     }
 
-    public List<ProjectProperty> getProperties() {
-        if (properties == null) {
-            properties = new ArrayList<>();
+    public Map<String, List<String>> getAttributes() {
+        if (attributes == null) {
+            attributes = new HashMap<>();
         }
-        return properties;
+        return attributes;
     }
 
-    public void setProperties(List<ProjectProperty> properties) {
-        this.properties = properties;
+    public void setAttributes(Map<String, List<String>> attributes) {
+        this.attributes = attributes;
     }
 
-    public ProjectJson withProperties(List<ProjectProperty> properties) {
-        this.properties = properties;
+    public ProjectJson withAttributes(Map<String, List<String>> attributes) {
+        this.attributes = attributes;
         return this;
     }
 
-    public ProjectProperty findProperty(String name) {
-        List<ProjectProperty> myProperties = this.properties;
-        for (ProjectProperty property : myProperties) {
-            if (name.equals(property.getName())) {
-                return property;
-            }
-        }
-        return null;
-    }
-
-    public String getPropertyValue(String name) {
-        final ProjectProperty myProperty = findProperty(name);
-        if (myProperty != null) {
-            final List<String> value = myProperty.getValue();
+    public String getAttributeValue(String name) {
+        if (attributes != null) {
+            final List<String> value = attributes.get(name);
             if (value != null && !value.isEmpty()) {
                 return value.get(0);
             }
@@ -262,10 +250,9 @@ public class ProjectJson {
         return null;
     }
 
-    public List<String> getPropertyValues(String name) {
-        final ProjectProperty myProperty = findProperty(name);
-        if (myProperty != null) {
-            final List<String> value = myProperty.getValue();
+    public List<String> getAttributeValues(String name) {
+        if (attributes != null) {
+            final List<String> value = attributes.get(name);
             if (value != null) {
                 return new ArrayList<>(value);
             }
@@ -273,18 +260,10 @@ public class ProjectJson {
         return null;
     }
 
-    public ProjectProperty removeProperty(String name) {
-        if (properties == null) {
-            return null;
+    public void removeAttribute(String name) {
+        if (attributes != null) {
+            attributes.remove(name);
         }
-        for (Iterator<ProjectProperty> itr = properties.iterator(); itr.hasNext(); ) {
-            ProjectProperty property = itr.next();
-            if (name.equals(property.getName())) {
-                itr.remove();
-                return property;
-            }
-        }
-        return null;
     }
 
     public String getDescription() {

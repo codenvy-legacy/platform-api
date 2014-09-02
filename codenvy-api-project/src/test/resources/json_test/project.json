@@ -1,5 +1,5 @@
 {
-    "type": "maven",
+    "projectTypeId": "maven",
     "builder": "maven",
     "runner": "javaweb",
     "description": "test project",
@@ -19,14 +19,8 @@
         }
     },
 
-    "properties": [
-        {
-            "name": "language.version",
-            "value": ["1.6"]
-        },
-        {
-            "name": "framework",
-            "value": ["spring"]
-        }
-    ]
+    "attributes": {
+        "language.version": ["1.6"],
+        "framework": ["spring"]
+    }
 }

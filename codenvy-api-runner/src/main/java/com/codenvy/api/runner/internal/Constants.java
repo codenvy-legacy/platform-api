@@ -12,9 +12,7 @@ package com.codenvy.api.runner.internal;
 
 /** @author andrew00x */
 public class Constants {
-    // properties of project which are interesting for runner
-    public static final String RUNNER_NAME                       = "runner.name";
-    public static final String RUNNER_ENV_ID                     = "runner.env_id";
+    // attributes of project which are interesting for runner
     public static final String RUNNER_CUSTOM_LAUNCHER            = "runner.user_defined_launcher";
     public static final String RUNNER_SCRIPT_FILES               = "runner.run_scripts";
     public static final String RUNNER_MEMORY_SIZE                = "runner.${runner}.memsize";

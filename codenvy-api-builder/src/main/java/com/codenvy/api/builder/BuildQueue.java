@@ -399,13 +399,11 @@ public class BuildQueue {
     }
 
     private void addParametersFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
-        final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
         String builder = request.getBuilder();
         if (builder == null) {
-            builder = getProjectAttributeValue(Constants.BUILDER_NAME, projectAttributes);
+            builder = descriptor.getBuilder();
             if (builder == null) {
-                throw new BuilderException(
-                        String.format("Name of builder is not specified, be sure property of project %s is set", Constants.BUILDER_NAME));
+                throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
             request.setBuilder(builder);
         }
@@ -420,6 +418,7 @@ public class BuildQueue {
             final String token = getAuthenticationToken();
             request.setSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
         }
+        final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
         if (request.getTargets().isEmpty()) {
             final List<String> targetsAttr = projectAttributes.get(Constants.BUILDER_TARGETS.replace("${builder}", builder));
             if (targetsAttr != null && !targetsAttr.isEmpty()) {

@@ -12,8 +12,7 @@ package com.codenvy.api.builder.internal;
 
 /** @author andrew00x */
 public class Constants {
-    // properties of project which are interesting for builder
-    public static final String BUILDER_NAME                        = "builder.name";
+    // attributes of project which are interesting for builder
     public static final String BUILDER_TARGETS                     = "builder.${builder}.targets";
     public static final String BUILDER_OPTIONS                     = "builder.${builder}.options";
     // rels for known builder links

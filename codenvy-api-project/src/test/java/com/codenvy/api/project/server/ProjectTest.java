@@ -31,7 +31,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -158,10 +158,10 @@ public class ProjectTest {
     @Test
     public void testGetProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        List<ProjectProperty> propertiesList = new ArrayList<>(2);
-        propertiesList.add(new ProjectProperty("my_property_1", Arrays.asList("value_1", "value_2")));
-        propertiesList.add(new ProjectProperty("my_property_2", Arrays.asList("value_3", "value_4")));
-        new ProjectJson().withType("my_project_type").withProperties(propertiesList).save(myProject);
+        Map<String, List<String>> attributes = new HashMap<>(2);
+        attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
+        attributes.put("my_property_2", Arrays.asList("value_3", "value_4"));
+        new ProjectJson().withType("my_project_type").withAttributes(attributes).save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         Assert.assertEquals(myProjectDescription.getProjectType().getId(), "my_project_type");
         Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
@@ -184,11 +184,9 @@ public class ProjectTest {
     @Test
     public void testUpdateProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        ProjectJson projectJson = new ProjectJson("my_project_type",
-                                                  null,
-                                                  Arrays.asList(new ProjectProperty("my_property_1",
-                                                                                    Arrays.asList("value_1",
-                                                                                                  "value_2"))));
+        Map<String, List<String>> attributes = new HashMap<>(2);
+        attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
+        ProjectJson projectJson = new ProjectJson("my_project_type", null, attributes);
         projectJson.save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
@@ -200,15 +198,12 @@ public class ProjectTest {
 
         projectJson = ProjectJson.load(myProject);
 
-        Assert.assertEquals(projectJson.getType(), "new_project_type");
+        Assert.assertEquals(projectJson.getProjectTypeId(), "new_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
-        Map<String, ProjectProperty> pm = new LinkedHashMap<>(2);
-        for (ProjectProperty projectProperty : projectJson.getProperties()) {
-            pm.put(projectProperty.getName(), projectProperty);
-        }
+        Map<String, List<String>> pm = projectJson.getAttributes();
         Assert.assertEquals(pm.size(), 2);
-        Assert.assertEquals(pm.get("my_property_1").getValue(), Arrays.asList("updated value 1"));
-        Assert.assertEquals(pm.get("new_my_property_2").getValue(), Arrays.asList("new value 2"));
+        Assert.assertEquals(pm.get("my_property_1"), Arrays.asList("updated value 1"));
+        Assert.assertEquals(pm.get("new_my_property_2"), Arrays.asList("new value 2"));
     }
 
     @Test

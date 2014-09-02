@@ -163,7 +163,7 @@ public class WorkspaceServiceTest {
             assertEquals(ws.isTemporary(), workspace.isTemporary());
             assertEquals(ws.getAccountId(), workspace.getAccountId());
             assertEquals(ws.getAttributes(), workspace.getAttributes());
-            verifyLinksRel(ws.getLinks(), generateRels(role));
+            verifyLinksRel(ws.getLinks(), generateWorkspaceRels(role));
         }
         verify(workspaceDao, times(roles.length)).getById(WS_ID);
     }
@@ -181,7 +181,7 @@ public class WorkspaceServiceTest {
             assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
             WorkspaceDescriptor created = (WorkspaceDescriptor)response.getEntity();
             assertFalse(created.isTemporary());
-            verifyLinksRel(created.getLinks(), generateRels(role));
+            verifyLinksRel(created.getLinks(), generateWorkspaceRels(role));
         }
         verify(workspaceDao, times(roles.length)).create(any(Workspace.class));
         verify(memberDao, times(roles.length)).create(any(Member.class));
@@ -344,7 +344,7 @@ public class WorkspaceServiceTest {
             assertEquals(ws.isTemporary(), workspace.isTemporary());
             assertEquals(ws.getAccountId(), workspace.getAccountId());
             assertEquals(ws.getAttributes(), workspace.getAttributes());
-            verifyLinksRel(ws.getLinks(), generateRels(role));
+            verifyLinksRel(ws.getLinks(), generateWorkspaceRels(role));
         }
         verify(workspaceDao, times(roles.length)).getByName(WS_NAME);
     }
@@ -423,7 +423,7 @@ public class WorkspaceServiceTest {
             assertEquals(actual.getName(), workspaceToUpdate.getName());
             assertEquals(actual.getAttributes().size(), 1);
             assertEquals(attributes.get("test"), "other_value");
-            verifyLinksRel(actual.getLinks(), generateRels(role));
+            verifyLinksRel(actual.getLinks(), generateWorkspaceRels(role));
         }
         verify(workspaceDao, times(roles.length)).update(any(Workspace.class));
     }
@@ -448,17 +448,19 @@ public class WorkspaceServiceTest {
                                                          .withRoles(Arrays.asList("workspace/admin")));
         when(memberDao.getUserRelationships(USER_ID)).thenReturn(members);
         when(memberDao.getWorkspaceMembers(WS_ID)).thenReturn(members);
-        prepareSecurityContext("workspace/admin");
+        String[] roles = new String[]{"workspace/admin", "workspace/developer", "system/admin", "system/manager"};
+        for (String role : roles) {
+            prepareSecurityContext(role);
 
-        ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID + "/members", null, null);
-        //safe cast cause WorkspaceService#getMembers always return List<Member>
-        @SuppressWarnings("unchecked") List<MemberDescriptor> descriptors = (List<MemberDescriptor>)response.getEntity();
-        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(descriptors.size(), 1);
-        verify(memberDao, times(1)).getWorkspaceMembers(WS_ID);
-        verifyLinksRel(descriptors.get(0).getLinks(), Arrays.asList(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                                                    Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
-                                                                    com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID));
+            ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + WS_ID + "/members", null, null);
+            //safe cast cause WorkspaceService#getMembers always return List<Member>
+            @SuppressWarnings("unchecked") List<MemberDescriptor> descriptors =
+                    (List<MemberDescriptor>)response.getEntity();
+            assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+            assertEquals(descriptors.size(), 1);
+            verifyLinksRel(descriptors.get(0).getLinks(), generateMemberRels(role));
+        }
+        verify(memberDao, times(roles.length)).getWorkspaceMembers(WS_ID);
     }
 
     @Test
@@ -681,7 +683,7 @@ public class WorkspaceServiceTest {
         }
     }
 
-    private List<String> generateRels(String role) {
+    private List<String> generateWorkspaceRels(String role) {
         List<String> result = new ArrayList<>();
         result.add(Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES);
         result.add(Constants.LINK_REL_GET_CURRENT_USER_MEMBERSHIP);
@@ -697,6 +699,21 @@ public class WorkspaceServiceTest {
             case "workspace/developer":
                 result.add(Constants.LINK_REL_GET_WORKSPACE_BY_ID);
                 result.add(Constants.LINK_REL_GET_WORKSPACE_BY_NAME);
+        }
+        return result;
+    }
+
+    private List<String> generateMemberRels(String role) {
+        List<String> result = new ArrayList<>();
+        result.add(com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID);
+        switch (role) {
+            case "workspace/admin":
+                result.add(Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER);
+                result.add(Constants.LINK_REL_GET_WORKSPACE_MEMBERS);
+                break;
+            case "workspace/developer":
+                result.add(Constants.LINK_REL_GET_WORKSPACE_MEMBERS);
+                break;
         }
         return result;
     }

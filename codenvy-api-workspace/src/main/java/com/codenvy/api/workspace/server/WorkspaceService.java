@@ -623,7 +623,7 @@ public class WorkspaceService extends Service {
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}/members")
-    @RolesAllowed({"workspace/admin", "system/admin", "system/manager"})
+    @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<MemberDescriptor> getMembers(@ApiParam(value = "Workspace ID", required = true)
                                              @PathParam("id") String wsId,
@@ -881,15 +881,7 @@ public class WorkspaceService extends Service {
         final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
         final List<Link> links = new LinkedList<>();
 
-        if (securityContext.isUserInRole("workspace/admin")) {
-            links.add(createLink("DELETE",
-                                 Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                 null,
-                                 null,
-                                 serviceUriBuilder.clone()
-                                                  .path(getClass(), "removeMember")
-                                                  .build(workspace.getId(), member.getUserId())
-                                                  .toString()));
+        if (securityContext.isUserInRole("workspace/admin") || securityContext.isUserInRole("workspace/developer")) {
             links.add(createLink("GET",
                                  Constants.LINK_REL_GET_WORKSPACE_MEMBERS,
                                  null,
@@ -899,6 +891,18 @@ public class WorkspaceService extends Service {
                                                   .build(workspace.getId())
                                                   .toString()));
         }
+
+        if (securityContext.isUserInRole("workspace/admin")) {
+            links.add(createLink("DELETE",
+                                 Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER,
+                                 null,
+                                 null,
+                                 serviceUriBuilder.clone()
+                                                  .path(getClass(), "removeMember")
+                                                  .build(workspace.getId(), member.getUserId())
+                                                  .toString()));
+        }
+
         links.add(createLink("GET",
                              com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID,
                              null,

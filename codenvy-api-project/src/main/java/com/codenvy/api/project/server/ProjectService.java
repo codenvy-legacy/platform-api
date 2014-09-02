@@ -554,6 +554,8 @@ public class ProjectService extends Service {
                                            @PathParam("ws-id") String workspace,
                                            @ApiParam(value = "Path in the project", required = true)
                                            @PathParam("path") String path,
+                                           @ApiParam(value = "Force rewrite existing project", required = false)
+                                           @QueryParam("force") boolean force,
                                            ImportSourceDescriptor importDescriptor)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
         final ProjectImporter importer = importers.getImporter(importDescriptor.getType());
@@ -577,7 +579,7 @@ public class ProjectService extends Service {
         }
 
         Project project = projectManager.getProject(workspace, path);
-        if (project == null) {
+        if (project == null || force) {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         } else {
             // Project already exists.

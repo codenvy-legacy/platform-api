@@ -174,12 +174,12 @@ public final class BuilderService extends Service {
         return task.getDescriptor();
     }
 
-    @ApiOperation(value = "Get build log",
-            notes = "Get build log",
-            position = 5)
+    @ApiOperation(value = "Get build logs",
+                  notes = "Get build logs",
+                  position = 5)
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Not Found")})
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found")})
     @GET
     @Path("/logs/{id}")
     public void getLogs(@ApiParam(value = "Get build logs", required = true)
@@ -190,28 +190,52 @@ public final class BuilderService extends Service {
     }
 
 
+    @ApiOperation(value = "Get build report",
+                  notes = "Get build report by build ID",
+                  position = 6)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found")})
     @GET
     @Path("/report/{id}")
-    public void getReport(@PathParam("id") Long id,
+    public void getReport(@ApiParam(value = "Build ID", required = true)
+                          @PathParam("id") Long id,
                           @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
         buildQueue.getTask(id).readReport(new HttpServletProxyResponse(httpServletResponse));
     }
 
+    @ApiOperation(value = "Download build artifact",
+                 notes = "Download build artifact",
+                 position = 7)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found")})
     @GET
-    @Path("download/{id}")
-    public void download(@PathParam("id") Long id,
+    @Path("/download/{id}")
+    public void download(@ApiParam(value = "Build ID", required = true)
+                         @PathParam("id") Long id,
+                         @ApiParam(value = "Path to a project as /target/{BuildArtifactName}", required = true)
                          @Required @QueryParam("path") String path,
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
         buildQueue.getTask(id).download(path, new HttpServletProxyResponse(httpServletResponse));
     }
 
+    @ApiOperation(value = "Get all builders",
+                  notes = "Get information on all registered builders",
+                  response = BuilderDescriptor.class,
+                  responseContainer = "List",
+                  position = 8)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Not Found")})
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_BUILDERS)
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("builders")
-    public List<BuilderDescriptor> getRegisteredServers(@PathParam("ws-id") String workspace) throws Exception {
+    @Path("/builders")
+    public List<BuilderDescriptor> getRegisteredServers(@ApiParam(value = "Workspace ID")
+                                                        @PathParam("ws-id") String workspace) throws Exception {
         final List<RemoteBuilderServer> runnerServers = buildQueue.getRegisterBuilderServers();
         final List<BuilderDescriptor> result = new LinkedList<>();
         for (RemoteBuilderServer builderServer : runnerServers) {

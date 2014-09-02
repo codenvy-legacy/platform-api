@@ -14,6 +14,7 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
+import com.codenvy.api.core.util.LineConsumer;
 
 import java.io.IOException;
 import java.util.Map;
@@ -61,5 +62,31 @@ public interface ProjectImporter {
      *         if import causes some errors that should be treated as internal errors
      */
     void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+            throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException;
+
+    /**
+     * Imports source from the given {@code location} to the specified folder.
+     *
+     * @param baseFolder
+     *         base project folder
+     * @param location
+     *         location to the import sources
+     * @param parameters
+     *          optional implementation specific parameters, e.g. branch name, commit id for GIT importer
+     * @param importOutputLineConsumer
+     *         an optional output line consumer to get the import process output. For instance, Git command output for the Git importer
+     * @throws ForbiddenException
+     *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
+     *         baseFolder}
+     * @throws ConflictException
+     *         if import causes any conflicts, e.g. if import operation causes name conflicts in {@code baseFolder}
+     * @throws UnauthorizedException
+     *         if user isn't authorized to access to access {@code location}
+     * @throws IOException
+     *         if any i/o errors occur, e.g. when try to access {@code location}
+     * @throws ServerException
+     *         if import causes some errors that should be treated as internal errors
+     */
+    void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumer importOutputLineConsumer)
             throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException;
 }

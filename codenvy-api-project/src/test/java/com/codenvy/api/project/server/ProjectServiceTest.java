@@ -16,6 +16,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
+import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
@@ -63,6 +64,7 @@ import org.testng.annotations.Test;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Application;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -714,6 +716,12 @@ public class ProjectServiceTest {
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
                     throws ConflictException, ServerException, ForbiddenException {
+                importSources(baseFolder, location, parameters, null);
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumer importOutputLineConsumer)
+                    throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);
                 folderHolder.set(baseFolder);
@@ -767,6 +775,12 @@ public class ProjectServiceTest {
 
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+                    throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
+                importSources(baseFolder, location, parameters, null);
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumer consumer)
                     throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);

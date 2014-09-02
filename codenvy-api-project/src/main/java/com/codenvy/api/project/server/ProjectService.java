@@ -22,6 +22,7 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
+import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
 import com.codenvy.api.project.shared.ProjectDescription;
@@ -53,6 +54,9 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.apache.commons.fileupload.FileItem;
+import org.everrest.core.impl.provider.json.JsonUtils;
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +77,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -85,6 +90,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author andrew00x
@@ -563,6 +569,34 @@ public class ProjectService extends Service {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
                                                     importDescriptor.getLocation(), importDescriptor.getType()));
         }
+
+
+        // preparing websocket output publisher to broadcast output of import process to the ide clients while importing
+        final String fWorkspace = workspace;
+        final String fPath = path;
+        LineConsumer outputWSlineConsumer = new LineConsumer() {
+            AtomicInteger lineCounter = new AtomicInteger(1);
+
+            @Override
+            public void close() throws IOException {
+            }
+
+            @Override
+            public void writeLine(String line) throws IOException {
+                if (line != null) {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    bm.setChannel("importProject:output:" + fWorkspace + ":" + fPath);
+                    bm.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                             lineCounter.getAndIncrement(), JsonUtils.getJsonString(line)));
+                    try {
+                        WSConnectionContext.sendMessage(bm);
+                    } catch (Exception e) {
+                        LOG.error("A problem occured while sending websocket message", e);
+                    }
+                }
+            }
+        };
+
         // create project descriptor based on query parameters
         ProjectUpdate descriptorToUpdate = DtoFactory.getInstance().createDto(ProjectUpdate.class);
         MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
@@ -585,7 +619,8 @@ public class ProjectService extends Service {
             // Project already exists.
             throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
         }
-        importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters());
+        importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters(),
+                               outputWSlineConsumer);
 
         //use resolver only if project type not set
         if(descriptorToUpdate.getProjectTypeId() == null && project.getDescription().getProjectType().getId().equals(

@@ -23,6 +23,8 @@ import com.codenvy.api.core.ServerException;
  * @author Alexander Garagatyi
  */
 public abstract class SubscriptionService {
+    public static final String SUBSCRIPTION_LIMIT_EXHAUSTED_MESSAGE =
+            "Impossible to add the subscription as current subscription list already exhaustive for this account";
 
     private final String serviceId;
     private final String displayName;

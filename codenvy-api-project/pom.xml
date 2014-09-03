@@ -42,11 +42,6 @@
         </dependency>
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-docs</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.codenvy.platform-api</groupId>
             <artifactId>codenvy-api-user</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -54,6 +49,11 @@
             <groupId>com.codenvy.platform-api</groupId>
             <artifactId>codenvy-api-vfs</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.wordnik</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${com.wordnik.swagger.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

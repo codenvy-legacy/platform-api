@@ -25,23 +25,20 @@
         <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
     </properties>
     <dependencies>
-
         <dependency>
             <groupId>com.codenvy.platform-api</groupId>
             <artifactId>codenvy-api-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>com.codenvy.platform-api</groupId>
-            <artifactId>codenvy-api-docs</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>${javax.jcr350.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.wordnik</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${com.wordnik.swagger.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>
@@ -53,8 +50,6 @@
             <artifactId>validation-api</artifactId>
             <version>${javax.validation.version}</version>
         </dependency>
-
-
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -78,10 +73,7 @@
             <version>${ch.qos.logback.version}</version>
             <scope>test</scope>
         </dependency>
-
-
     </dependencies>
-
     <build>
         <resources>
             <resource>
@@ -113,7 +105,6 @@
                         <artifactId>codenvy-api-auth</artifactId>
                         <version>${project.version}</version>
                     </dependency>
-
                 </dependencies>
                 <configuration>
                     <dtoPackages>

@@ -13,8 +13,10 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.util.LineConsumer;
 
 import javax.inject.Singleton;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -42,6 +44,12 @@ public class ZipProjectImporter implements ProjectImporter {
 
     @Override
     public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+            throws ForbiddenException, ConflictException, IOException, ServerException {
+        importSources(baseFolder, location, parameters, null);
+    }
+
+    @Override
+    public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumer outputLineConsumer)
             throws ForbiddenException, ConflictException, IOException, ServerException {
         URL url;
         if (location.startsWith("http://") || location.startsWith("https://")) {

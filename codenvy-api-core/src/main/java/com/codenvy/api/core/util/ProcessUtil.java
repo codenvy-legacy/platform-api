@@ -62,6 +62,32 @@ public final class ProcessUtil {
         }
     }
 
+    /**
+     * Start the process, writing the stdout and stderr to consumer.
+     *
+     * @param pb process builder to start
+     * @param consumer a consumer where stdout and stderr will be redirected
+     * @return the started process
+     * @throws IOException
+     */
+    public static Process start(ProcessBuilder pb, LineConsumer consumer) throws IOException {
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        final InputStream inputStream = process.getInputStream();
+        BufferedReader inputReader = new BufferedReader(new InputStreamReader(inputStream));
+        String line;
+        try {
+            while ((line = inputReader.readLine()) != null) {
+                consumer.writeLine(line);
+            }
+        } finally {
+            consumer.close();
+        }
+
+        return process;
+    }
+
     public static boolean isAlive(Process process) {
         return PROCESS_MANAGER.isAlive(process);
     }
@@ -89,4 +115,3 @@ public final class ProcessUtil {
     private ProcessUtil() {
     }
 }
-

@@ -11,6 +11,7 @@
 package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * Location of {@code SlaveBuilderService} resource.
@@ -25,6 +26,7 @@ public interface BuilderServerLocation {
      *
      * @return resource URL
      */
+    @ApiModelProperty(value = "Builder URL", required = true, notes = "This is URL of a new builder service, where builder name is a prefix to main DNS name, for example 'http://builder2.hostname.com/builder/internal/builder' ")
     String getUrl();
 
     /**

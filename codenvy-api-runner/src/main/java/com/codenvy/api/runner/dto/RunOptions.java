@@ -12,6 +12,7 @@ package com.codenvy.api.runner.dto;
 
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.Map;
 
@@ -23,6 +24,7 @@ import java.util.Map;
 @DTO
 public interface RunOptions {
     /** Get memory size (in megabytes) that is required for starting application. */
+    @ApiModelProperty(value = "Memory allocated per run")
     int getMemorySize();
 
     void setMemorySize(int mem);
@@ -47,6 +49,7 @@ public interface RunOptions {
     void setOptions(Map<String, String> options);
 
     /** Force skip build before run. Build stage is skipped even project has configuration for builder. */
+    @ApiModelProperty(value = "Skip build", dataType = "boolean", allowableValues = "true,false")
     boolean getSkipBuild();
 
     void setSkipBuild(boolean skipBuild);
@@ -60,6 +63,7 @@ public interface RunOptions {
      * @see RunnerDescriptor#getEnvironments()
      * @see com.codenvy.api.runner.dto.RunnerEnvironment
      */
+    @ApiModelProperty(value = "Environment ID", notes = "Visit docs site for parameters reference")
     String getEnvironmentId();
 
     void setEnvironmentId(String environmentId);
@@ -72,6 +76,7 @@ public interface RunOptions {
      *
      * @see com.codenvy.api.builder.dto.BuildOptions
      */
+    @ApiModelProperty(value = "Build options", notes = "This parameter overrides builder properties of a project")
     BuildOptions getBuildOptions();
 
     void setBuildOptions(BuildOptions options);
@@ -83,6 +88,7 @@ public interface RunOptions {
      * configuration parameters for shell console. Supporting of shell console is optional feature and not all runner's implementation may
      * support this feature.
      */
+    @ApiModelProperty(value = "Terminal Access")
     Map<String, String> getShellOptions();
 
     RunOptions withShellOptions(Map<String, String> options);

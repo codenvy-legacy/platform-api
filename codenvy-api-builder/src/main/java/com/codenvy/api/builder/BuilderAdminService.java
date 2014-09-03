@@ -20,6 +20,7 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.server.DtoFactory;
+import com.wordnik.swagger.annotations.*;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -38,29 +39,47 @@ import java.util.List;
  *
  * @author andrew00x
  */
-@Path("admin/builder")
+@Api(value = "/admin/builder",
+     description = "Builder manager (admin)")
+@Path("/admin/builder")
 @Description("Builder API")
 @RolesAllowed("system/admin")
 public class BuilderAdminService extends Service {
     @Inject
     private BuildQueue buildQueue;
 
+    @ApiOperation(value = "Register a new builder",
+                  notes = "Register a new builder service",
+                  response = BuilderServerRegistration.class,
+                  position = 1)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTER_BUILDER_SERVICE)
     @POST
-    @Path("server/register")
+    @Path("/server/register")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response register(BuilderServerRegistration registration) throws Exception {
+    public Response register(@ApiParam(value = "JSON with builder location and options", required = true)
+                             BuilderServerRegistration registration) throws Exception {
         buildQueue.registerBuilderServer(registration);
         return Response.status(Response.Status.OK).build();
     }
 
+    @ApiOperation(value = "Unregister builder",
+                  notes = "Unregister builder service",
+                  response = BuilderServerLocation.class,
+                  position = 2)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_UNREGISTER_BUILDER_SERVICE)
     @POST
-    @Path("server/unregister")
+    @Path("/server/unregister")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response unregister(BuilderServerLocation location) throws Exception {
+    public Response unregister(@ApiParam(value = "JSON with builder location", required = true)
+                               BuilderServerLocation location) throws Exception {
         buildQueue.unregisterBuilderServer(location);
         return Response.status(Response.Status.OK).build();
     }
@@ -69,10 +88,18 @@ public class BuilderAdminService extends Service {
                                                                   Constants.LINK_REL_SERVER_STATE,
                                                                   Constants.LINK_REL_BUILDER_STATE};
 
+    @ApiOperation(value = "Get all registered builders",
+                  notes = "Get all registered builders",
+                  response = BuilderServer.class,
+                  responseContainer = "List",
+                  position = 3)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTERED_BUILDER_SERVER)
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("server")
+    @Path("/server")
     public List<BuilderServer> getRegisteredServers() throws Exception {
         final List<RemoteBuilderServer> runnerServers = buildQueue.getRegisterBuilderServers();
         final List<BuilderServer> result = new LinkedList<>();

@@ -11,6 +11,7 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  *
@@ -18,12 +19,14 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface ResourcesDescriptor {
+    @ApiModelProperty(value = "Total RAM")
     String getTotalMemory();
 
     void setTotalMemory(String memory);
 
     ResourcesDescriptor withTotalMemory(String memory);
 
+    @ApiModelProperty(value = "RAM in use")
     String getUsedMemory();
 
     void setUsedMemory(String memory);

@@ -11,6 +11,7 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * Location of {@code SlaveRunnerService} resource.
@@ -25,6 +26,7 @@ public interface RunnerServerLocation {
      *
      * @return resource URL
      */
+    @ApiModelProperty(value = "Runner URL")
     String getUrl();
 
     /**

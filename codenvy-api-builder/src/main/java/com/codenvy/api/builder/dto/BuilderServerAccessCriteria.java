@@ -11,6 +11,7 @@
 package com.codenvy.api.builder.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * Resource access criteria. Basically resource may be assigned to {@code workspace}, {@code project} in some workspace or {@code
@@ -20,12 +21,14 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface BuilderServerAccessCriteria {
+    @ApiModelProperty(value = "Workspace ID", notes = "Optional. Used only when a builder should accept requests from a particular workspace")
     String getWorkspace();
 
     BuilderServerAccessCriteria withWorkspace(String workspace);
 
     void setWorkspace(String workspace);
 
+    @ApiModelProperty(value = "Project name", notes = "Optional. If specified, the builder will accept requests from a particular project only")
     String getProject();
 
     BuilderServerAccessCriteria withProject(String project);

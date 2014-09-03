@@ -11,6 +11,7 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * Resource access criteria. Basically resource may be assigned to {@code workspace}, {@code project} in some workspace.
@@ -19,12 +20,14 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface RunnerServerAccessCriteria {
+    @ApiModelProperty(value = "Workspace ID")
     String getWorkspace();
 
     RunnerServerAccessCriteria withWorkspace(String workspace);
 
     void setWorkspace(String workspace);
 
+    @ApiModelProperty(value = "Project name")
     String getProject();
 
     RunnerServerAccessCriteria withProject(String project);

@@ -11,6 +11,7 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.Map;
 
@@ -29,6 +30,7 @@ public interface RunnerDescriptor {
      *
      * @return runner name
      */
+    @ApiModelProperty(value = "Runner name", notes = "Consult docs to get runner name reference")
     String getName();
 
     /**
@@ -46,6 +48,7 @@ public interface RunnerDescriptor {
      *
      * @return runner description
      */
+    @ApiModelProperty(value = "Description")
     String getDescription();
 
     /**

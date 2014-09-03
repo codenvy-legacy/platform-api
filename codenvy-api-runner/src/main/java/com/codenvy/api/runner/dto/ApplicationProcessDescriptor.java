@@ -14,6 +14,7 @@ import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 
@@ -25,54 +26,63 @@ import java.util.List;
  */
 @DTO
 public interface ApplicationProcessDescriptor {
+    @ApiModelProperty(value = "Process ID")
     long getProcessId();
 
     ApplicationProcessDescriptor withProcessId(long processId);
 
     void setProcessId(long processId);
 
+    @ApiModelProperty(value = "Application status")
     ApplicationStatus getStatus();
 
     void setStatus(ApplicationStatus status);
 
     ApplicationProcessDescriptor withStatus(ApplicationStatus status);
 
+    @ApiModelProperty(value = "Creation time")
     long getCreationTime();
 
     ApplicationProcessDescriptor withCreationTime(long creationTime);
 
     void setCreationTime(long creationTime);
 
+    @ApiModelProperty(value = "Start time")
     long getStartTime();
 
     ApplicationProcessDescriptor withStartTime(long startTime);
 
     void setStartTime(long startTime);
 
+    @ApiModelProperty(value = "Stop time")
     long getStopTime();
 
     ApplicationProcessDescriptor withStopTime(long stopTime);
 
     void setStopTime(long stopTime);
 
+    @ApiModelProperty(value = "Debug port")
     int getDebugPort();
 
     void setDebugPort(int port);
 
     ApplicationProcessDescriptor withDebugPort(int port);
 
+    @ApiModelProperty(value = "Debug host")
     String getDebugHost();
 
     void setDebugHost(String host);
 
     ApplicationProcessDescriptor withDebugHost(String host);
 
+    @ApiModelProperty(value = "Run stats")
     List<RunnerMetric> getRunStats();
 
     ApplicationProcessDescriptor withRunStats(List<RunnerMetric> stats);
 
     void setRunStats(List<RunnerMetric> stats);
 
+    @ApiModelProperty(value = "Build stats")
     List<BuilderMetric> getBuildStats();
 
     ApplicationProcessDescriptor withBuildStats(List<BuilderMetric> stats);
@@ -86,6 +96,7 @@ public interface ApplicationProcessDescriptor {
     void setLinks(List<Link> links);
 
     /** Name of workspace which the project is belong. */
+    @ApiModelProperty(value = "Workspace name")
     String getWorkspace();
 
     void setWorkspace(String workspace);
@@ -93,6 +104,7 @@ public interface ApplicationProcessDescriptor {
     ApplicationProcessDescriptor withWorkspace(String workspace);
 
     /** Name of project which represents sources on the ide side. */
+    @ApiModelProperty(value = "Project name")
     String getProject();
 
     void setProject(String project);
@@ -100,6 +112,7 @@ public interface ApplicationProcessDescriptor {
     ApplicationProcessDescriptor withProject(String project);
 
     /** The name of user who ran application. */
+    @ApiModelProperty(value = "User who initiated run")
     String getUserName();
 
     ApplicationProcessDescriptor withUserName(String userName);
@@ -110,6 +123,7 @@ public interface ApplicationProcessDescriptor {
      * The URL of server where application is running. This information is accessible only over RunnerAdminServer and is not available for
      * regular users.
      */
+    @ApiModelProperty(value = "Server URL where the app is running")
     String getServerUrl();
 
     void setServerUrl(String server);

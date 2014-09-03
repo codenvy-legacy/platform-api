@@ -58,10 +58,6 @@ public final class BuilderService extends Service {
     @Inject
     private BuildQueue buildQueue;
 
-    // Used for Swagger annotation. Don't remove
-    @ApiParam(value = "Workspace ID", required = true)
-    @PathParam("ws-id") String workspace;
-
     @ApiOperation(value = "Build a project",
                   notes = "Build a project. Optional build options are passed in a JSON",
                   response = BuildTaskDescriptor.class,
@@ -74,8 +70,7 @@ public final class BuilderService extends Service {
     @Path("/build")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor build(@ApiParam(value = "Workspace ID", required = true)
-                                     @PathParam("ws-id") String workspace,
+    public BuildTaskDescriptor build(@PathParam("ws-id") String workspace,
                                      @ApiParam(value = "Project name", required = true)
                                      @Required @Description("project name") @QueryParam("project") String project,
                                      @ApiParam(value = "Build options. Here you specify optional build options like skip tests, build targets etc.")
@@ -151,7 +146,9 @@ public final class BuilderService extends Service {
     @GET
     @Path("/status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor getStatus(@ApiParam(value = "Build ID", required = true)
+    public BuildTaskDescriptor getStatus(@ApiParam(value = "Workspace ID", required = true)
+                                         @PathParam("ws-id") String workspace,
+                                         @ApiParam(value = "Build ID", required = true)
                                          @PathParam("id")
                                          Long id) throws Exception {
         return buildQueue.getTask(id).getDescriptor();
@@ -167,7 +164,9 @@ public final class BuilderService extends Service {
     @POST
     @Path("/cancel/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public BuildTaskDescriptor cancel(@ApiParam(value = "Build ID", required = true)
+    public BuildTaskDescriptor cancel(@ApiParam(value = "Workspace ID", required = true)
+                                      @PathParam("ws-id") String workspace,
+                                      @ApiParam(value = "Build ID", required = true)
                                       @PathParam("id") Long id) throws Exception {
         final BuildQueueTask task = buildQueue.getTask(id);
         task.cancel();
@@ -182,7 +181,9 @@ public final class BuilderService extends Service {
                   @ApiResponse(code = 404, message = "Not Found")})
     @GET
     @Path("/logs/{id}")
-    public void getLogs(@ApiParam(value = "Get build logs", required = true)
+    public void getLogs(@ApiParam(value = "Workspace ID", required = true)
+                        @PathParam("ws-id") String workspace,
+                        @ApiParam(value = "Get build logs", required = true)
                         @PathParam("id") Long id,
                         @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
@@ -198,7 +199,9 @@ public final class BuilderService extends Service {
                   @ApiResponse(code = 404, message = "Not Found")})
     @GET
     @Path("/report/{id}")
-    public void getReport(@ApiParam(value = "Build ID", required = true)
+    public void getReport(@ApiParam(value = "Workspace ID", required = true)
+                          @PathParam("ws-id") String workspace,
+                          @ApiParam(value = "Build ID", required = true)
                           @PathParam("id") Long id,
                           @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
@@ -206,14 +209,16 @@ public final class BuilderService extends Service {
     }
 
     @ApiOperation(value = "Download build artifact",
-                 notes = "Download build artifact",
-                 position = 7)
+                  notes = "Download build artifact",
+                  position = 7)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
                   @ApiResponse(code = 404, message = "Not Found")})
     @GET
     @Path("/download/{id}")
-    public void download(@ApiParam(value = "Build ID", required = true)
+    public void download(@ApiParam(value = "Workspace ID", required = true)
+                         @PathParam("ws-id") String workspace,
+                         @ApiParam(value = "Build ID", required = true)
                          @PathParam("id") Long id,
                          @ApiParam(value = "Path to a project as /target/{BuildArtifactName}", required = true)
                          @Required @QueryParam("path") String path,
@@ -234,7 +239,7 @@ public final class BuilderService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/builders")
-    public List<BuilderDescriptor> getRegisteredServers(@ApiParam(value = "Workspace ID")
+    public List<BuilderDescriptor> getRegisteredServers(@ApiParam(value = "Workspace ID", required = true)
                                                         @PathParam("ws-id") String workspace) throws Exception {
         final List<RemoteBuilderServer> runnerServers = buildQueue.getRegisterBuilderServers();
         final List<BuilderDescriptor> result = new LinkedList<>();

@@ -19,40 +19,40 @@ import com.codenvy.dto.shared.DTO;
  * @author andrew00x
  */
 @DTO
-public interface Template {
+public interface FactoryJson {
     String getV();
 
     void setV(String v);
 
-    Template withV(String v);
+    FactoryJson withV(String v);
 
     ImportSourceDescriptor getSource();
 
     void setSource(ImportSourceDescriptor source);
 
-    Template withSource(ImportSourceDescriptor source);
+    FactoryJson withSource(ImportSourceDescriptor source);
 
     NewWorkspace getWorkspace();
 
     void setWorkspace(NewWorkspace workspace);
 
-    Template withWorkspace(NewWorkspace workspace);
+    FactoryJson withWorkspace(NewWorkspace workspace);
 
     Policies getPolicies();
 
     void setPolicies(Policies policies);
 
-    Template withPolicies(Policies policies);
+    FactoryJson withPolicies(Policies policies);
 
     NewProject getProject();
 
     void setProject(NewProject project);
 
-    Template withProject(NewProject project);
+    FactoryJson withProject(NewProject project);
 
     Actions getAction();
 
     void setAction(Actions action);
 
-    Template withAction(Actions action);
+    FactoryJson withAction(Actions action);
 }

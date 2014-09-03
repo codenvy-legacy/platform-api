@@ -216,10 +216,24 @@ public class FactoryService extends Service {
      * @throws com.codenvy.api.core.ApiException
      *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
      */
+
+    @ApiOperation(value = "Get Factory information by its ID",
+                  notes = "Get JSON with Factory information. Factory ID is passed in a path parameter",
+                  response = Factory.class,
+                  position = 2)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Factory not found"),
+                  @ApiResponse(code = 409, message = "Failed to validate Factory URL"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}")
+    @Path("/{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory getFactory(@PathParam("id") String id, @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
+    public Factory getFactory(@ApiParam(value = "Factory ID", required = true)
+                              @PathParam("id") String id,
+                              @ApiParam(value = "Legacy. Whether or not to transform Factory into the most recent format", allowableValues = "true.false", defaultValue = "false")
+                              @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
+                              @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory", allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
                               @Context UriInfo uriInfo) throws ApiException {
         Factory factoryUrl = factoryStore.getFactory(id);

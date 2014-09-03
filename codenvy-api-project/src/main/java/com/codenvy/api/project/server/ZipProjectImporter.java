@@ -45,7 +45,7 @@ public class ZipProjectImporter implements ProjectImporter {
     @Override
     public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
             throws ForbiddenException, ConflictException, IOException, ServerException {
-        importSources(baseFolder, location, parameters, null);
+        importSources(baseFolder, location, parameters, LineConsumer.DEV_NULL);
     }
 
     @Override

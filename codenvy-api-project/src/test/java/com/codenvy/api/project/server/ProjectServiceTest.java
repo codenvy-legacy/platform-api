@@ -716,7 +716,7 @@ public class ProjectServiceTest {
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
                     throws ConflictException, ServerException, ForbiddenException {
-                importSources(baseFolder, location, parameters, null);
+                importSources(baseFolder, location, parameters, LineConsumer.DEV_NULL);
             }
 
             @Override
@@ -776,7 +776,7 @@ public class ProjectServiceTest {
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
                     throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
-                importSources(baseFolder, location, parameters, null);
+                importSources(baseFolder, location, parameters, LineConsumer.DEV_NULL);
             }
 
             @Override

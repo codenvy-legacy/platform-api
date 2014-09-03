@@ -569,13 +569,11 @@ public class ProjectService extends Service {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
                                                     importDescriptor.getLocation(), importDescriptor.getType()));
         }
-
-
         // preparing websocket output publisher to broadcast output of import process to the ide clients while importing
         final String fWorkspace = workspace;
         final String fPath = path;
-        LineConsumer outputWSlineConsumer = new LineConsumer() {
-            AtomicInteger lineCounter = new AtomicInteger(1);
+        final LineConsumer outputWSlineConsumer = new LineConsumer() {
+            final AtomicInteger lineCounter = new AtomicInteger(1);
 
             @Override
             public void close() throws IOException {
@@ -591,7 +589,7 @@ public class ProjectService extends Service {
                     try {
                         WSConnectionContext.sendMessage(bm);
                     } catch (Exception e) {
-                        LOG.error("A problem occured while sending websocket message", e);
+                        LOG.error("A problem occurred while sending websocket message", e);
                     }
                 }
             }

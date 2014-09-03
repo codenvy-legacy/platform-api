@@ -70,7 +70,7 @@ public final class ProcessUtil {
      * @return the started process
      * @throws IOException
      */
-    public static Process start(ProcessBuilder pb, LineConsumer consumer) throws IOException {
+    public static Process execute(ProcessBuilder pb, LineConsumer consumer) throws IOException {
         pb.redirectErrorStream(true);
         Process process = pb.start();
 

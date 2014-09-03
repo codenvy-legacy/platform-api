@@ -560,7 +560,7 @@ public class ProjectService extends Service {
                                            @PathParam("ws-id") String workspace,
                                            @ApiParam(value = "Path in the project", required = true)
                                            @PathParam("path") String path,
-                                           @ApiParam(value = "Force rewrite existing project", required = false)
+                                           @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
                                            @QueryParam("force") boolean force,
                                            ImportSourceDescriptor importDescriptor)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {

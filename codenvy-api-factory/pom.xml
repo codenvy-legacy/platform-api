@@ -46,6 +46,16 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-api-project</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.codenvy.platform-api</groupId>
+            <artifactId>codenvy-api-workspace</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.wordnik</groupId>
             <artifactId>swagger-annotations</artifactId>
             <version>${com.wordnik.swagger.version}</version>

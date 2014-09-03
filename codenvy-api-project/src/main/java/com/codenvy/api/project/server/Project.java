@@ -153,20 +153,6 @@ public class Project {
         }
         projectDescription.setAttributes(tmpList);
         tmpList.clear();
-        // TODO: Remove. Added temporary, for back compatibility after change format of .codenvy/project.json file
-        if (!projectDescription.hasAttribute("builder.name")) {
-            final String builder = projectDescription.getBuilder();
-            if (builder != null) {
-                projectDescription.setAttribute(new Attribute("builder.name", builder));
-            }
-        }
-        if (!projectDescription.hasAttribute("runner.name")) {
-            final String runner = projectDescription.getRunner();
-            if (runner != null) {
-                projectDescription.setAttribute(new Attribute("runner.name", runner));
-            }
-        }
-        // ~~~
         return projectDescription;
     }
 
@@ -206,22 +192,6 @@ public class Project {
                 }
             }
         }
-//        // TODO: Remove. Added temporary, for back compatibility after change format of .codenvy/project.json file
-//        final ProjectProperty builderNameProperty = projectJson.removeProperty("builder.name");
-//        if (projectJson.getBuilder() == null && builderNameProperty != null) {
-//            final String value = builderNameProperty.firstValue();
-//            if (value != null) {
-//                projectJson.setBuilder(value);
-//            }
-//        }
-//        final ProjectProperty runnerNameProperty = projectJson.removeProperty("runner.name");
-//        if (projectJson.getRunner() == null && runnerNameProperty != null) {
-//            final String value = runnerNameProperty.firstValue();
-//            if (value != null) {
-//                projectJson.setRunner(value);
-//            }
-//        }
-        // ~~~
         projectJson.save(this);
     }
 

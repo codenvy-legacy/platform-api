@@ -112,7 +112,7 @@ public final class BuilderService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public List<BuildTaskDescriptor> builds(@ApiParam(value = "Workspace ID", required = true)
                                             @PathParam("ws-id") String workspace,
-                                            @ApiParam(value = "Project name", required = true)
+                                            @ApiParam(value = "Project name", required = false)
                                             @Required @Description("project name")
                                             @QueryParam("project") String project) throws Exception {
         // handle project name

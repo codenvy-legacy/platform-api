@@ -91,7 +91,8 @@ public class AnalyticsService extends Service {
 
     @ApiOperation(value = "Get list of metric values",
                   notes = "Get list of metric values",
-                  response = MetricInfoListDTO.class)
+                  response = MetricInfoListDTO.class,
+                  position = 2)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
                   @ApiResponse(code = 404, message  ="Not Found"),
@@ -103,10 +104,10 @@ public class AnalyticsService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getListValues(@ApiParam(value = "Metric name")
+    public Response getListValues(@ApiParam(value = "Metric name", required = true)
                                   @PathParam("name") String metricName,
                                   @Context UriInfo uriInfo,
-                                  @ApiParam(value = "Search filter")
+                                  @ApiParam(value = "Search filter", required = true)
                                   List<Map<String, String>> parameters) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
@@ -120,7 +121,7 @@ public class AnalyticsService extends Service {
 
     @GenerateLink(rel = "metric value")
     @POST
-    @Path("metric/{name}")
+    @Path("/metric/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
@@ -145,12 +146,23 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @ApiOperation(value = "Get public metric",
+                  notes = "Get public metric (Factory)",
+                  response = MetricValueDTO.class,
+                  position = 4)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message  ="Not Found"),
+                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
     @GenerateLink(rel = "metric value")
     @GET
-    @Path("public-metric/{name}")
+    @Path("/public-metric/{name}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getPublicValue(@PathParam("name") String metricName,
+    public Response getPublicValue(@ApiParam(value = "Metric name", required = true, allowableValues = "factory_used")
+                                   @PathParam("name") String metricName,
+                                   @ApiParam(value = "Page number")
                                    @QueryParam("page") String page,
+                                   @ApiParam(value = "Resylts per page")
                                    @QueryParam("per_page") String perPage,
                                    @Context UriInfo uriInfo) {
         try {
@@ -166,13 +178,22 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @ApiOperation(value = "Get metric value for current user",
+                  notes = "Get metric value for current user",
+                  response = MetricValueListDTO.class,
+                  position = 5)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message  ="Not Found"),
+                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
     @GenerateLink(rel = "list of metric values")
     @POST
     @Path("/metric/user")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getUserValues(List<String> metricNames, @Context UriInfo uriInfo) {
+    public Response getUserValues(@ApiParam(value = "Metric names", required = true)
+                                  List<String> metricNames, @Context UriInfo uriInfo) {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
             MetricValueListDTO list = metricHandler.getUserValues(new JsonArrayImpl<>(metricNames),
@@ -186,12 +207,21 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @ApiOperation(value = "Get metric info",
+                  notes = "Get nformation about specified metric",
+                  response = MetricInfoDTO.class,
+                  position = 6)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message  ="Not Found"),
+                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get info for metric")})
     @GenerateLink(rel = "metric info")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("metricinfo/{name}")
+    @Path("/metricinfo/{name}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getInfo(@PathParam("name") String metricName, @Context UriInfo uriInfo) {
+    public Response getInfo(@ApiParam(value = "Metric name", required = true)
+                            @PathParam("name") String metricName, @Context UriInfo uriInfo) {
         try {
             MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
@@ -202,10 +232,18 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @ApiOperation(value = "Get info on all available metric",
+                  notes = "Get info on all available metric",
+                  response = MetricInfoListDTO.class,
+                  position = 7)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message  ="Not Found"),
+                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get info for metric")})
     @GenerateLink(rel = "all metric info")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("metricinfo")
+    @Path("/metricinfo")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public Response getAllInfo(@Context UriInfo uriInfo) {
         try {

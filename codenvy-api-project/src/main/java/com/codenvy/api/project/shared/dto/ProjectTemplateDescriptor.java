@@ -40,6 +40,14 @@ public interface ProjectTemplateDescriptor {
 
     ProjectTemplateDescriptor withDisplayName(String displayName);
 
+    /** Get builder name of project template. */
+    String getBuilderName();
+
+    ProjectTemplateDescriptor withBuilderName(String builderName);
+
+    /** Set builder name of project template. */
+    void setBuilderName(String builderName);
+
     String getDefaultBuilderEnvironment();
 
     ProjectTemplateDescriptor withDefaultBuilderEnvironment(String envId);
@@ -51,6 +59,14 @@ public interface ProjectTemplateDescriptor {
     ProjectTemplateDescriptor withDefaultRunnerEnvironment(String envId);
 
     void setDefaultRunnerEnvironment(String envId);
+
+    /** Get runner name of project template. */
+    String getRunnerName();
+
+    ProjectTemplateDescriptor withRunnerName(String runnerName);
+
+    /** Set runner name of project template. */
+    void setRunnerName(String runnerName);
 
     Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
 

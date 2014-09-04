@@ -75,13 +75,17 @@ public class ProjectTypeService extends Service {
                                                                       .withDisplayName(templateDescription.getDisplayName())
                                                                       .withSource(factory.createDto(ImportSourceDescriptor.class)
                                                                                          .withType(templateDescription.getImporterType())
-                                                                                         .withLocation(templateDescription.getLocation()))
+                                                                                         .withLocation(templateDescription.getLocation())
+                                                                                         .withParameters(
+                                                                                                 templateDescription.getParameters()))
                                                                       .withCategory(templateDescription.getCategory())
                                                                       .withDescription(templateDescription.getDescription())
-                                                                      .withDefaultRunnerEnvironment(
-                                                                              templateDescription.getDefaultRunnerEnvironment())
+                                                                      .withBuilderName(templateDescription.getBuilderName())
                                                                       .withDefaultBuilderEnvironment(
                                                                               templateDescription.getDefaultBuilderEnvironment())
+                                                                      .withRunnerName(templateDescription.getRunnerName())
+                                                                      .withDefaultRunnerEnvironment(
+                                                                              templateDescription.getDefaultRunnerEnvironment())
                                                                       .withRunnerEnvironmentConfigurations(
                                                                               getReformatedRunnerEnvConfigs(templateDescription));
                 templateDescriptors.add(templateDescriptor);

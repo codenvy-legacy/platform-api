@@ -26,7 +26,6 @@ public class LocalAuthenticationDaoImpl implements AuthenticationDao {
     @Override
     public Response login(Credentials credentials, Cookie tokenAccessCookie, UriInfo uriInfo) throws AuthenticationException {
         return Response.ok().entity((DtoFactory.getInstance().createDto(Token.class).withValue("123123"))).build();
-        //return Response.ok().entity("{\"value\":\"123123\"}").build();
     }
 
     @Override

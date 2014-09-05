@@ -12,25 +12,34 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
+import com.codenvy.api.factory.dto.v2_0.FactoryJson;
+import com.codenvy.api.project.server.Project;
+import com.codenvy.api.project.server.ProjectJson;
+import com.codenvy.api.project.server.ProjectManager;
+import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
+import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
+import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
+import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonSyntaxException;
-
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,14 +48,32 @@ import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
-import static javax.ws.rs.core.Response.Status;
 
 /** Service for factory rest api features */
 @Api(value = "/factory",
@@ -69,6 +96,9 @@ public class FactoryService extends Service {
 
     @Inject
     private FactoryBuilder factoryBuilder;
+
+    @Inject
+    private ProjectManager projectManager;
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.
@@ -377,4 +407,46 @@ public class FactoryService extends Service {
         }
     }
 
+    // TODO: docs
+    @GET
+    @Path("/{ws-id}/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public FactoryJson getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+            throws ServerException, ForbiddenException {
+        final Project project = projectManager.getProject(workspace, path);
+        final ProjectJson projectJson = ProjectJson.load(project);
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+
+        final Map<String, BuilderEnvironmentConfiguration> builderConfigurations = projectJson.getBuilderEnvironmentConfigurations();
+        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderConfigurationsDescriptors =
+                new HashMap<>(builderConfigurations.size());
+        for (Map.Entry<String, BuilderEnvironmentConfiguration> e : builderConfigurations.entrySet()) {
+            builderConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(BuilderEnvironmentConfigurationDescriptor.class));
+        }
+
+        final Map<String, RunnerEnvironmentConfiguration> runnerConfigurations = projectJson.getRunnerEnvironmentConfigurations();
+        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerConfigurationsDescriptors =
+                new HashMap<>(runnerConfigurations.size());
+        for (Map.Entry<String, RunnerEnvironmentConfiguration> e : runnerConfigurations.entrySet()) {
+            final RunnerEnvironmentConfiguration envConfig = e.getValue();
+            runnerConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
+                                                                 .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
+                                                                 .withRequiredMemorySize(envConfig.getRequiredMemorySize()));
+        }
+
+        final FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class);
+        return factoryJson
+                .withV("2.0")
+                .withProject(dtoFactory.createDto(NewProject.class)
+                                       .withProjectTypeId(projectJson.getProjectTypeId())
+                                       .withBuilder(projectJson.getBuilder())
+                                       .withRunner(projectJson.getRunner())
+                                       .withDefaultBuilderEnvironment(projectJson.getDefaultBuilderEnvironment())
+                                       .withDefaultRunnerEnvironment(projectJson.getDefaultRunnerEnvironment())
+                                       .withBuilderEnvironmentConfigurations(builderConfigurationsDescriptors)
+                                       .withRunnerEnvironmentConfigurations(runnerConfigurationsDescriptors)
+                                       .withAttributes(projectJson.getAttributes())
+                                       .withDescription(projectJson.getDescription())
+                            );
+    }
 }

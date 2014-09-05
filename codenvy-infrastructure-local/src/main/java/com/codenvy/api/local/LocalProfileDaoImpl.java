@@ -49,7 +49,7 @@ public class LocalProfileDaoImpl implements UserProfileDao {
     private final ReadWriteLock        lock;
 
     @Inject
-    public LocalProfileDaoImpl(@Nullable @Named("codenvy.local.infrastructure.profile.store_location") String dirPath) {
+    public LocalProfileDaoImpl(@Nullable @Named("profile.store_location") String dirPath) {
         if (dirPath == null || dirPath.isEmpty()) {
             storageFile = new File(System.getProperty("java.io.tmpdir"), "ProfileStorage.json");
         } else {

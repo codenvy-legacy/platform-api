@@ -111,10 +111,12 @@ public class LocalInfrastructureModule extends AbstractModule {
     @Named("codenvy.local.infrastructure.users")
     Set<User> users() {
         final Set<User> users = new HashSet<>(1);
-        users.add(DtoFactory.getInstance().createDto(User.class)
-                            .withId("codenvy")
-                            .withEmail("codenvy@codenvy.com")
-                            .withPassword("pass1"));
+        final User user = DtoFactory.getInstance().createDto(User.class)
+                                    .withId("codenvy")
+                                    .withEmail("codenvy@codenvy.com")
+                                    .withPassword("secret");
+        user.getAliases().add("codenvy@codenvy.com");
+        users.add(user);
         return users;
     }
 

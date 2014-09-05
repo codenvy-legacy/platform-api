@@ -19,7 +19,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.api.factory.dto.v2_0.FactoryJson;
+import com.codenvy.api.factory.dto.FactoryJson;
 import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectJson;
 import com.codenvy.api.project.server.ProjectManager;

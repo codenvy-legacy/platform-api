@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.dto.v2_0;
+package com.codenvy.api.factory.dto;
 
 import com.codenvy.dto.shared.DTO;
 

@@ -231,7 +231,7 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactory(@ApiParam(value = "Factory ID", required = true)
                               @PathParam("id") String id,
-                              @ApiParam(value = "Legacy. Whether or not to transform Factory into the most recent format", allowableValues = "true.false", defaultValue = "false")
+                              @ApiParam(value = "Legacy. Whether or not to transform Factory into the most recent format", allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                               @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory", allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
@@ -312,10 +312,20 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.NotFoundException} when imgId is not set in request and there is no default image for factory with given id
      *         - {@link com.codenvy.api.core.NotFoundException} when image with given image id doesn't exist
      */
+    @ApiOperation(value = "Get Factory image information",
+                  notes = "Get Factory image information by Factory and image ID",
+                  position = 3)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Factory or Image ID Not Found"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{factoryId}/image")
+    @Path("/{factoryId}/image")
     @Produces("image/*")
-    public Response getImage(@PathParam("factoryId") String factoryId, @DefaultValue("") @QueryParam("imgId") String imageId)
+    public Response getImage(@ApiParam(value = "Factory ID", required = true)
+                             @PathParam("factoryId") String factoryId,
+                             @ApiParam(value = "Image ID", required = true)
+                             @DefaultValue("") @QueryParam("imgId") String imageId)
             throws ApiException {
         Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(factoryId, null);
         if (factoryImages == null) {
@@ -355,10 +365,21 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist - with response code 400 if snippet type
      *         is unsupported
      */
+    @ApiOperation(value = "Get Factory snippet by ID",
+                  notes = "Get Factory snippet by ID",
+                  position = 4)
+    @ApiResponses(value = {
+                  @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 404, message = "Factory not Found"),
+                  @ApiResponse(code = 409, message = "Unknown snippet type"),
+                  @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("{id}/snippet")
+    @Path("/{id}/snippet")
     @Produces({MediaType.TEXT_PLAIN})
-    public String getFactorySnippet(@PathParam("id") String id, @DefaultValue("url") @QueryParam("type") String type,
+    public String getFactorySnippet(@ApiParam(value = "Factory ID", required = true)
+                                    @PathParam("id") String id,
+                                    @ApiParam(value = "Snippet type", required = true, allowableValues = "url,html,iframe,markdown", defaultValue = "url")
+                                    @DefaultValue("url") @QueryParam("type") String type,
                                     @Context UriInfo uriInfo)
             throws ApiException {
         Factory factory = factoryStore.getFactory(id);

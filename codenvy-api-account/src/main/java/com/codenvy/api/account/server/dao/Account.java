@@ -51,7 +51,7 @@ public class Account {
 
     public Map<String, String> getAttributes() {
         if (attributes == null) {
-            return new HashMap<>();
+            attributes = new HashMap<>();
         }
         return attributes;
     }

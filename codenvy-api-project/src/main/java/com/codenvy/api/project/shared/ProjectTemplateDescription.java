@@ -27,11 +27,13 @@ public class ProjectTemplateDescription {
     private final String                                       displayName;
     private final String                                       description;
     private final String                                       location;
+    private final Map<String, String>                          parameters;
+    private final String                                       builderName;
+    private final String                                       defaultBuilderEnvironment;
     private final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs;
+    private final String                                       runnerName;
+    private final String                                       defaultRunnerEnvironment;
     private final Map<String, RunnerEnvironmentConfiguration>  runnerEnvConfigs;
-
-    private String defaultBuilderEnvironment;
-    private String defaultRunnerEnvironment;
 
     /**
      * Create new ProjectTemplateDescription with default category eq @see defaultCategory.
@@ -56,7 +58,10 @@ public class ProjectTemplateDescription {
                                       String displayName,
                                       String description,
                                       String location,
+                                      Map<String, String> parameters,
+                                      String builderName,
                                       String defaultBuilderEnvironment,
+                                      String runnerName,
                                       String defaultRunnerEnvironment,
                                       Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs) {
         this.category = category;
@@ -64,7 +69,10 @@ public class ProjectTemplateDescription {
         this.displayName = displayName;
         this.description = description;
         this.location = location;
+        this.parameters = parameters;
+        this.builderName = builderName;
         this.defaultBuilderEnvironment = defaultBuilderEnvironment;
+        this.runnerName = runnerName;
         this.defaultRunnerEnvironment = defaultRunnerEnvironment;
         this.runnerEnvConfigs = runnerEnvConfigs;
         builderEnvConfigs = new LinkedHashMap<>();
@@ -85,7 +93,7 @@ public class ProjectTemplateDescription {
      *         location of template, importer uses it when import templates to IDE
      */
     public ProjectTemplateDescription(String category, String importerType, String displayName, String description, String location) {
-        this(category, importerType, displayName, description, location, null, null, null);
+        this(category, importerType, displayName, description, location, null, null, null, null, null, null);
     }
 
     /**
@@ -101,7 +109,7 @@ public class ProjectTemplateDescription {
      *         location of template, importer uses it when import templates to IDE
      */
     public ProjectTemplateDescription(String importerType, String displayName, String description, String location) {
-        this(defaultCategory, importerType, displayName, description, location, null, null, null);
+        this(defaultCategory, importerType, displayName, description, location, null, null, null, null, null, null);
     }
 
     /**
@@ -132,6 +140,15 @@ public class ProjectTemplateDescription {
     }
 
     /**
+     * Gets parameters of this project template.
+     *
+     * @return parameters
+     */
+    public Map<String, String> getParameters() {
+        return parameters;
+    }
+
+    /**
      * Get description of this project template.
      *
      * @return description
@@ -150,6 +167,15 @@ public class ProjectTemplateDescription {
     }
 
     /**
+     * Gets builder name of this project template.
+     *
+     * @return Name of builder
+     */
+    public String getBuilderName() {
+        return builderName;
+    }
+
+    /**
      * Gets ID of default builder environment that should be used for projects created from this template.
      *
      * @return ID of default builder environment that should be used for projects created from this template
@@ -158,9 +184,13 @@ public class ProjectTemplateDescription {
         return defaultBuilderEnvironment;
     }
 
-    /** @see #getDefaultBuilderEnvironment() */
-    public void setDefaultBuilderEnvironment(String defaultBuilderEnvironment) {
-        this.defaultBuilderEnvironment = defaultBuilderEnvironment;
+    /**
+     * Gets runner name of this project template.
+     *
+     * @return Name of runner
+     */
+    public String getRunnerName() {
+        return runnerName;
     }
 
     /**
@@ -170,11 +200,6 @@ public class ProjectTemplateDescription {
      */
     public String getDefaultRunnerEnvironment() {
         return defaultRunnerEnvironment;
-    }
-
-    /** @see #getDefaultRunnerEnvironment() */
-    public void setDefaultRunnerEnvironment(String defaultRunnerEnvironment) {
-        this.defaultRunnerEnvironment = defaultRunnerEnvironment;
     }
 
     /**

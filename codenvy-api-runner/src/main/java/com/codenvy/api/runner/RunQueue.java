@@ -30,6 +30,7 @@ import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
+import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -594,8 +595,8 @@ public class RunQueue {
                         }
                         if (error != null) {
                             LOG.error(error.getMessage(), error);
-                            eventService.publish(RunnerEvent.errorEvent(internalRunTask.id, internalRunTask.workspace, internalRunTask.project,
-                                                                        error.getMessage()));
+                            eventService.publish(RunnerEvent.errorEvent(internalRunTask.id, internalRunTask.workspace,
+                                                                        internalRunTask.project, error.getMessage()));
                         }
                     }
                 }
@@ -655,6 +656,33 @@ public class RunQueue {
                     }
                 }
             }, 1, 1, TimeUnit.MINUTES);
+
+            // sending message by websocket connection for notice about used memory size changing
+            eventService.subscribe(new EventSubscriber<RunnerEvent>() {
+                @Override
+                public void onEvent(RunnerEvent event) {
+                    switch (event.getType()) {
+                        case STOPPED:
+                        case ERROR:
+                        case RUN_TASK_ADDED_IN_QUEUE:
+                        case RUN_TASK_QUEUE_TIME_EXCEEDED:
+                            try {
+                                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                                String workspaceId = event.getWorkspace();
+                                bm.setChannel(String.format("runner:resources:%s", workspaceId));
+
+                                final ResourcesDescriptor resourcesDescriptor =
+                                        DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
+                                                  .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
+                                bm.setBody(DtoFactory.getInstance().toJson(resourcesDescriptor));
+                                WSConnectionContext.sendMessage(bm);
+                            } catch (Exception e) {
+                                LOG.error(e.getMessage(), e);
+                            }
+                            break;
+                    }
+                }
+            });
 
             eventService.subscribe(new EventSubscriber<RunnerEvent>() {
                 @Override

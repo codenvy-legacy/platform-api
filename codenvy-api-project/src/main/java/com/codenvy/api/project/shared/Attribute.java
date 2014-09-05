@@ -59,7 +59,8 @@ public class Attribute {
     }
 
     /** Copy constructor. */
-    public Attribute(Attribute origin) {
+    public Attribute(Attribute origin) throws ValueStorageException {
+
         this(origin.getName(), new DefaultValueProvider(origin.getValues()));
     }
 
@@ -84,7 +85,7 @@ public class Attribute {
      *
      * @return current value of attribute
      */
-    public final String getValue() {
+    public final String getValue() throws ValueStorageException {
         final List<String> values = valueProvider.getValues();
         return !(values == null || values.isEmpty()) ? values.get(0) : null;
     }
@@ -94,7 +95,7 @@ public class Attribute {
      *
      * @return current value of attribute
      */
-    public final List<String> getValues() {
+    public final List<String> getValues() throws ValueStorageException {
         final List<String> values = valueProvider.getValues();
         return values == null ? new ArrayList<String>(0) : new ArrayList<>(values);
     }
@@ -105,7 +106,7 @@ public class Attribute {
      * @param value
      *         new value of attribute
      */
-    public final void setValue(String value) {
+    public final void setValue(String value) throws ValueStorageException, InvalidValueException {
         if (value != null) {
             final List<String> list = new ArrayList<>(1);
             list.add(value);
@@ -121,7 +122,7 @@ public class Attribute {
      * @param values
      *         new value of attribute
      */
-    public final void setValues(List<String> values) {
+    public final void setValues(List<String> values) throws ValueStorageException, InvalidValueException {
         if (values != null) {
             valueProvider.setValues(new ArrayList<>(values));
         } else {
@@ -135,7 +136,7 @@ public class Attribute {
      * @param values
      *         new value of attribute
      */
-    public final void setValues(String... values) {
+    public final void setValues(String... values) throws InvalidValueException, ValueStorageException {
         if (values != null) {
             final List<String> list = new ArrayList<>();
             Collections.addAll(list, values);
@@ -147,9 +148,14 @@ public class Attribute {
 
     @Override
     public String toString() {
+        List<String> values = new ArrayList<String>();
+        try {
+            values.addAll(valueProvider.getValues());
+        } catch (ValueStorageException e) {};
+
         return "Attribute{" +
                "name='" + name + '\'' +
-               ", values=" + valueProvider.getValues() +
+               ", values=" + values +
                '}';
     }
 }

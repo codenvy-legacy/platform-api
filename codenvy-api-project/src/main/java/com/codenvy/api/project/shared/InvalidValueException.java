@@ -10,18 +10,22 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared;
 
-import java.util.List;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
- * Provides access to the value of attribute of Project.
  *
- * @author andrew00x
+ * Thrown when input value is invalid by some reason
+ *
+ * @author gazarenkov
  */
-public interface ValueProvider {
+public class InvalidValueException extends ForbiddenException {
 
-    /** Get value. */
-    List<String> getValues() throws ValueStorageException;
+    public InvalidValueException(String message) {
+        super(message);
+    }
 
-    /** Set value. */
-    void setValues(List<String> value) throws ValueStorageException, InvalidValueException;
+    public InvalidValueException(ServiceError serviceError) {
+        super(serviceError);
+    }
 }

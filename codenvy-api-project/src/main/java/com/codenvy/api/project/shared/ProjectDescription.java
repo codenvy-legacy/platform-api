@@ -43,7 +43,7 @@ public class ProjectDescription {
         this(new ProjectType(Constants.BLANK_ID, Constants.BLANK_ID, Constants.BLANK_CATEGORY));
     }
 
-    public ProjectDescription(ProjectDescription origin) {
+    public ProjectDescription(ProjectDescription origin) throws ValueStorageException {
         this.projectType = new ProjectType(origin.getProjectType());
         this.builder = origin.getBuilder();
         this.runner = origin.getRunner();
@@ -218,7 +218,7 @@ public class ProjectDescription {
     }
 
     /** Get single value of attribute with specified name. If attribute has multiple value then this method returns first value in the list. */
-    public String getAttributeValue(String name) {
+    public String getAttributeValue(String name) throws ValueStorageException {
         final Attribute attribute = attributes.get(name);
         if (attribute == null) {
             return null;
@@ -227,7 +227,7 @@ public class ProjectDescription {
     }
 
     /** Get values of attribute with specified name. */
-    public List<String> getAttributeValues(String name) {
+    public List<String> getAttributeValues(String name) throws ValueStorageException {
         final Attribute attribute = attributes.get(name);
         if (attribute == null) {
             return null;

@@ -13,7 +13,9 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.shared.InvalidValueException;
 import com.codenvy.api.project.shared.ProjectDescription;
+import com.codenvy.api.project.shared.ValueStorageException;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.google.inject.ImplementedBy;
 
@@ -71,7 +73,7 @@ public interface ProjectManager {
      *         if other error occurs
      */
     Project createProject(String workspace, String name, ProjectDescription projectDescription)
-            throws ConflictException, ForbiddenException, ServerException;
+            throws ConflictException, ForbiddenException, ServerException, InvalidValueException, ValueStorageException;
 
     /**
      * Gets root folder od project tree.

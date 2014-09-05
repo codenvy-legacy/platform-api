@@ -10,18 +10,23 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared;
 
-import java.util.List;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
- * Provides access to the value of attribute of Project.
  *
- * @author andrew00x
+ * Used when source of persisted value is invalid
+ * For instance file not found or can not be read when expected
+ *
+ * @author gazarenkov
  */
-public interface ValueProvider {
+public class ValueStorageException extends ConflictException {
 
-    /** Get value. */
-    List<String> getValues() throws ValueStorageException;
+    public ValueStorageException(String message) {
+        super(message);
+    }
 
-    /** Set value. */
-    void setValues(List<String> value) throws ValueStorageException, InvalidValueException;
+    public ValueStorageException(ServiceError serviceError) {
+        super(serviceError);
+    }
 }

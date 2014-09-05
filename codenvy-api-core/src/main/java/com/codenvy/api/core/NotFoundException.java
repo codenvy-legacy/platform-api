@@ -20,7 +20,7 @@ import com.codenvy.api.core.rest.shared.dto.ServiceError;
  * @author andrew00x
  */
 @SuppressWarnings("serial")
-public final class NotFoundException extends ApiException {
+public class NotFoundException extends ApiException {
     public NotFoundException(String message) {
         super(message);
     }

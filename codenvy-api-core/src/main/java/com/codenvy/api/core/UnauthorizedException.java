@@ -20,7 +20,7 @@ import com.codenvy.api.core.rest.shared.dto.ServiceError;
  * @author andrew00x
  */
 @SuppressWarnings("serial")
-public final class UnauthorizedException extends ApiException {
+public class UnauthorizedException extends ApiException {
 
     public UnauthorizedException(String message) {
         super(message);

@@ -21,7 +21,7 @@ import com.codenvy.api.core.rest.shared.dto.ServiceError;
  * @author andrew00x
  */
 @SuppressWarnings("serial")
-public final class ForbiddenException extends ApiException {
+public class ForbiddenException extends ApiException {
     public ForbiddenException(String message) {
         super(message);
     }

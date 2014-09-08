@@ -10,11 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.AttributeDescription;
-import com.codenvy.api.project.shared.ProjectTemplateDescription;
-import com.codenvy.api.project.shared.ProjectType;
-import com.codenvy.api.project.shared.ProjectTypeDescription;
+import com.codenvy.api.project.shared.*;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -88,10 +84,16 @@ public class ProjectTypeDescriptionRegistryTest {
         Assert.assertEquals(predefinedAttributes.size(), 2);
         Attribute a = findAttribute("name1", predefinedAttributes);
         Assert.assertNotNull(a);
-        Assert.assertEquals(a.getValue(), "value1");
-        a = findAttribute("name2", predefinedAttributes);
-        Assert.assertNotNull(a);
-        Assert.assertEquals(a.getValue(), "value2");
+
+
+        try {
+            Assert.assertEquals(a.getValue(), "value1");
+            a = findAttribute("name2", predefinedAttributes);
+            Assert.assertNotNull(a);
+            Assert.assertEquals(a.getValue(), "value2");
+        } catch (ValueStorageException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test

@@ -15,7 +15,9 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
+import com.codenvy.api.project.shared.InvalidValueException;
 import com.codenvy.api.project.shared.ProjectDescription;
+import com.codenvy.api.project.shared.ValueStorageException;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 import com.codenvy.commons.lang.Pair;
@@ -121,7 +123,7 @@ public final class DefaultProjectManager implements ProjectManager {
 
     @Override
     public Project createProject(String workspace, String name, ProjectDescription projectDescription)
-            throws ConflictException, ForbiddenException, ServerException {
+            throws ConflictException, ForbiddenException, ServerException, InvalidValueException, ValueStorageException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(workspace, projectFolder, this);

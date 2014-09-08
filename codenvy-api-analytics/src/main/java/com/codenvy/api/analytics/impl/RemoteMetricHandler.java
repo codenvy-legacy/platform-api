@@ -222,7 +222,7 @@ public class RemoteMetricHandler implements MetricHandler {
 
     private String getProxyURL(String methodName, String metricName) {
         String path = getMethod(methodName).getAnnotation(Path.class).value();
-        return proxyUrl + "/" + path.replace("{name}", metricName);
+        return proxyUrl + path.replace("{name}", metricName);
     }
 
     private <DTO> DTO request(Class<DTO> dtoInterface,

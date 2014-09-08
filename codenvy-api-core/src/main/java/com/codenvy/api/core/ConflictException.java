@@ -21,7 +21,7 @@ import com.codenvy.api.core.rest.shared.dto.ServiceError;
  * @author andrew00x
  */
 @SuppressWarnings("serial")
-public final class ConflictException extends ApiException {
+public class ConflictException extends ApiException {
 
     public ConflictException(String message) {
         super(message);

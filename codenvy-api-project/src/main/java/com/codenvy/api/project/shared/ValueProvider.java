@@ -18,9 +18,10 @@ import java.util.List;
  * @author andrew00x
  */
 public interface ValueProvider {
+
     /** Get value. */
-    List<String> getValues();
+    List<String> getValues() throws ValueStorageException;
 
     /** Set value. */
-    void setValues(List<String> value);
+    void setValues(List<String> value) throws ValueStorageException, InvalidValueException;
 }

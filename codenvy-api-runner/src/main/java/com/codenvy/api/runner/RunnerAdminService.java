@@ -56,6 +56,7 @@ public class RunnerAdminService extends Service {
             position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this method"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTER_RUNNER_SERVER)
     @POST
@@ -74,6 +75,7 @@ public class RunnerAdminService extends Service {
                   position = 2)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_UNREGISTER_RUNNER_SERVER)
     @POST
@@ -97,6 +99,7 @@ public class RunnerAdminService extends Service {
                   position = 3)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTERED_RUNNER_SERVER)
     @GET
@@ -145,6 +148,7 @@ public class RunnerAdminService extends Service {
                   position = 4)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_RUNNER_TASKS)
     @GET

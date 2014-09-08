@@ -54,7 +54,7 @@ public class HttpJsonHelper {
      * @Mock MockableHttpJsonHelper requestDelegate
      * <p/>
      * <p/>
-     * Field field = HttpJsonHelper.class.getDeclaredField("requestPerformer");
+     * Field field = HttpJsonHelper.class.getDeclaredField("requestDelegate");
      * field.setAccessible(true);
      * field.set(null, requestDelegate);
      */

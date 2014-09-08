@@ -46,19 +46,9 @@ public class HttpJsonHelper {
     private static final Pair<String, ?>[] EMPTY = new Pair[0];
 
     /**
-     * Mockable version of HttpJsonHelper. Used to be able to control responses
-     * of HttpJsonHelper in tests. Eventually HttpJsonHelper delegate all his request to
-     * this class.
-     * To mock this class in test do like this:
-     *
-     * @Mock MockableHttpJsonHelper requestDelegate
-     * <p/>
-     * <p/>
-     * Field field = HttpJsonHelper.class.getDeclaredField("requestDelegate");
-     * field.setAccessible(true);
-     * field.set(null, requestDelegate);
+     * Implementation  HttpJsonHelper methods.
      */
-    private static MockableHttpJsonHelper requestDelegate = new MockableHttpJsonHelper();
+    private static HttpJsonHelperImpl httpJsonHelperImpl = new HttpJsonHelperImpl();
 
 
     //==============================================================
@@ -97,7 +87,7 @@ public class HttpJsonHelper {
                                        Object body,
                                        Pair<String, ?>... parameters)
             throws IOException, ServerException, ForbiddenException, NotFoundException, UnauthorizedException, ConflictException {
-        return requestDelegate.requestString(url, method, body, parameters);
+        return httpJsonHelperImpl.requestString(url, method, body, parameters);
     }
 
 
@@ -129,7 +119,7 @@ public class HttpJsonHelper {
                                     Object body,
                                     Pair<String, ?>... parameters)
             throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
-        return requestDelegate.request(dtoInterface, url, method, body, parameters);
+        return httpJsonHelperImpl.request(dtoInterface, url, method, body, parameters);
     }
 
     public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface,
@@ -138,7 +128,7 @@ public class HttpJsonHelper {
                                                Object body,
                                                Pair<String, ?>... parameters)
             throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
-        return requestDelegate.requestArray(dtoInterface, url, method, body, parameters);
+        return httpJsonHelperImpl.requestArray(dtoInterface, url, method, body, parameters);
     }
 
 
@@ -259,7 +249,10 @@ public class HttpJsonHelper {
     private HttpJsonHelper() {
     }
 
-    public static class MockableHttpJsonHelper {
+    /**
+     * Execute all request from HttpJsonHelper throw single method  requestString.
+     */
+    public static class HttpJsonHelperImpl {
 
         public <DTO> DTO request(Class<DTO> dtoInterface,
                                  String url,

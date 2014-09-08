@@ -204,8 +204,9 @@ public class RunQueue {
                 try {
                     ApplicationStatus status;
                     if (task.isWaiting()
-                        || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
-                        || status == ApplicationStatus.NEW) {
+                        || (!task.isCancelled() &&
+                            ((status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
+                             || (status == ApplicationStatus.NEW)))) {
                         usedMemory += request.getMemorySize();
                     }
                 } catch (NotFoundException ignored) {

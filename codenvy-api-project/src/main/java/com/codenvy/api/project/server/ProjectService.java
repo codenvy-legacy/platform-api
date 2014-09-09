@@ -539,7 +539,7 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Import resource",
-                  notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from VSC or ZIP",
+                  notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from VCS or ZIP",
                   response = ProjectDescriptor.class,
                   position = 15)
     @ApiResponses(value = {

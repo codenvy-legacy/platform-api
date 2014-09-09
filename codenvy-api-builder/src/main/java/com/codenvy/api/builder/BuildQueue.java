@@ -690,28 +690,52 @@ public class BuildQueue {
                             final String analyticsID = task.getCreationTime() + "-" + taskId;
                             final String project = event.getProject();
                             final String workspace = request.getWorkspace();
+                            final long timeout = request.getTimeout();
                             final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                             final String user = request.getUserName();
                             long waitingTime = task.getWaitingTime();
 
                             switch (event.getType()) {
                                 case BEGIN:
-                                    LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                             project, projectTypeId, analyticsID);
-                                    LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# WAITING_TIME#{}# ID#{}#", workspace, user,
-                                             project, projectTypeId, waitingTime, analyticsID);
+                                    LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                             workspace,
+                                             user,
+                                             project,
+                                             projectTypeId,
+                                             analyticsID);
+                                    LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# WAITING_TIME#{}# ID#{}# TIMEOUT#{}#",
+                                             workspace,
+                                             user,
+                                             project,
+                                             projectTypeId,
+                                             waitingTime,
+                                             analyticsID,
+                                             timeout);
                                     break;
                                 case DONE:
-                                    LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                             projectTypeId, analyticsID);
+                                    LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
+                                             workspace,
+                                             user,
+                                             project,
+                                             projectTypeId,
+                                             analyticsID,
+                                             timeout);
                                     break;
                                 case BUILD_TASK_ADDED_IN_QUEUE:
-                                    LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                             project, projectTypeId, analyticsID);
+                                    LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                             workspace,
+                                             user,
+                                             project,
+                                             projectTypeId,
+                                             analyticsID);
                                     break;
                                 case BUILD_TASK_QUEUE_TIME_EXCEEDED:
-                                    LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                             projectTypeId, analyticsID);
+                                    LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                             workspace,
+                                             user,
+                                             project,
+                                             projectTypeId,
+                                             analyticsID);
                                     break;
                             }
                         }

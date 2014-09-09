@@ -1191,37 +1191,75 @@ public class RunQueue {
                 final String analyticsID = task.getCreationTime() + "-" + id;
                 final String project = event.getProject();
                 final String workspace = request.getWorkspace();
+                final int memorySize = request.getMemorySize();
+                final long lifetime = request.getLifetime();
                 final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                 final boolean debug = request.getDebugMode() != null;
                 final String user = request.getUserName();
                 switch (event.getType()) {
                     case STARTED:
-                        LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                 project, projectTypeId, analyticsID);
+                        LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                 workspace,
+                                 user,
+                                 project,
+                                 projectTypeId,
+                                 analyticsID);
                         if (debug) {
-                            LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                     projectTypeId, analyticsID);
+                            LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     memorySize,
+                                     lifetime);
                         } else {
-                            LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                     projectTypeId, analyticsID);
+                            LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     memorySize,
+                                     lifetime);
                         }
                         break;
                     case STOPPED:
                         if (debug) {
-                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                     projectTypeId, analyticsID);
+                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     memorySize,
+                                     lifetime);
                         } else {
-                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                     projectTypeId, analyticsID);
+                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     memorySize,
+                                     lifetime);
                         }
                         break;
                     case RUN_TASK_ADDED_IN_QUEUE:
-                        LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                 project, projectTypeId, analyticsID);
+                        LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                 workspace,
+                                 user,
+                                 project,
+                                 projectTypeId,
+                                 analyticsID);
                         break;
                     case RUN_TASK_QUEUE_TIME_EXCEEDED:
-                        LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                 project, projectTypeId, analyticsID);
+                        LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                 workspace,
+                                 user,
+                                 project,
+                                 projectTypeId,
+                                 analyticsID);
                         break;
                 }
             } catch (Exception e) {

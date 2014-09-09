@@ -803,7 +803,7 @@ public class AccountService extends Service {
             try {
                 paymentService.removeSubscription(subscriptionId);
             } catch (NotFoundException ignored) {
-                LOG.info(ignored.getLocalizedMessage(), ignored);
+                LOG.error(ignored.getLocalizedMessage(), ignored);
             }
         }
         accountDao.removeSubscription(subscriptionId);

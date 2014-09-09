@@ -40,7 +40,7 @@ public interface SubscriptionDescriptor {
 
     SubscriptionDescriptor withAccountId(String orgId);
 
-    @ApiModelProperty(value = "Service ID", allowableValues = "SaaS,OnPremises,Factory")
+    @ApiModelProperty(value = "Service ID")
     String getServiceId();
 
     void setServiceId(String id);

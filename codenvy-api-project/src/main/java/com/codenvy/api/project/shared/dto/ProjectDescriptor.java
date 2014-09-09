@@ -122,7 +122,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
 
     /** Get permissions of current user on this project. Current user is user who retrieved this object. */
-    @ApiModelProperty(value = "Permissions in the project", allowableValues = "read,read,write,update_acl,build,run", position = 12)
+    @ApiModelProperty(value = "Permissions in the project", position = 12)
     List<String> getCurrentUserPermissions();
 
     void setCurrentUserPermissions(List<String> permissions);

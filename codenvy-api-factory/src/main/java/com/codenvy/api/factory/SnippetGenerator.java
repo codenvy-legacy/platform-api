@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import com.codenvy.api.core.ConflictException;
-
 import java.util.Formatter;
 
 
@@ -37,9 +35,9 @@ public class SnippetGenerator {
     }
 
     public static String generateMarkdownSnippet(String factoryURL, String id, String imageId, String style,
-                                                 String baseUrl) throws ConflictException {
+                                                 String baseUrl) {
         if (style == null || style.isEmpty()) {
-            throw new ConflictException("Enable to generate markdown snippet with empty factory style");
+            throw new IllegalArgumentException("Enable to generate markdown snippet with empty factory style");
         }
         switch (style) {
             case "Advanced":
@@ -49,7 +47,7 @@ public class SnippetGenerator {
                                   baseUrl, id,
                                   imageId, factoryURL);
                 } else {
-                    throw new ConflictException("Factory with advanced style MUST have at leas one image.");
+                    throw new IllegalArgumentException("Factory with advanced style MUST have at leas one image.");
                 }
             case "White":
             case "Horizontal,White":
@@ -62,7 +60,7 @@ public class SnippetGenerator {
                 return format("[![alt](%s/factory/resources/factory-dark.png)](%s)",
                               baseUrl, factoryURL);
             default:
-                throw new ConflictException("Unknown factory style " + style);
+                throw new IllegalArgumentException("Unknown factory style " + style);
         }
     }
 

@@ -18,8 +18,8 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.FactoryJson;
+import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectJson;
 import com.codenvy.api.project.server.ProjectManager;
@@ -126,9 +126,9 @@ public class FactoryService extends Service {
                   response = Factory.class,
                   position = 1)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
-                  @ApiResponse(code = 500, message = "Unable to identify user from context")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
+            @ApiResponse(code = 500, message = "Unable to identify user from context")})
     @RolesAllowed("user")
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
@@ -153,7 +153,8 @@ public class FactoryService extends Service {
                         factoryUrl = factoryBuilder.buildEncoded(part.getInputStream());
                     } catch (JsonSyntaxException e) {
                         throw new ConflictException(
-                                "You have provided an invalid JSON.  For more information, please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/");
+                                "You have provided an invalid JSON.  For more information, " +
+                                "please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/");
                     }
                 } else if (fieldName.equals("image")) {
                     try (InputStream inputStream = part.getInputStream()) {
@@ -252,18 +253,20 @@ public class FactoryService extends Service {
                   response = Factory.class,
                   position = 2)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Factory not found"),
-                  @ApiResponse(code = 409, message = "Failed to validate Factory URL"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Factory not found"),
+            @ApiResponse(code = 409, message = "Failed to validate Factory URL"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}")
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactory(@ApiParam(value = "Factory ID", required = true)
                               @PathParam("id") String id,
-                              @ApiParam(value = "Legacy. Whether or not to transform Factory into the most recent format", allowableValues = "true,false", defaultValue = "false")
+                              @ApiParam(value = "Legacy. Whether or not to transform Factory into the most recent format",
+                                        allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
-                              @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory", allowableValues = "true,false", defaultValue = "false")
+                              @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory",
+                                        allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
                               @Context UriInfo uriInfo) throws ApiException {
         Factory factoryUrl = factoryStore.getFactory(id);
@@ -339,16 +342,17 @@ public class FactoryService extends Service {
      * no images, exception will be thrown.
      * @throws com.codenvy.api.core.ApiException
      *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
-     *         - {@link com.codenvy.api.core.NotFoundException} when imgId is not set in request and there is no default image for factory with given id
+     *         - {@link com.codenvy.api.core.NotFoundException} when imgId is not set in request and there is no default image for factory
+     *         with given id
      *         - {@link com.codenvy.api.core.NotFoundException} when image with given image id doesn't exist
      */
     @ApiOperation(value = "Get Factory image information",
                   notes = "Get Factory image information by Factory and image ID",
                   position = 3)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Factory or Image ID Not Found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Factory or Image ID Not Found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{factoryId}/image")
     @Produces("image/*")
@@ -392,23 +396,25 @@ public class FactoryService extends Service {
      *         - url context
      * @return - snippet content.
      * @throws com.codenvy.api.core.ApiException
-     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist - with response code 400 if snippet type
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist - with response code 400 if snippet
+     *         type
      *         is unsupported
      */
     @ApiOperation(value = "Get Factory snippet by ID",
                   notes = "Get Factory snippet by ID",
                   position = 4)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Factory not Found"),
-                  @ApiResponse(code = 409, message = "Unknown snippet type"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Factory not Found"),
+            @ApiResponse(code = 409, message = "Unknown snippet type"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}/snippet")
     @Produces({MediaType.TEXT_PLAIN})
     public String getFactorySnippet(@ApiParam(value = "Factory ID", required = true)
                                     @PathParam("id") String id,
-                                    @ApiParam(value = "Snippet type", required = true, allowableValues = "url,html,iframe,markdown", defaultValue = "url")
+                                    @ApiParam(value = "Snippet type", required = true, allowableValues = "url,html,iframe,markdown",
+                                              defaultValue = "url")
                                     @DefaultValue("url") @QueryParam("type") String type,
                                     @Context UriInfo uriInfo)
             throws ApiException {
@@ -430,12 +436,16 @@ public class FactoryService extends Service {
             case "markdown":
                 Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(id, null);
                 String imageId = (factoryImages.size() > 0) ? factoryImages.iterator().next().getName() : null;
-                return SnippetGenerator
-                        .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
-                                                           .queryParam("id", id).build().toString(), id,
-                                                 imageId, factory.getStyle(),
-                                                 UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString()
-                                                );
+                try {
+                    return SnippetGenerator
+                            .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                               .queryParam("id", id).build().toString(), id,
+                                                     imageId, factory.getStyle(),
+                                                     UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString()
+                                                    );
+                } catch (IllegalArgumentException e) {
+                    throw new ConflictException(e.getMessage());
+                }
             default:
                 LOG.warn("Snippet type {} is unsupported", type);
                 throw new ConflictException("Snippet type \"" + type + "\" is unsupported.");
@@ -465,8 +475,8 @@ public class FactoryService extends Service {
         for (Map.Entry<String, RunnerEnvironmentConfiguration> e : runnerConfigurations.entrySet()) {
             final RunnerEnvironmentConfiguration envConfig = e.getValue();
             runnerConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
-                                                                 .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
-                                                                 .withRequiredMemorySize(envConfig.getRequiredMemorySize()));
+                                                                      .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
+                                                                      .withRequiredMemorySize(envConfig.getRequiredMemorySize()));
         }
 
         final FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class);

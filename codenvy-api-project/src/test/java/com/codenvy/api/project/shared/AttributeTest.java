@@ -20,30 +20,50 @@ public class AttributeTest {
     @Test
     public void getValues() {
         Attribute attrA = new Attribute("a", "value1");
-        Assert.assertEquals(attrA.getValue(), "value1");
-        Assert.assertEquals(attrA.getValues(), Arrays.asList("value1"));
+        try {
+            Assert.assertEquals(attrA.getValue(), "value1");
+            Assert.assertEquals(attrA.getValues(), Arrays.asList("value1"));
+        } catch (ValueStorageException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
     public void setValue() {
         Attribute attrA = new Attribute("a", "value1");
-        attrA.setValue("updated");
-        Assert.assertEquals(attrA.getValue(), "updated");
-        Assert.assertEquals(attrA.getValues(), Arrays.asList("updated"));
+        try {
+            attrA.setValue("updated");
+            Assert.assertEquals(attrA.getValue(), "updated");
+            Assert.assertEquals(attrA.getValues(), Arrays.asList("updated"));
+        } catch (ValueStorageException e) {
+            Assert.fail(e.getMessage());
+        } catch (InvalidValueException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
     public void setValues() {
         Attribute attrA = new Attribute("a", "value1");
-        attrA.setValues(Arrays.asList("updated"));
-        Assert.assertEquals(attrA.getValue(), "updated");
-        Assert.assertEquals(attrA.getValues(), Arrays.asList("updated"));
+        try {
+            attrA.setValues(Arrays.asList("updated"));
+            Assert.assertEquals(attrA.getValue(), "updated");
+            Assert.assertEquals(attrA.getValues(), Arrays.asList("updated"));
+        } catch (ValueStorageException e) {
+            Assert.fail(e.getMessage());
+        } catch (InvalidValueException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
     public void updateValue() {
         Attribute attrA = new Attribute("a", Arrays.asList("value1", "value2"));
-        attrA.getValues().clear();
-        Assert.assertEquals(attrA.getValues(), Arrays.asList("value1", "value2"));
+        try {
+            attrA.getValues().clear();
+            Assert.assertEquals(attrA.getValues(), Arrays.asList("value1", "value2"));
+        } catch (ValueStorageException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 }

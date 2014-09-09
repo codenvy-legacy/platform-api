@@ -8,25 +8,24 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.core;
+package com.codenvy.api.project.shared;
 
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
- * A {@code ForbiddenException} is thrown when required operation is forbidden. For example, if caller doesn't have rights or required
- * operation is not allowed for some resource.
- * <p/>
- * Typically in REST API such errors are converted in HTTP response with status 403.
  *
- * @author andrew00x
+ * Thrown when input value is invalid by some reason
+ *
+ * @author gazarenkov
  */
-@SuppressWarnings("serial")
-public class ForbiddenException extends ApiException {
-    public ForbiddenException(String message) {
+public class InvalidValueException extends ForbiddenException {
+
+    public InvalidValueException(String message) {
         super(message);
     }
 
-    public ForbiddenException(ServiceError serviceError) {
+    public InvalidValueException(ServiceError serviceError) {
         super(serviceError);
     }
 }

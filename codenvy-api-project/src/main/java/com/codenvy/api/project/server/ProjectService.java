@@ -23,11 +23,7 @@ import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
-import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.project.shared.ProjectType;
-import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
+import com.codenvy.api.project.shared.*;
 import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -124,7 +120,7 @@ public class ProjectService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProjectReference> getProjects(@ApiParam(value = "ID of workspace to get projects", required = true)
-                                              @PathParam("ws-id") String workspace) throws IOException, ServerException {
+                                              @PathParam("ws-id") String workspace) throws IOException, ServerException, ConflictException {
         final List<Project> projects = projectManager.getProjects(workspace);
         final List<ProjectReference> projectRefs = new ArrayList<>(projects.size());
         for (Project project : projects) {
@@ -148,7 +144,7 @@ public class ProjectService extends Service {
                                         @PathParam("ws-id") String workspace,
                                         @ApiParam(value = "Path to requested project", required = true)
                                         @PathParam("path") String path)
-            throws NotFoundException, ForbiddenException, ServerException {
+            throws NotFoundException, ForbiddenException, ServerException, ConflictException {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
@@ -206,7 +202,7 @@ public class ProjectService extends Service {
                                               @PathParam("ws-id") String workspace,
                                               @ApiParam(value = "Path to a project", required = true)
                                               @PathParam("path") String path)
-            throws NotFoundException, ForbiddenException, ServerException {
+            throws NotFoundException, ForbiddenException, ServerException, ConflictException {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
@@ -424,7 +420,7 @@ public class ProjectService extends Service {
                        @PathParam("ws-id") String workspace,
                        @ApiParam(value = "Path to a resource to be deleted", required = true)
                        @PathParam("path") String path)
-            throws NotFoundException, ForbiddenException, ServerException {
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (entry.isFolder() && ((FolderEntry)entry).isProjectFolder()) {
             // In case of folder extract some information about project for logger before delete project.
@@ -613,6 +609,7 @@ public class ProjectService extends Service {
         Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
+
         } else if (!force) {
             // Project already exists.
             throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
@@ -1118,13 +1115,13 @@ public class ProjectService extends Service {
         return projectDescription;
     }
 
-    private ProjectDescriptor toDescriptor(Project project) throws ServerException {
+    private ProjectDescriptor toDescriptor(Project project) throws ServerException, ConflictException {
         final ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class);
         fillDescriptor(project, descriptor);
         return descriptor;
     }
 
-    private void fillDescriptor(Project project, ProjectDescriptor descriptor) throws ServerException {
+    private void fillDescriptor(Project project, ProjectDescriptor descriptor) throws ConflictException, ServerException {
         final String workspaceId = project.getWorkspace();
         final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
         final ProjectDescription description = project.getDescription();
@@ -1192,7 +1189,7 @@ public class ProjectService extends Service {
                               : null);
     }
 
-    private ProjectReference toReference(Project project) throws ServerException {
+    private ProjectReference toReference(Project project) throws ServerException, ConflictException {
         final String workspaceId = project.getWorkspace();
         final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
         final ProjectDescription description = project.getDescription();

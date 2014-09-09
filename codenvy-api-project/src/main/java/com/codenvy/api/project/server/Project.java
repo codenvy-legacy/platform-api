@@ -13,11 +13,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.AttributeDescription;
-import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.project.shared.ProjectType;
-import com.codenvy.api.project.shared.ProjectTypeDescription;
+import com.codenvy.api.project.shared.*;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
@@ -92,14 +88,14 @@ public class Project {
     }
 
     public Project createModule(String name, ProjectDescription projectDescription)
-            throws ConflictException, ForbiddenException, ServerException {
+            throws ConflictException, ForbiddenException, ServerException, ValueStorageException, InvalidValueException {
         final FolderEntry projectFolder = baseFolder.createFolder(name);
         final Project module = new Project(workspace, projectFolder, manager);
         module.updateDescription(projectDescription);
         return module;
     }
 
-    public final ProjectDescription getDescription() throws ServerException {
+    public final ProjectDescription getDescription() throws ServerException, ValueStorageException {
         // Create copy of original project descriptor.
         // Mainly do that to be independent to type of ValueProvider.
         // Caller gets description of project update some attributes or(and) type of project than caller sends description back with method
@@ -156,7 +152,7 @@ public class Project {
         return projectDescription;
     }
 
-    public final void updateDescription(ProjectDescription projectDescriptionUpdate) throws ServerException {
+    public final void updateDescription(ProjectDescription projectDescriptionUpdate) throws ServerException, ValueStorageException, InvalidValueException {
         final ProjectDescription thisProjectDescription = doGetDescription();
         final ProjectJson projectJson = new ProjectJson();
         projectJson.setProjectTypeId(projectDescriptionUpdate.getProjectType().getId());

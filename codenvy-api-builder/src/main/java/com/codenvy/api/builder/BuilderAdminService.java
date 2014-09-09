@@ -54,6 +54,7 @@ public class BuilderAdminService extends Service {
                   position = 1)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTER_BUILDER_SERVICE)
     @POST
@@ -72,6 +73,7 @@ public class BuilderAdminService extends Service {
                   position = 2)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_UNREGISTER_BUILDER_SERVICE)
     @POST
@@ -95,6 +97,7 @@ public class BuilderAdminService extends Service {
                   position = 3)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
+                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTERED_BUILDER_SERVER)
     @GET

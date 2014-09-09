@@ -30,6 +30,7 @@ import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
+import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -204,8 +205,9 @@ public class RunQueue {
                 try {
                     ApplicationStatus status;
                     if (task.isWaiting()
-                        || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
-                        || status == ApplicationStatus.NEW) {
+                        || (!task.isCancelled() &&
+                            ((status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
+                             || (status == ApplicationStatus.NEW)))) {
                         usedMemory += request.getMemorySize();
                     }
                 } catch (NotFoundException ignored) {
@@ -594,8 +596,8 @@ public class RunQueue {
                         }
                         if (error != null) {
                             LOG.error(error.getMessage(), error);
-                            eventService.publish(RunnerEvent.errorEvent(internalRunTask.id, internalRunTask.workspace, internalRunTask.project,
-                                                                        error.getMessage()));
+                            eventService.publish(RunnerEvent.errorEvent(internalRunTask.id, internalRunTask.workspace,
+                                                                        internalRunTask.project, error.getMessage()));
                         }
                     }
                 }
@@ -656,109 +658,13 @@ public class RunQueue {
                 }
             }, 1, 1, TimeUnit.MINUTES);
 
-            eventService.subscribe(new EventSubscriber<RunnerEvent>() {
-                @Override
-                public void onEvent(RunnerEvent event) {
-                    try {
-                        final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                        final long id = event.getProcessId();
-                        switch (event.getType()) {
-                            case STARTED:
-                            case STOPPED:
-                            case ERROR:
-                                bm.setChannel(String.format("runner:status:%d", id));
-                                try {
-                                    final ApplicationProcessDescriptor descriptor = getTask(id).getDescriptor();
-                                    bm.setBody(DtoFactory.getInstance().toJson(descriptor));
-                                    if (event.getType() == RunnerEvent.EventType.STARTED) {
-                                        final List<Link> links = descriptor.getLinks();
-                                        final Link appLink = getLink(Constants.LINK_REL_WEB_URL, links);
-                                        if (appLink != null) {
-                                            executor.execute(new ApplicationUrlChecker(id,
-                                                                                       new URL(appLink.getHref()),
-                                                                                       APPLICATION_CHECK_URL_TIMEOUT,
-                                                                                       APPLICATION_CHECK_URL_COUNT));
-                                        }
-                                    }
-                                } catch (RunnerException re) {
-                                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                                    bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));
-                                } catch (NotFoundException re) {
-                                    // task was not create in some reason in this case post error message directly
-                                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                                    bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(event.getError())));
-                                }
-                                break;
-                            case RUN_TASK_QUEUE_TIME_EXCEEDED:
-                                bm.setChannel(String.format("runner:status:%d", id));
-                                bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                                bm.setBody(String.format("{\"message\":%s}",
-                                                         "Unable to start application, currently there are no resources to start your application. Max waiting time for available resources has been reached. Contact support for assistance."));
-                                break;
-                            case MESSAGE_LOGGED:
-                                final RunnerEvent.LoggedMessage message = event.getMessage();
-                                if (message != null) {
-                                    bm.setChannel(String.format("runner:output:%d", id));
-                                    bm.setBody(String.format("{\"num\":%d, \"line\":%s}",
-                                                             message.getLineNum(), JsonUtils.getJsonString(message.getMessage())));
-                                }
-                                break;
-                        }
-                        WSConnectionContext.sendMessage(bm);
-                    } catch (Exception e) {
-                        LOG.error(e.getMessage(), e);
-                    }
-                }
-            });
+            // sending message by websocket connection for notice about used memory size changing
+            eventService.subscribe(new ResourcesChangesMessenger());
 
-            eventService.subscribe(new EventSubscriber<RunnerEvent>() { //Log events for analytics
-                @Override
-                public void onEvent(RunnerEvent event) {
-                    try {
-                        final long id = event.getProcessId();
-                        final RunQueueTask task = getTask(id);
-                        final RunRequest request = task.getRequest();
-                        final String analyticsID = task.getCreationTime() + "-" + id;
-                        final String project = event.getProject();
-                        final String workspace = request.getWorkspace();
-                        final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
-                        final boolean debug = request.getDebugMode() != null;
-                        final String user = request.getUserName();
-                        switch (event.getType()) {
-                            case STARTED:
-                                LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                         project, projectTypeId, analyticsID);
-                                if (debug) {
-                                    LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                             projectTypeId, analyticsID);
-                                } else {
-                                    LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                             projectTypeId, analyticsID);
-                                }
-                                break;
-                            case STOPPED:
-                                if (debug) {
-                                    LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                             projectTypeId, analyticsID);
-                                } else {
-                                    LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
-                                             projectTypeId, analyticsID);
-                                }
-                                break;
-                            case RUN_TASK_ADDED_IN_QUEUE:
-                                LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                         project, projectTypeId, analyticsID);
-                                break;
-                            case RUN_TASK_QUEUE_TIME_EXCEEDED:
-                                LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
-                                         project, projectTypeId, analyticsID);
-                                break;
-                        }
-                    } catch (Exception e) {
-                        LOG.error(e.getMessage(), e);
-                    }
-                }
-            });
+            eventService.subscribe(new RunStatusMessenger());
+
+            //Log events for analytics
+            eventService.subscribe(new AnalyticsMessenger());
 
             if (slaves.length > 0) {
                 executor.execute(new Runnable() {
@@ -1192,4 +1098,136 @@ public class RunQueue {
             }
         }
     }
+
+    private class ResourcesChangesMessenger implements EventSubscriber<RunnerEvent> {
+        @Override
+        public void onEvent(RunnerEvent event) {
+            switch (event.getType()) {
+                case RUN_TASK_ADDED_IN_QUEUE:
+                case STOPPED:
+                case ERROR:
+                case RUN_TASK_QUEUE_TIME_EXCEEDED:
+                    try {
+                        final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                        String workspaceId = event.getWorkspace();
+                        bm.setChannel(String.format("runner:resources:%s", workspaceId));
+
+                        final ResourcesDescriptor resourcesDescriptor =
+                                DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
+                                          .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
+                        bm.setBody(DtoFactory.getInstance().toJson(resourcesDescriptor));
+                        WSConnectionContext.sendMessage(bm);
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage(), e);
+                    }
+                    break;
+            }
+        }
+    }
+
+    private class RunStatusMessenger implements EventSubscriber<RunnerEvent> {
+        @Override
+        public void onEvent(RunnerEvent event) {
+            try {
+                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                final long id = event.getProcessId();
+                switch (event.getType()) {
+                    case STARTED:
+                    case STOPPED:
+                    case ERROR:
+                        bm.setChannel(String.format("runner:status:%d", id));
+                        try {
+                            final ApplicationProcessDescriptor descriptor = getTask(id).getDescriptor();
+                            bm.setBody(DtoFactory.getInstance().toJson(descriptor));
+                            if (event.getType() == RunnerEvent.EventType.STARTED) {
+                                final List<Link> links = descriptor.getLinks();
+                                final Link appLink = getLink(Constants.LINK_REL_WEB_URL, links);
+                                if (appLink != null) {
+                                    executor.execute(new ApplicationUrlChecker(id,
+                                                                               new URL(appLink.getHref()),
+                                                                               APPLICATION_CHECK_URL_TIMEOUT,
+                                                                               APPLICATION_CHECK_URL_COUNT));
+                                }
+                            }
+                        } catch (RunnerException re) {
+                            bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                            bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));
+                        } catch (NotFoundException re) {
+                            // task was not create in some reason in this case post error message directly
+                            bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                            bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(event.getError())));
+                        }
+                        break;
+                    case RUN_TASK_QUEUE_TIME_EXCEEDED:
+                        bm.setChannel(String.format("runner:status:%d", id));
+                        bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                        bm.setBody(String.format("{\"message\":%s}",
+                                                 "Unable to start application, currently there are no resources to start your application. Max waiting time for available resources has been reached. Contact support for assistance."));
+                        break;
+                    case MESSAGE_LOGGED:
+                        final RunnerEvent.LoggedMessage message = event.getMessage();
+                        if (message != null) {
+                            bm.setChannel(String.format("runner:output:%d", id));
+                            bm.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                     message.getLineNum(), JsonUtils.getJsonString(message.getMessage())));
+                        }
+                        break;
+                }
+                WSConnectionContext.sendMessage(bm);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+    }
+
+    private class AnalyticsMessenger implements EventSubscriber<RunnerEvent> {
+
+        @Override
+        public void onEvent(RunnerEvent event) {
+            try {
+                final long id = event.getProcessId();
+                final RunQueueTask task = getTask(id);
+                final RunRequest request = task.getRequest();
+                final String analyticsID = task.getCreationTime() + "-" + id;
+                final String project = event.getProject();
+                final String workspace = request.getWorkspace();
+                final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                final boolean debug = request.getDebugMode() != null;
+                final String user = request.getUserName();
+                switch (event.getType()) {
+                    case STARTED:
+                        LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                 project, projectTypeId, analyticsID);
+                        if (debug) {
+                            LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                     projectTypeId, analyticsID);
+                        } else {
+                            LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                     projectTypeId, analyticsID);
+                        }
+                        break;
+                    case STOPPED:
+                        if (debug) {
+                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                     projectTypeId, analyticsID);
+                        } else {
+                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user, project,
+                                     projectTypeId, analyticsID);
+                        }
+                        break;
+                    case RUN_TASK_ADDED_IN_QUEUE:
+                        LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                 project, projectTypeId, analyticsID);
+                        break;
+                    case RUN_TASK_QUEUE_TIME_EXCEEDED:
+                        LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#", workspace, user,
+                                 project, projectTypeId, analyticsID);
+                        break;
+                }
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+    }
+
 }

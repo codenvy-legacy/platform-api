@@ -137,7 +137,7 @@ public class UserProfileServiceTest {
 
     @Test
     public void shouldBeAbleToGetCurrentProfileWithFilter() throws Exception {
-        Map<String, String> prefs = new HashMap<>(4);
+        Map<String, String> prefs = new HashMap<>(8);
         prefs.put("first", "first_value");
         prefs.put("____firstASD", "other_first_value");
         prefs.put("second", "second_value");
@@ -212,7 +212,6 @@ public class UserProfileServiceTest {
         when(userProfileDao.getById(USER_ID)).thenReturn(new Profile().withUserId(USER_ID));
 
         Map<String, List<String>> headers = new HashMap<>();
-
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, String> prefsToUpdate = new HashMap<>();
         prefsToUpdate.put("second", "second_value");
@@ -249,10 +248,13 @@ public class UserProfileServiceTest {
         for (String one : s) {
             prepareSecurityContext(one);
 
-            ContainerResponse response =
-                    launcher.service("GET", SERVICE_PATH + "/" + USER_ID, BASE_URI, null,
-                                     JsonHelper.toJson(profile).getBytes(), null,
-                                     environmentContext);
+            ContainerResponse response = launcher.service("GET",
+                                                          SERVICE_PATH + "/" + USER_ID,
+                                                          BASE_URI,
+                                                          null,
+                                                          JsonHelper.toJson(profile).getBytes(),
+                                                          null,
+                                                          environmentContext);
 
             assertEquals(response.getStatus(), Status.OK.getStatusCode());
             ProfileDescriptor responseProfile = (ProfileDescriptor)response.getEntity();
@@ -263,10 +265,10 @@ public class UserProfileServiceTest {
 
     @Test
     public void shouldBeAbleToUpdateCurrentProfile() throws Exception {
-        // given
         when(userProfileDao.getById(USER_ID)).thenReturn(new Profile().withId(USER_ID));
-        Map<String, String> attributes = new HashMap<>(1);
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("test", "test");
+
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 

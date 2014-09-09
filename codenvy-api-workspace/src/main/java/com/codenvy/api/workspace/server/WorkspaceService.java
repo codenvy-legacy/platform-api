@@ -855,9 +855,9 @@ public class WorkspaceService extends Service {
                   notes = "Delete a workspace by its ID",
                   position = 14)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = ""),
+                  @ApiResponse(code = 204, message = "OK"),
                   @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 409, message = "Failed to removed workspace member"),
+                  @ApiResponse(code = 409, message = "Failed to remove workspace member"),
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}")

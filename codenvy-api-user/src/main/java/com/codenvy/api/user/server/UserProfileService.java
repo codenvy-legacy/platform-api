@@ -31,6 +31,7 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +106,7 @@ public class UserProfileService extends Service {
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = "current profile")
     @Produces(MediaType.APPLICATION_JSON)
-    public ProfileDescriptor getCurrent(@ApiParam(value = "Serch filter. Regex can be used")
+    public ProfileDescriptor getCurrent(@ApiParam(value = "Search filter. Regex can be used")
                                         @Description("Preferences path filter")
                                         @QueryParam("filter") String filter,
                                         @Context SecurityContext securityContext) throws NotFoundException, ServerException {
@@ -146,12 +147,11 @@ public class UserProfileService extends Service {
         final Principal principal = securityContext.getUserPrincipal();
         final User user = userDao.getByAlias(principal.getName());
         final Profile profile = profileDao.getById(user.getId());
-        if (updates != null) {
-            profile.getAttributes().putAll(updates);
-        }
         //if updates are null or empty - clear profile attributes
         if (updates == null || updates.isEmpty()) {
             profile.getAttributes().clear();
+        } else {
+            profile.getAttributes().putAll(updates);
         }
         profileDao.update(profile);
         logEventUserUpdateProfile(user, profile.getAttributes());
@@ -188,13 +188,11 @@ public class UserProfileService extends Service {
                                     Map<String, String> updates,
                                     @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
-        //if updates are not null or empty, append it to existed attributes
-        if (updates != null) {
-            profile.getAttributes().putAll(updates);
-        }
         //if updates are null or empty - clear profile attributes
         if (updates == null || updates.isEmpty()) {
             profile.getAttributes().clear();
+        } else {
+            profile.getAttributes().putAll(updates);
         }
         profileDao.update(profile);
         final User user = userDao.getById(profile.getUserId());
@@ -252,7 +250,6 @@ public class UserProfileService extends Service {
      * @see ProfileDescriptor
      * @see #updateCurrent(Map, SecurityContext)
      */
-
     @POST
     @Path("/prefs")
     @RolesAllowed({"user", "temp_user"})
@@ -264,13 +261,11 @@ public class UserProfileService extends Service {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final Profile currentProfile = profileDao.getById(current.getId());
-        //if given preferences are not null append it to existed preferences
-        if (preferencesToUpdate != null) {
-            currentProfile.getPreferences().putAll(preferencesToUpdate);
-        }
         //if given preferences are null or empty - clear profile preferences
         if (preferencesToUpdate == null || preferencesToUpdate.isEmpty()) {
             currentProfile.getPreferences().clear();
+        } else {
+            currentProfile.getPreferences().putAll(preferencesToUpdate);
         }
         profileDao.update(currentProfile);
         return toDescriptor(currentProfile, securityContext);
@@ -351,9 +346,9 @@ public class UserProfileService extends Service {
         final Principal principal = securityContext.getUserPrincipal();
         final User current = userDao.getByAlias(principal.getName());
         final Profile currentProfile = profileDao.getById(current.getId());
-        final Map<String, String> currentPreferences = currentProfile.getPreferences();
+        final Map<String, String> preferences = currentProfile.getPreferences();
         for (String prefName : prefNames) {
-            currentPreferences.remove(prefName);
+            preferences.remove(prefName);
         }
         profileDao.update(currentProfile);
     }

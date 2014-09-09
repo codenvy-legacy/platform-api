@@ -12,6 +12,7 @@ package com.codenvy.api.user.server.dao;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Eugene Voevodin
@@ -82,26 +83,27 @@ public class Profile {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Profile profile = (Profile)o;
-
-        if (attributes != null ? !attributes.equals(profile.attributes) : profile.attributes != null) return false;
-        if (id != null ? !id.equals(profile.id) : profile.id != null) return false;
-        if (preferences != null ? !preferences.equals(profile.preferences) : profile.preferences != null) return false;
-        if (userId != null ? !userId.equals(profile.userId) : profile.userId != null) return false;
-
-        return true;
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Profile)) {
+            return false;
+        }
+        final Profile other = (Profile)obj;
+        return Objects.equals(id, other.id) &&
+               Objects.equals(userId, other.userId) &&
+               Objects.equals(getPreferences(), other.getPreferences()) &&
+               Objects.equals(getAttributes(), other.getAttributes());
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (userId != null ? userId.hashCode() : 0);
-        result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
-        result = 31 * result + (preferences != null ? preferences.hashCode() : 0);
-        return result;
+        int hash = 7;
+        hash = 31 * hash + Objects.hashCode(id);
+        hash = 31 * hash + Objects.hashCode(userId);
+        hash = 31 * hash + Objects.hashCode(preferences);
+        hash = 31 * hash + Objects.hashCode(attributes);
+        return hash;
     }
 }

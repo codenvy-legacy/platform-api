@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -21,6 +20,7 @@ import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
+import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
@@ -31,7 +31,6 @@ import org.everrest.assured.JettyHttpServer;
 import org.everrest.core.Filter;
 import org.everrest.core.GenericContainerRequest;
 import org.everrest.core.RequestFilter;
-import org.everrest.core.impl.ContainerResponse;
 import org.mockito.InjectMocks;
 import org.mockito.Matchers;
 import org.mockito.Mock;
@@ -59,7 +58,6 @@ import static com.jayway.restassured.RestAssured.given;
 import static java.net.URLEncoder.encode;
 import static javax.ws.rs.core.Response.Status;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.matchers.JUnitMatchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.eq;
@@ -436,7 +434,7 @@ public class FactoryServiceTest {
         factoryUrl.setOrgid("orgid");
 
         doThrow(new ConflictException("You are not authorized to use this orgid.")).when(validator)
-                                                                              .validateOnCreate(Matchers.any(Factory.class));
+                                                                                   .validateOnCreate(Matchers.any(Factory.class));
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
 
@@ -775,6 +773,25 @@ public class FactoryServiceTest {
                     ).//
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+    }
+
+    @Test
+    public void shouldNotBeAbleToGetMarkdownSnippetWithoutFactoryStyle(ITestContext context) throws Exception {
+        // given
+        Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setStyle(null);
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
+        // when, then
+        Response response = given().//
+                expect().//
+                statusCode(409).//
+                when().//
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(IoUtil.readStream(response.getBody().asInputStream()), ServiceError.class).getMessage(),
+                     "Enable to generate markdown snippet with empty factory style");
+
     }
 
     @Test

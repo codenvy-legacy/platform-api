@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ConflictException;
+
 import java.util.Formatter;
 
 
@@ -35,7 +37,10 @@ public class SnippetGenerator {
     }
 
     public static String generateMarkdownSnippet(String factoryURL, String id, String imageId, String style,
-                                                 String baseUrl) {
+                                                 String baseUrl) throws ConflictException {
+        if (style == null || style.isEmpty()) {
+            throw new ConflictException("Enable to generate markdown snippet with empty factory style");
+        }
         switch (style) {
             case "Advanced":
             case "Advanced with Counter":
@@ -44,7 +49,7 @@ public class SnippetGenerator {
                                   baseUrl, id,
                                   imageId, factoryURL);
                 } else {
-                    throw new IllegalArgumentException("Factory with advanced style MUST have at leas one image.");
+                    throw new ConflictException("Factory with advanced style MUST have at leas one image.");
                 }
             case "White":
             case "Horizontal,White":
@@ -57,17 +62,19 @@ public class SnippetGenerator {
                 return format("[![alt](%s/factory/resources/factory-dark.png)](%s)",
                               baseUrl, factoryURL);
             default:
-                throw new IllegalArgumentException("Invalid factory style.");
+                throw new ConflictException("Unknown factory style " + style);
         }
     }
 
     /**
      * Formats the input string filling the {@link String} arguments.
-     * Is intended to be used on client side, where {@link String#format(String, Object...)} and {@link Formatter} 
+     * Is intended to be used on client side, where {@link String#format(String, Object...)} and {@link Formatter}
      * cannot be used.
-     * 
-     * @param format string format
-     * @param args {@link String} arguments
+     *
+     * @param format
+     *         string format
+     * @param args
+     *         {@link String} arguments
      * @return {@link String} formatted string
      */
     private static String format(final String format, final String... args) {

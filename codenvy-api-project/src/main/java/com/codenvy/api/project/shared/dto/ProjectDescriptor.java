@@ -59,7 +59,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withBaseUrl(String url);
 
     /** Get unique ID of type of project. */
-    @ApiModelProperty(value = "Project type ID", allowableValues = "maven,AngularJS,blank", position = 5)
+    @ApiModelProperty(value = "Project type ID", position = 5)
     String getProjectTypeId();
 
     /** Set unique ID of type of project. */
@@ -68,7 +68,7 @@ public interface ProjectDescriptor {
     ProjectDescriptor withProjectTypeId(String id);
 
     /** Get display name of type of project. */
-    @ApiModelProperty(value = "Name of a project type", allowableValues = "Maven Project,AngularJS Project,Blank Project", position = 6)
+    @ApiModelProperty(value = "Name of a project type", position = 6)
     String getProjectTypeName();
 
     /** Set display name of type of project. */

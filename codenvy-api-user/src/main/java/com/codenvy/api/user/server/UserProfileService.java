@@ -46,7 +46,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
@@ -56,7 +55,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER_PROFILE;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID;
+import static com.codenvy.api.user.server.Constants.LINK_REL_REMOVE_ATTRIBUTES;
+import static com.codenvy.api.user.server.Constants.LINK_REL_REMOVE_PREFERENCES;
+import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_PREFERENCES;
+import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID;
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
+
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 /**
  * User Profile API
@@ -104,8 +112,8 @@ public class UserProfileService extends Service {
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @RolesAllowed({"user", "temp_user"})
-    @GenerateLink(rel = "current profile")
-    @Produces(MediaType.APPLICATION_JSON)
+    @GenerateLink(rel = LINK_REL_GET_CURRENT_USER_PROFILE)
+    @Produces(APPLICATION_JSON)
     public ProfileDescriptor getCurrent(@ApiParam(value = "Search filter. Regex can be used")
                                         @Description("Preferences path filter")
                                         @QueryParam("filter") String filter,
@@ -139,9 +147,9 @@ public class UserProfileService extends Service {
      */
     @POST
     @RolesAllowed("user")
-    @GenerateLink(rel = "update current")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @GenerateLink(rel = LINK_REL_UPDATE_CURRENT_USER_PROFILE)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
     public ProfileDescriptor updateCurrent(@Description("attributes to update") Map<String, String> updates,
                                            @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
@@ -182,8 +190,8 @@ public class UserProfileService extends Service {
     @POST
     @Path("/{id}")
     @RolesAllowed({"system/admin", "system/manager"})
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
     public ProfileDescriptor update(@PathParam("id") String profileId,
                                     Map<String, String> updates,
                                     @Context SecurityContext securityContext) throws NotFoundException, ServerException {
@@ -224,7 +232,7 @@ public class UserProfileService extends Service {
     @GET
     @Path("/{id}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
     public ProfileDescriptor getById(@ApiParam(value = "User ID", required = true)
                                      @PathParam("id") String profileId,
                                      @Context SecurityContext securityContext) throws NotFoundException, ServerException {
@@ -253,9 +261,9 @@ public class UserProfileService extends Service {
     @POST
     @Path("/prefs")
     @RolesAllowed({"user", "temp_user"})
-    @GenerateLink(rel = Constants.LINK_REL_UPDATE_PREFERENCES)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @GenerateLink(rel = LINK_REL_UPDATE_PREFERENCES)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
     public ProfileDescriptor updatePreferences(@Description("preferences to update") Map<String, String> preferencesToUpdate,
                                                @Context SecurityContext securityContext) throws NotFoundException, ServerException {
         final Principal principal = securityContext.getUserPrincipal();
@@ -294,9 +302,9 @@ public class UserProfileService extends Service {
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/attributes")
-    @GenerateLink(rel = Constants.LINK_REL_REMOVE_ATTRIBUTES)
+    @GenerateLink(rel = LINK_REL_REMOVE_ATTRIBUTES)
     @RolesAllowed({"user", "temp_user"})
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
     public void removeAttributes(@ApiParam(value = "Attributes", required = true)
                                  @Required @Description("Attributes names to remove") List<String> attrNames,
                                  @Context SecurityContext securityContext) throws NotFoundException, ServerException, ConflictException {
@@ -334,9 +342,9 @@ public class UserProfileService extends Service {
                   @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/prefs")
-    @GenerateLink(rel = Constants.LINK_REL_REMOVE_PREFERENCES)
+    @GenerateLink(rel = LINK_REL_REMOVE_PREFERENCES)
     @RolesAllowed({"user", "temp_user"})
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
     public void removePreferences(@ApiParam(value = "Preferences to remove", required = true)
                                   @Required List<String> prefNames,
                                   @Context SecurityContext securityContext) throws NotFoundException, ConflictException, ServerException {
@@ -356,30 +364,38 @@ public class UserProfileService extends Service {
     /**
      * Converts {@link Profile} to {@link ProfileDescriptor}
      */
-    private ProfileDescriptor toDescriptor(Profile profile, SecurityContext securityContext) {
+    /* package-private used in tests*/ProfileDescriptor toDescriptor(Profile profile, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();
         if (securityContext.isUserInRole("user")) {
             links.add(createLink("GET",
-                                 Constants.LINK_REL_GET_CURRENT_USER_PROFILE,
+                                 LINK_REL_GET_CURRENT_USER_PROFILE,
                                  null,
-                                 MediaType.APPLICATION_JSON,
+                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "getCurrent")
                                            .build()
                                            .toString()));
+            links.add(createLink("GET",
+                                 LINK_REL_GET_USER_PROFILE_BY_ID,
+                                 null,
+                                 APPLICATION_JSON,
+                                 uriBuilder.clone()
+                                           .path(getClass(), "getById")
+                                           .build(profile.getId())
+                                           .toString()));
             links.add(createLink("POST",
-                                 Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE,
-                                 MediaType.APPLICATION_JSON,
-                                 MediaType.APPLICATION_JSON,
+                                 LINK_REL_UPDATE_CURRENT_USER_PROFILE,
+                                 APPLICATION_JSON,
+                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "updateCurrent")
                                            .build()
                                            .toString()));
             links.add(createLink("POST",
-                                 Constants.LINK_REL_UPDATE_PREFERENCES,
-                                 MediaType.APPLICATION_JSON,
-                                 MediaType.APPLICATION_JSON,
+                                 LINK_REL_UPDATE_PREFERENCES,
+                                 APPLICATION_JSON,
+                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "updatePreferences")
                                            .build()
@@ -387,17 +403,17 @@ public class UserProfileService extends Service {
         }
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink("GET",
-                                 Constants.LINK_REL_GET_USER_PROFILE_BY_ID,
+                                 LINK_REL_GET_USER_PROFILE_BY_ID,
                                  null,
-                                 MediaType.APPLICATION_JSON,
+                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "getById")
                                            .build(profile.getId())
                                            .toString()));
             links.add(createLink("POST",
-                                 Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID,
-                                 MediaType.APPLICATION_JSON,
-                                 MediaType.APPLICATION_JSON,
+                                 LINK_REL_UPDATE_USER_PROFILE_BY_ID,
+                                 APPLICATION_JSON,
+                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "update")
                                            .build(profile.getId())

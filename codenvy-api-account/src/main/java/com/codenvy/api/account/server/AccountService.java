@@ -1081,38 +1081,43 @@ public class AccountService extends Service {
      *         resolved roles. Do not use if id of the account presents in REST path.
      */
     private SubscriptionDescriptor toDescriptor(Subscription subscription, SecurityContext securityContext, Set<String> resolvedRoles) {
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final List<Link> links = new ArrayList<>(3);
-        links.add(createLink(HttpMethod.GET,
-                             Constants.LINK_REL_GET_SUBSCRIPTION,
-                             null,
-                             MediaType.APPLICATION_JSON,
-                             uriBuilder.clone()
-                                       .path(getClass(), "getSubscriptionById")
-                                       .build(subscription.getId())
-                                       .toString()
-                            ));
-        if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
-            securityContext.isUserInRole("system/manager") ||
-            (securityContext.isUserInRole("user") && resolvedRoles != null && resolvedRoles.contains("account/owner"))) {
-            links.add(createLink(HttpMethod.DELETE,
-                                 Constants.LINK_REL_REMOVE_SUBSCRIPTION,
-                                 null,
-                                 null,
-                                 uriBuilder.clone()
-                                           .path(getClass(), "removeSubscription")
-                                           .build(subscription.getId())
-                                           .toString()
-                                ));
+        List<Link> links;
+        if (!"sas-community".equals(subscription.getPlanId())) {
+            final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+            links = new ArrayList<>(3);
             links.add(createLink(HttpMethod.GET,
-                                 Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES,
+                                 Constants.LINK_REL_GET_SUBSCRIPTION,
                                  null,
                                  MediaType.APPLICATION_JSON,
                                  uriBuilder.clone()
-                                           .path(getClass(), "getSubscriptionAttributes")
+                                           .path(getClass(), "getSubscriptionById")
                                            .build(subscription.getId())
                                            .toString()
                                 ));
+            if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
+                securityContext.isUserInRole("system/manager") ||
+                (securityContext.isUserInRole("user") && resolvedRoles != null && resolvedRoles.contains("account/owner"))) {
+                links.add(createLink(HttpMethod.DELETE,
+                                     Constants.LINK_REL_REMOVE_SUBSCRIPTION,
+                                     null,
+                                     null,
+                                     uriBuilder.clone()
+                                               .path(getClass(), "removeSubscription")
+                                               .build(subscription.getId())
+                                               .toString()
+                                    ));
+                links.add(createLink(HttpMethod.GET,
+                                     Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES,
+                                     null,
+                                     MediaType.APPLICATION_JSON,
+                                     uriBuilder.clone()
+                                               .path(getClass(), "getSubscriptionAttributes")
+                                               .build(subscription.getId())
+                                               .toString()
+                                    ));
+            }
+        } else {
+            links = Collections.emptyList();
         }
         return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
                          .withId(subscription.getId())

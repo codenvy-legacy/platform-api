@@ -98,6 +98,10 @@ public class BuilderEvent {
         return new BuilderEvent(EventType.DONE, taskId, workspace, project);
     }
 
+    public static BuilderEvent doneEvent(long taskId, String workspace, String project, boolean reused) {
+        return new BuilderEvent(EventType.DONE, taskId, workspace, project, reused);
+    }
+
     public static BuilderEvent terminatedEvent(long taskId, String workspace, String project) {
         return new BuilderEvent(EventType.BUILD_TASK_QUEUE_TIME_EXCEEDED, taskId, workspace, project);
     }
@@ -120,6 +124,8 @@ public class BuilderEvent {
     private String        project;
     /** Message associated with this event. Makes sense only for {@link EventType#MESSAGE_LOGGED} events. */
     private LoggedMessage message;
+    /** Indicates if build result was reused. */
+    private boolean reused;
 
     BuilderEvent(EventType type, long taskId, String workspace, String project, LoggedMessage message) {
         this.type = type;
@@ -134,6 +140,14 @@ public class BuilderEvent {
         this.taskId = taskId;
         this.workspace = workspace;
         this.project = project;
+    }
+
+    BuilderEvent(EventType type, long taskId, String workspace, String project, boolean reused) {
+        this.type = type;
+        this.taskId = taskId;
+        this.workspace = workspace;
+        this.project = project;
+        this.reused = reused;
     }
 
     public BuilderEvent() {
@@ -177,6 +191,14 @@ public class BuilderEvent {
 
     public void setMessage(LoggedMessage message) {
         this.message = message;
+    }
+
+    public boolean isReused() {
+        return reused;
+    }
+
+    public void setReused(boolean reused) {
+        this.reused = reused;
     }
 
     @Override

@@ -10,22 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.dto.BaseBuilderRequest;
-import com.codenvy.api.builder.dto.BuildOptions;
-import com.codenvy.api.builder.dto.BuildRequest;
-import com.codenvy.api.builder.dto.BuilderDescriptor;
-import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
-import com.codenvy.api.builder.dto.BuilderServerLocation;
-import com.codenvy.api.builder.dto.BuilderServerRegistration;
-import com.codenvy.api.builder.dto.BuilderState;
-import com.codenvy.api.builder.dto.DependencyRequest;
+import com.codenvy.api.builder.dto.*;
 import com.codenvy.api.builder.internal.BuilderEvent;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ForbiddenException;
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.ServerException;
-import com.codenvy.api.core.UnauthorizedException;
+import com.codenvy.api.core.*;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
@@ -58,23 +46,8 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -565,10 +538,12 @@ public class BuildQueue {
                     if (runnable instanceof InternalBuildTask) {
                         final InternalBuildTask internalBuildTask = (InternalBuildTask)runnable;
                         if (internalBuildTask.reused) {
-                            // Emulate event from remote builder. In fact we didn't send request to remote builder just reuse result from previous build.
+                            // Emulate event from remote builder. In fact we didn't send request to remote builder just reuse result from previous
+                            // build.
                             eventService.publish(BuilderEvent.doneEvent(internalBuildTask.id,
                                                                         internalBuildTask.workspace,
-                                                                        internalBuildTask.project));
+                                                                        internalBuildTask.project,
+                                                                        true));
                         }
                     }
                 }
@@ -688,38 +663,50 @@ public class BuildQueue {
                         if (request instanceof BuildRequest) {
                             BuildQueueTask task = getTask(taskId);
                             final String analyticsID = task.getCreationTime() + "-" + taskId;
-                            final String project = event.getProject();
+                            final String project = extractProjectName(event.getProject());
                             final String workspace = request.getWorkspace();
                             final long timeout = request.getTimeout();
                             final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                             final String user = request.getUserName();
-                            long waitingTime = task.getWaitingTime();
 
                             switch (event.getType()) {
                                 case BEGIN:
-                                    LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                    long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                                    LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
                                              workspace,
                                              user,
                                              project,
                                              projectTypeId,
-                                             analyticsID);
-                                    LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# WAITING_TIME#{}# ID#{}# TIMEOUT#{}#",
+                                             analyticsID,
+                                             waitingTime);
+                                    LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
                                              workspace,
                                              user,
                                              project,
                                              projectTypeId,
-                                             waitingTime,
                                              analyticsID,
                                              timeout);
                                     break;
                                 case DONE:
-                                    LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
-                                             workspace,
-                                             user,
-                                             project,
-                                             projectTypeId,
-                                             analyticsID,
-                                             timeout);
+                                    if (!event.isReused()) {
+                                        long usedTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
+                                        LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USED-TIME#{}#",
+                                                 workspace,
+                                                 user,
+                                                 project,
+                                                 projectTypeId,
+                                                 analyticsID,
+                                                 timeout,
+                                                 usedTime);
+                                    } else {
+                                        LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                                 workspace,
+                                                 user,
+                                                 project,
+                                                 projectTypeId,
+                                                 analyticsID,
+                                                 0);
+                                    }
                                     break;
                                 case BUILD_TASK_ADDED_IN_QUEUE:
                                     LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
@@ -730,18 +717,27 @@ public class BuildQueue {
                                              analyticsID);
                                     break;
                                 case BUILD_TASK_QUEUE_TIME_EXCEEDED:
-                                    LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                    waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                                    LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
                                              workspace,
                                              user,
                                              project,
                                              projectTypeId,
-                                             analyticsID);
+                                             analyticsID,
+                                             waitingTime);
                                     break;
                             }
                         }
                     } catch (Exception e) {
                         LOG.error(e.getMessage(), e);
                     }
+                }
+
+                private String extractProjectName(String path) {
+                    int beginIndex = path.startsWith("/") ? 1 : 0;
+                    int i = path.indexOf("/", beginIndex);
+                    int endIndex = i < 0 ? path.length() : i;
+                    return path.substring(beginIndex, endIndex);
                 }
             });
 

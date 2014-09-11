@@ -14,11 +14,7 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ForbiddenException;
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.ServerException;
-import com.codenvy.api.core.UnauthorizedException;
+import com.codenvy.api.core.*;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
@@ -28,16 +24,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.dto.DebugMode;
-import com.codenvy.api.runner.dto.ResourcesDescriptor;
-import com.codenvy.api.runner.dto.RunOptions;
-import com.codenvy.api.runner.dto.RunRequest;
-import com.codenvy.api.runner.dto.RunnerDescriptor;
-import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
-import com.codenvy.api.runner.dto.RunnerServerLocation;
-import com.codenvy.api.runner.dto.RunnerServerRegistration;
-import com.codenvy.api.runner.dto.RunnerState;
+import com.codenvy.api.runner.dto.*;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.workspace.server.WorkspaceService;
@@ -65,27 +52,8 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -1189,7 +1157,7 @@ public class RunQueue {
                 final RunQueueTask task = getTask(id);
                 final RunRequest request = task.getRequest();
                 final String analyticsID = task.getCreationTime() + "-" + id;
-                final String project = event.getProject();
+                final String project = extractProjectName(event.getProject());
                 final String workspace = request.getWorkspace();
                 final int memorySize = request.getMemorySize();
                 final long lifetime = request.getLifetime();
@@ -1198,12 +1166,14 @@ public class RunQueue {
                 final String user = request.getUserName();
                 switch (event.getType()) {
                     case STARTED:
-                        LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                        long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                        LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
                                  workspace,
                                  user,
                                  project,
                                  projectTypeId,
-                                 analyticsID);
+                                 analyticsID,
+                                 waitingTime);
                         if (debug) {
                             LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
                                      workspace,
@@ -1225,24 +1195,27 @@ public class RunQueue {
                         }
                         break;
                     case STOPPED:
+                        long usedTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
                         if (debug) {
-                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USED-TIME#{}#",
                                      workspace,
                                      user,
                                      project,
                                      projectTypeId,
                                      analyticsID,
                                      memorySize,
-                                     lifetime);
+                                     lifetime,
+                                     usedTime);
                         } else {
-                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USED-TIME#{}#",
                                      workspace,
                                      user,
                                      project,
                                      projectTypeId,
                                      analyticsID,
                                      memorySize,
-                                     lifetime);
+                                     lifetime,
+                                     usedTime);
                         }
                         break;
                     case RUN_TASK_ADDED_IN_QUEUE:
@@ -1254,18 +1227,26 @@ public class RunQueue {
                                  analyticsID);
                         break;
                     case RUN_TASK_QUEUE_TIME_EXCEEDED:
-                        LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                        waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                        LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
                                  workspace,
                                  user,
                                  project,
                                  projectTypeId,
-                                 analyticsID);
+                                 analyticsID,
+                                 waitingTime);
                         break;
                 }
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
             }
         }
-    }
 
+        private String extractProjectName(String path) {
+            int beginIndex = path.startsWith("/") ? 1 : 0;
+            int i = path.indexOf("/", beginIndex);
+            int endIndex = i < 0 ? path.length() : i;
+            return path.substring(beginIndex, endIndex);
+        }
+    }
 }

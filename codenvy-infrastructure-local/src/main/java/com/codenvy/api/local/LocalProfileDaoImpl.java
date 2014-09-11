@@ -71,7 +71,9 @@ public class LocalProfileDaoImpl implements UserProfileDao {
                     reader = Files.newReader(storageFile, Charset.forName("UTF-8"));
                     Map<String, Profile> m = gson.fromJson(reader, new TypeToken<Map<String, Profile>>() {
                     }.getType());
-                    profiles.putAll(m);
+                    if (m != null) {
+                        profiles.putAll(m);
+                    }
                 } catch (Exception e) {
                     LOG.error(String.format("Failed load user profiles form %s", storageFile), e);
                 } finally {
@@ -82,7 +84,9 @@ public class LocalProfileDaoImpl implements UserProfileDao {
                         }
                     }
                 }
-            } else {
+            }
+            // Add default entry if file doesn't exist or invalid or empty.
+            if (profiles.isEmpty()) {
                 final Map<String, String> attributes = new HashMap<>(2);
                 attributes.put("First Name", "Codenvy");
                 attributes.put("Last Name", "Codenvy");

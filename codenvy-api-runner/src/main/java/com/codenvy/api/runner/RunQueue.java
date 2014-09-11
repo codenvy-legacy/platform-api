@@ -1195,9 +1195,9 @@ public class RunQueue {
                         }
                         break;
                     case STOPPED:
-                        long usedTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
+                        long usageTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
                         if (debug) {
-                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USED-TIME#{}#",
+                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
                                      workspace,
                                      user,
                                      project,
@@ -1205,9 +1205,9 @@ public class RunQueue {
                                      analyticsID,
                                      memorySize,
                                      lifetime,
-                                     usedTime);
+                                     usageTime);
                         } else {
-                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USED-TIME#{}#",
+                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
                                      workspace,
                                      user,
                                      project,
@@ -1215,7 +1215,7 @@ public class RunQueue {
                                      analyticsID,
                                      memorySize,
                                      lifetime,
-                                     usedTime);
+                                     usageTime);
                         }
                         break;
                     case RUN_TASK_ADDED_IN_QUEUE:

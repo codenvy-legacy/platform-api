@@ -689,15 +689,15 @@ public class BuildQueue {
                                     break;
                                 case DONE:
                                     if (!event.isReused()) {
-                                        long usedTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
-                                        LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USED-TIME#{}#",
+                                        long usageTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
+                                        LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}#",
                                                  workspace,
                                                  user,
                                                  project,
                                                  projectTypeId,
                                                  analyticsID,
                                                  timeout,
-                                                 usedTime);
+                                                 usageTime);
                                     } else {
                                         LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
                                                  workspace,

@@ -124,7 +124,13 @@ public class ProjectService extends Service {
         final List<Project> projects = projectManager.getProjects(workspace);
         final List<ProjectReference> projectRefs = new ArrayList<>(projects.size());
         for (Project project : projects) {
-            projectRefs.add(toReference(project));
+            try {
+                projectRefs.add(toReference(project));
+            } catch (ServerException | ConflictException e) {
+                // Ignore known error for single project.
+                // In result we won't have them in explorer tree but at least 'bad' projects won't prevent to show 'good' projects.
+                LOG.error(e.getMessage(), e);
+            }
         }
         return projectRefs;
     }
@@ -210,7 +216,13 @@ public class ProjectService extends Service {
         final List<Project> modules = project.getModules();
         final List<ProjectDescriptor> descriptors = new ArrayList<>(modules.size());
         for (Project module : modules) {
-            descriptors.add(toDescriptor(module));
+            try {
+                descriptors.add(toDescriptor(module));
+            } catch (ConflictException | ServerException e) {
+                // Ignore known error for single module.
+                // In result we won't have them in project tree but at least 'bad' modules won't prevent to show 'good' modules.
+                LOG.error(e.getMessage(), e);
+            }
         }
         return descriptors;
     }

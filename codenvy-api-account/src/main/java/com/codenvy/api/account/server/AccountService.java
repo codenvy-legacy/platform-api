@@ -1081,10 +1081,9 @@ public class AccountService extends Service {
      *         resolved roles. Do not use if id of the account presents in REST path.
      */
     private SubscriptionDescriptor toDescriptor(Subscription subscription, SecurityContext securityContext, Set<String> resolvedRoles) {
-        List<Link> links;
+        List<Link> links = new ArrayList<>(0);
         if (!"sas-community".equals(subscription.getPlanId())) {
             final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-            links = new ArrayList<>(3);
             links.add(createLink(HttpMethod.GET,
                                  Constants.LINK_REL_GET_SUBSCRIPTION,
                                  null,
@@ -1116,8 +1115,6 @@ public class AccountService extends Service {
                                                .toString()
                                     ));
             }
-        } else {
-            links = Collections.emptyList();
         }
         return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
                          .withId(subscription.getId())

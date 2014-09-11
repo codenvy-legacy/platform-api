@@ -49,4 +49,11 @@ public abstract class DelegateBuildLogger implements BuildLogger {
     public void close() throws IOException {
         delegate.close();
     }
+
+    @Override
+    public String toString() {
+        return "DelegateBuildLogger{" +
+               "delegate=" + delegate +
+               '}';
+    }
 }

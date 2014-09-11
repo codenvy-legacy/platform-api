@@ -19,7 +19,7 @@ import java.nio.file.Files;
 /**
  * File based implementation of BuildLogger.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class DefaultBuildLogger implements BuildLogger {
     private final java.io.File file;
@@ -63,5 +63,12 @@ public final class DefaultBuildLogger implements BuildLogger {
     @Override
     public void close() throws IOException {
         writer.close();
+    }
+
+    @Override
+    public String toString() {
+        return "DefaultBuildLogger{" +
+               "file=" + file +
+               '}';
     }
 }

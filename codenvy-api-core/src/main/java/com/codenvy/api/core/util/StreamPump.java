@@ -14,7 +14,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author andrew00x */
 public final class StreamPump implements Runnable {
 
     private BufferedReader bufferedReader;
@@ -32,6 +32,7 @@ public final class StreamPump implements Runnable {
     }
 
     public synchronized void stop() {
+        // Not clear do we need close original stream, but since it was wrapped by BufferedReader close it anyway.
         try {
             bufferedReader.close();
         } catch (IOException ignored) {

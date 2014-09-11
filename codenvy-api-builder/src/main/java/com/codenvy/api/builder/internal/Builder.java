@@ -413,6 +413,12 @@ public abstract class Builder {
             public void done(BuildTask task) {
                 final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
                 eventService.publish(BuilderEvent.doneEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
+                try {
+                    myLogger.close();
+                    LOG.debug("Close build logger {}", myLogger);
+                } catch (IOException e) {
+                    LOG.error(e.getMessage(), e);
+                }
             }
         };
         final FutureBuildTask task = new FutureBuildTask(callable, internalId, commandLine, getName(), configuration, myLogger, callback);
@@ -458,6 +464,11 @@ public abstract class Builder {
                     } catch (InterruptedException e) {
                         Thread.interrupted(); // we interrupt thread when cancel task
                         ProcessUtil.kill(process);
+                    }
+                    try {
+                        output.await(); // wait for logger
+                    } catch (InterruptedException e) {
+                        Thread.interrupted(); // we interrupt thread when cancel task, NOTE: logs may be incomplete
                     }
                 } finally {
                     if (watcher != null) {

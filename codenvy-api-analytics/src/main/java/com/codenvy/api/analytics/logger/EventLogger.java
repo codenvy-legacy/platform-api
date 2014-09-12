@@ -50,6 +50,8 @@ public class EventLogger {
     public static final String SESSION_FINISHED        = "session-finished";
     public static final String SESSION_FACTORY_STARTED = "session-factory-started";
     public static final String SESSION_FACTORY_STOPPED = "session-factory-stopped";
+    public static final String SESSION_USAGE           = "session-usage";
+    public static final String SESSION_FACTORY_USAGE   = "session-factory-usage";
 
     private static final Set<String> ALLOWED_EVENTS = new HashSet<String>() {{
         add(IDE_USAGE);
@@ -58,6 +60,8 @@ public class EventLogger {
         add(SESSION_FINISHED);
         add(SESSION_FACTORY_STARTED);
         add(SESSION_FACTORY_STOPPED);
+        add(SESSION_USAGE);
+        add(SESSION_FACTORY_USAGE);
     }};
 
     private final Thread        logThread;

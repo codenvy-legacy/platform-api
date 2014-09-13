@@ -39,7 +39,7 @@ public class ZipProjectImporter implements ProjectImporter {
 
     @Override
     public String getDescription() {
-        return "Adds possibility to import project from zip archive located by public URL";
+        return "Import project from ZIP archive under a public URL.";
     }
 
     @Override

@@ -72,13 +72,14 @@ public abstract class Runner {
         }
     };
 
+    private static final DeploymentSources NO_SOURCES = new DeploymentSources(null);
+
     private final Map<Long, RunnerProcessImpl> processes;
     private final Map<Long, RunnerProcessImpl> expiredProcesses;
     private final Map<Long, List<Disposer>>    applicationDisposers;
     private final Object                       applicationDisposersLock;
     private final AtomicInteger                runningAppsCounter;
     private final java.io.File                 deployDirectoryRoot;
-    private final DownloadPlugin               downloadPlugin;
     private final ResourceAllocators           allocators;
     private final EventService                 eventService;
     private final long                         cleanupDelayMillis;
@@ -88,6 +89,8 @@ public abstract class Runner {
     private ExecutorService          executor;
     private ScheduledExecutorService cleanScheduler;
     private java.io.File             deployDirectory;
+
+    protected final DownloadPlugin downloadPlugin;
 
     public Runner(java.io.File deployDirectoryRoot, int cleanupDelay, ResourceAllocators allocators, EventService eventService) {
         this.deployDirectoryRoot = deployDirectoryRoot;
@@ -138,8 +141,8 @@ public abstract class Runner {
     public List<RunnerMetric> getStats() throws RunnerException {
         List<RunnerMetric> global = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        global.add(
-                dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.TOTAL_APPS).withValue(Integer.toString(getTotalAppsNum())));
+        global.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.TOTAL_APPS)
+                             .withValue(Integer.toString(getTotalAppsNum())));
         global.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.RUNNING_APPS)
                              .withValue(Integer.toString(getRunningAppsNum())));
         return global;
@@ -266,7 +269,9 @@ public abstract class Runner {
                 try {
                     final java.io.File downloadDir =
                             Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
-                    final DeploymentSources deploymentSources = downloadApplication(request.getDeploymentSourcesUrl(), downloadDir);
+                    final String url = request.getDeploymentSourcesUrl();
+                    final DeploymentSources deploymentSources =
+                            url == null ? NO_SOURCES : new DeploymentSources(downloadFile(url, downloadDir));
                     process.addToCleanupList(downloadDir);
                     if (!getDeploymentSourcesValidator().isValid(deploymentSources)) {
                         throw new RunnerException(
@@ -325,19 +330,13 @@ public abstract class Runner {
         return ALL_VALID;
     }
 
-    private static final DeploymentSources NO_SOURCES = new DeploymentSources(null);
-
-    private DeploymentSources downloadApplication(String url, java.io.File downloadDir) throws IOException {
-        if (url == null) {
-            return NO_SOURCES;
-        }
-
+    protected java.io.File downloadFile(String url, java.io.File downloadDir) throws IOException {
         final ValueHolder<IOException> errorHolder = new ValueHolder<>();
-        final ValueHolder<DeploymentSources> resultHolder = new ValueHolder<>();
+        final ValueHolder<java.io.File> resultHolder = new ValueHolder<>();
         downloadPlugin.download(url, downloadDir, new DownloadPlugin.Callback() {
             @Override
             public void done(java.io.File downloaded) {
-                resultHolder.set(new DeploymentSources(downloaded));
+                resultHolder.set(downloaded);
             }
 
             @Override

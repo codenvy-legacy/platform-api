@@ -10,14 +10,27 @@
  *******************************************************************************/
 package com.codenvy.api.builder;
 
-import com.codenvy.api.builder.dto.*;
+import com.codenvy.api.builder.dto.BaseBuilderRequest;
+import com.codenvy.api.builder.dto.BuildOptions;
+import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuilderDescriptor;
+import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
+import com.codenvy.api.builder.dto.BuilderServerLocation;
+import com.codenvy.api.builder.dto.BuilderServerRegistration;
+import com.codenvy.api.builder.dto.BuilderState;
+import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.BuilderEvent;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.core.*;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.ServiceContext;
+import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -385,7 +398,7 @@ public class BuildQueue {
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
-        final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
+        final Link zipballLink = Links.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
         if (zipballLink != null) {
             final String zipballLinkHref = zipballLink.getHref();
             final String token = getAuthenticationToken();
@@ -410,23 +423,6 @@ public class BuildQueue {
                 }
             }
         }
-    }
-
-    private static String getProjectAttributeValue(String name, Map<String, List<String>> attributes) {
-        final List<String> list = attributes.get(name);
-        if (list == null || list.isEmpty()) {
-            return null;
-        }
-        return list.get(0);
-    }
-
-    private static Link getLink(String rel, List<Link> links) {
-        for (Link link : links) {
-            if (rel.equals(link.getRel())) {
-                return link;
-            }
-        }
-        return null;
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)

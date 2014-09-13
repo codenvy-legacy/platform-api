@@ -23,6 +23,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
+import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
@@ -114,11 +115,11 @@ public class RemoteBuilder {
      *         if an error occurs
      */
     public RemoteTask perform(BuildRequest request) throws BuilderException {
-        final Link link = getLink(Constants.LINK_REL_BUILD);
+        final Link link = Links.getLink(Constants.LINK_REL_BUILD, links);
         if (link == null) {
             throw new BuilderException("Unable get URL for starting remote process");
         }
-        return perform(link, request);
+        return perform(DtoFactory.getInstance().clone(link), request);
     }
 
     /**
@@ -131,11 +132,11 @@ public class RemoteBuilder {
      *         if an error occurs
      */
     public RemoteTask perform(DependencyRequest request) throws BuilderException {
-        final Link link = getLink(Constants.LINK_REL_DEPENDENCIES_ANALYSIS);
+        final Link link = Links.getLink(Constants.LINK_REL_DEPENDENCIES_ANALYSIS, links);
         if (link == null) {
             throw new BuilderException("Unable get URL for starting remote process");
         }
-        return perform(link, request);
+        return perform(DtoFactory.getInstance().clone(link), request);
     }
 
     private RemoteTask perform(Link link, BaseBuilderRequest request) throws BuilderException {
@@ -159,27 +160,17 @@ public class RemoteBuilder {
      *         if an error occurs
      */
     public BuilderState getBuilderState() throws BuilderException {
-        final Link stateLink = getLink(Constants.LINK_REL_BUILDER_STATE);
-        if (stateLink == null) {
+        final Link link = Links.getLink(Constants.LINK_REL_BUILDER_STATE, links);
+        if (link == null) {
             throw new BuilderException("Unable get URL for getting state of a remote builder");
         }
         try {
-            return HttpJsonHelper.request(BuilderState.class, stateLink, Pair.of("builder", name));
+            return HttpJsonHelper.request(BuilderState.class, DtoFactory.getInstance().clone(link), Pair.of("builder", name));
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new BuilderException(e.getServiceError());
         }
-    }
-
-    private Link getLink(String rel) {
-        for (Link link : links) {
-            if (rel.equals(link.getRel())) {
-                // create copy of link since we pass it outside from this class
-                return DtoFactory.getInstance().clone(link);
-            }
-        }
-        return null;
     }
 
     @Override

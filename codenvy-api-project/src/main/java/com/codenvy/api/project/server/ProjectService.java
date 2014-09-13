@@ -23,7 +23,11 @@ import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.api.project.shared.*;
+import com.codenvy.api.project.shared.Attribute;
+import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
+import com.codenvy.api.project.shared.ProjectDescription;
+import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
 import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -73,7 +77,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -99,13 +102,13 @@ public class ProjectService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectService.class);
 
     @Inject
-    private ProjectManager           projectManager;
+    private ProjectManager              projectManager;
     @Inject
-    private ProjectImporterRegistry  importers;
+    private ProjectImporterRegistry     importers;
     @Inject
-    private ProjectGeneratorRegistry generators;
+    private ProjectGeneratorRegistry    generators;
     @Inject
-    private SearcherProvider         searcherProvider;
+    private SearcherProvider            searcherProvider;
     @Inject
     private ProjectTypeResolverRegistry resolverRegistry;
 
@@ -162,10 +165,10 @@ public class ProjectService extends Service {
                   response = ProjectDescriptor.class,
                   position = 3)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "Operation is forbidden"),
-                  @ApiResponse(code = 409, message = "Project with specified name already exist in workspace"),
-                  @ApiResponse(code = 500, message = "Server error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "Operation is forbidden"),
+            @ApiResponse(code = 409, message = "Project with specified name already exist in workspace"),
+            @ApiResponse(code = 500, message = "Server error")})
 
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_PROJECT)
@@ -197,10 +200,10 @@ public class ProjectService extends Service {
                   responseContainer = "List",
                   position = 5)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/modules/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -232,11 +235,11 @@ public class ProjectService extends Service {
                   response = ProjectDescriptor.class,
                   position = 6)
     @ApiResponses(value = {
-                           @ApiResponse(code = 200, message = "OK"),
-                           @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                           @ApiResponse(code = 404, message = "Not found"),
-                           @ApiResponse(code = 409, message = "Module already exists"),
-                           @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Module already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -292,11 +295,11 @@ public class ProjectService extends Service {
                   notes = "Create a new file in a project. If file type isn't specified the server will resolve its type.",
                   position = 7)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 409, message = "File already exists"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "File already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Consumes({MediaType.MEDIA_TYPE_WILDCARD})
     @Path("/file/{parent:.*}")
@@ -327,11 +330,11 @@ public class ProjectService extends Service {
                   notes = "Create a folder is a specified project",
                   position = 8)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 409, message = "File already exists"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "File already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/folder/{path:.*}")
     public Response createFolder(@ApiParam(value = "Workspace ID", required = true)
@@ -349,11 +352,11 @@ public class ProjectService extends Service {
                   notes = "Upload a new file",
                   position = 8)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 409, message = "File already exists"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "File already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.TEXT_HTML})
@@ -372,10 +375,10 @@ public class ProjectService extends Service {
                   notes = "Get file content by its name",
                   position = 9)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/file/{path:.*}")
     public Response getFile(@ApiParam(value = "Workspace ID", required = true)
@@ -391,10 +394,10 @@ public class ProjectService extends Service {
                   notes = "Update an existing file with new content",
                   position = 10)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @PUT
     @Consumes({MediaType.MEDIA_TYPE_WILDCARD})
     @Path("/file/{path:.*}")
@@ -422,10 +425,10 @@ public class ProjectService extends Service {
                   notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to be deleted a path to the requested resource needs to be specified",
                   position = 11)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{path:.*}")
     public void delete(@ApiParam(value = "Workspace ID", required = true)
@@ -451,11 +454,11 @@ public class ProjectService extends Service {
                   notes = "Copy resource to a new location which is specified in a query parameter",
                   position = 12)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 409, message = "Resource already exists"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/copy/{path:.*}")
     public Response copy(@ApiParam(value = "Workspace ID", required = true)
@@ -482,8 +485,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Move resource",
-            notes = "Move resource to a new location which is specified in a query parameter",
-            position = 13)
+                  notes = "Move resource to a new location which is specified in a query parameter",
+                  position = 13)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -521,11 +524,11 @@ public class ProjectService extends Service {
                   notes = "Rename resources. It can be project, module, folder or file",
                   position = 14)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 409, message = "Resource already exists"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/rename/{path:.*}")
     public Response rename(@ApiParam(value = "Workspace ID", required = true)
@@ -555,11 +558,11 @@ public class ProjectService extends Service {
                   response = ProjectDescriptor.class,
                   position = 15)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = ""),
-                  @ApiResponse(code = 401, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 403, message = "Forbidden operation"),
-                  @ApiResponse(code = 409, message = "Resource already exists"),
-                  @ApiResponse(code = 500, message = "Unsupported source type")})
+            @ApiResponse(code = 200, message = ""),
+            @ApiResponse(code = 401, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 403, message = "Forbidden operation"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Unsupported source type")})
     @POST
     @Path("/import/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -630,7 +633,7 @@ public class ProjectService extends Service {
                                outputWSlineConsumer);
 
         //use resolver only if project type not set
-        if(descriptorToUpdate.getProjectTypeId() == null && project.getDescription().getProjectType().getId().equals(
+        if (descriptorToUpdate.getProjectTypeId() == null && project.getDescription().getProjectType().getId().equals(
                 com.codenvy.api.project.shared.Constants.BLANK_ID)) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
@@ -639,7 +642,7 @@ public class ProjectService extends Service {
                 }
             }
             //if we can't resolve project type, force to blank project type
-            if(descriptorToUpdate.getProjectTypeId() == null) {
+            if (descriptorToUpdate.getProjectTypeId() == null) {
                 resolverRegistry.getDefaultResolver().resolve(project, descriptorToUpdate);
             }
         }
@@ -700,11 +703,11 @@ public class ProjectService extends Service {
                   notes = "Import resources as zip",
                   position = 16)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 409, message = "Resource already exists"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/import/{path:.*}")
     @Consumes("application/zip")
@@ -730,10 +733,10 @@ public class ProjectService extends Service {
                   notes = "Export resource as zip. It can be an entire project or folder",
                   position = 17)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = ""),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = ""),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/export/{path:.*}")
     @Produces("application/zip")
@@ -772,10 +775,10 @@ public class ProjectService extends Service {
                   responseContainer = "List",
                   position = 18)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/children/{parent:.*}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -806,10 +809,10 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Get project tree",
-            notes = "Get project tree. Depth is specified in a query parameter",
-            response = TreeElement.class,
-            responseContainer = "List",
-            position = 19)
+                  notes = "Get project tree. Depth is specified in a query parameter",
+                  response = TreeElement.class,
+                  responseContainer = "List",
+                  position = 19)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -856,10 +859,10 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Search for resources",
-            notes = "Search for resources applying a number of search filters as query parameters",
-            response = ItemReference.class,
-            responseContainer = "List",
-            position = 20)
+                  notes = "Search for resources applying a number of search filters as query parameters",
+                  response = ItemReference.class,
+                  responseContainer = "List",
+                  position = 20)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -933,10 +936,10 @@ public class ProjectService extends Service {
                   responseContainer = "List",
                   position = 21)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/permissions/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -969,10 +972,10 @@ public class ProjectService extends Service {
                   notes = "Set project visibility. Projects can be private or public",
                   position = 22)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/switch_visibility/{path:.*}")
     @RolesAllowed("workspace/admin")
@@ -999,10 +1002,10 @@ public class ProjectService extends Service {
                   responseContainer = "List",
                   position = 23)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this operation"),
-                  @ApiResponse(code = 404, message = "Not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/permissions/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -1073,7 +1076,8 @@ public class ProjectService extends Service {
                 projectDescription.getRunnerEnvironmentConfigurations().put(e.getKey(),
                                                                             new RunnerEnvironmentConfiguration(
                                                                                     envConfigDescriptor.getRequiredMemorySize(),
-                                                                                    envConfigDescriptor.getRecommendedMemorySize()));
+                                                                                    envConfigDescriptor.getRecommendedMemorySize(),
+                                                                                    envConfigDescriptor.getDefaultMemorySize()));
             }
         }
         final Map<String, List<String>> projectAttributeValues = newProject.getAttributes();
@@ -1113,7 +1117,8 @@ public class ProjectService extends Service {
                 projectDescription.getRunnerEnvironmentConfigurations().put(e.getKey(),
                                                                             new RunnerEnvironmentConfiguration(
                                                                                     envConfigDescriptor.getRequiredMemorySize(),
-                                                                                    envConfigDescriptor.getRecommendedMemorySize()));
+                                                                                    envConfigDescriptor.getRecommendedMemorySize(),
+                                                                                    envConfigDescriptor.getDefaultMemorySize()));
             }
         }
         final Map<String, List<String>> projectAttributeValues = update.getAttributes();
@@ -1172,13 +1177,13 @@ public class ProjectService extends Service {
             final RunnerEnvironmentConfiguration envConfig = e.getValue();
             runnerEnvConfigDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
                                                                  .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
-                                                                 .withRequiredMemorySize(envConfig.getRequiredMemorySize()));
+                                                                 .withRequiredMemorySize(envConfig.getRequiredMemorySize())
+                                                                 .withDefaultMemorySize(envConfig.getDefaultMemorySize()));
         }
 
         descriptor.withName(project.getName())
                   .withPath(project.getBaseFolder().getPath())
-                  .withBaseUrl(
-                          uriBuilder.clone().path(project.getBaseFolder().getPath()).build(workspaceId).toString())
+                  .withBaseUrl(uriBuilder.clone().path(project.getBaseFolder().getPath()).build(workspaceId).toString())
                   .withProjectTypeId(type.getId())
                   .withProjectTypeName(type.getName())
                   .withWorkspaceId(workspaceId)

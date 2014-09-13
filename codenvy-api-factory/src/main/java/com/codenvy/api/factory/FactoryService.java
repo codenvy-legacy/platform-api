@@ -476,7 +476,8 @@ public class FactoryService extends Service {
             final RunnerEnvironmentConfiguration envConfig = e.getValue();
             runnerConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
                                                                       .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
-                                                                      .withRequiredMemorySize(envConfig.getRequiredMemorySize()));
+                                                                      .withRequiredMemorySize(envConfig.getRequiredMemorySize())
+                                                                      .withDefaultMemorySize(envConfig.getDefaultMemorySize()));
         }
 
         final FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class);

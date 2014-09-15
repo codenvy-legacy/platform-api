@@ -28,4 +28,10 @@ public interface RunnerEnvironmentConfigurationDescriptor {
     RunnerEnvironmentConfigurationDescriptor withRecommendedMemorySize(int recommendedMemorySize);
 
     void setRecommendedMemorySize(int recommendedMemorySize);
+
+    int getDefaultMemorySize();
+
+    RunnerEnvironmentConfigurationDescriptor withDefaultMemorySize(int defaultMemorySize);
+
+    void setDefaultMemorySize(int defaultMemorySize);
 }

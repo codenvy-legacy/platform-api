@@ -20,7 +20,9 @@ import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
+import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.InputSupplier;
 import com.google.common.io.OutputSupplier;
@@ -99,7 +101,7 @@ public class RemoteTask {
      */
     public BuildTaskDescriptor cancel() throws BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        final Link link = getLink(Constants.LINK_REL_CANCEL, descriptor);
+        final Link link = Links.getLink(Constants.LINK_REL_CANCEL, descriptor.getLinks());
         if (link == null) {
             switch (descriptor.getStatus()) {
                 case SUCCESSFUL:
@@ -112,7 +114,7 @@ public class RemoteTask {
             }
         }
         try {
-            return HttpJsonHelper.request(BuildTaskDescriptor.class, link);
+            return HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(link));
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | ConflictException e) {
@@ -132,7 +134,7 @@ public class RemoteTask {
      */
     public void readLogs(OutputProvider output) throws IOException, BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        final Link link = getLink(Constants.LINK_REL_VIEW_LOG, descriptor);
+        final Link link = Links.getLink(Constants.LINK_REL_VIEW_LOG, descriptor.getLinks());
         if (link == null) {
             throw new BuilderException("Logs are not available.");
         }
@@ -152,7 +154,7 @@ public class RemoteTask {
      */
     public void readReport(OutputProvider output) throws IOException, BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        final Link link = getLink(Constants.LINK_REL_VIEW_REPORT, descriptor);
+        final Link link = Links.getLink(Constants.LINK_REL_VIEW_REPORT, descriptor.getLinks());
         if (link == null) {
             throw new BuilderException("Report is not available.");
         }
@@ -211,14 +213,5 @@ public class RemoteTask {
         } finally {
             conn.disconnect();
         }
-    }
-
-    private Link getLink(String rel, BuildTaskDescriptor descriptor) {
-        for (Link link : descriptor.getLinks()) {
-            if (rel.equals(link.getRel())) {
-                return link;
-            }
-        }
-        return null;
     }
 }

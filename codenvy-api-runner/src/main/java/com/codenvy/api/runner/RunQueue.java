@@ -14,17 +14,32 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.core.*;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
+import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.runner.dto.*;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
+import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.runner.dto.DebugMode;
+import com.codenvy.api.runner.dto.ResourcesDescriptor;
+import com.codenvy.api.runner.dto.RunOptions;
+import com.codenvy.api.runner.dto.RunRequest;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
+import com.codenvy.api.runner.dto.RunnerServerLocation;
+import com.codenvy.api.runner.dto.RunnerServerRegistration;
+import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.workspace.server.WorkspaceService;
@@ -52,8 +67,27 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -249,8 +283,13 @@ public class RunQueue {
 
         int mem = request.getMemorySize();
         if (mem <= 0) {
-            final String memAttr = getProjectAttributeValue(Constants.RUNNER_MEMORY_SIZE.replace("${runner}", runner), projectAttributes);
-            mem = memAttr != null ? Integer.parseInt(memAttr) : defMemSize;
+            final RunnerEnvironmentConfigurationDescriptor env = descriptor.getRunnerEnvironmentConfigurations().get(runnerEnvId);
+            if (env != null) {
+                mem = env.getDefaultMemorySize();
+            }
+            if (mem <= 0) {
+                mem = defMemSize;
+            }
         }
         request.setMemorySize(mem);
 
@@ -305,7 +344,7 @@ public class RunQueue {
             }
             callable = createTaskFor(buildDescriptor, request, buildTaskHolder);
         } else {
-            final Link zipballLink = getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
+            final Link zipballLink = Links.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
             if (zipballLink != null) {
                 final String zipballLinkHref = zipballLink.getHref();
                 final String token = getAuthenticationToken();
@@ -374,8 +413,8 @@ public class RunQueue {
             @Override
             public RemoteRunnerProcess call() throws Exception {
                 if (buildDescriptor != null) {
-                    final Link buildStatusLink = getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS,
-                                                         buildDescriptor.getLinks());
+                    final Link buildStatusLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS,
+                                                               buildDescriptor.getLinks());
                     if (buildStatusLink == null) {
                         throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
                     }
@@ -395,15 +434,14 @@ public class RunQueue {
                             }
                         }
                         BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
-                                                                                     // create copy of link when pass it outside!!
                                                                                      DtoFactory.getInstance().clone(buildStatusLink));
                         if (buildTaskHolder != null) {
                             buildTaskHolder.set(buildDescriptor);
                         }
                         switch (buildDescriptor.getStatus()) {
                             case SUCCESSFUL:
-                                final Link downloadLink = getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT,
-                                                                  buildDescriptor.getLinks());
+                                final Link downloadLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT,
+                                                                        buildDescriptor.getLinks());
                                 if (downloadLink == null) {
                                     throw new RunnerException("Unable start application. Application build is successful but there " +
                                                               "is no URL for download result of build.");
@@ -416,8 +454,8 @@ public class RunQueue {
                             case CANCELLED:
                             case FAILED:
                                 String msg = "Unable start application. Build of application is failed or cancelled.";
-                                final Link logLink = getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG,
-                                                             buildDescriptor.getLinks());
+                                final Link logLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG,
+                                                                   buildDescriptor.getLinks());
                                 if (logLink != null) {
                                     msg += (" Build logs: " + logLink.getHref());
                                 }
@@ -492,15 +530,6 @@ public class RunQueue {
         }
     }
 
-    private static Link getLink(String rel, List<Link> links) {
-        for (Link link : links) {
-            if (rel.equals(link.getRel())) {
-                return link;
-            }
-        }
-        return null;
-    }
-
     private static String getProjectAttributeValue(String name, Map<String, List<String>> attributes) {
         final List<String> list = attributes.get(name);
         if (list == null || list.isEmpty()) {
@@ -510,14 +539,13 @@ public class RunQueue {
     }
 
     private boolean tryCancelBuild(BuildTaskDescriptor buildDescriptor) {
-        final Link cancelLink = getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_CANCEL, buildDescriptor.getLinks());
+        final Link cancelLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_CANCEL, buildDescriptor.getLinks());
         if (cancelLink == null) {
             LOG.error("Can't cancel build process since cancel link is not available.");
             return false;
         } else {
             try {
                 final BuildTaskDescriptor result = HttpJsonHelper.request(BuildTaskDescriptor.class,
-                                                                          // create copy of link when pass it outside!!
                                                                           DtoFactory.getInstance().clone(cancelLink));
                 LOG.debug("Build cancellation result {}", result);
                 return result != null && result.getStatus() == BuildStatus.CANCELLED;
@@ -1109,7 +1137,7 @@ public class RunQueue {
                             bm.setBody(DtoFactory.getInstance().toJson(descriptor));
                             if (event.getType() == RunnerEvent.EventType.STARTED) {
                                 final List<Link> links = descriptor.getLinks();
-                                final Link appLink = getLink(Constants.LINK_REL_WEB_URL, links);
+                                final Link appLink = Links.getLink(Constants.LINK_REL_WEB_URL, links);
                                 if (appLink != null) {
                                     executor.execute(new ApplicationUrlChecker(id,
                                                                                new URL(appLink.getHref()),
@@ -1197,25 +1225,27 @@ public class RunQueue {
                     case STOPPED:
                         long usageTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
                         if (debug) {
-                            LOG.info("EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
-                                     workspace,
-                                     user,
-                                     project,
-                                     projectTypeId,
-                                     analyticsID,
-                                     memorySize,
-                                     lifetime,
-                                     usageTime);
+                            LOG.info(
+                                    "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
+                                    workspace,
+                                    user,
+                                    project,
+                                    projectTypeId,
+                                    analyticsID,
+                                    memorySize,
+                                    lifetime,
+                                    usageTime);
                         } else {
-                            LOG.info("EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
-                                     workspace,
-                                     user,
-                                     project,
-                                     projectTypeId,
-                                     analyticsID,
-                                     memorySize,
-                                     lifetime,
-                                     usageTime);
+                            LOG.info(
+                                    "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
+                                    workspace,
+                                    user,
+                                    project,
+                                    projectTypeId,
+                                    analyticsID,
+                                    memorySize,
+                                    lifetime,
+                                    usageTime);
                         }
                         break;
                     case RUN_TASK_ADDED_IN_QUEUE:

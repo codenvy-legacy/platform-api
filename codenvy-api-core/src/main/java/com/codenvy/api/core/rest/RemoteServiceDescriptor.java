@@ -15,6 +15,7 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
+import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.dto.server.DtoFactory;
@@ -82,12 +83,8 @@ public class RemoteServiceDescriptor {
     }
 
     public Link getLink(String rel) throws ServerException, IOException {
-        for (Link link : getServiceDescriptor().getLinks()) {
-            if (rel.equals(link.getRel())) {
-                return DtoFactory.getInstance().clone(link);
-            }
-        }
-        return null;
+        final Link link = Links.getLink(rel, getServiceDescriptor().getLinks());
+        return link == null ? null : DtoFactory.getInstance().clone(link);
     }
 
     public ServiceDescriptor getServiceDescriptor() throws IOException, ServerException {

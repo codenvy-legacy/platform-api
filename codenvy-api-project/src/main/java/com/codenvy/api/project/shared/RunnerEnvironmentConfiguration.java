@@ -17,11 +17,13 @@ public class RunnerEnvironmentConfiguration {
     public RunnerEnvironmentConfiguration(RunnerEnvironmentConfiguration origin) {
         this.recommendedMemorySize = origin.getRecommendedMemorySize();
         this.requiredMemorySize = origin.getRequiredMemorySize();
+        this.defaultMemorySize = origin.defaultMemorySize;
     }
 
-    public RunnerEnvironmentConfiguration(int requiredMemorySize, int recommendedMemorySize) {
+    public RunnerEnvironmentConfiguration(int requiredMemorySize, int recommendedMemorySize, int defaultMemorySize) {
         this.requiredMemorySize = requiredMemorySize;
         this.recommendedMemorySize = recommendedMemorySize;
+        this.defaultMemorySize = defaultMemorySize;
     }
 
     public RunnerEnvironmentConfiguration() {
@@ -29,6 +31,7 @@ public class RunnerEnvironmentConfiguration {
 
     private int requiredMemorySize    = -1;
     private int recommendedMemorySize = -1;
+    private int defaultMemorySize     = -1;
 
     public int getRequiredMemorySize() {
         return requiredMemorySize;
@@ -44,5 +47,13 @@ public class RunnerEnvironmentConfiguration {
 
     public void setRecommendedMemorySize(int recommendedMemorySize) {
         this.recommendedMemorySize = recommendedMemorySize;
+    }
+
+    public int getDefaultMemorySize() {
+        return defaultMemorySize;
+    }
+
+    public void setDefaultMemorySize(int defaultMemorySize) {
+        this.defaultMemorySize = defaultMemorySize;
     }
 }

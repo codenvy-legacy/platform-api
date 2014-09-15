@@ -29,6 +29,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.DebugMode;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
@@ -282,8 +283,13 @@ public class RunQueue {
 
         int mem = request.getMemorySize();
         if (mem <= 0) {
-            final String memAttr = getProjectAttributeValue(Constants.RUNNER_MEMORY_SIZE.replace("${runner}", runner), projectAttributes);
-            mem = memAttr != null ? Integer.parseInt(memAttr) : defMemSize;
+            final RunnerEnvironmentConfigurationDescriptor env = descriptor.getRunnerEnvironmentConfigurations().get(runnerEnvId);
+            if (env != null) {
+                mem = env.getDefaultMemorySize();
+            }
+            if (mem <= 0) {
+                mem = defMemSize;
+            }
         }
         request.setMemorySize(mem);
 

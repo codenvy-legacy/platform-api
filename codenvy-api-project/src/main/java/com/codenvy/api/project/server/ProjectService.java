@@ -15,6 +15,7 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
+import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -99,15 +100,17 @@ public class ProjectService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectService.class);
 
     @Inject
-    private ProjectManager           projectManager;
+    private ProjectManager              projectManager;
     @Inject
-    private ProjectImporterRegistry  importers;
+    private ProjectImporterRegistry     importers;
     @Inject
-    private ProjectGeneratorRegistry generators;
+    private ProjectGeneratorRegistry    generators;
     @Inject
-    private SearcherProvider         searcherProvider;
+    private SearcherProvider            searcherProvider;
     @Inject
     private ProjectTypeResolverRegistry resolverRegistry;
+    @Inject
+    private EventService                eventService;
 
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,
@@ -185,6 +188,7 @@ public class ProjectService extends Service {
             project.setVisibility(visibility);
         }
         final ProjectDescriptor descriptor = toDescriptor(project);
+        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
                  descriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
@@ -255,6 +259,7 @@ public class ProjectService extends Service {
         }
         final Project module = project.createModule(name, toDescription(newProject));
         final ProjectDescriptor descriptor = toDescriptor(module);
+        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
                  descriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
@@ -652,7 +657,7 @@ public class ProjectService extends Service {
         if (descriptorToUpdate.getProjectTypeId() != null) {
             project.updateDescription(toDescription(descriptorToUpdate));
         }
-
+        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
@@ -690,6 +695,7 @@ public class ProjectService extends Service {
         }
         generator.generateProject(project.getBaseFolder(), options);
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
+        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
@@ -717,6 +723,7 @@ public class ProjectService extends Service {
         VirtualFileSystemImpl.importZip(parent.getVirtualFile(), zip, true);
         if (parent.isProjectFolder()) {
             Project project = new Project(workspace, parent, projectManager);
+            eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
             final String projectType = project.getDescription().getProjectType().getId();
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", path, projectType,
                      EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());

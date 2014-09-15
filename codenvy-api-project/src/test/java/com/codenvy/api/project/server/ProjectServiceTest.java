@@ -152,6 +152,7 @@ public class ProjectServiceTest {
         dependencies.addComponent(ProjectGeneratorRegistry.class, generatorRegistry);
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
         dependencies.addComponent(ProjectTypeResolverRegistry.class, resolverRegistry);
+        dependencies.addComponent(EventService.class, eventService);
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
         EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);

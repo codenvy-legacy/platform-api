@@ -31,7 +31,6 @@ import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.dto.DebugMode;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
@@ -231,28 +230,21 @@ public class RunQueue {
 
     public RunQueueTask run(String wsId, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
         checkStarted();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        if (runOptions == null) {
+            runOptions = dtoFactory.createDto(RunOptions.class);
+        }
         final ProjectDescriptor descriptor = getProjectDescription(wsId, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
-        final RunRequest request = DtoFactory.getInstance().createDto(RunRequest.class)
+        final RunRequest request = dtoFactory.createDto(RunRequest.class)
                                              .withWorkspace(wsId)
                                              .withProject(project)
                                              .withProjectDescriptor(descriptor)
                                              .withUserName(user == null ? "" : user.getName());
-        BuildOptions buildOptions = null;
-        if (runOptions != null) {
-            request.setMemorySize(runOptions.getMemorySize());
-            request.setOptions(runOptions.getOptions());
-            request.setShellOptions(runOptions.getShellOptions());
-            request.setEnvironmentId(runOptions.getEnvironmentId());
-            if (runOptions.getDebugMode() != null) {
-                request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(runOptions.getDebugMode().getMode()));
-            }
-            buildOptions = runOptions.getBuildOptions();
-        }
-        final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
-
         String runner = request.getRunner();
         if (runner == null) {
+            // Try detect runner name if nothing is set in request.
+            final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
             runner = getProjectAttributeValue(Constants.RUNNER_CUSTOM_LAUNCHER, projectAttributes);
             if (runner == null) {
                 runner = descriptor.getRunner();
@@ -265,64 +257,68 @@ public class RunQueue {
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
-
-        String runnerEnvId = request.getEnvironmentId();
+        // Get runner environment.
+        String runnerEnvId = runOptions.getEnvironmentId();
         if (runnerEnvId == null) {
+            // If nothing is set use default environment.
             runnerEnvId = descriptor.getDefaultRunnerEnvironment();
             request.setEnvironmentId(runnerEnvId);
         }
-        request.setRunnerScriptUrls(getRunnerScript(descriptor));
-        if (request.getDebugMode() == null) {
-            final String debugAttr = getProjectAttributeValue(Constants.RUNNER_DEBUG_MODE.replace("${runner}", runner), projectAttributes);
-            if (debugAttr != null) {
-                request.setDebugMode(DtoFactory.getInstance().createDto(DebugMode.class).withMode(debugAttr));
-            }
-        }
-
+        final RunnerEnvironmentConfigurationDescriptor runnerEnv = descriptor.getRunnerEnvironmentConfigurations().get(runnerEnvId);
         final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
-
-        int mem = request.getMemorySize();
+        int mem = runOptions.getMemorySize();
+        // If nothing is set in user request try to determine memory size for application.
         if (mem <= 0) {
-            final RunnerEnvironmentConfigurationDescriptor env = descriptor.getRunnerEnvironmentConfigurations().get(runnerEnvId);
-            if (env != null) {
-                mem = env.getDefaultMemorySize();
+            if (runnerEnv != null) {
+                // If user saved something for this application before.
+                mem = runnerEnv.getDefaultMemorySize();
+                if (mem <= 0) {
+                    // Recommended memory size. Typically this value is pre-configured in our templates.
+                    mem = runnerEnv.getRecommendedMemorySize();
+                    if (mem <= 0) {
+                        // Minimal memory size. Typically this value is pre-configured in our templates.
+                        mem = runnerEnv.getRequiredMemorySize();
+                    }
+                }
             }
             if (mem <= 0) {
+                // If nothing is set use value from our configuration.
                 mem = defMemSize;
             }
         }
         request.setMemorySize(mem);
-
+        // When get memory size check available resources.
         checkResources(workspace, request);
-
+        // Enables or disables debug mode
+        request.setInDebugMode(runOptions.isInDebugMode());
+        // Get application lifetime.
         final String lifetimeAttr = workspace.getAttributes().get(Constants.RUNNER_LIFETIME);
         int lifetime = lifetimeAttr != null ? Integer.parseInt(lifetimeAttr) : defLifetime;
         if (lifetime <= 0) {
             lifetime = Integer.MAX_VALUE;
         }
         request.setLifetime(lifetime);
-
-        final List<String> optionsAttr = projectAttributes.get(Constants.RUNNER_OPTIONS.replace("${runner}", runner));
-        if (optionsAttr != null && !optionsAttr.isEmpty()) {
-            final Map<String, String> options = request.getOptions();
-            for (String str : optionsAttr) {
-                if (str != null) {
-                    final String[] pair = str.split("=");
-                    if (!options.containsKey(pair[0])) {
-                        options.put(pair[0], pair.length > 1 ? pair[1] : null);
-                    }
-                }
-            }
+        // Options for runner.
+        final Map<String, String> options = runOptions.getOptions();
+        if (!options.isEmpty()) {
+            request.setOptions(options);
+        } else if (runnerEnv != null) {
+            request.setOptions(runnerEnv.getOptions());
         }
-
-        boolean skipBuild = runOptions != null && runOptions.getSkipBuild();
+        // Find user defined recipes for runner if any.
+        request.setRunnerScriptUrls(getRunnerScript(descriptor));
+        // Options for web shell that runner may provide to the server with running application.
+        request.setShellOptions(runOptions.getShellOptions());
+        // Sometime user may request to skip build of project before run.
+        boolean skipBuild = runOptions.getSkipBuild();
+        BuildOptions buildOptions = runOptions.getBuildOptions();
         final ValueHolder<BuildTaskDescriptor> buildTaskHolder = skipBuild ? null : new ValueHolder<BuildTaskDescriptor>();
         final Callable<RemoteRunnerProcess> callable;
         if (!skipBuild
             && ((buildOptions != null && buildOptions.getBuilderName() != null) || descriptor.getBuilder() != null)) {
             LOG.debug("Need build project first");
             if (buildOptions == null) {
-                buildOptions = DtoFactory.getInstance().createDto(BuildOptions.class);
+                buildOptions = dtoFactory.createDto(BuildOptions.class);
             }
             // We want bundle of application with all dependencies (libraries) that application needs.
             buildOptions.setIncludeDependencies(true);
@@ -1190,7 +1186,7 @@ public class RunQueue {
                 final int memorySize = request.getMemorySize();
                 final long lifetime = request.getLifetime();
                 final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
-                final boolean debug = request.getDebugMode() != null;
+                final boolean debug = request.isInDebugMode();
                 final String user = request.getUserName();
                 switch (event.getType()) {
                     case STARTED:

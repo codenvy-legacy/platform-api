@@ -12,9 +12,17 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.Map;
+
 /**
  * @author andrew00x
  */
 @DTO
 public interface BuilderEnvironmentConfigurationDescriptor {
+    /** Options for Builder environment. Supported options depend on Builder implementation and environment. */
+    Map<String, String> getOptions();
+
+    void setOptions(Map<String, String> options);
+
+    BuilderEnvironmentConfigurationDescriptor withOptions(Map<String, String> options);
 }

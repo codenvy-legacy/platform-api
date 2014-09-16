@@ -12,6 +12,8 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.Map;
+
 /**
  * @author andrew00x
  */
@@ -34,4 +36,11 @@ public interface RunnerEnvironmentConfigurationDescriptor {
     RunnerEnvironmentConfigurationDescriptor withDefaultMemorySize(int defaultMemorySize);
 
     void setDefaultMemorySize(int defaultMemorySize);
+
+    /** Options for Runner environment. Supported options depend on Runner implementation and environment. */
+    Map<String, String> getOptions();
+
+    void setOptions(Map<String, String> options);
+
+    RunnerEnvironmentConfigurationDescriptor withOptions(Map<String, String> options);
 }

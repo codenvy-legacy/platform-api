@@ -10,13 +10,38 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * @author andrew00x
  */
 public class BuilderEnvironmentConfiguration {
     public BuilderEnvironmentConfiguration(BuilderEnvironmentConfiguration origin) {
+        setOptions(origin.getOptions());
+    }
+
+    public BuilderEnvironmentConfiguration(Map<String, String> options) {
+        setOptions(options);
     }
 
     public BuilderEnvironmentConfiguration() {
+    }
+
+    private Map<String, String> options;
+
+    public Map<String, String> getOptions() {
+        if (options == null) {
+            options = new LinkedHashMap<>();
+        }
+        return options;
+    }
+
+    public void setOptions(Map<String, String> options) {
+        final Map<String, String> myOptions = getOptions();
+        myOptions.clear();
+        if (options != null) {
+            myOptions.putAll(options);
+        }
     }
 }

@@ -31,7 +31,6 @@ public class RunnerConfiguration {
 
     private String       debugHost;
     private int          debugPort;
-    private boolean      debugSuspend;
     private java.io.File recipeFile;
 
     public RunnerConfiguration(int memory, RunRequest request) {
@@ -85,14 +84,6 @@ public class RunnerConfiguration {
         this.debugPort = debugPort;
     }
 
-    public boolean isDebugSuspend() {
-        return debugSuspend;
-    }
-
-    public void setDebugSuspend(boolean debugSuspend) {
-        this.debugSuspend = debugSuspend;
-    }
-
     public java.io.File getRecipeFile() {
         return recipeFile;
     }
@@ -109,7 +100,6 @@ public class RunnerConfiguration {
                ", request=" + request +
                ", debugHost='" + debugHost + '\'' +
                ", debugPort=" + debugPort +
-               ", debugSuspend=" + debugSuspend +
                '}';
     }
 }

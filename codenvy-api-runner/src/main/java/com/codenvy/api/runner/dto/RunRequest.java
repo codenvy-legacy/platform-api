@@ -70,12 +70,12 @@ public interface RunRequest {
 
     RunRequest withRunnerScriptUrls(List<String> scripts);
 
-    /** Optional parameter which may be specified by user if need to run application under debug. */
-    DebugMode getDebugMode();
+    /** Enables or disables debug mode of runner. Not all Runner implementations support debug mode. */
+    boolean isInDebugMode();
 
-    void setDebugMode(DebugMode debugMode);
+    void setInDebugMode(boolean debugMode);
 
-    RunRequest withDebugMode(DebugMode debugMode);
+    RunRequest withInDebugMode(boolean debugMode);
 
     /** Get memory size (in megabytes) that is required for starting application. */
     int getMemorySize();

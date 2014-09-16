@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * @author andrew00x
  */
@@ -18,12 +21,15 @@ public class RunnerEnvironmentConfiguration {
         this.recommendedMemorySize = origin.getRecommendedMemorySize();
         this.requiredMemorySize = origin.getRequiredMemorySize();
         this.defaultMemorySize = origin.defaultMemorySize;
+        setOptions(origin.getOptions());
     }
 
-    public RunnerEnvironmentConfiguration(int requiredMemorySize, int recommendedMemorySize, int defaultMemorySize) {
+    public RunnerEnvironmentConfiguration(int requiredMemorySize, int recommendedMemorySize, int defaultMemorySize,
+                                          Map<String, String> options) {
         this.requiredMemorySize = requiredMemorySize;
         this.recommendedMemorySize = recommendedMemorySize;
         this.defaultMemorySize = defaultMemorySize;
+        setOptions(options);
     }
 
     public RunnerEnvironmentConfiguration() {
@@ -32,6 +38,7 @@ public class RunnerEnvironmentConfiguration {
     private int requiredMemorySize    = -1;
     private int recommendedMemorySize = -1;
     private int defaultMemorySize     = -1;
+    private Map<String, String> options;
 
     public int getRequiredMemorySize() {
         return requiredMemorySize;
@@ -55,5 +62,20 @@ public class RunnerEnvironmentConfiguration {
 
     public void setDefaultMemorySize(int defaultMemorySize) {
         this.defaultMemorySize = defaultMemorySize;
+    }
+
+    public Map<String, String> getOptions() {
+        if (options == null) {
+            options = new LinkedHashMap<>();
+        }
+        return options;
+    }
+
+    public void setOptions(Map<String, String> options) {
+        final Map<String, String> myOptions = getOptions();
+        myOptions.clear();
+        if (options != null) {
+            myOptions.putAll(options);
+        }
     }
 }

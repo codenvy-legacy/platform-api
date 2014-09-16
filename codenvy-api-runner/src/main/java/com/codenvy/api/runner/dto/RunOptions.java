@@ -31,12 +31,12 @@ public interface RunOptions {
 
     RunOptions withMemorySize(int mem);
 
-    /** Optional parameter which may be specified by user if need to run application under debug. */
-    DebugMode getDebugMode();
+    /** Enables or disables debug mode of runner. */
+    boolean isInDebugMode();
 
-    void setDebugMode(DebugMode debugMode);
+    void setInDebugMode(boolean debugMode);
 
-    RunOptions withDebugMode(DebugMode debugMode);
+    RunOptions withInDebugMode(boolean debugMode);
 
     /**
      * Optional parameters for runner. Supported options depend on runner implementation. Runner may have own set of options. Caller

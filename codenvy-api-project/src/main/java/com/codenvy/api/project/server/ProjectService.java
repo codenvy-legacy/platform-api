@@ -1065,7 +1065,10 @@ public class ProjectService extends Service {
                 newProject.getBuilderEnvironmentConfigurations();
         if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
             for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
-                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(), new BuilderEnvironmentConfiguration());
+                final BuilderEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
+                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(),
+                                                                             new BuilderEnvironmentConfiguration(
+                                                                                     envConfigDescriptor.getOptions()));
             }
         }
         final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
@@ -1077,7 +1080,8 @@ public class ProjectService extends Service {
                                                                             new RunnerEnvironmentConfiguration(
                                                                                     envConfigDescriptor.getRequiredMemorySize(),
                                                                                     envConfigDescriptor.getRecommendedMemorySize(),
-                                                                                    envConfigDescriptor.getDefaultMemorySize()));
+                                                                                    envConfigDescriptor.getDefaultMemorySize(),
+                                                                                    envConfigDescriptor.getOptions()));
             }
         }
         final Map<String, List<String>> projectAttributeValues = newProject.getAttributes();
@@ -1106,7 +1110,10 @@ public class ProjectService extends Service {
                 update.getBuilderEnvironmentConfigurations();
         if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
             for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
-                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(), new BuilderEnvironmentConfiguration());
+                final BuilderEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
+                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(),
+                                                                             new BuilderEnvironmentConfiguration(
+                                                                                     envConfigDescriptor.getOptions()));
             }
         }
         final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
@@ -1118,7 +1125,8 @@ public class ProjectService extends Service {
                                                                             new RunnerEnvironmentConfiguration(
                                                                                     envConfigDescriptor.getRequiredMemorySize(),
                                                                                     envConfigDescriptor.getRecommendedMemorySize(),
-                                                                                    envConfigDescriptor.getDefaultMemorySize()));
+                                                                                    envConfigDescriptor.getDefaultMemorySize(),
+                                                                                    envConfigDescriptor.getOptions()));
             }
         }
         final Map<String, List<String>> projectAttributeValues = update.getAttributes();
@@ -1178,7 +1186,8 @@ public class ProjectService extends Service {
             runnerEnvConfigDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
                                                                  .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
                                                                  .withRequiredMemorySize(envConfig.getRequiredMemorySize())
-                                                                 .withDefaultMemorySize(envConfig.getDefaultMemorySize()));
+                                                                 .withDefaultMemorySize(envConfig.getDefaultMemorySize())
+                                                                 .withOptions(envConfig.getOptions()));
         }
 
         descriptor.withName(project.getName())

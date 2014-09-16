@@ -325,19 +325,7 @@ public class RunQueue {
             buildOptions.setSkipTest(true);
             final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(wsId, serviceContext);
             // schedule build
-            final BuildTaskDescriptor buildDescriptor;
-            try {
-                final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
-                if (buildLink == null) {
-                    throw new RunnerException("You requested a run and your project has not been built." +
-                                              " The runner was unable to get the proper build URL to initiate a build.");
-                }
-                buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
-            } catch (IOException e) {
-                throw new RunnerException(e);
-            } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
-                throw new RunnerException(e.getServiceError());
-            }
+            final BuildTaskDescriptor buildDescriptor = startBuild(builderService, project, buildOptions);
             callable = createTaskFor(buildDescriptor, request, buildTaskHolder);
         } else {
             final Link zipballLink = Links.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
@@ -400,6 +388,24 @@ public class RunQueue {
                 }
             }
         }
+    }
+
+    private BuildTaskDescriptor startBuild(RemoteServiceDescriptor builderService, String project, BuildOptions buildOptions)
+            throws RunnerException {
+        final BuildTaskDescriptor buildDescriptor;
+        try {
+            final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
+            if (buildLink == null) {
+                throw new RunnerException("You requested a run and your project has not been built." +
+                                          " The runner was unable to get the proper build URL to initiate a build.");
+            }
+            buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new RunnerException(e.getServiceError());
+        }
+        return buildDescriptor;
     }
 
     protected Callable<RemoteRunnerProcess> createTaskFor(final BuildTaskDescriptor buildDescriptor,

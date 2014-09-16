@@ -466,7 +466,9 @@ public class FactoryService extends Service {
         final Map<String, BuilderEnvironmentConfigurationDescriptor> builderConfigurationsDescriptors =
                 new HashMap<>(builderConfigurations.size());
         for (Map.Entry<String, BuilderEnvironmentConfiguration> e : builderConfigurations.entrySet()) {
-            builderConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(BuilderEnvironmentConfigurationDescriptor.class));
+            final BuilderEnvironmentConfiguration envConfig = e.getValue();
+            builderConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(BuilderEnvironmentConfigurationDescriptor.class)
+                                                                       .withOptions(envConfig.getOptions()));
         }
 
         final Map<String, RunnerEnvironmentConfiguration> runnerConfigurations = projectJson.getRunnerEnvironmentConfigurations();
@@ -477,7 +479,8 @@ public class FactoryService extends Service {
             runnerConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
                                                                       .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
                                                                       .withRequiredMemorySize(envConfig.getRequiredMemorySize())
-                                                                      .withDefaultMemorySize(envConfig.getDefaultMemorySize()));
+                                                                      .withDefaultMemorySize(envConfig.getDefaultMemorySize())
+                                                                      .withOptions(envConfig.getOptions()));
         }
 
         final FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class);

@@ -262,8 +262,8 @@ public class RunQueue {
         if (runnerEnvId == null) {
             // If nothing is set use default environment.
             runnerEnvId = descriptor.getDefaultRunnerEnvironment();
-            request.setEnvironmentId(runnerEnvId);
         }
+        request.setEnvironmentId(runnerEnvId);
         final RunnerEnvironmentConfigurationDescriptor runnerEnv = descriptor.getRunnerEnvironmentConfigurations().get(runnerEnvId);
         final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
         int mem = runOptions.getMemorySize();

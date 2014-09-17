@@ -25,5 +25,6 @@ public class BaseProjectModule extends AbstractModule {
         bind(ProjectTypeDescriptionsExtension.class);
         bind(BaseProjectTypeExtension.class);
         bind(ProjectTypeResolver.class).annotatedWith(Names.named("default.project.type.resolver")).to(BlankProjectTypeResolver.class).in(Singleton.class);
+        Multibinder.newSetBinder(binder(), ProjectTypeResolver.class).addBinding().to(BlankProjectTypeResolver.class);
     }
 }

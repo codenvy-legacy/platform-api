@@ -15,11 +15,6 @@
 package com.codenvy.dto.generator;
 
 import com.codenvy.dto.server.DtoFactoryVisitor;
-import com.codenvy.dto.shared.ClientToServerDto;
-import com.codenvy.dto.shared.RoutableDto;
-import com.codenvy.dto.shared.RoutingType;
-import com.codenvy.dto.shared.ServerToClientDto;
-import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,14 +27,10 @@ import java.util.Set;
 /**
  * Base template for the generated output file that contains all the DTOs.
  * <p/>
- * Note that we generate client and server DTOs in separate runs of the
- * generator.
+ * Note that we generate client and server DTOs in separate runs of the generator.
  * <p/>
- * The directionality of the DTOs only affects whether or not we expose methods
- * to construct an instance of the DTO. We need both client and server versions
- * of all DTOs (irrespective of direction), but you aren't allowed to construct
- * a new {@link ServerToClientDto} on the client. And similarly, you aren't
- * allowed to construct a {@link ClientToServerDto} on the server.
+ * The directionality of the DTOs only affects whether or not we expose methods to construct an instance of the DTO. We need both client and
+ * server versions of all DTOs (irrespective of direction).
  */
 public class DtoTemplate {
     public static class MalformedDtoInterfaceException extends RuntimeException {
@@ -49,13 +40,13 @@ public class DtoTemplate {
     }
 
     // We keep a whitelist of allowed non-DTO generic types.
-    static final Set<Class<?>> jreWhitelist = new HashSet<Class<?>>(
+    static final Set<Class<?>> jreWhitelist = new HashSet<>(
             Arrays.asList(new Class<?>[]{String.class, Integer.class, Double.class, Float.class, Boolean.class}));
 
-    private final List<DtoImpl> dtoInterfaces = new ArrayList<DtoImpl>();
+    private final List<DtoImpl> dtoInterfaces = new ArrayList<>();
 
     // contains mapping for already implemented DTO interfaces
-    private final Map<Class<?>, Class<?>> implementedDtoInterfaces = new HashMap<Class<?>, Class<?>>();
+    private final Map<Class<?>, Class<?>> implementedDtoInterfaces = new HashMap<>();
 
     private final String packageName;
 
@@ -66,24 +57,7 @@ public class DtoTemplate {
     private final String apiHash;
 
     /**
-     * @return whether or not the specified interface implements
-     *         {@link ClientToServerDto}.
-     */
-    static boolean implementsClientToServerDto(Class<?> i) {
-        return implementsInterface(i, ClientToServerDto.class);
-    }
-
-    /**
-     * @return whether or not the specified interface implements
-     *         {@link ServerToClientDto}.
-     */
-    static boolean implementsServerToClientDto(Class<?> i) {
-        return implementsInterface(i, ServerToClientDto.class);
-    }
-
-    /**
-     * Walks the superinterface hierarchy to determine if a Class implements some
-     * target interface transitively.
+     * Walks the super interface hierarchy to determine if a Class implements some target interface transitively.
      */
     static boolean implementsInterface(Class<?> i, Class<?> target) {
         if (i.equals(target)) {
@@ -96,14 +70,6 @@ public class DtoTemplate {
             rtn = rtn || implementsInterface(superInterface, target);
         }
         return rtn;
-    }
-
-    /**
-     * @return whether or not the specified interface implements
-     *         {@link RoutableDto}.
-     */
-    private static boolean implementsRoutableDto(Class<?> i) {
-        return implementsInterface(i, RoutableDto.class);
     }
 
     /**
@@ -127,8 +93,10 @@ public class DtoTemplate {
         implementedDtoInterfaces.put(dtoInterface, impl);
     }
 
-    /** Some DTO interfaces may be already implemented in dependencies of current project. Try to reuse them. If this method returns
-     * <code>null</code> it means interface is not implemented yet. */
+    /**
+     * Some DTO interfaces may be already implemented in dependencies of current project. Try to reuse them. If this method returns
+     * <code>null</code> it means interface is not implemented yet.
+     */
     public Class<?> getDtoImplementation(Class<?> dtoInterface) {
         return implementedDtoInterfaces.get(dtoInterface);
     }
@@ -137,6 +105,7 @@ public class DtoTemplate {
      * Adds an interface to the DtoTemplate for code generation.
      *
      * @param i
+     *         interface to add
      */
     public void addInterface(Class<?> i) {
         getDtoInterfaces().add(createDtoImplTemplate(i));
@@ -148,8 +117,8 @@ public class DtoTemplate {
     }
 
     /**
-     * Returns the source code for a class that contains all the DTO impls for any
-     * interfaces that were added via the {@link #addInterface(Class)} method.
+     * Returns the source code for a class that contains all the DTO impls for any interfaces that were added via the {@link
+     * #addInterface(Class)} method.
      */
     @Override
     public String toString() {
@@ -162,9 +131,8 @@ public class DtoTemplate {
     }
 
     /**
-     * Tests whether or not a given class is a part of our dto jar, and thus will
-     * eventually have a generated Impl that is serializable (thus allowing it to
-     * be a generic type).
+     * Tests whether or not a given class is a part of our dto jar, and thus will eventually have a generated Impl that is serializable
+     * (thus allowing it to be a generic type).
      */
     boolean isDtoInterface(Class<?> potentialDto) {
         for (DtoImpl dto : getDtoInterfaces()) {
@@ -176,18 +144,15 @@ public class DtoTemplate {
     }
 
     /**
-     * Will initialize the routing ID to be RoutableDto.INVALID_TYPE if it is not
-     * routable. This is a small abuse of the intent of that value, but it allows
-     * us to simply omit it from the routing type enumeration later.
+     * Will initialize the routing ID to be RoutableDto.INVALID_TYPE if it is not routable. This is a small abuse of the intent of that
+     * value, but it allows us to simply omit it from the routing type enumeration later.
      *
      * @param i
      *         the super interface type
-     * @return a new DtoServerTemplate or a new DtoClientTemplate depending on
-     *         isServerImpl.
+     * @return a new DtoServerTemplate or a new DtoClientTemplate depending on isServerImpl.
      */
     private DtoImpl createDtoImplTemplate(Class<?> i) {
-        int routingId = implementsRoutableDto(i) ? getRoutingId(i) : RoutableDto.NON_ROUTABLE_TYPE;
-        return isServerType ? new DtoImplServerTemplate(this, routingId, i) : new DtoImplClientTemplate(this, routingId, i);
+        return isServerType ? new DtoImplServerTemplate(this, i) : new DtoImplClientTemplate(this, i);
     }
 
     private void emitDtos(StringBuilder builder) {
@@ -280,8 +245,7 @@ public class DtoTemplate {
             builder.append("  }\n\n");
         }
         if (!isServerType) {
-            builder.append("  @Override\n" +
-                           "  public void accept(com.codenvy.ide.dto.DtoFactory dtoFactory) {\n");
+            builder.append("  @Override\n").append("  public void accept(com.codenvy.ide.dto.DtoFactory dtoFactory) {\n");
             for (DtoImpl dto : getDtoInterfaces()) {
                 String dtoInterface = dto.getDtoInterface().getCanonicalName();
                 builder.append("    dtoFactory.registerProvider(").append(dtoInterface).append(".class").append(", ")
@@ -302,8 +266,8 @@ public class DtoTemplate {
     }
 
     /**
-     * Emits a static variable that is the hash of all the classnames, methodnames, and return types
-     * to be used as a version hash between client and server.
+     * Emits a static variable that is the hash of all the classnames, methodnames, and return types to be used as a version hash between
+     * client and server.
      */
     private void emitClientFrontendApiVersion(StringBuilder builder) {
         builder.append("\n  public static final String CLIENT_SERVER_PROTOCOL_HASH = \"");
@@ -313,18 +277,5 @@ public class DtoTemplate {
 
     private String getApiHash() {
         return apiHash;
-    }
-
-    /**
-     * Extracts the {@link RoutingType} annotation to derive the stable
-     * routing type.
-     */
-    private int getRoutingId(Class<?> i) {
-        RoutingType routingTypeAnnotation = i.getAnnotation(RoutingType.class);
-
-        Preconditions.checkNotNull(routingTypeAnnotation,
-                                   "RoutingType annotation must be specified for all subclasses of RoutableDto. " + i.getName());
-
-        return routingTypeAnnotation.type();
     }
 }

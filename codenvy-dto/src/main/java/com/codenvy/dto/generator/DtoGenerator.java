@@ -18,7 +18,6 @@ import com.codenvy.dto.shared.DTO;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 
-import org.reflections.Configuration;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
@@ -29,7 +28,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -190,9 +188,6 @@ public class DtoGenerator {
                 writer2.write(packageName + "." + className);
                 writer2.close();
             }
-
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }

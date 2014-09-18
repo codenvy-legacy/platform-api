@@ -8,23 +8,13 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.dto.server;
-
-import com.google.gson.JsonElement;
+package com.codenvy.dto.definitions;
 
 /**
- * Provides implementation of DTO interface.
- *
  * @author andrew00x
  */
-public interface DtoProvider<DTO> {
-    Class<? extends DTO> getImplClass();
-
-    DTO fromJson(String json);
-
-    DTO fromJson(JsonElement json);
-
-    DTO newInstance();
-
-    DTO clone(DTO origin);
+public class Util {
+    public static String addPrefix(DtoWithDelegate dto, String prefix) {
+        return prefix + dto.getName();
+    }
 }

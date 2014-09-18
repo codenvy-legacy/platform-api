@@ -11,6 +11,7 @@
 package com.codenvy.dto;
 
 import com.codenvy.dto.definitions.ComplicatedDto;
+import com.codenvy.dto.definitions.DtoWithDelegate;
 import com.codenvy.dto.definitions.SimpleDto;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonArray;
@@ -212,5 +213,10 @@ public class ServerDtoTest {
     private void checkSimpleDto(SimpleDto dto, String expectedName, int expectedId) {
         Assert.assertEquals(dto.getName(), expectedName);
         Assert.assertEquals(dto.getId(), expectedId);
+    }
+
+    @Test
+    public void testDelegate() {
+        Assert.assertEquals(DtoFactory.getInstance().createDto(DtoWithDelegate.class).withName("TEST").nameWithPrefix("### "), "### TEST");
     }
 }

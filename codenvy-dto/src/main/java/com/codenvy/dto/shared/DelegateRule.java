@@ -8,23 +8,23 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.dto.server;
+package com.codenvy.dto.shared;
 
-import com.google.gson.JsonElement;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Provides implementation of DTO interface.
+ * Single DTO method delegate rule.
  *
  * @author andrew00x
+ * @see com.codenvy.dto.shared.DelegateTo
  */
-public interface DtoProvider<DTO> {
-    Class<? extends DTO> getImplClass();
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface DelegateRule {
+    Class<?> type();
 
-    DTO fromJson(String json);
-
-    DTO fromJson(JsonElement json);
-
-    DTO newInstance();
-
-    DTO clone(DTO origin);
+    String method();
 }

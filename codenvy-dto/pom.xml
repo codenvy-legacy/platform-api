@@ -134,20 +134,14 @@
                 <artifactId>license-maven-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>**/client/RoutableDtoClientImpl.java</exclude>
                         <exclude>**/generator/DtoGenerator.java</exclude>
                         <exclude>**/generator/DtoImplClientTemplate.java</exclude>
                         <exclude>**/generator/DtoImplServerTemplate.java</exclude>
                         <exclude>**/generator/DtoTemplate.java</exclude>
+                        <exclude>**/generator/DtoImpl.java</exclude>
                         <exclude>**/server/JsonSerializable.java</exclude>
-                        <exclude>**/server/RoutableDtoServerImpl.java</exclude>
-                        <exclude>**/shared/ClientToServerDto.java</exclude>
                         <exclude>**/shared/CompactJsonDto.java</exclude>
-                        <exclude>**/shared/RoutableDto.java</exclude>
-                        <exclude>**/shared/RoutingType.java</exclude>
                         <exclude>**/shared/SerializationIndex.java</exclude>
-                        <exclude>**/shared/ServerError.java</exclude>
-                        <exclude>**/shared/ServerToClientDto.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>

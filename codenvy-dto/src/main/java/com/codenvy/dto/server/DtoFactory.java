@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Provides implementations of DTO interfaces.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class DtoFactory {
     private static final Gson gson = new GsonBuilder().serializeNulls().create();

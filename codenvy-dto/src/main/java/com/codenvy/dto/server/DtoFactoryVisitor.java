@@ -15,7 +15,7 @@ package com.codenvy.dto.server;
  * server side implements this interface. When DtoFactory class is loaded it looks up for all implementation of this interface and calls
  * method {@link #accept(DtoFactory)}.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface DtoFactoryVisitor {
     void accept(DtoFactory dtoFactory);

@@ -14,7 +14,11 @@
 package com.codenvy.dto.generator;
 
 import com.codenvy.dto.server.JsonSerializable;
-import com.codenvy.dto.shared.*;
+import com.codenvy.dto.shared.DelegateRule;
+import com.codenvy.dto.shared.DelegateTo;
+import com.codenvy.dto.shared.JsonArray;
+import com.codenvy.dto.shared.JsonStringMap;
+import com.codenvy.dto.shared.SerializationIndex;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Primitives;
 
@@ -29,32 +33,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 /** Generates the source code for a generated Client DTO impl. */
 public class DtoImplClientTemplate extends DtoImpl {
-    private static final String ROUTABLE_DTO_IMPL =
-            RoutableDto.class.getPackage().getName().replace("dto.shared", "dto.client") + ".RoutableDtoClientImpl";
-
-    DtoImplClientTemplate(DtoTemplate template, int routingType, Class<?> superInterface) {
-        super(template, routingType, superInterface);
+    DtoImplClientTemplate(DtoTemplate template, Class<?> superInterface) {
+        super(template, superInterface);
     }
 
     @Override
     String serialize() {
         StringBuilder builder = new StringBuilder();
-
         Class<?> dtoInterface = getDtoInterface();
         List<Method> methods = getDtoMethods();
-
         emitPreamble(dtoInterface, builder);
-
         // Enumerate the getters and emit field names and getters + setters.
         emitFields(methods, builder);
         emitMethods(methods, builder);
-        List<Method> getters = getDtoGetters(getDtoInterface());
+        List<Method> getters = getDtoGetters(dtoInterface);
         // "builder" method, it is method that set field and return "this" instance
-        emitWithMethods(getters, getDtoInterface().getCanonicalName(), builder);
-
+        emitWithMethods(getters, dtoInterface.getCanonicalName(), builder);
         emitEqualsAndHashCode(getters, builder);
         emitSerializer(getters, builder);
         emitDeserializer(getters, builder);
@@ -62,16 +58,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         emitCopyConstructor(getters, builder);
         builder.append("  }\n\n");
         return builder.toString();
-    }
-
-    private void emitDefaultRoutingTypeConstructor(StringBuilder builder) {
-        builder.append("    private ");
-        builder.append(getImplClassName());
-        builder.append("() {");
-        builder.append("\n      super(");
-        builder.append(getRoutingType());
-        builder.append(");\n    ");
-        builder.append("}\n\n");
     }
 
     private void emitEqualsAndHashCode(List<Method> getters, StringBuilder builder) {
@@ -102,7 +88,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         }
         builder.append("      return true;\n");
         builder.append("    }\n\n");
-
         // this isn't the greatest hash function in the world, but it meets the requirement that for any
         // two objects A and B, A.equals(B) only if A.hashCode() == B.hashCode()
         builder.append("    @Override\n");
@@ -142,6 +127,7 @@ public class DtoImplClientTemplate extends DtoImpl {
                 builder.append(getFieldTypeAndAssignment(method, fieldName));
             }
         }
+        builder.append("\n");
     }
 
     /** Emits a method to get a field. Getting a collection ensures that the collection is created. */
@@ -151,7 +137,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         builder.append(" ");
         builder.append(methodName);
         builder.append("() {\n");
-
         // Initialize the collection.
         Class<?> returnTypeClass = method.getReturnType();
         if (isList(returnTypeClass) || isMap(returnTypeClass)) {
@@ -159,9 +144,7 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append(getEnsureName(fieldName));
             builder.append("();\n");
         }
-
         builder.append("      return ");
-        //emitReturn(method, fieldName, builder);
         builder.append(fieldName);
         builder.append(";\n    }\n\n");
     }
@@ -174,15 +157,12 @@ public class DtoImplClientTemplate extends DtoImpl {
                     continue;
                 }
                 Class<?> returnTypeClass = method.getReturnType();
-                String returnType = method.getGenericReturnType().toString().replace('$', '.').replace("class ", "").replace(
-                        "interface ", "");
-
+                String returnType =
+                        method.getGenericReturnType().toString().replace('$', '.').replace("class ", "").replace("interface ", "");
                 // Getter.
                 emitGetter(method, method.getName(), fieldName, returnType, builder);
-
                 // Setter.
                 emitSetter(method, fieldName, builder);
-
                 // List-specific methods.
                 if (isList(returnTypeClass)) {
                     emitListAdd(method, fieldName, builder);
@@ -193,8 +173,45 @@ public class DtoImplClientTemplate extends DtoImpl {
                     emitClear(fieldName, builder);
                     emitEnsureCollection(method, fieldName, builder);
                 }
+            } else {
+                DelegateTo delegateTo = method.getAnnotation(DelegateTo.class);
+                if (delegateTo != null) {
+                    DelegateRule clientRule = delegateTo.client();
+                    String returnType =
+                            method.getGenericReturnType().toString().replace('$', '.').replace("class ", "").replace("interface ", "");
+                    emitDelegateMethod(returnType, method, clientRule.type(), clientRule.method(), builder);
+                }
             }
         }
+    }
+
+    private void emitDelegateMethod(String returnType, Method method, Class<?> delegateToType, String delegateToMethod,
+                                    StringBuilder builder) {
+        builder.append("    public ").append(returnType).append(" ").append(method.getName()).append("(");
+        Type[] parameterTypes = method.getGenericParameterTypes();
+        String[] parameters = new String[parameterTypes.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(parameterTypes[i].toString().replace('$', '.').replace("class ", "").replace("interface ", ""));
+            String parameter = "$p" + i;
+            builder.append(" ").append(parameter);
+            parameters[i] = parameter;
+        }
+        builder.append(") {\n");
+        builder.append("      ");
+        if (!"void".equals(returnType)) {
+            builder.append("return ");
+        }
+        builder.append(delegateToType.getCanonicalName()).append(".").append(delegateToMethod).append("(");
+        builder.append("this");
+        for (String parameter : parameters) {
+            builder.append(", ");
+            builder.append(parameter);
+        }
+        builder.append(");\n");
+        builder.append("    }\n\n");
     }
 
     private void emitSerializer(List<Method> getters, StringBuilder builder) {
@@ -228,7 +245,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         final String fieldName = getFieldName(method.getName());
         final String fieldNameOut = fieldName + "Out";
         final String baseIndentation = "      ";
-
         builder.append("\n");
         List<Type> expandedTypes = expandType(method.getGenericReturnType());
         emitSerializerImpl(expandedTypes, 0, builder, fieldName, fieldNameOut, baseIndentation);
@@ -247,7 +263,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         final String fieldName = getFieldName(method.getName());
         final String fieldNameOut = fieldName + "Out";
         final String baseIndentation = "      ";
-
         builder.append("\n");
         List<Type> expandedTypes = expandType(method.getGenericReturnType());
         emitSerializerImpl(expandedTypes, 0, builder, fieldName, fieldNameOut, baseIndentation);
@@ -266,28 +281,24 @@ public class DtoImplClientTemplate extends DtoImpl {
      * Produces code to serialize the type with the given variable names.
      *
      * @param expandedTypes
-     *         the type and its generic (and its generic (..))
-     *         expanded into a list, @see {@link #expandType(java.lang.reflect.Type)}
+     *         the type and its generic (and its generic (..)) expanded into a list, @see {@link #expandType(java.lang.reflect.Type)}
      * @param depth
-     *         the depth (in the generics) for this recursive call. This can
-     *         be used to index into {@code expandedTypes}
+     *         the depth (in the generics) for this recursive call. This can be used to index into {@code expandedTypes}
      * @param builder
+     *         StringBuilder to add generated code for serialization
      * @param inVar
      *         the java type that will be the input for serialization
      * @param outVar
-     *         the JsonElement subtype that will be the output for
-     *         serialization
+     *         the JsonElement subtype that will be the output for serialization
      * @param i
      *         indentation string
      */
     private void emitSerializerImpl(List<Type> expandedTypes, int depth, StringBuilder builder, String inVar, String outVar, String i) {
-
         Type type = expandedTypes.get(depth);
         String childInVar = inVar + "_";
         String childOutVar = outVar + "_";
         String entryVar = "entry" + depth;
         Class<?> rawClass = getRawClass(type);
-
         if (isList(rawClass)) {
             String childInTypeName = getImplName(expandedTypes.get(depth + 1), false);
             builder.append(i).append("JSONArray ").append(outVar).append(" = new JSONArray();\n");
@@ -296,7 +307,6 @@ public class DtoImplClientTemplate extends DtoImpl {
             }
             builder.append(i).append("for (").append(childInTypeName).append(" ").append(childInVar).append(" : ").append(
                     depth == 0 ? "this." + inVar : inVar).append(") {\n");
-
         } else if (isMap(rawClass)) {
             String childInTypeName = getImplName(expandedTypes.get(depth + 1), false);
             builder.append(i).append("JSONObject ").append(outVar).append(" = new JSONObject();\n");
@@ -307,10 +317,10 @@ public class DtoImplClientTemplate extends DtoImpl {
                     entryVar).append(" : ").append(depth == 0 ? "this." + inVar : inVar).append(".entrySet()) {\n");
             builder.append(i).append("  ").append(childInTypeName).append(" ").append(childInVar).append(" = ").append(
                     entryVar).append(".getValue();\n");
-
         } else if (rawClass.isEnum()) {
             builder.append(i).append("JSONValue ").append(outVar).append(" = (").append(depth == 0 ? "this." + inVar : inVar).append(
-                    " == null) ? JSONNull.getInstance() : new JSONString(").append(depth == 0 ? "this." + inVar : inVar).append(".name());\n");
+                    " == null) ? JSONNull.getInstance() : new JSONString(").append(depth == 0 ? "this." + inVar : inVar)
+                   .append(".name());\n");
         } else if (getEnclosingTemplate().isDtoInterface(rawClass)) {
             builder.append(i).append("JSONValue ").append(outVar).append(" = ").append(depth == 0 ? "this." + inVar : inVar).append(
                     " == null ? JSONNull.getInstance() : ((").append(getImplNameForDto((Class<?>)expandedTypes.get(depth))).append(")")
@@ -332,7 +342,8 @@ public class DtoImplClientTemplate extends DtoImpl {
                        .append(depth == 0 ? "this." + inVar : inVar).append(");\n");
             } else {
                 builder.append(i).append("JSONValue ").append(outVar).append(depth == 0 ? " = this." + inVar : inVar).append(
-                        " == null ? JSONNull.getInstance() : JSONBoolean.getInstance(").append(depth == 0 ? "this." + inVar : inVar).append(");\n");
+                        " == null ? JSONNull.getInstance() : JSONBoolean.getInstance(").append(depth == 0 ? "this." + inVar : inVar)
+                       .append(");\n");
             }
         } else {
             final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
@@ -346,15 +357,13 @@ public class DtoImplClientTemplate extends DtoImpl {
                                                    " is not allowed to use in DTO interface.");
             }
         }
-
         if (depth + 1 < expandedTypes.size()) {
             emitSerializerImpl(expandedTypes, depth + 1, builder, childInVar, childOutVar, i + "  ");
         }
-
         if (isList(rawClass)) {
-            builder.append(i).append("  ").append(outVar).append(".set(").append(outVar).append(".size(), ").append(childOutVar).append(");\n");
+            builder.append(i).append("  ").append(outVar).append(".set(").append(outVar).append(".size(), ").append(childOutVar)
+                   .append(");\n");
             builder.append(i).append("}\n");
-
         } else if (isMap(rawClass)) {
             builder.append(i).append("  ").append(outVar).append(".put(").append(entryVar).append(".getKey(), ").append(
                     childOutVar).append(");\n");
@@ -368,8 +377,7 @@ public class DtoImplClientTemplate extends DtoImpl {
         builder.append("      if (jsonValue == null || jsonValue.isNull() != null) {\n");
         builder.append("        return null;\n");
         builder.append("      }\n\n");
-        builder.append("      ").append(getImplClassName()).append(" dto = new ").append(getImplClassName()).append(
-                "();\n");
+        builder.append("      ").append(getImplClassName()).append(" dto = new ").append(getImplClassName()).append("();\n");
         if (isCompactJson()) {
             for (Method method : getters) {
                 emitDeserializeFieldForMethodCompact(method, builder);
@@ -400,7 +408,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         final String fieldNameIn = fieldName + "In";
         final String fieldNameOut = fieldName + "Out";
         final String baseIndentation = "        ";
-
         builder.append("\n");
         builder.append("      if (json.containsKey(\"").append(fieldName).append("\")) {\n");
         List<Type> expandedTypes = expandType(method.getGenericReturnType());
@@ -416,10 +423,8 @@ public class DtoImplClientTemplate extends DtoImpl {
         final String fieldNameIn = fieldName + "In";
         final String fieldNameOut = fieldName + "Out";
         final String baseIndentation = "        ";
-        SerializationIndex serializationIndex = Preconditions.checkNotNull(
-                method.getAnnotation(SerializationIndex.class));
+        SerializationIndex serializationIndex = Preconditions.checkNotNull(method.getAnnotation(SerializationIndex.class));
         int index = serializationIndex.value() - 1;
-
         builder.append("\n");
         builder.append("      if (").append(index).append(" < json.size()) {\n");
         List<Type> expandedTypes = expandType(method.getGenericReturnType());
@@ -433,38 +438,33 @@ public class DtoImplClientTemplate extends DtoImpl {
      * Produces code to deserialize the type with the given variable names.
      *
      * @param expandedTypes
-     *         the type and its generic (and its generic (..))
-     *         expanded into a list, @see {@link #expandType(java.lang.reflect.Type)}
+     *         the type and its generic (and its generic (..)) expanded into a list, @see {@link #expandType(java.lang.reflect.Type)}
      * @param depth
-     *         the depth (in the generics) for this recursive call. This can
-     *         be used to index into {@code expandedTypes}
+     *         the depth (in the generics) for this recursive call. This can be used to index into {@code expandedTypes}
      * @param builder
+     *         StringBuilder to add generated code for deserialization
      * @param inVar
-     *         the java type that will be the input for serialization
+     *         the java type that will be the input for deserialization
      * @param outVar
-     *         the JsonElement subtype that will be the output for
-     *         serialization
+     *         the JsonElement subtype that will be the output for serialization
      * @param i
      *         indentation string
      */
-    private void emitDeserializerImpl(List<Type> expandedTypes, int depth, StringBuilder builder, String inVar,
-                                      String outVar, String i) {
-
+    private void emitDeserializerImpl(List<Type> expandedTypes, int depth, StringBuilder builder, String inVar, String outVar, String i) {
         Type type = expandedTypes.get(depth);
         String childInVar = inVar + "_";
         String childInVarIterator = childInVar + "_iterator";
         String childOutVar = outVar + "_";
         Class<?> rawClass = getRawClass(type);
-
         if (isList(rawClass)) {
             builder.append(i).append(getImplName(type, false)).append(" ").append(outVar).append(" = null;\n");
             builder.append(i).append("if (").append(inVar).append(" != null && ").append(inVar).append(".isNull() == null) {\n");
             builder.append(i).append("  ").append(outVar).append(" = new ").append(getImplName(type, true)).append("();\n");
-            builder.append(i).append("  for (int ").append(childInVarIterator).append(" = 0; ").append(childInVarIterator).append(" < ").append(inVar).append(".isArray().size(); ").append(childInVarIterator).append("++) {\n");
-            builder.append(i).append("    JSONValue ").append(childInVar).append(" = ").append(inVar).append(".isArray().get(").append(childInVarIterator).append(");\n");
-
+            builder.append(i).append("  for (int ").append(childInVarIterator).append(" = 0; ").append(childInVarIterator).append(" < ")
+                   .append(inVar).append(".isArray().size(); ").append(childInVarIterator).append("++) {\n");
+            builder.append(i).append("    JSONValue ").append(childInVar).append(" = ").append(inVar).append(".isArray().get(")
+                   .append(childInVarIterator).append(");\n");
             emitDeserializerImpl(expandedTypes, depth + 1, builder, childInVar, childOutVar, i + "    ");
-
             builder.append(i).append("    ").append(outVar).append(".add(").append(childOutVar).append(");\n");
             builder.append(i).append("  }\n");
             builder.append(i).append("}\n");
@@ -482,7 +482,6 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append(i).append("    JSONValue ").append(childInVar).append(" = ").append(inVar).
                     append(".isObject().get(").append(entryVar).append(");\n");
             emitDeserializerImpl(expandedTypes, depth + 1, builder, childInVar, childOutVar, i + "    ");
-
             builder.append(i).append("    ").append(outVar).append(".put(").append(entryVar).append(", ").append(
                     childOutVar).append(");\n");
             builder.append(i).append("  }\n");
@@ -497,8 +496,8 @@ public class DtoImplClientTemplate extends DtoImpl {
                    .append(".fromJsonObject(").append(inVar).append(");\n");
         } else if (rawClass.equals(String.class)) {
             String primitiveName = rawClass.getSimpleName();
-            builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isString() != null ? ").append(inVar).append(
-                    ".isString().stringValue() : null;\n");
+            builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isString() != null ? ")
+                   .append(inVar).append(".isString().stringValue() : null;\n");
         } else if (isNumber(rawClass)) {
             String primitiveName = rawClass.getSimpleName();
             String typeCast = rawClass.equals(double.class) || rawClass.equals(Double.class) ? "" : "(" + getPrimitiveName(rawClass) + ")";
@@ -507,29 +506,31 @@ public class DtoImplClientTemplate extends DtoImpl {
                        .append(".isNumber().doubleValue();\n");
             } else {
                 if (isInteger(rawClass)) {
-                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isNumber() != null ? ((Double)").append(inVar).append(
+                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
+                           .append(".isNumber() != null ? ((Double)").append(inVar).append(
                             ".isNumber().doubleValue()).intValue() : null;\n");
                 } else if (isFloat(rawClass)) {
-                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isNumber() != null ? ((Double)").append(inVar).append(
+                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
+                           .append(".isNumber() != null ? ((Double)").append(inVar).append(
                             ".isNumber().doubleValue()).floatValue() : null;\n");
                 } else if (isLong(rawClass)) {
                     builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
                            .append(".isNumber() != null ? ((Double)").append(inVar).append(
                             ".isNumber().doubleValue()).longValue() : null;\n");
                 } else if (isDouble(rawClass)) {
-                         builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
-                       .append(".isNumber() != null ? ((Double)").append(inVar).append(
-                        ".isNumber().doubleValue()).doubleValue() : null;\n");
+                    builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
+                           .append(".isNumber() != null ? ((Double)").append(inVar).append(
+                            ".isNumber().doubleValue()).doubleValue() : null;\n");
                 }
             }
         } else if (isBoolean(rawClass)) {
             String primitiveName = rawClass.getSimpleName();
             if (rawClass.isPrimitive()) {
-                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(
-                        ".isBoolean().booleanValue();\n");
+                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
+                       .append(".isBoolean().booleanValue();\n");
             } else {
-                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar).append(".isBoolean() != null ? ").append(inVar).append(
-                        ".isBoolean().booleanValue() : null;\n");
+                builder.append(i).append(primitiveName).append(" ").append(outVar).append(" = ").append(inVar)
+                       .append(".isBoolean() != null ? ").append(inVar).append(".isBoolean().booleanValue() : null;\n");
             }
         } else {
             final Class<?> dtoImplementation = getEnclosingTemplate().getDtoImplementation(rawClass);
@@ -546,32 +547,19 @@ public class DtoImplClientTemplate extends DtoImpl {
     }
 
     private boolean isDouble(Class<?> returnType) {
-        return  returnType.equals(Double.class);
+        return returnType.equals(Double.class);
     }
 
     private boolean isLong(Class<?> returnType) {
-        return  returnType.equals(Long.class);
+        return returnType.equals(Long.class);
     }
 
     private boolean isFloat(Class<?> returnType) {
-        return  returnType.equals(Float.class);
+        return returnType.equals(Float.class);
     }
 
     private boolean isInteger(Class<?> returnType) {
-      return  returnType.equals(Integer.class);
-    }
-
-    private void emitMockPreamble(Class<?> dtoInterface, StringBuilder builder) {
-        builder.append("\n  public static class ");
-        builder.append("Mock").append(getImplClassName());
-        builder.append(" extends ");
-        builder.append(getImplClassName());
-        builder.append(" {\n");
-        builder.append("    protected Mock");
-        builder.append(getImplClassName());
-        builder.append("() {}\n\n");
-
-        emitFactoryMethod(builder);
+        return returnType.equals(Integer.class);
     }
 
     private void emitPreamble(Class<?> dtoInterface, StringBuilder builder) {
@@ -582,39 +570,18 @@ public class DtoImplClientTemplate extends DtoImpl {
         if (superType != null && superType != JsonSerializable.class) {
             // We need to extend something.
             builder.append(" extends ");
-            if (superType.equals(ServerToClientDto.class) || superType.equals(ClientToServerDto.class)) {
-                // We special case RoutableDto's impl since it isn't generated.
-                builder.append(ROUTABLE_DTO_IMPL);
+            final Class<?> superTypeImpl = getEnclosingTemplate().getDtoImplementation(superType);
+            if (superTypeImpl == null) {
+                builder.append(superType.getSimpleName()).append("Impl");
             } else {
-                final Class<?> superTypeImpl = getEnclosingTemplate().getDtoImplementation(superType);
-                if (superTypeImpl == null) {
-                    builder.append(superType.getSimpleName()).append("Impl");
-                } else {
-                    builder.append(superTypeImpl.getCanonicalName());
-                }
+                builder.append(superTypeImpl.getCanonicalName());
             }
         }
         builder.append(" implements ");
         builder.append(dtoInterface.getCanonicalName());
         builder.append(", JsonSerializable ");
         builder.append(" {\n\n");
-
-        // If this guy is Routable, we make two constructors. One is a private
-        // default constructor that hard codes the routing type, the other is a
-        // protected constructor for any subclasses of this impl to pass up its
-        // routing type.
-        if (getRoutingType() != RoutableDto.NON_ROUTABLE_TYPE) {
-            emitDefaultRoutingTypeConstructor(builder);
-            emitProtectedConstructor(builder);
-        }
-
-        // If this DTO is allowed to be constructed on the server, we expose a
-        // static factory method. A DTO is allowed to be constructed if it is a
-        // ServerToClientDto, or if it is not a top level type (non-routable).
-        if (DtoTemplate.implementsServerToClientDto(dtoInterface) || getRoutingType() == RoutableDto.NON_ROUTABLE_TYPE) {
-            emitFactoryMethod(builder);
-        }
-
+        emitFactoryMethod(builder);
         emitDefaultConstructor(builder);
     }
 
@@ -622,13 +589,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         builder.append("    protected ");
         builder.append(getImplClassName());
         builder.append("() {\n");
-        builder.append("    }\n\n");
-    }
-
-    private void emitProtectedConstructor(StringBuilder builder) {
-        builder.append("    protected ");
-        builder.append(getImplClassName());
-        builder.append("(int type) {\n      super(type);\n");
         builder.append("    }\n\n");
     }
 
@@ -731,9 +691,9 @@ public class DtoImplClientTemplate extends DtoImpl {
         if (!getEnclosingTemplate().isDtoInterface(dtoInterface)) {
             return Collections.emptyList();
         }
-        Set<Class<?>> allInterfaces = new LinkedHashSet<Class<?>>();
+        Set<Class<?>> allInterfaces = new LinkedHashSet<>();
         getAllInterfaces(dtoInterface, allInterfaces);
-        List<Method> methodsToInclude = new ArrayList<Method>();
+        List<Method> methodsToInclude = new ArrayList<>();
         for (Class<?> parent : allInterfaces) {
             if (getEnclosingTemplate().isDtoInterface(parent)) {
                 for (Method m : parent.getDeclaredMethods()) {
@@ -765,7 +725,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         Type type = expandedTypes.get(depth);
         Class<?> rawClass = getRawClass(type);
         String rawTypeName = getImplName(type, false);
-
         if (isList(rawClass) || isMap(rawClass)) {
             builder.append(i).append(rawTypeName).append(" ").append(fieldNameIn).append(" = ").append(origin).append(".")
                    .append(getterName).append("();\n");
@@ -796,7 +755,6 @@ public class DtoImplClientTemplate extends DtoImpl {
         Class<?> rawClass = getRawClass(type);
         Class<?> childRawType = getRawClass(expandedTypes.get(depth + 1));
         final String childTypeName = getImplName(expandedTypes.get(depth + 1), false);
-
         if (isList(rawClass)) {
             builder.append(i).append("  for (").append(childTypeName).append(" ").append(childVarIn)
                    .append(" : ").append(varIn).append(") {\n");
@@ -806,7 +764,6 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append(i).append("    ").append(childTypeName).append(" ").append(childVarIn).append(" = ").append(
                     entryVar).append(".getValue();\n");
         }
-
         if (isList(childRawType) || isMap(childRawType)) {
             builder.append(i).append("    if (").append(childVarIn).append(" != null) {\n");
             builder.append(i).append("      ").append(childTypeName).append(" ").append(childVarOut)
@@ -865,8 +822,7 @@ public class DtoImplClientTemplate extends DtoImpl {
      * classes and JSON collections with corresponding Java types. If a suitable type cannot be determined, this will throw an exception.
      *
      * @param genericType
-     *         the type as returned by e.g.
-     *         method.getGenericReturnType()
+     *         the type as returned by e.g. method.getGenericReturnType()
      */
     private void appendType(Type genericType, final StringBuilder builder) {
         builder.append(getImplName(genericType, false));
@@ -878,8 +834,7 @@ public class DtoImplClientTemplate extends DtoImpl {
      *
      * @param method
      *         The getter method.
-     * @return String representation of what the field type should be, as well as
-     *         the assignment (initial value) to said field type, if any.
+     * @return String representation of what the field type should be, as well as the assignment (initial value) to said field type, if any.
      */
     private String getFieldTypeAndAssignment(Method method, String fieldName) {
         StringBuilder builder = new StringBuilder();
@@ -900,9 +855,7 @@ public class DtoImplClientTemplate extends DtoImpl {
         Class<?> rawClass = getRawClass(type);
         String fqName = getFqParameterizedName(type);
         fqName = fqName.replaceAll(JsonArray.class.getCanonicalName(), ArrayList.class.getCanonicalName());
-        fqName = fqName.replaceAll(JsonStringMap.class.getCanonicalName() + "<",
-                                   HashMap.class.getCanonicalName() + "<String, ");
-
+        fqName = fqName.replaceAll(JsonStringMap.class.getCanonicalName() + "<", HashMap.class.getCanonicalName() + "<String, ");
         if (allowJreCollectionInterface) {
             if (isList(rawClass)) {
                 fqName = fqName.replaceFirst(List.class.getCanonicalName(), ArrayList.class.getCanonicalName());
@@ -910,7 +863,6 @@ public class DtoImplClientTemplate extends DtoImpl {
                 fqName = fqName.replaceFirst(Map.class.getCanonicalName(), HashMap.class.getCanonicalName());
             }
         }
-
         return fqName;
     }
 
@@ -918,23 +870,19 @@ public class DtoImplClientTemplate extends DtoImpl {
     private String getFqParameterizedName(Type type) {
         if (type instanceof Class<?>) {
             return ((Class<?>)type).getCanonicalName();
-            //return getImplNameForDto((Class<?>)type);
-
         } else if (type instanceof ParameterizedType) {
             ParameterizedType pType = (ParameterizedType)type;
-
             StringBuilder sb = new StringBuilder(getRawClass(pType).getCanonicalName());
             sb.append('<');
-            for (int i = 0; i < pType.getActualTypeArguments().length; i++) {
+            final Type[] actualTypeArguments = pType.getActualTypeArguments();
+            for (int i = 0; i < actualTypeArguments.length; i++) {
                 if (i > 0) {
                     sb.append(", ");
                 }
-                sb.append(getFqParameterizedName(pType.getActualTypeArguments()[i]));
+                sb.append(getFqParameterizedName(actualTypeArguments[i]));
             }
             sb.append('>');
-
             return sb.toString();
-
         } else {
             throw new IllegalArgumentException("We do not handle this type");
         }
@@ -962,48 +910,6 @@ public class DtoImplClientTemplate extends DtoImpl {
             // This will eventually get a generated impl type.
             return dtoInterface.getSimpleName() + "Impl";
         }
-
         return dtoInterface.getCanonicalName();
-    }
-
-    /** Tests whether or not a given return type is a number primitive or its wrapper type. */
-    private static boolean isNumber(Class<?> returnType) {
-        final Class<?>[] numericTypes = { int.class, long.class, short.class, float.class, double.class, byte.class,
-                                          Integer.class, Long.class, Short.class, Float.class, Double.class, Byte.class};
-
-        for (Class<?> standardPrimitive : numericTypes) {
-            if (returnType.equals(standardPrimitive)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /** Tests whether or not a given return type is a boolean primitive or its wrapper type. */
-    private static boolean isBoolean(Class<?> returnType) {
-        return returnType.equals(Boolean.class) || returnType.equals(boolean.class);
-    }
-
-    private static String getPrimitiveName(Class<?> returnType) {
-        if (returnType.equals(Integer.class) || returnType.equals(int.class)) {
-            return "int";
-        } else if (returnType.equals(Long.class) || returnType.equals(long.class)) {
-            return "long";
-        } else if (returnType.equals(Short.class) || returnType.equals(short.class)) {
-            return "short";
-        } else if (returnType.equals(Float.class) || returnType.equals(float.class)) {
-            return "float";
-        } else if (returnType.equals(Double.class) || returnType.equals(double.class)) {
-            return "double";
-        } else if (returnType.equals(Byte.class) || returnType.equals(byte.class)) {
-            return "byte";
-        } else if (returnType.equals(Boolean.class) || returnType.equals(boolean.class)) {
-            return "boolean";
-        } else if (returnType.equals(Character.class) || returnType.equals(char.class)) {
-            return "char";
-        }
-
-        throw new IllegalArgumentException("Unknown wrapper class type.");
     }
 }

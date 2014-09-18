@@ -12,7 +12,6 @@ package com.codenvy.api.project.server;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -23,21 +22,13 @@ import java.util.Set;
 @Singleton
 public class ProjectTypeResolverRegistry {
 
-    private ProjectTypeResolver defaultResolver;
-
     private Set<ProjectTypeResolver> resolvers = new HashSet<>();
 
     @Inject
-    public ProjectTypeResolverRegistry(Set<ProjectTypeResolver> resolvers,
-                                       @Named("default.project.type.resolver") ProjectTypeResolver defaultResolver) {
-        this.defaultResolver = defaultResolver;
+    public ProjectTypeResolverRegistry(Set<ProjectTypeResolver> resolvers) {
         for (ProjectTypeResolver resolver : resolvers) {
             register(resolver);
         }
-    }
-
-    public ProjectTypeResolver getDefaultResolver() {
-        return defaultResolver;
     }
 
     public void register(ProjectTypeResolver resolver) {

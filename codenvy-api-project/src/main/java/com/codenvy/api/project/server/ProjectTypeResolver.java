@@ -11,7 +11,8 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.project.shared.dto.ProjectUpdate;
+import com.codenvy.api.project.shared.InvalidValueException;
+import com.codenvy.api.project.shared.ValueStorageException;
 
 /**
  * Provide possibility for resolving project type for newly projects(maven, ruby, python etc.)
@@ -24,11 +25,10 @@ public interface ProjectTypeResolver {
      *
      * @param project
      *        the project to resolve
-     * @param description
-     *        the description that need to fill
+     *        s
      * @return {@code true} if this resolver resolve project type and fill description, {@code false} otherwise
      * @throws ServerException
      *         if an error occurs
      */
-    boolean resolve(Project project, ProjectUpdate description) throws ServerException;
+    boolean resolve(Project project) throws ServerException, ValueStorageException, InvalidValueException;
 }

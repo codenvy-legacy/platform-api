@@ -75,7 +75,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
@@ -611,21 +610,6 @@ public class ProjectService extends Service {
             }
         };
 
-        // create project descriptor based on query parameters
-        ProjectUpdate descriptorToUpdate = DtoFactory.getInstance().createDto(ProjectUpdate.class);
-        MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
-        for (String key : queryParameters.keySet()) {
-            final String value = queryParameters.getFirst(key);
-            if ("project.name".equals(key)) {
-                path = value;
-            } else if ("project.type".equals(key)) {
-                descriptorToUpdate.setProjectTypeId(value);
-            } else if (key.startsWith("project.attribute.")) {
-                final String name = key.substring("project.attribute.".length());
-                descriptorToUpdate.getAttributes().put(name, queryParameters.get(key));
-            }
-        }
-
         Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
@@ -641,17 +625,12 @@ public class ProjectService extends Service {
         project = projectManager.getProject(workspace, path);
         
         //use resolver only if project type not set
-        if (descriptorToUpdate.getProjectTypeId() == null && project.getDescription().getProjectType().getId().equals(
-                com.codenvy.api.project.shared.Constants.BLANK_ID)) {
+        if (com.codenvy.api.project.shared.Constants.BLANK_ID.equals(project.getDescription().getProjectType().getId())) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
-                if (resolver.resolve(project, descriptorToUpdate)) {
+                if (resolver.resolve(project)) {
                     break;
                 }
-            }
-            //if we can't resolve project type, force to blank project type
-            if (descriptorToUpdate.getProjectTypeId() == null) {
-                resolverRegistry.getDefaultResolver().resolve(project, descriptorToUpdate);
             }
         }
 
@@ -660,9 +639,6 @@ public class ProjectService extends Service {
         VirtualFile virtualFile = project.getBaseFolder().getVirtualFile();
         searcherProvider.getSearcher(virtualFile.getMountPoint(), true).add(virtualFile);
 
-        if (descriptorToUpdate.getProjectTypeId() != null) {
-            project.updateDescription(toDescription(descriptorToUpdate));
-        }
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),

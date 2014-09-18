@@ -20,8 +20,10 @@ import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
+import com.codenvy.api.project.shared.InvalidValueException;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.shared.ValueStorageException;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -130,7 +132,8 @@ public class ProjectServiceTest {
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
         pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
+        final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
+        ProjectDescription pd = new ProjectDescription(projectType);
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
         pm.createProject("my_ws", "my_project", pd);
@@ -138,14 +141,18 @@ public class ProjectServiceTest {
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
         generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
-        ProjectTypeResolverRegistry resolverRegistry = new ProjectTypeResolverRegistry(new HashSet<ProjectTypeResolver>(), new ProjectTypeResolver() {
+        HashSet<ProjectTypeResolver> resolvers = new HashSet<>();
+        resolvers.add(new ProjectTypeResolver() {
 
             @Override
-            public boolean resolve(Project project, ProjectUpdate description) {
-                description.setProjectTypeId("my_project_type");
+            public boolean resolve(Project project) throws ServerException, ValueStorageException, InvalidValueException {
+                ProjectDescription description = project.getDescription();
+                description.setProjectType(projectType);
+                project.updateDescription(description);
                 return true;
             }
         });
+        ProjectTypeResolverRegistry resolverRegistry = new ProjectTypeResolverRegistry(resolvers);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);

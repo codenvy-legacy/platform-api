@@ -83,6 +83,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -623,7 +624,7 @@ public class ProjectService extends Service {
 
         //re-read project after importing to source may content project.json
         project = projectManager.getProject(workspace, path);
-        
+
         //use resolver only if project type not set
         if (com.codenvy.api.project.shared.Constants.BLANK_ID.equals(project.getDescription().getProjectType().getId())) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
@@ -1050,25 +1051,25 @@ public class ProjectService extends Service {
         final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors =
                 newProject.getBuilderEnvironmentConfigurations();
         if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
+            final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs = new HashMap<>(builderEnvConfigDescriptors.size());
             for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
                 final BuilderEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(),
-                                                                             new BuilderEnvironmentConfiguration(
-                                                                                     envConfigDescriptor.getOptions()));
+                builderEnvConfigs.put(e.getKey(), new BuilderEnvironmentConfiguration(envConfigDescriptor.getOptions()));
             }
+            projectDescription.setBuilderEnvironmentConfigurations(builderEnvConfigs);
         }
         final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
                 newProject.getRunnerEnvironmentConfigurations();
         if (!(runnerEnvConfigDescriptors == null || runnerEnvConfigDescriptors.isEmpty())) {
+            final Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs = new HashMap<>(runnerEnvConfigDescriptors.size());
             for (Map.Entry<String, RunnerEnvironmentConfigurationDescriptor> e : runnerEnvConfigDescriptors.entrySet()) {
                 final RunnerEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                projectDescription.getRunnerEnvironmentConfigurations().put(e.getKey(),
-                                                                            new RunnerEnvironmentConfiguration(
-                                                                                    envConfigDescriptor.getRequiredMemorySize(),
+                runnerEnvConfigs.put(e.getKey(), new RunnerEnvironmentConfiguration(envConfigDescriptor.getRequiredMemorySize(),
                                                                                     envConfigDescriptor.getRecommendedMemorySize(),
                                                                                     envConfigDescriptor.getDefaultMemorySize(),
                                                                                     envConfigDescriptor.getOptions()));
             }
+            projectDescription.setRunnerEnvironmentConfigurations(runnerEnvConfigs);
         }
         final Map<String, List<String>> projectAttributeValues = newProject.getAttributes();
         if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {
@@ -1095,25 +1096,25 @@ public class ProjectService extends Service {
         final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors =
                 update.getBuilderEnvironmentConfigurations();
         if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
+            final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs = new HashMap<>(builderEnvConfigDescriptors.size());
             for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
                 final BuilderEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                projectDescription.getBuilderEnvironmentConfigurations().put(e.getKey(),
-                                                                             new BuilderEnvironmentConfiguration(
-                                                                                     envConfigDescriptor.getOptions()));
+                builderEnvConfigs.put(e.getKey(), new BuilderEnvironmentConfiguration(envConfigDescriptor.getOptions()));
             }
+            projectDescription.setBuilderEnvironmentConfigurations(builderEnvConfigs);
         }
         final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
                 update.getRunnerEnvironmentConfigurations();
         if (!(runnerEnvConfigDescriptors == null || runnerEnvConfigDescriptors.isEmpty())) {
+            final Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs = new HashMap<>(runnerEnvConfigDescriptors.size());
             for (Map.Entry<String, RunnerEnvironmentConfigurationDescriptor> e : runnerEnvConfigDescriptors.entrySet()) {
                 final RunnerEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                projectDescription.getRunnerEnvironmentConfigurations().put(e.getKey(),
-                                                                            new RunnerEnvironmentConfiguration(
-                                                                                    envConfigDescriptor.getRequiredMemorySize(),
+                runnerEnvConfigs.put(e.getKey(), new RunnerEnvironmentConfiguration(envConfigDescriptor.getRequiredMemorySize(),
                                                                                     envConfigDescriptor.getRecommendedMemorySize(),
                                                                                     envConfigDescriptor.getDefaultMemorySize(),
                                                                                     envConfigDescriptor.getOptions()));
             }
+            projectDescription.setRunnerEnvironmentConfigurations(runnerEnvConfigs);
         }
         final Map<String, List<String>> projectAttributeValues = update.getAttributes();
         if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {

@@ -21,7 +21,7 @@ import java.util.List;
  */
 @DTO
 public interface MemberDescriptor {
-    @ApiModelProperty(value = "User roles", allowableValues = "workspace/admin,workspace/developer")
+    @ApiModelProperty(value = "User roles", allowableValues = "account/owner,account/member")
     List<String> getRoles();
 
     void setRoles(List<String> roles);

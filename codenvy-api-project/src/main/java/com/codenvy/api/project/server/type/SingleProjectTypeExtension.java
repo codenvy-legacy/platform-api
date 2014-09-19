@@ -22,13 +22,6 @@ import java.util.List;
  * @author gazarenkov
  */
 public abstract class SingleProjectTypeExtension implements ProjectTypeExtension, ProjectTypeDescriptionExtension {
-
-
-//    public SingleProjectTypeExtension(ProjectTypeDescriptionRegistry registry) {
-//        registry.registerDescription(this);
-//        registry.registerProjectType(this);
-//    }
-
     @Override
     public final List<ProjectType> getProjectTypes() {
         final List<ProjectType> list = new ArrayList<>(1);

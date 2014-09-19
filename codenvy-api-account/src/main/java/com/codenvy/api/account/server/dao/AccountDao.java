@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.account.server.dao;
 
-import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;

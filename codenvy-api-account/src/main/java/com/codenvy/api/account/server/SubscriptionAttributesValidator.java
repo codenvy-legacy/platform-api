@@ -10,12 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.account.server;
 
-import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
+import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
 import com.codenvy.api.core.ConflictException;
 
 /**
+ * Validates attributes of the subscription.
+ *
  * @author Alexander Garagatyi
  */
 public interface SubscriptionAttributesValidator {
-    void validate(SubscriptionAttributes subscriptionAttributes) throws ConflictException;
+    void validate(NewSubscriptionAttributes subscriptionAttributes) throws ConflictException;
 }

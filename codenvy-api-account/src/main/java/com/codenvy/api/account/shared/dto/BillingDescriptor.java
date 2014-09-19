@@ -20,18 +20,11 @@ public interface BillingDescriptor {
     /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
      * that allow better validate data that was sent
      */
-
     String getUsePaymentSystem();
 
     void setUsePaymentSystem(String usePaymentSystem);
 
     BillingDescriptor withUsePaymentSystem(String usePaymentSystem);
-
-    String getPaymentToken();
-
-    void setPaymentToken(String paymentToken);
-
-    BillingDescriptor withPaymentToken(String paymentToken);
 
     String getStartDate();
 

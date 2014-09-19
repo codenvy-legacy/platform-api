@@ -12,7 +12,7 @@ package com.codenvy.api.local;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
+import com.codenvy.api.account.server.dao.SubscriptionAttributes;
 import com.codenvy.api.user.shared.dto.User;
 import com.codenvy.api.workspace.server.dao.Workspace;
 import com.codenvy.dto.server.DtoFactory;

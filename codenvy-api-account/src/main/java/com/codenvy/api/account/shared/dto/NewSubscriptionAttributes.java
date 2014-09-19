@@ -15,10 +15,12 @@ import com.codenvy.dto.shared.DTO;
 import java.util.Map;
 
 /**
+ * Describes attributes of the subscription
+ *
  * @author Alexander Garagatyi
  */
 @DTO
-public interface SubscriptionAttributes {
+public interface NewSubscriptionAttributes {
     /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
      * that allow better validate data that was sent
      */
@@ -27,35 +29,35 @@ public interface SubscriptionAttributes {
 
     void setDescription(String description);
 
-    SubscriptionAttributes withDescription(String description);
+    NewSubscriptionAttributes withDescription(String description);
 
     String getStartDate();
 
     void setStartDate(String startDate);
 
-    SubscriptionAttributes withStartDate(String startDate);
+    NewSubscriptionAttributes withStartDate(String startDate);
 
     String getEndDate();
 
     void setEndDate(String endDate);
 
-    SubscriptionAttributes withEndDate(String endDate);
+    NewSubscriptionAttributes withEndDate(String endDate);
 
     Integer getTrialDuration();
 
     void setTrialDuration(Integer trialDuration);
 
-    SubscriptionAttributes withTrialDuration(Integer trialDuration);
+    NewSubscriptionAttributes withTrialDuration(Integer trialDuration);
 
-    Billing getBilling();
+    NewBilling getBilling();
 
-    void setBilling(Billing billing);
+    void setBilling(NewBilling billing);
 
-    SubscriptionAttributes withBilling(Billing billing);
+    NewSubscriptionAttributes withBilling(NewBilling billing);
 
     Map<String, String> getCustom();
 
     void setCustom(Map<String, String> other);
 
-    SubscriptionAttributes withCustom(Map<String, String> other);
+    NewSubscriptionAttributes withCustom(Map<String, String> other);
 }

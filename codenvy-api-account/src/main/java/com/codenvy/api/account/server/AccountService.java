@@ -18,15 +18,17 @@ import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
-import com.codenvy.api.account.shared.dto.Billing;
+import com.codenvy.api.account.server.dao.Billing;
 import com.codenvy.api.account.shared.dto.BillingDescriptor;
 import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
+import com.codenvy.api.account.shared.dto.NewBilling;
 import com.codenvy.api.account.shared.dto.NewSubscription;
+import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
-import com.codenvy.api.account.shared.dto.SubscriptionAttributes;
+import com.codenvy.api.account.server.dao.SubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributesDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.core.ApiException;
@@ -198,9 +200,9 @@ public class AccountService extends Service {
                   responseContainer = "List",
                   position = 2)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
     @RolesAllowed("user")
@@ -236,10 +238,10 @@ public class AccountService extends Service {
                   responseContainer = "List",
                   position = 3)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 409, message = "No User ID specified"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "No User ID specified"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/memberships")
     @GenerateLink(rel = Constants.LINK_REL_GET_ACCOUNTS)
@@ -278,10 +280,10 @@ public class AccountService extends Service {
                   notes = "Remove attribute from an account. Attribute name is used as a quary parameter. For this API request account/owner, system/admin or system/manager role is required",
                   position = 4)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 409, message = "Invalid attribute name"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "Invalid attribute name"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/attribute")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
@@ -315,9 +317,9 @@ public class AccountService extends Service {
                   response = AccountDescriptor.class,
                   position = 5)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
@@ -345,13 +347,13 @@ public class AccountService extends Service {
      * @see #getById(String, SecurityContext)
      */
     @ApiOperation(value = "Get account by name",
-            notes = "Get account information by its name. JSON with account details is returned. This API call requires system/admin or system/manager role.",
-            response = AccountDescriptor.class,
-            position = 5)
+                  notes = "Get account information by its name. JSON with account details is returned. This API call requires system/admin or system/manager role.",
+                  response = AccountDescriptor.class,
+                  position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
-            @ApiResponse(code = 409, message = "No account name specified" ),
+            @ApiResponse(code = 409, message = "No account name specified"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/find")
@@ -387,13 +389,13 @@ public class AccountService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Add a new member to account",
-            notes = "Add a new user to an account. This user will have account/member role. This API call requires account/owner, system/admin or system/manager role.",
-            response = MemberDescriptor.class,
-            position = 6)
+                  notes = "Add a new user to an account. This user will have account/member role. This API call requires account/owner, system/admin or system/manager role.",
+                  response = MemberDescriptor.class,
+                  position = 6)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
-            @ApiResponse(code = 409, message = "No user ID specified" ),
+            @ApiResponse(code = 409, message = "No user ID specified"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/{id}/members")
@@ -433,10 +435,10 @@ public class AccountService extends Service {
      * @see #removeMember(String, String)
      */
     @ApiOperation(value = "Get account members",
-            notes = "Get all members for a specific account. This API call requires account/owner, system/admin or system/manager role.",
-            response = MemberDescriptor.class,
-            responseContainer = "List",
-            position = 7)
+                  notes = "Get all members for a specific account. This API call requires account/owner, system/admin or system/manager role.",
+                  response = MemberDescriptor.class,
+                  responseContainer = "List",
+                  position = 7)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -474,13 +476,13 @@ public class AccountService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Remove user from account",
-            notes = "Remove user from a specific account. This API call requires account/owner, system/admin or system/manager role.",
-            position = 8)
+                  notes = "Remove user from a specific account. This API call requires account/owner, system/admin or system/manager role.",
+                  position = 8)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 404, message = "Account ID not found"),
-                  @ApiResponse(code = 409, message = "Account should have at least 1 owner"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 404, message = "Account ID not found"),
+            @ApiResponse(code = 409, message = "Account should have at least 1 owner"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/members/{userid}")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
@@ -537,14 +539,14 @@ public class AccountService extends Service {
      * @see AccountDescriptor
      */
     @ApiOperation(value = "Update account",
-            notes = "Update account. This API call requires account/owner role.",
-            response = AccountDescriptor.class,
-            position = 9)
+                  notes = "Update account. This API call requires account/owner role.",
+                  response = AccountDescriptor.class,
+                  position = 9)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Account ID not found"),
-                  @ApiResponse(code = 409, message = "Invalid account ID or account name already exists"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Account ID not found"),
+            @ApiResponse(code = 409, message = "Invalid account ID or account name already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/{id}")
     @RolesAllowed({"account/owner"})
@@ -597,9 +599,9 @@ public class AccountService extends Service {
                   responseContainer = "List",
                   position = 10)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Account ID not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Account ID not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{accountId}/subscriptions")
     @RolesAllowed({"account/member", "account/owner", "system/admin", "system/manager"})
@@ -638,10 +640,10 @@ public class AccountService extends Service {
                   response = SubscriptionDescriptor.class,
                   position = 11)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this method" ),
-                  @ApiResponse(code = 404, message = "Account ID not found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this method"),
+            @ApiResponse(code = 404, message = "Account ID not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/subscriptions/{subscriptionId}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
@@ -686,11 +688,11 @@ public class AccountService extends Service {
                   response = SubscriptionDescriptor.class,
                   position = 12)
     @ApiResponses(value = {
-                  @ApiResponse(code = 201, message = "CREATED"),
-                  @ApiResponse(code = 403, message = "Access denied" ),
-                  @ApiResponse(code = 404, message = "Invalid subscription parameter"),
-                  @ApiResponse(code = 409, message = "Unknown ServiceID is used or payment token is invalid"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 201, message = "CREATED"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Invalid subscription parameter"),
+            @ApiResponse(code = 409, message = "Unknown ServiceID is used or payment token is invalid"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/subscriptions")
     @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
@@ -726,20 +728,20 @@ public class AccountService extends Service {
                                                             .withProperties(plan.getProperties());
         subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
 
-        SubscriptionAttributes subscriptionAttributes = newSubscription.getSubscriptionAttributes();
-        subscriptionAttributesValidator.validate(subscriptionAttributes);
+        NewSubscriptionAttributes newSubscriptionAttributes = newSubscription.getSubscriptionAttributes();
+        subscriptionAttributesValidator.validate(newSubscriptionAttributes);
         service.beforeCreateSubscription(subscription);
 
         LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#", subscription.getId(),
                  EnvironmentContext.getCurrent().getUser().getId(), subscription.getAccountId(), subscription.getPlanId());
 
-        if ("false".equals(subscriptionAttributes.getBilling().getUsePaymentSystem()) && !securityContext.isUserInRole("system/admin")) {
+        if ("false".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem()) && !securityContext.isUserInRole("system/admin")) {
             throw new ConflictException("Given value of billing attribute usePaymentSystem is not allowed");
         }
 
         try {
-            if (plan.isPaid() && "true".equals(subscriptionAttributes.getBilling().getUsePaymentSystem())) {
-                subscriptionAttributes = paymentService.addSubscription(subscription, newSubscription.getSubscriptionAttributes());
+            if (plan.isPaid() && "true".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem())) {
+                newSubscriptionAttributes = paymentService.addSubscription(subscription, newSubscription.getSubscriptionAttributes());
             }
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage(), e);
@@ -747,10 +749,10 @@ public class AccountService extends Service {
         }
         try {
             accountDao.addSubscription(subscription);
-            accountDao.saveSubscriptionAttributes(subscription.getId(), subscriptionAttributes);
+            accountDao.saveSubscriptionAttributes(subscription.getId(), toSubscriptionAttributes(newSubscriptionAttributes));
         } catch (Exception e) {
             LOG.error(e.getLocalizedMessage(), e);
-            if (plan.isPaid() && "true".equals(subscriptionAttributes.getBilling().getUsePaymentSystem())) {
+            if (plan.isPaid() && "true".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem())) {
                 paymentService.removeSubscription(subscription.getId());
             }
             throw e;
@@ -781,10 +783,10 @@ public class AccountService extends Service {
                   notes = "Remove subscription from account. Roles: account/owner, system/admin.",
                   position = 13)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 403, message = "Access denied" ),
-                  @ApiResponse(code = 404, message = "Invalid subscription ID"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Invalid subscription ID"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/subscriptions/{subscriptionId}")
     @RolesAllowed({"user", "system/admin"})
@@ -816,11 +818,11 @@ public class AccountService extends Service {
                   notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",
                   position = 14)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 403, message = "Access denied" ),
-                  @ApiResponse(code = 404, message = "Invalid account ID"),
-                  @ApiResponse(code = 409, message = "Cannot delete account with associated workspaces"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Invalid account ID"),
+            @ApiResponse(code = 409, message = "Cannot delete account with associated workspaces"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}")
     @RolesAllowed("system/admin")
@@ -847,7 +849,7 @@ public class AccountService extends Service {
                   position = 15)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 403, message = "Access denied" ),
+            @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 404, message = "Invalid susbscription ID"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
@@ -885,18 +887,18 @@ public class AccountService extends Service {
                   response = NewSubscriptionTemplate.class,
                   position = 16)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Invalid subscription ID"),
-                  @ApiResponse(code = 409, message = "Plan identifier required"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Invalid subscription ID"),
+            @ApiResponse(code = 409, message = "Plan identifier required"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{accountId}/subscriptions/validate")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     @Produces(MediaType.APPLICATION_JSON)
     public NewSubscriptionTemplate validateSubscriptionAddition(@ApiParam(value = "Account ID", required = true)
-                                                        @PathParam("accountId") String accountId,
-                                                        @ApiParam(value = "Plan ID", required = true)
-                                                        @QueryParam("planId") String planId)
+                                                                @PathParam("accountId") String accountId,
+                                                                @ApiParam(value = "Plan ID", required = true)
+                                                                @QueryParam("planId") String planId)
             throws NotFoundException, ServerException, ConflictException {
         if (null == planId) {
             throw new ConflictException("Plan identifier required");
@@ -1132,7 +1134,6 @@ public class AccountService extends Service {
                           .withUsePaymentSystem(billing.getUsePaymentSystem())
                           .withStartDate(billing.getStartDate())
                           .withEndDate(billing.getEndDate())
-                          .withPaymentToken(billing.getPaymentToken())
                           .withCycle(billing.getCycle())
                           .withCycleTypeDescriptor(DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(
                                   billing.getCycleType()));
@@ -1163,5 +1164,22 @@ public class AccountService extends Service {
                          .withProduces(produces)
                          .withConsumes(consumes)
                          .withHref(href);
+    }
+
+    private SubscriptionAttributes toSubscriptionAttributes(NewSubscriptionAttributes newSubscriptionAttributes) {
+        NewBilling newBilling = newSubscriptionAttributes.getBilling();
+        return new SubscriptionAttributes()
+                         .withDescription(newSubscriptionAttributes.getDescription())
+                         .withEndDate(newSubscriptionAttributes.getEndDate())
+                         .withStartDate(newSubscriptionAttributes.getStartDate())
+                         .withTrialDuration(newSubscriptionAttributes.getTrialDuration())
+                         .withCustom(newSubscriptionAttributes.getCustom())
+                         .withBilling(new Billing()
+                                              .withCycleType(newBilling.getCycleType())
+                                              .withCycle(newBilling.getCycle())
+                                              .withStartDate(newBilling.getStartDate())
+                                              .withEndDate(newBilling.getEndDate())
+                                              .withContractTerm(newBilling.getContractTerm())
+                                              .withUsePaymentSystem(newBilling.getUsePaymentSystem()));
     }
 }

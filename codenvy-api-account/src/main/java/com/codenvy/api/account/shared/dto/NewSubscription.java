@@ -13,8 +13,6 @@ package com.codenvy.api.account.shared.dto;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
-import java.util.Map;
-
 /**
  * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
  * com.codenvy.api.account.server.dao.Account}
@@ -39,9 +37,9 @@ public interface NewSubscription {
 
     NewSubscription withPlanId(String id);
 
-    SubscriptionAttributes getSubscriptionAttributes();
+    NewSubscriptionAttributes getSubscriptionAttributes();
 
-    void setSubscriptionAttributes(SubscriptionAttributes subscriptionAttributes);
+    void setSubscriptionAttributes(NewSubscriptionAttributes subscriptionAttributes);
 
-    NewSubscription withSubscriptionAttributes(SubscriptionAttributes subscriptionAttributes);
+    NewSubscription withSubscriptionAttributes(NewSubscriptionAttributes subscriptionAttributes);
 }

@@ -13,53 +13,54 @@ package com.codenvy.api.account.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 /**
+ * Describes billing properties that should be added
+ *
  * @author Alexander Garagatyi
  */
 @DTO
-public interface Billing {
+public interface NewBilling {
     /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
      * that allow better validate data that was sent
      */
-
     String getUsePaymentSystem();
 
     void setUsePaymentSystem(String usePaymentSystem);
 
-    Billing withUsePaymentSystem(String usePaymentSystem);
+    NewBilling withUsePaymentSystem(String usePaymentSystem);
 
     String getPaymentToken();
 
     void setPaymentToken(String paymentToken);
 
-    Billing withPaymentToken(String paymentToken);
+    NewBilling withPaymentToken(String paymentToken);
 
     String getStartDate();
 
     void setStartDate(String startDate);
 
-    Billing withStartDate(String startDate);
+    NewBilling withStartDate(String startDate);
 
     String getEndDate();
 
     void setEndDate(String endDate);
 
-    Billing withEndDate(String endDate);
+    NewBilling withEndDate(String endDate);
 
     Integer getCycle();
 
     void setCycle(Integer cycle);
 
-    Billing withCycle(Integer cycle);
+    NewBilling withCycle(Integer cycle);
 
     Integer getCycleType();
 
     void setCycleType(Integer cycleType);
 
-    Billing withCycleType(Integer cycleType);
+    NewBilling withCycleType(Integer cycleType);
 
     Integer getContractTerm();
 
     void setContractTerm(Integer contractTerm);
 
-    Billing withContractTerm(Integer contractTerm);
+    NewBilling withContractTerm(Integer contractTerm);
 }

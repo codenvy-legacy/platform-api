@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.shared.*;
@@ -75,24 +74,6 @@ public class Project {
 
     public void saveMisc(ProjectMisc misc) throws ServerException {
         manager.saveProjectMisc(this, misc);
-    }
-
-    public List<Project> getModules() throws ServerException, ForbiddenException {
-        final List<Project> modules = new ArrayList<>();
-        for (FolderEntry child : baseFolder.getChildFolders()) {
-            if (child.isProjectFolder()) {
-                modules.add(new Project(workspace, child, manager));
-            }
-        }
-        return modules;
-    }
-
-    public Project createModule(String name, ProjectDescription projectDescription)
-            throws ConflictException, ForbiddenException, ServerException, ValueStorageException, InvalidValueException {
-        final FolderEntry projectFolder = baseFolder.createFolder(name);
-        final Project module = new Project(workspace, projectFolder, manager);
-        module.updateDescription(projectDescription);
-        return module;
     }
 
     public final ProjectDescription getDescription() throws ServerException, ValueStorageException {

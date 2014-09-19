@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.ObjectStatus;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -41,7 +42,7 @@ public interface ProjectReference {
     ProjectReference withPath(String path);
 
     /** Get unique ID of type of project. */
-    @ApiModelProperty(value = "Unique ID of project's type", position = 4)
+    @ApiModelProperty(value = "Unique ID of project's type", position = 3)
     String getProjectTypeId();
 
     /** Set unique ID of type of project. */
@@ -50,7 +51,7 @@ public interface ProjectReference {
     ProjectReference withProjectTypeId(String id);
 
     /** Get display name of type of project. */
-    @ApiModelProperty(value = "Display name of project's type", position = 5)
+    @ApiModelProperty(value = "Display name of project's type", position = 4)
     String getProjectTypeName();
 
     /** Set display name of type of project. */
@@ -104,7 +105,7 @@ public interface ProjectReference {
     ProjectReference withVisibility(String visibility);
 
     /** Get creation date of project. */
-    @ApiModelProperty(value = "Time that the project was created or -1 if creation time in unknown", dataType="long", position = 9)
+    @ApiModelProperty(value = "Time that the project was created or -1 if creation time in unknown", dataType = "long", position = 10)
     long getCreationDate();
 
     /** Set creation date of project. */
@@ -114,8 +115,7 @@ public interface ProjectReference {
 
     /** Get modification date of project. */
     @ApiModelProperty(value = "Time that the project was last modified or -1 if modification time date in unknown",
-                      dataType="long",
-                      position = 10)
+                      dataType = "long", position = 11)
     long getModificationDate();
 
     /** Set modification date of project. */
@@ -124,11 +124,17 @@ public interface ProjectReference {
     ProjectReference withModificationDate(long date);
 
     /** Get optional description of project. */
-    @ApiModelProperty(value = "Optional description of the project", position = 11)
+    @ApiModelProperty(value = "Optional description of the project", position = 12)
     String getDescription();
 
     /** Set optional description of project. */
     void setDescription(String description);
 
     ProjectReference withDescription(String description);
+
+    ObjectStatus getObjectStatus();
+
+    void setObjectStatus(ObjectStatus status);
+
+    ProjectReference withObjectStatus(ObjectStatus status);
 }

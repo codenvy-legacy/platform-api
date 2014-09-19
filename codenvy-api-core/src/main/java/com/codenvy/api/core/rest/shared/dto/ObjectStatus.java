@@ -20,9 +20,14 @@ import com.codenvy.dto.shared.DTO;
  * 1. DTO interface
  * <pre>
  *     &#064DTO
- *     public interface Widget extends ObjectStatus {
+ *     public interface Widget {
  *         String getProperty();
  *         void setProperty(String property);
+ *         Widget withProperty(String property);
+ *
+ *         ObjectStatus getStatus();
+ *         void getStatus(ObjectStatus status);
+ *         Widget withStatus(ObjectStatus status);
  *     }
  * </pre>
  * 2. Service
@@ -34,22 +39,29 @@ import com.codenvy.dto.shared.DTO;
  *         public List&lt;Widget&gt; getProperties() {
  *             List&lt;Widget&gt; result = new LinkedList&lt;&gt;();
  *             DtoFactory dtoFactory = DtoFactory.getInstance();
- *             // Fill list with properties. If have some error with one Widget instead of throwing exception
- *             // add information about error in the list.
- *             result.add((Widget)dtoFactory.createDto(Widget.class).withStatus(...).withMessage(...))
+ *             Widget widget = dtoFactory.createDto(Widget.class);
+ *             // Set widget's property. If have some error with one Widget instead of throwing exception add information about error for
+ *             // current Widget.
+ *             try {
+ *                 widget.setProperty(calculateProperty());
+ *             } catch (Exception e) {
+ *                 widget.setStatus(dtoFactory.createDto(ObjectStatus.class).withCode(...).withMessage(...));
+ *             }
+ *             result.add(widget);
  *             return result;
  *         }
  *     }
  * </pre>
+ *
  * @author andrew00x
  */
 @DTO
 public interface ObjectStatus {
-    int getStatus();
+    int getCode();
 
-    void setStatus(int status);
+    void setCode(int status);
 
-    ObjectStatus withStatus(int status);
+    ObjectStatus withCode(int status);
 
     String getMessage();
 

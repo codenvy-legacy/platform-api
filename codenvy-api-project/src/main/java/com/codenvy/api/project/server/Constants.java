@@ -19,6 +19,7 @@ public class Constants {
     public static final String LINK_REL_EXPORT_ZIP     = "zipball sources";
     public static final String LINK_REL_CHILDREN       = "children";
     public static final String LINK_REL_TREE           = "tree";
+    public static final String LINK_REL_MODULES        = "modules";
     public static final String LINK_REL_DELETE         = "delete";
     public static final String LINK_REL_GET_CONTENT    = "get content";
     public static final String LINK_REL_UPDATE_CONTENT = "update content";

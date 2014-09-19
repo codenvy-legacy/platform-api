@@ -66,7 +66,6 @@ import org.testng.annotations.Test;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Application;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -94,6 +93,7 @@ import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissi
 public class ProjectServiceTest {
     private static final String      vfsUser       = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
+    private static final String      workspace     = "my_ws";
 
     private ProjectManager           pm;
     private ResourceLauncher         launcher;
@@ -123,20 +123,20 @@ public class ProjectServiceTest {
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
 
         final MemoryFileSystemProvider memoryFileSystemProvider =
-                new MemoryFileSystemProvider("my_ws", eventService, new VirtualFileSystemUserContext() {
+                new MemoryFileSystemProvider(workspace, eventService, new VirtualFileSystemUserContext() {
                     @Override
                     public VirtualFileSystemUser getVirtualFileSystemUser() {
                         return new VirtualFileSystemUser(vfsUser, vfsUserGroups);
                     }
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
-        vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
+        vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
         pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
         final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
         ProjectDescription pd = new ProjectDescription(projectType);
         pd.setDescription("my test project");
         pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
-        pm.createProject("my_ws", "my_project", pd);
+        pm.createProject(workspace, "my_project", pd);
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
@@ -181,8 +181,8 @@ public class ProjectServiceTest {
 
         env = com.codenvy.commons.env.EnvironmentContext.getCurrent();
         env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", vfsUserGroups, false));
-        env.setWorkspaceName("my_ws");
-        env.setWorkspaceId("my_ws");
+        env.setWorkspaceName(workspace);
+        env.setWorkspaceId(workspace);
     }
 
     @Test
@@ -196,9 +196,9 @@ public class ProjectServiceTest {
         Assert.assertEquals(result.size(), 1);
         ProjectReference projectReference = result.get(0);
         Assert.assertEquals(projectReference.getName(), "my_project");
-        Assert.assertEquals(projectReference.getUrl(), "http://localhost:8080/api/project/my_ws/my_project");
+        Assert.assertEquals(projectReference.getUrl(), String.format("http://localhost:8080/api/project/%s/my_project", workspace));
         Assert.assertEquals(projectReference.getDescription(), "my test project");
-        Assert.assertEquals(projectReference.getWorkspaceId(), "my_ws");
+        Assert.assertEquals(projectReference.getWorkspaceId(), workspace);
         Assert.assertEquals(projectReference.getProjectTypeId(), "my_project_type");
         Assert.assertEquals(projectReference.getProjectTypeName(), "my project type");
         Assert.assertEquals(projectReference.getVisibility(), "public");
@@ -219,34 +219,32 @@ public class ProjectServiceTest {
             }
         });
 
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
         pd.setDescription("my test module");
         pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
-        myProject.createModule("my_module", pd);
+        FolderEntry moduleFolder = myProject.getBaseFolder().createFolder("my_module");
+        Project module = new Project(workspace, moduleFolder, pm);
+        module.updateDescription(pd);
 
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/modules/my_project",
+                                                      String.format("http://localhost:8080/api/project/%s/modules/my_project", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
-        List<ProjectDescriptor> result = (List<ProjectDescriptor>)response.getEntity();
+        List<ProjectReference> result = (List<ProjectReference>)response.getEntity();
         Assert.assertNotNull(result);
 
         Assert.assertEquals(result.size(), 1);
-        ProjectDescriptor projectDescriptor_1 = result.get(0);
-        Assert.assertEquals(projectDescriptor_1.getDescription(), "my test module");
-        Assert.assertEquals(projectDescriptor_1.getProjectTypeId(), "my_module_type");
-        Assert.assertEquals(projectDescriptor_1.getProjectTypeName(), "my module type");
-        Assert.assertEquals(projectDescriptor_1.getVisibility(), "public");
-        Map<String, List<String>> attributes = projectDescriptor_1.getAttributes();
-        Assert.assertNotNull(attributes);
-        Assert.assertEquals(attributes.size(), 1);
-        Assert.assertEquals(attributes.get("my_module_attribute"), Arrays.asList("attribute value 1"));
+        ProjectReference moduleReference = result.get(0);
+        Assert.assertEquals(moduleReference.getDescription(), "my test module");
+        Assert.assertEquals(moduleReference.getProjectTypeId(), "my_module_type");
+        Assert.assertEquals(moduleReference.getProjectTypeName(), "my module type");
+        Assert.assertEquals(moduleReference.getVisibility(), "public");
     }
 
     @Test
     public void testGetProject() throws Exception {
-        ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project",
+        ContainerResponse response = launcher.service("GET", String.format("http://localhost:8080/api/project/%s/my_project", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor result = (ProjectDescriptor)response.getEntity();
@@ -265,7 +263,7 @@ public class ProjectServiceTest {
     public void testGetProjectCheckUserPermissions() throws Exception {
         // Without roles Collections.<String>emptySet() should get default set of permissions
         env.setUser(new UserImpl(vfsUser, vfsUser, "dummy_token", Collections.<String>emptySet(), false));
-        ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project",
+        ContainerResponse response = launcher.service("GET", String.format("http://localhost:8080/api/project/%s/my_project", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor result = (ProjectDescriptor)response.getEntity();
@@ -287,14 +285,17 @@ public class ProjectServiceTest {
             }
         });
 
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
         pd.setDescription("my test module");
         pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
-        myProject.createModule("my_module", pd);
+        FolderEntry moduleFolder = myProject.getBaseFolder().createFolder("my_module");
+        Project module = new Project(workspace, moduleFolder, pm);
+        module.updateDescription(pd);
 
-        ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project/my_module",
-                                                      "http://localhost:8080/api", null, null, null);
+        ContainerResponse response =
+                launcher.service("GET", String.format("http://localhost:8080/api/project/%s/my_project/my_module", workspace),
+                                 "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor result = (ProjectDescriptor)response.getEntity();
         Assert.assertNotNull(result);
@@ -310,7 +311,8 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetProjectInvalidPath() throws Exception {
-        ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/my_project_invalid",
+        ContainerResponse response = launcher.service("GET",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project_invalid", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 404);
     }
@@ -325,13 +327,14 @@ public class ProjectServiceTest {
                                           .withProjectTypeId("my_project_type")
                                           .withDescription("new project")
                                           .withAttributes(attributeValues);
-        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws?name=new_project",
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s?name=new_project", workspace),
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
                                                       null);
         Assert.assertEquals(response.getStatus(), 200);
-        Project project = pm.getProject("my_ws", "new_project");
+        Project project = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(project);
         ProjectDescription description = project.getDescription();
 
@@ -352,13 +355,15 @@ public class ProjectServiceTest {
                                           .withProjectTypeId("my_project_type")
                                           .withDescription("new module")
                                           .withAttributes(attributeValues);
-        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/my_project?name=new_module",
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project?name=new_module",
+                                                                    workspace),
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
                                                       null);
         Assert.assertEquals(response.getStatus(), 200);
-        Project project = pm.getProject("my_ws", "my_project/new_module");
+        Project project = pm.getProject(workspace, "my_project/new_module");
         Assert.assertNotNull(project);
         ProjectDescription description = project.getDescription();
 
@@ -390,7 +395,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 500);
         String message = new String(writer.getBody());
         Assert.assertTrue(message.contains("Invalid project type"));
-        Project project = pm.getProject("my_ws", "new_project");
+        Project project = pm.getProject(workspace, "new_project");
         Assert.assertNull(project);
     }
 
@@ -404,13 +409,14 @@ public class ProjectServiceTest {
                                              .withProjectTypeId("my_project_type")
                                              .withDescription("updated project")
                                              .withAttributes(attributeValues);
-        ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project",
+        ContainerResponse response = launcher.service("PUT",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project", workspace),
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
                                                       null);
         Assert.assertEquals(response.getStatus(), 200);
-        Project project = pm.getProject("my_ws", "my_project");
+        Project project = pm.getProject(workspace, "my_project");
         Assert.assertNotNull(project);
         ProjectDescription description = project.getDescription();
 
@@ -431,7 +437,9 @@ public class ProjectServiceTest {
                                              .withProjectTypeId("my_project_type")
                                              .withDescription("updated project")
                                              .withAttributes(attributeValues);
-        ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/my_project_invalid",
+        ContainerResponse response = launcher.service("PUT",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project_invalid",
+                                                                    workspace),
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
@@ -444,15 +452,17 @@ public class ProjectServiceTest {
         String myContent = "to be or not to be";
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("text/plain"));
-        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/file/my_project?name=test.txt",
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/file/my_project?name=test.txt",
+                                                                    workspace),
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       myContent.getBytes(),
                                                       null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/test.txt"));
-        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test.txt");
+                            URI.create(String.format("http://localhost:8080/api/project/%s/file/my_project/test.txt", workspace)));
+        VirtualFileEntry file = pm.getProject(workspace, "my_project").getBaseFolder().getChild("test.txt");
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), "text/plain");
@@ -476,13 +486,15 @@ public class ProjectServiceTest {
         EnvironmentContext env = new EnvironmentContext();
         env.put(HttpServletRequest.class, new MockHttpServletRequest("", new ByteArrayInputStream(formData),
                                                                      formData.length, "POST", headers));
-        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/uploadFile/my_project",
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/uploadfile/my_project",
+                                                                    workspace),
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       formData,
                                                       env);
         Assert.assertEquals(response.getStatus(), 200);
-        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild(fileName);
+        VirtualFileEntry file = pm.getProject(workspace, "my_project").getBaseFolder().getChild(fileName);
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), fileMediaType);
@@ -492,9 +504,11 @@ public class ProjectServiceTest {
     @Test
     public void testGetFileContent() throws Exception {
         String myContent = "to be or not to be";
-        pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", myContent.getBytes(), "text/plain");
+        pm.getProject(workspace, "my_project").getBaseFolder().createFile("test.txt", myContent.getBytes(), "text/plain");
         ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-        ContainerResponse response = launcher.service("GET", "http://localhost:8080/api/project/my_ws/file/my_project/test.txt",
+        ContainerResponse response = launcher.service("GET",
+                                                      String.format("http://localhost:8080/api/project/%s/file/my_project/test.txt",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, writer, null);
         Assert.assertEquals(response.getStatus(), 200);
         Assert.assertEquals(response.getContentType().toString(), "text/plain");
@@ -504,13 +518,14 @@ public class ProjectServiceTest {
     @Test
     public void testUpdateFileContent() throws Exception {
         String myContent = "<test>hello</test>";
-        pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test", "to be or not to be".getBytes(), "text/plain");
+        pm.getProject(workspace, "my_project").getBaseFolder().createFile("test", "to be or not to be".getBytes(), "text/plain");
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("text/xml"));
-        ContainerResponse response = launcher.service("PUT", "http://localhost:8080/api/project/my_ws/file/my_project/test",
+        ContainerResponse response = launcher.service("PUT",
+                                                      String.format("http://localhost:8080/api/project/%s/file/my_project/test", workspace),
                                                       "http://localhost:8080/api", headers, myContent.getBytes(), null);
         Assert.assertEquals(response.getStatus(), 200);
-        VirtualFileEntry file = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
+        VirtualFileEntry file = pm.getProject(workspace, "my_project").getBaseFolder().getChild("test");
         Assert.assertTrue(file.isFile());
         FileEntry _file = (FileEntry)file;
         Assert.assertEquals(_file.getMediaType(), "text/xml");
@@ -519,125 +534,142 @@ public class ProjectServiceTest {
 
     @Test
     public void testCreateFolder() throws Exception {
-        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/folder/my_project/test",
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/folder/my_project/test",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/test"));
-        VirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test");
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/test", workspace)));
+        VirtualFileEntry folder = pm.getProject(workspace, "my_project").getBaseFolder().getChild("test");
         Assert.assertTrue(folder.isFolder());
     }
 
     @Test
     public void testCreatePath() throws Exception {
-        ContainerResponse response = launcher.service("POST", "http://localhost:8080/api/project/my_ws/folder/my_project/a/b/c",
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/folder/my_project/a/b/c",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/b/c"));
-        VirtualFileEntry folder = pm.getProject("my_ws", "my_project").getBaseFolder().getChild("a/b/c");
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/b/c", workspace)));
+        VirtualFileEntry folder = pm.getProject(workspace, "my_project").getBaseFolder().getChild("a/b/c");
         Assert.assertTrue(folder.isFolder());
     }
 
     @Test
     public void testDeleteFile() throws Exception {
-        pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", "to be or not to be".getBytes(), "text/plain");
-        ContainerResponse response = launcher.service("DELETE", "http://localhost:8080/api/project/my_ws/my_project/test.txt",
+        pm.getProject(workspace, "my_project").getBaseFolder().createFile("test.txt", "to be or not to be".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("DELETE",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project/test.txt", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
-        Assert.assertNull(pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test.txt"));
+        Assert.assertNull(pm.getProject(workspace, "my_project").getBaseFolder().getChild("test.txt"));
     }
 
     @Test
     public void testDeleteFolder() throws Exception {
-        pm.getProject("my_ws", "my_project").getBaseFolder().createFolder("test");
-        ContainerResponse response = launcher.service("DELETE", "http://localhost:8080/api/project/my_ws/my_project/test",
+        pm.getProject(workspace, "my_project").getBaseFolder().createFolder("test");
+        ContainerResponse response = launcher.service("DELETE",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project/test", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
-        Assert.assertNull(pm.getProject("my_ws", "my_project").getBaseFolder().getChild("test"));
+        Assert.assertNull(pm.getProject(workspace, "my_project").getBaseFolder().getChild("test"));
     }
 
     @Test
     public void testDeletePath() throws Exception {
-        pm.getProject("my_ws", "my_project").getBaseFolder().createFolder("a/b/c");
-        ContainerResponse response = launcher.service("DELETE", "http://localhost:8080/api/project/my_ws/my_project/a/b/c",
+        pm.getProject(workspace, "my_project").getBaseFolder().createFolder("a/b/c");
+        ContainerResponse response = launcher.service("DELETE",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project/a/b/c", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
-        Assert.assertNull(pm.getProject("my_ws", "my_project").getBaseFolder().getChild("a/b/c"));
+        Assert.assertNull(pm.getProject(workspace, "my_project").getBaseFolder().getChild("a/b/c"));
     }
 
     @Test
     public void testDeleteInvalidPath() throws Exception {
-        ContainerResponse response = launcher.service("DELETE", "http://localhost:8080/api/project/my_ws/my_project/a/b/c",
+        ContainerResponse response = launcher.service("DELETE",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project/a/b/c", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 404);
-        Assert.assertNotNull(pm.getProject("my_ws", "my_project"));
+        Assert.assertNotNull(pm.getProject(workspace, "my_project"));
     }
 
     @Test
     public void testDeleteProject() throws Exception {
-        ContainerResponse response = launcher.service("DELETE", "http://localhost:8080/api/project/my_ws/my_project",
+        ContainerResponse response = launcher.service("DELETE",
+                                                      String.format("http://localhost:8080/api/project/%s/my_project", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
-        Assert.assertNull(pm.getProject("my_ws", "my_project"));
+        Assert.assertNull(pm.getProject(workspace, "my_project"));
     }
 
     @Test
     public void testCopyFile() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b/c");
         ((FolderEntry)myProject.getBaseFolder().getChild("a/b")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/copy/my_project/a/b/test.txt?to=/my_project/a/b/c",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/copy/my_project/a/b/test.txt?to=/my_project/a/b/c",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/a/b/c/test.txt"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/file/my_project/a/b/c/test.txt", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/test.txt")); // new
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/test.txt")); // old
     }
 
     @Test
     public void testCopyFolder() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b/c");
         ((FolderEntry)myProject.getBaseFolder().getChild("a/b")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/copy/my_project/a/b?to=/my_project/a/b/c",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/copy/my_project/a/b?to=/my_project/a/b/c",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/b/c/b"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/b/c/b", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/test.txt"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/b/test.txt"));
     }
 
     @Test
     public void testMoveFile() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b/c");
         ((FolderEntry)myProject.getBaseFolder().getChild("a/b")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/move/my_project/a/b/test.txt?to=/my_project/a/b/c",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/move/my_project/a/b/test.txt?to=/my_project/a/b/c",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/a/b/c/test.txt"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/file/my_project/a/b/c/test.txt", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/c/test.txt")); // new
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/test.txt")); // old
     }
 
     @Test
     public void testMoveFolder() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b/c");
         ((FolderEntry)myProject.getBaseFolder().getChild("a/b/c")).createFile("test.txt", "to be or not no be".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/move/my_project/a/b/c?to=/my_project/a",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/move/my_project/a/b/c?to=/my_project/a",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/c"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/c", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/c/test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c/test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b/c"));
@@ -645,28 +677,32 @@ public class ProjectServiceTest {
 
     @Test
     public void testRenameFile() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFile("test.txt", "hello".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/rename/my_project/test.txt?name=_test.txt",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/rename/my_project/test.txt?name=_test.txt",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/_test.txt"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/file/my_project/_test.txt", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("_test.txt"));
         Assert.assertNull(myProject.getBaseFolder().getChild("test.txt"));
     }
 
     @Test
     public void testRenameFileAndUpdateMediaType() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFile("test.txt", "hello".getBytes(), "text/*");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/rename/my_project/test.txt?name=_test.txt&mediaType=text/plain",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/rename/my_project/test.txt?name=_test.txt&mediaType=text/plain",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/file/my_project/_test.txt"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/file/my_project/_test.txt", workspace)));
         FileEntry renamed = (FileEntry)myProject.getBaseFolder().getChild("_test.txt");
         Assert.assertNotNull(renamed);
         Assert.assertEquals(renamed.getMediaType(), "text/plain");
@@ -675,14 +711,15 @@ public class ProjectServiceTest {
 
     @Test
     public void testRenameFolder() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b/c");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/rename/my_project/a/b?name=x",
+                                                      String.format("http://localhost:8080/api/project/%s/rename/my_project/a/b?name=x",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/x"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/x", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/x"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/x/c"));
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b"));
@@ -728,7 +765,8 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumer importOutputLineConsumer)
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
+                                      LineConsumer importOutputLineConsumer)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);
@@ -740,7 +778,7 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         byte[] b = String.format("{\"type\":\"%s\"}", importType).getBytes();
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/import/new_project",
+                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
@@ -749,7 +787,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(descriptor.getProjectTypeName(), "my project type");
         Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
 
-        Project newProject = pm.getProject("my_ws", "new_project");
+        Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
     }
 
@@ -800,18 +838,18 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         byte[] b = String.format("{\"type\":\"%s\"}", importType).getBytes();
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/import/new_project",
+                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getProjectTypeId(), "my_project_type");
-        Project newProject = pm.getProject("my_ws", "new_project");
+        Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
     }
 
     @Test
     public void testImportZip() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b");
 
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -824,17 +862,18 @@ public class ProjectServiceTest {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/zip"));
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/import/my_project/a/b",
+                                                      String.format("http://localhost:8080/api/project/%s/import/my_project/a/b",
+                                                                    workspace),
                                                       "http://localhost:8080/api", headers, zip, null);
         Assert.assertEquals(response.getStatus(), 201);
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
-                            URI.create("http://localhost:8080/api/project/my_ws/children/my_project/a/b"));
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/b", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/file1.txt"));
     }
 
     @Test
     public void testGenerate() throws Exception {
-        pm.createProject("my_ws", "new_project",
+        pm.createProject(workspace, "new_project",
                          new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
         generatorRegistry.register(new ProjectGenerator() {
             @Override
@@ -851,13 +890,15 @@ public class ProjectServiceTest {
             }
         });
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/generate/new_project?generator=my_generator",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/generate/new_project?generator=my_generator",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getProjectTypeId(), "my_project_type");
         Assert.assertEquals(descriptor.getProjectTypeName(), "my project type");
-        Project newProject = pm.getProject("my_ws", "new_project");
+        Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
         Assert.assertNotNull(newProject.getBaseFolder().getChild("a"));
         Assert.assertNotNull(newProject.getBaseFolder().getChild("b"));
@@ -866,10 +907,10 @@ public class ProjectServiceTest {
 
     @Test
     public void testExportZip() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "hello".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/export/my_project",
+                                                      String.format("http://localhost:8080/api/project/%s/export/my_project", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         Assert.assertEquals(response.getContentType().toString(), "application/zip");
@@ -878,12 +919,13 @@ public class ProjectServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetChildren() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         FolderEntry a = myProject.getBaseFolder().createFolder("a");
         a.createFolder("b");
         a.createFile("test.txt", "test".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/children/my_project/a",
+                                                      String.format("http://localhost:8080/api/project/%s/children/my_project/a",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
@@ -898,13 +940,13 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetTree() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         FolderEntry a = myProject.getBaseFolder().createFolder("a");
         a.createFolder("b/c");
         a.createFolder("x/y");
         a.createFile("test.txt", "test".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/tree/my_project/a",
+                                                      String.format("http://localhost:8080/api/project/%s/tree/my_project/a", workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         TreeElement tree = (TreeElement)response.getEntity();
@@ -923,13 +965,14 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetTreeWithDepth() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         FolderEntry a = myProject.getBaseFolder().createFolder("a");
         a.createFolder("b/c");
         a.createFolder("x/y");
         a.createFile("test.txt", "test".getBytes(), "text/plain");
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/tree/my_project/a?depth=2",
+                                                      String.format("http://localhost:8080/api/project/%s/tree/my_project/a?depth=2",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         TreeElement tree = (TreeElement)response.getEntity();
@@ -952,9 +995,11 @@ public class ProjectServiceTest {
 
     @Test
     public void testSwitchProjectVisibilityToPrivate() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=private",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/switch_visibility/my_project?visibility=private",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
         // Private project is accessible only for user who are in the group "workspace/developer"
@@ -966,7 +1011,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(permissions.get(principal), Arrays.asList(BasicPermissions.ALL.value()));
 
         response = launcher.service("GET",
-                                    "http://localhost:8080/api/project/my_ws/my_project",
+                                    String.format("http://localhost:8080/api/project/%s/my_project", workspace),
                                     "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
@@ -975,10 +1020,12 @@ public class ProjectServiceTest {
 
     @Test
     public void testUpdateProjectVisibilityToPublic() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.setVisibility("private");
         ContainerResponse response = launcher.service("POST",
-                                                      "http://localhost:8080/api/project/my_ws/switch_visibility/my_project?visibility=public",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/switch_visibility/my_project?visibility=public",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 204);
         // List of permissions should be cleared. After that project inherits permissions from parent folder (typically root folder)
@@ -986,7 +1033,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(permissions.size(), 0);
 
         response = launcher.service("GET",
-                                    "http://localhost:8080/api/project/my_ws/my_project",
+                                    String.format("http://localhost:8080/api/project/%s/my_project", workspace),
                                     "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
@@ -996,13 +1043,14 @@ public class ProjectServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testSearchByName() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "hello".getBytes(), "text/plain");
         myProject.getBaseFolder().createFolder("x/y").createFile("test.txt", "test".getBytes(), "text/plain");
         myProject.getBaseFolder().createFolder("c").createFile("exclude", "test".getBytes(), "text/plain");
 
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/search/my_project?name=test.txt",
+                                                      String.format("http://localhost:8080/api/project/%s/search/my_project?name=test.txt",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
@@ -1018,13 +1066,14 @@ public class ProjectServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testSearchByText() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "hello".getBytes(), "text/plain");
         myProject.getBaseFolder().createFolder("x/y").createFile("__test.txt", "searchhit".getBytes(), "text/plain");
         myProject.getBaseFolder().createFolder("c").createFile("_test", "searchhit".getBytes(), "text/plain");
 
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/search/my_project?text=searchhit",
+                                                      String.format("http://localhost:8080/api/project/%s/search/my_project?text=searchhit",
+                                                                    workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
@@ -1040,13 +1089,15 @@ public class ProjectServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testSearchByMediaType() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "6769675".getBytes(), "text/plain");
         myProject.getBaseFolder().createFolder("x/y").createFile("test.txt", "132434".getBytes(), "text/plain");
         myProject.getBaseFolder().createFolder("c").createFile("test", "2343124".getBytes(), "text/plain");
 
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/search/my_project?mediatype=text/plain",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/search/my_project?mediatype=text/plain",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
@@ -1063,13 +1114,15 @@ public class ProjectServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testSearchByNameAndTextAndMediaType() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "test".getBytes(), "text/plain");
         myProject.getBaseFolder().createFolder("x/y").createFile("test.txt", "test".getBytes(), "text/*");
         myProject.getBaseFolder().createFolder("c").createFile("test", "test".getBytes(), "text/plain");
 
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/search/my_project?text=test&name=test&mediatype=text/plain",
+                                                      String.format(
+                                                              "http://localhost:8080/api/project/%s/search/my_project?text=test&name=test&mediatype=text/plain",
+                                                              workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200);
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
@@ -1079,7 +1132,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testSetBasicPermissions() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         clearAcl(myProject);
         String user = "user";
         HashMap<String, List<String>> headers = new HashMap<>(1);
@@ -1090,7 +1143,7 @@ public class ProjectServiceTest {
                                               .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
                                                                        .withName(user).withType(Principal.Type.USER));
         launcher.service("POST",
-                         "http://localhost:8080/api/project/my_ws/permissions/my_project",
+                         String.format("http://localhost:8080/api/project/%s/permissions/my_project", workspace),
                          "http://localhost:8080/api",
                          headers,
                          JsonHelper.toJson(Arrays.asList(entry1)).getBytes(),
@@ -1111,7 +1164,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testSetCustomPermissions() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         clearAcl(myProject);
         String user = "user";
         HashMap<String, List<String>> headers = new HashMap<>(1);
@@ -1122,7 +1175,7 @@ public class ProjectServiceTest {
                                               .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
                                                                        .withName(user).withType(Principal.Type.USER));
         launcher.service("POST",
-                         "http://localhost:8080/api/project/my_ws/permissions/my_project",
+                         String.format("http://localhost:8080/api/project/%s/permissions/my_project", workspace),
                          "http://localhost:8080/api",
                          headers,
                          JsonHelper.toJson(Arrays.asList(entry1)).getBytes(),
@@ -1143,7 +1196,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testSetBothBasicAndCustomPermissions() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         clearAcl(myProject);
         String user = "user";
         HashMap<String, List<String>> headers = new HashMap<>(1);
@@ -1154,7 +1207,7 @@ public class ProjectServiceTest {
                                               .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
                                                                        .withName(user).withType(Principal.Type.USER));
         launcher.service("POST",
-                         "http://localhost:8080/api/project/my_ws/permissions/my_project",
+                         String.format("http://localhost:8080/api/project/%s/permissions/my_project", workspace),
                          "http://localhost:8080/api",
                          headers,
                          JsonHelper.toJson(Arrays.asList(entry1)).getBytes(),
@@ -1176,7 +1229,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testUpdatePermissions() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                 .withPermissions(Arrays.asList("all"))
                                                 .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
@@ -1197,7 +1250,7 @@ public class ProjectServiceTest {
                                               .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
                                                                        .withName(vfsUser).withType(Principal.Type.USER));
         launcher.service("POST",
-                         "http://localhost:8080/api/project/my_ws/permissions/my_project",
+                         String.format("http://localhost:8080/api/project/%s/permissions/my_project", workspace),
                          "http://localhost:8080/api",
                          headers,
                          JsonHelper.toJson(Arrays.asList(update)).getBytes(),
@@ -1220,7 +1273,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetPermissionsForCertainUser() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                 .withPermissions(Arrays.asList("all"))
                                                 .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
@@ -1233,8 +1286,8 @@ public class ProjectServiceTest {
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
 
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/permissions/my_project?userid=" +
-                                                      vfsUser,
+                                                      String.format("http://localhost:8080/api/project/%s/permissions/my_project?userid=%s",
+                                                                    workspace, vfsUser),
                                                       "http://localhost:8080/api",
                                                       null,
                                                       null,
@@ -1256,7 +1309,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetAllProjectPermissions() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         AccessControlEntry newEntry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                                 .withPermissions(Arrays.asList("all"))
                                                 .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
@@ -1269,7 +1322,8 @@ public class ProjectServiceTest {
         myProject.getBaseFolder().getVirtualFile().updateACL(Arrays.asList(newEntry, newEntry2), false, null);
 
         ContainerResponse response = launcher.service("GET",
-                                                      "http://localhost:8080/api/project/my_ws/permissions/my_project",
+                                                      String.format("http://localhost:8080/api/project/%s/permissions/my_project",
+                                                                    workspace),
                                                       "http://localhost:8080/api",
                                                       null,
                                                       null,
@@ -1284,7 +1338,7 @@ public class ProjectServiceTest {
 
     @Test
     public void testClearPermissionsForCertainUserToCertainProject() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
+        Project myProject = pm.getProject(workspace, "my_project");
         AccessControlEntry entry = DtoFactory.getInstance().createDto(AccessControlEntry.class)
                                              .withPermissions(Arrays.asList("all"))
                                              .withPrincipal(DtoFactory.getInstance().createDto(Principal.class)
@@ -1297,7 +1351,7 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
 
         launcher.service("POST",
-                         "http://localhost:8080/api/project/my_ws/permissions/my_project",
+                         String.format("http://localhost:8080/api/project/%s/permissions/my_project", workspace),
                          "http://localhost:8080/api",
                          headers,
                          JsonHelper.toJson(Arrays.asList(entry.withPermissions(null))).getBytes(),

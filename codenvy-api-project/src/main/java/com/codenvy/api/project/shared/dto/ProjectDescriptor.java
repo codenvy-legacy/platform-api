@@ -173,6 +173,7 @@ public interface ProjectDescriptor {
 
     /**
      * Get URL for opening project in Codenvy IDE.
+     *
      * @return URL for opening project in Codenvy IDE.
      */
     @ApiModelProperty(value = "URL for opening project in Codenvy IDE", position = 6)
@@ -180,19 +181,24 @@ public interface ProjectDescriptor {
 
     /**
      * Sets URL for  opening project in Codenvy IDE.
-     * @param url the IDE URL
+     *
+     * @param url
+     *         the IDE URL
      */
     void setIdeUrl(String url);
 
     /**
      * Sets URL for  opening project in Codenvy IDE.
-     * @param url the IDE URL
-     * @return {@Link ProjectDescriptor}
+     *
+     * @param url
+     *         the IDE URL
+     * @return {@link ProjectDescriptor}
      */
     ProjectDescriptor withIdeUrl(String url);
 
     /**
      * Get name of workspace this project belongs to.
+     *
      * @return name of workspace this project belongs to
      */
     @ApiModelProperty(value = "Name of workspace which the project belongs to", position = 8)
@@ -200,16 +206,18 @@ public interface ProjectDescriptor {
 
     /**
      * Sets name of workspace this project belongs to.
-     * @param name the name of the workspace
+     *
+     * @param name
+     *         the name of the workspace
      */
     void setWorkspaceName(String name);
 
     /**
      * Sets name of workspace this project belongs to.
-     * @param name the name of the workspace
-     * @return {@Link ProjectDescriptor}
+     *
+     * @param name
+     *         the name of the workspace
+     * @return {@link ProjectDescriptor}
      */
     ProjectDescriptor withWorkspaceName(String name);
-
-
 }

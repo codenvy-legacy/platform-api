@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -20,15 +21,18 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.ParameterType;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
+import com.codenvy.api.core.rest.shared.dto.ObjectStatus;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
+import com.codenvy.api.project.shared.ValueStorageException;
 import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -81,7 +85,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -115,6 +118,8 @@ public class ProjectService extends Service {
     @Inject
     private EventService                eventService;
 
+    private DtoFactory dtoFactory = DtoFactory.getInstance();
+
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,
                   responseContainer = "List",
@@ -128,17 +133,17 @@ public class ProjectService extends Service {
     public List<ProjectReference> getProjects(@ApiParam(value = "ID of workspace to get projects", required = true)
                                               @PathParam("ws-id") String workspace) throws IOException, ServerException, ConflictException {
         final List<Project> projects = projectManager.getProjects(workspace);
-        final List<ProjectReference> projectRefs = new ArrayList<>(projects.size());
+        final List<ProjectReference> projectReferences = new ArrayList<>(projects.size());
         for (Project project : projects) {
             try {
-                projectRefs.add(toReference(project));
-            } catch (ServerException | ConflictException e) {
+                projectReferences.add(toReference(project));
+            } catch (RuntimeException e) {
                 // Ignore known error for single project.
                 // In result we won't have them in explorer tree but at least 'bad' projects won't prevent to show 'good' projects.
                 LOG.error(e.getMessage(), e);
             }
         }
-        return projectRefs;
+        return projectReferences;
     }
 
     @ApiOperation(value = "Gets project by ID of workspace and project's path",
@@ -202,7 +207,7 @@ public class ProjectService extends Service {
                   notes = "Get project modules. Roles allowed: system/admin, system/manager.",
                   response = ProjectDescriptor.class,
                   responseContainer = "List",
-                  position = 5)
+                  position = 4)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -211,33 +216,31 @@ public class ProjectService extends Service {
     @GET
     @Path("/modules/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectDescriptor> getModules(@ApiParam(value = "Workspace ID", required = true)
-                                              @PathParam("ws-id") String workspace,
-                                              @ApiParam(value = "Path to a project", required = true)
-                                              @PathParam("path") String path)
+    public List<ProjectReference> getModules(@ApiParam(value = "Workspace ID", required = true)
+                                             @PathParam("ws-id") String workspace,
+                                             @ApiParam(value = "Path to a project", required = true)
+                                             @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException, ConflictException {
-        final Project project = projectManager.getProject(workspace, path);
-        if (project == null) {
-            throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'. ", path, workspace));
-        }
-        final List<Project> modules = project.getModules();
-        final List<ProjectDescriptor> descriptors = new ArrayList<>(modules.size());
-        for (Project module : modules) {
-            try {
-                descriptors.add(toDescriptor(module));
-            } catch (ConflictException | ServerException e) {
-                // Ignore known error for single module.
-                // In result we won't have them in project tree but at least 'bad' modules won't prevent to show 'good' modules.
-                LOG.error(e.getMessage(), e);
+        final FolderEntry folder = asFolder(workspace, path);
+        final List<ProjectReference> projectReferences = new LinkedList<>();
+        for (FolderEntry childFolder : folder.getChildFolders()) {
+            if (childFolder.isProjectFolder()) {
+                try {
+                    projectReferences.add(toReference(new Project(workspace, childFolder, projectManager)));
+                } catch (RuntimeException e) {
+                    // Ignore known error for single module.
+                    // In result we won't have them in project tree but at least 'bad' modules won't prevent to show 'good' modules.
+                    LOG.error(e.getMessage(), e);
+                }
             }
         }
-        return descriptors;
+        return projectReferences;
     }
 
     @ApiOperation(value = "Create a new module",
                   notes = "Create a new module in a specified project",
                   response = ProjectDescriptor.class,
-                  position = 6)
+                  position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -250,19 +253,18 @@ public class ProjectService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public ProjectDescriptor createModule(@ApiParam(value = "Workspace ID", required = true)
                                           @PathParam("ws-id") String workspace,
-                                          @ApiParam(value = "Project name", required = true)
-                                          @PathParam("path") String parentProject,
+                                          @ApiParam(value = "Path to a target directory", required = true)
+                                          @PathParam("path") String parentPath,
                                           @ApiParam(value = "New module name", required = true)
                                           @QueryParam("name") String name,
                                           NewProject newProject)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
-        final Project project = projectManager.getProject(workspace, parentProject);
-        if (project == null) {
-            throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", parentProject, workspace));
-        }
-        final Project module = project.createModule(name, toDescription(newProject));
+        final FolderEntry folder = asFolder(workspace, parentPath);
+        final FolderEntry moduleFolder = folder.createFolder(name);
+        final Project module = new Project(workspace, moduleFolder, projectManager);
+        module.updateDescription(toDescription(newProject));
         final ProjectDescriptor descriptor = toDescriptor(module);
-        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
+        eventService.publish(new ProjectCreatedEvent(module.getWorkspace(), module.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
                  descriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
@@ -271,7 +273,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Updates existing project",
                   response = ProjectDescriptor.class,
-                  position = 4)
+                  position = 6)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Project with specified path doesn't exist in workspace"),
@@ -307,6 +309,7 @@ public class ProjectService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Consumes({MediaType.MEDIA_TYPE_WILDCARD})
+    @Produces({MediaType.APPLICATION_JSON})
     @Path("/file/{parent:.*}")
     public Response createFile(@ApiParam(value = "Workspace ID", required = true)
                                @PathParam("ws-id") String workspace,
@@ -317,18 +320,27 @@ public class ProjectService extends Service {
                                @ApiParam(value = "New file content type")
                                @HeaderParam("content-type") MediaType contentType,
                                InputStream content) throws NotFoundException, ConflictException, ForbiddenException, ServerException {
+        final FolderEntry parent = asFolder(workspace, parentPath);
         // Have issue with client side. Always have Content-type header is set even if client doesn't set it.
         // In this case have Content-type is set with "text/plain; charset=UTF-8" which isn't acceptable.
         // Have agreement with client to send Content-type header with "application/unknown" value if client doesn't want to specify media
         // type of new file. In this case server takes care about resolving media type of file.
-        final FileEntry newFile = asFolder(workspace, parentPath)
-                .createFile(fileName, content,
-                            contentType == null ||
-                            ("application".equals(contentType.getType()) && "unknown".equals(contentType.getSubtype()))
-                            ? null : contentType.getType() + '/' + contentType.getSubtype());
-        return Response.created(getServiceContext().getServiceUriBuilder()
-                                                   .path(getClass(), "getFile")
-                                                   .build(workspace, newFile.getPath().substring(1))).build();
+        final FileEntry newFile;
+        if (contentType == null || ("application".equals(contentType.getType()) && "unknown".equals(contentType.getSubtype()))) {
+            newFile = parent.createFile(fileName, content, null);
+        } else {
+            newFile = parent.createFile(fileName, content, (contentType.getType() + '/' + contentType.getSubtype()));
+        }
+        final ItemReference fileReference = dtoFactory.createDto(ItemReference.class)
+                                                      .withName(newFile.getName())
+                                                      .withPath(newFile.getPath())
+                                                      .withType("file")
+                                                      .withMediaType(newFile.getMediaType())
+                                                      .withLinks(generateFileLinks(workspace, newFile));
+        final URI location = getServiceContext().getServiceUriBuilder()
+                                                .path(getClass(), "getFile")
+                                                .build(workspace, newFile.getPath().substring(1));
+        return Response.created(location).entity(fileReference).build();
     }
 
     @ApiOperation(value = "Create a folder",
@@ -341,6 +353,7 @@ public class ProjectService extends Service {
             @ApiResponse(code = 409, message = "File already exists"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
+    @Produces({MediaType.APPLICATION_JSON})
     @Path("/folder/{path:.*}")
     public Response createFolder(@ApiParam(value = "Workspace ID", required = true)
                                  @PathParam("ws-id") String workspace,
@@ -348,14 +361,21 @@ public class ProjectService extends Service {
                                  @PathParam("path") String path)
             throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry newFolder = projectManager.getProjectsRoot(workspace).createFolder(path);
-        return Response.created(getServiceContext().getServiceUriBuilder()
-                                                   .path(getClass(), "getChildren")
-                                                   .build(workspace, newFolder.getPath().substring(1))).build();
+        final ItemReference folderReference = dtoFactory.createDto(ItemReference.class)
+                                                        .withName(newFolder.getName())
+                                                        .withPath(newFolder.getPath())
+                                                        .withType("folder")
+                                                        .withMediaType("text/directory")
+                                                        .withLinks(generateFolderLinks(workspace, newFolder));
+        final URI location = getServiceContext().getServiceUriBuilder()
+                                                .path(getClass(), "getChildren")
+                                                .build(workspace, newFolder.getPath().substring(1));
+        return Response.created(location).entity(folderReference).build();
     }
 
     @ApiOperation(value = "Upload a file",
                   notes = "Upload a new file",
-                  position = 8)
+                  position = 9)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -365,7 +385,7 @@ public class ProjectService extends Service {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.TEXT_HTML})
-    @Path("/uploadFile/{parent:.*}")
+    @Path("/uploadfile/{parent:.*}")
     public Response uploadFile(@ApiParam(value = "Workspace ID", required = true)
                                @PathParam("ws-id") String workspace,
                                @ApiParam(value = "Destination path", required = true)
@@ -378,7 +398,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Get file content",
                   notes = "Get file content by its name",
-                  position = 9)
+                  position = 10)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -397,7 +417,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Update file",
                   notes = "Update an existing file with new content",
-                  position = 10)
+                  position = 11)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -428,7 +448,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Delete a resource",
                   notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to be deleted a path to the requested resource needs to be specified",
-                  position = 11)
+                  position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -457,7 +477,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Copy resource",
                   notes = "Copy resource to a new location which is specified in a query parameter",
-                  position = 12)
+                  position = 13)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -491,7 +511,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Move resource",
                   notes = "Move resource to a new location which is specified in a query parameter",
-                  position = 13)
+                  position = 14)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -527,7 +547,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Rename resource",
                   notes = "Rename resources. It can be project, module, folder or file",
-                  position = 14)
+                  position = 15)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -561,7 +581,7 @@ public class ProjectService extends Service {
     @ApiOperation(value = "Import resource",
                   notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from VCS or ZIP",
                   response = ProjectDescriptor.class,
-                  position = 15)
+                  position = 16)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 401, message = "User not authorized to call this operation"),
@@ -648,7 +668,7 @@ public class ProjectService extends Service {
     @ApiOperation(value = "Generate a project",
                   notes = "Generate a project of a particular type",
                   response = ProjectDescriptor.class,
-                  position = 16)
+                  position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 403, message = "Forbidden operation"),
@@ -684,7 +704,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Import zip",
                   notes = "Import resources as zip",
-                  position = 16)
+                  position = 18)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -715,7 +735,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Download ZIP",
                   notes = "Export resource as zip. It can be an entire project or folder",
-                  position = 17)
+                  position = 19)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -757,7 +777,7 @@ public class ProjectService extends Service {
                   notes = "Request all children items for a project, such as files and folders",
                   response = ItemReference.class,
                   responseContainer = "List",
-                  position = 18)
+                  position = 20)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -775,7 +795,7 @@ public class ProjectService extends Service {
         final List<VirtualFileEntry> children = folder.getChildren();
         final ArrayList<ItemReference> result = new ArrayList<>(children.size());
         for (VirtualFileEntry child : children) {
-            final ItemReference itemReference = DtoFactory.getInstance().createDto(ItemReference.class)
+            final ItemReference itemReference = dtoFactory.createDto(ItemReference.class)
                                                           .withName(child.getName())
                                                           .withPath(child.getPath());
             if (child.isFile()) {
@@ -783,9 +803,10 @@ public class ProjectService extends Service {
                              .withMediaType(((FileEntry)child).getMediaType())
                              .withLinks(generateFileLinks(workspace, (FileEntry)child));
             } else {
-                itemReference.withType("folder")
+                final FolderEntry childFolder = (FolderEntry)child;
+                itemReference.withType(childFolder.isProjectFolder() ? "project" : "folder")
                              .withMediaType("text/directory")
-                             .withLinks(generateFolderLinks(workspace, (FolderEntry)child));
+                             .withLinks(generateFolderLinks(workspace, childFolder));
             }
             result.add(itemReference);
         }
@@ -796,7 +817,7 @@ public class ProjectService extends Service {
                   notes = "Get project tree. Depth is specified in a query parameter",
                   response = TreeElement.class,
                   responseContainer = "List",
-                  position = 19)
+                  position = 21)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -813,11 +834,11 @@ public class ProjectService extends Service {
                                @DefaultValue("1") @QueryParam("depth") int depth)
             throws NotFoundException, ForbiddenException, ServerException {
         final FolderEntry folder = asFolder(workspace, path);
-        return DtoFactory.getInstance().createDto(TreeElement.class)
-                         .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
+        return dtoFactory.createDto(TreeElement.class)
+                         .withNode(dtoFactory.createDto(ItemReference.class)
                                              .withName(folder.getName())
                                              .withPath(folder.getPath())
-                                             .withType("folder")
+                                             .withType(folder.isProjectFolder() ? "project" : "folder")
                                              .withMediaType("text/directory")
                                              .withLinks(generateFolderLinks(workspace, folder)))
                          .withChildren(getTree(workspace, folder, depth));
@@ -830,8 +851,8 @@ public class ProjectService extends Service {
         final List<FolderEntry> childFolders = folder.getChildFolders();
         final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
         for (FolderEntry childFolder : childFolders) {
-            nodes.add(DtoFactory.getInstance().createDto(TreeElement.class)
-                                .withNode(DtoFactory.getInstance().createDto(ItemReference.class)
+            nodes.add(dtoFactory.createDto(TreeElement.class)
+                                .withNode(dtoFactory.createDto(ItemReference.class)
                                                     .withName(childFolder.getName())
                                                     .withPath(childFolder.getPath())
                                                     .withType("folder")
@@ -846,7 +867,7 @@ public class ProjectService extends Service {
                   notes = "Search for resources applying a number of search filters as query parameters",
                   response = ItemReference.class,
                   responseContainer = "List",
-                  position = 20)
+                  position = 22)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -901,7 +922,7 @@ public class ProjectService extends Service {
                     // Ignore item that user can't access
                 }
                 if (child != null && child.isFile()) {
-                    items.add(DtoFactory.getInstance().createDto(ItemReference.class)
+                    items.add(dtoFactory.createDto(ItemReference.class)
                                         .withName(child.getName())
                                         .withPath(child.getPath())
                                         .withType("file")
@@ -918,7 +939,7 @@ public class ProjectService extends Service {
                   notes = "Get permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
-                  position = 21)
+                  position = 23)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -954,7 +975,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Set project visibility",
                   notes = "Set project visibility. Projects can be private or public",
-                  position = 22)
+                  position = 24)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -984,7 +1005,7 @@ public class ProjectService extends Service {
                   notes = "Set permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
-                  position = 23)
+                  position = 25)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1125,7 +1146,7 @@ public class ProjectService extends Service {
     }
 
     private ProjectDescriptor toDescriptor(Project project) throws ServerException, ConflictException {
-        final ProjectDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectDescriptor.class);
+        final ProjectDescriptor descriptor = dtoFactory.createDto(ProjectDescriptor.class);
         fillDescriptor(project, descriptor);
         return descriptor;
     }
@@ -1157,7 +1178,6 @@ public class ProjectService extends Service {
                 }
             }
         }
-        final DtoFactory dtoFactory = DtoFactory.getInstance();
         final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs = description.getBuilderEnvironmentConfigurations();
         final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors = new LinkedHashMap<>();
         for (Map.Entry<String, BuilderEnvironmentConfiguration> e : builderEnvConfigs.entrySet()) {
@@ -1173,7 +1193,6 @@ public class ProjectService extends Service {
                                                                  .withDefaultMemorySize(envConfig.getDefaultMemorySize())
                                                                  .withOptions(envConfig.getOptions()));
         }
-
         descriptor.withName(project.getName())
                   .withPath(project.getBaseFolder().getPath())
                   .withBaseUrl(uriBuilder.clone().path(project.getBaseFolder().getPath()).build(workspaceId).toString())
@@ -1199,112 +1218,93 @@ public class ProjectService extends Service {
                               : null);
     }
 
-    private ProjectReference toReference(Project project) throws ServerException, ConflictException {
-        final String workspaceId = project.getWorkspace();
-        final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
-        final ProjectDescription description = project.getDescription();
-        final ProjectType type = description.getProjectType();
+    private ProjectReference toReference(Project project) {
         final String name = project.getName();
         final String path = project.getPath();
+        final String workspaceId = project.getWorkspace();
+        final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
+        final ProjectReference projectReference = dtoFactory.createDto(ProjectReference.class)
+                                                            .withName(name)
+                                                            .withPath(path)
+                                                            .withWorkspaceId(workspaceId)
+                                                            .withWorkspaceName(workspaceName);
+        try {
+            final ProjectDescription description = project.getDescription();
+            final ProjectType type = description.getProjectType();
+            projectReference.withProjectTypeId(type.getId())
+                            .withProjectTypeName(type.getName())
+                            .withDescription(description.getDescription());
+        } catch (ServerException | ValueStorageException e) {
+            return projectReference.withObjectStatus(createObjectStatus(e));
+        }
+        try {
+            projectReference.setVisibility(project.getVisibility());
+        } catch (ServerException e) {
+            return projectReference.withObjectStatus(createObjectStatus(e));
+        }
+        try {
+            projectReference.setCreationDate(project.getCreationDate());
+        } catch (ServerException e) {
+            e.printStackTrace();
+        }
+        try {
+            projectReference.setModificationDate(project.getModificationDate());
+        } catch (ServerException e) {
+            return projectReference.withObjectStatus(createObjectStatus(e));
+        }
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        return DtoFactory.getInstance().createDto(ProjectReference.class)
-                         .withName(name)
-                         .withPath(path)
-                         .withWorkspaceId(workspaceId)
-                         .withWorkspaceName(workspaceName)
-                         .withProjectTypeId(type.getId())
-                         .withProjectTypeName(type.getName())
-                         .withVisibility(project.getVisibility())
-                         .withCreationDate(project.getCreationDate())
-                         .withModificationDate(project.getModificationDate())
-                         .withDescription(description.getDescription())
-                         .withUrl(uriBuilder.clone().path(getClass(), "getProject").build(workspaceId, name).toString())
-                         .withIdeUrl(workspaceName != null
-                                     ? uriBuilder.clone().replacePath("ws").path(workspaceName).path(path).build().toString()
-                                     : null);
+        final String projectUrl = uriBuilder.clone().path(getClass(), "getProject").build(workspaceId, name).toString();
+        projectReference.setUrl(projectUrl);
+        if (workspaceName != null) {
+            final String ideUrl = uriBuilder.clone().replacePath("ws").path(workspaceName).path(path).build().toString();
+            projectReference.setIdeUrl(ideUrl);
+        }
+        return projectReference;
+    }
+
+    private ObjectStatus createObjectStatus(ApiException error) {
+        // TODO: setup error code
+        return dtoFactory.createDto(ObjectStatus.class).withCode(1).withMessage(error.getMessage());
     }
 
     private List<Link> generateProjectLinks(String workspace, Project project) {
         final UriBuilder ub = getServiceContext().getServiceUriBuilder();
-        final DtoFactory dto = DtoFactory.getInstance();
-        final List<Link> links = new ArrayList<>(5);
+        final List<Link> links = generateFolderLinks(workspace, project.getBaseFolder());
         final String relPath = project.getPath().substring(1);
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_UPDATE_PROJECT)
-                     .withMethod("PUT")
-                     .withProduces(MediaType.APPLICATION_JSON)
-                     .withConsumes(MediaType.APPLICATION_JSON)
-                     .withHref(ub.clone().path(getClass(), "updateProject").build(workspace, relPath).toString()));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_EXPORT_ZIP)
-                     .withMethod("GET")
-                     .withProduces("application/zip")
-                     .withHref(ub.clone().path(getClass(), "exportZip").build(workspace, relPath).toString()));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_CHILDREN)
-                     .withMethod("GET")
-                     .withProduces(MediaType.APPLICATION_JSON)
-                     .withHref(ub.clone().path(getClass(), "getChildren").build(workspace, relPath).toString()));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_TREE)
-                     .withMethod("GET")
-                     .withProduces(MediaType.APPLICATION_JSON)
-                     .withHref(ub.clone().path(getClass(), "getTree").build(workspace, relPath).toString())
-                     .withParameters(Arrays.asList(dto.createDto(LinkParameter.class).withName("depth").withType(ParameterType.Number))));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_DELETE)
-                     .withMethod("DELETE")
-                     .withHref(ub.clone().path(getClass(), "delete").build(workspace, relPath).toString()));
+        links.add(Links.createLink("PUT", ub.clone().path(getClass(), "updateProject").build(workspace, relPath).toString(),
+                                   MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_UPDATE_PROJECT));
         return links;
     }
 
     private List<Link> generateFolderLinks(String workspace, FolderEntry folder) {
         final UriBuilder ub = getServiceContext().getServiceUriBuilder();
-        final DtoFactory dto = DtoFactory.getInstance();
-        final List<Link> links = new ArrayList<>(4);
+        final List<Link> links = new LinkedList<>();
         final String relPath = folder.getPath().substring(1);
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_EXPORT_ZIP)
-                     .withMethod("GET")
-                     .withProduces("application/zip")
-                     .withHref(ub.clone().path(getClass(), "exportZip").build(workspace, relPath).toString()));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_CHILDREN)
-                     .withMethod("GET")
-                     .withProduces(MediaType.APPLICATION_JSON)
-                     .withHref(ub.clone().path(getClass(), "getChildren").build(workspace, relPath).toString()));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_TREE)
-                     .withMethod("GET")
-                     .withProduces(MediaType.APPLICATION_JSON)
-                     .withHref(ub.clone().path(getClass(), "getTree").build(workspace, relPath).toString())
-                     .withParameters(Arrays.asList(dto.createDto(LinkParameter.class).withName("depth").withType(ParameterType.Number))));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_DELETE)
-                     .withMethod("DELETE")
-                     .withHref(ub.clone().path(getClass(), "delete").build(workspace, relPath).toString()));
+        //String method, String href, String produces, String rel
+        links.add(Links.createLink("GET", ub.clone().path(getClass(), "exportZip").build(workspace, relPath).toString(), "application/zip",
+                                   Constants.LINK_REL_EXPORT_ZIP));
+        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getChildren").build(workspace, relPath).toString(),
+                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_CHILDREN));
+        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getTree").build(workspace, relPath).toString(), null,
+                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_TREE,
+                                   dtoFactory.createDto(LinkParameter.class).withName("depth").withType(ParameterType.Number)));
+        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getModules").build(workspace, relPath).toString(),
+                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_MODULES));
+        links.add(Links.createLink("DELETE", ub.clone().path(getClass(), "delete").build(workspace, relPath).toString(),
+                                   Constants.LINK_REL_DELETE));
         return links;
     }
 
-    private List<Link> generateFileLinks(String workspace, FileEntry file) {
+    private List<Link> generateFileLinks(String workspace, FileEntry file) throws ServerException {
         final UriBuilder ub = getServiceContext().getServiceUriBuilder();
-        final DtoFactory dto = DtoFactory.getInstance();
-        final List<Link> links = new ArrayList<>(3);
+        final List<Link> links = new LinkedList<>();
         final String relPath = file.getPath().substring(1);
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_GET_CONTENT)
-                     .withMethod("GET")
-                     .withProduces(MediaType.WILDCARD)
-                     .withHref(ub.clone().path(getClass(), "getFile").build(workspace, relPath).toString()));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_UPDATE_CONTENT)
-                     .withMethod("PUT")
-                     .withConsumes(MediaType.WILDCARD)
-                     .withHref(ub.clone().path(getClass(), "updateFile").build(workspace, relPath).toString()));
-        links.add(dto.createDto(Link.class)
-                     .withRel(Constants.LINK_REL_DELETE)
-                     .withMethod("DELETE")
-                     .withHref(ub.clone().path(getClass(), "delete").build(workspace, relPath).toString()));
+        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getFile").build(workspace, relPath).toString(), null,
+                                   file.getMediaType(), Constants.LINK_REL_GET_CONTENT));
+        links.add(Links.createLink("PUT", ub.clone().path(getClass(), "updateFile").build(workspace, relPath).toString(),
+                                   MediaType.WILDCARD, null, Constants.LINK_REL_UPDATE_CONTENT));
+        links.add(Links.createLink("DELETE", ub.clone().path(getClass(), "delete").build(workspace, relPath).toString(),
+                                   Constants.LINK_REL_DELETE));
         return links;
     }
 }

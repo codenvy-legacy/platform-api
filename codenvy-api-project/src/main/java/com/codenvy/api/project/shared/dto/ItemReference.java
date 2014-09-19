@@ -20,7 +20,6 @@ import java.util.List;
  */
 @DTO
 public interface ItemReference {
-
     /** Get name of item. */
     String getName();
 
@@ -29,10 +28,10 @@ public interface ItemReference {
 
     ItemReference withName(String name);
 
-    /** Get type of item, e.g. "file" or "folder". */
+    /** Get type of item, e.g. "file", "folder" or "project". */
     String getType();
 
-    /** Set type of item, e.g. "file" or "folder". */
+    /** Set type of item, e.g. "file" or "folder" or "project". */
     void setType(String type);
 
     ItemReference withType(String type);

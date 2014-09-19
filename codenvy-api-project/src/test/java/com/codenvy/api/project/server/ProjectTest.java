@@ -28,7 +28,6 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -116,46 +115,6 @@ public class ProjectTest {
     }
 
     @Test
-    public void testGetProjectModules() throws Exception {
-        List<String> moduleNames = Arrays.asList("module_1", "module_2", "module_3");
-        VirtualFile myProjectVirtualFile = pm.getProject("my_ws", "my_project").getBaseFolder().getVirtualFile();
-        for (String name : moduleNames) {
-            myProjectVirtualFile.createFolder(name)
-                                .createFolder(Constants.CODENVY_FOLDER)
-                                .createFile(Constants.CODENVY_PROJECT_FILE, null, null);
-        }
-        List<Project> modules = pm.getProject("my_ws", "my_project").getModules();
-        List<String> _moduleNames = new ArrayList<>(modules.size());
-        for (Project module : modules) {
-            _moduleNames.add(module.getName());
-        }
-        Assert.assertEquals(_moduleNames.size(), moduleNames.size());
-        Assert.assertTrue(moduleNames.containsAll(_moduleNames));
-    }
-
-    @Test
-    public void testGetModulesWhenFoldersOnTheSameLevelExist() throws Exception {
-        List<String> names = Arrays.asList("module_1", "module_2", "module_3", "module_4");
-        // create two "modules" and two folders on the same level
-        VirtualFile myProjectVirtualFile = pm.getProject("my_ws", "my_project").getBaseFolder().getVirtualFile();
-        for (int i = 0, size = names.size(); i < size; i++) {
-            String name = names.get(i);
-            VirtualFile f = myProjectVirtualFile.createFolder(name);
-            if ((i % 2) == 0) {
-                f.createFolder(Constants.CODENVY_FOLDER).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
-            }
-        }
-        List<Project> modules = pm.getProject("my_ws", "my_project").getModules();
-        List<String> _moduleNames = new ArrayList<>(modules.size());
-        for (Project module : modules) {
-            _moduleNames.add(module.getName());
-        }
-        Assert.assertEquals(_moduleNames.size(), 2);
-        Assert.assertTrue(names.contains("module_2"));
-        Assert.assertTrue(names.contains("module_4"));
-    }
-
-    @Test
     public void testGetProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
         Map<String, List<String>> attributes = new HashMap<>(2);
@@ -204,17 +163,6 @@ public class ProjectTest {
         Assert.assertEquals(pm.size(), 2);
         Assert.assertEquals(pm.get("my_property_1"), Arrays.asList("updated value 1"));
         Assert.assertEquals(pm.get("new_my_property_2"), Arrays.asList("new value 2"));
-    }
-
-    @Test
-    public void testCreateModule() throws Exception {
-        Project myProject = pm.getProject("my_ws", "my_project");
-        Project myModule = myProject
-                .createModule("my_module", new ProjectDescription(new ProjectType("my_module_type", "my_module_type", "my_module_type")));
-        ProjectDescription myModuleDescription = myModule.getDescription();
-        Assert.assertEquals(myModuleDescription.getProjectType().getId(), "my_module_type");
-        Assert.assertEquals(myModuleDescription.getProjectType().getName(), "my_module_type");
-        Assert.assertEquals(myModuleDescription.getProjectType().getCategory(), "my_module_type");
     }
 
     @Test

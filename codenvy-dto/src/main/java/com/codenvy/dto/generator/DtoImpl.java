@@ -1,16 +1,13 @@
-// Copyright 2012 Google Inc. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*******************************************************************************
+ * Copyright (c) 2012-2014 Codenvy, S.A.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ * Codenvy, S.A. - initial API and implementation
+ *******************************************************************************/
 package com.codenvy.dto.generator;
 
 import com.codenvy.dto.shared.CompactJsonDto;
@@ -22,7 +19,7 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -104,38 +101,25 @@ abstract class DtoImpl {
      * Our super interface may implement some other interface (or not). We need to know because if it does then we need to directly extend
      * said super interfaces impl class.
      */
-    protected Class<?> getSuperInterface() {
-        Class<?>[] superInterfaces = dtoInterface.getInterfaces();
+    protected Class<?> getSuperInterface(Class<?> dto) {
+        Class<?>[] superInterfaces = dto.getInterfaces();
         return superInterfaces.length == 0 ? null : superInterfaces[0];
     }
 
-    /**
-     * We need not generate a field and method for any method present on a parent interface that our interface may inherit from. We only
-     * care about the new methods defined on our superInterface.
-     */
-    protected boolean ignoreMethod(Method method) {
-        if (method == null) {
-            return true;
-        }
-        if (!isDtoGetter(method)) {
-            return true;
-        }
-        if (method.isAnnotationPresent(DelegateTo.class)) {
-            return true;
-        }
-        // Look at any interfaces our superInterface implements.
-        Class<?>[] superInterfaces = dtoInterface.getInterfaces();
-        List<Method> methodsToExclude = new LinkedList<>();
-        // Collect methods on parent interfaces
-        for (Class<?> parent : superInterfaces) {
-            Collections.addAll(methodsToExclude, parent.getMethods());
-        }
-        for (Method m : methodsToExclude) {
-            if (m.equals(method)) {
-                return true;
+    protected List<Method> getDtoGetters(Class<?> dto) {
+        List<Method> getters = new ArrayList<>();
+        addDtoGetters(dto, getters);
+        return getters;
+    }
+
+    private void addDtoGetters(Class<?> dto, List<Method> getters) {
+        if (enclosingTemplate.isDtoInterface(dto)) {
+            for (Method method : dto.getDeclaredMethods()) {
+                if (isDtoGetter(method)) {
+                    getters.add(method);
+                }
             }
         }
-        return false;
     }
 
     /** Check is specified method is DTO getter. */
@@ -238,7 +222,7 @@ abstract class DtoImpl {
                     Class<?> clazz = (Class<?>)curType;
                     if (isList(clazz) || isMap(clazz)) {
                         throw new DtoTemplate.MalformedDtoInterfaceException(
-                                "JsonArray and JsonStringMap MUST have a generic type specified (and no... ? " + "doesn't cut it!).");
+                                "JsonArray and JsonStringMap MUST have a generic type specified (and no... ? doesn't cut it!).");
                     }
                 }
                 curType = null;
@@ -254,7 +238,8 @@ abstract class DtoImpl {
     /**
      * Returns public methods specified in DTO interface.
      * <p/>
-     * <p>For compact DTO (see {@link CompactJsonDto}) methods are ordered corresponding to {@link SerializationIndex} annotation.
+     * <p>For compact DTO (see {@link com.codenvy.dto.shared.CompactJsonDto}) methods are ordered corresponding to {@link
+     * com.codenvy.dto.shared.SerializationIndex} annotation.
      * <p/>
      * <p>Gaps in index sequence are filled with {@code null}s.
      */

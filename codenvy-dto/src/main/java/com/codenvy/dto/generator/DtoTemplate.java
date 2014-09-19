@@ -266,7 +266,7 @@ public class DtoTemplate {
     }
 
     /**
-     * Emits a static variable that is the hash of all the classnames, methodnames, and return types to be used as a version hash between
+     * Emits a static variable that is the hash of all the class names, method names, and return types to be used as a version hash between
      * client and server.
      */
     private void emitClientFrontendApiVersion(StringBuilder builder) {

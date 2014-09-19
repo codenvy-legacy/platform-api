@@ -622,9 +622,6 @@ public class ProjectService extends Service {
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters(),
                                outputWSlineConsumer);
 
-        //re-read project after importing to source may content project.json
-        project = projectManager.getProject(workspace, path);
-
         //use resolver only if project type not set
         if (com.codenvy.api.project.shared.Constants.BLANK_ID.equals(project.getDescription().getProjectType().getId())) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();

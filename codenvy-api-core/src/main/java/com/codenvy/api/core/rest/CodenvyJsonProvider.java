@@ -15,6 +15,7 @@ import com.codenvy.dto.shared.DTO;
 
 import org.everrest.core.impl.provider.JsonEntityProvider;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -39,7 +40,11 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
+ * Implementation of {@link MessageBodyReader} and {@link MessageBodyWriter} needed for binding JSON content to and from Java Objects.
+ *
  * @author andrew00x
+ * @see DTO
+ * @see DtoFactory
  */
 @Singleton
 @Provider
@@ -50,8 +55,8 @@ public class CodenvyJsonProvider<T> implements MessageBodyReader<T>, MessageBody
     private final JsonEntityProvider delegate = new JsonEntityProvider<>();
 
     @Inject
-    public CodenvyJsonProvider(@Named("codenvy.json.ignored_classes") Set<Class> ignoredClasses) {
-        this.ignoredClasses = new LinkedHashSet<>(ignoredClasses);
+    public CodenvyJsonProvider(@Nullable @Named("codenvy.json.ignored_classes") Set<Class> ignoredClasses) {
+        this.ignoredClasses = ignoredClasses == null ? new LinkedHashSet<Class>() : new LinkedHashSet<>(ignoredClasses);
     }
 
     @SuppressWarnings("unchecked")
@@ -99,5 +104,13 @@ public class CodenvyJsonProvider<T> implements MessageBodyReader<T>, MessageBody
             return DtoFactory.getInstance().createDtoFromJson(entityStream, type);
         }
         return (T)delegate.readFrom(type, genericType, annotations, mediaType, httpHeaders, entityStream);
+    }
+
+    /**
+     * Get Set of classes that we never try to serialize or deserialize. Returned Set is mutable and new classes may be added in ignored
+     * Set.
+     */
+    public Set<Class> getIgnoredClasses() {
+        return ignoredClasses;
     }
 }

@@ -8,10 +8,8 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.core;
+package com.codenvy.api.core.rest;
 
-import com.codenvy.api.core.rest.CodenvyJsonProvider;
-import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Names;
@@ -19,11 +17,11 @@ import com.google.inject.name.Names;
 /**
  * @author andrew00x
  */
-@DynaModule
-public class CoreModule extends AbstractModule {
+public class CoreRestModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(CodenvyJsonProvider.class);
+        bind(ApiExceptionMapper.class);
         Multibinder.newSetBinder(binder(), Class.class, Names.named("codenvy.json.ignored_classes"));
     }
 }

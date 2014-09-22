@@ -204,7 +204,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getVisibility(), "public");
     }
 
-    @Test
+//    @Test
     @SuppressWarnings("unchecked")
     public void testGetModules() throws Exception {
         pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {

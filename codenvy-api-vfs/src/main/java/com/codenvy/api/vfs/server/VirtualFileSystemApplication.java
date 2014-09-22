@@ -11,8 +11,10 @@
 package com.codenvy.api.vfs.server;
 
 import com.codenvy.api.core.rest.ApiExceptionMapper;
+import com.codenvy.api.core.rest.CodenvyJsonProvider;
 
 import javax.ws.rs.core.Application;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,13 +24,14 @@ public class VirtualFileSystemApplication extends Application {
 
     private final Set<Class<?>> classes;
 
+    @SuppressWarnings("unchecked")
     public VirtualFileSystemApplication() {
         classes = new HashSet<>(2);
         classes.add(VirtualFileSystemFactory.class);
-        classes.add(NoCacheJsonWriter.class);
-        singletons = new HashSet<>(2);
+        singletons = new HashSet<>(4);
         singletons.add(new ContentStreamWriter());
         singletons.add(new ApiExceptionMapper());
+        singletons.add(new CodenvyJsonProvider(Collections.singleton(ContentStream.class)));
     }
 
     /** @see javax.ws.rs.core.Application#getClasses() */

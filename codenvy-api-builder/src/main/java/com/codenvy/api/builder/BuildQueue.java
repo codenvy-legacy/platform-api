@@ -30,7 +30,6 @@ import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.ServiceContext;
-import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -398,7 +397,7 @@ public class BuildQueue {
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
-        final Link zipballLink = Links.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
+        final Link zipballLink = descriptor.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP);
         if (zipballLink != null) {
             final String zipballLinkHref = zipballLink.getHref();
             final String token = getAuthenticationToken();

@@ -20,7 +20,6 @@ import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
-import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.ByteStreams;
@@ -101,7 +100,7 @@ public class RemoteTask {
      */
     public BuildTaskDescriptor cancel() throws BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        final Link link = Links.getLink(Constants.LINK_REL_CANCEL, descriptor.getLinks());
+        final Link link = descriptor.getLink(Constants.LINK_REL_CANCEL);
         if (link == null) {
             switch (descriptor.getStatus()) {
                 case SUCCESSFUL:
@@ -134,7 +133,7 @@ public class RemoteTask {
      */
     public void readLogs(OutputProvider output) throws IOException, BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        final Link link = Links.getLink(Constants.LINK_REL_VIEW_LOG, descriptor.getLinks());
+        final Link link = descriptor.getLink(Constants.LINK_REL_VIEW_LOG);
         if (link == null) {
             throw new BuilderException("Logs are not available.");
         }
@@ -154,7 +153,7 @@ public class RemoteTask {
      */
     public void readReport(OutputProvider output) throws IOException, BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
-        final Link link = Links.getLink(Constants.LINK_REL_VIEW_REPORT, descriptor.getLinks());
+        final Link link = descriptor.getLink(Constants.LINK_REL_VIEW_REPORT);
         if (link == null) {
             throw new BuilderException("Report is not available.");
         }

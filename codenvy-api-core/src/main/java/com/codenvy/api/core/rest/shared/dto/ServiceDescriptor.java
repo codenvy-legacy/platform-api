@@ -17,11 +17,11 @@ import java.util.List;
 /**
  * Describes capabilities of the Service.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  * @see com.codenvy.api.core.rest.Service
  */
 @DTO
-public interface ServiceDescriptor {
+public interface ServiceDescriptor extends Hyperlinks {
 
     /**
      * Get location to get this service descriptor in JSON format.
@@ -74,21 +74,5 @@ public interface ServiceDescriptor {
      */
     void setVersion(String version);
 
-    /**
-     * Get links to the resources provided by the Service. Client selects link according to own needs and uses it to navigate to the
-     * required resource.
-     *
-     * @return set of links to the resources provided by the Service
-     */
-    List<Link> getLinks();
-
     ServiceDescriptor withLinks(List<Link> links);
-
-    /**
-     * Set links to the resources provided by the Service,
-     *
-     * @param links
-     *         links to the resources provided by the Service
-     */
-    void setLinks(List<Link> links);
 }

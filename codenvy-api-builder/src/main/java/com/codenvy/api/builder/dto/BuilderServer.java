@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.builder.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
@@ -19,7 +20,7 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface BuilderServer {
+public interface BuilderServer extends Hyperlinks {
     String getUrl();
 
     void setUrl(String url);
@@ -56,9 +57,5 @@ public interface BuilderServer {
 
     void setServerState(ServerState serverState);
 
-    List<Link> getLinks();
-
     BuilderServer withLinks(List<Link> links);
-
-    void setLinks(List<Link> links);
 }

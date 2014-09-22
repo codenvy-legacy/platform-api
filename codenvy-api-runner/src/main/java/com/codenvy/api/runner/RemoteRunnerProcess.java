@@ -18,7 +18,6 @@ import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.OutputProvider;
-import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.dto.server.DtoFactory;
@@ -99,7 +98,7 @@ public class RemoteRunnerProcess {
      */
     public ApplicationProcessDescriptor stop() throws RunnerException, NotFoundException {
         final ApplicationProcessDescriptor descriptor = getApplicationProcessDescriptor();
-        final Link link = Links.getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_STOP, descriptor.getLinks());
+        final Link link = descriptor.getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_STOP);
         if (link == null) {
             switch (descriptor.getStatus()) {
                 case STOPPED:
@@ -121,7 +120,7 @@ public class RemoteRunnerProcess {
 
     public void readLogs(OutputProvider output) throws IOException, RunnerException, NotFoundException {
         final ApplicationProcessDescriptor descriptor = getApplicationProcessDescriptor();
-        final Link link = Links.getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_VIEW_LOG, descriptor.getLinks());
+        final Link link = descriptor.getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_VIEW_LOG);
         if (link == null) {
             throw new RunnerException("Logs are not available.");
         }

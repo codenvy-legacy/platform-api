@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -23,7 +24,7 @@ import java.util.Map;
  * @author andrew00x
  */
 @DTO
-public interface ProjectDescriptor {
+public interface ProjectDescriptor extends Hyperlinks {
 
     /** Get name of project. */
     @ApiModelProperty(value = "Project name", position = 1)
@@ -165,12 +166,6 @@ public interface ProjectDescriptor {
 
     void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
 
-    List<Link> getLinks();
-
-    ProjectDescriptor withLinks(List<Link> links);
-
-    void setLinks(List<Link> links);
-
     /**
      * Get URL for opening project in Codenvy IDE.
      *
@@ -220,4 +215,6 @@ public interface ProjectDescriptor {
      * @return {@link ProjectDescriptor}
      */
     ProjectDescriptor withWorkspaceName(String name);
+
+    ProjectDescriptor withLinks(List<Link> links);
 }

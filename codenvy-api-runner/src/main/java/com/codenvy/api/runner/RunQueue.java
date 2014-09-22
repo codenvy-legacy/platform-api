@@ -24,7 +24,6 @@ import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
-import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
@@ -323,7 +322,7 @@ public class RunQueue {
             final BuildTaskDescriptor buildDescriptor = startBuild(builderService, project, buildOptions);
             callable = createTaskFor(buildDescriptor, request, buildTaskHolder);
         } else {
-            final Link zipballLink = Links.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP, descriptor.getLinks());
+            final Link zipballLink = descriptor.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP);
             if (zipballLink != null) {
                 final String zipballLinkHref = zipballLink.getHref();
                 final String token = getAuthenticationToken();
@@ -410,8 +409,7 @@ public class RunQueue {
             @Override
             public RemoteRunnerProcess call() throws Exception {
                 if (buildDescriptor != null) {
-                    final Link buildStatusLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS,
-                                                               buildDescriptor.getLinks());
+                    final Link buildStatusLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
                     if (buildStatusLink == null) {
                         throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
                     }
@@ -437,8 +435,8 @@ public class RunQueue {
                         }
                         switch (buildDescriptor.getStatus()) {
                             case SUCCESSFUL:
-                                final Link downloadLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT,
-                                                                        buildDescriptor.getLinks());
+                                final Link downloadLink =
+                                        buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
                                 if (downloadLink == null) {
                                     throw new RunnerException("Unable start application. Application build is successful but there " +
                                                               "is no URL for download result of build.");
@@ -451,8 +449,7 @@ public class RunQueue {
                             case CANCELLED:
                             case FAILED:
                                 String msg = "Unable start application. Build of application is failed or cancelled.";
-                                final Link logLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG,
-                                                                   buildDescriptor.getLinks());
+                                final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
                                 if (logLink != null) {
                                     msg += (" Build logs: " + logLink.getHref());
                                 }
@@ -536,7 +533,7 @@ public class RunQueue {
     }
 
     private boolean tryCancelBuild(BuildTaskDescriptor buildDescriptor) {
-        final Link cancelLink = Links.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_CANCEL, buildDescriptor.getLinks());
+        final Link cancelLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_CANCEL);
         if (cancelLink == null) {
             LOG.error("Can't cancel build process since cancel link is not available.");
             return false;
@@ -1133,8 +1130,7 @@ public class RunQueue {
                             final ApplicationProcessDescriptor descriptor = getTask(id).getDescriptor();
                             bm.setBody(DtoFactory.getInstance().toJson(descriptor));
                             if (event.getType() == RunnerEvent.EventType.STARTED) {
-                                final List<Link> links = descriptor.getLinks();
-                                final Link appLink = Links.getLink(Constants.LINK_REL_WEB_URL, links);
+                                final Link appLink = descriptor.getLink(Constants.LINK_REL_WEB_URL);
                                 if (appLink != null) {
                                     executor.execute(new ApplicationUrlChecker(id,
                                                                                new URL(appLink.getHref()),

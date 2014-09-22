@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.runner.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
@@ -19,7 +20,7 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface RunnerServer {
+public interface RunnerServer extends Hyperlinks {
     String getUrl();
 
     void setUrl(String url);
@@ -56,9 +57,5 @@ public interface RunnerServer {
 
     void setServerState(ServerState serverState);
 
-    List<Link> getLinks();
-
     RunnerServer withLinks(List<Link> links);
-
-    void setLinks(List<Link> links);
 }

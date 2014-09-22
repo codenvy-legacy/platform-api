@@ -8,20 +8,22 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.vfs.server;
+package com.codenvy.api.core;
 
+import com.codenvy.api.core.rest.CodenvyJsonProvider;
+import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Names;
 
-/** @author andrew00x */
-public class VirtualFileSystemModule extends AbstractModule {
+/**
+ * @author andrew00x
+ */
+@DynaModule
+public class CoreModule extends AbstractModule {
     @Override
     protected void configure() {
-        // Initialize empty set of VirtualFileSystemProvider.
-        Multibinder.newSetBinder(binder(), VirtualFileSystemProvider.class);
-        bind(VirtualFileSystemRegistryPlugin.class);
-        Multibinder.newSetBinder(binder(), Class.class, Names.named("codenvy.json.ignored_classes"))
-                   .addBinding().toInstance(ContentStream.class);
+        bind(CodenvyJsonProvider.class);
+        Multibinder.newSetBinder(binder(), Class.class, Names.named("codenvy.json.ignored_classes"));
     }
 }

@@ -11,6 +11,7 @@
 package com.codenvy.api.runner.dto;
 
 import com.codenvy.api.builder.dto.BuilderMetric;
+import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.dto.shared.DTO;
@@ -25,7 +26,7 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface ApplicationProcessDescriptor {
+public interface ApplicationProcessDescriptor extends Hyperlinks {
     @ApiModelProperty(value = "Process ID")
     long getProcessId();
 
@@ -89,12 +90,6 @@ public interface ApplicationProcessDescriptor {
 
     void setBuildStats(List<BuilderMetric> stats);
 
-    List<Link> getLinks();
-
-    ApplicationProcessDescriptor withLinks(List<Link> links);
-
-    void setLinks(List<Link> links);
-
     /** Name of workspace which the project is belong. */
     @ApiModelProperty(value = "Workspace name")
     String getWorkspace();
@@ -129,4 +124,6 @@ public interface ApplicationProcessDescriptor {
     void setServerUrl(String server);
 
     ApplicationProcessDescriptor withServerUrl(String server);
+
+    ApplicationProcessDescriptor withLinks(List<Link> links);
 }

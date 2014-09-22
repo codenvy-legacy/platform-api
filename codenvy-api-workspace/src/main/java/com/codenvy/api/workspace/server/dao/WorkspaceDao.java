@@ -50,7 +50,7 @@ public interface WorkspaceDao {
      * @param id
      *         workspace identifier
      */
-    void remove(String id) throws NotFoundException, ServerException;
+    void remove(String id) throws ConflictException, NotFoundException, ServerException;
 
     /**
      * Gets workspace from persistent layer.

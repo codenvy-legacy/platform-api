@@ -83,6 +83,8 @@ import java.util.Set;
 
 import static java.util.Collections.singletonList;
 
+import static java.lang.String.format;
+
 /**
  * Account API
  *
@@ -165,11 +167,11 @@ public class AccountService extends Service {
         final User current = userDao.getByAlias(principal.getName());
         //for now account <-One to One-> user
         if (accountDao.getByOwner(current.getId()).size() != 0) {
-            throw new ConflictException(String.format("Account which owner is %s already exists", current.getId()));
+            throw new ConflictException(format("Account which owner is %s already exists", current.getId()));
         }
         try {
             accountDao.getByName(newAccount.getName());
-            throw new ConflictException(String.format("Account with name %s already exists", newAccount.getName()));
+            throw new ConflictException(format("Account with name %s already exists", newAccount.getName()));
         } catch (NotFoundException ignored) {
         }
         final String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
@@ -500,33 +502,22 @@ public class AccountService extends Service {
                              @PathParam("id") String accountId,
                              @ApiParam(value = "User ID")
                              @PathParam("userid") String userId) throws NotFoundException, ServerException, ConflictException {
-        final List<Member> accMembers = accountDao.getMembers(accountId);
-        Member toRemove = null;
+        final List<Member> members = accountDao.getMembers(accountId);
         //search for member
-        for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && toRemove == null; ) {
-            final Member current = mIt.next();
-            if (current.getUserId().equals(userId)) {
-                toRemove = current;
-            }
+        Member target = null;
+        int owners = 0;
+        for (Member member : members) {
+            if (member.getRoles().contains("account/owner")) owners++;
+            if (member.getUserId().equals(userId)) target = member;
         }
-        if (toRemove != null) {
-            //account should have at least 1 owner
-            //if member that is being removed is account/owner
-            //we should check about other account owners existence
-            if (toRemove.getRoles().contains("account/owner")) {
-                boolean isOtherAccOwnerPresent = false;
-                for (Iterator<Member> mIt = accMembers.iterator(); mIt.hasNext() && !isOtherAccOwnerPresent; ) {
-                    final Member current = mIt.next();
-                    isOtherAccOwnerPresent = !current.getUserId().equals(userId) && current.getRoles().contains("account/owner");
-                }
-                if (!isOtherAccOwnerPresent) {
-                    throw new ConflictException("Account should have at least 1 owner");
-                }
-            }
-            accountDao.removeMember(toRemove);
-        } else {
-            throw new NotFoundException(String.format("User %s doesn't have membership with account %s", userId, accountId));
+        if (target == null) {
+            throw new ConflictException(format("User %s doesn't have membership with account %s", userId, accountId));
         }
+        //account should have at least 1 owner
+        if (owners == 1 && target.getRoles().contains("account/owner")) {
+            throw new ConflictException("Account should have at least 1 owner");
+        }
+        accountDao.removeMember(target);
     }
 
     /**
@@ -573,7 +564,7 @@ public class AccountService extends Service {
         //current user should be account owner to update it
         if (update.getName() != null) {
             if (!account.getName().equals(update.getName()) && accountDao.getByName(update.getName()) != null) {
-                throw new ConflictException(String.format("Account with name %s already exists", update.getName()));
+                throw new ConflictException(format("Account with name %s already exists", update.getName()));
             } else {
                 account.setName(update.getName());
             }
@@ -947,7 +938,7 @@ public class AccountService extends Service {
 
     private void validateAttributeName(String attributeName) throws ConflictException {
         if (attributeName == null || attributeName.isEmpty() || attributeName.toLowerCase().startsWith("codenvy")) {
-            throw new ConflictException(String.format("Attribute name '%s' is not valid", attributeName));
+            throw new ConflictException(format("Attribute name '%s' is not valid", attributeName));
         }
     }
 

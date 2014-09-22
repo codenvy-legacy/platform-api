@@ -24,6 +24,7 @@ import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.ProfileDescriptor;
 import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
 import com.wordnik.swagger.annotations.Api;
@@ -48,7 +49,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
-import java.security.Principal;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -107,19 +107,19 @@ public class UserProfileService extends Service {
                   response = ProfileDescriptor.class,
                   position = 1)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = LINK_REL_GET_CURRENT_USER_PROFILE)
     @Produces(APPLICATION_JSON)
     public ProfileDescriptor getCurrent(@ApiParam(value = "Search filter. Regex can be used")
                                         @Description("Preferences path filter")
-                                        @QueryParam("filter") String filter,
-                                        @Context SecurityContext securityContext) throws NotFoundException, ServerException {
-        final Principal principal = securityContext.getUserPrincipal();
-        final User user = userDao.getByAlias(principal.getName());
+                                        @QueryParam("filter")
+                                        String filter,
+                                        @Context SecurityContext context) throws NotFoundException, ServerException {
+        final User user = userDao.getById(currentUser().getId());
         final Profile profile;
         if (filter == null) {
             profile = profileDao.getById(user.getId());
@@ -127,7 +127,7 @@ public class UserProfileService extends Service {
             profile = profileDao.getById(user.getId(), filter);
         }
         profile.getAttributes().put("email", user.getEmail());
-        return toDescriptor(profile, securityContext);
+        return toDescriptor(profile, context);
     }
 
     /**
@@ -151,9 +151,8 @@ public class UserProfileService extends Service {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     public ProfileDescriptor updateCurrent(@Description("attributes to update") Map<String, String> updates,
-                                           @Context SecurityContext securityContext) throws NotFoundException, ServerException {
-        final Principal principal = securityContext.getUserPrincipal();
-        final User user = userDao.getByAlias(principal.getName());
+                                           @Context SecurityContext context) throws NotFoundException, ServerException {
+        final User user = userDao.getById(currentUser().getId());
         final Profile profile = profileDao.getById(user.getId());
         //if updates are null or empty - clear profile attributes
         if (updates == null || updates.isEmpty()) {
@@ -163,7 +162,7 @@ public class UserProfileService extends Service {
         }
         profileDao.update(profile);
         logEventUserUpdateProfile(user, profile.getAttributes());
-        return toDescriptor(profile, securityContext);
+        return toDescriptor(profile, context);
     }
 
 
@@ -189,12 +188,12 @@ public class UserProfileService extends Service {
 
     @POST
     @Path("/{id}")
-    @RolesAllowed({"system/admin", "system/manager"})
+    @RolesAllowed({"system/admin"})
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     public ProfileDescriptor update(@PathParam("id") String profileId,
                                     Map<String, String> updates,
-                                    @Context SecurityContext securityContext) throws NotFoundException, ServerException {
+                                    @Context SecurityContext context) throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
         //if updates are null or empty - clear profile attributes
         if (updates == null || updates.isEmpty()) {
@@ -205,7 +204,7 @@ public class UserProfileService extends Service {
         profileDao.update(profile);
         final User user = userDao.getById(profile.getUserId());
         logEventUserUpdateProfile(user, profile.getAttributes());
-        return toDescriptor(profile, securityContext);
+        return toDescriptor(profile, context);
     }
 
     /**
@@ -226,21 +225,22 @@ public class UserProfileService extends Service {
                   response = ProfileDescriptor.class,
                   position = 4)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(APPLICATION_JSON)
-    public ProfileDescriptor getById(@ApiParam(value = "User ID", required = true)
-                                     @PathParam("id") String profileId,
-                                     @Context SecurityContext securityContext) throws NotFoundException, ServerException {
+    public ProfileDescriptor getById(@ApiParam(value = "User ID")
+                                     @PathParam("id")
+                                     String profileId,
+                                     @Context SecurityContext context) throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
         final User user = userDao.getById(profile.getUserId());
         profile.getPreferences().clear();
         profile.getAttributes().put("email", user.getEmail());
-        return toDescriptor(profile, securityContext);
+        return toDescriptor(profile, context);
     }
 
     /**
@@ -265,10 +265,8 @@ public class UserProfileService extends Service {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     public ProfileDescriptor updatePreferences(@Description("preferences to update") Map<String, String> preferencesToUpdate,
-                                               @Context SecurityContext securityContext) throws NotFoundException, ServerException {
-        final Principal principal = securityContext.getUserPrincipal();
-        final User current = userDao.getByAlias(principal.getName());
-        final Profile currentProfile = profileDao.getById(current.getId());
+                                               @Context SecurityContext context) throws NotFoundException, ServerException {
+        final Profile currentProfile = profileDao.getById(currentUser().getId());
         //if given preferences are null or empty - clear profile preferences
         if (preferencesToUpdate == null || preferencesToUpdate.isEmpty()) {
             currentProfile.getPreferences().clear();
@@ -276,8 +274,7 @@ public class UserProfileService extends Service {
             currentProfile.getPreferences().putAll(preferencesToUpdate);
         }
         profileDao.update(currentProfile);
-        return toDescriptor(currentProfile, securityContext);
-
+        return toDescriptor(currentProfile, context);
     }
 
     /**
@@ -296,24 +293,24 @@ public class UserProfileService extends Service {
                   notes = "Remove attributes of a current user",
                   position = 6)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 409, message = "Attributes names required"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "Attributes names required"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/attributes")
     @GenerateLink(rel = LINK_REL_REMOVE_ATTRIBUTES)
     @RolesAllowed({"user", "temp_user"})
     @Consumes(APPLICATION_JSON)
     public void removeAttributes(@ApiParam(value = "Attributes", required = true)
-                                 @Required @Description("Attributes names to remove") List<String> attrNames,
-                                 @Context SecurityContext securityContext) throws NotFoundException, ServerException, ConflictException {
+                                 @Required
+                                 @Description("Attributes names to remove")
+                                 List<String> attrNames,
+                                 @Context SecurityContext context) throws NotFoundException, ServerException, ConflictException {
         if (attrNames == null) {
             throw new ConflictException("Attributes names required");
         }
-        final Principal principal = securityContext.getUserPrincipal();
-        final User current = userDao.getByAlias(principal.getName());
-        final Profile currentProfile = profileDao.getById(current.getId());
+        final Profile currentProfile = profileDao.getById(currentUser().getId());
         final Map<String, String> attributes = currentProfile.getAttributes();
         for (String attributeName : attrNames) {
             attributes.remove(attributeName);
@@ -336,10 +333,10 @@ public class UserProfileService extends Service {
                   notes = "Remove profile references of a current user",
                   position = 7)
     @ApiResponses(value = {
-                  @ApiResponse(code = 204, message = "OK"),
-                  @ApiResponse(code = 404, message = "Not Found"),
-                  @ApiResponse(code = 409, message = "Preferences names required"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "Preferences names required"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/prefs")
     @GenerateLink(rel = LINK_REL_REMOVE_PREFERENCES)
@@ -347,13 +344,11 @@ public class UserProfileService extends Service {
     @Consumes(APPLICATION_JSON)
     public void removePreferences(@ApiParam(value = "Preferences to remove", required = true)
                                   @Required List<String> prefNames,
-                                  @Context SecurityContext securityContext) throws NotFoundException, ConflictException, ServerException {
+                                  @Context SecurityContext context) throws NotFoundException, ConflictException, ServerException {
         if (prefNames == null) {
             throw new ConflictException("Preferences names required");
         }
-        final Principal principal = securityContext.getUserPrincipal();
-        final User current = userDao.getByAlias(principal.getName());
-        final Profile currentProfile = profileDao.getById(current.getId());
+        final Profile currentProfile = profileDao.getById(currentUser().getId());
         final Map<String, String> preferences = currentProfile.getPreferences();
         for (String prefName : prefNames) {
             preferences.remove(prefName);
@@ -364,10 +359,10 @@ public class UserProfileService extends Service {
     /**
      * Converts {@link Profile} to {@link ProfileDescriptor}
      */
-    /* package-private used in tests*/ProfileDescriptor toDescriptor(Profile profile, SecurityContext securityContext) {
+    /* package-private used in tests*/ProfileDescriptor toDescriptor(Profile profile, SecurityContext context) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();
-        if (securityContext.isUserInRole("user")) {
+        if (context.isUserInRole("user")) {
             links.add(createLink("GET",
                                  LINK_REL_GET_CURRENT_USER_PROFILE,
                                  null,
@@ -401,7 +396,7 @@ public class UserProfileService extends Service {
                                            .build()
                                            .toString()));
         }
-        if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
+        if (context.isUserInRole("system/admin") || context.isUserInRole("system/manager")) {
             links.add(createLink("GET",
                                  LINK_REL_GET_USER_PROFILE_BY_ID,
                                  null,
@@ -410,6 +405,8 @@ public class UserProfileService extends Service {
                                            .path(getClass(), "getById")
                                            .build(profile.getId())
                                            .toString()));
+        }
+        if (context.isUserInRole("system/admin")) {
             links.add(createLink("POST",
                                  LINK_REL_UPDATE_USER_PROFILE_BY_ID,
                                  APPLICATION_JSON,
@@ -434,6 +431,10 @@ public class UserProfileService extends Service {
                          .withProduces(produces)
                          .withConsumes(consumes)
                          .withHref(href);
+    }
+
+    private com.codenvy.commons.user.User currentUser() {
+        return EnvironmentContext.getCurrent().getUser();
     }
 
     private void logEventUserUpdateProfile(User user, Map<String, String> attributes) {

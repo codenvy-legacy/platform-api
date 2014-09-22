@@ -48,7 +48,7 @@ import java.util.Map;
  *
  * @author andrew00x
  */
-@Api(value = "/runner/{ws-id}",
+@Api(value = "/runner",
      description = "Runner manager")
 @Path("/runner/{ws-id}")
 @Description("Runner REST API")

@@ -50,7 +50,7 @@ import java.util.List;
  * @author andrew00x
  * @author Eugene Voevodin
  */
-@Api(value = "/builder/{ws-id}",
+@Api(value = "/builder",
      description = "Builder manager")
 @Path("/builder/{ws-id}")
 @Description("Builder API")

@@ -55,6 +55,7 @@ import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_PREFERENCES;
 
 import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static javax.ws.rs.core.Response.Status.OK;
@@ -84,7 +85,7 @@ public class UserProfileServiceTest {
     @Mock
     private UserDao            userDao;
     @Mock
-    private User               defaultUser;
+    private User               testUser;
     @Mock
     private UriInfo            uriInfo;
     @Mock
@@ -114,20 +115,47 @@ public class UserProfileServiceTest {
         launcher = new ResourceLauncher(processor);
         service = (UserProfileService)resources.getMatchedResource("/profile", new ArrayList<String>())
                                                .getInstance(ApplicationContextImpl.getCurrent());
-        //setup defaultUser
+        //setup testUser
         final String id = "user123abc456def";
         final String email = "user@testuser.com";
-        when(defaultUser.getEmail()).thenReturn(email);
-        when(defaultUser.getId()).thenReturn(id);
+        when(testUser.getEmail()).thenReturn(email);
+        when(testUser.getId()).thenReturn(id);
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(email));
-        when(userDao.getByAlias(email)).thenReturn(defaultUser);
-        when(userDao.getById(id)).thenReturn(defaultUser);
+        when(userDao.getByAlias(email)).thenReturn(testUser);
+        when(userDao.getById(id)).thenReturn(testUser);
+        com.codenvy.commons.env.EnvironmentContext.getCurrent().setUser(new com.codenvy.commons.user.User() {
+
+            @Override
+            public String getName() {
+                return testUser.getEmail();
+            }
+
+            @Override
+            public boolean isMemberOf(String s) {
+                return false;
+            }
+
+            @Override
+            public String getToken() {
+                return null;
+            }
+
+            @Override
+            public String getId() {
+                return testUser.getId();
+            }
+
+            @Override
+            public boolean isTemporary() {
+                return false;
+            }
+        });
     }
 
     @Test
     public void shouldBeAbleToGetCurrentProfile() throws Exception {
-        final Profile current = new Profile().withId(defaultUser.getId()).withUserId(defaultUser.getId());
+        final Profile current = new Profile().withId(testUser.getId()).withUserId(testUser.getId());
         when(profileDao.getById(current.getId())).thenReturn(current);
 
         final ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
@@ -136,7 +164,7 @@ public class UserProfileServiceTest {
         final ProfileDescriptor descriptor = (ProfileDescriptor)response.getEntity();
         assertEquals(descriptor.getId(), current.getId());
         assertEquals(descriptor.getUserId(), current.getUserId());
-        assertEquals(descriptor.getAttributes().get("email"), defaultUser.getEmail());
+        assertEquals(descriptor.getAttributes().get("email"), testUser.getEmail());
         assertTrue(descriptor.getPreferences().isEmpty());
     }
 
@@ -145,8 +173,8 @@ public class UserProfileServiceTest {
         final Map<String, String> preferences = new HashMap<>(4);
         preferences.put("ssh_key", "value");
         preferences.put("test", "value");
-        final Profile profile = new Profile().withId(defaultUser.getId())
-                                             .withUserId(defaultUser.getId())
+        final Profile profile = new Profile().withId(testUser.getId())
+                                             .withUserId(testUser.getId())
                                              .withPreferences(preferences);
         when(profileDao.getById(profile.getId())).thenReturn(profile);
 
@@ -164,7 +192,7 @@ public class UserProfileServiceTest {
         attributes.put("test", "test");
         attributes.put("test1", "test");
         attributes.put("test2", "test");
-        final Profile profile = new Profile().withId(defaultUser.getId()).withAttributes(attributes);
+        final Profile profile = new Profile().withId(testUser.getId()).withAttributes(attributes);
         when(profileDao.getById(profile.getId())).thenReturn(profile);
 
         final ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/attributes", "application/json", asList("test", "test2"));
@@ -177,7 +205,7 @@ public class UserProfileServiceTest {
 
     @Test
     public void shouldBeAbleToUpdatePreferences() throws Exception {
-        final Profile profile = new Profile().withId(defaultUser.getId())
+        final Profile profile = new Profile().withId(testUser.getId())
                                              .withPreferences(new HashMap<>(singletonMap("existed", "old")));
         when(profileDao.getById(profile.getId())).thenReturn(profile);
         final Map<String, String> update = new HashMap<>(4);
@@ -193,8 +221,8 @@ public class UserProfileServiceTest {
 
     @Test
     public void shouldBeAbleToGetProfileById() throws Exception {
-        final Profile profile = new Profile().withId(defaultUser.getId())
-                                             .withUserId(defaultUser.getId());
+        final Profile profile = new Profile().withId(testUser.getId())
+                                             .withUserId(testUser.getId());
         when(profileDao.getById(profile.getId())).thenReturn(profile);
 
         final ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + profile.getId(), null, null);
@@ -203,13 +231,13 @@ public class UserProfileServiceTest {
         final ProfileDescriptor descriptor = (ProfileDescriptor)response.getEntity();
         assertEquals(descriptor.getUserId(), profile.getId());
         assertEquals(descriptor.getId(), profile.getId());
-        assertEquals(descriptor.getAttributes().get("email"), defaultUser.getEmail());
+        assertEquals(descriptor.getAttributes().get("email"), testUser.getEmail());
         assertTrue(descriptor.getPreferences().isEmpty());
     }
 
     @Test
     public void shouldBeAbleToUpdateCurrentProfileAttributes() throws Exception {
-        final Profile profile = new Profile().withId(defaultUser.getId())
+        final Profile profile = new Profile().withId(testUser.getId())
                                              .withAttributes(new HashMap<>(singletonMap("existed", "old")));
         when(profileDao.getById(profile.getId())).thenReturn(profile);
         final Map<String, String> attributes = new HashMap<>(4);
@@ -225,10 +253,10 @@ public class UserProfileServiceTest {
 
     @Test
     public void shouldBeAbleToUpdateProfileById() throws Exception {
-        final Profile profile = new Profile().withId(defaultUser.getId())
-                                             .withUserId(defaultUser.getId())
+        final Profile profile = new Profile().withId(testUser.getId())
+                                             .withUserId(testUser.getId())
                                              .withAttributes(new HashMap<>(singletonMap("existed", "old")));
-        when(profileDao.getById(defaultUser.getId())).thenReturn(profile);
+        when(profileDao.getById(testUser.getId())).thenReturn(profile);
         final Map<String, String> attributes = new HashMap<>(4);
         attributes.put("existed", "new");
         attributes.put("new", "value");
@@ -242,7 +270,7 @@ public class UserProfileServiceTest {
 
     @Test
     public void testLinksForUser() {
-        final Profile profile = new Profile().withId(defaultUser.getId());
+        final Profile profile = new Profile().withId(testUser.getId());
         when(securityContext.isUserInRole("user")).thenReturn(true);
 
         final Set<String> expectedRels = new HashSet<>(asList(LINK_REL_GET_CURRENT_USER_PROFILE,
@@ -255,7 +283,7 @@ public class UserProfileServiceTest {
 
     @Test
     public void testLinksForSystemAdmin() {
-        final Profile profile = new Profile().withId(defaultUser.getId());
+        final Profile profile = new Profile().withId(testUser.getId());
         when(securityContext.isUserInRole("system/admin")).thenReturn(true);
 
         final Set<String> expectedRels = new HashSet<>(asList(LINK_REL_UPDATE_USER_PROFILE_BY_ID,
@@ -266,13 +294,10 @@ public class UserProfileServiceTest {
 
     @Test
     public void testLinksForSystemManager() {
-        final Profile profile = new Profile().withId(defaultUser.getId());
-        when(securityContext.isUserInRole("system/admin")).thenReturn(true);
+        final Profile profile = new Profile().withId(testUser.getId());
+        when(securityContext.isUserInRole("system/manager")).thenReturn(true);
 
-        final Set<String> expectedRels = new HashSet<>(asList(LINK_REL_UPDATE_USER_PROFILE_BY_ID,
-                                                              LINK_REL_GET_USER_PROFILE_BY_ID));
-
-        assertEquals(asRels(service.toDescriptor(profile, securityContext).getLinks()), expectedRels);
+        assertEquals(asRels(service.toDescriptor(profile, securityContext).getLinks()), singleton(LINK_REL_GET_USER_PROFILE_BY_ID));
     }
 
     private Set<String> asRels(List<Link> links) {

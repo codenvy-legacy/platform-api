@@ -216,17 +216,17 @@ public class ProjectService extends Service {
     @GET
     @Path("/modules/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectReference> getModules(@ApiParam(value = "Workspace ID", required = true)
+    public List<ProjectDescriptor> getModules(@ApiParam(value = "Workspace ID", required = true)
                                              @PathParam("ws-id") String workspace,
                                              @ApiParam(value = "Path to a project", required = true)
                                              @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException, ConflictException {
         final FolderEntry folder = asFolder(workspace, path);
-        final List<ProjectReference> projectReferences = new LinkedList<>();
+        final List<ProjectDescriptor> modules = new LinkedList<>();
         for (FolderEntry childFolder : folder.getChildFolders()) {
             if (childFolder.isProjectFolder()) {
                 try {
-                    projectReferences.add(toReference(new Project(workspace, childFolder, projectManager)));
+                    modules.add(toDescriptor(new Project(workspace, childFolder, projectManager)));
                 } catch (RuntimeException e) {
                     // Ignore known error for single module.
                     // In result we won't have them in project tree but at least 'bad' modules won't prevent to show 'good' modules.
@@ -234,7 +234,7 @@ public class ProjectService extends Service {
                 }
             }
         }
-        return projectReferences;
+        return modules;
     }
 
     @ApiOperation(value = "Create a new module",

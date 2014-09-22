@@ -1245,7 +1245,7 @@ public class ProjectService extends Service {
         try {
             projectReference.setCreationDate(project.getCreationDate());
         } catch (ServerException e) {
-            e.printStackTrace();
+            return projectReference.withObjectStatus(createObjectStatus(e));
         }
         try {
             projectReference.setModificationDate(project.getModificationDate());

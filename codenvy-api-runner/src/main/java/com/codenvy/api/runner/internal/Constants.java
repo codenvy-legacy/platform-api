@@ -12,6 +12,9 @@ package com.codenvy.api.runner.internal;
 
 /** @author andrew00x */
 public class Constants {
+    // attributes of project which are interesting for runner
+    public static final String RUNNER_CUSTOM_LAUNCHER            = "runner.user_defined_launcher";
+    public static final String RUNNER_SCRIPT_FILES               = "runner.run_scripts";
     // rels for known runner links
     public static final String LINK_REL_REGISTER_RUNNER_SERVER   = "register runner server";
     public static final String LINK_REL_UNREGISTER_RUNNER_SERVER = "unregister runner server";

@@ -24,6 +24,7 @@ import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
 import com.codenvy.api.account.shared.dto.NewBilling;
+import com.codenvy.api.account.shared.dto.NewMembership;
 import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
@@ -79,6 +80,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Collections.singletonList;
 
 /**
  * Account API
@@ -375,8 +378,8 @@ public class AccountService extends Service {
      *
      * @param accountId
      *         account identifier
-     * @param userId
-     *         user identifier
+     * @param membership
+     *         new membership
      * @return descriptor of created member
      * @throws ConflictException
      *         when user identifier is {@code null}
@@ -399,24 +402,31 @@ public class AccountService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/{id}/members")
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @RolesAllowed({"account/owner", "system/admin"})
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response addMember(@ApiParam(value = "Account ID", required = true)
-                              @PathParam("id") String accountId,
-                              @ApiParam(value = "User ID", required = true)
-                              @QueryParam("userid") String userId,
-                              @Context SecurityContext securityContext) throws ConflictException,
-                                                                               NotFoundException,
-                                                                               ServerException {
-        requiredNotNull(userId, "User identifier");
-        userDao.getById(userId);//check user exists
-        final Account account = accountDao.getById(accountId);
+    public Response addMember(@ApiParam(value = "Account ID")
+                              @PathParam("id")
+                              String accountId,
+                              @ApiParam(value = "New membership", required = true)
+                              @Required
+                              NewMembership membership,
+                              @Context SecurityContext context) throws ConflictException,
+                                                                       NotFoundException,
+                                                                       ServerException {
+        requiredNotNull(membership, "New membership");
+        requiredNotNull(membership.getUserId(), "User ID");
+        requiredNotNull(membership.getRoles(), "Roles");
+        if (membership.getRoles().isEmpty()) {
+            throw new ConflictException("Roles should not be empty");
+        }
+        userDao.getById(membership.getUserId());//check user exists
         final Member newMember = new Member().withAccountId(accountId)
-                                             .withUserId(userId)
-                                             .withRoles(Arrays.asList("account/member"));
+                                             .withUserId(membership.getUserId())
+                                             .withRoles(membership.getRoles());
         accountDao.addMember(newMember);
         return Response.status(Response.Status.CREATED)
-                       .entity(toDescriptor(newMember, account, securityContext))
+                       .entity(toDescriptor(newMember, accountDao.getById(accountId), context))
                        .build();
     }
 
@@ -431,7 +441,7 @@ public class AccountService extends Service {
      * @throws ServerException
      *         when some error occurred while retrieving accounts or members
      * @see MemberDescriptor
-     * @see #addMember(String, String, SecurityContext)
+     * @see #addMember(String, NewMembership, SecurityContext)
      * @see #removeMember(String, String)
      */
     @ApiOperation(value = "Get account members",
@@ -472,7 +482,7 @@ public class AccountService extends Service {
      *         when some error occurred while retrieving account members or removing certain member
      * @throws ConflictException
      *         when removal member is last <i>"account/owner"</i>
-     * @see #addMember(String, String, SecurityContext)
+     * @see #addMember(String, NewMembership, SecurityContext)
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Remove user from account",
@@ -1039,15 +1049,14 @@ public class AccountService extends Service {
         if (member.getRoles().contains("account/owner") ||
             securityContext.isUserInRole("system/admin") ||
             securityContext.isUserInRole("system/manager")) {
-            accountRef.setLinks(Collections.singletonList(createLink(HttpMethod.GET,
-                                                                     Constants.LINK_REL_GET_ACCOUNT_BY_ID,
-                                                                     null,
-                                                                     MediaType.APPLICATION_JSON,
-                                                                     uriBuilder.clone()
-                                                                               .path(getClass(), "getById")
-                                                                               .build(account.getId())
-                                                                               .toString()
-                                                                    )));
+            accountRef.setLinks(singletonList(createLink(HttpMethod.GET,
+                                                         Constants.LINK_REL_GET_ACCOUNT_BY_ID,
+                                                         null,
+                                                         MediaType.APPLICATION_JSON,
+                                                         uriBuilder.clone()
+                                                                   .path(getClass(), "getById")
+                                                                   .build(account.getId())
+                                                                   .toString())));
         }
         return DtoFactory.getInstance().createDto(MemberDescriptor.class)
                          .withUserId(member.getUserId())
@@ -1168,18 +1177,17 @@ public class AccountService extends Service {
 
     private SubscriptionAttributes toSubscriptionAttributes(NewSubscriptionAttributes newSubscriptionAttributes) {
         NewBilling newBilling = newSubscriptionAttributes.getBilling();
-        return new SubscriptionAttributes()
-                         .withDescription(newSubscriptionAttributes.getDescription())
-                         .withEndDate(newSubscriptionAttributes.getEndDate())
-                         .withStartDate(newSubscriptionAttributes.getStartDate())
-                         .withTrialDuration(newSubscriptionAttributes.getTrialDuration())
-                         .withCustom(newSubscriptionAttributes.getCustom())
-                         .withBilling(new Billing()
-                                              .withCycleType(newBilling.getCycleType())
-                                              .withCycle(newBilling.getCycle())
-                                              .withStartDate(newBilling.getStartDate())
-                                              .withEndDate(newBilling.getEndDate())
-                                              .withContractTerm(newBilling.getContractTerm())
-                                              .withUsePaymentSystem(newBilling.getUsePaymentSystem()));
+        return new SubscriptionAttributes().withDescription(newSubscriptionAttributes.getDescription())
+                                           .withEndDate(newSubscriptionAttributes.getEndDate())
+                                           .withStartDate(newSubscriptionAttributes.getStartDate())
+                                           .withTrialDuration(newSubscriptionAttributes.getTrialDuration())
+                                           .withCustom(newSubscriptionAttributes.getCustom())
+                                           .withBilling(new Billing()
+                                                                .withCycleType(newBilling.getCycleType())
+                                                                .withCycle(newBilling.getCycle())
+                                                                .withStartDate(newBilling.getStartDate())
+                                                                .withEndDate(newBilling.getEndDate())
+                                                                .withContractTerm(newBilling.getContractTerm())
+                                                                .withUsePaymentSystem(newBilling.getUsePaymentSystem()));
     }
 }

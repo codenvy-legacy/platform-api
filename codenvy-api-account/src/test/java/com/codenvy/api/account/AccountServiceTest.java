@@ -29,6 +29,7 @@ import com.codenvy.api.account.shared.dto.BillingDescriptor;
 import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewBilling;
+import com.codenvy.api.account.shared.dto.NewMembership;
 import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
@@ -79,6 +80,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
@@ -1211,10 +1213,20 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToAddMember() throws Exception {
         when(accountDao.getById(ACCOUNT_ID)).thenReturn(account);
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + account.getId() + "/members?userid=" + USER_ID, null, null);
+        final NewMembership newMembership = DtoFactory.getInstance().createDto(NewMembership.class)
+                                                      .withUserId(USER_ID)
+                                                      .withRoles(singletonList("account/member"));
+
+        final ContainerResponse response = makeRequest("POST",
+                                                       SERVICE_PATH + "/" + account.getId() + "/members",
+                                                       "application/json",
+                                                       newMembership);
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        final MemberDescriptor descriptor = (MemberDescriptor)response.getEntity();
+        assertEquals(descriptor.getUserId(), newMembership.getUserId());
+        assertEquals(descriptor.getAccountReference().getId(), ACCOUNT_ID);
+        assertEquals(descriptor.getRoles(), newMembership.getRoles());
         verify(accountDao).addMember(any(Member.class));
     }
 

@@ -99,7 +99,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author andrew00x
  * @author Eugene Voevodin
  */
-@Api(value = "/project/{ws-id}",
+@Api(value = "/project",
      description = "Project manager")
 @Path("/project/{ws-id}")
 public class ProjectService extends Service {

@@ -14,6 +14,7 @@ import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,6 +24,20 @@ import java.util.Map;
  */
 @DTO
 public interface RunOptions {
+    /** Get name of runner. This parameter has preference over runner name that is configured in properties of project. */
+    String getRunnerName();
+
+    void setRunnerName(String runnerName);
+
+    RunOptions withRunnerName(String runnerName);
+
+    /** Get user defined recipes for runner. */
+    List<String> getScriptFiles();
+
+    void setScriptFiles(List<String> scriptFiles);
+
+    RunOptions withScriptFiles(List<String> scriptFiles);
+
     /** Get memory size (in megabytes) that is required for starting application. */
     @ApiModelProperty(value = "Memory allocated per run")
     int getMemorySize();

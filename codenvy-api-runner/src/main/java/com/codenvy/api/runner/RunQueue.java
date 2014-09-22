@@ -241,19 +241,14 @@ public class RunQueue {
                                              .withProject(project)
                                              .withProjectDescriptor(descriptor)
                                              .withUserName(user == null ? "" : user.getName());
-        String runner = request.getRunner();
+        String runner = runOptions.getRunnerName();
         if (runner == null) {
-            // Try detect runner name if nothing is set in request.
-            final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
-            runner = getProjectAttributeValue(Constants.RUNNER_CUSTOM_LAUNCHER, projectAttributes);
-            if (runner == null) {
-                runner = descriptor.getRunner();
-            }
+            runner = descriptor.getRunner();
             if (runner == null) {
                 throw new RunnerException("Name of runner is not specified, be sure corresponded property of project is set");
             }
-            request.setRunner(runner);
         }
+        request.setRunner(runner);
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
@@ -306,7 +301,7 @@ public class RunQueue {
             request.setOptions(runnerEnv.getOptions());
         }
         // Find user defined recipes for runner if any.
-        request.setRunnerScriptUrls(getRunnerScript(descriptor));
+        request.setRunnerScriptUrls(getRunnerScripts(descriptor, runOptions));
         // Options for web shell that runner may provide to the server with running application.
         request.setShellOptions(runOptions.getShellOptions());
         // Sometime user may request to skip build of project before run.
@@ -475,16 +470,16 @@ public class RunQueue {
         };
     }
 
-    private List<String> getRunnerScript(ProjectDescriptor projectDescriptor) {
+    private List<String> getRunnerScripts(ProjectDescriptor projectDescriptor, RunOptions runOptions) {
         final String projectUrl = projectDescriptor.getBaseUrl();
         final String projectPath = projectDescriptor.getPath();
         final String authToken = getAuthenticationToken();
-        final List<String> attrs = projectDescriptor.getAttributes().get(Constants.RUNNER_SCRIPT_FILES);
-        if (attrs == null) {
+        final List<String> scriptFiles = runOptions.getScriptFiles();
+        if (scriptFiles == null) {
             return Collections.emptyList();
         }
-        final List<String> scripts = new ArrayList<>(attrs.size());
-        for (String attr : attrs) {
+        final List<String> scripts = new ArrayList<>(scriptFiles.size());
+        for (String attr : scriptFiles) {
             scripts.add(projectUrl.replace(projectPath, String.format("/file%s/%s?token=%s", projectPath, attr, authToken)));
         }
         return scripts;

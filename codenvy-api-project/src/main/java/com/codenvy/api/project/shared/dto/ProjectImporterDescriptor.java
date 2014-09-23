@@ -23,6 +23,19 @@ public interface ProjectImporterDescriptor {
     void setId(String id);
 
     ProjectImporterDescriptor withId(String id);
+    
+    /**
+     * @return importer's category (example: source control, archive)
+     */
+    String getCategory();
+
+    /**
+     * @param category importer's category (example: source control, archive)
+     */
+    void setCategory(String category);
+
+    ProjectImporterDescriptor withCategory(String category);
+
 
     /**
      * @return true if this importer uses only internal und not accessible for users call

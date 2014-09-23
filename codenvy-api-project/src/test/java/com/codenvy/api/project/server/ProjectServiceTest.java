@@ -66,6 +66,7 @@ import org.testng.annotations.Test;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Application;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -772,6 +773,12 @@ public class ProjectServiceTest {
                 baseFolder.getVirtualFile().unzip(zip, true);
                 folderHolder.set(baseFolder);
             }
+
+
+            @Override
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
+            }
         });
 
         Map<String, List<String>> headers = new HashMap<>();
@@ -831,6 +838,12 @@ public class ProjectServiceTest {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);
                 folderHolder.set(baseFolder);
+            }
+
+
+            @Override
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
             }
         });
 

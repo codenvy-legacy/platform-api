@@ -14,7 +14,7 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
-import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.core.util.LineConsumerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -39,8 +39,8 @@ public interface ProjectImporter {
             return value;
         }
     }
-    
-    
+
+
     /**
      * @return unique id of importer e.g git, zip
      */
@@ -50,7 +50,7 @@ public interface ProjectImporter {
      * @return {@code true} if this importer uses only internal and not accessible for users call otherwise {@code false}
      */
     boolean isInternal();
-    
+
     /**
      * @return {@link String} importer's category (example: source control, archive)
      */
@@ -95,7 +95,7 @@ public interface ProjectImporter {
      * @param parameters
      *          optional implementation specific parameters, e.g. branch name, commit id for GIT importer
      * @param importOutputLineConsumer
-     *         an optional output line consumer to get the import process output. For instance, Git command output for the Git importer
+     *         an optional output line consumer factory to get the import process output. For instance, Git command output for the Git importer
      * @throws ForbiddenException
      *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
      *         baseFolder}
@@ -108,6 +108,6 @@ public interface ProjectImporter {
      * @throws ServerException
      *         if import causes some errors that should be treated as internal errors
      */
-    void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumer importOutputLineConsumer)
+    void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumerFactory importOutputLineConsumerFactory)
             throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException;
 }

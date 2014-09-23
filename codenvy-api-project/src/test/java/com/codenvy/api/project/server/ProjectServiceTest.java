@@ -16,7 +16,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
-import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.AttributeDescription;
@@ -757,12 +757,12 @@ public class ProjectServiceTest {
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
                     throws ConflictException, ServerException, ForbiddenException {
-                importSources(baseFolder, location, parameters, LineConsumer.DEV_NULL);
+                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
             }
 
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
-                                      LineConsumer importOutputLineConsumer)
+                                      LineConsumerFactory importOutputLineConsumerFactory)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);
@@ -824,11 +824,11 @@ public class ProjectServiceTest {
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
                     throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
-                importSources(baseFolder, location, parameters, LineConsumer.DEV_NULL);
+                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
             }
 
             @Override
-            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumer consumer)
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumerFactory consumerFactory)
                     throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);

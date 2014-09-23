@@ -27,6 +27,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.LinkParameter;
 import com.codenvy.api.core.rest.shared.dto.ObjectStatus;
 import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.project.shared.Attribute;
 import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
 import com.codenvy.api.project.shared.ProjectDescription;
@@ -60,9 +61,6 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.apache.commons.fileupload.FileItem;
-import org.everrest.core.impl.provider.json.JsonUtils;
-import org.everrest.websockets.WSConnectionContext;
-import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +92,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author andrew00x
@@ -609,28 +606,13 @@ public class ProjectService extends Service {
         // preparing websocket output publisher to broadcast output of import process to the ide clients while importing
         final String fWorkspace = workspace;
         final String fPath = path;
-        final LineConsumer outputWSlineConsumer = new LineConsumer() {
-            final AtomicInteger lineCounter = new AtomicInteger(1);
-
+        final LineConsumerFactory outputWSlineConsumerFactory = new LineConsumerFactory() {
             @Override
-            public void close() throws IOException {
-            }
-
-            @Override
-            public void writeLine(String line) throws IOException {
-                if (line != null) {
-                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                    bm.setChannel("importProject:output:" + fWorkspace + ":" + fPath);
-                    bm.setBody(String.format("{\"num\":%d, \"line\":%s}",
-                                             lineCounter.getAndIncrement(), JsonUtils.getJsonString(line)));
-                    try {
-                        WSConnectionContext.sendMessage(bm);
-                    } catch (Exception e) {
-                        LOG.error("A problem occurred while sending websocket message", e);
-                    }
-                }
+            public LineConsumer newLineConsumer() {
+                return new ProjectImportOutputWSLineConsumer(fPath, fWorkspace, 300);
             }
         };
+
 
         Project project = projectManager.getProject(workspace, path);
         if (project == null) {
@@ -641,7 +623,7 @@ public class ProjectService extends Service {
             throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters(),
-                               outputWSlineConsumer);
+                               outputWSlineConsumerFactory);
 
         //use resolver only if project type not set
         if (com.codenvy.api.project.shared.Constants.BLANK_ID.equals(project.getDescription().getProjectType().getId())) {

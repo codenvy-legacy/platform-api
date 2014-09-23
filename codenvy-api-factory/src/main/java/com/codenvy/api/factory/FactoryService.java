@@ -51,6 +51,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -463,7 +464,8 @@ public class FactoryService extends Service {
     @GET
     @Path("/{ws-id}/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public FactoryJson getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path)
+    public FactoryJson getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path,
+                                      @Context HttpServletResponse httpServletResponse)
             throws ApiException {
         final Project project = projectManager.getProject(workspace, path);
         final ProjectJson projectJson = ProjectJson.load(project);
@@ -490,6 +492,7 @@ public class FactoryService extends Service {
                                                                       .withOptions(envConfig.getOptions()));
         }
 
+        httpServletResponse.setHeader("Content-Disposition", "attachment; filename=" + path + ".json");
         try {
             FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class)
                                                 .withV("2.0")

@@ -34,6 +34,7 @@ import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
 import com.codenvy.api.project.shared.ValueStorageException;
 import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
+import com.codenvy.api.project.shared.dto.GenerateDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
@@ -682,18 +683,21 @@ public class ProjectService extends Service {
                                              @PathParam("ws-id") String workspace,
                                              @ApiParam(value = "Path to a new project", required = true)
                                              @PathParam("path") String path,
-                                             @ApiParam(value = "Project type to Generate", required = true)
-                                             @QueryParam("generator") String generatorName,
-                                             Map<String, String> options) throws ConflictException, ForbiddenException, ServerException {
-        final ProjectGenerator generator = generators.getGenerator(generatorName);
+                                             @Description("descriptor of project generator") GenerateDescriptor generateDescriptor)
+            throws ConflictException, ForbiddenException, ServerException {
+        final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getGeneratorName());
         if (generator == null) {
-            throw new ServerException(String.format("Unable generate project. Unknown generator '%s'.", generatorName));
+            throw new ServerException(String.format("Unable generate project. Unknown generator '%s'.", generateDescriptor.getGeneratorName()));
         }
         Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
-        generator.generateProject(project.getBaseFolder(), options);
+        final String visibility = generateDescriptor.getProjectVisibility();
+        if (visibility != null) {
+            project.setVisibility(visibility);
+        }
+        generator.generateProject(project.getBaseFolder(), generateDescriptor.getOptions());
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),

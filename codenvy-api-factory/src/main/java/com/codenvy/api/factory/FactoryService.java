@@ -10,11 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import static com.codenvy.commons.lang.Strings.nullToEmpty;
+
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
@@ -26,6 +28,7 @@ import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
 import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
 import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -45,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
@@ -73,14 +77,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.codenvy.commons.lang.Strings.nullToEmpty;
-
 /** Service for factory rest api features */
 @Api(value = "/factory",
      description = "Factory manager")
 @Path("/factory")
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
+
+    @Inject
+    @Named("api.endpoint")
+    private String baseApiUrl;
 
     @Inject
     private FactoryStore factoryStore;
@@ -396,7 +402,8 @@ public class FactoryService extends Service {
      *         - url context
      * @return - snippet content.
      * @throws com.codenvy.api.core.ApiException
-     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist - with response code 400 if snippet
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist - with response code 400 if
+     *         snippet
      *         type
      *         is unsupported
      */
@@ -457,7 +464,7 @@ public class FactoryService extends Service {
     @Path("/{ws-id}/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public FactoryJson getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path)
-            throws ServerException, ForbiddenException {
+            throws ApiException {
         final Project project = projectManager.getProject(workspace, path);
         final ProjectJson projectJson = ProjectJson.load(project);
         final DtoFactory dtoFactory = DtoFactory.getInstance();
@@ -483,19 +490,41 @@ public class FactoryService extends Service {
                                                                       .withOptions(envConfig.getOptions()));
         }
 
-        final FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class);
-        return factoryJson
-                .withV("2.0")
-                .withProject(dtoFactory.createDto(NewProject.class)
-                                       .withProjectTypeId(projectJson.getProjectTypeId())
-                                       .withBuilder(projectJson.getBuilder())
-                                       .withRunner(projectJson.getRunner())
-                                       .withDefaultBuilderEnvironment(projectJson.getDefaultBuilderEnvironment())
-                                       .withDefaultRunnerEnvironment(projectJson.getDefaultRunnerEnvironment())
-                                       .withBuilderEnvironmentConfigurations(builderConfigurationsDescriptors)
-                                       .withRunnerEnvironmentConfigurations(runnerConfigurationsDescriptors)
-                                       .withAttributes(projectJson.getAttributes())
-                                       .withDescription(projectJson.getDescription())
-                            );
+        try {
+            FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class)
+                                                .withV("2.0")
+                                                .withProject(dtoFactory.createDto(NewProject.class)
+                                                                       .withProjectTypeId(projectJson.getProjectTypeId())
+                                                                       .withBuilder(projectJson.getBuilder())
+                                                                       .withRunner(projectJson.getRunner())
+                                                                       .withDefaultBuilderEnvironment(
+                                                                               projectJson.getDefaultBuilderEnvironment())
+                                                                       .withDefaultRunnerEnvironment(
+                                                                               projectJson.getDefaultRunnerEnvironment())
+                                                                       .withBuilderEnvironmentConfigurations(
+                                                                               builderConfigurationsDescriptors)
+                                                                       .withRunnerEnvironmentConfigurations(runnerConfigurationsDescriptors)
+                                                                       .withAttributes(projectJson.getAttributes())
+                                                                       .withDescription(projectJson.getDescription())
+                                                            );
+
+
+            if (project.getDescription().hasAttribute("vcs.provider.name") &&
+                "git".equals(project.getDescription().getAttributeValue("vcs.provider.name"))) {
+                factoryJson = factoryJson.withSource(HttpJsonHelper.request(ImportSourceDescriptor.class, baseApiUrl
+                                                                                                          + "/git/"
+                                                                                                          + workspace
+                                                                                                          +
+                                                                                                          "/import-source-descriptor?projectPath=" +
+                                                                                                          path,
+                                                                            "GET", null,
+                                                                            null));
+            }
+            return factoryJson;
+
+        } catch (IOException e) {
+            throw new ServerException(e.getLocalizedMessage());
+        }
+
     }
 }

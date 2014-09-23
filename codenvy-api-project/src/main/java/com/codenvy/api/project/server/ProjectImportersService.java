@@ -53,9 +53,8 @@ public class ProjectImportersService extends Service {
                                                              .withInternal(importer.isInternal())
                                                              .withDescription(importer.getDescription() != null ? importer
                                                                                                                           .getDescription()
-                                                                                  : "description not found")
-                                                             .withCategory(importer.getCategory() != null ? importer.getCategory()
-                                                                               : "category not found");
+                                                                 : "description not found")
+                                                             .withCategory(importer.getCategory().getValue());
             descriptors.add(descriptor);
         }
         return descriptors;

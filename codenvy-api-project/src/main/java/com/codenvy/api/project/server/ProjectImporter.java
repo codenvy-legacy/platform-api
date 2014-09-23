@@ -25,6 +25,22 @@ import java.util.Map;
  * @author Vitaly Parfonov
  */
 public interface ProjectImporter {
+    public enum ImporterCategory {
+        SOURCE_CONTROL("Source Control"),
+        ARCHIVE("Archive");
+
+        private final String value;
+
+        private ImporterCategory(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+    
+    
     /**
      * @return unique id of importer e.g git, zip
      */
@@ -38,7 +54,7 @@ public interface ProjectImporter {
     /**
      * @return {@link String} importer's category (example: source control, archive)
      */
-    String getCategory();
+    ImporterCategory getCategory();
 
     /**
      * @return human readable description about this importer

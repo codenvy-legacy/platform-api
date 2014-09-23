@@ -776,8 +776,8 @@ public class ProjectServiceTest {
 
 
             @Override
-            public String getCategory() {
-                return "Some category";
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
             }
         });
 
@@ -842,8 +842,8 @@ public class ProjectServiceTest {
 
 
             @Override
-            public String getCategory() {
-                return "Some category";
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
             }
         });
 

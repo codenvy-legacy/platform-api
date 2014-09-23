@@ -73,7 +73,7 @@ public class ZipProjectImporter implements ProjectImporter {
 
     /** {@inheritDoc} */
     @Override
-    public String getCategory() {
-        return "Archive";
+    public ImporterCategory getCategory() {
+        return ImporterCategory.ARCHIVE;
     }
 }

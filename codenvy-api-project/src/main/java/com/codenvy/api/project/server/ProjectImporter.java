@@ -34,6 +34,11 @@ public interface ProjectImporter {
      * @return {@code true} if this importer uses only internal and not accessible for users call otherwise {@code false}
      */
     boolean isInternal();
+    
+    /**
+     * @return {@link String} importer's category (example: source control, archive)
+     */
+    String getCategory();
 
     /**
      * @return human readable description about this importer

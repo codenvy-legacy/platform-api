@@ -70,4 +70,10 @@ public class ZipProjectImporter implements ProjectImporter {
             baseFolder.getVirtualFile().unzip(zip, true);
         }
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public String getCategory() {
+        return "Archive";
+    }
 }

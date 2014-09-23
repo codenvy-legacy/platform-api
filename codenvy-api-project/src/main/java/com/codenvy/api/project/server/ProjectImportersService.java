@@ -46,11 +46,16 @@ public class ProjectImportersService extends Service {
         List<ProjectImporterDescriptor> descriptors = new ArrayList<>();
         List<ProjectImporter> importers = importersRegistry.getImporters();
         for (ProjectImporter importer : importers) {
-            ProjectImporterDescriptor descriptor = DtoFactory.getInstance().createDto(ProjectImporterDescriptor.class)
+            ProjectImporterDescriptor descriptor =
+                                                   DtoFactory.getInstance()
+                                                             .createDto(ProjectImporterDescriptor.class)
                                                              .withId(importer.getId())
                                                              .withInternal(importer.isInternal())
                                                              .withDescription(importer.getDescription() != null ? importer
-                                                                     .getDescription() : "description not found");
+                                                                                                                          .getDescription()
+                                                                                  : "description not found")
+                                                             .withCategory(importer.getCategory() != null ? importer.getCategory()
+                                                                               : "category not found");
             descriptors.add(descriptor);
         }
         return descriptors;

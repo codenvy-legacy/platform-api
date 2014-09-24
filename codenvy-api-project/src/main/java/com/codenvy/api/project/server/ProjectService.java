@@ -693,11 +693,11 @@ public class ProjectService extends Service {
         if (project == null) {
             project = projectManager.createProject(workspace, path, new ProjectDescription());
         }
+        generator.generateProject(project.getBaseFolder(), generateDescriptor.getOptions());
         final String visibility = generateDescriptor.getProjectVisibility();
         if (visibility != null) {
             project.setVisibility(visibility);
         }
-        generator.generateProject(project.getBaseFolder(), generateDescriptor.getOptions());
         final ProjectDescriptor projectDescriptor = toDescriptor(project);
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),

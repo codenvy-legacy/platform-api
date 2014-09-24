@@ -13,7 +13,8 @@ package com.codenvy.api.local;
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.dao.SubscriptionAttributes;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.server.dao.User;
+import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.api.workspace.server.dao.Workspace;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.inject.DynaModule;
@@ -111,8 +112,7 @@ public class LocalInfrastructureModule extends AbstractModule {
     @Named("codenvy.local.infrastructure.users")
     Set<User> users() {
         final Set<User> users = new HashSet<>(1);
-        final User user = DtoFactory.getInstance().createDto(User.class)
-                                    .withId("codenvy")
+        final User user = new User().withId("codenvy")
                                     .withEmail("codenvy@codenvy.com")
                                     .withPassword("secret");
         user.getAliases().add("codenvy@codenvy.com");

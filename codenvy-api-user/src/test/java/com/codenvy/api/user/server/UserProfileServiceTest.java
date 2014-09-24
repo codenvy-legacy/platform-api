@@ -14,10 +14,11 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.Profile;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.ProfileDescriptor;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.commons.json.JsonHelper;
 
 import org.everrest.core.impl.ApplicationContextImpl;
@@ -158,7 +159,7 @@ public class UserProfileServiceTest {
         final Profile current = new Profile().withId(testUser.getId()).withUserId(testUser.getId());
         when(profileDao.getById(current.getId())).thenReturn(current);
 
-        final ContainerResponse response = makeRequest("GET", SERVICE_PATH, null, null);
+        final ContainerResponse response = makeRequest("GET", SERVICE_PATH, null);
 
         assertEquals(response.getStatus(), OK.getStatusCode());
         final ProfileDescriptor descriptor = (ProfileDescriptor)response.getEntity();
@@ -178,7 +179,7 @@ public class UserProfileServiceTest {
                                              .withPreferences(preferences);
         when(profileDao.getById(profile.getId())).thenReturn(profile);
 
-        final ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/prefs", "application/json", singletonList("ssh_key"));
+        final ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/prefs", singletonList("ssh_key"));
 
         assertEquals(response.getStatus(), NO_CONTENT.getStatusCode());
         verify(profileDao, times(1)).update(profile);
@@ -195,7 +196,7 @@ public class UserProfileServiceTest {
         final Profile profile = new Profile().withId(testUser.getId()).withAttributes(attributes);
         when(profileDao.getById(profile.getId())).thenReturn(profile);
 
-        final ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/attributes", "application/json", asList("test", "test2"));
+        final ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/attributes", asList("test", "test2"));
 
         assertEquals(response.getStatus(), NO_CONTENT.getStatusCode());
         verify(profileDao, times(1)).update(profile);
@@ -212,7 +213,7 @@ public class UserProfileServiceTest {
         update.put("existed", "new");
         update.put("new", "value");
 
-        final ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/prefs", "application/json", update);
+        final ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/prefs", update);
 
         assertEquals(response.getStatus(), OK.getStatusCode());
         ProfileDescriptor descriptor = (ProfileDescriptor)response.getEntity();
@@ -225,7 +226,7 @@ public class UserProfileServiceTest {
                                              .withUserId(testUser.getId());
         when(profileDao.getById(profile.getId())).thenReturn(profile);
 
-        final ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + profile.getId(), null, null);
+        final ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + profile.getId(), null);
 
         assertEquals(response.getStatus(), OK.getStatusCode());
         final ProfileDescriptor descriptor = (ProfileDescriptor)response.getEntity();
@@ -244,7 +245,7 @@ public class UserProfileServiceTest {
         attributes.put("existed", "new");
         attributes.put("new", "value");
 
-        final ContainerResponse response = makeRequest("POST", SERVICE_PATH, "application/json", attributes);
+        final ContainerResponse response = makeRequest("POST", SERVICE_PATH, attributes);
 
         assertEquals(response.getStatus(), OK.getStatusCode());
         verify(profileDao, times(1)).update(profile);
@@ -261,7 +262,7 @@ public class UserProfileServiceTest {
         attributes.put("existed", "new");
         attributes.put("new", "value");
 
-        final ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + profile.getId(), "application/json", attributes);
+        final ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/" + profile.getId(), attributes);
 
         assertEquals(response.getStatus(), OK.getStatusCode());
         assertEquals(((ProfileDescriptor)response.getEntity()).getAttributes(), attributes);
@@ -308,14 +309,12 @@ public class UserProfileServiceTest {
         return rels;
     }
 
-    private ContainerResponse makeRequest(String method, String path, String contentType, Object entity) throws Exception {
+    private ContainerResponse makeRequest(String method, String path, Object entity) throws Exception {
         Map<String, List<String>> headers = null;
-        if (contentType != null) {
-            headers = new HashMap<>();
-            headers.put("Content-Type", asList(contentType));
-        }
         byte[] data = null;
         if (entity != null) {
+            headers = new HashMap<>();
+            headers.put("Content-Type", singletonList("application/json"));
             data = JsonHelper.toJson(entity).getBytes();
         }
         return launcher.service(method, path, BASE_URI, headers, data, null, environmentContext);

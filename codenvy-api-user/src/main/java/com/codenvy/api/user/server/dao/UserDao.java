@@ -13,7 +13,6 @@ package com.codenvy.api.user.server.dao;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.user.shared.dto.User;
 
 /**
  * DAO interface offers means to perform CRUD operations with {@link com.codenvy.api.user.shared.dto.User} data. The implementation is not

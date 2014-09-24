@@ -26,9 +26,10 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.UserService;
 import com.codenvy.api.user.server.dao.Profile;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.workspace.server.dao.Workspace;
@@ -700,7 +701,7 @@ public class WorkspaceService extends Service {
      * @throws NotFoundException
      *         when workspace with given identifier doesn't exist
      * @throws ServerException
-     *         when some error occurred while retrieving {@link Workspace}, {@link User}
+     *         when some error occurred while retrieving {@link Workspace}, {@link com.codenvy.api.user.shared.dto.UserDescriptor}
      *         or persisting new {@link Member}
      * @throws ConflictException
      *         when new membership is {@code null}
@@ -855,8 +856,7 @@ public class WorkspaceService extends Service {
     }
 
     private User createTemporaryUser() throws ConflictException, ServerException, NotFoundException {
-        final User user = DtoFactory.getInstance().createDto(User.class)
-                                    .withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
+        final User user = new User().withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
         userDao.create(user);
         try {
             final Map<String, String> attributes = new HashMap<>(4);

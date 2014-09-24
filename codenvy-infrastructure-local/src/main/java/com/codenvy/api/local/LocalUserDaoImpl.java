@@ -13,7 +13,7 @@ package com.codenvy.api.local;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;

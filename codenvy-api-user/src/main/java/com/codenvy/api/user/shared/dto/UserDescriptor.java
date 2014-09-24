@@ -20,37 +20,37 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface User {
+public interface UserDescriptor {
     @ApiModelProperty(value = "User ID")
     String getId();
 
     void setId(String id);
 
-    User withId(String id);
+    UserDescriptor withId(String id);
 
     List<String> getAliases();
 
     void setAliases(List<String> aliases);
 
-    User withAliases(List<String> aliases);
+    UserDescriptor withAliases(List<String> aliases);
 
     @ApiModelProperty(value = "User email")
     String getEmail();
 
     void setEmail(String email);
 
-    User withEmail(String email);
+    UserDescriptor withEmail(String email);
 
     @ApiModelProperty(value = "User password")
     String getPassword();
 
     void setPassword(String password);
 
-    User withPassword(String password);
+    UserDescriptor withPassword(String password);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    User withLinks(List<Link> links);
+    UserDescriptor withLinks(List<Link> links);
 }

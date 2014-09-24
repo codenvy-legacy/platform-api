@@ -20,9 +20,10 @@ import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.user.server.dao.Profile;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.workspace.server.dao.Workspace;
@@ -159,9 +160,7 @@ public class WorkspaceServiceTest {
         //set up test user
         final String userId = "test_user_id";
         final String userEmail = "test@test.com";
-        testUser = DtoFactory.getInstance().createDto(User.class)
-                             .withId(userId)
-                             .withEmail(userEmail);
+        testUser = new User().withId(userId).withEmail(userEmail);
         when(userDao.getById(userId)).thenReturn(testUser);
         when(userDao.getByAlias(userEmail)).thenReturn(testUser);
         com.codenvy.commons.env.EnvironmentContext.getCurrent().setUser(new com.codenvy.commons.user.User() {

@@ -22,7 +22,7 @@ import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.server.dao.User;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;

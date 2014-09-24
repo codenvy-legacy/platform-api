@@ -10,16 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.user.server;
 
-import sun.security.acl.PrincipalImpl;
-
-import com.codenvy.api.core.rest.Service;
-import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.user.server.dao.Profile;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.User;
-import com.codenvy.commons.lang.NameGenerator;
-import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.api.user.shared.dto.UserDescriptor;
+import com.codenvy.commons.json.JsonHelper;
 
 import org.everrest.core.impl.ApplicationContextImpl;
 import org.everrest.core.impl.ApplicationProviderBinder;
@@ -33,245 +30,193 @@ import org.everrest.core.tools.DependencySupplierImpl;
 import org.everrest.core.tools.ResourceLauncher;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
-import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.times;
+import static java.util.Collections.singletonList;
+import static javax.ws.rs.core.Response.Status.NO_CONTENT;
+import static javax.ws.rs.core.Response.Status.OK;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.fail;
+import static javax.ws.rs.core.Response.Status.CREATED;
 
 /**
- * Tests for User Service
+ * Tests for {@link UserService}
  *
  * @author Eugene Veovodin
  * @author Max Shaposhnik
- * @see com.codenvy.api.user.server.UserService
  */
 @Listeners(value = {MockitoTestNGListener.class})
 public class UserServiceTest {
 
-    protected final String BASE_URI     = "http://localhost/service";
-    private final   String SERVICE_PATH = BASE_URI + "/user";
-
-    private final String USER_ID    = "user123abc456def";
-    private final String USER_EMAIL = "user@text.com";
+    private final String BASE_URI     = "http://localhost/service";
+    private final String SERVICE_PATH = BASE_URI + "/user";
 
     @Mock
-    private UserProfileDao userProfileDao;
-
+    private UserProfileDao     userProfileDao;
     @Mock
-    private UserDao userDao;
-
+    private UserDao            userDao;
     @Mock
-    private TokenValidator tokenValidator;
-
+    private TokenValidator     tokenValidator;
     @Mock
-    private UriInfo uriInfo;
-
+    private UriInfo            uriInfo;
     @Mock
     private EnvironmentContext environmentContext;
-
     @Mock
-    private SecurityContext securityContext;
-
-    protected ProviderBinder     providers;
-    protected ResourceBinderImpl resources;
-    protected ResourceLauncher   launcher;
+    private SecurityContext    securityContext;
+    private ResourceLauncher   launcher;
 
     @BeforeMethod
     public void setUp() throws Exception {
-        resources = new ResourceBinderImpl();
-        providers = new ApplicationProviderBinder();
+        ResourceBinderImpl resources = new ResourceBinderImpl();
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(TokenValidator.class, tokenValidator);
         resources.addResource(UserService.class, null);
-        EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
+        EverrestProcessor processor = new EverrestProcessor(resources,
+                                                            new ApplicationProviderBinder(),
+                                                            dependencies,
+                                                            new EverrestConfiguration(),
+                                                            null);
         launcher = new ResourceLauncher(processor);
         ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
+        //set up user
+        final User user = createUser();
+        com.codenvy.commons.env.EnvironmentContext.getCurrent().setUser(new com.codenvy.commons.user.User() {
 
-        when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
-        when(securityContext.getUserPrincipal()).thenReturn(new PrincipalImpl(USER_EMAIL));
-        when(userDao.getById(USER_ID))
-                .thenReturn(DtoFactory.getInstance().createDto(User.class).withId(USER_ID));
+            @Override
+            public String getName() {
+                return user.getEmail();
+            }
+
+            @Override
+            public boolean isMemberOf(String s) {
+                return false;
+            }
+
+            @Override
+            public String getToken() {
+                return null;
+            }
+
+            @Override
+            public String getId() {
+                return user.getId();
+            }
+
+            @Override
+            public boolean isTemporary() {
+                return false;
+            }
+        });
     }
-
-    @AfterMethod
-    public void tearDown() throws Exception {
-    }
-
 
     @Test
     public void shouldBeAbleToCreateNewUser() throws Exception {
-        String[] s = getRoles(UserService.class, "create");
-        for (String role : s) {
+        final String userEmail = "test@email.com";
+        final String token = "test_token";
+        when(tokenValidator.validateToken(token)).thenReturn(userEmail);
 
-            prepareSecurityContext(role);
-            ContainerResponse response =
-                    launcher.service("POST", SERVICE_PATH + "/create", BASE_URI, null, null, null,
-                                     environmentContext);
+        final ContainerResponse response = makeRequest("POST", SERVICE_PATH + "/create?token=" + token, null);
 
-            assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
-        }
-        verify(userDao, times(s.length)).create(any(User.class));
-        verify(userProfileDao, times(s.length)).create(any(Profile.class));
+        assertEquals(response.getStatus(), CREATED.getStatusCode());
+        final UserDescriptor user = (UserDescriptor)response.getEntity();
+        assertEquals(user.getEmail(), userEmail);
     }
-
 
     @Test
     public void shouldBeAbleToGetCurrentUser() throws Exception {
+        final User user = createUser();
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
-        when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
+        final ContainerResponse response = makeRequest("GET", SERVICE_PATH, null);
 
-        String[] s = getRoles(UserService.class, "getCurrent");
-        for (String role : s) {
-            prepareSecurityContext(role);
-            ContainerResponse response =
-                    launcher.service("GET", SERVICE_PATH, BASE_URI, null, null, null, environmentContext);
-            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
-        }
-        verify(userDao, times(s.length)).getByAlias(USER_EMAIL);
+        assertEquals(response.getStatus(), OK.getStatusCode());
+        final UserDescriptor descriptor = (UserDescriptor)response.getEntity();
+        assertEquals(descriptor.getId(), user.getId());
+        assertEquals(descriptor.getEmail(), user.getEmail());
+        assertEquals(descriptor.getAliases(), user.getAliases());
     }
 
     @Test
-    public void shouldBeAbleToGetUserByID() throws Exception {
+    public void shouldBeAbleToGetUserById() throws Exception {
+        final User user = createUser();
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
-        when(userDao.getById(USER_ID)).thenReturn(user);
-        String[] s = getRoles(UserService.class, "getById");
-        for (String role : s) {
-            prepareSecurityContext(role);
+        final ContainerResponse response = makeRequest("GET", SERVICE_PATH + "/" + user.getId(), null);
 
-            ContainerResponse response =
-                    launcher.service("GET", SERVICE_PATH + "/" + USER_ID, BASE_URI, null, null, null,
-                                     environmentContext);
-            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
-        }
-        verify(userDao, times(s.length)).getById(USER_ID);
+        assertEquals(response.getStatus(), OK.getStatusCode());
+        final UserDescriptor descriptor = (UserDescriptor)response.getEntity();
+        assertEquals(descriptor.getId(), user.getId());
+        assertEquals(descriptor.getEmail(), user.getEmail());
+        assertEquals(descriptor.getAliases(), user.getAliases());
     }
 
     @Test
     public void shouldBeAbleToGetUserByEmail() throws Exception {
+        final User user = createUser();
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
-        when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
-        when(userDao.getById(USER_ID)).thenReturn(user);
-        String[] s = getRoles(UserService.class, "getByEmail");
-        for (String role : s) {
-            prepareSecurityContext(role);
+        final ContainerResponse response = makeRequest("GET", SERVICE_PATH + "?email=" + user.getEmail(), null);
 
-            ContainerResponse response =
-                    launcher.service("GET", SERVICE_PATH + "?email=" + USER_EMAIL, BASE_URI, null, null, null,
-                                     environmentContext);
-            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-            verifyLinksRel(((User)response.getEntity()).getLinks(), getRels(role));
-        }
-        verify(userDao, times(s.length)).getByAlias(USER_EMAIL);
+        assertEquals(response.getStatus(), OK.getStatusCode());
+        final UserDescriptor descriptor = (UserDescriptor)response.getEntity();
+        assertEquals(descriptor.getId(), user.getId());
+        assertEquals(descriptor.getEmail(), user.getEmail());
+        assertEquals(descriptor.getAliases(), user.getAliases());
     }
 
     @Test
     public void shouldBeAbleToUpdateUserPassword() throws Exception {
-        User user = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
-        String newPassword = NameGenerator.generate(User.class.getSimpleName(), Constants.ID_LENGTH);
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/x-www-form-urlencoded"));
-        prepareSecurityContext("user");
-        when(userDao.getByAlias(USER_EMAIL)).thenReturn(user);
+        final User user = createUser();
+        final String newPassword = "new password";
+        final Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", singletonList("application/x-www-form-urlencoded"));
 
-        ContainerResponse response =
-                launcher.service("POST", SERVICE_PATH + "/password", BASE_URI, headers, ("password=" + newPassword).getBytes(), null,
-                                 environmentContext);
+        final ContainerResponse response = launcher.service("POST",
+                                                            SERVICE_PATH + "/password",
+                                                            BASE_URI,
+                                                            headers,
+                                                            ("password=" + newPassword).getBytes(),
+                                                            null,
+                                                            environmentContext);
 
-        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
-        verify(userDao, times(1)).getByAlias(USER_EMAIL);
-        verify(userDao, times(1)).update(any(User.class));
+        assertEquals(response.getStatus(), NO_CONTENT.getStatusCode());
+        verify(userDao).update(user.withPassword(newPassword));
     }
 
     @Test
     public void shouldBeAbleToRemoveUser() throws Exception {
-        prepareSecurityContext("system/admin");
+        final User testUser = createUser();
 
-        ContainerResponse response =
-                launcher.service("DELETE", SERVICE_PATH + "/" + USER_ID, BASE_URI, null, null, null, environmentContext);
+        final ContainerResponse response = makeRequest("DELETE", SERVICE_PATH + "/" + testUser.getId(), null);
 
-        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), response.getStatus());
-        verify(userDao, times(1)).remove(USER_ID);
+        assertEquals(response.getStatus(), NO_CONTENT.getStatusCode());
+        verify(userDao).remove(testUser.getId());
     }
 
+    private User createUser() throws NotFoundException, ServerException {
+        final User testUser = new User().withId("test_id")
+                                        .withEmail("test@email");
+        when(userDao.getById(testUser.getId())).thenReturn(testUser);
+        when(userDao.getByAlias(testUser.getEmail())).thenReturn(testUser);
+        return testUser;
+    }
 
-    protected void verifyLinksRel(List<Link> links, List<String> rels) {
-        assertEquals(links.size(), rels.size());
-        for (String rel : rels) {
-            boolean linkPresent = false;
-            for (Link link : links) {
-                linkPresent |= link.getRel().equals(rel);
-            }
-            if (!linkPresent) {
-                fail(String.format("Given links do not contain link with rel = %s", rel));
-            }
+    private ContainerResponse makeRequest(String method, String path, Object entity) throws Exception {
+        Map<String, List<String>> headers = null;
+        byte[] data = null;
+        if (entity != null) {
+            headers = new HashMap<>();
+            headers.put("Content-Type", singletonList("application/json"));
+            data = JsonHelper.toJson(entity).getBytes();
         }
-    }
-
-    private String[] getRoles(Class<? extends Service> clazz, String methodName) {
-        for (Method one : clazz.getMethods()) {
-            if (one.getName().equals(methodName)) {
-                if (one.isAnnotationPresent(RolesAllowed.class)) {
-                    return one.getAnnotation(RolesAllowed.class).value();
-                } else {
-                    return new String[0];
-                }
-            }
-        }
-        throw new IllegalArgumentException(
-                String.format("Class %s does not have method with name %s", clazz.getName(), methodName));
-    }
-
-    private List<String> getRels(String role) {
-        List<String> result = new ArrayList<>();
-        result.add(Constants.LINK_REL_GET_CURRENT_USER);
-        result.add(Constants.LINK_REL_UPDATE_PASSWORD);
-        result.add(Constants.LINK_REL_GET_CURRENT_USER_PROFILE);
-        switch (role) {
-            case "system/admin":
-                result.add(Constants.LINK_REL_REMOVE_USER_BY_ID);
-            case "system/manager":
-                result.add(Constants.LINK_REL_GET_USER_BY_ID);
-                result.add(Constants.LINK_REL_GET_USER_BY_EMAIL);
-                result.add(Constants.LINK_REL_GET_USER_PROFILE_BY_ID);
-                break;
-
-            default:
-                break;
-        }
-        return result;
-    }
-
-    protected void prepareSecurityContext(String... roles) {
-        when(securityContext.isUserInRole(anyString())).thenReturn(false);
-        when(securityContext.isUserInRole("user")).thenReturn(true);
-        for (String role : roles)
-            when(securityContext.isUserInRole(role)).thenReturn(true);
+        return launcher.service(method, path, BASE_URI, headers, data, null, environmentContext);
     }
 }

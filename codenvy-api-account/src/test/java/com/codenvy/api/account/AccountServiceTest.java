@@ -41,8 +41,9 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -116,7 +117,7 @@ public class AccountServiceTest {
     private final String SERVICE_ID      = "IDE_SERVICE";
     private final String USER_EMAIL      = "account@mail.com";
     private final String PLAN_ID         = "planId";
-    private final User   user            = DtoFactory.getInstance().createDto(User.class).withId(USER_ID).withEmail(USER_EMAIL);
+    private final User   user            = new User().withId(USER_ID).withEmail(USER_EMAIL);
 
     @Mock
     private AccountDao accountDao;
@@ -306,7 +307,7 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetMembershipsOfSpecificUser() throws Exception {
         when(accountDao.getById("fake_id")).thenReturn(new Account().withId("fake_id").withName("fake_name"));
-        User user = DtoFactory.getInstance().createDto(User.class).withId("ANOTHER_USER_ID").withEmail("ANOTHER_USER_EMAIL");
+        User user = new User().withId("ANOTHER_USER_ID").withEmail("ANOTHER_USER_EMAIL");
         ArrayList<Member> memberships = new ArrayList<>(1);
         Member am = new Member().withAccountId("fake_id")
                                 .withUserId("ANOTHER_USER_ID")

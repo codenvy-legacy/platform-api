@@ -24,7 +24,7 @@ import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.User;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.mockito.InjectMocks;
@@ -89,7 +89,7 @@ public class FactoryUrlBaseValidatorTest {
         nonencoded.setVcsurl(VALID_REPOSITORY_URL);
         url = nonencoded;
 
-        User user = DtoFactory.getInstance().createDto(User.class).withId("userid");
+        User user = new User().withId("userid");
 
         Subscription subscription = new Subscription()
                 .withServiceId("Factory")

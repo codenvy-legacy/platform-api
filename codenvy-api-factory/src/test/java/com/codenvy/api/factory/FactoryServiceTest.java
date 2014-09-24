@@ -20,7 +20,6 @@ import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
-import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
@@ -303,7 +302,7 @@ public class FactoryServiceTest {
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        Factory responseFactoryUrl = DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), Factory.class);
+        Factory responseFactoryUrl = DtoFactory.getInstance().createDtoFromJson(response.getBody().asString(), Factory.class);
         assertTrue(responseFactoryUrl.getLinks().contains(
                 DtoFactory.getInstance().createDto(Link.class).withMethod("GET").withProduces("application/json")
                           .withHref(getServerUrl(context) + "/rest/private/factory/" +
@@ -494,7 +493,7 @@ public class FactoryServiceTest {
                 .statusCode(409)
                 .when().post("/private" + SERVICE_PATH);
 
-        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
                      "Image media type 'image/tiff' is unsupported.");
     }
 
@@ -523,7 +522,7 @@ public class FactoryServiceTest {
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        Factory responseFactoryUrl = JsonHelper.fromJson(response.getBody().asInputStream(),
+        Factory responseFactoryUrl = JsonHelper.fromJson(response.getBody().asString(),
                                                          Factory.class, null);
 
         List<Link> expectedLinks = new ArrayList<>(9);
@@ -603,7 +602,7 @@ public class FactoryServiceTest {
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID);
 
-        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
                      String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
@@ -657,7 +656,7 @@ public class FactoryServiceTest {
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image?imgId=illegalImageId");
 
-        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
                      String.format("Image with id %s is not found.", "illegalImageId"));
     }
 
@@ -673,7 +672,7 @@ public class FactoryServiceTest {
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/image?imgId=ImageId");
 
-        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
                      String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
@@ -789,7 +788,7 @@ public class FactoryServiceTest {
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
 
-        assertEquals(DtoFactory.getInstance().createDtoFromJson(IoUtil.readStream(response.getBody().asInputStream()), ServiceError.class).getMessage(),
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
                      "Enable to generate markdown snippet with empty factory style");
 
     }
@@ -806,7 +805,7 @@ public class FactoryServiceTest {
                 when().//
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/snippet?type=url");
 
-        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
                      "Factory URL with id " + ILLEGAL_FACTORY_ID + " is not found.");
     }
 
@@ -822,7 +821,7 @@ public class FactoryServiceTest {
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=" + type);
 
-        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
                      String.format("Snippet type \"%s\" is unsupported.", type));
     }
 
@@ -868,7 +867,7 @@ public class FactoryServiceTest {
 
         // then
         assertEquals(response.getStatusCode(), 200);
-        List<Link> responseLinks = DtoFactory.getInstance().createListDtoFromJson(response.getBody().asInputStream(), Link.class);
+        List<Link> responseLinks = DtoFactory.getInstance().createListDtoFromJson(response.getBody().asString(), Link.class);
         assertEquals(responseLinks.size(), 2);
     }
 }

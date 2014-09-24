@@ -15,8 +15,6 @@ package com.codenvy.dto.generator;
 
 import com.codenvy.dto.server.DtoFactoryVisitor;
 import com.codenvy.dto.shared.DTO;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
@@ -39,21 +37,14 @@ import java.util.Set;
 
 /** Simple source generator that takes in the packages list with interface definitions and generates client and server DTO impls. */
 public class DtoGenerator {
-
-    private static final String INVALID_PATH = "invalid path";
-
-    private static final String SERVER = "server";
-
-    private static final String CLIENT = "client";
-
     /** Flag: location of the packages that contains dto interfaces. */
     private String[] dtoPackages = null;
 
     /** Flag: Name of the generated java class file that contains the DTOs. */
     private String genFileName = "DataObjects.java";
 
-    /** Flag: The type of impls to be generated, either CLIENT or SERVER. */
-    private String impl = CLIENT;
+    /** Flag: The type of impls to be generated, either client or server. */
+    private String impl = "client";
 
     /** Flag: A pattern we can use to search an absolute path and find the start of the package definition.") */
     private String packageBase = "java.";
@@ -141,7 +132,7 @@ public class DtoGenerator {
                 sb.append(dtoPackage);
             }
 
-            DtoTemplate dtoTemplate = new DtoTemplate(packageName, className, getApiHash(sb.toString()), impl.equals(SERVER));
+            DtoTemplate dtoTemplate = new DtoTemplate(packageName, className, impl);
             Reflections reflection = new Reflections(new ConfigurationBuilder().setUrls(urls).setScanners(new TypeAnnotationsScanner()));
             List<Class<?>> dtos = new ArrayList<>(reflection.getTypesAnnotatedWith(DTO.class));
 
@@ -163,12 +154,14 @@ public class DtoGenerator {
             for (Class<?> clazz : dtosDependencies) {
                 for (Class impl : reflection.getSubTypesOf(clazz)) {
                     if (!(impl.isInterface() || urls.contains(impl.getProtectionDomain().getCodeSource().getLocation()))) {
-                        if (DtoGenerator.this.impl.equals(CLIENT)) {
-                            if (isClientImpl(impl)) {
+                        if ("client".equals(dtoTemplate.getImplType())) {
+                           if (isClientImpl(impl))  {
+                               dtoTemplate.addImplementation(clazz, impl);
+                           }
+                        } else if ("server".equals(dtoTemplate.getImplType())) {
+                            if (isServerImpl(impl))  {
                                 dtoTemplate.addImplementation(clazz, impl);
                             }
-                        } else if (!isClientImpl(impl)) {
-                            dtoTemplate.addImplementation(clazz, impl);
                         }
                     }
                 }
@@ -176,31 +169,31 @@ public class DtoGenerator {
 
             // Emit the generated file.
             Files.createDirectories(outFile.toPath().getParent());
-            BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));
-            writer.write(dtoTemplate.toString());
-            writer.close();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(outFile))) {
+                writer.write(dtoTemplate.toString());
+            }
 
-            if (impl.equals(SERVER)) {
+            if ("server".equals(impl)) {
                 // Create file in META-INF/services/
-                File outFile2 = new File(myPackageBase + "META-INF/services/" + DtoFactoryVisitor.class.getCanonicalName());
-                Files.createDirectories(outFile2.toPath().getParent());
-                BufferedWriter writer2 = new BufferedWriter(new FileWriter(outFile2));
-                writer2.write(packageName + "." + className);
-                writer2.close();
+                File outServiceFile = new File(myPackageBase + "META-INF/services/" + DtoFactoryVisitor.class.getCanonicalName());
+                Files.createDirectories(outServiceFile.toPath().getParent());
+                try (BufferedWriter serviceFileWriter = new BufferedWriter(new FileWriter(outServiceFile))) {
+                    serviceFileWriter.write(packageName + "." + className);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private boolean isClientImpl(Class impl) {
-        return impl.getName().contains(".client.");
+    private boolean isClientImpl(Class<?> impl) {
+        com.codenvy.dto.shared.DTOImpl a = impl.getAnnotation(com.codenvy.dto.shared.DTOImpl.class);
+        return a != null && "client".equals(a.value());
     }
 
-    private static String getApiHash(String packageName) throws IOException {
-        byte[] fileBytes = packageName.getBytes();
-        HashCode hashCode = Hashing.sha1().hashBytes(fileBytes);
-        return hashCode.toString();
+    private boolean isServerImpl(Class<?> impl) {
+        com.codenvy.dto.shared.DTOImpl a = impl.getAnnotation(com.codenvy.dto.shared.DTOImpl.class);
+        return a != null && "server".equals(a.value());
     }
 
     private static Set<URL> getClasspathForPackages(String[] packages) {

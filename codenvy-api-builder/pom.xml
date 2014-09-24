@@ -114,7 +114,6 @@
                 <configuration>
                     <dtoPackages>
                         <package>com.codenvy.api.builder.dto</package>
-                        <package>com.codenvy.api.core.rest.shared.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
                     <genClassName>com.codenvy.api.builder.server.dto.DtoServerImpls</genClassName>

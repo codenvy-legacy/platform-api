@@ -13,6 +13,7 @@ package com.codenvy.dto.server;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.LoadingValueSLRUCache;
 import com.codenvy.commons.lang.cache.SynchronizedCache;
+import com.codenvy.commons.lang.reflect.ParameterizedTypeImpl;
 import com.codenvy.dto.shared.DTO;
 import com.codenvy.dto.shared.JsonArray;
 import com.codenvy.dto.shared.JsonStringMap;

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,21 +41,19 @@ public class DtoTemplate {
     }
 
     // We keep a whitelist of allowed non-DTO generic types.
-    static final Set<Class<?>> jreWhitelist = new HashSet<>(
-            Arrays.asList(new Class<?>[]{String.class, Integer.class, Double.class, Float.class, Boolean.class}));
+    static final Set<Class<?>> jreWhitelist =
+            new HashSet<>(Arrays.asList(new Class<?>[]{String.class, Integer.class, Double.class, Float.class, Boolean.class}));
 
     private final List<DtoImpl> dtoInterfaces = new ArrayList<>();
 
     // contains mapping for already implemented DTO interfaces
-    private final Map<Class<?>, Class<?>> implementedDtoInterfaces = new HashMap<>();
+    private final Map<Class<?>, Set<Class<?>>> implementedDtoInterfaces = new HashMap<>();
 
     private final String packageName;
 
     private final String className;
 
-    private final boolean isServerType;
-
-    private final String apiHash;
+    private final String implType;
 
     /**
      * Walks the super interface hierarchy to determine if a Class implements some target interface transitively.
@@ -79,18 +78,25 @@ public class DtoTemplate {
      *         The name of the package for the outer DTO class.
      * @param className
      *         The name of the outer DTO class.
-     * @param isServerType
-     *         Whether or not the DTO impls are client or server.
+     * @param implType
+     *         DTO impls type, "client" or "server".
      */
-    DtoTemplate(String packageName, String className, String apiHash, boolean isServerType) {
+    DtoTemplate(String packageName, String className, String implType) {
         this.packageName = packageName;
         this.className = className;
-        this.apiHash = apiHash;
-        this.isServerType = isServerType;
+        this.implType = implType;
+    }
+
+    public String getImplType() {
+        return implType;
     }
 
     public void addImplementation(Class<?> dtoInterface, Class<?> impl) {
-        implementedDtoInterfaces.put(dtoInterface, impl);
+        Set<Class<?>> classes = implementedDtoInterfaces.get(dtoInterface);
+        if (classes == null) {
+            implementedDtoInterfaces.put(dtoInterface, classes = new LinkedHashSet<>());
+        }
+        classes.add(impl);
     }
 
     /**
@@ -98,7 +104,16 @@ public class DtoTemplate {
      * <code>null</code> it means interface is not implemented yet.
      */
     public Class<?> getDtoImplementation(Class<?> dtoInterface) {
-        return implementedDtoInterfaces.get(dtoInterface);
+        Set<Class<?>> classes = implementedDtoInterfaces.get(dtoInterface);
+        if (classes == null || classes.isEmpty()) {
+            return null;
+        }
+        for (Class<?> impl : classes) {
+            if (impl.getSimpleName().equals(dtoInterface.getSimpleName() + "Impl")) {
+                return impl;
+            }
+        }
+        return null;
     }
 
     /**
@@ -124,7 +139,6 @@ public class DtoTemplate {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         emitPreamble(builder);
-        emitClientFrontendApiVersion(builder);
         emitDtos(builder);
         emitPostamble(builder);
         return builder.toString();
@@ -143,16 +157,13 @@ public class DtoTemplate {
         return false;
     }
 
-    /**
-     * Will initialize the routing ID to be RoutableDto.INVALID_TYPE if it is not routable. This is a small abuse of the intent of that
-     * value, but it allows us to simply omit it from the routing type enumeration later.
-     *
-     * @param i
-     *         the super interface type
-     * @return a new DtoServerTemplate or a new DtoClientTemplate depending on isServerImpl.
-     */
     private DtoImpl createDtoImplTemplate(Class<?> i) {
-        return isServerType ? new DtoImplServerTemplate(this, i) : new DtoImplClientTemplate(this, i);
+        if ("server".equals(implType)) {
+            return new DtoImplServerTemplate(this, i);
+        } else if ("client".equals(implType)) {
+            return new DtoImplClientTemplate(this, i);
+        }
+        throw new IllegalStateException("Unsupported DTO implementation type, must be 'client' or 'server'");
     }
 
     private void emitDtos(StringBuilder builder) {
@@ -179,7 +190,7 @@ public class DtoTemplate {
         builder.append("// GENERATED SOURCE. DO NOT EDIT.\npackage ");
         builder.append(packageName);
         builder.append(";\n\n");
-        if (isServerType) {
+        if ("server".equals(implType)) {
             builder.append("import com.codenvy.dto.server.JsonSerializable;\n");
             builder.append("\n");
             builder.append("import com.google.gson.Gson;\n");
@@ -194,7 +205,7 @@ public class DtoTemplate {
             builder.append("import java.util.List;\n");
             builder.append("import java.util.Map;\n");
         }
-        if (!isServerType) {
+        if ("client".equals(implType)) {
             builder.append("import com.codenvy.ide.dto.ClientDtoFactoryVisitor;\n");
             builder.append("import com.codenvy.ide.dto.DtoFactoryVisitor;\n");
             builder.append("import com.codenvy.ide.dto.JsonSerializable;\n");
@@ -202,7 +213,7 @@ public class DtoTemplate {
             builder.append("import com.google.inject.Singleton;\n");
         }
         builder.append("\n\n@SuppressWarnings({\"unchecked\", \"cast\"})\n");
-        if (!isServerType) {
+        if ("client".equals(implType)) {
             builder.append("@Singleton\n");
             builder.append("@ClientDtoFactoryVisitor\n");
         }
@@ -210,14 +221,14 @@ public class DtoTemplate {
         // so we need not add any import statements for anything.
         builder.append("public class ");
         builder.append(className);
-        if (isServerType) {
+        if ("server".equals(implType)) {
             builder.append(" implements ").append(DtoFactoryVisitor.class.getCanonicalName());
         }
-        if (!isServerType) {
+        if ("client".equals(implType)) {
             builder.append(" implements ").append("DtoFactoryVisitor");
         }
         builder.append(" {\n\n");
-        if (isServerType) {
+        if ("server".equals(implType)) {
             builder.append("  private static final Gson gson = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();\n\n");
             builder.append("  @Override\n" +
                            "  public void accept(com.codenvy.dto.server.DtoFactory dtoFactory) {\n");
@@ -244,7 +255,7 @@ public class DtoTemplate {
             }
             builder.append("  }\n\n");
         }
-        if (!isServerType) {
+        if ("client".equals(implType)) {
             builder.append("  @Override\n").append("  public void accept(com.codenvy.ide.dto.DtoFactory dtoFactory) {\n");
             for (DtoImpl dto : getDtoInterfaces()) {
                 String dtoInterface = dto.getDtoInterface().getCanonicalName();
@@ -263,19 +274,5 @@ public class DtoTemplate {
             }
             builder.append("  }\n\n");
         }
-    }
-
-    /**
-     * Emits a static variable that is the hash of all the class names, method names, and return types to be used as a version hash between
-     * client and server.
-     */
-    private void emitClientFrontendApiVersion(StringBuilder builder) {
-        builder.append("\n  public static final String CLIENT_SERVER_PROTOCOL_HASH = \"");
-        builder.append(getApiHash());
-        builder.append("\";\n\n");
-    }
-
-    private String getApiHash() {
-        return apiHash;
     }
 }

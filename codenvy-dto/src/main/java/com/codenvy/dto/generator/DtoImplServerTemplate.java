@@ -8,6 +8,7 @@
  * Contributors:
  * Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
+
 package com.codenvy.dto.generator;
 
 import com.codenvy.dto.server.JsonArrayImpl;
@@ -35,8 +36,9 @@ import java.util.Set;
 
 /** Generates the source code for a generated Server DTO impl. */
 public class DtoImplServerTemplate extends DtoImpl {
-    private static final String JSON_ARRAY_IMPL = JsonArrayImpl.class.getCanonicalName();
-    private static final String JSON_MAP_IMPL   = JsonStringMapImpl.class.getCanonicalName();
+    private static final String JSON_ARRAY_IMPL   = JsonArrayImpl.class.getCanonicalName();
+    private static final String JSON_MAP_IMPL     = JsonStringMapImpl.class.getCanonicalName();
+    private static final String SERVER_DTO_MARKER = "  @" + com.codenvy.dto.shared.DTOImpl.class.getCanonicalName() + "(\"server\")\n";
 
     DtoImplServerTemplate(DtoTemplate template, Class<?> superInterface) {
         super(template, superInterface);
@@ -45,19 +47,14 @@ public class DtoImplServerTemplate extends DtoImpl {
     @Override
     String serialize() {
         StringBuilder builder = new StringBuilder();
-        emitPreamble(getDtoInterface(), builder);
-        List<Method> getters = getDtoGetters(getDtoInterface());
+        final Class<?> dtoInterface = getDtoInterface();
+        final String dtoInterfaceName = dtoInterface.getCanonicalName();
+        emitPreamble(dtoInterface, builder);
+        List<Method> getters = getDtoGetters(dtoInterface);
         // Enumerate the getters and emit field names and getters + setters.
         emitFields(getters, builder);
         emitGettersAndSetters(getters, builder);
-        List<Method> inheritedGetters = new ArrayList<>();
-        Class<?> superInterface = getSuperInterface(getDtoInterface());
-        while (superInterface != null) {
-            for (Method getter : getDtoGetters(superInterface)) {
-                inheritedGetters.add(getter);
-            }
-            superInterface = getSuperInterface(superInterface);
-        }
+        List<Method> inheritedGetters = getInheritedDtoGetters(dtoInterface);
         List<Method> methods = new ArrayList<>();
         methods.addAll(getters);
         Set<String> getterNames = new HashSet<>();
@@ -69,8 +66,6 @@ public class DtoImplServerTemplate extends DtoImpl {
                 methods.add(getter);
             }
         }
-        // "builder" method, it is method that set field and return "this" instance
-        emitWithMethods(methods, getDtoInterface().getCanonicalName(), builder);
         // equals, hashCode, serialization and copy constructor
         emitEqualsAndHashCode(methods, builder);
         emitSerializer(methods, builder);
@@ -79,6 +74,40 @@ public class DtoImplServerTemplate extends DtoImpl {
         emitCopyConstructor(methods, builder);
         // Delegation DTO methods.
         emitDelegateMethods(builder);
+        // "builder" method, it is method that set field and return "this" instance
+        emitWithMethods(getters, dtoInterfaceName, builder);
+        // Implement withXXX methods that are declared directly in this DTO even if there are no any getter for the fields.
+        // Need that to override methods from super DTO and return correct type for with method.
+        // @DTO
+        // public interface A {
+        //     String getProperty();
+        //     void setProperty(String property);
+        //     A withProperty();
+        // }
+        //
+        // @DTO
+        // public interface B extends A {
+        //     // New methods
+        //     ...
+        //     // Override method to return type B instead of A.
+        //     B withProperty();
+        // }
+        getterNames.clear();
+        for (Method getter : getters) {
+            getterNames.add(getter.getName());
+        }
+        for (Method method : dtoInterface.getDeclaredMethods()) {
+            if (method.getName().startsWith("with")) {
+                String noPrefixName = method.getName().substring(4);
+                // Check do we already generate withXXX method or not.
+                // If there is getter in DTO interface we already have withXXX method
+                if (!getterNames.contains("get" + noPrefixName) && !getterNames.contains("is" + noPrefixName)) {
+                    String fieldName = Character.toLowerCase(noPrefixName.charAt(0)) + noPrefixName.substring(1);
+                    String parameterFqn = getFqParameterizedName(method.getGenericParameterTypes()[0]);
+                    emitWithMethod(method.getName(), fieldName, parameterFqn, dtoInterfaceName, builder);
+                }
+            }
+        }
         emitPostamble(builder);
         return builder.toString();
     }
@@ -90,20 +119,18 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append("        return false;\n");
         builder.append("      }\n");
         builder.append("      ").append(getImplClassName()).append(" other = (").append(getImplClassName()).append(") o;\n");
-        for (Method method : getters) {
-            String fieldName = getFieldName(method.getName());
-            Class<?> returnType = method.getReturnType();
+        for (Method getter : getters) {
+            String fieldName = getFieldName(getter.getName());
+            Class<?> returnType = getter.getReturnType();
             if (returnType.isPrimitive()) {
                 builder.append("      if (this.").append(fieldName).append(" != other.").append(fieldName).append(") {\n");
                 builder.append("        return false;\n");
                 builder.append("      }\n");
             } else {
-
                 if (isList(returnType) || isMap(returnType)) {
                     builder.append("      ").append("this.").append(getEnsureName(fieldName)).append("();\n");
                     builder.append("      ").append("other.").append(getEnsureName(fieldName)).append("();\n");
                     builder.append("      \n");
-
                 }
                 builder.append("      if (this.").append(fieldName).append(" != null) {\n");
                 builder.append("        if (!this.").append(fieldName).append(".equals(other.").append(fieldName).append(")) {\n");
@@ -152,55 +179,55 @@ public class DtoImplServerTemplate extends DtoImpl {
         builder.append("();\n    }\n\n");
     }
 
-    private void emitFields(List<Method> methods, StringBuilder builder) {
-        for (Method method : methods) {
-            String fieldName = getFieldName(method.getName());
+    private void emitFields(List<Method> getters, StringBuilder builder) {
+        for (Method getter : getters) {
+            String fieldName = getFieldName(getter.getName());
             builder.append("    ");
-            builder.append(getFieldTypeAndAssignment(method, fieldName));
+            builder.append(getFieldTypeAndAssignment(getter, fieldName));
         }
         builder.append("\n");
     }
 
     /** Emits a method to get a field. Getting a collection ensures that the collection is created. */
-    private void emitGetter(Method method, String fieldName, String returnType, StringBuilder builder) {
+    private void emitGetter(Method getter, String fieldName, String returnType, StringBuilder builder) {
         builder.append("    @Override\n    public ");
         builder.append(returnType);
         builder.append(" ");
-        builder.append(method.getName());
+        builder.append(getter.getName());
         builder.append("() {\n");
         // Initialize the collection.
-        Class<?> returnTypeClass = method.getReturnType();
+        Class<?> returnTypeClass = getter.getReturnType();
         if (isList(returnTypeClass) || isMap(returnTypeClass)) {
             builder.append("      ");
             builder.append(getEnsureName(fieldName));
             builder.append("();\n");
         }
         builder.append("      return ");
-        emitReturn(method, fieldName, builder);
+        emitReturn(getter, fieldName, builder);
         builder.append(";\n    }\n\n");
     }
 
     private void emitGettersAndSetters(List<Method> getters, StringBuilder builder) {
-        for (Method method : getters) {
-            String fieldName = getFieldName(method.getName());
+        for (Method getter : getters) {
+            String fieldName = getFieldName(getter.getName());
             if (fieldName == null) {
                 continue;
             }
-            Class<?> returnTypeClass = method.getReturnType();
-            String returnType = method.getGenericReturnType().toString().replace('$', '.').replace("class ", "").replace("interface ", "");
+            Class<?> returnTypeClass = getter.getReturnType();
+            String returnType = getFqParameterizedName(getter.getGenericReturnType());
             // Getter.
-            emitGetter(method, fieldName, returnType, builder);
+            emitGetter(getter, fieldName, returnType, builder);
             // Setter.
-            emitSetter(method, fieldName, builder);
+            emitSetter(fieldName, returnType, builder);
             // List/Map-specific methods.
             if (isList(returnTypeClass)) {
-                emitListAdd(method, fieldName, builder);
+                emitListAdd(getter, fieldName, builder);
                 emitClear(fieldName, builder);
-                emitEnsureCollection(method, fieldName, builder);
+                emitEnsureCollection(getter, fieldName, builder);
             } else if (isMap(returnTypeClass)) {
-                emitMapPut(method, fieldName, builder);
+                emitMapPut(getter, fieldName, builder);
                 emitClear(fieldName, builder);
-                emitEnsureCollection(method, fieldName, builder);
+                emitEnsureCollection(getter, fieldName, builder);
             }
         }
     }
@@ -214,7 +241,7 @@ public class DtoImplServerTemplate extends DtoImpl {
             if (i > 0) {
                 builder.append(", ");
             }
-            builder.append(parameterTypes[i].toString().replace('$', '.').replace("class ", "").replace("interface ", ""));
+            builder.append(getFqParameterizedName(parameterTypes[i]));
             String parameter = "$p" + i;
             builder.append(" ").append(parameter);
             parameters[i] = parameter;
@@ -235,12 +262,11 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     private void emitDelegateMethods(StringBuilder builder) {
-        for (Method method : getDtoMethods()) {
+        for (Method method : getDtoInterface().getDeclaredMethods()) {
             DelegateTo delegateTo = method.getAnnotation(DelegateTo.class);
             if (delegateTo != null) {
                 DelegateRule serverRule = delegateTo.server();
-                String returnType =
-                        method.getGenericReturnType().toString().replace('$', '.').replace("class ", "").replace("interface ", "");
+                String returnType = getFqParameterizedName(method.getGenericReturnType());
                 emitDelegateMethod(returnType, method, serverRule.type(), serverRule.method(), builder);
             }
         }
@@ -255,8 +281,8 @@ public class DtoImplServerTemplate extends DtoImpl {
             }
         } else {
             builder.append("      JsonObject result = new JsonObject();\n");
-            for (Method method : getters) {
-                emitSerializeFieldForMethod(method, builder);
+            for (Method getter : getters) {
+                emitSerializeFieldForMethod(getter, builder);
             }
         }
         builder.append("      return result;\n");
@@ -327,7 +353,6 @@ public class DtoImplServerTemplate extends DtoImpl {
      *         indentation string
      */
     private void emitSerializerImpl(List<Type> expandedTypes, int depth, StringBuilder builder, String inVar, String outVar, String i) {
-
         Type type = expandedTypes.get(depth);
         String childInVar = inVar + "_";
         String childOutVar = outVar + "_";
@@ -421,8 +446,8 @@ public class DtoImplServerTemplate extends DtoImpl {
             }
         } else {
             builder.append("      JsonObject json = jsonElem.getAsJsonObject();\n");
-            for (Method method : getters) {
-                emitDeserializeFieldForMethod(method, builder);
+            for (Method getter : getters) {
+                emitDeserializeFieldForMethod(getter, builder);
             }
         }
         builder.append("\n      return dto;\n");
@@ -550,6 +575,7 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     private void emitPreamble(Class<?> dtoInterface, StringBuilder builder) {
+        builder.append(SERVER_DTO_MARKER);
         builder.append("  public static class ");
         builder.append(getImplClassName());
 
@@ -604,13 +630,13 @@ public class DtoImplServerTemplate extends DtoImpl {
         }
     }
 
-    private void emitSetter(Method method, String fieldName, StringBuilder builder) {
+    private void emitSetter(String fieldName, String paramType, StringBuilder builder) {
         builder.append("    public ");
         builder.append("void");
         builder.append(" ");
         builder.append(getSetterName(fieldName));
         builder.append("(");
-        builder.append(getFqParameterizedName(method.getGenericReturnType()));
+        builder.append(paramType);
         builder.append(" v) {\n");
         builder.append("      this.");
         builder.append(fieldName);
@@ -619,19 +645,20 @@ public class DtoImplServerTemplate extends DtoImpl {
     }
 
     private void emitWithMethods(List<Method> getters, String dtoInterfaceName, StringBuilder builder) {
-        for (Method method : getters) {
-            String fieldName = getFieldName(method.getName());
-            emitWithMethod(method, dtoInterfaceName, fieldName, builder);
+        for (Method getter : getters) {
+            String fieldName = getFieldName(getter.getName());
+            emitWithMethod(getWithName(fieldName), fieldName, getFqParameterizedName(getter.getGenericReturnType()), dtoInterfaceName,
+                           builder);
         }
     }
 
-    private void emitWithMethod(Method method, String dtoInterfaceName, String fieldName, StringBuilder builder) {
+    private void emitWithMethod(String methodName, String fieldName, String paramType, String dtoInterfaceName, StringBuilder builder) {
         builder.append("    public ");
         builder.append(dtoInterfaceName);
         builder.append(" ");
-        builder.append(getWithName(fieldName));
+        builder.append(methodName);
         builder.append("(");
-        builder.append(getFqParameterizedName(method.getGenericReturnType()));
+        builder.append(paramType);
         builder.append(" v) {\n");
         builder.append("      this.");
         builder.append(fieldName);
@@ -786,7 +813,7 @@ public class DtoImplServerTemplate extends DtoImpl {
 
     /** Emit a method that ensures a collection is initialized. */
     private void emitEnsureCollection(Method method, String fieldName, StringBuilder builder) {
-        builder.append("    void ");
+        builder.append("    protected void ");
         builder.append(getEnsureName(fieldName));
         builder.append("() {\n");
         builder.append("      if (");

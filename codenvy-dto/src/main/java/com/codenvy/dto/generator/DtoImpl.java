@@ -53,13 +53,13 @@ abstract class DtoImpl {
         return enclosingTemplate;
     }
 
-    protected String getFieldName(String methodName) {
+    protected String getFieldName(String getterName) {
         String fieldName;
-        if (methodName.startsWith("get")) {
-            fieldName = methodName.substring(3);
+        if (getterName.startsWith("get")) {
+            fieldName = getterName.substring(3);
         } else {
             // starts with "is", see method '#ignoreMethod(Method)'
-            fieldName = methodName.substring(2);
+            fieldName = getterName.substring(2);
         }
         fieldName = Character.toLowerCase(fieldName.charAt(0)) + fieldName.substring(1);
         return fieldName;
@@ -108,16 +108,30 @@ abstract class DtoImpl {
 
     protected List<Method> getDtoGetters(Class<?> dto) {
         List<Method> getters = new ArrayList<>();
-        addDtoGetters(dto, getters);
+        if (enclosingTemplate.isDtoInterface(dto)) {
+            addDtoGetters(dto, getters);
+        }
+        return getters;
+    }
+
+    protected List<Method> getInheritedDtoGetters(Class<?> dto) {
+        List<Method> getters = new ArrayList<>();
+        if (enclosingTemplate.isDtoInterface(dto)) {
+            Class<?> superInterface = getSuperInterface(getDtoInterface());
+            while (superInterface != null) {
+                addDtoGetters(superInterface, getters);
+                superInterface = getSuperInterface(superInterface);
+            }
+
+            addDtoGetters(dto, getters);
+        }
         return getters;
     }
 
     private void addDtoGetters(Class<?> dto, List<Method> getters) {
-        if (enclosingTemplate.isDtoInterface(dto)) {
-            for (Method method : dto.getDeclaredMethods()) {
-                if (isDtoGetter(method)) {
-                    getters.add(method);
-                }
+        for (Method method : dto.getDeclaredMethods()) {
+            if (isDtoGetter(method)) {
+                getters.add(method);
             }
         }
     }

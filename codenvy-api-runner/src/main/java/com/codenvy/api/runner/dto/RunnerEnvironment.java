@@ -30,7 +30,7 @@ public interface RunnerEnvironment {
 
     RunnerEnvironment withId(String id);
 
-    /** Display name of BuilderEnvironment. */
+    /** Display name of RunnerEnvironment. */
     String getDisplayName();
 
     void setDisplayName(String id);

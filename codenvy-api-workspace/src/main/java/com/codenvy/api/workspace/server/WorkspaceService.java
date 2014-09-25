@@ -29,7 +29,6 @@ import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.workspace.server.dao.Workspace;
@@ -73,6 +72,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static com.codenvy.api.core.rest.shared.Links.createLink;
 import static java.lang.Boolean.parseBoolean;
 import static javax.ws.rs.core.Response.Status.CREATED;
 import static java.util.Arrays.asList;
@@ -881,51 +881,52 @@ public class WorkspaceService extends Service {
         final List<Link> links = new LinkedList<>();
 
         if (context.isUserInRole("workspace/admin") || context.isUserInRole("workspace/developer")) {
+
             links.add(createLink("GET",
-                                 LINK_REL_GET_WORKSPACE_MEMBERS,
-                                 null,
-                                 APPLICATION_JSON,
                                  serviceUriBuilder.clone()
                                                   .path(getClass(), "getMembers")
                                                   .build(workspace.getId())
-                                                  .toString()));
+                                                  .toString(),
+                                 null,
+                                 APPLICATION_JSON,
+                                 LINK_REL_GET_WORKSPACE_MEMBERS));
         }
         if (context.isUserInRole("workspace/admin")) {
             links.add(createLink("DELETE",
-                                 LINK_REL_REMOVE_WORKSPACE_MEMBER,
-                                 null,
-                                 null,
                                  serviceUriBuilder.clone()
                                                   .path(getClass(), "removeMember")
                                                   .build(workspace.getId(), member.getUserId())
-                                                  .toString()));
+                                                  .toString(),
+                                 null,
+                                 null,
+                                 LINK_REL_REMOVE_WORKSPACE_MEMBER));
         }
         links.add(createLink("GET",
-                             LINK_REL_GET_USER_BY_ID,
-                             null,
-                             APPLICATION_JSON,
                              baseUriBuilder.clone()
                                            .path(UserService.class)
                                            .path(UserService.class, "getById")
                                            .build(member.getUserId())
-                                           .toString()));
+                                           .toString(),
+                             null,
+                             APPLICATION_JSON,
+                             LINK_REL_GET_USER_BY_ID));
         final Link wsLink = createLink("GET",
-                                       LINK_REL_GET_WORKSPACE_BY_ID,
-                                       null,
-                                       APPLICATION_JSON,
                                        serviceUriBuilder.clone()
                                                         .path(getClass(), "getById")
                                                         .build(workspace.getId())
-                                                        .toString());
+                                                        .toString(),
+                                       null,
+                                       APPLICATION_JSON,
+                                       LINK_REL_GET_WORKSPACE_BY_ID);
         final Link projectsLink = createLink("GET",
-                                             LINK_REL_GET_PROJECTS,
-                                             null,
-                                             APPLICATION_JSON,
                                              baseUriBuilder.clone()
                                                            .path(ProjectService.class)
                                                            .path(ProjectService.class, "getProjects")
                                                            .build(workspace.getId())
-                                                           .toString());
+                                                           .toString(),
+                                             null,
+                                             APPLICATION_JSON,
+                                             LINK_REL_GET_PROJECTS);
         final WorkspaceReference wsRef = DtoFactory.getInstance().createDto(WorkspaceReference.class)
                                                    .withId(workspace.getId())
                                                    .withName(workspace.getName())
@@ -952,69 +953,68 @@ public class WorkspaceService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (context.isUserInRole("user")) {
             links.add(createLink("GET",
-                                 com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS,
-                                 null,
-                                 APPLICATION_JSON,
                                  getServiceContext().getBaseUriBuilder().clone()
                                                     .path(ProjectService.class)
                                                     .path(ProjectService.class, "getProjects")
                                                     .build(workspaceDescriptor.getId())
-                                                    .toString()
-                                ));
-            links.add(createLink("GET",
-                                 LINK_REL_GET_CURRENT_USER_WORKSPACES,
+                                                    .toString(),
                                  null,
                                  APPLICATION_JSON,
+                                 com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS));
+            links.add(createLink("GET",
                                  uriBuilder.clone()
                                            .path(getClass(), "getMembershipsOfCurrentUser")
                                            .build()
-                                           .toString()));
-            links.add(createLink("GET",
-                                 LINK_REL_GET_CURRENT_USER_MEMBERSHIP,
+                                           .toString(),
                                  null,
                                  APPLICATION_JSON,
+                                 LINK_REL_GET_CURRENT_USER_WORKSPACES));
+            links.add(createLink("GET",
                                  uriBuilder.clone()
                                            .path(getClass(), "getMembershipOfCurrentUser")
                                            .build(workspaceDescriptor.getId())
-                                           .toString()));
+                                           .toString(),
+                                 null,
+                                 APPLICATION_JSON,
+                                 LINK_REL_GET_CURRENT_USER_MEMBERSHIP));
         }
         if (context.isUserInRole("workspace/admin") || context.isUserInRole("workspace/developer") ||
             context.isUserInRole("system/admin") || context.isUserInRole("system/manager")) {
             links.add(createLink("GET",
-                                 LINK_REL_GET_WORKSPACE_BY_NAME,
-                                 null,
-                                 APPLICATION_JSON,
                                  uriBuilder.clone().
                                          path(getClass(), "getByName")
                                            .queryParam("name", workspaceDescriptor.getName())
                                            .build()
-                                           .toString()));
-            links.add(createLink("GET",
-                                 LINK_REL_GET_WORKSPACE_BY_ID,
+                                           .toString(),
                                  null,
                                  APPLICATION_JSON,
+                                 LINK_REL_GET_WORKSPACE_BY_NAME));
+            links.add(createLink("GET",
                                  uriBuilder.clone()
                                            .path(getClass(), "getById")
                                            .build(workspaceDescriptor.getId())
-                                           .toString()));
-            links.add(createLink("GET",
-                                 LINK_REL_GET_WORKSPACE_MEMBERS,
+                                           .toString(),
                                  null,
                                  APPLICATION_JSON,
+                                 LINK_REL_GET_WORKSPACE_BY_ID));
+            links.add(createLink("GET",
                                  uriBuilder.clone()
                                            .path(getClass(), "getMembers")
                                            .build(workspaceDescriptor.getId())
-                                           .toString()));
+                                           .toString(),
+                                 null,
+                                 APPLICATION_JSON,
+                                 LINK_REL_GET_WORKSPACE_MEMBERS));
         }
         if (context.isUserInRole("workspace/admin") || context.isUserInRole("system/admin")) {
             links.add(createLink("DELETE",
-                                 LINK_REL_REMOVE_WORKSPACE,
-                                 null,
-                                 null,
                                  uriBuilder.clone()
                                            .path(getClass(), "remove")
                                            .build(workspaceDescriptor.getId())
-                                           .toString()));
+                                           .toString(),
+                                 null,
+                                 null,
+                                 LINK_REL_REMOVE_WORKSPACE));
         }
         return workspaceDescriptor.withLinks(links);
     }
@@ -1063,18 +1063,6 @@ public class WorkspaceService extends Service {
             }
         }
         throw new ConflictException("You can create workspace associated only with your own account");
-    }
-
-    /**
-     * Creates {@link Link}
-     */
-    private Link createLink(String method, String rel, String consumes, String produces, String href) {
-        return DtoFactory.getInstance().createDto(Link.class)
-                         .withMethod(method)
-                         .withRel(rel)
-                         .withProduces(produces)
-                         .withConsumes(consumes)
-                         .withHref(href);
     }
 
     private com.codenvy.commons.user.User currentUser() {

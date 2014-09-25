@@ -80,6 +80,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import static com.codenvy.api.core.rest.shared.Links.createLink;
 import static java.util.Collections.singletonList;
 
 import static java.lang.String.format;
@@ -300,8 +301,6 @@ public class AccountService extends Service {
         account.getAttributes().remove(attributeName);
         accountDao.update(account);
     }
-
-    //TODO: add method for removing list of attributes
 
     /**
      * Searches for account with given identifier and returns {@link AccountDescriptor} for it.
@@ -946,62 +945,56 @@ public class AccountService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();
         links.add(createLink(HttpMethod.GET,
-                             Constants.LINK_REL_GET_ACCOUNTS,
-                             null,
-                             MediaType.APPLICATION_JSON,
                              uriBuilder.clone()
                                        .path(getClass(), "getMemberships")
                                        .build()
-                                       .toString()
-                            ));
-        links.add(createLink(HttpMethod.GET,
-                             Constants.LINK_REL_GET_SUBSCRIPTIONS,
+                                       .toString(),
                              null,
                              MediaType.APPLICATION_JSON,
+                             Constants.LINK_REL_GET_ACCOUNTS));
+        links.add(createLink(HttpMethod.GET,
                              uriBuilder.clone()
                                        .path(getClass(), "getSubscriptions")
                                        .build(account.getId())
-                                       .toString()
-                            ));
-        links.add(createLink(HttpMethod.GET,
-                             Constants.LINK_REL_GET_MEMBERS,
+                                       .toString(),
                              null,
                              MediaType.APPLICATION_JSON,
+                             Constants.LINK_REL_GET_SUBSCRIPTIONS));
+        links.add(createLink(HttpMethod.GET,
                              uriBuilder.clone()
                                        .path(getClass(), "getMembers")
                                        .build(account.getId())
-                                       .toString()
-                            ));
-        links.add(createLink(HttpMethod.GET,
-                             Constants.LINK_REL_GET_ACCOUNT_BY_ID,
+                                       .toString(),
                              null,
                              MediaType.APPLICATION_JSON,
+                             Constants.LINK_REL_GET_MEMBERS));
+        links.add(createLink(HttpMethod.GET,
                              uriBuilder.clone()
                                        .path(getClass(), "getById")
                                        .build(account.getId())
-                                       .toString()
-                            ));
+                                       .toString(),
+                             null,
+                             MediaType.APPLICATION_JSON,
+                             Constants.LINK_REL_GET_ACCOUNT_BY_ID));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(createLink(HttpMethod.GET,
-                                 Constants.LINK_REL_GET_ACCOUNT_BY_NAME,
-                                 null,
-                                 MediaType.APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "getByName")
                                            .queryParam("name", account.getName())
                                            .build()
-                                           .toString()
-                                ));
+                                           .toString(),
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 Constants.LINK_REL_GET_ACCOUNT_BY_NAME));
         }
         if (securityContext.isUserInRole("system/admin")) {
             links.add(createLink(HttpMethod.DELETE,
-                                 Constants.LINK_REL_REMOVE_ACCOUNT,
-                                 null,
-                                 null,
                                  uriBuilder.clone().path(getClass(), "remove")
                                            .build(account.getId())
-                                           .toString()
-                                ));
+                                           .toString(),
+                                 null,
+                                 null,
+                                 Constants.LINK_REL_REMOVE_ACCOUNT));
         }
         return DtoFactory.getInstance().createDto(AccountDescriptor.class)
                          .withId(account.getId())
@@ -1016,23 +1009,21 @@ public class AccountService extends Service {
     private MemberDescriptor toDescriptor(Member member, Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final Link removeMember = createLink(HttpMethod.DELETE,
-                                             Constants.LINK_REL_REMOVE_MEMBER,
-                                             null,
-                                             null,
                                              uriBuilder.clone()
                                                        .path(getClass(), "removeMember")
                                                        .build(account.getId(), member.getUserId())
-                                                       .toString()
-                                            );
+                                                       .toString(),
+                                             null,
+                                             null,
+                                             Constants.LINK_REL_REMOVE_MEMBER);
         final Link allMembers = createLink(HttpMethod.GET,
-                                           Constants.LINK_REL_GET_MEMBERS,
-                                           null,
-                                           MediaType.APPLICATION_JSON,
                                            uriBuilder.clone()
                                                      .path(getClass(), "getMembers")
                                                      .build(account.getId())
-                                                     .toString()
-                                          );
+                                                     .toString(),
+                                           null,
+                                           MediaType.APPLICATION_JSON,
+                                           Constants.LINK_REL_GET_MEMBERS);
         final AccountReference accountRef = DtoFactory.getInstance().createDto(AccountReference.class)
                                                       .withId(account.getId())
                                                       .withName(account.getName());
@@ -1040,13 +1031,13 @@ public class AccountService extends Service {
             securityContext.isUserInRole("system/admin") ||
             securityContext.isUserInRole("system/manager")) {
             accountRef.setLinks(singletonList(createLink(HttpMethod.GET,
-                                                         Constants.LINK_REL_GET_ACCOUNT_BY_ID,
-                                                         null,
-                                                         MediaType.APPLICATION_JSON,
                                                          uriBuilder.clone()
                                                                    .path(getClass(), "getById")
                                                                    .build(account.getId())
-                                                                   .toString())));
+                                                                   .toString(),
+                                                         null,
+                                                         MediaType.APPLICATION_JSON,
+                                                         Constants.LINK_REL_GET_ACCOUNT_BY_ID)));
         }
         return DtoFactory.getInstance().createDto(MemberDescriptor.class)
                          .withUserId(member.getUserId())
@@ -1086,35 +1077,32 @@ public class AccountService extends Service {
         if (!"sas-community".equals(subscription.getPlanId())) {
             final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
             links.add(createLink(HttpMethod.GET,
-                                 Constants.LINK_REL_GET_SUBSCRIPTION,
-                                 null,
-                                 MediaType.APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "getSubscriptionById")
                                            .build(subscription.getId())
-                                           .toString()
-                                ));
+                                           .toString(),
+                                 null,
+                                 MediaType.APPLICATION_JSON,
+                                 Constants.LINK_REL_GET_SUBSCRIPTION));
             if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
                 securityContext.isUserInRole("system/manager") ||
                 (securityContext.isUserInRole("user") && resolvedRoles != null && resolvedRoles.contains("account/owner"))) {
                 links.add(createLink(HttpMethod.DELETE,
-                                     Constants.LINK_REL_REMOVE_SUBSCRIPTION,
-                                     null,
-                                     null,
                                      uriBuilder.clone()
                                                .path(getClass(), "removeSubscription")
                                                .build(subscription.getId())
-                                               .toString()
-                                    ));
-                links.add(createLink(HttpMethod.GET,
-                                     Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES,
+                                               .toString(),
                                      null,
-                                     MediaType.APPLICATION_JSON,
+                                     null,
+                                     Constants.LINK_REL_REMOVE_SUBSCRIPTION));
+                links.add(createLink(HttpMethod.GET,
                                      uriBuilder.clone()
                                                .path(getClass(), "getSubscriptionAttributes")
                                                .build(subscription.getId())
-                                               .toString()
-                                    ));
+                                               .toString(),
+                                     null,
+                                     MediaType.APPLICATION_JSON,
+                                     Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES));
             }
         }
         return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
@@ -1156,15 +1144,6 @@ public class AccountService extends Service {
                          .withEndDate(subscriptionAttributes.getEndDate()).withBillingDescriptor(billingDescriptor);
     }
 
-    private Link createLink(String method, String rel, String consumes, String produces, String href) {
-        return DtoFactory.getInstance().createDto(Link.class)
-                         .withMethod(method)
-                         .withRel(rel)
-                         .withProduces(produces)
-                         .withConsumes(consumes)
-                         .withHref(href);
-    }
-
     private SubscriptionAttributes toSubscriptionAttributes(NewSubscriptionAttributes newSubscriptionAttributes) {
         NewBilling newBilling = newSubscriptionAttributes.getBilling();
         return new SubscriptionAttributes().withDescription(newSubscriptionAttributes.getDescription())
@@ -1172,12 +1151,11 @@ public class AccountService extends Service {
                                            .withStartDate(newSubscriptionAttributes.getStartDate())
                                            .withTrialDuration(newSubscriptionAttributes.getTrialDuration())
                                            .withCustom(newSubscriptionAttributes.getCustom())
-                                           .withBilling(new Billing()
-                                                                .withCycleType(newBilling.getCycleType())
-                                                                .withCycle(newBilling.getCycle())
-                                                                .withStartDate(newBilling.getStartDate())
-                                                                .withEndDate(newBilling.getEndDate())
-                                                                .withContractTerm(newBilling.getContractTerm())
-                                                                .withUsePaymentSystem(newBilling.getUsePaymentSystem()));
+                                           .withBilling(new Billing().withCycleType(newBilling.getCycleType())
+                                                                     .withCycle(newBilling.getCycle())
+                                                                     .withStartDate(newBilling.getStartDate())
+                                                                     .withEndDate(newBilling.getEndDate())
+                                                                     .withContractTerm(newBilling.getContractTerm())
+                                                                     .withUsePaymentSystem(newBilling.getUsePaymentSystem()));
     }
 }

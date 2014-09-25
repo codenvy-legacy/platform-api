@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.codenvy.api.core.rest.shared.Links.createLink;
 import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER_PROFILE;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID;
@@ -365,57 +366,57 @@ public class UserProfileService extends Service {
         final List<Link> links = new LinkedList<>();
         if (context.isUserInRole("user")) {
             links.add(createLink("GET",
-                                 LINK_REL_GET_CURRENT_USER_PROFILE,
-                                 null,
-                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "getCurrent")
                                            .build()
-                                           .toString()));
-            links.add(createLink("GET",
-                                 LINK_REL_GET_USER_PROFILE_BY_ID,
+                                           .toString(),
                                  null,
                                  APPLICATION_JSON,
+                                 LINK_REL_GET_CURRENT_USER_PROFILE));
+            links.add(createLink("GET",
                                  uriBuilder.clone()
                                            .path(getClass(), "getById")
                                            .build(profile.getId())
-                                           .toString()));
+                                           .toString(),
+                                 null,
+                                 APPLICATION_JSON,
+                                 LINK_REL_GET_USER_PROFILE_BY_ID));
             links.add(createLink("POST",
-                                 LINK_REL_UPDATE_CURRENT_USER_PROFILE,
-                                 APPLICATION_JSON,
-                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "updateCurrent")
                                            .build()
-                                           .toString()));
+                                           .toString(),
+                                 APPLICATION_JSON,
+                                 APPLICATION_JSON,
+                                 LINK_REL_UPDATE_CURRENT_USER_PROFILE));
             links.add(createLink("POST",
-                                 LINK_REL_UPDATE_PREFERENCES,
-                                 APPLICATION_JSON,
-                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "updatePreferences")
                                            .build()
-                                           .toString()));
+                                           .toString(),
+                                 APPLICATION_JSON,
+                                 APPLICATION_JSON,
+                                 LINK_REL_UPDATE_PREFERENCES));
         }
         if (context.isUserInRole("system/admin") || context.isUserInRole("system/manager")) {
             links.add(createLink("GET",
-                                 LINK_REL_GET_USER_PROFILE_BY_ID,
-                                 null,
-                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "getById")
                                            .build(profile.getId())
-                                           .toString()));
+                                           .toString(),
+                                 null,
+                                 APPLICATION_JSON,
+                                 LINK_REL_GET_USER_PROFILE_BY_ID));
         }
         if (context.isUserInRole("system/admin")) {
             links.add(createLink("POST",
-                                 LINK_REL_UPDATE_USER_PROFILE_BY_ID,
-                                 APPLICATION_JSON,
-                                 APPLICATION_JSON,
                                  uriBuilder.clone()
                                            .path(getClass(), "update")
                                            .build(profile.getId())
-                                           .toString()));
+                                           .toString(),
+                                 APPLICATION_JSON,
+                                 APPLICATION_JSON,
+                                 LINK_REL_UPDATE_USER_PROFILE_BY_ID));
         }
         return DtoFactory.getInstance().createDto(ProfileDescriptor.class)
                          .withId(profile.getId())
@@ -423,15 +424,6 @@ public class UserProfileService extends Service {
                          .withAttributes(profile.getAttributes())
                          .withPreferences(profile.getPreferences())
                          .withLinks(links);
-    }
-
-    private Link createLink(String method, String rel, String consumes, String produces, String href) {
-        return DtoFactory.getInstance().createDto(Link.class)
-                         .withMethod(method)
-                         .withRel(rel)
-                         .withProduces(produces)
-                         .withConsumes(consumes)
-                         .withHref(href);
     }
 
     private com.codenvy.commons.user.User currentUser() {

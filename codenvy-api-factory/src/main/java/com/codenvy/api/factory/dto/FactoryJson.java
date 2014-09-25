@@ -11,7 +11,6 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
-import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.workspace.shared.dto.NewWorkspace;
 import com.codenvy.dto.shared.DTO;
 
@@ -44,11 +43,11 @@ public interface FactoryJson {
 
     FactoryJson withPolicies(Policies policies);
 
-    NewProject getProject();
+    FactoryProject getProject();
 
-    void setProject(NewProject project);
+    void setProject(FactoryProject project);
 
-    FactoryJson withProject(NewProject project);
+    FactoryJson withProject(FactoryProject project);
 
     Actions getAction();
 

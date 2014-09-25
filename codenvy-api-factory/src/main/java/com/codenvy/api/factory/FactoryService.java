@@ -21,6 +21,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryJson;
+import com.codenvy.api.factory.dto.FactoryProject;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectJson;
@@ -29,7 +30,6 @@ import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
 import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
 import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
-import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
@@ -494,23 +494,24 @@ public class FactoryService extends Service {
 
         httpServletResponse.setHeader("Content-Disposition", "attachment; filename=" + path + ".json");
         try {
+            FactoryProject factoryProject = (FactoryProject)dtoFactory.createDto(FactoryProject.class)
+                                                                      .withName(project.getName())
+                                                                      .withProjectTypeId(projectJson.getProjectTypeId())
+                                                                      .withBuilder(projectJson.getBuilder())
+                                                                      .withRunner(projectJson.getRunner())
+                                                                      .withDefaultBuilderEnvironment(
+                                                                              projectJson.getDefaultBuilderEnvironment())
+                                                                      .withDefaultRunnerEnvironment(
+                                                                              projectJson.getDefaultRunnerEnvironment())
+                                                                      .withBuilderEnvironmentConfigurations(
+                                                                              builderConfigurationsDescriptors)
+                                                                      .withRunnerEnvironmentConfigurations(runnerConfigurationsDescriptors)
+                                                                      .withAttributes(projectJson.getAttributes())
+                                                                      .withDescription(projectJson.getDescription());
+
             FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class)
                                                 .withV("2.0")
-                                                .withProject(dtoFactory.createDto(NewProject.class)
-                                                                       .withProjectTypeId(projectJson.getProjectTypeId())
-                                                                       .withBuilder(projectJson.getBuilder())
-                                                                       .withRunner(projectJson.getRunner())
-                                                                       .withDefaultBuilderEnvironment(
-                                                                               projectJson.getDefaultBuilderEnvironment())
-                                                                       .withDefaultRunnerEnvironment(
-                                                                               projectJson.getDefaultRunnerEnvironment())
-                                                                       .withBuilderEnvironmentConfigurations(
-                                                                               builderConfigurationsDescriptors)
-                                                                       .withRunnerEnvironmentConfigurations(runnerConfigurationsDescriptors)
-                                                                       .withAttributes(projectJson.getAttributes())
-                                                                       .withDescription(projectJson.getDescription())
-                                                            );
-
+                                                .withProject(factoryProject);
 
             if (project.getDescription().hasAttribute("vcs.provider.name") &&
                 "git".equals(project.getDescription().getAttributeValue("vcs.provider.name"))) {

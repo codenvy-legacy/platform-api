@@ -33,6 +33,27 @@ import java.util.Map;
  * @author andrew00x
  */
 public class ProjectJson {
+
+    /**
+     * Checks whether the Project's meta information is readable
+     * @param project
+     * @return true if project meta-information is readable (it exists, there are appropriate permissions etc)
+     * otherwise returns false
+     */
+    public static boolean isReadable(Project project) {
+        final VirtualFileEntry projectFile;
+        try {
+            projectFile = project.getBaseFolder().getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
+            if (projectFile == null || !projectFile.isFile()) {
+                return false;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        return true;
+    }
+
     public static ProjectJson load(Project project) throws ServerException {
         final VirtualFileEntry projectFile;
         try {

@@ -12,6 +12,7 @@ package com.codenvy.api.local;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Billing;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.dao.SubscriptionAttributes;
@@ -20,12 +21,12 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -429,7 +430,7 @@ public class LocalAccountDaoImpl implements AccountDao {
             if (subscription == null) {
                 throw new NotFoundException(String.format("Not found subscription %s", subscriptionId));
             }
-            subscriptionAttributesMap.put(subscriptionId, DtoFactory.getInstance().clone(subscriptionAttributes));
+            subscriptionAttributesMap.put(subscriptionId, doClone(subscriptionAttributes));
         } finally {
             lock.writeLock().unlock();
         }
@@ -443,7 +444,7 @@ public class LocalAccountDaoImpl implements AccountDao {
             if (subscriptionAttributes == null) {
                 throw new NotFoundException(String.format("Attributes of subscription %s not found", subscriptionId));
             }
-            return DtoFactory.getInstance().clone(subscriptionAttributes);
+            return doClone(subscriptionAttributes);
         } finally {
             lock.readLock().unlock();
         }
@@ -473,5 +474,21 @@ public class LocalAccountDaoImpl implements AccountDao {
         } finally {
             lock.writeLock().unlock();
         }
+    }
+
+    private SubscriptionAttributes doClone(SubscriptionAttributes attributes) {
+        final Billing newBilling = new Billing();
+        newBilling.setContractTerm(attributes.getBilling().getContractTerm());
+        newBilling.setCycle(attributes.getBilling().getCycle());
+        newBilling.setCycleType(attributes.getBilling().getCycleType());
+        newBilling.setEndDate(attributes.getBilling().getEndDate());
+        newBilling.setStartDate(attributes.getBilling().getStartDate());
+        newBilling.setUsePaymentSystem(attributes.getBilling().getUsePaymentSystem());
+        return new SubscriptionAttributes().withBilling(newBilling)
+                                           .withCustom(new HashMap<>(attributes.getCustom()))
+                                           .withDescription(attributes.getDescription())
+                                           .withTrialDuration(attributes.getTrialDuration())
+                                           .withStartDate(attributes.getStartDate())
+                                           .withEndDate(attributes.getEndDate());
     }
 }

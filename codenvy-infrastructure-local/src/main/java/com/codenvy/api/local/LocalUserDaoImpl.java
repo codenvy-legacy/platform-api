@@ -14,11 +14,11 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.User;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -82,7 +82,7 @@ public class LocalUserDaoImpl implements UserDao {
                     }
                 }
             }
-            users.add(DtoFactory.getInstance().clone(user));
+            users.add(doClone(user));
         } finally {
             lock.writeLock().unlock();
         }
@@ -142,7 +142,7 @@ public class LocalUserDaoImpl implements UserDao {
             if (user == null) {
                 throw new NotFoundException(String.format("User not found %s", alias));
             }
-            return DtoFactory.getInstance().clone(user);
+            return doClone(user);
         } finally {
             lock.readLock().unlock();
         }
@@ -161,9 +161,16 @@ public class LocalUserDaoImpl implements UserDao {
             if (user == null) {
                 throw new NotFoundException(String.format("User not found %s", id));
             }
-            return DtoFactory.getInstance().clone(user);
+            return doClone(user);
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    private User doClone(User user) {
+        return new User().withId(user.getId())
+                         .withEmail(user.getEmail())
+                         .withPassword(user.getPassword())
+                         .withAliases(new ArrayList<>(user.getAliases()));
     }
 }

@@ -11,6 +11,8 @@
 package com.codenvy.docs;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
+import com.google.inject.name.Names;
 import com.wordnik.swagger.config.ConfigFactory;
 import com.wordnik.swagger.config.ScannerFactory;
 import com.wordnik.swagger.config.SwaggerConfig;
@@ -19,7 +21,6 @@ import com.wordnik.swagger.jaxrs.listing.ApiDeclarationProvider;
 import com.wordnik.swagger.jaxrs.listing.ApiListingResource;
 import com.wordnik.swagger.jaxrs.listing.ResourceListingProvider;
 import com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader;
-import com.wordnik.swagger.model.ApiInfo;
 import com.wordnik.swagger.reader.ClassReaders;
 
 import javax.annotation.PostConstruct;
@@ -38,6 +39,40 @@ public class DocsModule extends AbstractModule {
         bind(ResourceListingProvider.class);
         bind(ApiDeclarationProvider.class);
         bind(SwaggerBootstrap.class).asEagerSingleton();
+        // CodenvyJsonProvider isn't able to serve Scala model objects.
+        // Swagger's JSON stack processes all swagger models.
+        final Multibinder<Class> ignoredCodenvyJsonClasses =
+                Multibinder.newSetBinder(binder(), Class.class, Names.named("codenvy.json.ignored_classes"));
+        // com.wordnik.swagger.model.SwaggerModels.scala
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ResourceListing.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ApiInfo.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.LoginEndpoint.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.TokenRequestEndpoint.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.TokenEndpoint.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ApiListingReference.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.AllowableValues.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.AnyAllowableValues.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.AllowableListValues.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.AllowableRangeValues.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.Model.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ModelProperty.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ModelRef.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ApiListing.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ApiDescription.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.Operation.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.Parameter.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ResponseMessage.class);
+        // com.wordnik.swagger.model.AuthorizationModels.scala
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.AuthorizationType.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.OAuthBuilder.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.Authorization.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.AuthorizationScope.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.OAuth.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.GrantType.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ApiKey.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.BasicAuth.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.ImplicitGrant.class);
+        ignoredCodenvyJsonClasses.addBinding().toInstance(com.wordnik.swagger.model.AuthorizationCodeGrant.class);
     }
 
     @Path("/docs")
@@ -55,7 +90,7 @@ public class DocsModule extends AbstractModule {
             final SwaggerConfig config = ConfigFactory.config();
             config.setBasePath(baseApiUrl);
             config.setApiVersion(com.codenvy.api.core.rest.Constants.API_VERSION);
-            final ApiInfo apiInfo = new ApiInfo(
+            final com.wordnik.swagger.model.ApiInfo apiInfo = new com.wordnik.swagger.model.ApiInfo(
                     "Codenvy REST API", // title
                     "", // description
                     "", // termsOfServiceUrl

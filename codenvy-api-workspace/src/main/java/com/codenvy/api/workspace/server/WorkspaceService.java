@@ -196,11 +196,6 @@ public class WorkspaceService extends Service {
                                                    .withAccountId(newWorkspace.getAccountId())
                                                    .withAttributes(newWorkspace.getAttributes());
         workspaceDao.create(workspace);
-        //TODO: remove adding member from here
-        final Member newMember = new Member().withUserId(currentUser().getId())
-                                             .withWorkspaceId(workspace.getId())
-                                             .withRoles(asList("workspace/developer", "workspace/admin"));
-        memberDao.create(newMember);
         LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", newWorkspace.getName(), workspace.getId(), currentUser().getId());
         return status(CREATED).entity(toDescriptor(workspace, context)).build();
     }
@@ -271,11 +266,6 @@ public class WorkspaceService extends Service {
         } else {
             user = userDao.getById(currentUser().getId());
         }
-        //TODO: remove adding member from here
-        final Member newMember = new Member().withUserId(user.getId())
-                                             .withWorkspaceId(workspace.getId())
-                                             .withRoles(asList("workspace/developer", "workspace/admin"));
-        memberDao.create(newMember);
         LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", workspace.getName(), workspace.getId(), user.getId());
         return status(CREATED).entity(toDescriptor(workspace, context)).build();
     }
@@ -738,20 +728,21 @@ public class WorkspaceService extends Service {
                                                                                ConflictException,
                                                                                ForbiddenException {
         requiredNotNull(newMembership, "New membership");
-        requiredNotNull(newMembership.getRoles(), "Roles");
         requiredNotNull(newMembership.getUserId(), "User ID");
         final Workspace workspace = workspaceDao.getById(wsId);
-        if (!memberDao.getWorkspaceMembers(wsId).isEmpty()) {
-            if (!context.isUserInRole("workspace/admin") && !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember"))) {
-                throw new ForbiddenException("Access denied");
-            }
-            if (newMembership.getRoles().isEmpty()) {
-                throw new ConflictException("Roles should not be empty");
-            }
-        } else {
+        if (memberDao.getWorkspaceMembers(wsId).isEmpty()) {
             //if workspace doesn't contain members then member that is been added
             //should be added with roles 'workspace/admin' and 'workspace/developer'
             newMembership.setRoles(asList("workspace/admin", "workspace/developer"));
+
+        } else {
+            requiredNotNull(newMembership.getRoles(), "Roles");
+            if (newMembership.getRoles().isEmpty()) {
+                throw new ConflictException("Roles should not be empty");
+            }
+            if (!context.isUserInRole("workspace/admin") && !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember"))) {
+                throw new ForbiddenException("Access denied");
+            }
         }
         final User user = userDao.getById(newMembership.getUserId());
         final Member newMember = new Member().withWorkspaceId(wsId)

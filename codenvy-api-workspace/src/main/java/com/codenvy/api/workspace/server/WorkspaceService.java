@@ -708,7 +708,7 @@ public class WorkspaceService extends Service {
                   response = MemberDescriptor.class,
                   position = 12)
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 201, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to perform this operation"),
             @ApiResponse(code = 404, message = "Not Found"),
             @ApiResponse(code = 409, message = "No user ID and/or role specified")})
@@ -717,16 +717,16 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"user", "temp_user"})
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
-    public MemberDescriptor addMember(@ApiParam(value = "Workspace ID")
-                                      @PathParam("id")
-                                      String wsId,
-                                      @ApiParam(value = "New membership", required = true)
-                                      @Required
-                                      NewMembership newMembership,
-                                      @Context SecurityContext context) throws NotFoundException,
-                                                                               ServerException,
-                                                                               ConflictException,
-                                                                               ForbiddenException {
+    public Response addMember(@ApiParam(value = "Workspace ID")
+                              @PathParam("id")
+                              String wsId,
+                              @ApiParam(value = "New membership", required = true)
+                              @Required
+                              NewMembership newMembership,
+                              @Context SecurityContext context) throws NotFoundException,
+                                                                       ServerException,
+                                                                       ConflictException,
+                                                                       ForbiddenException {
         requiredNotNull(newMembership, "New membership");
         requiredNotNull(newMembership.getUserId(), "User ID");
         final Workspace workspace = workspaceDao.getById(wsId);
@@ -749,7 +749,7 @@ public class WorkspaceService extends Service {
                                              .withUserId(user.getId())
                                              .withRoles(newMembership.getRoles());
         memberDao.create(newMember);
-        return toDescriptor(newMember, workspace, context);
+        return status(CREATED).entity(toDescriptor(newMember, workspace, context)).build();
     }
 
     /**

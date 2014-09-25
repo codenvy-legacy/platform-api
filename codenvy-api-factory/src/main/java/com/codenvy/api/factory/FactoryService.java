@@ -523,6 +523,8 @@ public class FactoryService extends Service {
                                                                                                           path,
                                                                             "GET", null,
                                                                             null));
+            } else {
+                throw new ServerException("Not able to generate project configuration, project has to be under version control system");
             }
             return factoryJson;
 

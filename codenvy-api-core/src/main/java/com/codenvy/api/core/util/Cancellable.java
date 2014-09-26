@@ -13,9 +13,19 @@ package com.codenvy.api.core.util;
 /**
  * Implementation of this interface may be used with {@link Watchdog} to make possible terminate task by timeout.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface Cancellable {
+    interface Callback {
+        /**
+         * Notified when Cancellable cancelled.
+         *
+         * @param cancellable
+         *         Cancellable
+         */
+        void cancelled(Cancellable cancellable);
+    }
+
     /**
      * Attempts to cancel execution of this {@code Cancellable}.
      *

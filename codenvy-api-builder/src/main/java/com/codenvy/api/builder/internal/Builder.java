@@ -19,6 +19,7 @@ import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
 import com.codenvy.api.core.util.ProcessUtil;
@@ -175,14 +176,6 @@ public abstract class Builder {
                         }
                         final FutureBuildTask task = i.next();
                         if (task.isExpired()) {
-                            if (!task.isDone()) {
-                                try {
-                                    task.cancel();
-                                } catch (RuntimeException e) {
-                                    LOG.error(e.getMessage(), e);
-                                    continue; // try next time
-                                }
-                            }
                             i.remove();
                             try {
                                 cleanup(task);
@@ -452,7 +445,18 @@ public abstract class Builder {
 
                     if (timeout > 0) {
                         watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", timeout, TimeUnit.SECONDS);
-                        watcher.start(new CancellableProcessWrapper(process));
+                        watcher.start(new CancellableProcessWrapper(process, new Cancellable.Callback() {
+                            @Override
+                            public void cancelled(Cancellable cancellable) {
+                                try {
+                                    logger.writeLine("[ERROR] ***************************************************************************\n" +
+                                                     "[ERROR] * Build process is terminated due to exceeded max allowed execution time. *\n" +
+                                                     "[ERROR] ***************************************************************************");
+                                } catch (IOException e) {
+                                    LOG.error(e.getMessage(), e);
+                                }
+                            }
+                        }));
                     }
                     output = new StreamPump();
                     output.start(process, logger);
@@ -611,6 +615,7 @@ public abstract class Builder {
         private BuildResult result;
         private long        startTime;
         private long        endTime;
+//        private Throwable   error;
 
         protected FutureBuildTask(Callable<Boolean> callable,
                                   Long id,
@@ -691,6 +696,15 @@ public abstract class Builder {
         public BuilderConfiguration getConfiguration() {
             return configuration;
         }
+
+//        @Override
+//        public synchronized Throwable getError() {
+//            return error;
+//        }
+//
+//        synchronized void setError(final Throwable error) {
+//            this.error = error;
+//        }
 
         @Override
         public final synchronized boolean isStarted() {

@@ -128,4 +128,11 @@ public interface BuildTask {
      * @return configuration of this task
      */
     BuilderConfiguration getConfiguration();
+//
+//    /**
+//     * Task error. If build process has terminated successfully this method returns {@code null}. Successful termination of build process
+//     * doesn't always means successful build result. That just means builder successfully creates, starts and gets exit status of build
+//     * process. Always use method {@link #getResult} for getting build result.
+//     */
+//    Throwable getError();
 }

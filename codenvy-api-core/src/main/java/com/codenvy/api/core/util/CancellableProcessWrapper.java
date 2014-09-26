@@ -13,17 +13,26 @@ package com.codenvy.api.core.util;
 /**
  * Cancellable wrapper of {@code Process}.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class CancellableProcessWrapper implements Cancellable {
-    private final Process process;
+    private final Process  process;
+    private final Callback callback;
 
     public CancellableProcessWrapper(Process process) {
+        this(process, null);
+    }
+
+    public CancellableProcessWrapper(Process process, Callback callback) {
         this.process = process;
+        this.callback = callback;
     }
 
     @Override
     public void cancel() {
         ProcessUtil.kill(process);
+        if (callback != null) {
+            callback.cancelled(this);
+        }
     }
 }

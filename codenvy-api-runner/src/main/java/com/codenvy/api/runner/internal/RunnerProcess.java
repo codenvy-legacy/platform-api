@@ -49,6 +49,7 @@ public interface RunnerProcess extends Cancellable {
     /** Get configuration of current process. */
     RunnerConfiguration getConfiguration();
 
+    /** Process error. If process has terminated successfully this method returns {@code null}. */
     Throwable getError();
 
     /**

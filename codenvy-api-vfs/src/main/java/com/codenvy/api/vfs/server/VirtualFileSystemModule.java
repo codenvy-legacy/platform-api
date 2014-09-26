@@ -28,6 +28,6 @@ public class VirtualFileSystemModule extends AbstractModule {
                    .addBinding().toInstance(ContentStream.class);
         bind(ContentStreamWriter.class);
         bind(RequestValidator.class).toProvider(Providers.<RequestValidator>of(null));
-        bind(VirtualFileSystemModule.class);
+        bind(VirtualFileSystemFactory.class);
     }
 }

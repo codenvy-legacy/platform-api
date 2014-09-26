@@ -206,7 +206,7 @@ public final class PathLockFactory {
          * @param timeoutMilliseconds
          *         maximum time (in milliseconds) to wait for access permit
          * @return this PathLock instance
-         * @throws PathLockTimeoutException
+         * @throws RuntimeException
          *         if waiting timeout reached
          */
         public PathLock acquire(long timeoutMilliseconds) {

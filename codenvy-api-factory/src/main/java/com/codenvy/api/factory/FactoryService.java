@@ -460,12 +460,20 @@ public class FactoryService extends Service {
         }
     }
 
-    // TODO: docs
+    /**
+     * Generate project configuration.
+     *
+     * @param workspace
+     *         - workspace id.
+     * @param path
+     *         - project path.
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.ConflictException} when project is not under source control.
+     */
     @GET
     @Path("/{ws-id}/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public FactoryJson getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path,
-                                      @Context HttpServletResponse httpServletResponse)
+    public Response getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path)
             throws ApiException {
         final Project project = projectManager.getProject(workspace, path);
         final ProjectJson projectJson = ProjectJson.load(project);
@@ -492,7 +500,7 @@ public class FactoryService extends Service {
                                                                       .withOptions(envConfig.getOptions()));
         }
 
-        httpServletResponse.setHeader("Content-Disposition", "attachment; filename=" + path + ".json");
+
         try {
             FactoryProject factoryProject = (FactoryProject)dtoFactory.createDto(FactoryProject.class)
                                                                       .withName(project.getName())
@@ -524,9 +532,10 @@ public class FactoryService extends Service {
                                                                             "GET", null,
                                                                             null));
             } else {
-                throw new ServerException("Not able to generate project configuration, project has to be under version control system");
+                throw new ConflictException("Not able to generate project configuration, project has to be under version control system");
             }
-            return factoryJson;
+            return Response.ok(factoryJson, MediaType.APPLICATION_JSON)
+                           .header("Content-Disposition", "attachment; filename=" + path + ".json").build();
 
         } catch (IOException e) {
             throw new ServerException(e.getLocalizedMessage());

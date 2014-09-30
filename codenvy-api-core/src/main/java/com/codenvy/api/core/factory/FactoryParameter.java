@@ -8,9 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.parameter;
-
-import com.codenvy.api.factory.FactoryFormat;
+package com.codenvy.api.core.factory;
 
 import java.lang.annotation.*;
 
@@ -22,14 +20,17 @@ import java.lang.annotation.*;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FactoryParameter {
-    public enum Obligation {
+    enum Obligation {
         MANDATORY, OPTIONAL
     }
 
+    enum FactoryFormat {
+        ENCODED, NONENCODED, BOTH
+    }
 
-    public enum Version {
+    enum Version {
         // NEVER must be the last defined constant
-        V1_0, V1_1, V1_2, NEVER;
+        V1_0, V1_1, V1_2, V2_0, NEVER;
 
         public static Version fromString(String v) {
             if (null != v) {
@@ -40,6 +41,8 @@ public @interface FactoryParameter {
                         return V1_1;
                     case "1.2":
                         return V1_2;
+                    case "2.0":
+                        return V2_0;
                 }
             }
 
@@ -52,17 +55,17 @@ public @interface FactoryParameter {
         }
     }
 
-    public FactoryFormat format() default FactoryFormat.BOTH;
+    FactoryFormat format() default FactoryFormat.BOTH;
 
-    public Obligation obligation();
+    Obligation obligation();
 
-    public boolean setByServer() default false;
+    boolean setByServer() default false;
 
-    public boolean trackedOnly() default false;
+    boolean trackedOnly() default false;
 
-    public String queryParameterName();
+    String queryParameterName();
 
-    public Version deprecatedSince() default Version.NEVER;
+    Version deprecatedSince() default Version.NEVER;
 
-    public Version ignoredSince() default Version.NEVER;
+    Version ignoredSince() default Version.NEVER;
 }

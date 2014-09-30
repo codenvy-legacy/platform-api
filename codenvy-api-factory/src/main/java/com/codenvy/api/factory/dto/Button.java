@@ -11,22 +11,36 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
-import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.dto.shared.DTO;
+
+import java.util.Map;
 
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
- * @author Sergii Leschenko
+ * Describes factory button
+ *
+ * @author Alexander Garagatyi
  */
 @DTO
-public interface FactoryProject extends NewProject {
-    /** Get name of project. */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "name")
-    String getName();
+public interface Button {
+    public enum ButtonType {
+        logo, nologo
+    }
 
-    /** Set name of project. */
-    void setName(String name);
+    /** Type of the button */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "type")
+    ButtonType getType();
 
-    FactoryProject withName(String name);
+    void setType(ButtonType type);
+
+    Button withType(ButtonType type);
+
+    /** Button attributes */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "attributes")
+    Map<String, String> getAttributes();
+
+    void setAttributes(Map<String, String> attributes);
+
+    Button withAttributes(Map<String, String> attributes);
 }

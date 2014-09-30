@@ -17,9 +17,11 @@ import java.util.List;
 
 /**
  * Latest version of factory implementation.
+ *
+ * @author Alexander Garagatyi
  */
 @DTO
-public interface Factory extends FactoryV1_2 {
+public interface Factory extends FactoryV2_0 {
     List<Link> getLinks();
 
     void setLinks(List<Link> links);

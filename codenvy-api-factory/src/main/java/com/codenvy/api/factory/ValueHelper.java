@@ -111,11 +111,12 @@ public class ValueHelper {
      */
     static boolean isEmpty(Object value) {
         if ((null == value) ||
-            (Collection.class.isAssignableFrom(value.getClass()) && ((Collection)value).isEmpty()) ||
-            (Boolean.class.equals(value.getClass()) && (Boolean)value == false) ||
-            (value.getClass().equals(Long.class) && (Long)value == 0) ||
-            (value.getClass().equals(Byte.class) && (Byte)value == 0) ||
+            (value.getClass().equals(Boolean.class) && (Boolean)value == false) ||
             (value.getClass().equals(Integer.class) && (Integer)value == 0) ||
+            (value.getClass().equals(Long.class) && (Long)value == 0) ||
+            (Collection.class.isAssignableFrom(value.getClass()) && ((Collection)value).isEmpty()) ||
+            (Map.class.isAssignableFrom(value.getClass()) && ((Map)value).isEmpty()) ||
+            (value.getClass().equals(Byte.class) && (Byte)value == 0) ||
             (value.getClass().equals(Short.class) && (Short)value == 0) ||
             (value.getClass().equals(Double.class) && (Double)value == 0) ||
             (value.getClass().equals(Float.class) && (Float)value == 0)) {

@@ -10,10 +10,11 @@
  *******************************************************************************/
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.parameter.FactoryParameter;
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Version.V2_0;
 
 /**
  * Factory of version 1.2
@@ -26,42 +27,54 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return additional git configuration
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "git")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "git", deprecatedSince = V2_0)
+    @Deprecated
     Git getGit();
 
+    @Deprecated
     void setGit(Git git);
 
+    @Deprecated
     FactoryV1_2 withGit(Git git);
 
     /**
      * @return Factory acceptance restrictions
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "restriction", trackedOnly = true)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "restriction", trackedOnly = true, deprecatedSince = V2_0)
+    @Deprecated
     Restriction getRestriction();
 
+    @Deprecated
     void setRestriction(Restriction restriction);
 
+    @Deprecated
     FactoryV1_2 withRestriction(Restriction restriction);
 
     /**
      * @return warn on leave page
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "warnonclose")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "warnonclose", deprecatedSince = V2_0)
+    @Deprecated
     boolean getWarnonclose();
 
+    @Deprecated
     void setWarnonclose(boolean warnonclose);
 
+    @Deprecated
     FactoryV1_2 withWarnonclose(boolean warnonclose);
 
 
     /**
      * @return hide copy to my workspace button
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "hidecopybutton")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "hidecopybutton", deprecatedSince = V2_0)
+    @Deprecated
     boolean getHidecopybutton();
 
+    @Deprecated
     void setHidecopybutton(boolean hidecopybutton);
 
+    @Deprecated
     FactoryV1_2 withHidecopybutton(boolean hidecopybutton);
 
 
@@ -69,11 +82,14 @@ public interface FactoryV1_2 extends FactoryV1_1 {
     /**
      * @return the optional directory to keep from the checkout
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "keepdirectory")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "keepdirectory", deprecatedSince = V2_0)
+    @Deprecated
     String getKeepdirectory();
 
+    @Deprecated
     void setKeepdirectory(String keepDirectory);
 
+    @Deprecated
     FactoryV1_2 withKeepdirectory(String keepDirectory);
 
 }

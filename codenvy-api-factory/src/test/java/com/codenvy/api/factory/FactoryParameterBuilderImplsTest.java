@@ -24,7 +24,7 @@ import org.testng.annotations.Test;
 import static org.mockito.Mockito.*;
 
 @Listeners(value = {MockitoTestNGListener.class})
-public class FactoryValidatorImplsTest {
+public class FactoryParameterBuilderImplsTest {
 
     @Mock
     private AccountDao accountDao;
@@ -49,7 +49,7 @@ public class FactoryValidatorImplsTest {
     public void shouldCallAllMethodsOnSave() throws ApiException {
 
         FactoryUrlCreateValidatorImpl spy = spy(createValidator);
-        doNothing().when(spy).validateVcs(any(Factory.class));
+        doNothing().when(spy).validateSource(any(Factory.class));
         doNothing().when(spy).validateOrgid(any(Factory.class));
         doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateProjectName(any(Factory.class));
@@ -57,7 +57,7 @@ public class FactoryValidatorImplsTest {
         //main invoke
         spy.validateOnCreate(factoryUrl);
 
-        verify(spy, atLeastOnce()).validateVcs(any(Factory.class));
+        verify(spy, atLeastOnce()).validateSource(any(Factory.class));
         verify(spy, atLeastOnce()).validateOrgid(any(Factory.class));
         verify(spy, atLeastOnce()).validateTrackedFactoryAndParams(any(Factory.class));
         verify(spy, atLeastOnce()).validateProjectName(any(Factory.class));
@@ -67,7 +67,7 @@ public class FactoryValidatorImplsTest {
     public void shouldCallAllMethodsOnAcceptNonEncoded() throws ApiException {
 
         FactoryUrlAcceptValidatorImpl spy = spy(acceptValidator);
-        doNothing().when(spy).validateVcs(any(Factory.class));
+        doNothing().when(spy).validateSource(any(Factory.class));
         doNothing().when(spy).validateOrgid(any(Factory.class));
         doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateProjectName(any(Factory.class));
@@ -75,7 +75,7 @@ public class FactoryValidatorImplsTest {
         //main invoke
         spy.validateOnAccept(factoryUrl, false);
 
-        verify(spy, atLeastOnce()).validateVcs(any(Factory.class));
+        verify(spy, atLeastOnce()).validateSource(any(Factory.class));
         verify(spy, atLeastOnce()).validateTrackedFactoryAndParams(any(Factory.class));
         verify(spy, atLeastOnce()).validateProjectName(any(Factory.class));
     }
@@ -84,7 +84,7 @@ public class FactoryValidatorImplsTest {
     public void shouldCallGivenMethodOnAcceptEncoded() throws ApiException {
 
         FactoryUrlAcceptValidatorImpl spy = spy(acceptValidator);
-        doThrow(RuntimeException.class).when(spy).validateVcs(any(Factory.class));
+        doThrow(RuntimeException.class).when(spy).validateSource(any(Factory.class));
         doThrow(RuntimeException.class).when(spy).validateOrgid(any(Factory.class));
         doThrow(RuntimeException.class).when(spy).validateProjectName(any(Factory.class));
         doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));

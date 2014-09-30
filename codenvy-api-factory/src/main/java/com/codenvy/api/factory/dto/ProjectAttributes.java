@@ -10,13 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.parameter.FactoryParameter;
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /** @author Sergii Kabashniuk */
 @DTO
+@Deprecated
 public interface ProjectAttributes {
 
     /**
@@ -24,6 +25,7 @@ public interface ProjectAttributes {
      * <p/>
      * Project queryParameterName should be in valid format,
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "pname")
     String getPname();
 
@@ -34,6 +36,7 @@ public interface ProjectAttributes {
     /**
      * @return Project type.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ptype")
     public String getPtype();
 
@@ -45,6 +48,7 @@ public interface ProjectAttributes {
     /**
      * @return builder name.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "buildername")
     public String getBuildername();
 
@@ -55,6 +59,7 @@ public interface ProjectAttributes {
     /**
      * @return runner name.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runnername")
     public String getRunnername();
 
@@ -66,6 +71,7 @@ public interface ProjectAttributes {
     /**
      * @return runner environment id.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runnerenvironmentid")
     public String getRunnerenvironmentid();
 

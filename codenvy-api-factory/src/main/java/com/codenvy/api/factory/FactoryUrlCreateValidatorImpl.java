@@ -20,7 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * Factory URL creation stage validator.
+ * Factory URL creation stage builder.
  */
 @Singleton
 public class FactoryUrlCreateValidatorImpl extends FactoryUrlBaseValidator implements FactoryUrlCreateValidator {
@@ -31,7 +31,7 @@ public class FactoryUrlCreateValidatorImpl extends FactoryUrlBaseValidator imple
 
     @Override
     public void validateOnCreate(Factory factory) throws ApiException {
-        validateVcs(factory);
+        validateSource(factory);
         validateProjectName(factory);
         validateOrgid(factory);
         validateTrackedFactoryAndParams(factory);

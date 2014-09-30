@@ -11,22 +11,31 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
-import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.dto.shared.DTO;
+
+import java.util.Map;
 
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
- * @author Sergii Leschenko
+ * Describes parameters of the workspace that should be used for factory
+ *
+ * @author Alexander Garagatyi
  */
 @DTO
-public interface FactoryProject extends NewProject {
-    /** Get name of project. */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "name")
-    String getName();
+public interface Workspace {
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "temp")
+    String getTemp();
 
-    /** Set name of project. */
-    void setName(String name);
+    void setTemp(String temp);
 
-    FactoryProject withName(String name);
+    Workspace withTemp(String temp);
+
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "attributes")
+    Map<String, String> getAttributes();
+
+    void setAttributes(Map<String, String> attributes);
+
+    Workspace withAttributes(Map<String, String> attributes);
 }
+

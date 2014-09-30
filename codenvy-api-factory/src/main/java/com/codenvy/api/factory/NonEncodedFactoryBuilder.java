@@ -13,6 +13,7 @@ package com.codenvy.api.factory;
 import com.codenvy.api.factory.dto.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Convert factory to non encode url.
@@ -163,7 +164,36 @@ public abstract class NonEncodedFactoryBuilder {
                 builder.append("&git.configremoteoriginfetch=").append(safeGwtEncode(git.getConfigremoteoriginfetch()));
             }
         }
+    }
 
+    private void buildNonEncoded(FactoryV2_0 factory, StringBuilder builder) {
+        builder.append("v=").append(factory.getV());
+        builder.append("&source.type=").append(factory.getSource().getType());
+        builder.append("&source.location=").append(safeGwtEncode(factory.getSource().getLocation()));
+        for (Map.Entry<String, String> entry : factory.getSource().getParameters().entrySet()) {
+            builder.append("&source.parameters.").append(entry.getKey()).append("=").append(safeGwtEncode(entry.getValue()));
+        }
+
+        final Author creator = factory.getCreator();
+        builder.append("&creator.name=").append(creator.getName());
+        builder.append("&creator.email=").append(creator.getEmail());
+        builder.append("&creator.accountId=").append(creator.getAccountId());
+        builder.append("&creator.created=").append(creator.getCreated());
+        builder.append("&creator.userId=").append(creator.getUserId());
+
+        builder.append("&workspace.temp=").append(factory.getWorkspace().getTemp());
+        for (Map.Entry<String, String> entry : factory.getWorkspace().getAttributes().entrySet()) {
+            builder.append("&workspace.attributes.").append(entry.getKey()).append("=").append(safeGwtEncode(entry.getValue()));
+        }
+
+        final FactoryProject project = factory.getProject();
+        builder.append("&project.description").append(project.getDescription());
+        builder.append("&project.type").append(project.getProjectTypeId());
+        builder.append("&project.visibility").append(project.getVisibility());
+        // TODO
+
+        // TODO policies
+        // TODO actions
     }
 
     /**

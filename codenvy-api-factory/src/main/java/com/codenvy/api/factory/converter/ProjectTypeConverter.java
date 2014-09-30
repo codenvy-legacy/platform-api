@@ -8,10 +8,12 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.parameter;
+package com.codenvy.api.factory.converter;
 
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.FactoryProject;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -23,6 +25,10 @@ import com.codenvy.dto.server.DtoFactory;
 public class ProjectTypeConverter implements LegacyConverter {
     @Override
     public void convert(Factory factory) throws ApiException {
+    }
+
+    @Override
+    public void convertToV1_2(Factory factory) throws ApiException {
         if (factory.getPtype() != null) {
             ProjectAttributes attributes = factory.getProjectattributes();
             if (null == attributes || attributes.getPtype() == null) {
@@ -31,9 +37,8 @@ public class ProjectTypeConverter implements LegacyConverter {
                 attributes.setPtype(factory.getPtype());
                 factory.setPtype(null);
                 factory.setProjectattributes(attributes);
-            } else if (attributes.getPtype() != null) {
-                throw new ApiException(
-                        "Parameters 'ptype' and 'projectsttributes.ptype' are mutually exclusive.");
+            } else {
+                throw new ApiException("Parameters 'ptype' and 'projectsttributes.ptype' are mutually exclusive.");
             }
         }
     }

@@ -11,7 +11,7 @@
 package com.codenvy.api.factory;
 
 /**
- * Message constants for factory validator.
+ * Message constants for factory builder.
  */
 public class FactoryConstants {
     public static final String INVALID_PARAMETER_MESSAGE =
@@ -19,16 +19,40 @@ public class FactoryConstants {
             "accepted for this Factory version.  For more information, please visit " +
             "http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
+    public static final String INVALID_VERSION_MESSAGE =
+            "You have provided an inaccurate or deprecated Factory Version.  For more information, " +
+            "please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
+
+    public static final String UNPARSABLE_FACTORY_MESSAGE                     =
+            "We cannot parse the provided factory. For more information, please visit: http://docs.codenvy" +
+            ".com/user/creating-factories/factory-parameter-reference/";
+
+    public static final String MISSING_MANDATORY_MESSAGE                      =
+            "You are missing a mandatory parameter.  For more information, please visit: http://docs.codenvy" +
+            ".com/user/creating-factories/factory-parameter-reference/.";
 
     public static final String ILLEGAL_HOSTNAME_MESSAGE =
             "This Factory has its access restricted by certain hostname. Your client does not match the specified " +
             "policy. Please contact the owner of this Factory for more information.";
+
+    public static final String PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE =
+            "You have provided a Tracked Factory parameter %s, and you do not have a valid orgId.  You could have " +
+            "provided the wrong code, your subscription has expired, or you do not have a valid subscription account." +
+            "  Please contact info@codenvy.com with any questions.";
+
+    public static final String PARAMETRIZED_INVALID_PARAMETER_MESSAGE         =
+            "You have provided an invalid parameter %s for this version of Factory parameters %s.  For more " +
+            "information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
     public static final String PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE =
             "You do not have a valid orgID. You could have provided the wrong value, your subscription has expired, " +
             "or you do not have a valid subscription account. " +
             "Please contact info@codenvy.com with any questions. \n" +
             "orgID Submitted: %s";
+
+    public static final String PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE    =
+            "You submitted a parameter that can only be submitted through an encoded Factory URL %s.  For more " +
+            "information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
     public static final String PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE =
             "You do not have a valid orgID. Your Factory configuration has a parameter that can only be used with a " +

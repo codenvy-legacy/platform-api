@@ -8,13 +8,16 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.parameter;
+package com.codenvy.api.factory.converter;
 
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.factory.dto.Factory;
 
+import java.util.HashMap;
+
 /**
- * Convert placement of commit id from 'idcommit' parameter to 'commitid'.
+ * Convert placement of commit id from 'idcommit' or 'commitid' parameter to 'source.parameters.commitId'
  *
  * @author Alexander Garagatyi
  */
@@ -22,12 +25,14 @@ public class IdCommitConverter implements LegacyConverter {
 
     @Override
     public void convert(Factory factory) throws ApiException {
+    }
 
+    @Override
+    public void convertToV1_2(Factory factory) throws ApiException {
         if (factory.getCommitid() != null && factory.getIdcommit() != null) {
             throw new ApiException("Parameters 'commitid' and 'idcommit' are mutually exclusive.");
         } else if (factory.getCommitid() == null) {
             factory.setCommitid(factory.getIdcommit());
-            factory.setIdcommit(null);
         }
     }
 }

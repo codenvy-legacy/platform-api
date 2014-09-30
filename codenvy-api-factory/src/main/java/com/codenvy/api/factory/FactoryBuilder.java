@@ -12,8 +12,20 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.factory.dto.*;
-import com.codenvy.api.factory.parameter.*;
+import com.codenvy.api.core.factory.FactoryParameter;
+import com.codenvy.api.factory.converter.IdCommitConverter;
+import com.codenvy.api.factory.converter.LegacyConverter;
+import com.codenvy.api.factory.converter.ProjectNameConverter;
+import com.codenvy.api.factory.converter.ProjectTypeConverter;
+import com.codenvy.api.factory.converter.WorkspaceNameConverter;
+import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.FactoryV1_0;
+import com.codenvy.api.factory.dto.FactoryV1_1;
+import com.codenvy.api.factory.dto.FactoryV1_2;
+import com.codenvy.api.factory.dto.FactoryV2_0;
+import com.codenvy.api.factory.dto.Variable;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.commons.lang.Strings;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.dto.shared.DTO;
@@ -21,6 +33,7 @@ import com.codenvy.dto.shared.DTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,10 +43,27 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation;
-import static com.codenvy.api.factory.parameter.FactoryParameter.Version;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation;
+import static com.codenvy.api.core.factory.FactoryParameter.Version;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_VERSION_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.MISSING_MANDATORY_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.UNPARSABLE_FACTORY_MESSAGE;
+import static java.lang.String.format;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
@@ -47,34 +77,6 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Version;
 public class FactoryBuilder extends NonEncodedFactoryBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
-    private static final String INVALID_PARAMETER_MESSAGE                      =
-            "Passed in an invalid parameter.  You either provided a non-valid parameter, " +
-            "or that parameter is not accepted for this Factory version.  For more information, " +
-            "please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
-    private static final String INVALID_VERSION_MESSAGE                        =
-            "You have provided an inaccurate or deprecated Factory Version.  For more information, " +
-            "please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
-    private static final String UNPARSEABLE_FACTORY_MESSAGE                    =
-            "We cannot parse the provided factory. For more information, please visit: http://docs.codenvy" +
-            ".com/user/creating-factories/factory-parameter-reference/";
-    private static final String MISSING_MANDATORY_MESSAGE                      =
-            "You are missing a mandatory parameter.  For more information, please visit: http://docs.codenvy" +
-            ".com/user/creating-factories/factory-parameter-reference/.";
-    private static final String PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE =
-            "You have provided a Tracked Factory parameter %s, and you do not have a valid orgId.  You could have " +
-            "provided the wrong code, your subscription has expired, or you do not have a valid subscription account." +
-            "  Please contact info@codenvy.com with any questions.";
-    private static final String PARAMETRIZED_INVALID_PARAMETER_MESSAGE         =
-            "You have provided an invalid parameter %s for this version of Factory parameters %s.  For more " +
-            "information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
-    private static final String PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE    =
-            "You submitted a parameter that can only be submitted through an encoded Factory URL %s.  For more " +
-            "information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
-    private static final String PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE   =
-            "The parameter %s has a value submitted %s with a value that is unexpected. For more information, " +
-            "please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
-
-
     /** List contains all possible implementation of factory legacy converters. */
     static final List<LegacyConverter> LEGACY_CONVERTERS;
 
@@ -83,10 +85,16 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         l.add(new IdCommitConverter());
         l.add(new ProjectNameConverter());
         l.add(new ProjectTypeConverter());
-        l.add(new WorkspacNameConverter());
+        l.add(new WorkspaceNameConverter());
         LEGACY_CONVERTERS = Collections.unmodifiableList(l);
     }
 
+    private final SourceParametersValidator sourceParametersValidator;
+
+    @Inject
+    public FactoryBuilder(SourceParametersValidator sourceParametersValidator) {
+        this.sourceParametersValidator = sourceParametersValidator;
+    }
 
     /**
      * Build factory from query string and validate compatibility.
@@ -106,16 +114,14 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         // there is unsupported parameters in query
         if (!queryParams.isEmpty()) {
             String nameInvalidParams = queryParams.keySet().iterator().next();
-            throw new ConflictException(
-                    String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, nameInvalidParams, factory.getV()));
+            throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, nameInvalidParams, factory.getV()));
         } else if (null == factory) {
             throw new ConflictException(MISSING_MANDATORY_MESSAGE);
         }
 
-        checkValid(factory, FactoryFormat.NONENCODED);
+        checkValid(factory, NONENCODED);
         return factory;
     }
-
 
     /**
      * Build factory from json.
@@ -127,7 +133,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     public Factory buildEncoded(Reader json) throws IOException, ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
 
-        checkValid(factory, FactoryFormat.ENCODED);
+        checkValid(factory, ENCODED);
         return factory;
     }
 
@@ -141,7 +147,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     public Factory buildEncoded(String json) throws ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
 
-        checkValid(factory, FactoryFormat.ENCODED);
+        checkValid(factory, ENCODED);
         return factory;
     }
 
@@ -154,7 +160,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      */
     public Factory buildEncoded(InputStream json) throws IOException, ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
-        checkValid(factory, FactoryFormat.ENCODED);
+        checkValid(factory, ENCODED);
         return factory;
     }
 
@@ -169,7 +175,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      */
     public void checkValid(Factory factory, FactoryFormat sourceFormat) throws ApiException {
         if (factory == null) {
-            throw new ConflictException(UNPARSEABLE_FACTORY_MESSAGE);
+            throw new ConflictException(UNPARSABLE_FACTORY_MESSAGE);
         }
         if (factory.getV() == null) {
             throw new ConflictException(INVALID_VERSION_MESSAGE);
@@ -182,26 +188,31 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
             throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
 
-        String orgid = factory.getOrgid() != null && !factory.getOrgid().isEmpty() ? factory.getOrgid() : null;
+        String orgid = null;
 
-        Class usedFactoryVersion;
+        Class usedFactoryVersionMethodProvider;
         switch (v) {
             case V1_0:
-                usedFactoryVersion = FactoryV1_0.class;
+                usedFactoryVersionMethodProvider = FactoryV1_0.class;
                 break;
             case V1_1:
-                usedFactoryVersion = FactoryV1_1.class;
+                usedFactoryVersionMethodProvider = FactoryV1_1.class;
+                orgid = factory.getOrgid();
                 break;
             case V1_2:
-                usedFactoryVersion = FactoryV1_2.class;
+                usedFactoryVersionMethodProvider = FactoryV1_2.class;
+                orgid = factory.getOrgid();
+                break;
+            case V2_0:
+                usedFactoryVersionMethodProvider = FactoryV2_0.class;
+                orgid = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
                 break;
             default:
                 throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
+        orgid = Strings.emptyToNull(orgid);
 
-
-        validateCompatibility(factory, Factory.class, usedFactoryVersion, v, sourceFormat, orgid, "");
-
+        validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, sourceFormat, orgid, "");
     }
 
     /**
@@ -214,7 +225,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      */
     public Factory convertToLatest(Factory factory) throws ApiException {
         Factory resultFactory = DtoFactory.getInstance().clone(factory);
-        resultFactory.setV("1.2");
+        resultFactory.setV("2.0");
         for (LegacyConverter converter : LEGACY_CONVERTERS) {
             converter.convert(resultFactory);
         }
@@ -222,6 +233,23 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         return resultFactory;
     }
 
+    /**
+     * Convert factory of given version to the V1.2 factory format.
+     *
+     * @param factory
+     *         - given factory.
+     * @return - factory in V1_2 format.
+     * @throws com.codenvy.api.core.ApiException
+     */
+    public Factory convertToV1_2(Factory factory) throws ApiException {
+        Factory resultFactory = DtoFactory.getInstance().clone(factory);
+        resultFactory.setV("1.2");
+        for (LegacyConverter converter : LEGACY_CONVERTERS) {
+            converter.convertToV1_2(resultFactory);
+        }
+
+        return resultFactory;
+    }
 
     /**
      * Validate compatibility of factory parameters.
@@ -229,7 +257,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      * @param object
      *         - object to validate factory parameters
      * @param methodsProvider
-     *         - class that provides methods with {@link com.codenvy.api.factory.parameter.FactoryParameter}
+     *         - class that provides methods with {@link com.codenvy.api.core.factory.FactoryParameter}
      *         annotations
      * @param allowedMethodsProvider
      *         - class that provides allowed methods
@@ -243,10 +271,12 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - parent parameter queryParameterName
      * @throws com.codenvy.api.core.ApiException
      */
-    private void validateCompatibility(Object object, Class methodsProvider, Class allowedMethodsProvider,
-                                       Version version,
-                                       FactoryFormat sourceFormat, String orgid,
-                                       String parentName) throws ApiException {
+    void validateCompatibility(Object object, Class methodsProvider,
+                               Class allowedMethodsProvider,
+                               Version version,
+                               FactoryFormat sourceFormat,
+                               String orgid,
+                               String parentName) throws ApiException {
         // get all methods recursively
         for (Method method : methodsProvider.getMethods()) {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
@@ -265,64 +295,66 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
 
                 // if value is null or empty collection or default value for primitives
                 if (ValueHelper.isEmpty(parameterValue)) {
-                    // field must not be a mandatory, unless it's ignored or deprecated
+                    // field must not be a mandatory, unless it's ignored or deprecated or doesn't suit to the version
                     if (Obligation.MANDATORY.equals(factoryParameter.obligation()) &&
                         factoryParameter.deprecatedSince().compareTo(version) > 0 &&
-                        factoryParameter.ignoredSince().compareTo(version) > 0) {
+                        factoryParameter.ignoredSince().compareTo(version) > 0 &&
+                        method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {
                         throw new ConflictException(MISSING_MANDATORY_MESSAGE);
                     }
                 } else if (!method.getDeclaringClass().isAssignableFrom(allowedMethodsProvider)) {
-                    throw new ConflictException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
+                    throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                 } else {
                     // is parameter deprecated
                     if (factoryParameter.deprecatedSince().compareTo(version) <= 0) {
-                        throw new ConflictException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
+                        throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                     }
 
                     if (factoryParameter.setByServer()) {
-                        throw new ConflictException(String.format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
+                        throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, fullName, version));
                     }
 
                     // check that field satisfies format rules
-                    if (!FactoryFormat.BOTH.equals(factoryParameter.format()) &&
-                        !factoryParameter.format().equals(sourceFormat)) {
-                        throw new ConflictException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
+                    if (!FactoryFormat.BOTH.equals(factoryParameter.format()) && !factoryParameter.format().equals(sourceFormat)) {
+                        throw new ConflictException(format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
                     }
 
                     // check tracked-only fields
                     if (orgid == null && factoryParameter.trackedOnly()) {
-                        throw new ConflictException(String.format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
+                        throw new ConflictException(format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
                     }
-
 
                     // use recursion if parameter is DTO object
                     if (parameterValue.getClass().isAnnotationPresent(DTO.class)) {
                         // validate inner objects such Git ot ProjectAttributes
                         validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
                                               orgid, fullName);
+                    } else if (Map.class.isAssignableFrom(method.getReturnType())) {
+                        if (ImportSourceDescriptor.class.equals(methodsProvider)) {
+                            sourceParametersValidator.validate((ImportSourceDescriptor)object, version);
+                        }
                     }
-
                 }
             }
         }
     }
 
-
     /**
-     * Build dto object with {@link com.codenvy.api.factory.parameter.FactoryParameter} annotations on its methods.
+     * Build dto object with {@link com.codenvy.api.core.factory.FactoryParameter} annotations on its methods.
      *
      * @param queryParams
      *         - source of parameters to parse
      * @param parentName
-     *         - queryParameterName of parent object. Allow provide support of nested parameters such
+     *         - queryParameterName of parent object. Allow provide support of nested parameters such as
      *         projectattributes.pname
      * @param cl
      *         - class of the object to build.
      * @return - built object
      * @throws com.codenvy.api.core.ApiException
      */
-    private <T> T buildDtoObject(Map<String, Set<String>> queryParams, String parentName, Class<T> cl)
-            throws ApiException {
+    private <T> T buildDtoObject(Map<String, Set<String>> queryParams,
+                                 String parentName,
+                                 Class<T> cl) throws ApiException {
         T result = DtoFactory.getInstance().createDto(cl);
         boolean returnNull = true;
         // get all methods of object recursively
@@ -330,13 +362,14 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
             FactoryParameter factoryParameter = method.getAnnotation(FactoryParameter.class);
             try {
                 if (factoryParameter != null) {
+                    final String queryParameterName = factoryParameter.queryParameterName();
                     // define full queryParameterName of parameter to be able retrieving nested parameters
-                    String fullName = (parentName.isEmpty() ? "" : parentName + ".") + factoryParameter.queryParameterName();
+                    String fullName = (parentName.isEmpty() ? "" : parentName + ".") + queryParameterName;
                     Class<?> returnClass = method.getReturnType();
 
                     if (factoryParameter.format() == FactoryFormat.ENCODED) {
                         if (queryParams.containsKey(fullName)) {
-                            throw new ConflictException(String.format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
+                            throw new ConflictException(format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
                         } else {
                             continue;
                         }
@@ -346,9 +379,9 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     Object param = null;
                     if (queryParams.containsKey(fullName)) {
                         Set<String> values;
-                        if ((values = queryParams.remove(fullName)) == null || values.size() != 1) {
-                            throw new ConflictException(String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName,
-                                                                      null != values ? values.toString() : "null"));
+                        if (null == (values = queryParams.remove(fullName)) || values.size() != 1) {
+                            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName,
+                                                               null != values ? values.toString() : "null"));
                         }
                         param = ValueHelper.createValue(returnClass, values);
                         if (param == null) {
@@ -357,23 +390,42 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                     param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
                                 } catch (Exception e) {
                                     throw new ConflictException(
-                                            String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
+                                            format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
                                 }
                             } else {
                                 // should never happen
                                 throw new ConflictException(
-                                        String.format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
+                                        format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
                             }
                         }
                     } else if (returnClass.isAnnotationPresent(DTO.class)) {
                         // use recursion if parameter is DTO object
                         param = buildDtoObject(queryParams, fullName, returnClass);
+                    } else if (Map.class.isAssignableFrom(returnClass)) {
+                        String mapEntryPrefix = fullName + ".";
+                        Map<String, String> map;
+                        if (Map.class == returnClass) {
+                            map = new HashMap<>();
+                        } else {
+                            map = (Map)returnClass.newInstance();
+                        }
+                        for (Map.Entry<String, Set<String>> parameterEntry : queryParams.entrySet()) {
+                            if (parameterEntry.getKey().startsWith(mapEntryPrefix)) {
+                                map.put(parameterEntry.getKey().substring(mapEntryPrefix.length()),
+                                        parameterEntry.getValue().iterator().next());
+                            }
+                        }
+                        for (String key : map.keySet()) {
+                            queryParams.remove(mapEntryPrefix + key);
+                        }
+                        if (!map.isEmpty()) {
+                            param = map;
+                        }
                     }
                     if (param != null) {
                         // call appropriate setter to set current parameter
                         String setterMethodName =
-                                "set" + Character.toUpperCase(factoryParameter.queryParameterName().charAt(0)) +
-                                factoryParameter.queryParameterName().substring(1);
+                                "set" + Character.toUpperCase(method.getName().substring(3).charAt(0)) + method.getName().substring(4);
                         Method setterMethod = cl.getMethod(setterMethodName, returnClass);
                         setterMethod.invoke(result, param);
                         returnNull = false;

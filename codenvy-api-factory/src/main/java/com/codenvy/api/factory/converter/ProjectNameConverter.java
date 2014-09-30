@@ -8,21 +8,27 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.parameter;
+package com.codenvy.api.factory.converter;
 
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.FactoryProject;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 
 /**
- * Move 'pname' parameter into projectattributes object.
+ * Move 'pname', 'projectattributes.pname' parameter into the 'project' object.
  *
  * @author Alexander Garagatyi
  */
 public class ProjectNameConverter implements LegacyConverter {
     @Override
     public void convert(Factory factory) throws ApiException {
+    }
+
+    @Override
+    public void convertToV1_2(Factory factory) throws ApiException {
         if (factory.getPname() != null) {
             ProjectAttributes attributes = factory.getProjectattributes();
             if (null == attributes || attributes.getPname() == null) {
@@ -31,9 +37,8 @@ public class ProjectNameConverter implements LegacyConverter {
                 attributes.setPname(factory.getPname());
                 factory.setPname(null);
                 factory.setProjectattributes(attributes);
-            } else if (attributes.getPname() != null) {
-                throw new ApiException(
-                        "Parameters 'pname' and 'projectsttributes.pname' are mutually exclusive.");
+            } else {
+                throw new ApiException("Parameters 'pname' and 'projectsttributes.pname' are mutually exclusive.");
             }
         }
     }

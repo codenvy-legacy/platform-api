@@ -320,11 +320,11 @@ public abstract class Runner {
     }
 
     /**
-     * Gets validator for DeploymentSources. By default this method returns validator that does nothing. Sub-classes may override this
+     * Gets builder for DeploymentSources. By default this method returns builder that does nothing. Sub-classes may override this
      * method
      * and provide proper implementation of DeploymentSourcesValidator.
      *
-     * @return validator for DeploymentSources
+     * @return builder for DeploymentSources
      */
     protected DeploymentSourcesValidator getDeploymentSourcesValidator() {
         return ALL_VALID;

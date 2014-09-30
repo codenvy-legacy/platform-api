@@ -10,10 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.parameter.FactoryParameter;
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
  * Security restriction for the factory.
@@ -21,11 +21,13 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTI
  * @author Sergii Kabashniuk
  */
 @DTO
+@Deprecated
 public interface Restriction {
 
     /**
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validsince", trackedOnly = true)
     long getValidsince();
 
@@ -36,6 +38,7 @@ public interface Restriction {
     /**
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validuntil", trackedOnly = true)
     long getValiduntil();
 
@@ -46,6 +49,7 @@ public interface Restriction {
     /**
      * @return referer dns queryParameterName
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "refererhostname", trackedOnly = true)
     String getRefererhostname();
 
@@ -56,6 +60,7 @@ public interface Restriction {
     /**
      * @return Indicates that factory is password protected. Set by server
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "restrictbypassword", trackedOnly = true, setByServer = true)
     boolean getRestrictbypassword();
 
@@ -66,6 +71,7 @@ public interface Restriction {
     /**
      * @return Password asked for factory activation. Not exposed in any case.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "password", trackedOnly = true)
     String getPassword();
 
@@ -76,6 +82,7 @@ public interface Restriction {
     /**
      * @return It is a number that indicates the maximum number of sessions this factory is allowed to have.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "maxsessioncount", trackedOnly = true)
     long getMaxsessioncount();
 

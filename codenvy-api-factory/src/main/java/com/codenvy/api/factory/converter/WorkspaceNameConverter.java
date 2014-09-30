@@ -8,18 +8,23 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.parameter;
+package com.codenvy.api.factory.converter;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
 
 /**
- * Convert legacy factory parameter to new the latest format
+ * Remove 'wname' parameter from factory.
  *
  * @author Alexander Garagatyi
  */
-public interface LegacyConverter {
+public class WorkspaceNameConverter implements LegacyConverter {
+    @Override
+    public void convert(Factory factory) throws ApiException {
+    }
 
-    void convert(Factory factory) throws ApiException;
-
+    @Override
+    public void convertToV1_2(Factory factory) throws ApiException {
+        convert(factory);
+    }
 }

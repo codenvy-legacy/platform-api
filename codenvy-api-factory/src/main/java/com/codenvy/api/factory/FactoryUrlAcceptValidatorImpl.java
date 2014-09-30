@@ -20,7 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * Factory URL accept stage validator.
+ * Factory URL accept stage builder.
  */
 @Singleton
 public class FactoryUrlAcceptValidatorImpl extends FactoryUrlBaseValidator implements FactoryUrlAcceptValidator {
@@ -32,7 +32,7 @@ public class FactoryUrlAcceptValidatorImpl extends FactoryUrlBaseValidator imple
     @Override
     public void validateOnAccept(Factory factory, boolean encoded) throws ApiException {
         if (!encoded) {
-            validateVcs(factory);
+            validateSource(factory);
             validateProjectName(factory);
         }
         validateTrackedFactoryAndParams(factory);

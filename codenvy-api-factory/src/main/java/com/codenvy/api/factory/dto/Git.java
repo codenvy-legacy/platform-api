@@ -10,10 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.factory.dto;
 
-import com.codenvy.api.factory.parameter.FactoryParameter;
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
  * Additional git parameters.
@@ -21,10 +21,12 @@ import static com.codenvy.api.factory.parameter.FactoryParameter.Obligation.OPTI
  * @author Sergii Kabashniuk
  */
 @DTO
+@Deprecated
 public interface Git {
     /**
      * @return Allows get ref-specs of the changes of remote repository
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configremoteoriginfetch")
     String getConfigremoteoriginfetch();
 
@@ -37,6 +39,7 @@ public interface Git {
      *
      * @return
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configpushdefault")
     String getConfigpushdefault();
 
@@ -55,6 +58,7 @@ public interface Git {
      * <p/>
      * vcsbranch should be not null.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configbranchmerge")
     String getConfigbranchmerge();
 

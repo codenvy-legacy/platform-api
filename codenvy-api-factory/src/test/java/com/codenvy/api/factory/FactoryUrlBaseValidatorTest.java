@@ -16,7 +16,6 @@ import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.factory.FactoryBuilder;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Restriction;
@@ -105,7 +104,7 @@ public class FactoryUrlBaseValidatorTest {
 
     @Test
     public void shouldBeAbleToValidateFactoryUrlObject() throws ApiException {
-        validator.validateVcs(url);
+        validator.validateSource(url);
         validator.validateProjectName(url);
         validator.validateOrgid(url);
         validator.validateTrackedFactoryAndParams(url);
@@ -121,7 +120,7 @@ public class FactoryUrlBaseValidatorTest {
         url.setVcsurl("http://codenvy.com/git/04%2");
 
         // when, then
-        validator.validateVcs(url);
+        validator.validateSource(url);
     }
 
     @Test
@@ -130,7 +129,7 @@ public class FactoryUrlBaseValidatorTest {
         url.setVcsurl("ssh://codenvy@review.gerrithub.io:29418/codenvy/exampleProject");
 
         // when, then
-        validator.validateVcs(url);
+        validator.validateSource(url);
     }
 
     @Test
@@ -139,12 +138,12 @@ public class FactoryUrlBaseValidatorTest {
         url.setVcsurl("https://github.com/codenvy/example.git");
 
         // when, then
-        validator.validateVcs(url);
+        validator.validateSource(url);
     }
 
     @Test(dataProvider = "badAdvancedFactoryUrlProvider", expectedExceptions = ApiException.class)
     public void shouldNotValidateIfVcsOrVcsUrlIsInvalid(Factory factoryUrl) throws ApiException {
-        validator.validateVcs(factoryUrl);
+        validator.validateSource(factoryUrl);
     }
 
     @DataProvider(name = "badAdvancedFactoryUrlProvider")

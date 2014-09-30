@@ -10,9 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.factory.FactoryParameter;
+
 /**
- * @author Sergii Kabashniuk
+ * @author Alexander Garagatyi
  */
-public enum FactoryFormat {
-    ENCODED, NONENCODED, BOTH
+public interface FactoryParameterValidator<T> {
+    void validate(T arg, FactoryParameter.Version version) throws ConflictException;
 }

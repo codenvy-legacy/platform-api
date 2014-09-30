@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static com.codenvy.commons.lang.Strings.nullToEmpty;
-
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
@@ -19,10 +17,10 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.FactoryJson;
 import com.codenvy.api.factory.dto.FactoryProject;
-import com.codenvy.api.factory.dto.ProjectAttributes;
+import com.codenvy.api.factory.dto.FactoryV2_0;
 import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectJson;
 import com.codenvy.api.project.server.ProjectManager;
@@ -51,7 +49,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -77,6 +74,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.codenvy.commons.lang.Strings.nullToEmpty;
 
 /** Service for factory rest api features */
 @Api(value = "/factory",
@@ -109,10 +108,8 @@ public class FactoryService extends Service {
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.
-     * Fields with images
-     * should
-     * be named 'image'. Acceptable image size 100x100 pixels. If vcs is not set in factory URL it will be set with
-     * "git" value.
+     * Fields with images should be named 'image'. Acceptable image size 100x100 pixels.
+     * If vcs is not set in factory URL it will be set with "git" value.
      *
      * @param request
      *         - http request
@@ -182,8 +179,30 @@ public class FactoryService extends Service {
             if (factoryUrl.getV().equals("1.0")) {
                 throw new ConflictException("Storing of Factory 1.0 is unsupported.");
             }
-            factoryUrl.setUserid(context.getUser().getId());
-            factoryUrl.setCreated(System.currentTimeMillis());
+
+            String orgid;
+            String repoUrl;
+            String ptype;
+            if (factoryUrl.getV().startsWith("1.")) {
+                factoryUrl.setUserid(context.getUser().getId());
+                factoryUrl.setCreated(System.currentTimeMillis());
+
+                // for logging purposes
+                orgid = factoryUrl.getOrgid();
+                repoUrl = factoryUrl.getVcsurl();
+                ptype = factoryUrl.getProjectattributes() != null ? factoryUrl.getProjectattributes().getPtype() : null;
+            } else {
+                if (null == factoryUrl.getCreator()) {
+                    factoryUrl.setCreator(DtoFactory.getInstance().createDto(Author.class));
+                }
+                factoryUrl.getCreator().withUserId(context.getUser().getId()).withCreated(System.currentTimeMillis());
+
+                // for logging purposes
+                orgid = factoryUrl.getCreator().getAccountId();
+                repoUrl = factoryUrl.getSource().getLocation();
+                ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getProjectTypeId() : null;
+            }
+
             createValidator.validateOnCreate(factoryUrl);
             String factoryId = factoryStore.saveFactory(factoryUrl, images);
             factoryUrl = factoryStore.getFactory(factoryId);
@@ -194,17 +213,17 @@ public class FactoryService extends Service {
             if (createProjectLinksIterator.hasNext()) {
                 createProjectLink = createProjectLinksIterator.next().getHref();
             }
-            ProjectAttributes attributes = factoryUrl.getProjectattributes();
+
             LOG.info(
                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
                     "",
                     context.getUser().getName(),
                     "",
-                    nullToEmpty(attributes != null ? attributes.getPtype() : ""),
-                    factoryUrl.getVcsurl(),
+                    nullToEmpty(ptype),
+                    repoUrl,
                     createProjectLink,
                     nullToEmpty(factoryUrl.getAffiliateid()),
-                    nullToEmpty(factoryUrl.getOrgid()));
+                    nullToEmpty(orgid));
 
             return factoryUrl;
         } catch (IOException | ServletException e) {
@@ -227,15 +246,25 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                                             @DefaultValue("false") @QueryParam("validate") Boolean validate,
+                                            @QueryParam("maxVersion") String maxVersion,
                                             @Context UriInfo uriInfo)
             throws ApiException {
-        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("legacy", null)
+        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri())
+                            .replaceQueryParam("legacy", null)
                             .replaceQueryParam("token", null)
                             .replaceQueryParam("validate", null)
+                            .replaceQueryParam("maxVersion", null)
                             .build();
         Factory factory = factoryBuilder.buildNonEncoded(uri);
         if (legacy) {
-            factory = factoryBuilder.convertToLatest(factory);
+            if (maxVersion != null) {
+                if ("1.2".equals(maxVersion)) {
+                    factory = factoryBuilder.convertToV1_2(factory);
+                }
+                factory = factoryBuilder.convertToLatest(factory);
+            } else {
+                factory = factoryBuilder.convertToLatest(factory);
+            }
         }
         if (validate) {
             acceptValidator.validateOnAccept(factory, false);
@@ -314,10 +343,12 @@ public class FactoryService extends Service {
         List<Link> result = new ArrayList<>();
         URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("token", null).build();
         Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
-        if (queryParams.isEmpty())
+        if (queryParams.isEmpty()) {
             throw new IllegalArgumentException("Query must contain at least one attribute.");
-        if (queryParams.containsKey("accountid"))
+        }
+        if (queryParams.containsKey("accountid")) {
             queryParams.put("orgid", queryParams.remove("accountid"));
+        }
         ArrayList<Pair> pairs = new ArrayList<>();
         for (Map.Entry<String, Set<String>> entry : queryParams.entrySet()) {
             if (!entry.getValue().isEmpty())
@@ -473,8 +504,7 @@ public class FactoryService extends Service {
     @GET
     @Path("/{ws-id}/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path)
-            throws ApiException {
+    public Response getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws ApiException {
         final Project project = projectManager.getProject(workspace, path);
         final ProjectJson projectJson = ProjectJson.load(project);
         final DtoFactory dtoFactory = DtoFactory.getInstance();
@@ -500,9 +530,10 @@ public class FactoryService extends Service {
                                                                       .withOptions(envConfig.getOptions()));
         }
 
-
+        ImportSourceDescriptor source;
+        FactoryProject factoryProject;
         try {
-            FactoryProject factoryProject = (FactoryProject)dtoFactory.createDto(FactoryProject.class)
+            factoryProject = (FactoryProject)dtoFactory.createDto(FactoryProject.class)
                                                                       .withName(project.getName())
                                                                       .withProjectTypeId(projectJson.getProjectTypeId())
                                                                       .withBuilder(projectJson.getBuilder())
@@ -516,30 +547,28 @@ public class FactoryService extends Service {
                                                                       .withRunnerEnvironmentConfigurations(runnerConfigurationsDescriptors)
                                                                       .withAttributes(projectJson.getAttributes())
                                                                       .withDescription(projectJson.getDescription());
-
-            FactoryJson factoryJson = dtoFactory.createDto(FactoryJson.class)
-                                                .withV("2.0")
-                                                .withProject(factoryProject);
-
             if (project.getDescription().hasAttribute("vcs.provider.name") &&
                 "git".equals(project.getDescription().getAttributeValue("vcs.provider.name"))) {
-                factoryJson = factoryJson.withSource(HttpJsonHelper.request(ImportSourceDescriptor.class, baseApiUrl
-                                                                                                          + "/git/"
-                                                                                                          + workspace
-                                                                                                          +
-                                                                                                          "/import-source-descriptor?projectPath=" +
-                                                                                                          path,
-                                                                            "GET", null,
-                                                                            null));
+
+                final Link importSourceLink = DtoFactory.getInstance().createDto(Link.class)
+                                                        .withMethod("GET")
+                                                        .withHref(UriBuilder.fromUri(baseApiUrl)
+                                                                            .path("git")
+                                                                            .path(workspace)
+                                                                            .path("import-source-descriptor")
+                                                                            .build().toString());
+                source = HttpJsonHelper.request(ImportSourceDescriptor.class,importSourceLink, new Pair<>("projectPath", path));
             } else {
                 throw new ConflictException("Not able to generate project configuration, project has to be under version control system");
             }
-            return Response.ok(factoryJson, MediaType.APPLICATION_JSON)
-                           .header("Content-Disposition", "attachment; filename=" + path + ".json").build();
-
         } catch (IOException e) {
             throw new ServerException(e.getLocalizedMessage());
         }
-
+        return Response.ok(dtoFactory.createDto(FactoryV2_0.class)
+                                  .withProject(factoryProject)
+                                  .withSource(source)
+                                  .withV("2.0"), MediaType.APPLICATION_JSON)
+                       .header("Content-Disposition", "attachment; filename=" + path + ".json")
+                       .build();
     }
 }

@@ -10,40 +10,46 @@
  *******************************************************************************/
 package com.codenvy.api.factory.dto;
 
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 /**
+ * Describe restrictions of the factory
+ *
  * @author andrew00x
+ * @author Alexander Garagatyi
  */
 @DTO
 public interface Policies {
-    String getAuthor();
+    /**
+     * Restrict access if referer header doesn't match this field
+     */
+    // Do not change referer to referrer
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "refererHostname")
+    String getRefererHostname();
 
-    void setAuthor(String author);
+    void setRefererHostname(String refererHostname);
 
-    Policies withAuthor(String author);
+    Policies withRefererHostname(String refererHostname);
 
-    String getEmail();
+    /**
+     * Restrict access for factories used earlier then author supposes
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validSince")
+    long getValidSince();
 
-    void setEmail(String email);
+    void setValidSince(long validSince);
 
-    Policies withEmail(String email);
+    Policies withValidSince(long validSince);
 
-    String getRefererhostname();
+    /**
+     * Restrict access for factories used later then author supposes
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validUntil")
+    long getValidUntil();
 
-    void setRefererhostname(String refererhostname);
+    void setValidUntil(long validUntil);
 
-    Policies withRefererhostname(String refererhostname);
-
-    long getValidsince();
-
-    void setValidsince(long validsince);
-
-    Policies withValidsince(long validsince);
-
-    long getValiduntil();
-
-    void setValiduntil(long validuntil);
-
-    Policies withValiduntil(long validuntil);
+    Policies withValidUntil(long validUntil);
 }

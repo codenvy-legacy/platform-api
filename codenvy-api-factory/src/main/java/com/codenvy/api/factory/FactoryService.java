@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static com.codenvy.commons.lang.Strings.nullToEmpty;
-
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
@@ -51,7 +49,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -77,6 +74,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.codenvy.commons.lang.Strings.nullToEmpty;
 
 /** Service for factory rest api features */
 @Api(value = "/factory",
@@ -323,7 +322,8 @@ public class FactoryService extends Service {
             if (!entry.getValue().isEmpty())
                 pairs.add(Pair.of(entry.getKey(), entry.getValue().iterator().next()));
         }
-        for (Factory factory : factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]))) {
+        List<Factory> factories = factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]));
+        for (Factory factory : factories) {
             result.add(DtoFactory.getInstance().createDto(Link.class)
                                  .withMethod("GET")
                                  .withRel("self")

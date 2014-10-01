@@ -61,8 +61,26 @@ abstract class DtoImpl {
             // starts with "is", see method '#ignoreMethod(Method)'
             fieldName = getterName.substring(2);
         }
-        fieldName = Character.toLowerCase(fieldName.charAt(0)) + fieldName.substring(1);
+        return normalizeIdentifier(Character.toLowerCase(fieldName.charAt(0)) + fieldName.substring(1));
+    }
+
+    private String normalizeIdentifier(String fieldName) {
+        // use $ prefix according to http://docs.oracle.com/javase/specs/jls/se7/html/jls-3.html#jls-3.8
+        switch (fieldName) {
+            case "default":
+                fieldName = "$" + fieldName;
+                break;
+            // add other keywords here
+        }
         return fieldName;
+    }
+
+    private String getCamelCaseName(String fieldName) {
+        // see normalizeIdentifier method
+        if (fieldName.charAt(0) == '$') {
+            fieldName = fieldName.substring(1);
+        }
+        return Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
     }
 
     protected String getImplClassName() {
@@ -91,10 +109,6 @@ abstract class DtoImpl {
 
     protected String getEnsureName(String fieldName) {
         return "ensure" + getCamelCaseName(fieldName);
-    }
-
-    protected String getCamelCaseName(String fieldName) {
-        return Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
     }
 
     /**

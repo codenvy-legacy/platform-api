@@ -354,7 +354,8 @@ public class FactoryService extends Service {
             if (!entry.getValue().isEmpty())
                 pairs.add(Pair.of(entry.getKey(), entry.getValue().iterator().next()));
         }
-        for (Factory factory : factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]))) {
+        List<Factory> factories = factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]));
+        for (Factory factory : factories) {
             result.add(DtoFactory.getInstance().createDto(Link.class)
                                  .withMethod("GET")
                                  .withRel("self")

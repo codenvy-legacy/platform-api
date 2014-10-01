@@ -27,8 +27,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -133,18 +135,23 @@ public class DtoGenerator {
             }
 
             DtoTemplate dtoTemplate = new DtoTemplate(packageName, className, impl);
-            Reflections reflection = new Reflections(new ConfigurationBuilder().setUrls(urls).setScanners(new TypeAnnotationsScanner()));
+            Reflections reflection = new Reflections(new ConfigurationBuilder().setUrls(urls).setScanners(new SubTypesScanner(), new TypeAnnotationsScanner()));
+            
             List<Class<?>> dtos = new ArrayList<>(reflection.getTypesAnnotatedWith(DTO.class));
 
             // We sort alphabetically to ensure deterministic order of routing types.
             Collections.sort(dtos, new ClassesComparator());
 
             for (Class<?> clazz : dtos) {
-                dtoTemplate.addInterface(clazz);
+
+                // DTO are interface
+                if (clazz.isInterface()) {
+                    dtoTemplate.addInterface(clazz);
+                }
             }
 
             reflection = new Reflections(
-                    new ConfigurationBuilder().setUrls(ClasspathHelper.forClassLoader()).setScanners(new TypeAnnotationsScanner()));
+                    new ConfigurationBuilder().setUrls(ClasspathHelper.forClassLoader()).setScanners(new SubTypesScanner(), new TypeAnnotationsScanner()));
             List<Class<?>> dtosDependencies = new ArrayList<>(reflection.getTypesAnnotatedWith(DTO.class));
             dtosDependencies.removeAll(dtos);
 

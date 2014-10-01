@@ -12,11 +12,11 @@ package com.codenvy.api.runner.internal;
 
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
-import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerEnvironment;
@@ -57,11 +57,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public abstract class Runner {
     private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
-
-    /** @deprecated use {@link com.codenvy.api.runner.internal.Constants#DEPLOY_DIRECTORY} */
-    public static final String DEPLOY_DIRECTORY   = Constants.DEPLOY_DIRECTORY;
-    /** @deprecated use {@link com.codenvy.api.runner.internal.Constants#APP_CLEANUP_TIME} */
-    public static final String CLEANUP_DELAY_TIME = Constants.APP_CLEANUP_TIME;
 
     private static final AtomicLong processIdSequence = new AtomicLong(1);
 
@@ -228,9 +223,6 @@ public abstract class Runner {
 
     public RunnerProcess execute(final RunRequest request) throws RunnerException {
         checkStarted();
-        final long startTime = System.currentTimeMillis();
-        final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
-        final Long internalId = processIdSequence.getAndIncrement();
         final RunnerProcess.Callback callback = new RunnerProcess.Callback() {
             @Override
             public void started(RunnerProcess process) {
@@ -258,15 +250,22 @@ public abstract class Runner {
                 }
             }
         };
-        final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, callback);
-        processes.put(internalId, process);
-        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
+        return doExecute(request, callback);
+    }
+
+    protected RunnerProcess doExecute(final RunRequest request, RunnerProcess.Callback callback) throws RunnerException {
+        final long startTime = System.currentTimeMillis();
+        final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final int mem = runnerCfg.getMemory();
-        final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem).allocate();
+        final ResourceAllocator memoryAllocator = allocators.newMemoryAllocator(mem);
+        final Watchdog watcher = new Watchdog(getName().toUpperCase() + "-WATCHDOG", request.getLifetime(), TimeUnit.SECONDS);
+        final Long internalId = processIdSequence.getAndIncrement();
+        final RunnerProcessImpl process = new RunnerProcessImpl(internalId, getName(), runnerCfg, callback);
         final Runnable r = ThreadLocalPropagateContext.wrap(new Runnable() {
             @Override
             public void run() {
                 try {
+                    memoryAllocator.allocate();
                     final java.io.File downloadDir =
                             Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
                     final String url = request.getDeploymentSourcesUrl();
@@ -282,7 +281,12 @@ public abstract class Runner {
                     final ApplicationProcess realProcess = newApplicationProcess(deploymentSources, runnerCfg);
                     realProcess.start();
                     process.started(realProcess);
-                    watcher.start(process);
+                    watcher.start(new Cancellable() {
+                        @Override
+                        public void cancel() throws Exception {
+                            process.internalStop(true);
+                        }
+                    });
                     runningAppsCounter.incrementAndGet();
                     LOG.debug("Started {}", process);
                     final long endTime = System.currentTimeMillis();
@@ -299,6 +303,7 @@ public abstract class Runner {
                 }
             }
         });
+        processes.put(internalId, process);
         final FutureTask<Void> future = new FutureTask<>(r, null);
         process.setTask(future);
         executor.execute(future);
@@ -363,7 +368,7 @@ public abstract class Runner {
         }
     }
 
-    private class RunnerProcessImpl implements RunnerProcess {
+    protected class RunnerProcessImpl implements RunnerProcess {
         private final Long                id;
         private final String              runner;
         private final RunnerConfiguration configuration;
@@ -376,9 +381,9 @@ public abstract class Runner {
         private long               stopTime;
         private Throwable          error;
         private List<java.io.File> forCleanup;
-        private ApplicationStatus  status;
+        private boolean            cancelled;
 
-        RunnerProcessImpl(Long id, String runner, RunnerConfiguration configuration, Callback callback) {
+        protected RunnerProcessImpl(Long id, String runner, RunnerConfiguration configuration, Callback callback) {
             this.id = id;
             this.runner = runner;
             this.configuration = configuration;
@@ -386,55 +391,15 @@ public abstract class Runner {
             created = System.currentTimeMillis();
             startTime = -1L;
             stopTime = -1L;
-            status = ApplicationStatus.NEW;
         }
 
         synchronized void setTask(Future<Void> task) {
             this.task = task;
         }
 
-        @Override
-        public Long getId() {
-            return id;
-        }
-
-        @Override
-        public synchronized ApplicationStatus getStatus() {
-            return status;
-        }
-
-        @Override
-        public synchronized long getStartTime() {
-            return startTime;
-        }
-
-        @Override
-        public synchronized long getStopTime() {
-            return stopTime;
-        }
-
-        @Override
-        public synchronized long getUptime() {
-            return startTime > 0
-                   ? stopTime > 0
-                     ? (stopTime - startTime) : (System.currentTimeMillis() - startTime)
-                   : 0;
-        }
-
-        @Override
-        public synchronized ApplicationProcess getApplicationProcess() {
-            return realProcess;
-        }
-
-        @Override
-        public synchronized Throwable getError() {
-            return error;
-        }
-
         synchronized void started(ApplicationProcess realProcess) {
             this.realProcess = realProcess;
             startTime = System.currentTimeMillis();
-            status = ApplicationStatus.RUNNING;
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
                 getExecutor().execute(ThreadLocalPropagateContext.wrap(new Runnable() {
@@ -448,10 +413,6 @@ public abstract class Runner {
 
         synchronized void stopped() {
             stopTime = System.currentTimeMillis();
-            if (status != ApplicationStatus.CANCELLED) {
-                // save 'cancelled' status
-                status = ApplicationStatus.STOPPED;
-            }
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
                 getExecutor().execute(ThreadLocalPropagateContext.wrap(new Runnable() {
@@ -463,19 +424,8 @@ public abstract class Runner {
             }
         }
 
-        @Override
-        public String getRunner() {
-            return runner;
-        }
-
-        @Override
-        public RunnerConfiguration getConfiguration() {
-            return configuration;
-        }
-
         synchronized void setError(final Throwable error) {
             this.error = error;
-            status = ApplicationStatus.FAILED;
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
                 getExecutor().execute(ThreadLocalPropagateContext.wrap(new Runnable() {
@@ -487,15 +437,19 @@ public abstract class Runner {
             }
         }
 
-        @Override
-        public synchronized void cancel() throws Exception {
+        synchronized void internalStop(boolean cancelled) throws RunnerException {
             if (task != null && !task.isDone()) {
                 task.cancel(true);
             }
             if (realProcess != null && realProcess.isRunning()) {
                 realProcess.stop();
             }
-            status = ApplicationStatus.CANCELLED;
+            this.cancelled = cancelled;
+        }
+
+        synchronized boolean isExpired() {
+            return (startTime < 0 && ((created + maxStartTime) < System.currentTimeMillis())) ||
+                   (stopTime > 0 && ((stopTime + cleanupDelayMillis) < System.currentTimeMillis()));
         }
 
         synchronized void addToCleanupList(java.io.File file) {
@@ -509,9 +463,75 @@ public abstract class Runner {
             return forCleanup;
         }
 
-        synchronized boolean isExpired() {
-            return (startTime < 0 && ((created + maxStartTime) < System.currentTimeMillis())) ||
-                   (stopTime > 0 && ((stopTime + cleanupDelayMillis) < System.currentTimeMillis()));
+        @Override
+        public final Long getId() {
+            return id;
+        }
+
+        @Override
+        public synchronized ApplicationProcess getApplicationProcess() {
+            return realProcess;
+        }
+
+        @Override
+        public String getRunner() {
+            return runner;
+        }
+
+        @Override
+        public RunnerConfiguration getConfiguration() {
+            return configuration;
+        }
+
+        @Override
+        public synchronized Throwable getError() {
+            return error;
+        }
+
+        @Override
+        public final synchronized boolean isStarted() {
+            return startTime > 0;
+        }
+
+        @Override
+        public final synchronized long getStartTime() {
+            return startTime;
+        }
+
+        @Override
+        public void stop() throws RunnerException {
+            internalStop(false);
+        }
+
+        @Override
+        public final synchronized boolean isStopped() {
+            return stopTime > 0;
+        }
+
+        @Override
+        public final synchronized long getStopTime() {
+            return stopTime;
+        }
+
+        @Override
+        public synchronized long getUptime() {
+            return startTime > 0
+                   ? stopTime > 0
+                     ? (stopTime - startTime) : (System.currentTimeMillis() - startTime)
+                   : 0;
+        }
+
+        @Override
+        public synchronized boolean isCancelled() {
+            return cancelled;
+        }
+
+        @Override
+        public synchronized ApplicationLogger getLogger() throws RunnerException {
+            if (realProcess == null) {
+                return ApplicationLogger.DUMMY;
+            }
+            return realProcess.getLogger();
         }
 
         @Override
@@ -588,8 +608,9 @@ public abstract class Runner {
                 final RunnerProcessImpl process = i.next();
                 if (process.isExpired()) {
                     try {
-                        process.cancel();
+                        process.internalStop(true);
                         if (process.getApplicationProcess() == null) {
+                            // it is incorrect situation so mark process as failed
                             process.setError(new RunnerException(
                                     "Running process is terminated due to exceeded max allowed time for start."));
                         }

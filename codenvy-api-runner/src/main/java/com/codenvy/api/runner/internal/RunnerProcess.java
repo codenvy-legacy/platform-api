@@ -10,11 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.runner.internal;
 
-import com.codenvy.api.core.util.Cancellable;
-import com.codenvy.api.runner.ApplicationStatus;
+import com.codenvy.api.runner.RunnerException;
 
 /** @author andrew00x */
-public interface RunnerProcess extends Cancellable {
+public interface RunnerProcess {
     interface Callback {
         void started(RunnerProcess process);
 
@@ -30,10 +29,9 @@ public interface RunnerProcess extends Cancellable {
      */
     Long getId();
 
-    ApplicationStatus getStatus();
-
     /**
-     * Get application process.
+     * Get application process. NOTE Regular user of Runner API is not expected to use this method directly and call any methods of
+     * ApplicationProcess.
      *
      * @return ApplicationProcess or {@code null} if application is not started yet.
      */
@@ -53,11 +51,33 @@ public interface RunnerProcess extends Cancellable {
     Throwable getError();
 
     /**
+     * Reports whether process is started or not.
+     *
+     * @return {@code true} if process is started and {@code false} otherwise
+     */
+    boolean isStarted();
+
+    /**
      * Get time when process was started.
      *
      * @return time when process was started or {@code -1} if process is not started yet
      */
     long getStartTime();
+
+    /**
+     * Stop this process.
+     *
+     * @throws RunnerException
+     *         if an error occurs when try to interrupt this process
+     */
+    void stop() throws RunnerException;
+
+    /**
+     * Reports whether process is stopped (normally or cancelled) or not.
+     *
+     * @return {@code true} if process is stopped and {@code false} otherwise
+     */
+    boolean isStopped();
 
     /**
      * Get time when process was started.
@@ -72,4 +92,15 @@ public interface RunnerProcess extends Cancellable {
      * @return uptime of application process or {@code 0} if process is not started yet.
      */
     long getUptime();
+
+    /**
+     * Reports whether process is stopped abnormally (not by user but by Runner internal mechanism), e.g. if process is running longer than
+     * it's allowed.
+     *
+     * @return {@code true} if is stopped abnormally and {@code false} otherwise
+     */
+    boolean isCancelled();
+
+    /** Get application logger. */
+    ApplicationLogger getLogger() throws RunnerException;
 }

@@ -104,12 +104,7 @@ public class SlaveRunnerService extends Service {
     public ApplicationProcessDescriptor stop(@PathParam("runner") String runner, @PathParam("id") Long id) throws Exception {
         final Runner myRunner = getRunner(runner);
         final RunnerProcess process = myRunner.getProcess(id);
-        final ApplicationProcess application = process.getApplicationProcess();
-        if (application != null) {
-            application.stop();
-        } else {
-            process.cancel();
-        }
+        process.stop();
         return getDescriptor(process, getServiceContext()).withRunStats(myRunner.getStats(id));
     }
 
@@ -124,17 +119,19 @@ public class SlaveRunnerService extends Service {
         if (error != null) {
             final PrintWriter output = httpServletResponse.getWriter();
             httpServletResponse.setContentType("text/plain");
-            error.printStackTrace(output);
+            if (error instanceof RunnerException) {
+                // expect ot have nice messages from our API
+                output.write(error.getMessage());
+            } else {
+                error.printStackTrace(output);
+            }
             output.flush();
         } else {
-            final ApplicationProcess application = process.getApplicationProcess();
-            if (application != null) {
-                final ApplicationLogger logger = application.getLogger();
-                final PrintWriter output = httpServletResponse.getWriter();
-                httpServletResponse.setContentType(logger.getContentType());
-                logger.getLogs(output);
-                output.flush();
-            }
+            final ApplicationLogger logger = process.getLogger();
+            final PrintWriter output = httpServletResponse.getWriter();
+            httpServletResponse.setContentType(logger.getContentType());
+            logger.getLogs(output);
+            output.flush();
         }
     }
 
@@ -189,7 +186,13 @@ public class SlaveRunnerService extends Service {
     }
 
     private ApplicationProcessDescriptor getDescriptor(RunnerProcess process, ServiceContext restfulRequestContext) throws RunnerException {
-        final ApplicationStatus status = process.getStatus();
+        final ApplicationStatus status = process.getError() == null ? (process.isCancelled() ? ApplicationStatus.CANCELLED
+                                                                                             : (process.isStopped()
+                                                                                                ? ApplicationStatus.STOPPED
+                                                                                                : (process.isStarted()
+                                                                                                   ? ApplicationStatus.RUNNING
+                                                                                                   : ApplicationStatus.NEW)))
+                                                                    : ApplicationStatus.FAILED;
         final List<Link> links = new LinkedList<>();
         final UriBuilder servicePathBuilder = restfulRequestContext.getServiceUriBuilder();
         final DtoFactory dtoFactory = DtoFactory.getInstance();

@@ -325,7 +325,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     }
 
                     // use recursion if parameter is DTO object
-                    if (parameterValue.getClass().isAnnotationPresent(DTO.class)) {
+                    if (method.getReturnType().isAnnotationPresent(DTO.class)) {
                         // validate inner objects such Git ot ProjectAttributes
                         validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
                                               orgid, fullName);

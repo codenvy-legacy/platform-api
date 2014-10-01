@@ -66,15 +66,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Builder {
     private static final Logger LOG = LoggerFactory.getLogger(Builder.class);
 
-    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#BASE_DIRECTORY} */
-    public static final String REPOSITORY              = Constants.BASE_DIRECTORY;
-    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#NUMBER_OF_WORKERS} */
-    public static final String NUMBER_OF_WORKERS       = Constants.NUMBER_OF_WORKERS;
-    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#KEEP_RESULT_TIME} */
-    public static final String CLEAN_RESULT_DELAY_TIME = Constants.KEEP_RESULT_TIME;
-    /** @deprecated use {@link com.codenvy.api.builder.internal.Constants#QUEUE_SIZE} */
-    public static final String INTERNAL_QUEUE_SIZE     = Constants.QUEUE_SIZE;
-
     private static final AtomicLong buildIdSequence = new AtomicLong(1);
 
     private final ConcurrentMap<Long, FutureBuildTask> tasks;
@@ -615,7 +606,6 @@ public abstract class Builder {
         private BuildResult result;
         private long        startTime;
         private long        endTime;
-//        private Throwable   error;
 
         protected FutureBuildTask(Callable<Boolean> callable,
                                   Long id,
@@ -696,15 +686,6 @@ public abstract class Builder {
         public BuilderConfiguration getConfiguration() {
             return configuration;
         }
-
-//        @Override
-//        public synchronized Throwable getError() {
-//            return error;
-//        }
-//
-//        synchronized void setError(final Throwable error) {
-//            this.error = error;
-//        }
 
         @Override
         public final synchronized boolean isStarted() {

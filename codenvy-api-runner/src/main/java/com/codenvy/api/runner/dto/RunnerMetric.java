@@ -40,6 +40,8 @@ public interface RunnerMetric {
 
     String RUNNING_APPS = "runningApps";
 
+    String MEMORY ="memory";
+
     String getName();
 
     RunnerMetric withName(String name);

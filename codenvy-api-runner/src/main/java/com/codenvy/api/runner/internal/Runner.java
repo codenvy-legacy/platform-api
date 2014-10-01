@@ -218,6 +218,9 @@ public abstract class Runner {
             result.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.UP_TIME).withValue(Long.toString(uptime))
                                  .withDescription("Application's uptime"));
         }
+        final int memory = process.getConfiguration().getMemory();
+        result.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.MEMORY).withValue(Integer.toString(memory))
+                             .withDescription("Amount of memory in megabytes assigned for application"));
         return result;
     }
 

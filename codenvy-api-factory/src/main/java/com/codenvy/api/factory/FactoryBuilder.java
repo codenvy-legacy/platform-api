@@ -385,7 +385,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         }
                         param = ValueHelper.createValue(returnClass, values);
                         if (param == null) {
-                            if ("variables".equals(fullName)) {
+                            if ("variables".equals(fullName) || "actions.findReplace".equals(fullName)) {
                                 try {
                                     param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
                                 } catch (Exception e) {

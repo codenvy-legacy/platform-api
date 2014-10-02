@@ -506,7 +506,7 @@ public class WorkspaceServiceTest {
                                                                     .withUserId("test_user_id");
         prepareRole("workspace/admin");
 
-        final MemberDescriptor descriptor = doPost(SERVICE_PATH + "/" + testWorkspace.getId() + "/members", membership, OK);
+        final MemberDescriptor descriptor = doPost(SERVICE_PATH + "/" + testWorkspace.getId() + "/members", membership, CREATED);
 
         assertEquals(descriptor.getUserId(), membership.getUserId());
         assertEquals(descriptor.getWorkspaceReference().getId(), testWorkspace.getId());
@@ -535,7 +535,7 @@ public class WorkspaceServiceTest {
         final NewMembership membership = newDTO(NewMembership.class).withRoles(singletonList("workspace/developer"))
                                                                     .withUserId(testUser.getId());
 
-        final MemberDescriptor descriptor = doPost(SERVICE_PATH + "/" + testWorkspace.getId() + "/members", membership, OK);
+        final MemberDescriptor descriptor = doPost(SERVICE_PATH + "/" + testWorkspace.getId() + "/members", membership, CREATED);
 
         assertEquals(descriptor.getRoles(), membership.getRoles());
         assertEquals(descriptor.getUserId(), membership.getUserId());
@@ -573,7 +573,7 @@ public class WorkspaceServiceTest {
         final Workspace testWorkspace = createWorkspace();
         final NewMembership membership = newDTO(NewMembership.class).withUserId(testUser.getId());
 
-        final MemberDescriptor descriptor = doPost(SERVICE_PATH + "/" + testWorkspace.getId() + "/members", membership, OK);
+        final MemberDescriptor descriptor = doPost(SERVICE_PATH + "/" + testWorkspace.getId() + "/members", membership, CREATED);
 
         assertEquals(descriptor.getUserId(), membership.getUserId());
         assertEquals(descriptor.getWorkspaceReference().getId(), testWorkspace.getId());

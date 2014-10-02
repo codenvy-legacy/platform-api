@@ -196,11 +196,6 @@ public class WorkspaceService extends Service {
                                                    .withAccountId(newWorkspace.getAccountId())
                                                    .withAttributes(newWorkspace.getAttributes());
         workspaceDao.create(workspace);
-        //TODO: remove adding member from here
-        final Member newMember = new Member().withUserId(currentUser().getId())
-                                             .withWorkspaceId(workspace.getId())
-                                             .withRoles(asList("workspace/developer", "workspace/admin"));
-        memberDao.create(newMember);
         LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", newWorkspace.getName(), workspace.getId(), currentUser().getId());
         return status(CREATED).entity(toDescriptor(workspace, context)).build();
     }
@@ -271,11 +266,6 @@ public class WorkspaceService extends Service {
         } else {
             user = userDao.getById(currentUser().getId());
         }
-        //TODO: remove adding member from here
-        final Member newMember = new Member().withUserId(user.getId())
-                                             .withWorkspaceId(workspace.getId())
-                                             .withRoles(asList("workspace/developer", "workspace/admin"));
-        memberDao.create(newMember);
         LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", workspace.getName(), workspace.getId(), user.getId());
         return status(CREATED).entity(toDescriptor(workspace, context)).build();
     }
@@ -718,7 +708,7 @@ public class WorkspaceService extends Service {
                   response = MemberDescriptor.class,
                   position = 12)
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 201, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to perform this operation"),
             @ApiResponse(code = 404, message = "Not Found"),
             @ApiResponse(code = 409, message = "No user ID and/or role specified")})
@@ -727,38 +717,39 @@ public class WorkspaceService extends Service {
     @RolesAllowed({"user", "temp_user"})
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
-    public MemberDescriptor addMember(@ApiParam(value = "Workspace ID")
-                                      @PathParam("id")
-                                      String wsId,
-                                      @ApiParam(value = "New membership", required = true)
-                                      @Required
-                                      NewMembership newMembership,
-                                      @Context SecurityContext context) throws NotFoundException,
-                                                                               ServerException,
-                                                                               ConflictException,
-                                                                               ForbiddenException {
+    public Response addMember(@ApiParam(value = "Workspace ID")
+                              @PathParam("id")
+                              String wsId,
+                              @ApiParam(value = "New membership", required = true)
+                              @Required
+                              NewMembership newMembership,
+                              @Context SecurityContext context) throws NotFoundException,
+                                                                       ServerException,
+                                                                       ConflictException,
+                                                                       ForbiddenException {
         requiredNotNull(newMembership, "New membership");
-        requiredNotNull(newMembership.getRoles(), "Roles");
         requiredNotNull(newMembership.getUserId(), "User ID");
         final Workspace workspace = workspaceDao.getById(wsId);
-        if (!memberDao.getWorkspaceMembers(wsId).isEmpty()) {
-            if (!context.isUserInRole("workspace/admin") && !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember"))) {
-                throw new ForbiddenException("Access denied");
-            }
-            if (newMembership.getRoles().isEmpty()) {
-                throw new ConflictException("Roles should not be empty");
-            }
-        } else {
+        if (memberDao.getWorkspaceMembers(wsId).isEmpty()) {
             //if workspace doesn't contain members then member that is been added
             //should be added with roles 'workspace/admin' and 'workspace/developer'
             newMembership.setRoles(asList("workspace/admin", "workspace/developer"));
+
+        } else {
+            requiredNotNull(newMembership.getRoles(), "Roles");
+            if (newMembership.getRoles().isEmpty()) {
+                throw new ConflictException("Roles should not be empty");
+            }
+            if (!context.isUserInRole("workspace/admin") && !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember"))) {
+                throw new ForbiddenException("Access denied");
+            }
         }
         final User user = userDao.getById(newMembership.getUserId());
         final Member newMember = new Member().withWorkspaceId(wsId)
                                              .withUserId(user.getId())
                                              .withRoles(newMembership.getRoles());
         memberDao.create(newMember);
-        return toDescriptor(newMember, workspace, context);
+        return status(CREATED).entity(toDescriptor(newMember, workspace, context)).build();
     }
 
     /**

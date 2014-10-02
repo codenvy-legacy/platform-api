@@ -195,14 +195,14 @@ public abstract class NonEncodedFactoryBuilder {
 
         final FactoryProject project = factory.getProject();
         if (project != null) {
-            appendIfNotNull(builder, "&project.name", project.getName(), true);
-            appendIfNotNull(builder, "&project.description", project.getDescription(), true);
-            appendIfNotNull(builder, "&project.type", project.getProjectTypeId(), true);
-            appendIfNotNull(builder, "&project.visibility", project.getVisibility(), false);
-            appendIfNotNull(builder, "&project.builderType", project.getBuilder(), false);
-            appendIfNotNull(builder, "&project.runnerType", project.getRunner(), false);
-            appendIfNotNull(builder, "&project.defaultBuilder", project.getDefaultBuilderEnvironment(), false);
-            appendIfNotNull(builder, "&project.defaultRunner", project.getDefaultRunnerEnvironment(), false);
+            appendIfNotNull(builder, "&project.name=", project.getName(), true);
+            appendIfNotNull(builder, "&project.description=", project.getDescription(), true);
+            appendIfNotNull(builder, "&project.type=", project.getProjectTypeId(), true);
+            appendIfNotNull(builder, "&project.visibility=", project.getVisibility(), false);
+            appendIfNotNull(builder, "&project.builderType=", project.getBuilder(), false);
+            appendIfNotNull(builder, "&project.runnerType=", project.getRunner(), false);
+            appendIfNotNull(builder, "&project.defaultBuilder=", project.getDefaultBuilderEnvironment(), false);
+            appendIfNotNull(builder, "&project.defaultRunner=", project.getDefaultRunnerEnvironment(), false);
             // TODO
 //            for (Map.Entry<String, List<String>> entry : project.getAttributes().entrySet()) {
 //                appendIfNotNull(builder, "&project.attributes." + entry.getKey() + "=", entry.getValue(), true);
@@ -212,17 +212,17 @@ public abstract class NonEncodedFactoryBuilder {
 
         final Policies policies = factory.getPolicies();
         if (policies != null) {
-            appendIfNotNull(builder, "&policies.validSince", String.valueOf(policies.getValidSince()), false);
-            appendIfNotNull(builder, "&policies.validUntil", String.valueOf(policies.getValidUntil()), false);
-            appendIfNotNull(builder, "&policies.refererHostname", policies.getRefererHostname(), true);
+            appendIfNotNull(builder, "&policies.validSince=", String.valueOf(policies.getValidSince()), false);
+            appendIfNotNull(builder, "&policies.validUntil=", String.valueOf(policies.getValidUntil()), false);
+            appendIfNotNull(builder, "&policies.refererHostname=", policies.getRefererHostname(), true);
         }
 
         final Actions actions = factory.getActions();
         if (actions != null) {
-            appendIfNotNull(builder, "&actions.openFile", actions.getOpenFile(), true);
-            appendIfNotNull(builder, "&actions.warnOnClose", String.valueOf(actions.getWarnOnClose()), false);
+            appendIfNotNull(builder, "&actions.openFile=", actions.getOpenFile(), true);
+            appendIfNotNull(builder, "&actions.warnOnClose=", String.valueOf(actions.getWarnOnClose()), false);
             if (actions.getFindReplace() != null) {
-                builder.append("&actions.findReplace").append(encode(toJson(actions.getFindReplace())));
+                builder.append("&actions.findReplace=").append(encode(toJson(actions.getFindReplace())));
             }
         }
     }

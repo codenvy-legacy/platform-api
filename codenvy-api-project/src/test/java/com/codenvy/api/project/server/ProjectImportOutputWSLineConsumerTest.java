@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * Testing {@link ProjectImportOutputWSLineConsumer}. To avoid output overflow of sent messages, this line consumer should not send all the
  * lines but skip some if needed. This test is checking that for a delay of 300ms between each messages, the messages would be delayed if
- * needed or overriden if newer messages are sent before the delay count down.
+ * needed or overridden if newer messages are sent before the delay count down.
  */
 public class ProjectImportOutputWSLineConsumerTest {
 

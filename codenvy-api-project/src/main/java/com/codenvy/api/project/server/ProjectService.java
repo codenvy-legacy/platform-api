@@ -606,13 +606,12 @@ public class ProjectService extends Service {
         // preparing websocket output publisher to broadcast output of import process to the ide clients while importing
         final String fWorkspace = workspace;
         final String fPath = path;
-        final LineConsumerFactory outputWSlineConsumerFactory = new LineConsumerFactory() {
+        final LineConsumerFactory outputOutputConsumerFactory = new LineConsumerFactory() {
             @Override
             public LineConsumer newLineConsumer() {
                 return new ProjectImportOutputWSLineConsumer(fPath, fWorkspace, 300);
             }
         };
-
 
         Project project = projectManager.getProject(workspace, path);
         if (project == null) {
@@ -623,7 +622,7 @@ public class ProjectService extends Service {
             throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
         }
         importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters(),
-                               outputWSlineConsumerFactory);
+                               outputOutputConsumerFactory);
 
         //use resolver only if project type not set
         if (com.codenvy.api.project.shared.Constants.BLANK_ID.equals(project.getDescription().getProjectType().getId())) {

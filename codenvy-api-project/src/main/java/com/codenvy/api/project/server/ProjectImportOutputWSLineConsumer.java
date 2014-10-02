@@ -10,14 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import java.io.IOException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.commons.lang.NamedThreadFactory;
 
 import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
@@ -25,32 +19,35 @@ import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.commons.lang.NamedThreadFactory;
+import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Send project import output to WS by skipping output messages written below the delay specified.
  */
 public class ProjectImportOutputWSLineConsumer implements LineConsumer {
 
-    private static final Logger        LOG             = LoggerFactory.getLogger(ProjectImportOutputWSLineConsumer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectImportOutputWSLineConsumer.class);
 
-    protected final AtomicInteger      lineCounter     = new AtomicInteger(1);
-
-    protected String                   fPath;
-    protected String                   fWorkspace;
-
-    protected BlockingQueue<String>    lineToSendQueue = new ArrayBlockingQueue<String>(1024);
+    protected final AtomicInteger         lineCounter;
+    protected final String                fPath;
+    protected final String                fWorkspace;
+    protected final BlockingQueue<String> lineToSendQueue;
 
     // not using Executors helper: we want a queue capacity of 1. The scheduled runnable will treat all the pending items.
-    protected ScheduledExecutorService executor        =
-                                                         Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(
-                                                                                                                           ProjectImportOutputWSLineConsumer.class.getName(),
-                                                                                                                           false));
+    protected final ScheduledExecutorService executor;
 
     public ProjectImportOutputWSLineConsumer(String fPath, String fWorkspace, int delayBetweenMessages) {
         this.fPath = fPath;
         this.fWorkspace = fWorkspace;
+        lineToSendQueue = new ArrayBlockingQueue<>(1024);
+        executor = Executors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory(ProjectImportOutputWSLineConsumer.class.getSimpleName(), true));
         executor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -65,6 +62,7 @@ public class ProjectImportOutputWSLineConsumer implements LineConsumer {
                 sendMessage(lineToSend);
             }
         }, 0, delayBetweenMessages, TimeUnit.MILLISECONDS);
+        lineCounter = new AtomicInteger(1);
     }
 
     @Override
@@ -76,10 +74,8 @@ public class ProjectImportOutputWSLineConsumer implements LineConsumer {
     public void writeLine(String line) throws IOException {
         try {
             lineToSendQueue.put(line);
-        } catch (InterruptedException e1) {
-            // ignore if interupted
-        } catch (RejectedExecutionException e2) {
-            // ignore, if 1 execution is already scheduled, no need to to add one more
+        } catch (InterruptedException ignored) {
+            // ignore if interrupted
         }
     }
 

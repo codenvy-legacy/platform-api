@@ -40,7 +40,6 @@ public interface ProjectImporter {
         }
     }
 
-
     /**
      * @return unique id of importer e.g git, zip
      */
@@ -69,7 +68,7 @@ public interface ProjectImporter {
      * @param location
      *         location to the import sources
      * @param parameters
-     *          optional implementation specific parameters, e.g. branch name, commit id for GIT importer
+     *         optional implementation specific parameters, e.g. branch name, commit id for GIT importer
      * @throws ForbiddenException
      *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
      *         baseFolder}
@@ -93,9 +92,10 @@ public interface ProjectImporter {
      * @param location
      *         location to the import sources
      * @param parameters
-     *          optional implementation specific parameters, e.g. branch name, commit id for GIT importer
-     * @param importOutputLineConsumer
-     *         an optional output line consumer factory to get the import process output. For instance, Git command output for the Git importer
+     *         optional implementation specific parameters, e.g. branch name, commit id for GIT importer
+     * @param importOutputConsumerFactory
+     *         an optional output line consumer factory to get the import process output. For instance, Git command output for the Git
+     *         importer
      * @throws ForbiddenException
      *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
      *         baseFolder}
@@ -108,6 +108,7 @@ public interface ProjectImporter {
      * @throws ServerException
      *         if import causes some errors that should be treated as internal errors
      */
-    void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumerFactory importOutputLineConsumerFactory)
+    void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
+                       LineConsumerFactory importOutputConsumerFactory)
             throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException;
 }

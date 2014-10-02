@@ -24,7 +24,13 @@ import com.codenvy.api.project.shared.InvalidValueException;
 import com.codenvy.api.project.shared.ProjectDescription;
 import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.ValueStorageException;
-import com.codenvy.api.project.shared.dto.*;
+import com.codenvy.api.project.shared.dto.GenerateDescriptor;
+import com.codenvy.api.project.shared.dto.ItemReference;
+import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectReference;
+import com.codenvy.api.project.shared.dto.ProjectUpdate;
+import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStreamWriter;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
@@ -61,7 +67,6 @@ import org.testng.annotations.Test;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Application;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -200,7 +205,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getVisibility(), "public");
     }
 
-//    @Test
+    //    @Test
     @SuppressWarnings("unchecked")
     public void testGetModules() throws Exception {
         pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {
@@ -762,7 +767,7 @@ public class ProjectServiceTest {
 
             @Override
             public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
-                                      LineConsumerFactory importOutputLineConsumerFactory)
+                                      LineConsumerFactory importOutputConsumerFactory)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);
@@ -828,7 +833,8 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumerFactory consumerFactory)
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
+                                      LineConsumerFactory importOutputConsumerFactory)
                     throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
                 // Don't really use location in this test.
                 baseFolder.getVirtualFile().unzip(zip, true);

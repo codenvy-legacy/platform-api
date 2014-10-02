@@ -49,7 +49,10 @@ public class ZipProjectImporter implements ProjectImporter {
     }
 
     @Override
-    public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters, LineConsumerFactory outputLineConsumerFactory)
+    public void importSources(FolderEntry baseFolder,
+                              String location,
+                              Map<String, String> parameters,
+                              LineConsumerFactory importOutputConsumerFactory)
             throws ForbiddenException, ConflictException, IOException, ServerException {
         URL url;
         if (location.startsWith("http://") || location.startsWith("https://")) {

@@ -137,8 +137,8 @@ public class FactoryService extends Service {
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory saveFactory(@Context HttpServletRequest request,
-                               @ApiParam(value = "Factory parameters", required = true)
+    public Factory saveFactory(@ApiParam(value = "Factory parameters", required = true)
+                               @Context HttpServletRequest request,
                                @Context UriInfo uriInfo)
             throws ApiException {
         try {

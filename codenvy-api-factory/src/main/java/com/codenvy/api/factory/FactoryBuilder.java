@@ -444,7 +444,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     @Override
-    protected String safeGwtEncode(String value) {
+    protected String encode(String value) {
         try {
             return URLEncoder.encode(value, "UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -453,7 +453,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     @Override
-    protected String safeGwtToJson(List<Variable> dto) {
+    protected String toJson(List<Variable> dto) {
         return DtoFactory.getInstance().toJson(dto);
     }
 }

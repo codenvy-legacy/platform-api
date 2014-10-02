@@ -49,6 +49,7 @@ public interface NewProject {
     NewProject withDescription(String description);
 
     /** Get attributes of project. */
+//    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "attributes")
     Map<String, List<String>> getAttributes();
 
     @ApiModelProperty(value = "Attributes for new project", position = 3)

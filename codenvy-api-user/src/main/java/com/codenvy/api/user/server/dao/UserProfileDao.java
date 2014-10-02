@@ -27,7 +27,7 @@ public interface UserProfileDao {
      * Adds profile to persistent layer.
      *
      * @param profile
-     *         profile to save
+     *         profile to setPreferences
      */
     void create(Profile profile) throws ConflictException, ServerException;
 
@@ -57,15 +57,4 @@ public interface UserProfileDao {
      *         when profile doesn't exist
      */
     Profile getById(String id) throws NotFoundException, ServerException;
-
-    /**
-     * @param id
-     *         profile identifier
-     * @param filter
-     *         reg-exp for filtering preferences keys
-     * @return profile with given {@code id}
-     * @throws com.codenvy.api.core.NotFoundException
-     *         when profile doesn't exist
-     */
-    Profile getById(String id, String filter) throws NotFoundException, ServerException;
 }

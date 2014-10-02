@@ -19,12 +19,12 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.shared.dto.ProfileDescriptor;
-import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -83,26 +83,24 @@ public class UserProfileService extends Service {
 
     private final UserProfileDao profileDao;
     private final UserDao        userDao;
+    private final PreferenceDao  preferenceDao;
 
     @Inject
-    public UserProfileService(UserProfileDao profileDao, UserDao userDao) {
+    public UserProfileService(UserProfileDao profileDao, PreferenceDao preferenceDao, UserDao userDao) {
         this.profileDao = profileDao;
         this.userDao = userDao;
+        this.preferenceDao = preferenceDao;
     }
 
     /**
      * <p>Returns {@link ProfileDescriptor} for current user profile.</p>
      * <p>By default user email will be added to attributes with key <i>'email'</i>.</p>
      *
-     * @param filter
-     *         preferences filter regex, if it is not {@code null}
-     *         only preferences matched to filter will be fetched
      * @return descriptor of profile
      * @throws ServerException
      *         when some error occurred while retrieving/updating profile
      * @see ProfileDescriptor
      * @see #updateCurrent(Map, SecurityContext)
-     * @see #updatePreferences(Map, SecurityContext)
      */
     @ApiOperation(value = "Get user profile",
                   notes = "Get user profile details",
@@ -116,28 +114,30 @@ public class UserProfileService extends Service {
     @RolesAllowed({"user", "temp_user"})
     @GenerateLink(rel = LINK_REL_GET_CURRENT_USER_PROFILE)
     @Produces(APPLICATION_JSON)
-    public ProfileDescriptor getCurrent(@ApiParam(value = "Search filter. Regex can be used")
-                                        @Description("Preferences path filter")
-                                        @QueryParam("filter")
-                                        String filter,
-                                        @Context SecurityContext context) throws NotFoundException, ServerException {
+    public ProfileDescriptor getCurrent(@Context SecurityContext context) throws NotFoundException, ServerException {
         final User user = userDao.getById(currentUser().getId());
-        final Profile profile;
-        if (filter == null) {
-            profile = profileDao.getById(user.getId());
-        } else {
-            profile = profileDao.getById(user.getId(), filter);
-        }
+        final Profile profile = profileDao.getById(user.getId());
         profile.getAttributes().put("email", user.getEmail());
         return toDescriptor(profile, context);
     }
 
     /**
-     * <p>Updates attributes of current user profile.</p>
-     * <p><strong>Note:</strong>if updates are {@code null} or <i>empty</i>
-     * then all current user profile attributes will be removed,
-     * existed profile attributes with same names as update attributes
-     * will be replaced with update attributes.</p>
+     * Returns preferences for current user
+     */
+    @GET
+    @Path("/prefs")
+    @Produces(APPLICATION_JSON)
+    @RolesAllowed({"user", "temp_user"})
+    public Map<String, String> getPreferences(@QueryParam("filter") String filter) throws ServerException {
+        if (filter != null) {
+            return preferenceDao.getPreferences(currentUser().getId(), filter);
+        } else {
+            return preferenceDao.getPreferences(currentUser().getId());
+        }
+    }
+
+    /**
+     * Updates attributes of current user profile.
      *
      * @param updates
      *         attributes to update
@@ -145,7 +145,6 @@ public class UserProfileService extends Service {
      * @throws ServerException
      *         when some error occurred while retrieving/persisting profile
      * @see ProfileDescriptor
-     * @see #updatePreferences(Map, SecurityContext)
      */
     @POST
     @RolesAllowed("user")
@@ -153,15 +152,13 @@ public class UserProfileService extends Service {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     public ProfileDescriptor updateCurrent(@Description("attributes to update") Map<String, String> updates,
-                                           @Context SecurityContext context) throws NotFoundException, ServerException {
+                                           @Context SecurityContext context) throws NotFoundException, ServerException, ConflictException {
+        if (updates == null || updates.isEmpty()) {
+            throw new ConflictException("Attributes to update required");
+        }
         final User user = userDao.getById(currentUser().getId());
         final Profile profile = profileDao.getById(user.getId());
-        //if updates are null or empty - clear profile attributes
-        if (updates == null || updates.isEmpty()) {
-            profile.getAttributes().clear();
-        } else {
-            profile.getAttributes().putAll(updates);
-        }
+        profile.getAttributes().putAll(updates);
         profileDao.update(profile);
         logEventUserUpdateProfile(user, profile.getAttributes());
         return toDescriptor(profile, context);
@@ -169,11 +166,7 @@ public class UserProfileService extends Service {
 
 
     /**
-     * <p>Updates attributes of certain profile.</p>
-     * <p><strong>Note:</strong>if updates are {@code null} or <i>empty</i>
-     * then all current user profile attributes will be removed,
-     * existed profile attributes with same names as update attributes
-     * will be replaced with update attributes.</p>
+     * Updates attributes of certain profile.
      *
      * @param profileId
      *         profile identifier
@@ -195,14 +188,12 @@ public class UserProfileService extends Service {
     @Produces(APPLICATION_JSON)
     public ProfileDescriptor update(@PathParam("id") String profileId,
                                     Map<String, String> updates,
-                                    @Context SecurityContext context) throws NotFoundException, ServerException {
-        final Profile profile = profileDao.getById(profileId);
-        //if updates are null or empty - clear profile attributes
-        if (updates == null || updates.isEmpty()) {
-            profile.getAttributes().clear();
-        } else {
-            profile.getAttributes().putAll(updates);
+                                    @Context SecurityContext context) throws NotFoundException, ServerException, ConflictException {
+        if (updates == null || updates.isEmpty   ()) {
+            throw new ConflictException("Attributes to update required");
         }
+        final Profile profile = profileDao.getById(profileId);
+        profile.getAttributes().putAll(updates);
         profileDao.update(profile);
         final User user = userDao.getById(profile.getUserId());
         logEventUserUpdateProfile(user, profile.getAttributes());
@@ -234,29 +225,26 @@ public class UserProfileService extends Service {
     @Path("/{id}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(APPLICATION_JSON)
-    public ProfileDescriptor getById(@ApiParam(value = "User ID")
+    public ProfileDescriptor getById(@ApiParam(value = "  ID")
                                      @PathParam("id")
                                      String profileId,
                                      @Context SecurityContext context) throws NotFoundException, ServerException {
         final Profile profile = profileDao.getById(profileId);
         final User user = userDao.getById(profile.getUserId());
-        profile.getPreferences().clear();
         profile.getAttributes().put("email", user.getEmail());
         return toDescriptor(profile, context);
     }
 
     /**
      * <p>Updates preferences of current user profile.</p>
-     * <p><strong>Note:</strong>if updates are {@code null} or <i>empty</i>
-     * then all current user profile preferences will be removed,
-     * existed profile preferences with same names as update preferences
-     * will be replaced with update preferences.</p>
      *
-     * @param preferencesToUpdate
+     * @param update
      *         update preferences
      * @return descriptor of updated profile
      * @throws ServerException
      *         when some error occurred while retrieving/updating profile
+     * @throws ConflictException
+     *         when update is {@code null} or <i>empty</i>
      * @see ProfileDescriptor
      * @see #updateCurrent(Map, SecurityContext)
      */
@@ -266,21 +254,21 @@ public class UserProfileService extends Service {
     @GenerateLink(rel = LINK_REL_UPDATE_PREFERENCES)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
-    public ProfileDescriptor updatePreferences(@Description("preferences to update") Map<String, String> preferencesToUpdate,
-                                               @Context SecurityContext context) throws NotFoundException, ServerException {
-        final Profile currentProfile = profileDao.getById(currentUser().getId());
-        //if given preferences are null or empty - clear profile preferences
-        if (preferencesToUpdate == null || preferencesToUpdate.isEmpty()) {
-            currentProfile.getPreferences().clear();
-        } else {
-            currentProfile.getPreferences().putAll(preferencesToUpdate);
+    public Map<String, String> updatePreferences(@Required Map<String, String> update) throws NotFoundException,
+                                                                                              ServerException,
+                                                                                              ConflictException {
+        if (update == null || update.isEmpty()) {
+            throw new ConflictException("Preferences to update required");
         }
-        profileDao.update(currentProfile);
-        return toDescriptor(currentProfile, context);
+        final Map<String, String> preferences = preferenceDao.getPreferences(currentUser().getId());
+        preferences.putAll(update);
+        preferenceDao.setPreferences(currentUser().getId(), preferences);
+        return preferences;
     }
 
     /**
      * Removes attributes with given names from current user profile.
+     * If names are {@code null} - all attributes will be removed
      *
      * @param attrNames
      *         attributes names to remove
@@ -288,9 +276,7 @@ public class UserProfileService extends Service {
      *         when given list of attributes names is {@code null}
      * @throws ServerException
      *         when some error occurred while retrieving/updating profile
-     * @see #removePreferences(List, SecurityContext)
      */
-
     @ApiOperation(value = "Remove attributes of a current user",
                   notes = "Remove attributes of a current user",
                   position = 6)
@@ -309,24 +295,23 @@ public class UserProfileService extends Service {
                                  @Description("Attributes names to remove")
                                  List<String> attrNames,
                                  @Context SecurityContext context) throws NotFoundException, ServerException, ConflictException {
-        if (attrNames == null) {
-            throw new ConflictException("Attributes names required");
-        }
         final Profile currentProfile = profileDao.getById(currentUser().getId());
-        final Map<String, String> attributes = currentProfile.getAttributes();
-        for (String attributeName : attrNames) {
-            attributes.remove(attributeName);
+        if (attrNames == null) {
+            currentProfile.getAttributes().clear();
+        } else {
+            for (String attributeName : attrNames) {
+                currentProfile.getAttributes().remove(attributeName);
+            }
         }
         profileDao.update(currentProfile);
     }
 
     /**
      * Removes preferences with given name from current user profile.
+     * If names are {@code null} - all preferences will be removed
      *
-     * @param prefNames
+     * @param names
      *         preferences names to remove
-     * @throws ConflictException
-     *         when given list of preferences names is {@code null}
      * @throws ServerException
      *         when some error occurred while retrieving/updating profile
      * @see #removeAttributes(List, SecurityContext)
@@ -345,17 +330,17 @@ public class UserProfileService extends Service {
     @RolesAllowed({"user", "temp_user"})
     @Consumes(APPLICATION_JSON)
     public void removePreferences(@ApiParam(value = "Preferences to remove", required = true)
-                                  @Required List<String> prefNames,
-                                  @Context SecurityContext context) throws NotFoundException, ConflictException, ServerException {
-        if (prefNames == null) {
-            throw new ConflictException("Preferences names required");
+                                  @Required
+                                  List<String> names) throws ServerException, NotFoundException {
+        if (names == null) {
+            preferenceDao.remove(currentUser().getId());
+        } else {
+            final Map<String, String> preferences = preferenceDao.getPreferences(currentUser().getId());
+            for (String name : names) {
+                preferences.remove(name);
+            }
+            preferenceDao.setPreferences(currentUser().getId(), preferences);
         }
-        final Profile currentProfile = profileDao.getById(currentUser().getId());
-        final Map<String, String> preferences = currentProfile.getPreferences();
-        for (String prefName : prefNames) {
-            preferences.remove(prefName);
-        }
-        profileDao.update(currentProfile);
     }
 
     /**
@@ -422,7 +407,6 @@ public class UserProfileService extends Service {
                          .withId(profile.getId())
                          .withUserId(profile.getUserId())
                          .withAttributes(profile.getAttributes())
-                         .withPreferences(profile.getPreferences())
                          .withLinks(links);
     }
 

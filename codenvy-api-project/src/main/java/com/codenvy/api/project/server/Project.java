@@ -153,7 +153,7 @@ public class Project {
             if (thisAttribute == null) {
                 final ValueProviderFactory valueProviderFactory = manager.getValueProviderFactories().get(attributeName);
                 if (valueProviderFactory == null) {
-                    // New attribute without special behaviour - save it in properties.
+                    // New attribute without special behaviour - setPreferences it in properties.
                     projectJson.getAttributes().put(attributeName, attributeUpdate.getValues());
                 } else {
                     thisAttribute = new Attribute(attributeName, valueProviderFactory.newInstance(this));

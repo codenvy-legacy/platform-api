@@ -22,7 +22,6 @@ public class Profile {
     private String              id;
     private String              userId;
     private Map<String, String> attributes;
-    private Map<String, String> preferences;
 
     public String getId() {
         return id;
@@ -66,22 +65,6 @@ public class Profile {
         return this;
     }
 
-    public Map<String, String> getPreferences() {
-        if (preferences == null) {
-            preferences = new HashMap<>();
-        }
-        return preferences;
-    }
-
-    public void setPreferences(Map<String, String> preferences) {
-        this.preferences = preferences;
-    }
-
-    public Profile withPreferences(Map<String, String> preferences) {
-        this.preferences = preferences;
-        return this;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -93,7 +76,6 @@ public class Profile {
         final Profile other = (Profile)obj;
         return Objects.equals(id, other.id) &&
                Objects.equals(userId, other.userId) &&
-               Objects.equals(getPreferences(), other.getPreferences()) &&
                Objects.equals(getAttributes(), other.getAttributes());
     }
 
@@ -102,7 +84,6 @@ public class Profile {
         int hash = 7;
         hash = 31 * hash + Objects.hashCode(id);
         hash = 31 * hash + Objects.hashCode(userId);
-        hash = 31 * hash + Objects.hashCode(preferences);
         hash = 31 * hash + Objects.hashCode(attributes);
         return hash;
     }

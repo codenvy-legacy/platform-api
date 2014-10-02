@@ -48,10 +48,4 @@ public interface ProfileDescriptor {
     void setLinks(List<Link> links);
 
     ProfileDescriptor withLinks(List<Link> links);
-
-    Map<String, String> getPreferences();
-
-    void setPreferences(Map<String, String> prefs);
-
-    ProfileDescriptor withPreferences(Map<String, String> prefs);
 }

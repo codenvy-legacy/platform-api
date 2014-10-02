@@ -11,8 +11,8 @@
 package com.codenvy.api.local;
 
 import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.user.server.dao.Profile;
-import com.codenvy.api.user.server.dao.UserProfileDao;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -25,37 +25,38 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Pattern;
 
-@Singleton
-public class LocalProfileDaoImpl implements UserProfileDao {
-    private static final Logger LOG = LoggerFactory.getLogger(LocalProfileDaoImpl.class);
+/**
+ * @author Eugene Voevodin
+ */
+public class LocalPreferenceDaoImpl implements PreferenceDao {
+    private static final Logger LOG = LoggerFactory.getLogger(LocalPreferenceDaoImpl.class);
 
-    private final File                 storageFile;
-    private final Gson                 gson;
-    private final Map<String, Profile> profiles;
-    private final ReadWriteLock        lock;
+    private final Gson                             gson;
+    private final File                             storageFile;
+    private final Map<String, Map<String, String>> storage;
+    private final ReadWriteLock                    lock;
 
     @Inject
-    public LocalProfileDaoImpl(@Nullable @Named("profile.store_location") String dirPath) {
+    public LocalPreferenceDaoImpl(@Nullable @Named("preferences.store_location") String dirPath) {
         if (dirPath == null || dirPath.isEmpty()) {
-            storageFile = new File(System.getProperty("java.io.tmpdir"), "ProfileStorage.json");
+            storageFile = new File(System.getProperty("java.io.tmpdir"), "PreferencesStore.json");
         } else {
-            storageFile = new File(dirPath, "ProfileStorage.json");
+            storageFile = new File(dirPath, "PreferencesStore.json");
         }
-        gson = new Gson();
-        profiles = new HashMap<>();
+        storage = new HashMap<>();
         lock = new ReentrantReadWriteLock();
+        gson = new Gson();
     }
 
     @PostConstruct
@@ -67,10 +68,10 @@ public class LocalProfileDaoImpl implements UserProfileDao {
                 Reader reader = null;
                 try {
                     reader = Files.newReader(storageFile, Charset.forName("UTF-8"));
-                    Map<String, Profile> m = gson.fromJson(reader, new TypeToken<Map<String, Profile>>() {
+                    Map<String, Map<String, String>> m = gson.fromJson(reader, new TypeToken<Map<String, Map<String, String>>>() {
                     }.getType());
                     if (m != null) {
-                        profiles.putAll(m);
+                        storage.putAll(m);
                     }
                 } catch (Exception e) {
                     LOG.error(String.format("Failed load user profiles form %s", storageFile), e);
@@ -84,14 +85,11 @@ public class LocalProfileDaoImpl implements UserProfileDao {
                 }
             }
             // Add default entry if file doesn't exist or invalid or empty.
-            if (profiles.isEmpty()) {
-                final Map<String, String> attributes = new HashMap<>(2);
-                attributes.put("First Name", "Codenvy");
-                attributes.put("Last Name", "Codenvy");
-                Profile profile = new Profile().withId("codenvy")
-                                               .withUserId("codenvy")
-                                               .withAttributes(attributes);
-                profiles.put(profile.getId(), profile);
+            if (storage.isEmpty()) {
+                final Map<String, String> newPreferences = new HashMap<>(4);
+                newPreferences.put("preference1", "value");
+                newPreferences.put("preference2", "value");
+                storage.put("codenvy", newPreferences);
             }
         } finally {
             lock.writeLock().unlock();
@@ -105,7 +103,7 @@ public class LocalProfileDaoImpl implements UserProfileDao {
             Writer writer = null;
             try {
                 writer = Files.newWriter(storageFile, Charset.forName("UTF-8"));
-                gson.toJson(profiles, new TypeToken<Map<String, Profile>>() {
+                gson.toJson(storage, new TypeToken<Map<String, Map<String, String>>>() {
                 }.getType(), writer);
             } catch (Exception e) {
                 LOG.error(String.format("Failed setPreferences user profiles form %s", storageFile), e);
@@ -124,58 +122,57 @@ public class LocalProfileDaoImpl implements UserProfileDao {
     }
 
     @Override
-    public void create(Profile profile) {
+    public void setPreferences(String userId, Map<String, String> preferences) throws ServerException, NotFoundException {
         lock.writeLock().lock();
         try {
-            // just replace existed profile
-            final Profile copy = new Profile().withId(profile.getId()).withUserId(profile.getUserId())
-                                              .withAttributes(new LinkedHashMap<>(profile.getAttributes()));
-            profiles.put(copy.getId(), copy);
+            storage.put(userId, new HashMap<>(preferences));
         } finally {
             lock.writeLock().unlock();
         }
     }
 
     @Override
-    public void update(Profile profile) throws NotFoundException {
-        lock.writeLock().lock();
-        try {
-            final Profile myProfile = profiles.get(profile.getId());
-            if (myProfile == null) {
-                throw new NotFoundException(String.format("Profile not found %s", profile.getId()));
-            }
-            myProfile.getAttributes().clear();
-            myProfile.getAttributes().putAll(profile.getAttributes());
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    @Override
-    public void remove(String id) throws NotFoundException {
-        lock.writeLock().lock();
-        try {
-            final Profile profile = profiles.remove(id);
-            if (profile == null) {
-                throw new NotFoundException(String.format("Profile not found %s", id));
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    @Override
-    public Profile getById(String id) throws NotFoundException {
+    public Map<String, String> getPreferences(String userId) throws ServerException {
         lock.readLock().lock();
         try {
-            final Profile profile = profiles.get(id);
-            if (profile == null) {
-                throw new NotFoundException(String.format("Profile not found %s", id));
+            final Map<String, String> preferences = new HashMap<>();
+            if (storage.containsKey(userId)) {
+                preferences.putAll(this.storage.get(userId));
             }
-            return new Profile().withId(profile.getId()).withUserId(profile.getUserId())
-                                .withAttributes(new LinkedHashMap<>(profile.getAttributes()));
+            return preferences;
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public Map<String, String> getPreferences(String userId, String filter) throws ServerException {
+        lock.readLock().lock();
+        try {
+            return filter(getPreferences(userId), filter);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    private Map<String, String> filter(Map<String, String> preferences, String filter) {
+        final Map<String, String> filtered = new HashMap<>();
+        final Pattern pattern = Pattern.compile(filter);
+        for (Map.Entry<String, String> entry : preferences.entrySet()) {
+            if (pattern.matcher(entry.getKey()).matches()) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtered;
+    }
+
+    @Override
+    public void remove(String userId) throws ServerException {
+        lock.writeLock().lock();
+        try {
+            storage.remove(userId);
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 }

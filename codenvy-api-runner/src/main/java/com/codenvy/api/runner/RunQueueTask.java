@@ -108,12 +108,12 @@ public final class RunQueueTask implements Cancellable {
                 final List<RunnerMetric> runStats = new ArrayList<>(2);
                 runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.WAITING_TIME_LIMIT)
                                        .withValue(Long.toString(created + waitingTimeout))
-                                       .withDescription("Waiting for start limit"));
+                                       .withDescription("Waiting for start limit (ms)"));
                 final long lifetime = request.getLifetime();
                 runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.LIFETIME)
                                        .withValue(lifetime >= Integer.MAX_VALUE ? RunnerMetric.ALWAYS_ON
                                                                                 : Long.toString(TimeUnit.SECONDS.toMillis(lifetime)))
-                                       .withDescription("Application lifetime"));
+                                       .withDescription("Application lifetime (ms)"));
                 descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
                                        .withProcessId(id)
                                        .withCreationTime(created)
@@ -135,12 +135,12 @@ public final class RunQueueTask implements Cancellable {
                 final List<RunnerMetric> runStats = descriptor.getRunStats();
                 runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.WAITING_TIME)
                                        .withValue(Long.toString(waitingTimeMillis))
-                                       .withDescription("Waiting for start duration"));
+                                       .withDescription("Waiting for start duration (ms)"));
                 final long lifetime = request.getLifetime();
                 runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.LIFETIME)
                                        .withValue(lifetime >= Integer.MAX_VALUE ? RunnerMetric.ALWAYS_ON
                                                                                 : Long.toString(TimeUnit.SECONDS.toMillis(lifetime)))
-                                       .withDescription("Application lifetime"));
+                                       .withDescription("Application lifetime (ms)"));
             }
             if (buildTaskHolder != null) {
                 final BuildTaskDescriptor buildTaskDescriptor = buildTaskHolder.get();

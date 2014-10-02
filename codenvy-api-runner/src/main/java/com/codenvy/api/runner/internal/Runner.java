@@ -77,9 +77,10 @@ public abstract class Runner {
     private final java.io.File                 deployDirectoryRoot;
     private final ResourceAllocators           allocators;
     private final EventService                 eventService;
-    private final long                         cleanupDelayMillis;
     private final AtomicBoolean                started;
-    private final long                         maxStartTime;
+
+    protected final long cleanupDelayMillis;
+    protected final long maxStartTime;
 
     private ExecutorService          executor;
     private ScheduledExecutorService cleanScheduler;

@@ -21,7 +21,7 @@ import java.util.List;
  * @author andrew00x
  */
 public class ListLineConsumer implements LineConsumer {
-    protected final List<String> lines;
+    protected final LinkedList<String> lines;
 
     public ListLineConsumer() {
         lines = new LinkedList<>();

@@ -14,7 +14,9 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
+import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
+import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.json.JsonHelper;
@@ -36,6 +38,7 @@ public class ProjectJson2 {
 
     /**
      * Checks whether the Project's meta information is readable
+     *
      * @param project
      * @return true if project meta-information is readable (it exists, there are appropriate permissions etc)
      * otherwise returns false
@@ -128,122 +131,34 @@ public class ProjectJson2 {
         }
     }
 
-    private String                                       projectTypeId;
-    private String                                       builder;
-    private String                                       runner;
-    private String                                       defaultBuilderEnvironment;
-    private String                                       defaultRunnerEnvironment;
-    private Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations;
-    private Map<String, RunnerEnvironmentConfiguration>  runnerEnvironmentConfigurations;
-    private String                                       description;
-    private Map<String, List<String>>                    attributes;
+    private String                    type;
+    private Builders                  builders;
+    private Runners                   runners;
+    private String                    description;
+    private Map<String, List<String>> attributes;
 
     public ProjectJson2() {
     }
 
-    public ProjectJson2(String projectTypeId, String description, Map<String, List<String>> attributes) {
-        this.projectTypeId = projectTypeId;
+    public ProjectJson2(String type, String description, Map<String, List<String>> attributes) {
+        this.type = type;
         this.description = description;
         this.attributes = attributes;
     }
 
-    public String getProjectTypeId() {
-        return projectTypeId;
+    public String getType() {
+        return type;
     }
 
-    public void setProjectTypeId(String projectTypeId) {
-        this.projectTypeId = projectTypeId;
+    public void setType(String type) {
+        this.type = type;
     }
 
     public ProjectJson2 withType(String type) {
-        this.projectTypeId = type;
+        this.type = type;
         return this;
     }
 
-    public String getBuilder() {
-        return builder;
-    }
-
-    public void setBuilder(String builder) {
-        this.builder = builder;
-    }
-
-    public ProjectJson2 withBuilder(String builder) {
-        this.builder = builder;
-        return this;
-    }
-
-    public String getRunner() {
-        return runner;
-    }
-
-    public void setRunner(String runner) {
-        this.runner = runner;
-    }
-
-    public ProjectJson2 withRunner(String runner) {
-        this.runner = runner;
-        return this;
-    }
-
-    public String getDefaultBuilderEnvironment() {
-        return defaultBuilderEnvironment;
-    }
-
-    public void setDefaultBuilderEnvironment(String defaultBuilderEnvironment) {
-        this.defaultBuilderEnvironment = defaultBuilderEnvironment;
-    }
-
-    public ProjectJson2 withDefaultBuilderEnvironment(String defaultBuilderEnvironment) {
-        this.defaultBuilderEnvironment = defaultBuilderEnvironment;
-        return this;
-    }
-
-    public String getDefaultRunnerEnvironment() {
-        return defaultRunnerEnvironment;
-    }
-
-    public void setDefaultRunnerEnvironment(String defaultRunnerEnvironment) {
-        this.defaultRunnerEnvironment = defaultRunnerEnvironment;
-    }
-
-    public ProjectJson2 withDefaultRunnerEnvironment(String defaultRunnerEnvironment) {
-        this.defaultRunnerEnvironment = defaultRunnerEnvironment;
-        return this;
-    }
-
-    public Map<String, BuilderEnvironmentConfiguration> getBuilderEnvironmentConfigurations() {
-        if (builderEnvironmentConfigurations == null) {
-            builderEnvironmentConfigurations = new HashMap<>();
-        }
-        return builderEnvironmentConfigurations;
-    }
-
-    public void setBuilderEnvironmentConfigurations(
-            Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations) {
-        this.builderEnvironmentConfigurations = builderEnvironmentConfigurations;
-    }
-
-    public ProjectJson2 withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations) {
-        this.builderEnvironmentConfigurations = builderEnvironmentConfigurations;
-        return this;
-    }
-
-    public Map<String, RunnerEnvironmentConfiguration> getRunnerEnvironmentConfigurations() {
-        if (runnerEnvironmentConfigurations == null) {
-            runnerEnvironmentConfigurations = new HashMap<>();
-        }
-        return runnerEnvironmentConfigurations;
-    }
-
-    public void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfiguration> runnerEnvironmentConfigurations) {
-        this.runnerEnvironmentConfigurations = runnerEnvironmentConfigurations;
-    }
-
-    public ProjectJson2 withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfiguration> runnerEnvironmentConfigurations) {
-        this.runnerEnvironmentConfigurations = runnerEnvironmentConfigurations;
-        return this;
-    }
 
     public Map<String, List<String>> getAttributes() {
         if (attributes == null) {

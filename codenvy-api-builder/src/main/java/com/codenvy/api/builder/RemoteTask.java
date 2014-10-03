@@ -179,8 +179,8 @@ public class RemoteTask {
 
     private void doRequest(String url, String method, final OutputProvider output) throws IOException {
         final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
-        conn.setConnectTimeout(30 * 1000);
-        conn.setReadTimeout(30 * 1000);
+        conn.setConnectTimeout(60 * 1000);
+        conn.setReadTimeout(60 * 1000);
         conn.setRequestMethod(method);
         try {
             if (output instanceof HttpOutputMessage) {

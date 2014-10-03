@@ -311,8 +311,8 @@ public class HttpJsonHelper {
                 url = ub.build().toString();
             }
             final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
-            conn.setConnectTimeout(30 * 1000);
-            conn.setReadTimeout(30 * 1000);
+            conn.setConnectTimeout(60 * 1000);
+            conn.setReadTimeout(60 * 1000);
             try {
                 conn.setRequestMethod(method);
                 if (body != null) {

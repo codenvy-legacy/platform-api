@@ -1181,7 +1181,12 @@ public class RunQueue {
                 final String project = extractProjectName(event.getProject());
                 final String workspace = request.getWorkspace();
                 final int memorySize = request.getMemorySize();
-                final long lifetime = request.getLifetime();
+                final long lifetime;
+                if (request.getLifetime() == Integer.MAX_VALUE) {
+                    lifetime = -1;
+                } else {
+                    lifetime = request.getLifetime() * 1000; // to ms
+                }
                 final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                 final boolean debug = request.isInDebugMode();
                 final String user = request.getUserName();
@@ -1217,9 +1222,10 @@ public class RunQueue {
                         break;
                     case STOPPED:
                         long usageTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
+                        final int stoppedByUser = lifetime == -1 || lifetime > usageTime ? 1 : 0;
                         if (debug) {
                             LOG.info(
-                                    "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
+                                    "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#",
                                     workspace,
                                     user,
                                     project,
@@ -1227,10 +1233,11 @@ public class RunQueue {
                                     analyticsID,
                                     memorySize,
                                     lifetime,
-                                    usageTime);
+                                    usageTime,
+                                    stoppedByUser);
                         } else {
                             LOG.info(
-                                    "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}#",
+                                    "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#",
                                     workspace,
                                     user,
                                     project,
@@ -1238,7 +1245,8 @@ public class RunQueue {
                                     analyticsID,
                                     memorySize,
                                     lifetime,
-                                    usageTime);
+                                    usageTime,
+                                    stoppedByUser);
                         }
                         break;
                     case RUN_TASK_ADDED_IN_QUEUE:

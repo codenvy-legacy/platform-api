@@ -58,8 +58,23 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -660,7 +675,12 @@ public class BuildQueue {
                             final String analyticsID = task.getCreationTime() + "-" + taskId;
                             final String project = extractProjectName(event.getProject());
                             final String workspace = request.getWorkspace();
-                            final long timeout = request.getTimeout();
+                            final long timeout;
+                            if (request.getTimeout() == Integer.MAX_VALUE) {
+                                timeout = -1;
+                            } else {
+                                timeout = request.getTimeout() * 1000; // to ms
+                            }
                             final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
                             final String user = request.getUserName();
 
@@ -685,14 +705,16 @@ public class BuildQueue {
                                 case DONE:
                                     if (!event.isReused()) {
                                         long usageTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
-                                        LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}#",
+                                        long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
+                                        LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
                                                  workspace,
                                                  user,
                                                  project,
                                                  projectTypeId,
                                                  analyticsID,
                                                  timeout,
-                                                 usageTime);
+                                                 usageTime,
+                                                 finishedNormally);
                                     } else {
                                         LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
                                                  workspace,

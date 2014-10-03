@@ -77,12 +77,8 @@ public final class ProcessUtil {
         final InputStream inputStream = process.getInputStream();
         BufferedReader inputReader = new BufferedReader(new InputStreamReader(inputStream));
         String line;
-        try {
-            while ((line = inputReader.readLine()) != null) {
-                consumer.writeLine(line);
-            }
-        } finally {
-            consumer.close();
+        while ((line = inputReader.readLine()) != null) {
+            consumer.writeLine(line);
         }
 
         return process;

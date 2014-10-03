@@ -255,7 +255,7 @@ public class FactoryService extends Service {
                             .replaceQueryParam("validate", null)
                             .replaceQueryParam("maxVersion", null)
                             .build();
-        Factory factory = factoryBuilder.buildNonEncoded(uri);
+        Factory factory = factoryBuilder.buildEncoded(uri);
         if (legacy) {
             if (maxVersion != null) {
                 if ("1.2".equals(maxVersion)) {

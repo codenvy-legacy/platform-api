@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 
@@ -31,9 +33,28 @@ public abstract class NonEncodedFactoryBuilder {
      *         - factory object.
      * @return - query part of url of nonencoded version
      */
-    public String buildNonEncoded(Factory factory) {
+    // TODO affiliateId
+    public String buildNonEncoded(Factory factory) throws NotFoundException, ConflictException {
+        if (null == factory.getV() || factory.getV().isEmpty()) {
+            throw new ConflictException("Factory version can't be null or empty");
+        }
         StringBuilder result = new StringBuilder();
-        buildNonEncoded(factory, result);
+        switch (factory.getV()) {
+            case "1.0":
+                buildNonEncoded((FactoryV1_0)factory, result);
+                break;
+            case "1.1":
+                buildNonEncoded((FactoryV1_1)factory, result);
+                break;
+            case "1.2":
+                buildNonEncoded((FactoryV1_2)factory, result);
+                break;
+            case "2.0":
+                buildNonEncoded((FactoryV2_0)factory, result);
+                break;
+            default:
+                throw new NotFoundException("Factory version '" + factory.getV() + "' not found");
+        }
         return result.toString();
     }
 

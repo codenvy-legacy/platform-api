@@ -97,13 +97,13 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     /**
-     * Build factory from query string and validate compatibility.
+     * Build factory from query string of non-encoded factory URI and validate compatibility.
      *
      * @param uri
-     *         - uri with factory parameters.
-     * @return - Factory object represented by given factory string.
+     *         - uri with non-encoded factory parameters.
+     * @return - Factory object represented by given factory URI.
      */
-    public Factory buildNonEncoded(URI uri) throws ApiException {
+    public Factory buildEncoded(URI uri) throws ApiException {
         if (uri == null) {
             throw new ConflictException("Passed in invalid query parameters.");
         }
@@ -124,39 +124,37 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     /**
-     * Build factory from json.
+     * Build factory from json of encoded factory and validate compatibility.
      *
      * @param json
-     *         - json  Reader from encoded factory.
-     * @return - Factory object represented by given factory string.
+     *         - json Reader from encoded factory.
+     * @return - Factory object represented by given factory json.
      */
     public Factory buildEncoded(Reader json) throws IOException, ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
-
         checkValid(factory, ENCODED);
         return factory;
     }
 
     /**
-     * Build factory from json.
+     * Build factory from json of encoded factory and validate compatibility.
      *
      * @param json
-     *         - json  string from encoded factory.
-     * @return - Factory object represented by given factory string.
+     *         - json string from encoded factory.
+     * @return - Factory object represented by given factory json.
      */
     public Factory buildEncoded(String json) throws ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
-
         checkValid(factory, ENCODED);
         return factory;
     }
 
     /**
-     * Build factory from json.
+     * Build factory from json of encoded factory and validate compatibility.
      *
      * @param json
      *         - json  InputStream from encoded factory.
-     * @return - Factory object represented by given factory string.
+     * @return - Factory object represented by given factory json.
      */
     public Factory buildEncoded(InputStream json) throws IOException, ApiException {
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);

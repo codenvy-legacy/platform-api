@@ -67,7 +67,7 @@ public class FactoryBuilderTest {
     public void shouldBeAbleToParserJsonV1_1(String json) {
 
         Factory factory = DtoFactory.getInstance().createDtoFromJson(json, Factory.class);
-        //System.out.println(FactoryBuilder.buildNonEncoded(factory));
+        //System.out.println(FactoryBuilder.buildEncoded(factory));
     }
 
 
@@ -210,7 +210,7 @@ public class FactoryBuilderTest {
         sb.append("vcs=").append("git").append("&");
         sb.append("welcome=").append("welcome").append("&");
 
-        factoryBuilder.buildNonEncoded(new URI(sb.toString()));
+        factoryBuilder.buildEncoded(new URI(sb.toString()));
     }
 
 //    @Test(expectedExceptions = ApiException.class)
@@ -345,7 +345,7 @@ public class FactoryBuilderTest {
                 .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true)
                 .withOpenfile("openfile");
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
+        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 
@@ -368,7 +368,7 @@ public class FactoryBuilderTest {
                 .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true).withOpenfile(
                 "openfile");
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
+        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 
@@ -423,7 +423,7 @@ public class FactoryBuilderTest {
         sb.append("validuntil=").append(expected.getValiduntil()).append("&");
         sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]"));
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
+        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 
@@ -498,7 +498,7 @@ public class FactoryBuilderTest {
         sb.append("git.configpushdefault=").append(expected.getGit().getConfigpushdefault()).append("&");
         sb.append("variables=").append(encode("[" + DtoFactory.getInstance().toJson(variable) + "]"));
 
-        Factory newFactory = factoryBuilder.buildNonEncoded(new URI(sb.toString()));
+        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
     }
 

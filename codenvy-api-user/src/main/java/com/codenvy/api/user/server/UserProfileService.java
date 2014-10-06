@@ -131,9 +131,8 @@ public class UserProfileService extends Service {
     public Map<String, String> getPreferences(@QueryParam("filter") String filter) throws ServerException {
         if (filter != null) {
             return preferenceDao.getPreferences(currentUser().getId(), filter);
-        } else {
-            return preferenceDao.getPreferences(currentUser().getId());
         }
+        return preferenceDao.getPreferences(currentUser().getId());
     }
 
     /**
@@ -189,7 +188,7 @@ public class UserProfileService extends Service {
     public ProfileDescriptor update(@PathParam("id") String profileId,
                                     Map<String, String> updates,
                                     @Context SecurityContext context) throws NotFoundException, ServerException, ConflictException {
-        if (updates == null || updates.isEmpty   ()) {
+        if (updates == null || updates.isEmpty()) {
             throw new ConflictException("Attributes to update required");
         }
         final Profile profile = profileDao.getById(profileId);

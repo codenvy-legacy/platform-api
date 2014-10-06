@@ -434,7 +434,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
             } catch (Exception e) {
                 LOG.error(e.getLocalizedMessage(), e);
                 throw new ConflictException(
-                        "Can't validate '" + factoryParameter.queryParameterName() + "' parameter.");
+                        "Can't validate '" + (parentName.isEmpty() ? "" : parentName + ".") + factoryParameter.queryParameterName() +
+                        "' parameter.");
             }
         }
 

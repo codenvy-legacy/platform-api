@@ -31,15 +31,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Send project import output to WS by skipping output messages written below the delay specified.
  */
 public class ProjectImportOutputWSLineConsumer implements LineConsumer {
-
     private static final Logger LOG = LoggerFactory.getLogger(ProjectImportOutputWSLineConsumer.class);
 
-    protected final AtomicInteger         lineCounter;
-    protected final String                fPath;
-    protected final String                fWorkspace;
-    protected final BlockingQueue<String> lineToSendQueue;
-
-    // not using Executors helper: we want a queue capacity of 1. The scheduled runnable will treat all the pending items.
+    protected final AtomicInteger            lineCounter;
+    protected final String                   fPath;
+    protected final String                   fWorkspace;
+    protected final BlockingQueue<String>    lineToSendQueue;
     protected final ScheduledExecutorService executor;
 
     public ProjectImportOutputWSLineConsumer(String fPath, String fWorkspace, int delayBetweenMessages) {
@@ -52,7 +49,6 @@ public class ProjectImportOutputWSLineConsumer implements LineConsumer {
             @Override
             public void run() {
                 String lineToSend = null;
-                // get the last line written from the queue
                 while (!lineToSendQueue.isEmpty()) {
                     lineToSend = lineToSendQueue.poll();
                 }

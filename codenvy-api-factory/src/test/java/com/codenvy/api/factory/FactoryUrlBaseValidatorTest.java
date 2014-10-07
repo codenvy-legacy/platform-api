@@ -62,7 +62,7 @@ public class FactoryUrlBaseValidatorTest {
     private UserDao userDao;
 
     @Mock
-    UserProfileDao profileDao;
+    private UserProfileDao profileDao;
 
     @Mock
     private FactoryBuilder builder;

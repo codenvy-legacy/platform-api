@@ -440,9 +440,7 @@ public abstract class Builder {
                             @Override
                             public void cancelled(Cancellable cancellable) {
                                 try {
-                                    logger.writeLine("[ERROR] ***************************************************************************\n" +
-                                                     "[ERROR] * Build process is terminated due to exceeded max allowed execution time. *\n" +
-                                                     "[ERROR] ***************************************************************************");
+                                    logger.writeLine("[ERROR] Your build has been shutdown due to timeout. Upgrade to get more build time.");
                                 } catch (IOException e) {
                                     LOG.error(e.getMessage(), e);
                                 }

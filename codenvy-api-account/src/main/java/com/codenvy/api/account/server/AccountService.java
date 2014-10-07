@@ -731,12 +731,15 @@ public class AccountService extends Service {
         subscriptionAttributesValidator.validate(newSubscriptionAttributes);
         service.beforeCreateSubscription(subscription);
 
-        LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#", subscription.getId(),
-                 EnvironmentContext.getCurrent().getUser().getId(), subscription.getAccountId(), subscription.getPlanId());
-
         if ("false".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem()) && !securityContext.isUserInRole("system/admin")) {
             throw new ConflictException("Given value of billing attribute usePaymentSystem is not allowed");
         }
+        if (plan.getSalesOnly() && !securityContext.isUserInRole("system/admin")) {
+            throw new ConflictException("User not authorized to add this subscription, please contact support");
+        }
+
+        LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#", subscription.getId(),
+                 EnvironmentContext.getCurrent().getUser().getId(), subscription.getAccountId(), subscription.getPlanId());
 
         try {
             if (plan.isPaid() && "true".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem())) {

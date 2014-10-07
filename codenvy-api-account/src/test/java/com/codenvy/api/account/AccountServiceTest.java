@@ -43,7 +43,6 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -175,7 +174,7 @@ public class AccountServiceTest {
         account = new Account().withId(ACCOUNT_ID)
                                .withName(ACCOUNT_NAME)
                                .withAttributes(attributes);
-        plan = DtoFactory.getInstance().createDto(Plan.class).withId(PLAN_ID).withPaid(true).withServiceId(SERVICE_ID)
+        plan = DtoFactory.getInstance().createDto(Plan.class).withId(PLAN_ID).withPaid(true).withSalesOnly(false).withServiceId(SERVICE_ID)
                          .withProperties(Collections.singletonMap("key", "value"));
         memberships = new ArrayList<>(1);
         Member ownerMembership = new Member();
@@ -718,6 +717,27 @@ public class AccountServiceTest {
 
         assertNotEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         assertEquals(response.getEntity(), "Given value of billing attribute usePaymentSystem is not allowed");
+        verify(accountDao).getByMember(USER_ID);
+        verifyNoMoreInteractions(accountDao);
+        verifyZeroInteractions(paymentService);
+    }
+
+    @Test
+    public void shouldRespondConflictIfPlanIsForSalesOnlyAndUserIsNotSystemAdminOnAddSubscription() throws Exception {
+        plan.setSalesOnly(true);
+
+        when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
+        when(planDao.getPlanById(PLAN_ID)).thenReturn(plan);
+        when(accountDao.getByMember(USER_ID)).thenReturn(Arrays.asList(new Member().withRoles(Arrays.asList("account/owner"))
+                                                                                   .withAccountId(ACCOUNT_ID)
+                                                                                   .withUserId(USER_ID)));
+        prepareSecurityContext("user");
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertNotEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        assertEquals(response.getEntity(), "User not authorized to add this subscription, please contact support");
         verify(accountDao).getByMember(USER_ID);
         verifyNoMoreInteractions(accountDao);
         verifyZeroInteractions(paymentService);

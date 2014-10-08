@@ -752,15 +752,15 @@ public class BuildQueue {
                                              projectTypeId,
                                              analyticsID,
                                              waitingTime);
-                                    final ChannelBroadcastMessage bm_started = new ChannelBroadcastMessage();
-                                    final long id_started = event.getTaskId();
-                                    final BuilderEvent.LoggedMessage message_started = event.getMessage();
-                                    if (message_started != null) {
-                                        bm_started.setChannel(String.format("builder:output:%d", id_started));
-                                        bm_started.setBody(String.format("{\"num\":%d, \"line\":%s}",
-                                                                         message_started.getLineNum(), JsonUtils.getJsonString(message_started.getMessage())));
+                                    final ChannelBroadcastMessage bmStarted = new ChannelBroadcastMessage();
+                                    final long idStarted = event.getTaskId();
+                                    final BuilderEvent.LoggedMessage messageStarted = event.getMessage();
+                                    if (messageStarted != null) {
+                                        bmStarted.setChannel(String.format("builder:output:%d", idStarted));
+                                        bmStarted.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                                         messageStarted.getLineNum(), JsonUtils.getJsonString(messageStarted.getMessage())));
                                     }
-                                    WSConnectionContext.sendMessage(bm_started);
+                                    WSConnectionContext.sendMessage(bmStarted);
                                     break;
                                 case SOURCES_DOWNLOAD_FINISHED:
                                     waitingTime = System.currentTimeMillis() - task.getCreationTime();
@@ -771,15 +771,15 @@ public class BuildQueue {
                                              projectTypeId,
                                              analyticsID,
                                              waitingTime);
-                                    final ChannelBroadcastMessage bm_finished = new ChannelBroadcastMessage();
-                                    final long id_finished = event.getTaskId();
-                                    final BuilderEvent.LoggedMessage message_finished = event.getMessage();
-                                    if (message_finished != null) {
-                                        bm_finished.setChannel(String.format("builder:output:%d", id_finished));
-                                        bm_finished.setBody(String.format("{\"num\":%d, \"line\":%s}",
-                                                                          message_finished.getLineNum(), JsonUtils.getJsonString(message_finished.getMessage())));
+                                    final ChannelBroadcastMessage bmFinished = new ChannelBroadcastMessage();
+                                    final long idFinished = event.getTaskId();
+                                    final BuilderEvent.LoggedMessage messageFinished = event.getMessage();
+                                    if (messageFinished != null) {
+                                        bmFinished.setChannel(String.format("builder:output:%d", idFinished));
+                                        bmFinished.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                                          messageFinished.getLineNum(), JsonUtils.getJsonString(messageFinished.getMessage())));
                                     }
-                                    WSConnectionContext.sendMessage(bm_finished);
+                                    WSConnectionContext.sendMessage(bmFinished);
                                     break;
                             }
                         }

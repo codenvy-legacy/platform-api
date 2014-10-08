@@ -45,7 +45,7 @@ public class SourceParametersValidator implements FactoryParameterValidator<Impo
                     case "remoteOriginFetch":
                         break;
                     default:
-                        throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, entry.getKey(), version));
+                        throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, "source.parameters." + entry.getKey(), version));
                 }
             }
         } else {

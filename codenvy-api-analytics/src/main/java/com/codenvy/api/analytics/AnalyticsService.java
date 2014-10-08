@@ -12,24 +12,40 @@ package com.codenvy.api.analytics;
 
 
 import com.codenvy.api.analytics.logger.EventLogger;
-import com.codenvy.api.analytics.shared.dto.*;
+import com.codenvy.api.analytics.shared.dto.EventParameters;
+import com.codenvy.api.analytics.shared.dto.MetricInfoDTO;
+import com.codenvy.api.analytics.shared.dto.MetricInfoListDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueDTO;
+import com.codenvy.api.analytics.shared.dto.MetricValueListDTO;
+import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.dto.server.JsonArrayImpl;
 import com.codenvy.dto.server.JsonStringMapImpl;
 import com.google.inject.Inject;
-
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +91,7 @@ public class AnalyticsService extends Service {
                              @QueryParam("page") String page,
                              @ApiParam(value = "Number of results per page.")
                              @QueryParam("per_page") String perPage,
-                             @Context UriInfo uriInfo) {
+                             @Context UriInfo uriInfo) throws ApiException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
@@ -84,8 +100,7 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
+            throw new ServerException("Unexpected error occurred. Can't get value for metric " + metricName);
         }
     }
 
@@ -108,14 +123,14 @@ public class AnalyticsService extends Service {
                                   @PathParam("name") String metricName,
                                   @Context UriInfo uriInfo,
                                   @ApiParam(value = "Search filter", required = true)
-                                  List<Map<String, String>> parameters) {
+                                  List<Map<String, String>> parameters) throws ApiException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
             MetricValueListDTO list = metricHandler.getListValues(metricName, parameters, metricContext, uriInfo);
             return Response.status(Response.Status.OK).entity(list).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            throw new ServerException("Unexpected error occurred. Can't get list of metrics");
         }
     }
 
@@ -129,7 +144,7 @@ public class AnalyticsService extends Service {
                                    @PathParam("name") String metricName,
                                    @QueryParam("page") String page,
                                    @QueryParam("per_page") String perPage,
-                                   @Context UriInfo uriInfo) {
+                                   @Context UriInfo uriInfo) throws ApiException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
@@ -141,8 +156,7 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
+            throw new ServerException("Unexpected error occurred. Can't get value for metric " + metricName);
         }
     }
 
@@ -164,7 +178,7 @@ public class AnalyticsService extends Service {
                                    @QueryParam("page") String page,
                                    @ApiParam(value = "Resylts per page")
                                    @QueryParam("per_page") String perPage,
-                                   @Context UriInfo uriInfo) {
+                                   @Context UriInfo uriInfo) throws ApiException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
@@ -173,8 +187,7 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(value).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity("Unexpected error occurred. Can't get value for metric " + metricName).build();
+            throw new ServerException("Unexpected error occurred. Can't get value for metric " + metricName);
         }
     }
 
@@ -193,7 +206,7 @@ public class AnalyticsService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public Response getUserValues(@ApiParam(value = "Metric names", required = true)
-                                  List<String> metricNames, @Context UriInfo uriInfo) {
+                                      List<String> metricNames, @Context UriInfo uriInfo) throws ApiException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
             MetricValueListDTO list = metricHandler.getUserValues(new JsonArrayImpl<>(metricNames),
@@ -202,8 +215,7 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.OK).entity(list).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(
-                    "Unexpected error occurred. Can't get values of metrics").build();
+            throw new ServerException("Unexpected error occurred. Can't get values of metrics");
         }
     }
 
@@ -221,14 +233,13 @@ public class AnalyticsService extends Service {
     @Path("/metricinfo/{name}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public Response getInfo(@ApiParam(value = "Metric name", required = true)
-                            @PathParam("name") String metricName, @Context UriInfo uriInfo) {
+                                @PathParam("name") String metricName, @Context UriInfo uriInfo) throws ApiException {
         try {
             MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity("Unexpected error occurred. Can't get info for metric " + metricName).build();
+            throw new ServerException("Unexpected error occurred. Can't get info for metric " + metricName);
         }
     }
 
@@ -245,14 +256,13 @@ public class AnalyticsService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/metricinfo")
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getAllInfo(@Context UriInfo uriInfo) {
+    public Response getAllInfo(@Context UriInfo uriInfo) throws ApiException {
         try {
             MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity("Unexpected error occurred. Can't get metric info").build();
+            throw new ServerException("Unexpected error occurred. Can't get metric info");
         }
     }
 
@@ -261,13 +271,12 @@ public class AnalyticsService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/{event}")
     @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
-    public Response logEvent(@PathParam("event") String event, EventParameters parameters) {
+    public Response logEvent(@PathParam("event") String event, EventParameters parameters) throws ApiException {
         try {
             eventLogger.log(event, parameters.getParams());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Unexpected error occurred. Can't log event " + event).build();
+            throw new ServerException("Unexpected error occurred. Can't log event " + event);
         }
     }
 
@@ -275,7 +284,7 @@ public class AnalyticsService extends Service {
     @POST
     @Path("log/dashboard-usage/{action}")
     @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
-    public Response logUserDashboardEvent(@PathParam("action") String action) {
+    public Response logUserDashboardEvent(@PathParam("action") String action) throws ApiException {
         try {
             Map<String, String> parameters = new HashMap<>(1);
             parameters.put(EventLogger.ACTION_PARAM, action);
@@ -284,8 +293,7 @@ public class AnalyticsService extends Service {
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity("Unexpected error occurred. Can't log dashboard event for action " + action).build();
+            throw new ServerException("Unexpected error occurred. Can't log dashboard event for action " + action);
         }
     }
 

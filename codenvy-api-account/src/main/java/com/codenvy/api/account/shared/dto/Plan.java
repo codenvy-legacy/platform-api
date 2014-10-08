@@ -39,6 +39,12 @@ public interface Plan {
 
     Plan withPaid(boolean paid);
 
+    boolean getSalesOnly();
+
+    void setSalesOnly(boolean salesOnly);
+
+    Plan withSalesOnly(boolean salesOnly);
+
     Map<String, String> getProperties();
 
     void setProperties(Map<String, String> properties);

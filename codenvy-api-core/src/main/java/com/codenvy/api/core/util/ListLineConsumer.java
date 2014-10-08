@@ -53,8 +53,8 @@ public class ListLineConsumer implements LineConsumer {
         for (String line : lines) {
             if (n > 0) {
                 output.append('\n');
-                output.append(line);
             }
+            output.append(line);
             n++;
         }
         return output.toString();

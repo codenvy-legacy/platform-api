@@ -23,6 +23,8 @@ import org.everrest.core.impl.ProviderBinder;
 import org.everrest.core.tools.SimplePrincipal;
 import org.everrest.websockets.EverrestWebSocketServlet;
 import org.everrest.websockets.WSConnectionImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Singleton;
 import javax.servlet.ServletContext;
@@ -33,6 +35,8 @@ import java.security.Principal;
 /** @author andrew00x */
 @Singleton
 public class CodenvyEverrestWebSocketServlet extends EverrestWebSocketServlet {
+    private static final Logger LOG = LoggerFactory.getLogger(CodenvyEverrestWebSocketServlet.class);
+
     static final String ENVIRONMENT_CONTEXT = "ide.websocket." + EnvironmentContext.class.getName();
 
     @Override
@@ -50,7 +54,12 @@ public class CodenvyEverrestWebSocketServlet extends EverrestWebSocketServlet {
     @Override
     protected StreamInbound createWebSocketInbound(String s, HttpServletRequest req) {
         WSConnectionImpl wsConnection = (WSConnectionImpl)super.createWebSocketInbound(s, req);
-        wsConnection.getHttpSession().setAttribute(ENVIRONMENT_CONTEXT, EnvironmentContext.getCurrent());
+        wsConnection.setAttribute(ENVIRONMENT_CONTEXT, EnvironmentContext.getCurrent());
+        LOG.debug("Websocket {}  http session {} context of ws {} is temporary {}",
+                  wsConnection.getId(),
+                  wsConnection.getHttpSession().getId(),
+                  EnvironmentContext.getCurrent().getWorkspaceName(),
+                  EnvironmentContext.getCurrent().isWorkspaceTemporary());
         return wsConnection;
     }
 

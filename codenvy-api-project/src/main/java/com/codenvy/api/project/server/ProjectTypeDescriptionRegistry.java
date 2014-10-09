@@ -111,13 +111,11 @@ public class ProjectTypeDescriptionRegistry {
             final List<AttributeDescription> typeExtensionAttributeDescriptions = extension.getAttributeDescriptions();
             ArrayList<AttributeDescription> finalList = new ArrayList<>(typeExtensionAttributeDescriptions);
             //TODO: add this temporary until we don't have possibility to extend project type
-            int needAddVcs = 0;
+            List<String> attributeNames = new ArrayList<>();
             for (AttributeDescription attributeDescription : finalList) {
-                if (attributeDescription.getName().equals(Constants.VCS_PROVIDER_NAME)) {
-                    needAddVcs = 1;
-                }
+                attributeNames.add(attributeDescription.getName());
             }
-            if (needAddVcs == 0) {
+            if (!attributeNames.contains(Constants.VCS_PROVIDER_NAME)) {
                 finalList.add(new AttributeDescription(Constants.VCS_PROVIDER_NAME));
             }
             attributeDescriptions.put(type.getId(), finalList);

@@ -86,7 +86,7 @@ public class ProjectTypeDescriptionRegistryTest {
         Assert.assertEquals(myType.getCategory(), "my_category");
         List<AttributeDescription> _attributeDescriptions = descriptionRegistry.getAttributeDescriptions(myType);
         Assert.assertNotNull(_attributeDescriptions);
-        Assert.assertEquals(_attributeDescriptions.size(), 1);
+        Assert.assertEquals(_attributeDescriptions.size(), 2);//2 because we add one more attributes for all project type @see ProjectTypeDescriptionRegistry.registerDescription
         AttributeDescription _attributeDescription = _attributeDescriptions.get(0);
         Assert.assertEquals(_attributeDescription.getName(), "name3");
         Assert.assertEquals(_attributeDescription.getDescription(), "description3");

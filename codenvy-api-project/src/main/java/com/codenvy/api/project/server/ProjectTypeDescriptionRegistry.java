@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.*;
+import com.codenvy.api.project.shared.Constants;
 import com.google.inject.name.Named;
 
 import javax.inject.Inject;
@@ -107,9 +109,17 @@ public class ProjectTypeDescriptionRegistry {
                 projectTypeRegistry.registerProjectType(type);
             }
             final List<AttributeDescription> typeExtensionAttributeDescriptions = extension.getAttributeDescriptions();
-            if (!(typeExtensionAttributeDescriptions == null || typeExtensionAttributeDescriptions.isEmpty())) {
-                attributeDescriptions.put(type.getId(), new ArrayList<>(typeExtensionAttributeDescriptions));
+            ArrayList<AttributeDescription> finalList = new ArrayList<>(typeExtensionAttributeDescriptions);
+            //TODO: add this temporary until we don't have possibility to extend project type
+            List<String> attributeNames = new ArrayList<>();
+            for (AttributeDescription attributeDescription : finalList) {
+                attributeNames.add(attributeDescription.getName());
             }
+            if (!attributeNames.contains(Constants.VCS_PROVIDER_NAME)) {
+                finalList.add(new AttributeDescription(Constants.VCS_PROVIDER_NAME));
+            }
+            attributeDescriptions.put(type.getId(), finalList);
+
         }
     }
 

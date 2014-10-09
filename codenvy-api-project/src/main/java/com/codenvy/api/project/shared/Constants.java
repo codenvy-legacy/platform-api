@@ -19,6 +19,7 @@ public class Constants {
     public static final String BLANK_ID                  = "blank";
     public static final String BLANK_PROJECT_TYPE        = "Blank Type";
     public static final String LANGUAGE                  = "language";
+    public static final String VCS_PROVIDER_NAME         = "vcs.provider.name";
 
     private Constants() {
     }

@@ -23,11 +23,11 @@ public class FactoryConstants {
             "You have provided an inaccurate or deprecated Factory Version.  For more information, " +
             "please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
-    public static final String UNPARSABLE_FACTORY_MESSAGE                     =
+    public static final String UNPARSABLE_FACTORY_MESSAGE =
             "We cannot parse the provided factory. For more information, please visit: http://docs.codenvy" +
             ".com/user/creating-factories/factory-parameter-reference/";
 
-    public static final String MISSING_MANDATORY_MESSAGE                      =
+    public static final String MISSING_MANDATORY_MESSAGE =
             "You are missing a mandatory parameter.  For more information, please visit: http://docs.codenvy" +
             ".com/user/creating-factories/factory-parameter-reference/.";
 
@@ -40,7 +40,7 @@ public class FactoryConstants {
             "provided the wrong code, your subscription has expired, or you do not have a valid subscription account." +
             "  Please contact info@codenvy.com with any questions.";
 
-    public static final String PARAMETRIZED_INVALID_PARAMETER_MESSAGE         =
+    public static final String PARAMETRIZED_INVALID_PARAMETER_MESSAGE =
             "You have provided an invalid parameter %s for this version of Factory parameters %s.  For more " +
             "information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
@@ -50,7 +50,7 @@ public class FactoryConstants {
             "Please contact info@codenvy.com with any questions. \n" +
             "orgID Submitted: %s";
 
-    public static final String PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE    =
+    public static final String PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE =
             "You submitted a parameter that can only be submitted through an encoded Factory URL %s.  For more " +
             "information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.";
 
@@ -62,12 +62,17 @@ public class FactoryConstants {
             "orgID Submitted: %s \n" +
             "Invalid Parameter Name: %s";
 
+    public static final String INVALID_VALIDSINCE_MESSAGE = "Valid since time should be greater than current time.";
 
-    public static final String ILLEGAL_VALIDSINCE_MESSAGE =
+    public static final String INVALID_VALIDUNTIL_MESSAGE = "Valid until time should be greater than current time.";
+
+    public static final String INVALID_VALIDSINCEUNTIL_MESSAGE = "Valid until time should be greater than valid since time.";
+
+    public static final String ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE =
             "This Factory is not yet valid due to time restrictions applied by its owner.  Please, " +
             "contact owner for more information.";
 
-    public static final String ILLEGAL_VALIDUNTIL_MESSAGE =
+    public static final String ILLEGAL_FACTORY_BY_VALIDUNTIL_MESSAGE =
             "This Factory has expired due to time restrictions applied by its owner.  Please, " +
             "contact owner for more information.";
 

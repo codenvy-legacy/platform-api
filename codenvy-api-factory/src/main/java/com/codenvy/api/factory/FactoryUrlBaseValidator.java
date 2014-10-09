@@ -20,10 +20,11 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.Restriction;
+import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.user.server.dao.Profile;
+import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.server.dao.User;
 import com.codenvy.commons.lang.Strings;
 
 import java.io.UnsupportedEncodingException;
@@ -194,64 +195,108 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
+        long validSince = 0;
+        long validUntil = 0;
+        WelcomePage welcomePage = null;
         if (factory.getV().startsWith("1.")) {
             final Restriction restriction = factory.getRestriction();
             if (restriction != null) {
-                if (0 != restriction.getValidsince()) {
-                    if (null == orgid) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "validsince"));
-                    }
-
-                    if (new Date().before(new Date(restriction.getValidsince()))) {
-                        throw new ConflictException(FactoryConstants.ILLEGAL_VALIDSINCE_MESSAGE);
-                    }
-                }
-
-                if (0 != restriction.getValiduntil()) {
-                    if (null == orgid) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "validuntil"));
-                    }
-
-                    if (new Date().after(new Date(restriction.getValiduntil()))) {
-                        throw new ConflictException(FactoryConstants.ILLEGAL_VALIDUNTIL_MESSAGE);
-                    }
-                }
+                validSince = restriction.getValidsince();
+                validUntil = restriction.getValiduntil();
             }
 
-            if (null != factory.getWelcome()) {
-                if (null == orgid) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "welcome"));
-                }
+            welcomePage = factory.getWelcome();
+        } else {
+            final Policies policies = factory.getPolicies();
+            if (policies != null) {
+                validSince = policies.getValidSince();
+                validUntil = policies.getValidUntil();
+            }
+
+            if (factory.getActions() != null) {
+                welcomePage = factory.getActions().getWelcome();
+            }
+        }
+
+        if (0 != validSince) {
+            if (null == orgid) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
+                                                   factory.getV().startsWith("1.") ? "restriction.validsince" : "policies.validSince"));
+            }
+        }
+
+        if (0 != validUntil) {
+            if (null == orgid) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
+                                                   factory.getV().startsWith("1.") ? "restriction.validuntil" : "policies.validUntil"));
+            }
+        }
+
+        if (null != welcomePage) {
+            if (null == orgid) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
+                                                   factory.getV().startsWith("1.") ? "welcome" : "actions.welcome"));
+            }
+        }
+    }
+
+    protected void validateCurrentTimeBetweenSinceUntil(Factory factory) throws ConflictException {
+        long validSince = 0;
+        long validUntil = 0;
+        if (factory.getV().startsWith("1.")) {
+            final Restriction restriction = factory.getRestriction();
+            if (restriction != null) {
+                validSince = restriction.getValidsince();
+                validUntil = restriction.getValiduntil();
             }
         } else {
             final Policies policies = factory.getPolicies();
             if (policies != null) {
-                if (0 != policies.getValidSince()) {
-                    if (null == orgid) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "validSince"));
-                    }
-
-                    if (new Date().before(new Date(policies.getValidSince()))) {
-                        throw new ConflictException(FactoryConstants.ILLEGAL_VALIDSINCE_MESSAGE);
-                    }
-                }
-
-                if (0 != policies.getValidUntil()) {
-                    if (null == orgid) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "validUntil"));
-                    }
-
-                    if (new Date().after(new Date(policies.getValidUntil()))) {
-                        throw new ConflictException(FactoryConstants.ILLEGAL_VALIDUNTIL_MESSAGE);
-                    }
-                }
+                validSince = policies.getValidSince();
+                validUntil = policies.getValidUntil();
             }
+        }
 
-            if (factory.getActions() != null && factory.getActions().getWelcome() != null) {
-                if (null == orgid) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "welcome"));
-                }
+        if (0 != validSince) {
+            if (new Date().before(new Date(validSince))) {
+                throw new ConflictException(FactoryConstants.ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE);
             }
+        }
+
+        if (0 != validUntil) {
+            if (new Date().after(new Date(validUntil))) {
+                throw new ConflictException(FactoryConstants.ILLEGAL_FACTORY_BY_VALIDUNTIL_MESSAGE);
+            }
+        }
+    }
+
+    protected void validateCurrentTimeBeforeSinceUntil(Factory factory) throws ConflictException {
+        long validSince = 0;
+        long validUntil = 0;
+        if (factory.getV().startsWith("1.")) {
+            final Restriction restriction = factory.getRestriction();
+            if (restriction != null) {
+                validSince = restriction.getValidsince();
+                validUntil = restriction.getValiduntil();
+            }
+        } else {
+            final Policies policies = factory.getPolicies();
+            if (policies != null) {
+                validSince = policies.getValidSince();
+                validUntil = policies.getValidUntil();
+            }
+        }
+
+        if (validSince != 0 && validUntil != 0 && validSince >= validUntil) {
+            throw new ConflictException(FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE);
+        }
+
+        if (validSince != 0 && new Date().after(new Date(validSince))) {
+            throw new ConflictException(FactoryConstants.INVALID_VALIDSINCE_MESSAGE);
+        }
+
+        if (validUntil != 0 && new Date().after(new Date(validUntil))) {
+            throw new ConflictException(FactoryConstants.INVALID_VALIDUNTIL_MESSAGE);
         }
     }
 }

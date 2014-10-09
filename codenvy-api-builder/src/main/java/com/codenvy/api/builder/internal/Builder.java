@@ -16,9 +16,11 @@ import com.codenvy.api.builder.dto.BuildRequest;
 import com.codenvy.api.builder.dto.BuilderEnvironment;
 import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.builder.dto.DependencyRequest;
+import com.codenvy.api.builder.internal.BuilderEvent.EventType;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.core.util.CancellableProcessWrapper;
 import com.codenvy.api.core.util.CommandLine;
@@ -387,7 +389,11 @@ public abstract class Builder {
             @Override
             public void begin(BuildTask task) {
                 final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
-                eventService.publish(BuilderEvent.beginEvent(buildRequest.getId(), buildRequest.getWorkspace(), buildRequest.getProject()));
+                // build preliminary phase is sources downloading
+                // build begin event will be sent when build effectively begins
+                eventService.publish(BuilderEvent.sourcesDownloadBeginEvent(buildRequest.getId(), buildRequest.getWorkspace(),
+                                                                            buildRequest.getProject(),
+                                                                            BuildLogsPublisher.SOURCES_DOWNLOAD_START_MESSAGE_LINE));
             }
 
             @Override
@@ -426,6 +432,12 @@ public abstract class Builder {
                 BaseBuilderRequest request = configuration.getRequest();
                 getSourcesManager()
                         .getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
+                eventService.publish(BuilderEvent.sourcesDownloadDoneEvent(request.getId(), request.getWorkspace(), request.getProject(),
+                                                                           BuildLogsPublisher.SOURCES_DOWNLOAD_END_MESSAGE_LINE));
+                eventService.publish(BuilderEvent.buildTimeStartedEvent(request.getId(), request.getWorkspace(), request.getProject(),
+                                                                        System.currentTimeMillis()));
+                // build starts right after sources downloading is done
+                eventService.publish(BuilderEvent.beginEvent(request.getId(), request.getWorkspace(), request.getProject()));
                 StreamPump output = null;
                 Watchdog watcher = null;
                 int result = -1;
@@ -621,6 +633,16 @@ public abstract class Builder {
             this.callback = callback;
             startTime = -1L;
             endTime = -1L;
+
+            eventService.subscribe(new EventSubscriber<BuilderEvent>() {
+                @Override
+                public void onEvent(BuilderEvent event) {
+                    if (event.getType() == EventType.BUILD_TIME_STARTED) {
+                        final BuilderEvent.LoggedMessage message = event.getMessage();
+                        startTime = Long.parseLong(message.getMessage());
+                    }
+                }
+            });
         }
 
         @Override
@@ -696,7 +718,6 @@ public abstract class Builder {
         }
 
         final synchronized void started() {
-            startTime = System.currentTimeMillis();
             if (callback != null) {
                 // NOTE: important to do it in separate thread!
                 getExecutor().execute(new Runnable() {

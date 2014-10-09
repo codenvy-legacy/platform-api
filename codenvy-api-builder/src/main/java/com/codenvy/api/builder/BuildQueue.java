@@ -751,6 +751,44 @@ public class BuildQueue {
                                              analyticsID,
                                              waitingTime);
                                     break;
+                                case SOURCES_DOWNLOAD_STARTED:
+                                    waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                                    LOG.info("EVENT#build-sources-download-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                             workspace,
+                                             user,
+                                             project,
+                                             projectTypeId,
+                                             analyticsID,
+                                             waitingTime);
+                                    final ChannelBroadcastMessage bmStarted = new ChannelBroadcastMessage();
+                                    final long idStarted = event.getTaskId();
+                                    final BuilderEvent.LoggedMessage messageStarted = event.getMessage();
+                                    if (messageStarted != null) {
+                                        bmStarted.setChannel(String.format("builder:output:%d", idStarted));
+                                        bmStarted.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                                         messageStarted.getLineNum(), JsonUtils.getJsonString(messageStarted.getMessage())));
+                                    }
+                                    WSConnectionContext.sendMessage(bmStarted);
+                                    break;
+                                case SOURCES_DOWNLOAD_FINISHED:
+                                    waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                                    LOG.info("EVENT#build-sources-download-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                             workspace,
+                                             user,
+                                             project,
+                                             projectTypeId,
+                                             analyticsID,
+                                             waitingTime);
+                                    final ChannelBroadcastMessage bmFinished = new ChannelBroadcastMessage();
+                                    final long idFinished = event.getTaskId();
+                                    final BuilderEvent.LoggedMessage messageFinished = event.getMessage();
+                                    if (messageFinished != null) {
+                                        bmFinished.setChannel(String.format("builder:output:%d", idFinished));
+                                        bmFinished.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                                          messageFinished.getLineNum(), JsonUtils.getJsonString(messageFinished.getMessage())));
+                                    }
+                                    WSConnectionContext.sendMessage(bmFinished);
+                                    break;
                             }
                         }
                     } catch (Exception e) {

@@ -27,13 +27,16 @@ class BuildLogsPublisher extends DelegateBuildLogger {
     private final String       workspace;
     private final String       project;
 
+    public static final int SOURCES_DOWNLOAD_START_MESSAGE_LINE = 1;
+    public static final int SOURCES_DOWNLOAD_END_MESSAGE_LINE = 2;
+
     BuildLogsPublisher(BuildLogger delegate, EventService eventService, long taskId, String workspace, String project) {
         super(delegate);
         this.eventService = eventService;
         this.taskId = taskId;
         this.workspace = workspace;
         this.project = project;
-        lineCounter = new AtomicInteger(1);
+        lineCounter = new AtomicInteger(SOURCES_DOWNLOAD_END_MESSAGE_LINE + 1);
     }
 
     @Override

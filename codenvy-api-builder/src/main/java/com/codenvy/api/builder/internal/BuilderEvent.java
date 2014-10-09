@@ -18,6 +18,12 @@ import com.codenvy.api.core.notification.EventOrigin;
 @EventOrigin("builder")
 public class BuilderEvent {
     public enum EventType {
+        /** Build time is started. */
+        BUILD_TIME_STARTED("build_time_begin"),
+        /** Sources downloading starts. */
+        SOURCES_DOWNLOAD_STARTED("sources_download_started"),
+        /** Sources downloading ends. */
+        SOURCES_DOWNLOAD_FINISHED("sources_download_finished"),
         /** Build starts. */
         BEGIN("begin"),
         /** Build ends. */
@@ -112,6 +118,22 @@ public class BuilderEvent {
 
     public static BuilderEvent messageLoggedEvent(long taskId, String workspace, String project, LoggedMessage message) {
         return new BuilderEvent(EventType.MESSAGE_LOGGED, taskId, workspace, project, message);
+    }
+
+    public static BuilderEvent buildTimeStartedEvent(long taskId, String workspace, String project, long startTime) {
+        return new BuilderEvent(EventType.BUILD_TIME_STARTED, taskId, workspace, project, new LoggedMessage(Long.toString(startTime), 0));
+    }
+
+    public static BuilderEvent sourcesDownloadBeginEvent(long taskId, String workspace, String project, int lineNum) {
+        return new BuilderEvent(EventType.SOURCES_DOWNLOAD_STARTED, taskId, workspace, project,
+                                new LoggedMessage("[INFO] Sources download started.", lineNum));
+    }
+
+    public static BuilderEvent sourcesDownloadDoneEvent(long taskId, String workspace, String project, int lineNum) {
+        return new BuilderEvent(EventType.SOURCES_DOWNLOAD_FINISHED, taskId, workspace, project,
+                                new LoggedMessage("[INFO] Sources download finished."
+                                                  + "\n[INFO] ------------------------------------------------------------------------",
+                                                  lineNum));
     }
 
     /** Event type. */

@@ -25,6 +25,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * @author andrew00x
  */
 @Singleton
+@Deprecated
 public final class ProjectEventService {
     private final EventService                    eventService;
     private final Set<VirtualFileEventSubscriber> subscribers;

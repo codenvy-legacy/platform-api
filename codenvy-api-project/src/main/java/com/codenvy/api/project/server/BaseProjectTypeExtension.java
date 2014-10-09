@@ -10,28 +10,20 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.ProjectTemplateDescription;
-import com.codenvy.api.project.shared.ProjectType;
 import com.codenvy.api.project.shared.Constants;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.lang.Override;import java.lang.String;import java.util.Collections;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/** @author Vitalii Parfonov */
-
 /**
- * Add this project type for replace UnknownProjectType by user decision
- * (e.g after cloning project) for avoid cyclic asking if keep
- * only UnknownProjectType.
- * This is temporary solution maybe removed in future.
+ * Add this project type for replace UnknownProjectType by user decision (e.g after cloning project) for avoid cyclic asking if keep only
+ * UnknownProjectType. This is temporary solution maybe removed in future.
  */
 @Singleton
 public class BaseProjectTypeExtension implements ProjectTypeExtension {
-
     @Inject
     public BaseProjectTypeExtension(ProjectTypeDescriptionRegistry registry) {
         registry.registerProjectType(this);
@@ -39,12 +31,22 @@ public class BaseProjectTypeExtension implements ProjectTypeExtension {
 
     @Override
     public ProjectType getProjectType() {
-        return new ProjectType(Constants.BLANK_ID, Constants.BLANK_PROJECT_TYPE, Constants.BLANK_CATEGORY);
+        return ProjectType.BLANK;
     }
 
     @Override
     public List<Attribute> getPredefinedAttributes() {
         return Collections.singletonList(new Attribute(Constants.LANGUAGE, "unknown"));
+    }
+
+    @Override
+    public Builders getBuilders() {
+        return null;
+    }
+
+    @Override
+    public Runners getRunners() {
+        return null;
     }
 
     @Override

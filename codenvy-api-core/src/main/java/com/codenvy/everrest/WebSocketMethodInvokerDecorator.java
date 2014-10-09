@@ -17,6 +17,8 @@ import org.everrest.core.impl.method.MethodInvokerDecorator;
 import org.everrest.core.method.MethodInvoker;
 import org.everrest.core.resource.GenericMethodResource;
 import org.everrest.websockets.WSConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Intended to prepare environment to invoke resource method when request received through web socket connection.
@@ -24,6 +26,8 @@ import org.everrest.websockets.WSConnection;
  * @author andrew00x
  */
 class WebSocketMethodInvokerDecorator extends MethodInvokerDecorator {
+    private static final Logger LOG = LoggerFactory.getLogger(WebSocketMethodInvokerDecorator.class);
+
     WebSocketMethodInvokerDecorator(MethodInvoker decoratedInvoker) {
         super(decoratedInvoker);
     }
@@ -32,9 +36,17 @@ class WebSocketMethodInvokerDecorator extends MethodInvokerDecorator {
     public Object invokeMethod(Object resource, GenericMethodResource genericMethodResource, ApplicationContext context) {
         WSConnection wsConnection = (WSConnection)org.everrest.core.impl.EnvironmentContext.getCurrent().get(WSConnection.class);
         if (wsConnection != null) {
-            EnvironmentContext.setCurrent(
-                    (EnvironmentContext)wsConnection.getHttpSession().getAttribute(CodenvyEverrestWebSocketServlet.ENVIRONMENT_CONTEXT));
+
+
             try {
+                EnvironmentContext.setCurrent((EnvironmentContext)wsConnection.getAttribute(
+                        CodenvyEverrestWebSocketServlet.ENVIRONMENT_CONTEXT));
+
+                LOG.debug("Websocket {} in http session {} context of ws {} is temporary {}",
+                         wsConnection.getId(),
+                         wsConnection.getHttpSession().getId(),
+                         EnvironmentContext.getCurrent().getWorkspaceName(),
+                         EnvironmentContext.getCurrent().isWorkspaceTemporary());
                 return super.invokeMethod(resource, genericMethodResource, context);
             } finally {
                 EnvironmentContext.reset();

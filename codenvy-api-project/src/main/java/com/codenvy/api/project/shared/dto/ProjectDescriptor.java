@@ -25,196 +25,193 @@ import java.util.Map;
  */
 @DTO
 public interface ProjectDescriptor extends Hyperlinks {
-
-    /** Get name of project. */
+    /** Gets name of project. */
     @ApiModelProperty(value = "Project name", position = 1)
     String getName();
 
-    /** Set name of project. */
+    /** Sets name of project. */
     void setName(String name);
 
     ProjectDescriptor withName(String name);
 
-    /** Get path of project. */
+    //
+
+    /** Gets path of project. */
     @ApiModelProperty(value = "Project path", position = 2)
     String getPath();
 
-    /** Set path of project. */
+    /** Sets path of project. */
     void setPath(String path);
 
     ProjectDescriptor withPath(String path);
 
-    /** Id of workspace which projects belongs to. */
-    @ApiModelProperty(value = "Workspace ID", position = 3)
+    //
+
+    /** Gets unique id of type of project. */
+    @ApiModelProperty(value = "Project type ID", position = 3)
+    String getType();
+
+    /** Sets unique id of type of project. */
+    void setType(String type);
+
+    ProjectDescriptor withType(String type);
+
+    //
+
+    /** Gets display name of project type. */
+    @ApiModelProperty(value = "Name of a project type", position = 4)
+    String getTypeName();
+
+    /** Sets display name of project type. */
+    void setTypeName(String name);
+
+    ProjectDescriptor withTypeName(String name);
+
+    //
+
+    /** Gets id of workspace which projects belongs to. */
+    @ApiModelProperty(value = "Workspace ID", position = 5)
     String getWorkspaceId();
 
+    /** Sets id of workspace which projects belongs to. */
     void setWorkspaceId(String workspaceId);
 
     ProjectDescriptor withWorkspaceId(String workspaceId);
 
-    @ApiModelProperty(value = "Project URL", position = 4)
-    String getBaseUrl();
+    //
 
-    void setBaseUrl(String url);
+    /** Gets name of workspace this project belongs to. */
+    @ApiModelProperty(value = "Name of workspace which the project belongs to", position = 6)
+    String getWorkspaceName();
 
-    ProjectDescriptor withBaseUrl(String url);
+    /** Sets name of workspace this project belongs to. */
+    void setWorkspaceName(String name);
 
-    /** Get unique ID of type of project. */
-    @ApiModelProperty(value = "Project type ID", position = 5)
-    String getProjectTypeId();
+    ProjectDescriptor withWorkspaceName(String name);
 
-    /** Set unique ID of type of project. */
-    void setProjectTypeId(String id);
+    //
 
-    ProjectDescriptor withProjectTypeId(String id);
-
-    /** Get display name of type of project. */
-    @ApiModelProperty(value = "Name of a project type", position = 6)
-    String getProjectTypeName();
-
-    /** Set display name of type of project. */
-    void setProjectTypeName(String name);
-
-    ProjectDescriptor withProjectTypeName(String name);
-
-    /** Get project visibility, e.g. private or public. */
-    @ApiModelProperty(value = "Project privacy. Projects are public by default", allowableValues = "private,public", position = 7)
-    String getVisibility();
-
-    /** Set project visibility, e.g. private or public. */
-    void setVisibility(String visibility);
-
-    ProjectDescriptor withVisibility(String visibility);
-
-    /** Get optional description of project. */
-    @ApiModelProperty(value = "Project description", position = 8)
-    String getDescription();
-
-    /** Set optional description of project. */
-    void setDescription(String description);
-
-    ProjectDescriptor withDescription(String description);
-
-    /** Get creation date of project. */
-    @ApiModelProperty(value = "Creation date in UNIX Epoch format", dataType = "long", position = 9)
-    long getCreationDate();
-
-    /** Set creation date of project. */
-    void setCreationDate(long date);
-
-    ProjectDescriptor withCreationDate(long date);
-
-    /** Get modification date of project. */
-    @ApiModelProperty(value = "Most recent modification date", dataType = "long", position = 10)
-    long getModificationDate();
-
-    /** Set modification date of project. */
-    void setModificationDate(long date);
-
-    ProjectDescriptor withModificationDate(long date);
-
-    /** Get attributes of project. */
+    /** Gets attributes of this project. */
     @ApiModelProperty(value = "Project attributes", position = 11)
     Map<String, List<String>> getAttributes();
 
-    /** Set attributes of project. */
+    /** Sets attributes of this project. */
     void setAttributes(Map<String, List<String>> attributes);
 
     ProjectDescriptor withAttributes(Map<String, List<String>> attributes);
 
-    /** Get permissions of current user on this project. Current user is user who retrieved this object. */
-    @ApiModelProperty(value = "Permissions in the project", position = 12)
-    List<String> getCurrentUserPermissions();
+    //
 
-    void setCurrentUserPermissions(List<String> permissions);
+    /** Gets project visibility, e.g. private or public. */
+    @ApiModelProperty(value = "Project privacy. Projects are public by default", allowableValues = "private,public", position = 7)
+    String getVisibility();
 
-    ProjectDescriptor withCurrentUserPermissions(List<String> permissions);
+    /** Sets project visibility, e.g. private or public. */
+    void setVisibility(String visibility);
 
-    String getBuilder();
+    ProjectDescriptor withVisibility(String visibility);
 
-    ProjectDescriptor withBuilder(String builder);
+    //
 
-    void setBuilder(String builder);
+    /** Gets optional description of project. */
+    @ApiModelProperty(value = "Project description", position = 8)
+    String getDescription();
 
-    String getRunner();
+    /** Sets optional description of project. */
+    void setDescription(String description);
 
-    ProjectDescriptor withRunner(String runner);
+    ProjectDescriptor withDescription(String description);
 
-    void setRunner(String runner);
+    //
 
-    String getDefaultBuilderEnvironment();
+    /** Gets creation date of project in unix format. */
+    @ApiModelProperty(value = "Creation date in UNIX Epoch format", dataType = "long", position = 9)
+    long getCreationDate();
 
-    ProjectDescriptor withDefaultBuilderEnvironment(String envId);
+    /** Sets creation date of project in unix format. */
+    void setCreationDate(long date);
 
-    void setDefaultBuilderEnvironment(String envId);
+    ProjectDescriptor withCreationDate(long date);
 
-    String getDefaultRunnerEnvironment();
+    //
 
-    ProjectDescriptor withDefaultRunnerEnvironment(String envId);
+    /** Gets most recent modification date of project in unix format. */
+    @ApiModelProperty(value = "Most recent modification date in UNIX Epoch format", dataType = "long", position = 10)
+    long getModificationDate();
 
-    void setDefaultRunnerEnvironment(String envId);
+    /** Sets most recent modification date of project in unix format. */
+    void setModificationDate(long date);
 
-    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
+    ProjectDescriptor withModificationDate(long date);
 
-    ProjectDescriptor withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+    //
 
-    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
+    /** Gets permissions of current user on this project. Current user is user who retrieved this object. */
+    @ApiModelProperty(value = "Permissions of current user on the project", position = 12)
+    List<String> getPermissions();
 
-    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
+    /** Sets permissions of current user on this project. */
+    void setPermissions(List<String> permissions);
 
-    ProjectDescriptor withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+    ProjectDescriptor withPermissions(List<String> permissions);
 
-    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+    //
 
-    /**
-     * Get URL for opening project in Codenvy IDE.
-     *
-     * @return URL for opening project in Codenvy IDE.
-     */
-    @ApiModelProperty(value = "URL for opening project in Codenvy IDE", position = 6)
+    /** Gets builder configurations. */
+    @ApiModelProperty(value = "Builders configuration for the project", position = 13)
+    BuildersDescriptor getBuilders();
+
+    /** Sets builder configurations. */
+    void setBuilders(BuildersDescriptor builders);
+
+    ProjectDescriptor withBuilders(BuildersDescriptor builders);
+
+    //
+
+    /** Gets runner configurations. */
+    @ApiModelProperty(value = "Runners configuration for the project", position = 14)
+    RunnersDescriptor getRunners();
+
+    /** Sets runner configurations. */
+    void setRunners(RunnersDescriptor runners);
+
+    ProjectDescriptor withRunners(RunnersDescriptor runners);
+
+    //
+
+    /** Gets URL for getting this description of project. */
+    @ApiModelProperty(value = "Project URL", position = 15)
+    String getBaseUrl();
+
+    /** Sets URL for getting this description of project. */
+    void setBaseUrl(String url);
+
+    ProjectDescriptor withBaseUrl(String url);
+
+    //
+
+    /** Gets URL for opening project in Codenvy IDE. */
+    @ApiModelProperty(value = "URL for opening project in Codenvy IDE", position = 16)
     String getIdeUrl();
 
-    /**
-     * Sets URL for  opening project in Codenvy IDE.
-     *
-     * @param url
-     *         the IDE URL
-     */
+    /** Sets URL for opening project in Codenvy IDE. */
     void setIdeUrl(String url);
 
-    /**
-     * Sets URL for  opening project in Codenvy IDE.
-     *
-     * @param url
-     *         the IDE URL
-     * @return {@link ProjectDescriptor}
-     */
     ProjectDescriptor withIdeUrl(String url);
 
-    /**
-     * Get name of workspace this project belongs to.
-     *
-     * @return name of workspace this project belongs to
-     */
-    @ApiModelProperty(value = "Name of workspace which the project belongs to", position = 8)
-    String getWorkspaceName();
+    //
 
-    /**
-     * Sets name of workspace this project belongs to.
-     *
-     * @param name
-     *         the name of the workspace
-     */
-    void setWorkspaceName(String name);
+    /** Provides information about project errors. If project doesn't have any error this field is empty. */
+    @ApiModelProperty(value = "Optional information about project errors. If project doesn't have any error this field is empty",
+                      position = 17)
+    List<ProjectProblem> getProblems();
 
-    /**
-     * Sets name of workspace this project belongs to.
-     *
-     * @param name
-     *         the name of the workspace
-     * @return {@link ProjectDescriptor}
-     */
-    ProjectDescriptor withWorkspaceName(String name);
+    /** @see #getProblems */
+    void setProblems(List<ProjectProblem> problems);
+
+    ProjectDescriptor withProblems(List<ProjectProblem> problems);
+
+    //
 
     ProjectDescriptor withLinks(List<Link> links);
 }

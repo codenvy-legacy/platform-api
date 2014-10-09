@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.server;
 
 /**
  * Describes Attribute that may be defined for project type.

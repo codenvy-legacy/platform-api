@@ -15,6 +15,7 @@ package com.codenvy.api.project.server;
  *
  * @author andrew00x
  */
+@Deprecated
 public class ProjectEvent {
     public static enum EventType {
         UPDATED("updated"),

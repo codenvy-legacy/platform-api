@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.server;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,7 +60,6 @@ public class Attribute {
 
     /** Copy constructor. */
     public Attribute(Attribute origin) throws ValueStorageException {
-
         this(origin.getName(), new DefaultValueProvider(origin.getValues()));
     }
 
@@ -77,10 +76,10 @@ public class Attribute {
      *    String name = ...
      *    Attribute attribute = ...;
      *    List&lt;String&gt; values = attribute.getValues();
-     *    if (values != null && !values.isEmpty())
+     *    if (values != null && !values.isEmpty()) {
      *       return values.get(0);
-     *    else
-     *       return null;
+     *    }
+     *    return null;
      * </pre>
      *
      * @return current value of attribute
@@ -144,18 +143,5 @@ public class Attribute {
         } else {
             valueProvider.setValues(null);
         }
-    }
-
-    @Override
-    public String toString() {
-        List<String> values = new ArrayList<String>();
-        try {
-            values.addAll(valueProvider.getValues());
-        } catch (ValueStorageException e) {};
-
-        return "Attribute{" +
-               "name='" + name + '\'' +
-               ", values=" + values +
-               '}';
     }
 }

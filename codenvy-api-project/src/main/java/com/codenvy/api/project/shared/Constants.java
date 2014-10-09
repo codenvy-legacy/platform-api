@@ -14,11 +14,11 @@ package com.codenvy.api.project.shared;
  * @author Evgen Vidolob
  */
 public class Constants {
-    // project type ids
-    public static final String BLANK_CATEGORY     = "Blank";
-    public static final String BLANK_ID           = "blank";
-    public static final String BLANK_PROJECT_TYPE = "Blank Type";
-    public static final String LANGUAGE           = "language";
+    public final static String DEFAULT_TEMPLATE_CATEGORY = "Samples";
+    public static final String BLANK_CATEGORY            = "Blank";
+    public static final String BLANK_ID                  = "blank";
+    public static final String BLANK_PROJECT_TYPE        = "Blank Type";
+    public static final String LANGUAGE                  = "language";
 
     private Constants() {
     }

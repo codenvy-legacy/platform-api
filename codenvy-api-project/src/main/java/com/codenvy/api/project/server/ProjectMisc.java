@@ -17,6 +17,7 @@ import java.util.Set;
 
 /**
  * Stores additional information about single project.
+ *
  * @author andrew00x
  */
 public class ProjectMisc {
@@ -24,7 +25,7 @@ public class ProjectMisc {
     static final String CREATED = "created";
 
     private final InternalMisc data;
-    private final Project project;
+    private final Project      project;
 
     public ProjectMisc(Properties properties, Project project) {
         this.data = new InternalMisc(properties);

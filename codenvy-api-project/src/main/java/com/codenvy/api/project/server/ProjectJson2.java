@@ -13,10 +13,6 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
-import com.codenvy.api.project.shared.Builders;
-import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
-import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.json.JsonHelper;
@@ -32,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Part of project meta-data that is stored in file &lt;project folder&gt;/.codenvy/project.json.
+ *
  * @author andrew00x
  */
 public class ProjectJson2 {
@@ -40,6 +38,7 @@ public class ProjectJson2 {
      * Checks whether the Project's meta information is readable
      *
      * @param project
+     *         project to check
      * @return true if project meta-information is readable (it exists, there are appropriate permissions etc)
      * otherwise returns false
      */
@@ -140,8 +139,10 @@ public class ProjectJson2 {
     public ProjectJson2() {
     }
 
-    public ProjectJson2(String type, String description, Map<String, List<String>> attributes) {
+    public ProjectJson2(String type, Map<String, List<String>> attributes, Builders builders, Runners runners, String description) {
         this.type = type;
+        this.builders = builders;
+        this.runners = runners;
         this.description = description;
         this.attributes = attributes;
     }
@@ -159,6 +160,31 @@ public class ProjectJson2 {
         return this;
     }
 
+    public Builders getBuilders() {
+        return builders;
+    }
+
+    public ProjectJson2 withBuilders(Builders builders) {
+        this.builders = builders;
+        return this;
+    }
+
+    public void setBuilders(Builders builders) {
+        this.builders = builders;
+    }
+
+    public Runners getRunners() {
+        return runners;
+    }
+
+    public ProjectJson2 withRunners(Runners runners) {
+        this.runners = runners;
+        return this;
+    }
+
+    public void setRunners(Runners runners) {
+        this.runners = runners;
+    }
 
     public Map<String, List<String>> getAttributes() {
         if (attributes == null) {

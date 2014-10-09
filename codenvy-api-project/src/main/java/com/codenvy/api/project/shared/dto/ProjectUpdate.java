@@ -10,11 +10,15 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 import java.util.Map;
+
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
  * Data transfer object (DTO) for update project.
@@ -25,14 +29,42 @@ import java.util.Map;
 @ApiModel(description = "Update project")
 public interface ProjectUpdate {
     /** Get unique ID of type of project. */
-    String getProjectTypeId();
+    @ApiModelProperty(value = "Unique ID of project's type", position = 1, required = true)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "type")
+    String getType();
 
     /** Set unique ID of type of project. */
-    void setProjectTypeId(String id);
+    void setType(String type);
 
-    ProjectUpdate withProjectTypeId(String id);
+    ProjectUpdate withType(String type);
+
+    //
+
+    /** Gets builder configurations. */
+    @ApiModelProperty(value = "Builders configuration for the project", position = 5)
+    BuildersDescriptor getBuilders();
+
+    /** Sets builder configurations. */
+    void setBuilders(BuildersDescriptor builders);
+
+    ProjectUpdate withBuilders(BuildersDescriptor builders);
+
+    //
+
+    /** Gets runner configurations. */
+    @ApiModelProperty(value = "Runners configuration for the project", position = 6)
+    RunnersDescriptor getRunners();
+
+    /** Sets runner configurations. */
+    void setRunners(RunnersDescriptor runners);
+
+    ProjectUpdate withRunners(RunnersDescriptor runners);
+
+    //
 
     /** Get optional description of project. */
+    @ApiModelProperty(value = "Optional description for new project", position = 2)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "description")
     String getDescription();
 
     /** Set optional description of project. */
@@ -40,6 +72,9 @@ public interface ProjectUpdate {
 
     ProjectUpdate withDescription(String description);
 
+    //
+
+    @ApiModelProperty(value = "Attributes for project", position = 4)
     /** Get attributes of project. */
     Map<String, List<String>> getAttributes();
 
@@ -48,39 +83,15 @@ public interface ProjectUpdate {
 
     ProjectUpdate withAttributes(Map<String, List<String>> attributes);
 
-    String getBuilder();
+    //
 
-    ProjectUpdate withBuilder(String builder);
+    @ApiModelProperty(value = "Visibility for project", allowableValues = "public,private", position = 3)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "visibility")
+    /** Gets project visibility, e.g. private or public. */
+    String getVisibility();
 
-    void setBuilder(String builder);
+    /** Sets project visibility, e.g. private or public. */
+    void setVisibility(String visibility);
 
-    String getRunner();
-
-    ProjectUpdate withRunner(String runner);
-
-    void setRunner(String runner);
-
-    String getDefaultBuilderEnvironment();
-
-    ProjectUpdate withDefaultBuilderEnvironment(String envId);
-
-    void setDefaultBuilderEnvironment(String envId);
-
-    String getDefaultRunnerEnvironment();
-
-    ProjectUpdate withDefaultRunnerEnvironment(String envId);
-
-    void setDefaultRunnerEnvironment(String envId);
-
-    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
-
-    ProjectUpdate withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
-
-    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
-
-    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
-
-    ProjectUpdate withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
-
-    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+    ProjectUpdate withVisibility(String visibility);
 }

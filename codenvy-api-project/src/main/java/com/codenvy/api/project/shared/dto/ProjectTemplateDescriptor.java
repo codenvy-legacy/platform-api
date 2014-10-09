@@ -12,8 +12,6 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.Map;
-
 /** @author Vitaly Parfonov */
 @DTO
 public interface ProjectTemplateDescriptor {
@@ -26,11 +24,15 @@ public interface ProjectTemplateDescriptor {
 
     ProjectTemplateDescriptor withCategory(String category);
 
+    //
+
     ImportSourceDescriptor getSource();
 
     void setSource(ImportSourceDescriptor sources);
 
     ProjectTemplateDescriptor withSource(ImportSourceDescriptor sources);
+
+    //
 
     /** Get display name of project template. */
     String getDisplayName();
@@ -40,45 +42,7 @@ public interface ProjectTemplateDescriptor {
 
     ProjectTemplateDescriptor withDisplayName(String displayName);
 
-    /** Get builder name of project template. */
-    String getBuilderName();
-
-    ProjectTemplateDescriptor withBuilderName(String builderName);
-
-    /** Set builder name of project template. */
-    void setBuilderName(String builderName);
-
-    String getDefaultBuilderEnvironment();
-
-    ProjectTemplateDescriptor withDefaultBuilderEnvironment(String envId);
-
-    void setDefaultBuilderEnvironment(String envId);
-
-    String getDefaultRunnerEnvironment();
-
-    ProjectTemplateDescriptor withDefaultRunnerEnvironment(String envId);
-
-    void setDefaultRunnerEnvironment(String envId);
-
-    /** Get runner name of project template. */
-    String getRunnerName();
-
-    ProjectTemplateDescriptor withRunnerName(String runnerName);
-
-    /** Set runner name of project template. */
-    void setRunnerName(String runnerName);
-
-    Map<String, BuilderEnvironmentConfigurationDescriptor> getBuilderEnvironmentConfigurations();
-
-    ProjectTemplateDescriptor withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
-
-    void setBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfigurationDescriptor> configs);
-
-    Map<String, RunnerEnvironmentConfigurationDescriptor> getRunnerEnvironmentConfigurations();
-
-    ProjectTemplateDescriptor withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
-
-    void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfigurationDescriptor> configs);
+    //
 
     /** Get description of project template. */
     String getDescription();
@@ -87,4 +51,24 @@ public interface ProjectTemplateDescriptor {
     void setDescription(String description);
 
     ProjectTemplateDescriptor withDescription(String description);
+
+    //
+
+    /** Gets builder configurations. */
+    BuildersDescriptor getBuilders();
+
+    /** Sets builder configurations. */
+    void setBuilders(BuildersDescriptor builders);
+
+    ProjectTemplateDescriptor withBuilders(BuildersDescriptor builders);
+
+    //
+
+    /** Gets runner configurations. */
+    RunnersDescriptor getRunners();
+
+    /** Sets runner configurations. */
+    void setRunners(RunnersDescriptor runners);
+
+    ProjectTemplateDescriptor withRunners(RunnersDescriptor runners);
 }

@@ -11,9 +11,8 @@
 package com.codenvy.api.project.server.type;
 
 import com.codenvy.api.project.server.ProjectTypeDescriptionExtension;
-import com.codenvy.api.project.server.ProjectTypeDescriptionRegistry;
 import com.codenvy.api.project.server.ProjectTypeExtension;
-import com.codenvy.api.project.shared.ProjectType;
+import com.codenvy.api.project.server.ProjectType;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -10,10 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.ProjectTemplateDescription;
-import com.codenvy.api.project.shared.ProjectType;
-import com.codenvy.api.project.shared.ProjectTypeDescription;
 import com.google.inject.name.Named;
 
 import javax.inject.Inject;
@@ -34,10 +30,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ProjectTypeDescriptionRegistry {
     private final ProjectTypeRegistry                           projectTypeRegistry;
     private final String                                        iconsBaseUrl;
-    private final Map<String, ProjectTypeDescription>           descriptions;
+    private final Map<String, List<AttributeDescription>>       attributeDescriptions;
     private final Map<String, List<Attribute>>                  predefinedAttributes;
     private final Map<String, List<ProjectTemplateDescription>> templates;
     private final Map<String, Map<String, String>>              iconRegistry;
+    private final Map<String, Builders>                         builders;
+    private final Map<String, Runners>                          runners;
 
     @Inject
     public ProjectTypeDescriptionRegistry(@Named("project.base_icon_url") String iconsBaseUrl) {
@@ -46,11 +44,12 @@ public class ProjectTypeDescriptionRegistry {
             iconsBaseUrl = iconsBaseUrl + "/";
         }
         this.iconsBaseUrl = iconsBaseUrl;
-        descriptions = new ConcurrentHashMap<>();
+        attributeDescriptions = new ConcurrentHashMap<>();
         predefinedAttributes = new ConcurrentHashMap<>();
         templates = new ConcurrentHashMap<>();
         iconRegistry = new ConcurrentHashMap<>();
-
+        builders = new ConcurrentHashMap<>();
+        runners = new ConcurrentHashMap<>();
     }
 
     /**
@@ -78,12 +77,20 @@ public class ProjectTypeDescriptionRegistry {
             Map<String, String> iconRegistryWithUrl = new HashMap<>();
             for (String key : iconRegistry.keySet()) {
                 String path = iconRegistry.get(key);
-                if(path.startsWith("/")) {
+                if (path.startsWith("/")) {
                     path = path.substring(1);
                 }
                 iconRegistryWithUrl.put(key, iconsBaseUrl + path);
             }
             this.iconRegistry.put(type.getId(), iconRegistryWithUrl);
+        }
+        final Builders extBuilders = extension.getBuilders();
+        if (extBuilders != null) {
+            builders.put(type.getId(), new Builders(extBuilders));
+        }
+        final Runners extRunners = extension.getRunners();
+        if (extRunners != null) {
+            runners.put(type.getId(), new Runners(extRunners));
         }
     }
 
@@ -99,17 +106,20 @@ public class ProjectTypeDescriptionRegistry {
             if (!projectTypeRegistry.isProjectTypeRegistered(type)) {
                 projectTypeRegistry.registerProjectType(type);
             }
-            descriptions.put(type.getId(), new ProjectTypeDescription(type, extension.getAttributeDescriptions()));
+            final List<AttributeDescription> typeExtensionAttributeDescriptions = extension.getAttributeDescriptions();
+            if (!(typeExtensionAttributeDescriptions == null || typeExtensionAttributeDescriptions.isEmpty())) {
+                attributeDescriptions.put(type.getId(), new ArrayList<>(typeExtensionAttributeDescriptions));
+            }
         }
     }
 
     /**
-     * Registers new project type. Identifier returned by method {@link com.codenvy.api.project.shared.ProjectType#getId()} is used as
-     * unique key. If ProjectType with the same identifier already registered it will be overwritten.
+     * Registers new project type. Identifier returned by method {@link ProjectType#getId()} is used as unique key. If ProjectType with the
+     * same identifier already registered it will be overwritten.
      *
      * @param type
      *         ProjectType
-     * @see com.codenvy.api.project.shared.ProjectType#getId()
+     * @see ProjectType#getId()
      */
     public void registerProjectType(ProjectType type) {
         projectTypeRegistry.registerProjectType(type);
@@ -123,7 +133,12 @@ public class ProjectTypeDescriptionRegistry {
      * @return removed ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
      */
     public ProjectType unregisterProjectType(String typeId) {
-        unregisterDescription(typeId);
+        predefinedAttributes.remove(typeId);
+        attributeDescriptions.remove(typeId);
+        templates.remove(typeId);
+        iconRegistry.remove(typeId);
+        builders.remove(typeId);
+        runners.remove(typeId);
         return projectTypeRegistry.unregisterProjectType(typeId);
     }
 
@@ -171,34 +186,6 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
-     * Removes ProjectTypeDescription.
-     *
-     * @param type
-     *         {@code ProjectType} for which need to remove {@code ProjectTypeDescription}
-     * @return removed ProjectTypeDescription or {@code null} if ProjectTypeDescription isn't registered
-     */
-    public ProjectTypeDescription unregisterDescription(ProjectType type) {
-        return unregisterDescription(type.getId());
-    }
-
-    private ProjectTypeDescription unregisterDescription(String typeId) {
-        predefinedAttributes.remove(typeId);
-        templates.remove(typeId);
-        return descriptions.remove(typeId);
-    }
-
-    /**
-     * Gets ProjectTypeDescription.
-     *
-     * @param type
-     *         {@code ProjectType} for which need to get {@code ProjectTypeDescription}
-     * @return ProjectTypeDescription or {@code null} if ProjectTypeDescription isn't registered
-     */
-    public ProjectTypeDescription getDescription(ProjectType type) {
-        return descriptions.get(type.getId());
-    }
-
-    /**
      * Gets unmodifiable list of predefined attributes for specified {@code ProjectType}.
      *
      * @param type
@@ -214,13 +201,18 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
-     * Gets all registered project type descriptions. Modifications to the returned {@code List} will not affect the internal state of
-     * {@code ProjectTypeDescriptionRegistry}.
+     * Gets unmodifiable list of attribute descriptions for specified {@code ProjectType}.
      *
-     * @return registered project type descriptions
+     * @param type
+     *         {@code ProjectType} for which need to get attribute descriptions
+     * @return unmodifiable list of attribute descriptions for specified {@code ProjectType}
      */
-    public List<ProjectTypeDescription> getDescriptions() {
-        return new ArrayList<>(descriptions.values());
+    public List<AttributeDescription> getAttributeDescriptions(ProjectType type) {
+        final List<AttributeDescription> attributeDescription = attributeDescriptions.get(type.getId());
+        if (attributeDescription != null) {
+            return Collections.unmodifiableList((attributeDescription));
+        }
+        return Collections.emptyList();
     }
 
     /**
@@ -235,7 +227,7 @@ public class ProjectTypeDescriptionRegistry {
         }
         return Collections.emptyList();
     }
-    
+
     /**
      * Gets unmodifiable map of of registered project icons.
      *
@@ -248,7 +240,33 @@ public class ProjectTypeDescriptionRegistry {
         }
         return Collections.emptyMap();
     }
-    
+
+    /**
+     * Gets builder configuration by project type. This builder configuration may be used for new project if project doesn't contains own
+     * builder configuration.
+     */
+    public Builders getBuilders(ProjectType projectType) {
+        final Builders myBuilders = builders.get(projectType.getId());
+        if (myBuilders == null) {
+            return null;
+        }
+        // Return copy outside to avoid update instance that can impact all project of particular type.
+        return new Builders(myBuilders);
+    }
+
+    /**
+     * Gets runner configuration by project type. This runner configuration may be used for new project if project doesn't contains own
+     * runner configuration.
+     */
+    public Runners getRunners(ProjectType projectType) {
+        final Runners myRunners = runners.get(projectType.getId());
+        if (myRunners == null) {
+            return null;
+        }
+        // Return copy outside to avoid update instance that can impact all project of particular type.
+        return new Runners(myRunners);
+    }
+
     /**
      * Stores information about registered (known) project types.
      */
@@ -260,12 +278,12 @@ public class ProjectTypeDescriptionRegistry {
         }
 
         /**
-         * Registers new project type. Identifier returned by method {@link com.codenvy.api.project.shared.ProjectType#getId()} is used as
-         * unique key. If ProjectType with the same identifier already registered it will be overwritten.
+         * Registers new project type. Identifier returned by method {@link ProjectType#getId()} is used as unique key. If ProjectType with
+         * the same identifier already registered it will be overwritten.
          *
          * @param type
          *         ProjectType
-         * @see com.codenvy.api.project.shared.ProjectType#getId()
+         * @see ProjectType#getId()
          */
         void registerProjectType(ProjectType type) {
             types.put(type.getId(), type);

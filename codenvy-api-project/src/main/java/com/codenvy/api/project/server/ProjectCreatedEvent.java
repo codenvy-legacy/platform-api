@@ -15,6 +15,7 @@ import com.codenvy.api.core.notification.EventOrigin;
 
 /**
  * Publish when new project created.
+ *
  * @author Evgen Vidolob
  */
 @EventOrigin("project")

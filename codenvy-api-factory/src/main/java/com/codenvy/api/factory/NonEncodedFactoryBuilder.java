@@ -217,12 +217,13 @@ public abstract class NonEncodedFactoryBuilder {
         if (project != null) {
             appendIfNotNull(builder, "&project.name=", project.getName(), true);
             appendIfNotNull(builder, "&project.description=", project.getDescription(), true);
-            appendIfNotNull(builder, "&project.type=", project.getProjectTypeId(), true);
+            appendIfNotNull(builder, "&project.type=", project.getType(), true);
             appendIfNotNull(builder, "&project.visibility=", project.getVisibility(), false);
-            appendIfNotNull(builder, "&project.builderType=", project.getBuilder(), false);
-            appendIfNotNull(builder, "&project.runnerType=", project.getRunner(), false);
-            appendIfNotNull(builder, "&project.defaultBuilder=", project.getDefaultBuilderEnvironment(), false);
-            appendIfNotNull(builder, "&project.defaultRunner=", project.getDefaultRunnerEnvironment(), false);
+// TODO: update according to changes in project-api
+//            appendIfNotNull(builder, "&project.builderType=", project.getBuilder(), false);
+//            appendIfNotNull(builder, "&project.runnerType=", project.getRunner(), false);
+//            appendIfNotNull(builder, "&project.defaultBuilder=", project.getDefaultBuilderEnvironment(), false);
+//            appendIfNotNull(builder, "&project.defaultRunner=", project.getDefaultRunnerEnvironment(), false);
             // TODO
 //            for (Map.Entry<String, List<String>> entry : project.getAttributes().entrySet()) {
 //                appendIfNotNull(builder, "&project.attributes." + entry.getKey() + "=", entry.getValue(), true);

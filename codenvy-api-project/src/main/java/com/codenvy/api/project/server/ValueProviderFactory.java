@@ -10,10 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.ValueProvider;
-
 /**
- * Factory for {@link com.codenvy.api.project.shared.ValueProvider}.
+ * Factory for {@link ValueProvider}.
  *
  * @author andrew00x
  */

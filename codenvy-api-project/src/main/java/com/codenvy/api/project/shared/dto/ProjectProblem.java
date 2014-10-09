@@ -8,24 +8,24 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.shared.dto;
 
-import com.codenvy.api.core.ForbiddenException;
-import com.codenvy.api.core.rest.shared.dto.ServiceError;
+import com.codenvy.dto.shared.DTO;
 
 /**
- *
- * Thrown when input value is invalid by some reason
- *
- * @author gazarenkov
+ * @author andrew00x
  */
-public class InvalidValueException extends ForbiddenException {
+@DTO
+public interface ProjectProblem {
+    int getCode();
 
-    public InvalidValueException(String message) {
-        super(message);
-    }
+    void setCode(int status);
 
-    public InvalidValueException(ServiceError serviceError) {
-        super(serviceError);
-    }
+    ProjectProblem withCode(int status);
+
+    String getMessage();
+
+    void setMessage(String message);
+
+    ProjectProblem withMessage(String message);
 }

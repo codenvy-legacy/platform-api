@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -21,20 +20,8 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.core.rest.shared.Links;
-import com.codenvy.api.core.rest.shared.ParameterType;
-import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.core.rest.shared.dto.LinkParameter;
-import com.codenvy.api.core.rest.shared.dto.ObjectStatus;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
-import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.project.shared.ProjectType;
-import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
-import com.codenvy.api.project.shared.ValueStorageException;
-import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -42,7 +29,6 @@ import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -52,7 +38,6 @@ import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
-import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -85,12 +70,9 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -116,8 +98,6 @@ public class ProjectService extends Service {
     @Inject
     private EventService                eventService;
 
-    private DtoFactory dtoFactory = DtoFactory.getInstance();
-
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,
                   responseContainer = "List",
@@ -134,7 +114,7 @@ public class ProjectService extends Service {
         final List<ProjectReference> projectReferences = new ArrayList<>(projects.size());
         for (Project project : projects) {
             try {
-                projectReferences.add(toReference(project));
+                projectReferences.add(DtoConverter.toReferenceDto(project, getServiceContext().getServiceUriBuilder()));
             } catch (RuntimeException e) {
                 // Ignore known error for single project.
                 // In result we won't have them in explorer tree but at least 'bad' projects won't prevent to show 'good' projects.
@@ -164,7 +144,7 @@ public class ProjectService extends Service {
         if (project == null) {
             throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
         }
-        return toDescriptor(project);
+        return DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
     }
 
     @ApiOperation(value = "Creates new project",
@@ -188,15 +168,16 @@ public class ProjectService extends Service {
                                            @QueryParam("name") String name,
                                            @Description("descriptor of project") NewProject newProject)
             throws ConflictException, ForbiddenException, ServerException {
-        final Project project = projectManager.createProject(workspace, name, toDescription(newProject));
+        final Project project = projectManager.createProject(workspace, name,
+                                                             DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
         final String visibility = newProject.getVisibility();
         if (visibility != null) {
             project.setVisibility(visibility);
         }
-        final ProjectDescriptor descriptor = toDescriptor(project);
+        final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
-                 descriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 descriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
         return descriptor;
     }
@@ -215,16 +196,17 @@ public class ProjectService extends Service {
     @Path("/modules/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProjectDescriptor> getModules(@ApiParam(value = "Workspace ID", required = true)
-                                             @PathParam("ws-id") String workspace,
-                                             @ApiParam(value = "Path to a project", required = true)
-                                             @PathParam("path") String path)
+                                              @PathParam("ws-id") String workspace,
+                                              @ApiParam(value = "Path to a project", required = true)
+                                              @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException, ConflictException {
         final FolderEntry folder = asFolder(workspace, path);
         final List<ProjectDescriptor> modules = new LinkedList<>();
         for (FolderEntry childFolder : folder.getChildFolders()) {
             if (childFolder.isProjectFolder()) {
                 try {
-                    modules.add(toDescriptor(new Project(workspace, childFolder, projectManager)));
+                    modules.add(DtoConverter.toDescriptorDto(new Project(childFolder, projectManager),
+                                                             getServiceContext().getServiceUriBuilder()));
                 } catch (RuntimeException e) {
                     // Ignore known error for single module.
                     // In result we won't have them in project tree but at least 'bad' modules won't prevent to show 'good' modules.
@@ -259,12 +241,12 @@ public class ProjectService extends Service {
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final FolderEntry folder = asFolder(workspace, parentPath);
         final FolderEntry moduleFolder = folder.createFolder(name);
-        final Project module = new Project(workspace, moduleFolder, projectManager);
-        module.updateDescription(toDescription(newProject));
-        final ProjectDescriptor descriptor = toDescriptor(module);
+        final Project module = new Project(moduleFolder, projectManager);
+        module.updateDescription(DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
+        final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(module, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(module.getWorkspace(), module.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
-                 descriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 descriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
         return descriptor;
     }
@@ -292,8 +274,8 @@ public class ProjectService extends Service {
         if (project == null) {
             throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
         }
-        project.updateDescription(toDescription(update));
-        return toDescriptor(project);
+        project.updateDescription(DtoConverter.fromDto(update, projectManager.getTypeDescriptionRegistry()));
+        return DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
     }
 
     @ApiOperation(value = "Create file",
@@ -329,15 +311,9 @@ public class ProjectService extends Service {
         } else {
             newFile = parent.createFile(fileName, content, (contentType.getType() + '/' + contentType.getSubtype()));
         }
-        final ItemReference fileReference = dtoFactory.createDto(ItemReference.class)
-                                                      .withName(newFile.getName())
-                                                      .withPath(newFile.getPath())
-                                                      .withType("file")
-                                                      .withMediaType(newFile.getMediaType())
-                                                      .withLinks(generateFileLinks(workspace, newFile));
-        final URI location = getServiceContext().getServiceUriBuilder()
-                                                .path(getClass(), "getFile")
-                                                .build(workspace, newFile.getPath().substring(1));
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final ItemReference fileReference = DtoConverter.toItemReferenceDto(newFile, uriBuilder.clone());
+        final URI location = uriBuilder.clone().path(getClass(), "getFile").build(workspace, newFile.getPath().substring(1));
         return Response.created(location).entity(fileReference).build();
     }
 
@@ -359,15 +335,9 @@ public class ProjectService extends Service {
                                  @PathParam("path") String path)
             throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry newFolder = projectManager.getProjectsRoot(workspace).createFolder(path);
-        final ItemReference folderReference = dtoFactory.createDto(ItemReference.class)
-                                                        .withName(newFolder.getName())
-                                                        .withPath(newFolder.getPath())
-                                                        .withType("folder")
-                                                        .withMediaType("text/directory")
-                                                        .withLinks(generateFolderLinks(workspace, newFolder));
-        final URI location = getServiceContext().getServiceUriBuilder()
-                                                .path(getClass(), "getChildren")
-                                                .build(workspace, newFolder.getPath().substring(1));
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final ItemReference folderReference = DtoConverter.toItemReferenceDto(newFolder, uriBuilder.clone());
+        final URI location = uriBuilder.clone().path(getClass(), "getChildren").build(workspace, newFolder.getPath().substring(1));
         return Response.created(location).entity(folderReference).build();
     }
 
@@ -462,9 +432,15 @@ public class ProjectService extends Service {
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (entry.isFolder() && ((FolderEntry)entry).isProjectFolder()) {
             // In case of folder extract some information about project for logger before delete project.
-            Project project = new Project(workspace, (FolderEntry)entry, projectManager);
+            Project project = new Project((FolderEntry)entry, projectManager);
             final String name = project.getName();
-            final String projectType = project.getDescription().getProjectType().getId();
+            String projectType = null;
+            try {
+                projectType = project.getDescription().getProjectType().getId();
+            } catch (ServerException | ValueStorageException e) {
+                // Let delete even project in invalid state.
+                LOG.error(e.getMessage(), e);
+            }
             entry.remove();
             LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
                      EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
@@ -497,7 +473,7 @@ public class ProjectService extends Service {
                                                 .path(getClass(), copy.isFile() ? "getFile" : "getChildren")
                                                 .build(workspace, copy.getPath().substring(1));
         if (copy.isFolder() && ((FolderEntry)copy).isProjectFolder()) {
-            Project project = new Project(workspace, (FolderEntry)copy, projectManager);
+            Project project = new Project((FolderEntry)copy, projectManager);
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
@@ -531,7 +507,7 @@ public class ProjectService extends Service {
                                                 .path(getClass(), entry.isFile() ? "getFile" : "getChildren")
                                                 .build(workspace, entry.getPath().substring(1));
         if (entry.isFolder() && ((FolderEntry)entry).isProjectFolder()) {
-            Project project = new Project(workspace, (FolderEntry)entry, projectManager);
+            Project project = new Project((FolderEntry)entry, projectManager);
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
@@ -640,9 +616,9 @@ public class ProjectService extends Service {
         searcherProvider.getSearcher(virtualFile.getMountPoint(), true).add(virtualFile);
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
-        final ProjectDescriptor projectDescriptor = toDescriptor(project);
+        final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
-                 projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
         return projectDescriptor;
     }
@@ -668,7 +644,8 @@ public class ProjectService extends Service {
             throws ConflictException, ForbiddenException, ServerException {
         final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getGeneratorName());
         if (generator == null) {
-            throw new ServerException(String.format("Unable generate project. Unknown generator '%s'.", generateDescriptor.getGeneratorName()));
+            throw new ServerException(
+                    String.format("Unable generate project. Unknown generator '%s'.", generateDescriptor.getGeneratorName()));
         }
         Project project = projectManager.getProject(workspace, path);
         if (project == null) {
@@ -679,10 +656,10 @@ public class ProjectService extends Service {
         if (visibility != null) {
             project.setVisibility(visibility);
         }
-        final ProjectDescriptor projectDescriptor = toDescriptor(project);
+        final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
-                 projectDescriptor.getProjectTypeId(), EnvironmentContext.getCurrent().getWorkspaceName(),
+                 projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
         return projectDescriptor;
     }
@@ -707,7 +684,7 @@ public class ProjectService extends Service {
         final FolderEntry parent = asFolder(workspace, path);
         VirtualFileSystemImpl.importZip(parent.getVirtualFile(), zip, true);
         if (parent.isProjectFolder()) {
-            Project project = new Project(workspace, parent, projectManager);
+            Project project = new Project(parent, projectManager);
             eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
             final String projectType = project.getDescription().getProjectType().getId();
             LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", path, projectType,
@@ -779,21 +756,13 @@ public class ProjectService extends Service {
         final FolderEntry folder = asFolder(workspace, path);
         final List<VirtualFileEntry> children = folder.getChildren();
         final ArrayList<ItemReference> result = new ArrayList<>(children.size());
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         for (VirtualFileEntry child : children) {
-            final ItemReference itemReference = dtoFactory.createDto(ItemReference.class)
-                                                          .withName(child.getName())
-                                                          .withPath(child.getPath());
             if (child.isFile()) {
-                itemReference.withType("file")
-                             .withMediaType(((FileEntry)child).getMediaType())
-                             .withLinks(generateFileLinks(workspace, (FileEntry)child));
+                result.add(DtoConverter.toItemReferenceDto((FileEntry)child, uriBuilder.clone()));
             } else {
-                final FolderEntry childFolder = (FolderEntry)child;
-                itemReference.withType(childFolder.isProjectFolder() ? "project" : "folder")
-                             .withMediaType("text/directory")
-                             .withLinks(generateFolderLinks(workspace, childFolder));
+                result.add(DtoConverter.toItemReferenceDto((FolderEntry)child, uriBuilder.clone()));
             }
-            result.add(itemReference);
         }
         return result;
     }
@@ -819,17 +788,14 @@ public class ProjectService extends Service {
                                @DefaultValue("1") @QueryParam("depth") int depth)
             throws NotFoundException, ForbiddenException, ServerException {
         final FolderEntry folder = asFolder(workspace, path);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
         return dtoFactory.createDto(TreeElement.class)
-                         .withNode(dtoFactory.createDto(ItemReference.class)
-                                             .withName(folder.getName())
-                                             .withPath(folder.getPath())
-                                             .withType(folder.isProjectFolder() ? "project" : "folder")
-                                             .withMediaType("text/directory")
-                                             .withLinks(generateFolderLinks(workspace, folder)))
-                         .withChildren(getTree(workspace, folder, depth));
+                         .withNode(DtoConverter.toItemReferenceDto(folder, uriBuilder.clone()))
+                         .withChildren(getTree(folder, depth, uriBuilder, dtoFactory));
     }
 
-    private List<TreeElement> getTree(String workspace, FolderEntry folder, int depth) throws ServerException {
+    private List<TreeElement> getTree(FolderEntry folder, int depth, UriBuilder uriBuilder, DtoFactory dtoFactory) throws ServerException {
         if (depth == 0) {
             return null;
         }
@@ -837,13 +803,8 @@ public class ProjectService extends Service {
         final List<TreeElement> nodes = new ArrayList<>(childFolders.size());
         for (FolderEntry childFolder : childFolders) {
             nodes.add(dtoFactory.createDto(TreeElement.class)
-                                .withNode(dtoFactory.createDto(ItemReference.class)
-                                                    .withName(childFolder.getName())
-                                                    .withPath(childFolder.getPath())
-                                                    .withType("folder")
-                                                    .withMediaType("text/directory")
-                                                    .withLinks(generateFolderLinks(workspace, childFolder)))
-                                .withChildren(getTree(workspace, childFolder, depth - 1)));
+                                .withNode(DtoConverter.toItemReferenceDto(childFolder, uriBuilder.clone()))
+                                .withChildren(getTree(childFolder, depth - 1, uriBuilder, dtoFactory)));
         }
         return nodes;
     }
@@ -899,6 +860,7 @@ public class ProjectService extends Service {
             final int length = maxItems > 0 ? Math.min(result.length, maxItems) : result.length;
             final List<ItemReference> items = new ArrayList<>(length);
             final FolderEntry root = projectManager.getProjectsRoot(workspace);
+            final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
             for (int i = skipCount; i < length; i++) {
                 VirtualFileEntry child = null;
                 try {
@@ -907,12 +869,7 @@ public class ProjectService extends Service {
                     // Ignore item that user can't access
                 }
                 if (child != null && child.isFile()) {
-                    items.add(dtoFactory.createDto(ItemReference.class)
-                                        .withName(child.getName())
-                                        .withPath(child.getPath())
-                                        .withType("file")
-                                        .withMediaType(((FileEntry)child).getMediaType())
-                                        .withLinks(generateFileLinks(workspace, (FileEntry)child)));
+                    items.add(DtoConverter.toItemReferenceDto((FileEntry)child, uriBuilder.clone()));
                 }
             }
             return items;
@@ -1040,256 +997,257 @@ public class ProjectService extends Service {
         return entry;
     }
 
-    private ProjectDescription toDescription(NewProject newProject) throws ServerException {
-        final ProjectType projectType = projectManager.getTypeDescriptionRegistry().getProjectType(newProject.getProjectTypeId());
-        if (projectType == null) {
-            throw new ServerException(String.format("Invalid project type '%s'. ", newProject.getProjectTypeId()));
-        }
-        final ProjectDescription projectDescription = new ProjectDescription(projectType);
-        projectDescription.setBuilder(newProject.getBuilder());
-        projectDescription.setRunner(newProject.getRunner());
-        projectDescription.setDefaultBuilderEnvironment(newProject.getDefaultBuilderEnvironment());
-        projectDescription.setDefaultRunnerEnvironment(newProject.getDefaultRunnerEnvironment());
-        projectDescription.setDescription(newProject.getDescription());
-        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors =
-                newProject.getBuilderEnvironmentConfigurations();
-        if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
-            final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs = new HashMap<>(builderEnvConfigDescriptors.size());
-            for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
-                final BuilderEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                builderEnvConfigs.put(e.getKey(), new BuilderEnvironmentConfiguration(envConfigDescriptor.getOptions()));
-            }
-            projectDescription.setBuilderEnvironmentConfigurations(builderEnvConfigs);
-        }
-        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
-                newProject.getRunnerEnvironmentConfigurations();
-        if (!(runnerEnvConfigDescriptors == null || runnerEnvConfigDescriptors.isEmpty())) {
-            final Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs = new HashMap<>(runnerEnvConfigDescriptors.size());
-            for (Map.Entry<String, RunnerEnvironmentConfigurationDescriptor> e : runnerEnvConfigDescriptors.entrySet()) {
-                final RunnerEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                runnerEnvConfigs.put(e.getKey(), new RunnerEnvironmentConfiguration(envConfigDescriptor.getRequiredMemorySize(),
-                                                                                    envConfigDescriptor.getRecommendedMemorySize(),
-                                                                                    envConfigDescriptor.getDefaultMemorySize(),
-                                                                                    envConfigDescriptor.getOptions()));
-            }
-            projectDescription.setRunnerEnvironmentConfigurations(runnerEnvConfigs);
-        }
-        final Map<String, List<String>> projectAttributeValues = newProject.getAttributes();
-        if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {
-            final List<Attribute> projectAttributes = new ArrayList<>(projectAttributeValues.size());
-            for (Map.Entry<String, List<String>> e : projectAttributeValues.entrySet()) {
-                projectAttributes.add(new Attribute(e.getKey(), e.getValue()));
-            }
-            projectDescription.setAttributes(projectAttributes);
-        }
-        return projectDescription;
-    }
-
-    private ProjectDescription toDescription(ProjectUpdate update) throws ServerException {
-        final ProjectType projectType = projectManager.getTypeDescriptionRegistry().getProjectType(update.getProjectTypeId());
-        if (projectType == null) {
-            throw new ServerException(String.format("Invalid project type '%s'. ", update.getProjectTypeId()));
-        }
-        final ProjectDescription projectDescription = new ProjectDescription(projectType);
-        projectDescription.setBuilder(update.getBuilder());
-        projectDescription.setRunner(update.getRunner());
-        projectDescription.setDefaultBuilderEnvironment(update.getDefaultBuilderEnvironment());
-        projectDescription.setDefaultRunnerEnvironment(update.getDefaultRunnerEnvironment());
-        projectDescription.setDescription(update.getDescription());
-        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors =
-                update.getBuilderEnvironmentConfigurations();
-        if (!(builderEnvConfigDescriptors == null || builderEnvConfigDescriptors.isEmpty())) {
-            final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs = new HashMap<>(builderEnvConfigDescriptors.size());
-            for (Map.Entry<String, BuilderEnvironmentConfigurationDescriptor> e : builderEnvConfigDescriptors.entrySet()) {
-                final BuilderEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                builderEnvConfigs.put(e.getKey(), new BuilderEnvironmentConfiguration(envConfigDescriptor.getOptions()));
-            }
-            projectDescription.setBuilderEnvironmentConfigurations(builderEnvConfigs);
-        }
-        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors =
-                update.getRunnerEnvironmentConfigurations();
-        if (!(runnerEnvConfigDescriptors == null || runnerEnvConfigDescriptors.isEmpty())) {
-            final Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs = new HashMap<>(runnerEnvConfigDescriptors.size());
-            for (Map.Entry<String, RunnerEnvironmentConfigurationDescriptor> e : runnerEnvConfigDescriptors.entrySet()) {
-                final RunnerEnvironmentConfigurationDescriptor envConfigDescriptor = e.getValue();
-                runnerEnvConfigs.put(e.getKey(), new RunnerEnvironmentConfiguration(envConfigDescriptor.getRequiredMemorySize(),
-                                                                                    envConfigDescriptor.getRecommendedMemorySize(),
-                                                                                    envConfigDescriptor.getDefaultMemorySize(),
-                                                                                    envConfigDescriptor.getOptions()));
-            }
-            projectDescription.setRunnerEnvironmentConfigurations(runnerEnvConfigs);
-        }
-        final Map<String, List<String>> projectAttributeValues = update.getAttributes();
-        if (!(projectAttributeValues == null || projectAttributeValues.isEmpty())) {
-            final List<Attribute> projectAttributes = new ArrayList<>(projectAttributeValues.size());
-            for (Map.Entry<String, List<String>> e : projectAttributeValues.entrySet()) {
-                projectAttributes.add(new Attribute(e.getKey(), e.getValue()));
-            }
-            projectDescription.setAttributes(projectAttributes);
-        }
-        return projectDescription;
-    }
-
-    private ProjectDescriptor toDescriptor(Project project) throws ServerException, ConflictException {
-        final ProjectDescriptor descriptor = dtoFactory.createDto(ProjectDescriptor.class);
-        fillDescriptor(project, descriptor);
-        return descriptor;
-    }
-
-    private void fillDescriptor(Project project, ProjectDescriptor descriptor) throws ConflictException, ServerException {
-        final String workspaceId = project.getWorkspace();
-        final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
-        final ProjectDescription description = project.getDescription();
-        final ProjectType type = description.getProjectType();
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final Map<String, List<String>> attributeValues = new LinkedHashMap<>();
-        for (Attribute attribute : description.getAttributes()) {
-            attributeValues.put(attribute.getName(), attribute.getValues());
-        }
-        final User currentUser = EnvironmentContext.getCurrent().getUser();
-        final List<AccessControlEntry> acl = project.getPermissions();
-        final List<String> userPermissions = new LinkedList<>();
-        if (acl.isEmpty()) {
-            // there is no any restriction at all
-            userPermissions.add("all");
-        } else {
-            for (AccessControlEntry accessControlEntry : acl) {
-                final Principal principal = accessControlEntry.getPrincipal();
-                if ((Principal.Type.USER == principal.getType() && currentUser.getName().equals(principal.getName()))
-                    || (Principal.Type.USER == principal.getType() && "any".equals(principal.getName()))
-                    || (Principal.Type.GROUP == principal.getType() && currentUser.isMemberOf(principal.getName()))) {
-
-                    userPermissions.addAll(accessControlEntry.getPermissions());
-                }
-            }
-        }
-        final Map<String, BuilderEnvironmentConfiguration> builderEnvConfigs = description.getBuilderEnvironmentConfigurations();
-        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderEnvConfigDescriptors = new LinkedHashMap<>();
-        for (Map.Entry<String, BuilderEnvironmentConfiguration> e : builderEnvConfigs.entrySet()) {
-            builderEnvConfigDescriptors.put(e.getKey(), dtoFactory.createDto(BuilderEnvironmentConfigurationDescriptor.class));
-        }
-        final Map<String, RunnerEnvironmentConfiguration> runnerEnvConfigs = description.getRunnerEnvironmentConfigurations();
-        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerEnvConfigDescriptors = new LinkedHashMap<>();
-        for (Map.Entry<String, RunnerEnvironmentConfiguration> e : runnerEnvConfigs.entrySet()) {
-            final RunnerEnvironmentConfiguration envConfig = e.getValue();
-            runnerEnvConfigDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
-                                                                 .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
-                                                                 .withRequiredMemorySize(envConfig.getRequiredMemorySize())
-                                                                 .withDefaultMemorySize(envConfig.getDefaultMemorySize())
-                                                                 .withOptions(envConfig.getOptions()));
-        }
-        descriptor.withName(project.getName())
-                  .withPath(project.getBaseFolder().getPath())
-                  .withBaseUrl(uriBuilder.clone().path(project.getBaseFolder().getPath()).build(workspaceId).toString())
-                  .withProjectTypeId(type.getId())
-                  .withProjectTypeName(type.getName())
-                  .withWorkspaceId(workspaceId)
-                  .withWorkspaceName(workspaceName)
-                  .withBuilder(description.getBuilder())
-                  .withRunner(description.getRunner())
-                  .withDefaultBuilderEnvironment(description.getDefaultBuilderEnvironment())
-                  .withDefaultRunnerEnvironment(description.getDefaultRunnerEnvironment())
-                  .withBuilderEnvironmentConfigurations(builderEnvConfigDescriptors)
-                  .withRunnerEnvironmentConfigurations(runnerEnvConfigDescriptors)
-                  .withDescription(description.getDescription())
-                  .withVisibility(project.getVisibility())
-                  .withCurrentUserPermissions(userPermissions)
-                  .withAttributes(attributeValues)
-                  .withCreationDate(project.getCreationDate())
-                  .withModificationDate(project.getModificationDate())
-                  .withLinks(generateProjectLinks(workspaceId, project))
-                  .withIdeUrl(workspaceName != null
-                              ? uriBuilder.clone().replacePath("ws").path(workspaceName).path(project.getPath()).build().toString()
-                              : null);
-    }
-
-    private ProjectReference toReference(Project project) {
-        final String name = project.getName();
-        final String path = project.getPath();
-        final String workspaceId = project.getWorkspace();
-        final String workspaceName = EnvironmentContext.getCurrent().getWorkspaceName();
-        final ProjectReference projectReference = dtoFactory.createDto(ProjectReference.class)
-                                                            .withName(name)
-                                                            .withPath(path)
-                                                            .withWorkspaceId(workspaceId)
-                                                            .withWorkspaceName(workspaceName);
-        try {
-            final ProjectDescription description = project.getDescription();
-            final ProjectType type = description.getProjectType();
-            projectReference.withProjectTypeId(type.getId())
-                            .withProjectTypeName(type.getName())
-                            .withDescription(description.getDescription());
-        } catch (ServerException | ValueStorageException e) {
-            return projectReference.withObjectStatus(createObjectStatus(e));
-        }
-        try {
-            projectReference.setVisibility(project.getVisibility());
-        } catch (ServerException e) {
-            return projectReference.withObjectStatus(createObjectStatus(e));
-        }
-        try {
-            projectReference.setCreationDate(project.getCreationDate());
-        } catch (ServerException e) {
-            return projectReference.withObjectStatus(createObjectStatus(e));
-        }
-        try {
-            projectReference.setModificationDate(project.getModificationDate());
-        } catch (ServerException e) {
-            return projectReference.withObjectStatus(createObjectStatus(e));
-        }
-        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final String projectUrl = uriBuilder.clone().path(getClass(), "getProject").build(workspaceId, name).toString();
-        projectReference.setUrl(projectUrl);
-        if (workspaceName != null) {
-            final String ideUrl = uriBuilder.clone().replacePath("ws").path(workspaceName).path(path).build().toString();
-            projectReference.setIdeUrl(ideUrl);
-        }
-        return projectReference;
-    }
-
-    private ObjectStatus createObjectStatus(ApiException error) {
-        // TODO: setup error code
-        return dtoFactory.createDto(ObjectStatus.class).withCode(1).withMessage(error.getMessage());
-    }
-
-    private List<Link> generateProjectLinks(String workspace, Project project) {
-        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
-        final List<Link> links = generateFolderLinks(workspace, project.getBaseFolder());
-        final String relPath = project.getPath().substring(1);
-        links.add(Links.createLink("PUT", ub.clone().path(getClass(), "updateProject").build(workspace, relPath).toString(),
-                                   MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_UPDATE_PROJECT));
-        return links;
-    }
-
-    private List<Link> generateFolderLinks(String workspace, FolderEntry folder) {
-        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
-        final List<Link> links = new LinkedList<>();
-        final String relPath = folder.getPath().substring(1);
-        //String method, String href, String produces, String rel
-        links.add(Links.createLink("GET", ub.clone().path(getClass(), "exportZip").build(workspace, relPath).toString(), "application/zip",
-                                   Constants.LINK_REL_EXPORT_ZIP));
-        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getChildren").build(workspace, relPath).toString(),
-                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_CHILDREN));
-        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getTree").build(workspace, relPath).toString(), null,
-                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_TREE,
-                                   dtoFactory.createDto(LinkParameter.class).withName("depth").withType(ParameterType.Number)));
-        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getModules").build(workspace, relPath).toString(),
-                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_MODULES));
-        links.add(Links.createLink("DELETE", ub.clone().path(getClass(), "delete").build(workspace, relPath).toString(),
-                                   Constants.LINK_REL_DELETE));
-        return links;
-    }
-
-    private List<Link> generateFileLinks(String workspace, FileEntry file) throws ServerException {
-        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
-        final List<Link> links = new LinkedList<>();
-        final String relPath = file.getPath().substring(1);
-        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getFile").build(workspace, relPath).toString(), null,
-                                   file.getMediaType(), Constants.LINK_REL_GET_CONTENT));
-        links.add(Links.createLink("PUT", ub.clone().path(getClass(), "updateFile").build(workspace, relPath).toString(),
-                                   MediaType.WILDCARD, null, Constants.LINK_REL_UPDATE_CONTENT));
-        links.add(Links.createLink("DELETE", ub.clone().path(getClass(), "delete").build(workspace, relPath).toString(),
-                                   Constants.LINK_REL_DELETE));
-        return links;
-    }
+//    // Method for conversion from DTO.
+//
+//    private ProjectDescription fromDto(ProjectUpdate dto) throws ServerException {
+//        final String typeId = dto.getType();
+//        ProjectType projectType;
+//        if (typeId == null) {
+//            // Treat type as blank type if type is not set in .codenvy/project.json
+//            projectType = ProjectType.BLANK;
+//        } else {
+//            projectType = projectManager.getTypeDescriptionRegistry().getProjectType(typeId);
+//            if (projectType == null) {
+//                // Type is unknown but set in codenvy/.project.json
+//                projectType = new ProjectType(typeId);
+//            }
+//        }
+//        final ProjectDescription projectDescription = new ProjectDescription(projectType);
+//        projectDescription.setDescription(dto.getDescription());
+//        final Map<String, List<String>> updateAttributes = dto.getAttributes();
+//        if (!(updateAttributes == null || updateAttributes.isEmpty())) {
+//            final List<Attribute> attributes = new ArrayList<>(updateAttributes.size());
+//            for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
+//                attributes.add(new Attribute(e.getKey(), e.getValue()));
+//            }
+//            projectDescription.setAttributes(attributes);
+//        }
+//        final BuildersDescriptor buildersDescriptor = dto.getBuilders();
+//        if (buildersDescriptor != null) {
+//            projectDescription.setBuilders(fromDto(buildersDescriptor));
+//        }
+//        final RunnersDescriptor runnersDescriptor = dto.getRunners();
+//        if (runnersDescriptor != null) {
+//            projectDescription.setRunners(fromDto(runnersDescriptor));
+//        }
+//        return projectDescription;
+//    }
+//
+//    private Builders fromDto(BuildersDescriptor dto) {
+//        return new Builders(dto.getDefault());
+//    }
+//
+//    private Runners fromDto(RunnersDescriptor dto) {
+//        final Runners runners = new Runners(dto.getDefault());
+//        for (Map.Entry<String, RunnerConfiguration> e : dto.getConfigs().entrySet()) {
+//            final RunnerConfiguration config = e.getValue();
+//            if (config != null) {
+//                runners.getConfigs().put(e.getKey(), new Runners.Config(config.getRam(), config.getOptions(), config.getVariables()));
+//            }
+//        }
+//        return runners;
+//    }
+//
+//    // Methods for conversion to DTO.
+//
+//    private ProjectDescriptor toDescriptorDto(Project project) {
+//        final EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
+//        final ProjectDescriptor dto = dtoFactory.createDto(ProjectDescriptor.class);
+//        // Try to provide as much as possible information about project.
+//        // If get error then save information about error in ObjectStatus and set corresponded field in ProjectDescriptor.
+//        final String wsId = project.getWorkspace();
+//        final String wsName = environmentContext.getWorkspaceName();
+//        final String name = project.getName();
+//        final String path = project.getPath();
+//        dto.withWorkspaceId(wsId).withWorkspaceName(wsName).withName(name).withPath(path);
+//
+//        ProjectDescription projectDescription = null;
+//        try {
+//            projectDescription = project.getDescription();
+//        } catch (ServerException | ValueStorageException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//        if (projectDescription != null) {
+//            dto.withDescription(projectDescription.getDescription());
+//            final ProjectType projectType = projectDescription.getProjectType();
+//            dto.withType(projectType.getId()).withTypeName(projectType.getName());
+//            final Map<String, List<String>> attributesMap = new LinkedHashMap<>();
+//            for (Attribute attribute : projectDescription.getAttributes()) {
+//                try {
+//                    attributesMap.put(attribute.getName(), attribute.getValues());
+//                } catch (ValueStorageException e) {
+//                    dto.getProblems().add(createProjectProblem(e));
+//                }
+//            }
+//            dto.withAttributes(attributesMap);
+//
+//            dto.withBuilders(toDto(projectDescription.getBuilders()));
+//            dto.withRunners(toDto(projectDescription.getRunners()));
+//        }
+//
+//        final User currentUser = environmentContext.getUser();
+//        List<AccessControlEntry> acl = null;
+//        try {
+//            acl = project.getPermissions();
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//        if (acl != null) {
+//            final List<String> permissions = new LinkedList<>();
+//            if (acl.isEmpty()) {
+//                // there is no any restriction at all
+//                permissions.add("all");
+//            } else {
+//                for (AccessControlEntry accessControlEntry : acl) {
+//                    final Principal principal = accessControlEntry.getPrincipal();
+//                    if ((Principal.Type.USER == principal.getType() && currentUser.getName().equals(principal.getName()))
+//                        || (Principal.Type.USER == principal.getType() && "any".equals(principal.getName()))
+//                        || (Principal.Type.GROUP == principal.getType() && currentUser.isMemberOf(principal.getName()))) {
+//
+//                        permissions.addAll(accessControlEntry.getPermissions());
+//                    }
+//                }
+//            }
+//            dto.withPermissions(permissions);
+//        }
+//
+//        try {
+//            dto.withCreationDate(project.getCreationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//
+//        try {
+//            dto.withModificationDate(project.getModificationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//
+//        try {
+//            dto.withVisibility(project.getVisibility());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//
+//        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+//        dto.withBaseUrl(uriBuilder.clone().path(getClass(), "getProject").build(wsId, name).toString())
+//           .withLinks(generateProjectLinks(wsId, project));
+//        if (wsName != null) {
+//            dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());
+//        }
+//        return dto;
+//    }
+//
+//    private BuildersDescriptor toDto(Builders builders) {
+//        return dtoFactory.createDto(BuildersDescriptor.class).withDefault(builders.getDefault());
+//    }
+//
+//    private RunnersDescriptor toDto(Runners runners) {
+//        final RunnersDescriptor dto = dtoFactory.createDto(RunnersDescriptor.class).withDefault(runners.getDefault());
+//        final Map<String, Runners.Config> configs = runners.getConfigs();
+//        Map<String, RunnerConfiguration> configsDto = new LinkedHashMap<>(configs.size());
+//        for (Map.Entry<String, Runners.Config> e : configs.entrySet()) {
+//            final Runners.Config config = e.getValue();
+//            if (config != null) {
+//                configsDto.put(e.getKey(), dtoFactory.createDto(RunnerConfiguration.class)
+//                                                     .withRam(config.getRam())
+//                                                     .withOptions(config.getOptions())
+//                                                     .withVariables(config.getVariables())
+//                              );
+//            }
+//        }
+//        dto.withConfigs(configsDto);
+//        return dto;
+//    }
+//
+//    private ProjectReference toReferenceDto(Project project) {
+//        final EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
+//        final ProjectReference dto = dtoFactory.createDto(ProjectReference.class);
+//        final String wsId = project.getWorkspace();
+//        final String wsName = environmentContext.getWorkspaceName();
+//        final String name = project.getName();
+//        final String path = project.getPath();
+//        dto.withName(name).withPath(path).withWorkspaceId(wsId).withWorkspaceName(wsName);
+//        dto.withWorkspaceId(wsId).withWorkspaceName(wsName).withName(name).withPath(path);
+//
+//        try {
+//            final ProjectDescription projectDescription = project.getDescription();
+//            dto.withDescription(projectDescription.getDescription());
+//            final ProjectType projectType = projectDescription.getProjectType();
+//            dto.withType(projectType.getId()).withTypeName(projectType.getName());
+//        } catch (ServerException | ValueStorageException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//
+//        try {
+//            dto.withCreationDate(project.getCreationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//
+//        try {
+//            dto.withModificationDate(project.getModificationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//
+//        try {
+//            dto.withVisibility(project.getVisibility());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(e));
+//        }
+//
+//        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+//        dto.withUrl(uriBuilder.clone().path(getClass(), "getProject").build(wsId, name).toString());
+//        if (wsName != null) {
+//            dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());
+//        }
+//        return dto;
+//    }
+//
+//    private ProjectProblem createProjectProblem(ApiException error) {
+//        // TODO: setup error code
+//        return dtoFactory.createDto(ProjectProblem.class).withCode(1).withMessage(error.getMessage());
+//    }
+//
+//    private List<Link> generateProjectLinks(String workspace, Project project) {
+//        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
+//        final List<Link> links = generateFolderLinks(workspace, project.getBaseFolder());
+//        final String relPath = project.getPath().substring(1);
+//        links.add(Links.createLink("PUT", ub.clone().path(getClass(), "updateProject").build(workspace, relPath).toString(),
+//                                   MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_UPDATE_PROJECT));
+//        return links;
+//    }
+//
+//    private List<Link> generateFolderLinks(String workspace, FolderEntry folder) {
+//        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
+//        final List<Link> links = new LinkedList<>();
+//        final String relPath = folder.getPath().substring(1);
+//        //String method, String href, String produces, String rel
+//        links.add(Links.createLink("GET", ub.clone().path(getClass(), "exportZip").build(workspace, relPath).toString(), "application/zip",
+//                                   Constants.LINK_REL_EXPORT_ZIP));
+//        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getChildren").build(workspace, relPath).toString(),
+//                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_CHILDREN));
+//        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getTree").build(workspace, relPath).toString(), null,
+//                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_TREE,
+//                                   dtoFactory.createDto(LinkParameter.class).withName("depth").withType(ParameterType.Number)));
+//        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getModules").build(workspace, relPath).toString(),
+//                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_MODULES));
+//        links.add(Links.createLink("DELETE", ub.clone().path(getClass(), "delete").build(workspace, relPath).toString(),
+//                                   Constants.LINK_REL_DELETE));
+//        return links;
+//    }
+//
+//    private List<Link> generateFileLinks(String workspace, FileEntry file) throws ServerException {
+//        final UriBuilder ub = getServiceContext().getServiceUriBuilder();
+//        final List<Link> links = new LinkedList<>();
+//        final String relPath = file.getPath().substring(1);
+//        links.add(Links.createLink("GET", ub.clone().path(getClass(), "getFile").build(workspace, relPath).toString(), null,
+//                                   file.getMediaType(), Constants.LINK_REL_GET_CONTENT));
+//        links.add(Links.createLink("PUT", ub.clone().path(getClass(), "updateFile").build(workspace, relPath).toString(),
+//                                   MediaType.WILDCARD, null, Constants.LINK_REL_UPDATE_CONTENT));
+//        links.add(Links.createLink("DELETE", ub.clone().path(getClass(), "delete").build(workspace, relPath).toString(),
+//                                   Constants.LINK_REL_DELETE));
+//        return links;
+//    }
 }

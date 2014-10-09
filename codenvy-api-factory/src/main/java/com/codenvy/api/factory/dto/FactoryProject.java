@@ -19,6 +19,7 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 /**
  * @author Sergii Leschenko
  */
+@Deprecated
 @DTO
 public interface FactoryProject extends NewProject {
     /** Get name of project. */

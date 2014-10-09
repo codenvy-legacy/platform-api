@@ -17,6 +17,7 @@ package com.codenvy.api.project.server;
  * @see ProjectEventService
  * @see ProjectEvent
  */
+@Deprecated
 public interface ProjectEventListener {
     void onEvent(ProjectEvent event);
 }

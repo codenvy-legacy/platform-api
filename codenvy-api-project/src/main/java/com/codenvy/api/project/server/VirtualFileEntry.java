@@ -18,13 +18,22 @@ import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 
 /**
+ * Wrapper for VirtualFile.
+ *
  * @author andrew00x
  */
 public abstract class VirtualFileEntry {
-    private VirtualFile virtualFile;
+    private final String      workspace;
+    private       VirtualFile virtualFile;
 
-    public VirtualFileEntry(VirtualFile virtualFile) {
+    public VirtualFileEntry(String workspace, VirtualFile virtualFile) {
+        this.workspace = workspace;
         this.virtualFile = virtualFile;
+    }
+
+    /** Gets id of workspace which file belongs to. */
+    public String getWorkspace() {
+        return workspace;
     }
 
     /**
@@ -73,7 +82,7 @@ public abstract class VirtualFileEntry {
         if (virtualFile.isRoot()) {
             return null;
         }
-        return new FolderEntry(virtualFile.getParent());
+        return new FolderEntry(workspace, virtualFile.getParent());
     }
 
     /**

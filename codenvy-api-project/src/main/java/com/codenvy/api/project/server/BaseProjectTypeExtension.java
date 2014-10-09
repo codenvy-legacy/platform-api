@@ -23,7 +23,7 @@ import java.util.Map;
  * UnknownProjectType. This is temporary solution maybe removed in future.
  */
 @Singleton
-public class BaseProjectTypeExtension implements ProjectTypeExtension {
+public class BaseProjectTypeExtension implements ProjectTypeExtension, ProjectTypeDescriptionExtension {
     @Inject
     public BaseProjectTypeExtension(ProjectTypeDescriptionRegistry registry) {
         registry.registerProjectType(this);
@@ -57,5 +57,15 @@ public class BaseProjectTypeExtension implements ProjectTypeExtension {
     @Override
     public Map<String, String> getIconRegistry() {
         return null;
+    }
+
+    @Override
+    public List<ProjectType> getProjectTypes() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<AttributeDescription> getAttributeDescriptions() {
+        return Collections.singletonList(new AttributeDescription(Constants.VCS_PROVIDER_NAME));
     }
 }

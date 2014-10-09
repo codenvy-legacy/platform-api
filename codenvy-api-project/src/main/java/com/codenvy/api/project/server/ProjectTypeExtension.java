@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +25,10 @@ public interface ProjectTypeExtension {
     /** Gets ProjectType registered with this {@code ProjectTypeExtension}. */
     ProjectType getProjectType();
 
-    /** Gets list of predefined attributes for ProjectType registered with this {@code ProjectTypeExtension}. */
+    /** Gets list of predefined attributes for ProjectType registered with this {@code ProjectTypeExtension}.
+     * Can't be null. In case no attributes description must return empty list.
+     * */
+    @Nonnull
     List<Attribute> getPredefinedAttributes();
 
     /** Gets builder configurations. */

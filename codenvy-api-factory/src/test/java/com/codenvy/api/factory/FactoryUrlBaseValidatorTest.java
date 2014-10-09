@@ -14,6 +14,7 @@ import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.factory.dto.Factory;
@@ -40,9 +41,9 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -56,7 +57,6 @@ public class FactoryUrlBaseValidatorTest {
 
     @Mock
     private AccountDao accountDao;
-
 
     @Mock
     private UserDao userDao;
@@ -73,11 +73,9 @@ public class FactoryUrlBaseValidatorTest {
     @InjectMocks
     private TestFactoryUrlBaseValidator validator;
 
-    private SimpleDateFormat datetimeFormatter;
-
     private Member member;
 
-    private Factory url;
+    private Factory factory;
 
 
     @BeforeMethod
@@ -86,7 +84,7 @@ public class FactoryUrlBaseValidatorTest {
         nonencoded.setV("1.2");
         nonencoded.setVcs("git");
         nonencoded.setVcsurl(VALID_REPOSITORY_URL);
-        url = nonencoded;
+        factory = nonencoded;
 
         User user = new User().withId("userid");
 
@@ -98,16 +96,16 @@ public class FactoryUrlBaseValidatorTest {
         when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(member));
         when(userDao.getById("userid")).thenReturn(user);
         when(profileDao.getById(anyString())).thenReturn(new Profile());
-        url.setOrgid(ID);
-        url.setUserid("userid");
+        factory.setOrgid(ID);
+        factory.setUserid("userid");
     }
 
     @Test
     public void shouldBeAbleToValidateFactoryUrlObject() throws ApiException {
-        validator.validateSource(url);
-        validator.validateProjectName(url);
-        validator.validateOrgid(url);
-        validator.validateTrackedFactoryAndParams(url);
+        validator.validateSource(factory);
+        validator.validateProjectName(factory);
+        validator.validateOrgid(factory);
+        validator.validateTrackedFactoryAndParams(factory);
     }
 
 
@@ -117,28 +115,28 @@ public class FactoryUrlBaseValidatorTest {
                   "For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.")
     public void shouldNotValidateIfVcsurlContainIncorrectEncodedSymbol() throws ApiException {
         // given
-        url.setVcsurl("http://codenvy.com/git/04%2");
+        factory.setVcsurl("http://codenvy.com/git/04%2");
 
         // when, then
-        validator.validateSource(url);
+        validator.validateSource(factory);
     }
 
     @Test
     public void shouldValidateIfVcsurlIsCorrectSsh() throws ApiException {
         // given
-        url.setVcsurl("ssh://codenvy@review.gerrithub.io:29418/codenvy/exampleProject");
+        factory.setVcsurl("ssh://codenvy@review.gerrithub.io:29418/codenvy/exampleProject");
 
         // when, then
-        validator.validateSource(url);
+        validator.validateSource(factory);
     }
 
     @Test
     public void shouldValidateIfVcsurlIsCorrectHttps() throws ApiException {
         // given
-        url.setVcsurl("https://github.com/codenvy/example.git");
+        factory.setVcsurl("https://github.com/codenvy/example.git");
 
         // when, then
-        validator.validateSource(url);
+        validator.validateSource(factory);
     }
 
     @Test(dataProvider = "badAdvancedFactoryUrlProvider", expectedExceptions = ApiException.class)
@@ -174,19 +172,19 @@ public class FactoryUrlBaseValidatorTest {
           expectedExceptionsMessageRegExp = "Project name must contain only Latin letters, digits or these following special characters -._.")
     public void shouldThrowFactoryUrlExceptionIfProjectNameInvalid(String projectName) throws Exception {
         // given
-        url.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(projectName));
+        factory.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(projectName));
 
         // when, then
-        validator.validateProjectName(url);
+        validator.validateProjectName(factory);
     }
 
     @Test(dataProvider = "validProjectNamesProvider")
     public void shouldBeAbleToValidateValidProjectName(String projectName) throws Exception {
         // given
-        url.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(projectName));
+        factory.setProjectattributes(DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname(projectName));
 
         // when, then
-        validator.validateProjectName(url);
+        validator.validateProjectName(factory);
     }
 
     @DataProvider(name = "validProjectNamesProvider")
@@ -219,78 +217,77 @@ public class FactoryUrlBaseValidatorTest {
 
     @Test
     public void shouldBeAbleToValidateIfOrgIdIsValid() throws ApiException, ParseException {
-        validator.validateOrgid(url);
+        validator.validateOrgid(factory);
     }
 
     @Test
     public void shouldBeAbleToValidateIfOrgIdAndOwnerAreValid()
             throws ApiException, ParseException {
         // when, then
-        validator.validateOrgid(url);
+        validator.validateOrgid(factory);
     }
 
     @Test(expectedExceptions = ApiException.class)
-    public void shouldNotValidateIfAccountDoesNotExist() throws ApiException, NotFoundException, ServerException {
+    public void shouldNotValidateIfAccountDoesNotExist() throws ApiException {
         when(accountDao.getMembers(anyString())).thenReturn(Collections.<Member>emptyList());
 
-        validator.validateOrgid(url);
+        validator.validateOrgid(factory);
     }
 
     @Test(expectedExceptions = ApiException.class, expectedExceptionsMessageRegExp = "You are not authorized to use this orgid.")
     public void shouldNotValidateIfFactoryOwnerIsNotOrgidOwner()
-            throws ApiException, ParseException,
-                   ServerException {
+            throws ApiException, ParseException {
         Member wronMember = member;
         wronMember.setUserId("anotheruserid");
         when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(wronMember));
 
         // when, then
-        validator.validateOrgid(url);
+        validator.validateOrgid(factory);
     }
 
     @Test(expectedExceptions = ApiException.class)
     public void shouldNotValidateIfAccountDoesntHaveFactorySubscriptions()
-            throws ApiException, ParseException, ServerException, NotFoundException {
+            throws ApiException, ParseException {
         // given
         when(accountDao.getSubscriptions(ID, "Factory")).thenReturn(Collections.<Subscription>emptyList());
         // when, then
-        validator.validateTrackedFactoryAndParams(url);
+        validator.validateTrackedFactoryAndParams(factory);
     }
 
     @Test(expectedExceptions = ApiException.class)
     public void shouldNotValidateIfPackageIsNotTracked()
-            throws ApiException, ParseException, ServerException, NotFoundException {
+            throws ApiException, ParseException {
         // given
         Subscription subscription = new Subscription()
                 .withServiceId("Factory")
                 .withProperties(Collections.singletonMap("Package", "Another"));
         when(accountDao.getSubscriptions(ID, "Factory")).thenReturn(Arrays.asList(subscription));
         // when, then
-        validator.validateTrackedFactoryAndParams(url);
+        validator.validateTrackedFactoryAndParams(factory);
     }
 
     @Test
     public void shouldValidateIfHostNameIsLegal() throws ApiException, ParseException {
         // given
-        url.setRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("notcodenvy.com"));
+        factory.setRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("notcodenvy.com"));
 
         when(request.getHeader("Referer")).thenReturn("http://notcodenvy.com/factories-examples");
 
         // when, then
-        validator.validateTrackedFactoryAndParams(url);
+        validator.validateTrackedFactoryAndParams(factory);
     }
 
     @Test
     public void shouldValidateIfRefererIsRelativeAndCurrentHostnameIsEqualToRequiredHostName()
             throws ApiException, ParseException {
         // given
-        url.setRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("next.codenvy.com"));
+        factory.setRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("next.codenvy.com"));
 
         when(request.getHeader("Referer")).thenReturn("/factories-examples");
         when(request.getServerName()).thenReturn("next.codenvy.com");
 
         // when, then
-        validator.validateTrackedFactoryAndParams(url);
+        validator.validateTrackedFactoryAndParams(factory);
     }
 
     @Test(expectedExceptions = ApiException.class)
@@ -298,11 +295,11 @@ public class FactoryUrlBaseValidatorTest {
         // given
         WelcomePage welcome = DtoFactory.getInstance().createDto(WelcomePage.class);
 
-        url.setWelcome(welcome);
-        url.setOrgid("");
+        factory.setWelcome(welcome);
+        factory.setOrgid("");
 
         // when, then
-        validator.validateTrackedFactoryAndParams(url);
+        validator.validateTrackedFactoryAndParams(factory);
     }
 
     @Test(dataProvider = "trackedFactoryParametersProvider", expectedExceptions = ApiException.class)
@@ -312,16 +309,75 @@ public class FactoryUrlBaseValidatorTest {
         validator.validateTrackedFactoryAndParams(factory);
     }
 
+    @Test
+    public void shouldValidateIfCurrentTimeBeforeSinceUntil() throws ConflictException {
+        Long currentTime = new Date().getTime();
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
+                                          .withValidsince(currentTime + 10000)
+                                          .withValiduntil(currentTime + 20000));
+        validator.validateCurrentTimeBeforeSinceUntil(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class,
+          expectedExceptionsMessageRegExp = FactoryConstants.INCORRECT_VALIDSINCE_MESSAGE)
+    public void shouldNotValidateIfValidSinceBeforeCurrent() throws ApiException {
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(1));
+        validator.validateCurrentTimeBeforeSinceUntil(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class,
+          expectedExceptionsMessageRegExp = FactoryConstants.INCORRECT_VALIDUNTIL_MESSAGE)
+    public void shouldNotValidateIfValidUntilBeforeCurrent() throws ApiException {
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(1));
+        validator.validateCurrentTimeBeforeSinceUntil(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class,
+          expectedExceptionsMessageRegExp = FactoryConstants.INCORRECT_VALIDSINCEUNTIL_MESSAGE)
+    public void shouldNotValidateIfValidUntilBeforeValidSince() throws ApiException {
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
+                                          .withValiduntil(1)
+                                          .withValidsince(2));
+        validator.validateCurrentTimeBeforeSinceUntil(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class,
+          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_VALIDUNTIL_MESSAGE)
+    public void shouldNotValidateIfValidUntilBeforeCurrentTime() throws ApiException {
+        Long currentTime = new Date().getTime();
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
+                                          .withValiduntil(currentTime - 10000));
+        validator.validateCurrentTimeBetweenSinceUntil(factory);
+    }
+
+    @Test
+    public void shouldNotValidateIfCurrentTimeBetweenValidUntilSince() throws ApiException {
+        Long currentTime = new Date().getTime();
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
+                                          .withValidsince(currentTime - 10000)
+                                          .withValiduntil(currentTime + 10000));
+        validator.validateCurrentTimeBetweenSinceUntil(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class,
+          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_VALIDSINCE_MESSAGE)
+    public void shouldValidateIfValidUntilSinceAfterCurrentTime() throws ApiException {
+        Long currentTime = new Date().getTime();
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
+                                          .withValidsince(currentTime + 10000));
+        validator.validateCurrentTimeBetweenSinceUntil(factory);
+    }
+
     @DataProvider(name = "trackedFactoryParametersProvider")
     public Object[][] trackedFactoryParametersProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
-                {url.withWelcome(DtoFactory.getInstance().createDto(WelcomePage.class))},
-                {url.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(123456))},
-                {url.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(123456798))},
-                {url.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withPassword("123456"))},
-                {url.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withMaxsessioncount(1234))},
-                {url.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("host"))},
-                {url.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRestrictbypassword(true))}
+                {factory.withWelcome(DtoFactory.getInstance().createDto(WelcomePage.class))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(123456))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(123456798))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withPassword("123456"))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withMaxsessioncount(1234))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("host"))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRestrictbypassword(true))}
         };
     }
 }

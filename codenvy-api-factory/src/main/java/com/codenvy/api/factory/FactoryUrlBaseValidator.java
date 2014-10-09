@@ -287,15 +287,16 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
-        if (validSince != 0) {
-            if (validUntil != 0) {
-                if (validSince <= validUntil) {
-                    throw new ConflictException("Valid until date should be greater than valid since.");
-                }
-                if (new Date().after(new Date(validUntil))) {
-                    throw new ConflictException("Valid until date can't be less than current date.");
-                }
-            }
+        if (validSince != 0 && validUntil != 0 && validSince >= validUntil) {
+            throw new ConflictException(FactoryConstants.INCORRECT_VALIDSINCEUNTIL_MESSAGE);
+        }
+
+        if (validSince != 0 && new Date().after(new Date(validSince))) {
+            throw new ConflictException(FactoryConstants.INCORRECT_VALIDSINCE_MESSAGE);
+        }
+
+        if (validUntil != 0 && new Date().after(new Date(validUntil))) {
+            throw new ConflictException(FactoryConstants.INCORRECT_VALIDUNTIL_MESSAGE);
         }
     }
 }

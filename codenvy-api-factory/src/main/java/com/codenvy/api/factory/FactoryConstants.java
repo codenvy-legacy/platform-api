@@ -62,6 +62,11 @@ public class FactoryConstants {
             "orgID Submitted: %s \n" +
             "Invalid Parameter Name: %s";
 
+    public static final String INCORRECT_VALIDSINCE_MESSAGE = "Valid since date should be greater than current time.";
+
+    public static final String INCORRECT_VALIDUNTIL_MESSAGE = "Valid until date can't be less than current date.";
+
+    public static final String INCORRECT_VALIDSINCEUNTIL_MESSAGE = "Valid until date should be greater than valid since.";
 
     public static final String ILLEGAL_VALIDSINCE_MESSAGE =
             "This Factory is not yet valid due to time restrictions applied by its owner.  Please, " +

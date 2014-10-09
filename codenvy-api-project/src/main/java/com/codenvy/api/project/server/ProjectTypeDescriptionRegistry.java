@@ -117,7 +117,7 @@ public class ProjectTypeDescriptionRegistry {
                     needAddVcs = 1;
                 }
             }
-            if (needAddVcs > 0) {
+            if (needAddVcs == 0) {
                 finalList.add(new AttributeDescription(Constants.VCS_PROVIDER_NAME));
             }
             attributeDescriptions.put(type.getId(), finalList);

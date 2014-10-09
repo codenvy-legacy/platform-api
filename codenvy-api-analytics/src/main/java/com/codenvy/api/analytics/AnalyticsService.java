@@ -17,7 +17,6 @@ import com.codenvy.api.analytics.shared.dto.MetricInfoDTO;
 import com.codenvy.api.analytics.shared.dto.MetricInfoListDTO;
 import com.codenvy.api.analytics.shared.dto.MetricValueDTO;
 import com.codenvy.api.analytics.shared.dto.MetricValueListDTO;
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -91,7 +90,7 @@ public class AnalyticsService extends Service {
                              @QueryParam("page") String page,
                              @ApiParam(value = "Number of results per page.")
                              @QueryParam("per_page") String perPage,
-                             @Context UriInfo uriInfo) throws ApiException {
+                             @Context UriInfo uriInfo) throws ServerException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
@@ -123,7 +122,7 @@ public class AnalyticsService extends Service {
                                   @PathParam("name") String metricName,
                                   @Context UriInfo uriInfo,
                                   @ApiParam(value = "Search filter", required = true)
-                                  List<Map<String, String>> parameters) throws ApiException {
+                                  List<Map<String, String>> parameters) throws ServerException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
             MetricValueListDTO list = metricHandler.getListValues(metricName, parameters, metricContext, uriInfo);
@@ -144,7 +143,7 @@ public class AnalyticsService extends Service {
                                    @PathParam("name") String metricName,
                                    @QueryParam("page") String page,
                                    @QueryParam("per_page") String perPage,
-                                   @Context UriInfo uriInfo) throws ApiException {
+                                   @Context UriInfo uriInfo) throws ServerException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
@@ -178,7 +177,7 @@ public class AnalyticsService extends Service {
                                    @QueryParam("page") String page,
                                    @ApiParam(value = "Resylts per page")
                                    @QueryParam("per_page") String perPage,
-                                   @Context UriInfo uriInfo) throws ApiException {
+                                   @Context UriInfo uriInfo) throws ServerException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo,
                                                                page,
@@ -206,7 +205,7 @@ public class AnalyticsService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public Response getUserValues(@ApiParam(value = "Metric names", required = true)
-                                      List<String> metricNames, @Context UriInfo uriInfo) throws ApiException {
+                                      List<String> metricNames, @Context UriInfo uriInfo) throws ServerException {
         try {
             Map<String, String> metricContext = extractContext(uriInfo);
             MetricValueListDTO list = metricHandler.getUserValues(new JsonArrayImpl<>(metricNames),
@@ -220,7 +219,7 @@ public class AnalyticsService extends Service {
     }
 
     @ApiOperation(value = "Get metric info",
-                  notes = "Get nformation about specified metric",
+                  notes = "Get information about specified metric",
                   response = MetricInfoDTO.class,
                   position = 6)
     @ApiResponses(value = {
@@ -233,7 +232,7 @@ public class AnalyticsService extends Service {
     @Path("/metricinfo/{name}")
     @RolesAllowed({"user", "system/admin", "system/manager"})
     public Response getInfo(@ApiParam(value = "Metric name", required = true)
-                                @PathParam("name") String metricName, @Context UriInfo uriInfo) throws ApiException {
+                                @PathParam("name") String metricName, @Context UriInfo uriInfo) throws ServerException {
         try {
             MetricInfoDTO metricInfoDTO = metricHandler.getInfo(metricName, uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoDTO).build();
@@ -256,7 +255,7 @@ public class AnalyticsService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/metricinfo")
     @RolesAllowed({"user", "system/admin", "system/manager"})
-    public Response getAllInfo(@Context UriInfo uriInfo) throws ApiException {
+    public Response getAllInfo(@Context UriInfo uriInfo) throws ServerException {
         try {
             MetricInfoListDTO metricInfoListDTO = metricHandler.getAllInfo(uriInfo);
             return Response.status(Response.Status.OK).entity(metricInfoListDTO).build();
@@ -271,7 +270,7 @@ public class AnalyticsService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/{event}")
     @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
-    public Response logEvent(@PathParam("event") String event, EventParameters parameters) throws ApiException {
+    public Response logEvent(@PathParam("event") String event, EventParameters parameters) throws ServerException {
         try {
             eventLogger.log(event, parameters.getParams());
             return Response.status(Response.Status.ACCEPTED).build();
@@ -284,7 +283,7 @@ public class AnalyticsService extends Service {
     @POST
     @Path("log/dashboard-usage/{action}")
     @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
-    public Response logUserDashboardEvent(@PathParam("action") String action) throws ApiException {
+    public Response logUserDashboardEvent(@PathParam("action") String action) throws ServerException {
         try {
             Map<String, String> parameters = new HashMap<>(1);
             parameters.put(EventLogger.ACTION_PARAM, action);

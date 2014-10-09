@@ -259,13 +259,13 @@ public abstract class FactoryUrlBaseValidator {
 
         if (0 != validSince) {
             if (new Date().before(new Date(validSince))) {
-                throw new ConflictException(FactoryConstants.ILLEGAL_VALIDSINCE_MESSAGE);
+                throw new ConflictException(FactoryConstants.ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE);
             }
         }
 
         if (0 != validUntil) {
             if (new Date().after(new Date(validUntil))) {
-                throw new ConflictException(FactoryConstants.ILLEGAL_VALIDUNTIL_MESSAGE);
+                throw new ConflictException(FactoryConstants.ILLEGAL_FACTORY_BY_VALIDUNTIL_MESSAGE);
             }
         }
     }
@@ -288,15 +288,15 @@ public abstract class FactoryUrlBaseValidator {
         }
 
         if (validSince != 0 && validUntil != 0 && validSince >= validUntil) {
-            throw new ConflictException(FactoryConstants.INCORRECT_VALIDSINCEUNTIL_MESSAGE);
+            throw new ConflictException(FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE);
         }
 
         if (validSince != 0 && new Date().after(new Date(validSince))) {
-            throw new ConflictException(FactoryConstants.INCORRECT_VALIDSINCE_MESSAGE);
+            throw new ConflictException(FactoryConstants.INVALID_VALIDSINCE_MESSAGE);
         }
 
         if (validUntil != 0 && new Date().after(new Date(validUntil))) {
-            throw new ConflictException(FactoryConstants.INCORRECT_VALIDUNTIL_MESSAGE);
+            throw new ConflictException(FactoryConstants.INVALID_VALIDUNTIL_MESSAGE);
         }
     }
 }

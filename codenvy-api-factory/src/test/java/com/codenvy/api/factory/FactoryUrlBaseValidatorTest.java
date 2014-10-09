@@ -319,21 +319,21 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-          expectedExceptionsMessageRegExp = FactoryConstants.INCORRECT_VALIDSINCE_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCE_MESSAGE)
     public void shouldNotValidateIfValidSinceBeforeCurrent() throws ApiException {
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(1));
         validator.validateCurrentTimeBeforeSinceUntil(factory);
     }
 
     @Test(expectedExceptions = ApiException.class,
-          expectedExceptionsMessageRegExp = FactoryConstants.INCORRECT_VALIDUNTIL_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeCurrent() throws ApiException {
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(1));
         validator.validateCurrentTimeBeforeSinceUntil(factory);
     }
 
     @Test(expectedExceptions = ApiException.class,
-          expectedExceptionsMessageRegExp = FactoryConstants.INCORRECT_VALIDSINCEUNTIL_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeValidSince() throws ApiException {
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
                                           .withValiduntil(1)
@@ -342,7 +342,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_VALIDUNTIL_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_FACTORY_BY_VALIDUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeCurrentTime() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
@@ -351,7 +351,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test
-    public void shouldNotValidateIfCurrentTimeBetweenValidUntilSince() throws ApiException {
+    public void shouldValidateIfCurrentTimeBetweenValidUntilSince() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
                                           .withValidsince(currentTime - 10000)
@@ -360,8 +360,8 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_VALIDSINCE_MESSAGE)
-    public void shouldValidateIfValidUntilSinceAfterCurrentTime() throws ApiException {
+          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE)
+    public void shouldNotValidateIfValidUntilSinceAfterCurrentTime() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
                                           .withValidsince(currentTime + 10000));

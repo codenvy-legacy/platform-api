@@ -28,7 +28,8 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
+import com.codenvy.api.project.shared.dto.RunnerConfiguration;
+import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
@@ -241,8 +242,12 @@ public class RunQueue {
                                              .withProjectDescriptor(descriptor)
                                              .withUserName(user == null ? "" : user.getName());
         String runner = runOptions.getRunnerName();
+        // Project configuration for runner.
+        final RunnersDescriptor runners = descriptor.getRunners();
         if (runner == null) {
-            runner = descriptor.getRunner();
+            if (runners != null) {
+                runner = runners.getDefault();
+            }
             if (runner == null) {
                 throw new RunnerException("Name of runner is not specified, be sure corresponded property of project is set");
             }
@@ -251,29 +256,13 @@ public class RunQueue {
         if (!hasRunner(request)) {
             throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
         }
-        // Get runner environment.
-        String runnerEnvId = runOptions.getEnvironmentId();
-        if (runnerEnvId == null) {
-            // If nothing is set use default environment.
-            runnerEnvId = descriptor.getDefaultRunnerEnvironment();
-        }
-        request.setEnvironmentId(runnerEnvId);
-        final RunnerEnvironmentConfigurationDescriptor runnerEnv = descriptor.getRunnerEnvironmentConfigurations().get(runnerEnvId);
-        final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
+        // Get runner configuration.
+        final RunnerConfiguration runnerConfig = runners == null ? null : runners.getConfigs().get(runner);
         int mem = runOptions.getMemorySize();
         // If nothing is set in user request try to determine memory size for application.
         if (mem <= 0) {
-            if (runnerEnv != null) {
-                // If user saved something for this application before.
-                mem = runnerEnv.getDefaultMemorySize();
-                if (mem <= 0) {
-                    // Recommended memory size. Typically this value is pre-configured in our templates.
-                    mem = runnerEnv.getRecommendedMemorySize();
-                    if (mem <= 0) {
-                        // Minimal memory size. Typically this value is pre-configured in our templates.
-                        mem = runnerEnv.getRequiredMemorySize();
-                    }
-                }
+            if (runnerConfig != null) {
+                mem = runnerConfig.getRam();
             }
             if (mem <= 0) {
                 // If nothing is set use value from our configuration.
@@ -282,6 +271,7 @@ public class RunQueue {
         }
         request.setMemorySize(mem);
         // When get memory size check available resources.
+        final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
         checkResources(workspace, request);
         // Enables or disables debug mode
         request.setInDebugMode(runOptions.isInDebugMode());
@@ -296,9 +286,10 @@ public class RunQueue {
         final Map<String, String> options = runOptions.getOptions();
         if (!options.isEmpty()) {
             request.setOptions(options);
-        } else if (runnerEnv != null) {
-            request.setOptions(runnerEnv.getOptions());
+        } else if (runnerConfig != null) {
+            request.setOptions(runnerConfig.getOptions());
         }
+        // TODO: add environment variables
         // Find user defined recipes for runner if any.
         request.setRunnerScriptUrls(getRunnerScripts(descriptor, runOptions));
         // Options for web shell that runner may provide to the server with running application.
@@ -309,7 +300,7 @@ public class RunQueue {
         final ValueHolder<BuildTaskDescriptor> buildTaskHolder = skipBuild ? null : new ValueHolder<BuildTaskDescriptor>();
         final Callable<RemoteRunnerProcess> callable;
         if (!skipBuild
-            && ((buildOptions != null && buildOptions.getBuilderName() != null) || descriptor.getBuilder() != null)) {
+            && ((buildOptions != null && buildOptions.getBuilderName() != null) || descriptor.getBuilders() != null)) {
             LOG.debug("Need build project first");
             if (buildOptions == null) {
                 buildOptions = dtoFactory.createDto(BuildOptions.class);
@@ -1187,7 +1178,7 @@ public class RunQueue {
                 } else {
                     lifetime = request.getLifetime() * 1000; // to ms
                 }
-                final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                final String projectTypeId = request.getProjectDescriptor().getType();
                 final boolean debug = request.isInDebugMode();
                 final String user = request.getUserName();
                 switch (event.getType()) {

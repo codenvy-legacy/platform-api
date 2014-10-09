@@ -113,7 +113,7 @@ public class DtoImplClientTemplate extends DtoImpl {
         builder.append("      }\n");
         builder.append("      ").append(getImplClassName()).append(" other = (").append(getImplClassName()).append(") o;\n");
         for (Method getter : getters) {
-            String fieldName = getFieldName(getter.getName());
+            String fieldName = getJavaFieldName(getter.getName());
             Class<?> returnType = getter.getReturnType();
             if (returnType.isPrimitive()) {
                 builder.append("      if (this.").append(fieldName).append(" != other.").append(fieldName).append(") {\n");
@@ -141,7 +141,7 @@ public class DtoImplClientTemplate extends DtoImpl {
         for (Method method : getters) {
             Class<?> type = method.getReturnType();
 
-            String fieldName = getFieldName(method.getName());
+            String fieldName = getJavaFieldName(method.getName());
             if (type.isPrimitive()) {
                 Class<?> wrappedType = Primitives.wrap(type);
                 builder.append("      hash = hash * 31 + ").append(wrappedType.getName()).append(".valueOf(").append(fieldName)
@@ -166,7 +166,7 @@ public class DtoImplClientTemplate extends DtoImpl {
 
     private void emitFields(List<Method> getters, StringBuilder builder) {
         for (Method getter : getters) {
-            String fieldName = getFieldName(getter.getName());
+            String fieldName = getJavaFieldName(getter.getName());
             builder.append("    ");
             builder.append(getFieldTypeAndAssignment(getter, fieldName));
         }
@@ -194,7 +194,7 @@ public class DtoImplClientTemplate extends DtoImpl {
 
     private void emitGettersAndSetters(List<Method> getters, StringBuilder builder) {
         for (Method getter : getters) {
-            String fieldName = getFieldName(getter.getName());
+            String fieldName = getJavaFieldName(getter.getName());
             if (fieldName == null) {
                 continue;
             }
@@ -285,14 +285,14 @@ public class DtoImplClientTemplate extends DtoImpl {
     }
 
     private void emitSerializeFieldForMethod(Method getter, final StringBuilder builder) {
-        final String fieldName = getFieldName(getter.getName());
-        final String fieldNameOut = fieldName + "Out";
+        final String jsonFieldName = getJsonFieldName(getter.getName());
+        final String fieldNameOut = jsonFieldName + "Out";
         final String baseIndentation = "      ";
         builder.append("\n");
         List<Type> expandedTypes = expandType(getter.getGenericReturnType());
-        emitSerializerImpl(expandedTypes, 0, builder, fieldName, fieldNameOut, baseIndentation);
+        emitSerializerImpl(expandedTypes, 0, builder, getJavaFieldName(getter.getName()), fieldNameOut, baseIndentation);
         builder.append("      result.put(\"");
-        builder.append(fieldName);
+        builder.append(jsonFieldName);
         builder.append("\", ");
         builder.append(fieldNameOut);
         builder.append(");\n");
@@ -303,12 +303,12 @@ public class DtoImplClientTemplate extends DtoImpl {
             builder.append("      result.set(0, JSONNull.getInstance());\n");
             return;
         }
-        final String fieldName = getFieldName(getter.getName());
-        final String fieldNameOut = fieldName + "Out";
+        final String jsonFieldName = getJsonFieldName(getter.getName());
+        final String fieldNameOut = jsonFieldName + "Out";
         final String baseIndentation = "      ";
         builder.append("\n");
         List<Type> expandedTypes = expandType(getter.getGenericReturnType());
-        emitSerializerImpl(expandedTypes, 0, builder, fieldName, fieldNameOut, baseIndentation);
+        emitSerializerImpl(expandedTypes, 0, builder, getJavaFieldName(getter.getName()), fieldNameOut, baseIndentation);
         if (isLastMethod(getter)) {
             if (isList(getRawClass(expandedTypes.get(0)))) {
                 builder.append("      if (").append(fieldNameOut).append(".size() != 0) {\n");
@@ -447,7 +447,7 @@ public class DtoImplClientTemplate extends DtoImpl {
     }
 
     private void emitDeserializeFieldForMethod(Method getter, StringBuilder builder) {
-        final String fieldName = getFieldName(getter.getName());
+        final String fieldName = getJsonFieldName(getter.getName());
         final String fieldNameIn = fieldName + "In";
         final String fieldNameOut = fieldName + "Out";
         final String baseIndentation = "        ";
@@ -462,7 +462,7 @@ public class DtoImplClientTemplate extends DtoImpl {
     }
 
     private void emitDeserializeFieldForMethodCompact(Method method, final StringBuilder builder) {
-        final String fieldName = getFieldName(method.getName());
+        final String fieldName = getJsonFieldName(method.getName());
         final String fieldNameIn = fieldName + "In";
         final String fieldNameOut = fieldName + "Out";
         final String baseIndentation = "        ";
@@ -656,7 +656,7 @@ public class DtoImplClientTemplate extends DtoImpl {
 
     private void emitWithMethods(List<Method> getters, String dtoInterfaceName, StringBuilder builder) {
         for (Method getter : getters) {
-            String fieldName = getFieldName(getter.getName());
+            String fieldName = getJavaFieldName(getter.getName());
             emitWithMethod(getWithName(fieldName), fieldName, getFqParameterizedName(getter.getGenericReturnType()), dtoInterfaceName,
                            builder);
         }
@@ -739,7 +739,7 @@ public class DtoImplClientTemplate extends DtoImpl {
     private void emitDeepCopyForGetters(List<Type> expandedTypes, int depth, StringBuilder builder, String origin, Method getter,
                                         String i) {
         String getterName = getter.getName();
-        String fieldName = getFieldName(getterName);
+        String fieldName = getJavaFieldName(getterName);
         String fieldNameIn = fieldName + "In";
         String fieldNameOut = fieldName + "Out";
         Type type = expandedTypes.get(depth);

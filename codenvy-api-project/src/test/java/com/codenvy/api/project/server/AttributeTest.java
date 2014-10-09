@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.server;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -35,9 +35,7 @@ public class AttributeTest {
             attrA.setValue("updated");
             Assert.assertEquals(attrA.getValue(), "updated");
             Assert.assertEquals(attrA.getValues(), Arrays.asList("updated"));
-        } catch (ValueStorageException e) {
-            Assert.fail(e.getMessage());
-        } catch (InvalidValueException e) {
+        } catch (ValueStorageException | InvalidValueException e) {
             Assert.fail(e.getMessage());
         }
     }
@@ -49,9 +47,7 @@ public class AttributeTest {
             attrA.setValues(Arrays.asList("updated"));
             Assert.assertEquals(attrA.getValue(), "updated");
             Assert.assertEquals(attrA.getValues(), Arrays.asList("updated"));
-        } catch (ValueStorageException e) {
-            Assert.fail(e.getMessage());
-        } catch (InvalidValueException e) {
+        } catch (ValueStorageException | InvalidValueException e) {
             Assert.fail(e.getMessage());
         }
     }

@@ -15,9 +15,6 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
-import com.codenvy.api.project.shared.InvalidValueException;
-import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.project.shared.ValueStorageException;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 import com.codenvy.commons.lang.Pair;
@@ -61,6 +58,7 @@ public final class DefaultProjectManager implements ProjectManager {
     private final Map<String, ValueProviderFactory> valueProviderFactories;
     private final VirtualFileSystemRegistry         fileSystemRegistry;
     private final EventService                      eventService;
+    private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
 
     @Inject
     @SuppressWarnings("unchecked")
@@ -97,15 +95,47 @@ public final class DefaultProjectManager implements ProjectManager {
                 }
             };
         }
+
+        vfsSubscriber = new EventSubscriber<VirtualFileEvent>() {
+            @Override
+            public void onEvent(VirtualFileEvent event) {
+                final String workspace = event.getWorkspaceId();
+                final String path = event.getPath();
+                if (path.endsWith(Constants.CODENVY_FOLDER + "/misc.xml")) {
+                    return;
+                }
+                switch (event.getType()) {
+                    case CONTENT_UPDATED:
+                    case CREATED:
+                    case DELETED:
+                    case MOVED:
+                    case RENAMED: {
+                        final int length = path.length();
+                        for (int i = 1; i < length && (i = path.indexOf('/', i)) > 0; i++) {
+                            final String projectPath = path.substring(0, i);
+                            try {
+                                final Project project = getProject(workspace, projectPath);
+                                if (project != null) {
+                                    getProjectMisc(project).setModificationDate(System.currentTimeMillis());
+                                }
+                            } catch (Exception e) {
+                                LOG.error(e.getMessage(), e);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        };
     }
 
     @Override
     public List<Project> getProjects(String workspace) throws ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final List<Project> projects = new ArrayList<>();
-        for (FolderEntry f : myRoot.getChildFolders()) {
-            if (f.isProjectFolder()) {
-                projects.add(new Project(workspace, f, this));
+        for (FolderEntry folder : myRoot.getChildFolders()) {
+            if (folder.isProjectFolder()) {
+                projects.add(new Project(folder, this));
             }
         }
         return projects;
@@ -116,17 +146,17 @@ public final class DefaultProjectManager implements ProjectManager {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final VirtualFileEntry child = myRoot.getChild(projectPath.startsWith("/") ? projectPath.substring(1) : projectPath);
         if (child != null && child.isFolder() && ((FolderEntry)child).isProjectFolder()) {
-            return new Project(workspace, (FolderEntry)child, this);
+            return new Project((FolderEntry)child, this);
         }
         return null;
     }
 
     @Override
     public Project createProject(String workspace, String name, ProjectDescription projectDescription)
-            throws ConflictException, ForbiddenException, ServerException, InvalidValueException, ValueStorageException {
+            throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
-        final Project project = new Project(workspace, projectFolder, this);
+        final Project project = new Project(projectFolder, this);
         project.updateDescription(projectDescription);
         getProjectMisc(project).setCreationDate(System.currentTimeMillis());
         return project;
@@ -134,7 +164,7 @@ public final class DefaultProjectManager implements ProjectManager {
 
     @Override
     public FolderEntry getProjectsRoot(String workspace) throws ServerException {
-        return new FolderEntry(fileSystemRegistry.getProvider(workspace).getMountPoint(true).getRoot());
+        return new FolderEntry(workspace, fileSystemRegistry.getProvider(workspace).getMountPoint(true).getRoot());
     }
 
     @Override
@@ -241,41 +271,12 @@ public final class DefaultProjectManager implements ProjectManager {
 
     @PostConstruct
     void start() {
-        eventService.subscribe(new EventSubscriber<VirtualFileEvent>() {
-            @Override
-            public void onEvent(VirtualFileEvent event) {
-                final String workspace = event.getWorkspaceId();
-                final String path = event.getPath();
-                if (path.endsWith(Constants.CODENVY_FOLDER + "/misc.xml")) {
-                    return;
-                }
-                switch (event.getType()) {
-                    case CONTENT_UPDATED:
-                    case CREATED:
-                    case DELETED:
-                    case MOVED:
-                    case RENAMED: {
-                        final int length = path.length();
-                        for (int i = 1; i < length && (i = path.indexOf('/', i)) > 0; i++) {
-                            final String projectPath = path.substring(0, i);
-                            try {
-                                final Project project = getProject(workspace, projectPath);
-                                if (project != null) {
-                                    getProjectMisc(project).setModificationDate(System.currentTimeMillis());
-                                }
-                            } catch (Exception e) {
-                                LOG.error(e.getMessage(), e);
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-        });
+        eventService.subscribe(vfsSubscriber);
     }
 
     @PreDestroy
     void stop() {
+        eventService.unsubscribe(vfsSubscriber);
         for (int i = 0, length = miscLocks.length; i < length; i++) {
             miscLocks[i].lock();
             try {

@@ -149,7 +149,7 @@ public class BuilderTest {
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
         buildRequest.setProjectDescriptor(DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                                                     .withName("my_project")
-                                                    .withProjectTypeId("my_type"));
+                                                    .withType("my_type"));
         final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
         Assert.assertEquals(builder.logger.getLogsAsString(), "test");
@@ -176,7 +176,7 @@ public class BuilderTest {
         buildRequest.setSourcesUrl("http://localhost/a" /* ok for test, nothing download*/);
         buildRequest.setProjectDescriptor(DtoFactory.getInstance().createDto(ProjectDescriptor.class)
                                                     .withName("my_project")
-                                                    .withProjectTypeId("my_type"));
+                                                    .withType("my_type"));
         final BuildTask task = builder.perform(buildRequest);
         waitForTask(task);
         Assert.assertTrue(beginFlag[0]);

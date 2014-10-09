@@ -11,11 +11,6 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.AttributeDescription;
-import com.codenvy.api.project.shared.ProjectDescription;
-import com.codenvy.api.project.shared.ProjectType;
-import com.codenvy.api.project.shared.ValueProvider;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -120,7 +115,7 @@ public class ProjectTest {
         Map<String, List<String>> attributes = new HashMap<>(2);
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
         attributes.put("my_property_2", Arrays.asList("value_3", "value_4"));
-        new ProjectJson().withType("my_project_type").withAttributes(attributes).save(myProject);
+        new ProjectJson2().withType("my_project_type").withAttributes(attributes).save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         Assert.assertEquals(myProjectDescription.getProjectType().getId(), "my_project_type");
         Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
@@ -145,7 +140,7 @@ public class ProjectTest {
         Project myProject = pm.getProject("my_ws", "my_project");
         Map<String, List<String>> attributes = new HashMap<>(2);
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
-        ProjectJson projectJson = new ProjectJson("my_project_type", null, attributes);
+        ProjectJson2 projectJson = new ProjectJson2("my_project_type", attributes, null, null, "test project");
         projectJson.save(myProject);
         ProjectDescription myProjectDescription = myProject.getDescription();
         myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
@@ -155,9 +150,9 @@ public class ProjectTest {
 
         myProject.updateDescription(myProjectDescription);
 
-        projectJson = ProjectJson.load(myProject);
+        projectJson = ProjectJson2.load(myProject);
 
-        Assert.assertEquals(projectJson.getProjectTypeId(), "new_project_type");
+        Assert.assertEquals(projectJson.getType(), "new_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
         Map<String, List<String>> pm = projectJson.getAttributes();
         Assert.assertEquals(pm.size(), 2);

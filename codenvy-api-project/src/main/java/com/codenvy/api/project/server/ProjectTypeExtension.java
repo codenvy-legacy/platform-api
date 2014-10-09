@@ -10,10 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.Attribute;
-import com.codenvy.api.project.shared.ProjectTemplateDescription;
-import com.codenvy.api.project.shared.ProjectType;
-
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +26,12 @@ public interface ProjectTypeExtension {
 
     /** Gets list of predefined attributes for ProjectType registered with this {@code ProjectTypeExtension}. */
     List<Attribute> getPredefinedAttributes();
+
+    /** Gets builder configurations. */
+    Builders getBuilders();
+
+    /** Gets runner configurations. */
+    Runners getRunners();
 
     /** Gets list of templates for ProjectType registered with this {@code ProjectTypeExtension}. */
     List<ProjectTemplateDescription> getTemplates();

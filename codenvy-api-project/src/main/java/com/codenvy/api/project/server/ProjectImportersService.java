@@ -12,10 +12,8 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.project.shared.dto.ProjectImporterDescriptor;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -24,11 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Provide information about registered ProjectImporter's via REST
+ * Provide information about registered ProjectImporter's via REST.
  *
  * @author Vitaly Parfonov
  */
-@Singleton
 @Path("project-importers")
 public class ProjectImportersService extends Service {
 
@@ -39,23 +36,13 @@ public class ProjectImportersService extends Service {
         this.importersRegistry = importersRegistry;
     }
 
-
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProjectImporterDescriptor> getImporters() {
-        List<ProjectImporterDescriptor> descriptors = new ArrayList<>();
-        List<ProjectImporter> importers = importersRegistry.getImporters();
+        final List<ProjectImporter> importers = importersRegistry.getImporters();
+        final List<ProjectImporterDescriptor> descriptors = new ArrayList<>(importers.size());
         for (ProjectImporter importer : importers) {
-            ProjectImporterDescriptor descriptor =
-                                                   DtoFactory.getInstance()
-                                                             .createDto(ProjectImporterDescriptor.class)
-                                                             .withId(importer.getId())
-                                                             .withInternal(importer.isInternal())
-                                                             .withDescription(importer.getDescription() != null ? importer
-                                                                                                                          .getDescription()
-                                                                 : "description not found")
-                                                             .withCategory(importer.getCategory().getValue());
-            descriptors.add(descriptor);
+            descriptors.add(DtoConverter.toImporterDescriptor(importer));
         }
         return descriptors;
     }

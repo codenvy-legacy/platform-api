@@ -8,21 +8,23 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared.dto;
+package com.codenvy.api.project.server;
 
-import com.codenvy.dto.shared.DTO;
-
-import java.util.Map;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
- * @author andrew00x
+ * Thrown when source of persisted value is invalid. For instance file not found or can not be read when expected.
+ *
+ * @author gazarenkov
  */
-@DTO
-public interface BuilderEnvironmentConfigurationDescriptor {
-    /** Options for Builder environment. Supported options depend on Builder implementation and environment. */
-    Map<String, String> getOptions();
+public class ValueStorageException extends ConflictException {
 
-    void setOptions(Map<String, String> options);
+    public ValueStorageException(String message) {
+        super(message);
+    }
 
-    BuilderEnvironmentConfigurationDescriptor withOptions(Map<String, String> options);
+    public ValueStorageException(ServiceError serviceError) {
+        super(serviceError);
+    }
 }

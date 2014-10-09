@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Folder entry.
+ *
  * @author andrew00x
  */
 public class FolderEntry extends VirtualFileEntry {
@@ -42,14 +44,14 @@ public class FolderEntry extends VirtualFileEntry {
         }
     };
 
-    public FolderEntry(VirtualFile virtualFile) {
-        super(virtualFile);
+    public FolderEntry(String workspace, VirtualFile virtualFile) {
+        super(workspace, virtualFile);
     }
 
     public FolderEntry copyTo(String newParent) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile vf = getVirtualFile();
         final MountPoint mp = vf.getMountPoint();
-        return new FolderEntry(vf.copyTo(mp.getVirtualFile(newParent)));
+        return new FolderEntry(getWorkspace(), vf.copyTo(mp.getVirtualFile(newParent)));
     }
 
     /**
@@ -69,9 +71,9 @@ public class FolderEntry extends VirtualFileEntry {
             return null;
         }
         if (child.isFile()) {
-            return new FileEntry(child);
+            return new FileEntry(getWorkspace(), child);
         }
-        return new FolderEntry(child);
+        return new FolderEntry(getWorkspace(), child);
     }
 
     /**
@@ -94,7 +96,7 @@ public class FolderEntry extends VirtualFileEntry {
         final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(FILES_FILTER);
         final List<FileEntry> children = new ArrayList<>();
         while (vfChildren.hasNext()) {
-            children.add(new FileEntry(vfChildren.next()));
+            children.add(new FileEntry(getWorkspace(), vfChildren.next()));
         }
         return children;
     }
@@ -109,7 +111,7 @@ public class FolderEntry extends VirtualFileEntry {
         final LazyIterator<VirtualFile> vfChildren = getVirtualFile().getChildren(FOLDER_FILTER);
         final List<FolderEntry> children = new ArrayList<>();
         while (vfChildren.hasNext()) {
-            children.add(new FolderEntry(vfChildren.next()));
+            children.add(new FolderEntry(getWorkspace(), vfChildren.next()));
         }
         return children;
     }
@@ -120,9 +122,9 @@ public class FolderEntry extends VirtualFileEntry {
         while (vfChildren.hasNext()) {
             final VirtualFile vf = vfChildren.next();
             if (vf.isFile()) {
-                children.add(new FileEntry(vf));
+                children.add(new FileEntry(getWorkspace(), vf));
             } else {
-                children.add(new FolderEntry(vf));
+                children.add(new FolderEntry(getWorkspace(), vf));
             }
         }
         return children;
@@ -177,7 +179,7 @@ public class FolderEntry extends VirtualFileEntry {
         if (isRoot(getVirtualFile())) {
             throw new ForbiddenException("Can't create file in root folder.");
         }
-        return new FileEntry(getVirtualFile().createFile(name, mediaType, content));
+        return new FileEntry(getWorkspace(), getVirtualFile().createFile(name, mediaType, content));
     }
 
     /**
@@ -194,7 +196,7 @@ public class FolderEntry extends VirtualFileEntry {
      *         if other error occurs
      */
     public FolderEntry createFolder(String name) throws ConflictException, ServerException, ForbiddenException {
-        return new FolderEntry(getVirtualFile().createFolder(name));
+        return new FolderEntry(getWorkspace(), getVirtualFile().createFolder(name));
     }
 
     /**

@@ -23,28 +23,28 @@ import java.util.Map;
 @DTO
 public interface ProjectTypeDescriptor {
     /** Get unique ID of type of project. */
-    String getProjectTypeId();
+    String getType();
 
     /** Set unique ID of type of project. */
-    void setProjectTypeId(String id);
+    void setType(String type);
 
-    ProjectTypeDescriptor withProjectTypeId(String id);
+    ProjectTypeDescriptor withType(String type);
 
     /** Get display name of type of project. */
-    String getProjectTypeName();
+    String getTypeName();
 
     /** Set display name of type of project. */
-    void setProjectTypeName(String name);
+    void setTypeName(String name);
 
-    ProjectTypeDescriptor withProjectTypeName(String name);
+    ProjectTypeDescriptor withTypeName(String name);
 
     /** Get project type category. */
-    String getProjectTypeCategory();
+    String getTypeCategory();
 
     /** Set project type category. */
-    void setProjectTypeCategory(String category);
+    void setTypeCategory(String category);
 
-    ProjectTypeDescriptor withProjectTypeCategory(String category);
+    ProjectTypeDescriptor withTypeCategory(String category);
 
     List<AttributeDescriptor> getAttributeDescriptors();
 
@@ -63,16 +63,4 @@ public interface ProjectTypeDescriptor {
     void setIconRegistry(Map<String, String> iconRegistry);
 
     ProjectTypeDescriptor withIconRegistry(Map<String, String> iconRegistry);
-
-    String getBuilder();
-
-    ProjectTypeDescriptor withBuilder(String builder);
-
-    void setBuilder(String builder);
-
-    String getRunner();
-
-    ProjectTypeDescriptor withRunner(String runner);
-
-    void setRunner(String runner);
 }

@@ -31,6 +31,7 @@ import java.util.Set;
  * @author andrew00x
  */
 public class FileEntryTest {
+    private static final String      workspace     = "my_ws";
     private static final String      vfsUserName   = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
 
@@ -51,7 +52,7 @@ public class FileEntryTest {
         myVfProject = myVfRoot.createFolder("my_project");
         myVfProject.createFolder(".codenvy").createFile("project", null, null);
         myVfFile = myVfProject.createFile("test", "text/plain", new ByteArrayInputStream("to be or not to be".getBytes()));
-        myFile = new FileEntry(myVfFile);
+        myFile = new FileEntry(workspace, myVfFile);
         Assert.assertTrue(myFile.isFile());
     }
 

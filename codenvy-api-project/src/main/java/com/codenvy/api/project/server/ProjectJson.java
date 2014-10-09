@@ -32,6 +32,7 @@ import java.util.Map;
 /**
  * @author andrew00x
  */
+@Deprecated
 public class ProjectJson {
 
     /**

@@ -21,14 +21,13 @@ import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryProject;
 import com.codenvy.api.factory.dto.FactoryV2_0;
+import com.codenvy.api.project.server.Builders;
 import com.codenvy.api.project.server.Project;
-import com.codenvy.api.project.server.ProjectJson;
+import com.codenvy.api.project.server.ProjectDescription;
+import com.codenvy.api.project.server.ProjectJson2;
 import com.codenvy.api.project.server.ProjectManager;
-import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
-import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
-import com.codenvy.api.project.shared.dto.BuilderEnvironmentConfigurationDescriptor;
+import com.codenvy.api.project.server.Runners;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentConfigurationDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
@@ -68,7 +67,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -200,7 +198,7 @@ public class FactoryService extends Service {
                 // for logging purposes
                 orgid = factoryUrl.getCreator().getAccountId();
                 repoUrl = factoryUrl.getSource().getLocation();
-                ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getProjectTypeId() : null;
+                ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getType() : null;
             }
 
             createValidator.validateOnCreate(factoryUrl);
@@ -507,68 +505,49 @@ public class FactoryService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws ApiException {
         final Project project = projectManager.getProject(workspace, path);
-        final ProjectJson projectJson = ProjectJson.load(project);
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-
-        final Map<String, BuilderEnvironmentConfiguration> builderConfigurations = projectJson.getBuilderEnvironmentConfigurations();
-        final Map<String, BuilderEnvironmentConfigurationDescriptor> builderConfigurationsDescriptors =
-                new HashMap<>(builderConfigurations.size());
-        for (Map.Entry<String, BuilderEnvironmentConfiguration> e : builderConfigurations.entrySet()) {
-            final BuilderEnvironmentConfiguration envConfig = e.getValue();
-            builderConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(BuilderEnvironmentConfigurationDescriptor.class)
-                                                                       .withOptions(envConfig.getOptions()));
-        }
-
-        final Map<String, RunnerEnvironmentConfiguration> runnerConfigurations = projectJson.getRunnerEnvironmentConfigurations();
-        final Map<String, RunnerEnvironmentConfigurationDescriptor> runnerConfigurationsDescriptors =
-                new HashMap<>(runnerConfigurations.size());
-        for (Map.Entry<String, RunnerEnvironmentConfiguration> e : runnerConfigurations.entrySet()) {
-            final RunnerEnvironmentConfiguration envConfig = e.getValue();
-            runnerConfigurationsDescriptors.put(e.getKey(), dtoFactory.createDto(RunnerEnvironmentConfigurationDescriptor.class)
-                                                                      .withRecommendedMemorySize(envConfig.getRecommendedMemorySize())
-                                                                      .withRequiredMemorySize(envConfig.getRequiredMemorySize())
-                                                                      .withDefaultMemorySize(envConfig.getDefaultMemorySize())
-                                                                      .withOptions(envConfig.getOptions()));
-        }
-
         ImportSourceDescriptor source;
         FactoryProject factoryProject;
         try {
-            factoryProject = (FactoryProject)dtoFactory.createDto(FactoryProject.class)
-                                                                      .withName(project.getName())
-                                                                      .withProjectTypeId(projectJson.getProjectTypeId())
-                                                                      .withBuilder(projectJson.getBuilder())
-                                                                      .withRunner(projectJson.getRunner())
-                                                                      .withDefaultBuilderEnvironment(
-                                                                              projectJson.getDefaultBuilderEnvironment())
-                                                                      .withDefaultRunnerEnvironment(
-                                                                              projectJson.getDefaultRunnerEnvironment())
-                                                                      .withBuilderEnvironmentConfigurations(
-                                                                              builderConfigurationsDescriptors)
-                                                                      .withRunnerEnvironmentConfigurations(runnerConfigurationsDescriptors)
-                                                                      .withAttributes(projectJson.getAttributes())
-                                                                      .withDescription(projectJson.getDescription());
-            if (project.getDescription().hasAttribute("vcs.provider.name") &&
-                "git".equals(project.getDescription().getAttributeValue("vcs.provider.name"))) {
-
-                final Link importSourceLink = DtoFactory.getInstance().createDto(Link.class)
+            final ProjectDescription projectDescription = project.getDescription();
+            if ("git".equals(projectDescription.getAttributeValue("vcs.provider.name"))) {
+                final Link importSourceLink = dtoFactory.createDto(Link.class)
                                                         .withMethod("GET")
                                                         .withHref(UriBuilder.fromUri(baseApiUrl)
                                                                             .path("git")
                                                                             .path(workspace)
                                                                             .path("import-source-descriptor")
                                                                             .build().toString());
-                source = HttpJsonHelper.request(ImportSourceDescriptor.class,importSourceLink, new Pair<>("projectPath", path));
+                source = HttpJsonHelper.request(ImportSourceDescriptor.class, importSourceLink, new Pair<>("projectPath", path));
             } else {
                 throw new ConflictException("Not able to generate project configuration, project has to be under version control system");
+            }
+            // Read again project.json file even we already have all information about project in 'projectDescription' variable.
+            // We do so because 'projectDescription' variable contains all attributes of project including 'calculated' attributes but we
+            // don't need 'calculated' attributes in this case. Such attributes exists only in runtime and may be restored from the project.
+            // TODO: improve this once we will be able to detect different type of attributes. In this case just need get attributes from
+            // 'projectDescription' variable and skip all attributes that aren't defined in project.json file.
+            final ProjectJson2 projectJson = ProjectJson2.load(project);
+            factoryProject = (FactoryProject)dtoFactory.createDto(FactoryProject.class)
+                                                       .withName(project.getName())
+                                                       .withType(projectJson.getType())
+                                                       .withAttributes(projectJson.getAttributes())
+                                                       .withDescription(projectJson.getDescription());
+            final Builders builders = projectJson.getBuilders();
+            if (builders != null) {
+                factoryProject.withBuilders(com.codenvy.api.project.server.DtoConverter.toDto(builders));
+            }
+            final Runners runners = projectJson.getRunners();
+            if (runners != null) {
+                factoryProject.withRunners(com.codenvy.api.project.server.DtoConverter.toDto(runners));
             }
         } catch (IOException e) {
             throw new ServerException(e.getLocalizedMessage());
         }
         return Response.ok(dtoFactory.createDto(FactoryV2_0.class)
-                                  .withProject(factoryProject)
-                                  .withSource(source)
-                                  .withV("2.0"), MediaType.APPLICATION_JSON)
+                                     .withProject(factoryProject)
+                                     .withSource(source)
+                                     .withV("2.0"), MediaType.APPLICATION_JSON)
                        .header("Content-Disposition", "attachment; filename=" + path + ".json")
                        .build();
     }

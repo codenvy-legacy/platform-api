@@ -53,7 +53,7 @@ abstract class DtoImpl {
         return enclosingTemplate;
     }
 
-    protected String getFieldName(String getterName) {
+    protected String getJavaFieldName(String getterName) {
         String fieldName;
         if (getterName.startsWith("get")) {
             fieldName = getterName.substring(3);
@@ -109,6 +109,17 @@ abstract class DtoImpl {
 
     protected String getEnsureName(String fieldName) {
         return "ensure" + getCamelCaseName(fieldName);
+    }
+
+    protected String getJsonFieldName(String getterName) {
+        String fieldName;
+        if (getterName.startsWith("get")) {
+            fieldName = getterName.substring(3);
+        } else {
+            // starts with "is", see method '#ignoreMethod(Method)'
+            fieldName = getterName.substring(2);
+        }
+        return Character.toLowerCase(fieldName.charAt(0)) + fieldName.substring(1);
     }
 
     /**

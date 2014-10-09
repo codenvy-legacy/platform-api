@@ -32,6 +32,7 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
@@ -401,7 +402,10 @@ public class BuildQueue {
     private void addParametersFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
         String builder = request.getBuilder();
         if (builder == null) {
-            builder = descriptor.getBuilder();
+            final BuildersDescriptor builders = descriptor.getBuilders();
+            if (builders != null) {
+                builder = builders.getDefault();
+            }
             if (builder == null) {
                 throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
@@ -575,7 +579,8 @@ public class BuildQueue {
                             if ((task.getCreationTime() + waitingTimeMillis) < System.currentTimeMillis()) {
                                 try {
                                     task.cancel();
-                                    eventService.publish(BuilderEvent.terminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
+                                    eventService.publish(
+                                            BuilderEvent.terminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
                                 } catch (Exception e) {
                                     LOG.warn(e.getMessage(), e);
                                 }
@@ -681,19 +686,20 @@ public class BuildQueue {
                             } else {
                                 timeout = request.getTimeout() * 1000; // to ms
                             }
-                            final String projectTypeId = request.getProjectDescriptor().getProjectTypeId();
+                            final String projectTypeId = request.getProjectDescriptor().getType();
                             final String user = request.getUserName();
 
                             switch (event.getType()) {
                                 case BEGIN:
                                     long waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                                    LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                             workspace,
-                                             user,
-                                             project,
-                                             projectTypeId,
-                                             analyticsID,
-                                             waitingTime);
+                                    LOG.info(
+                                            "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                            workspace,
+                                            user,
+                                            project,
+                                            projectTypeId,
+                                            analyticsID,
+                                            waitingTime);
                                     LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
                                              workspace,
                                              user,
@@ -706,23 +712,25 @@ public class BuildQueue {
                                     if (!event.isReused()) {
                                         long usageTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
                                         long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
-                                        LOG.info("EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
-                                                 workspace,
-                                                 user,
-                                                 project,
-                                                 projectTypeId,
-                                                 analyticsID,
-                                                 timeout,
-                                                 usageTime,
-                                                 finishedNormally);
+                                        LOG.info(
+                                                "EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
+                                                workspace,
+                                                user,
+                                                project,
+                                                projectTypeId,
+                                                analyticsID,
+                                                timeout,
+                                                usageTime,
+                                                finishedNormally);
                                     } else {
-                                        LOG.info("EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                                 workspace,
-                                                 user,
-                                                 project,
-                                                 projectTypeId,
-                                                 analyticsID,
-                                                 0);
+                                        LOG.info(
+                                                "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                                workspace,
+                                                user,
+                                                project,
+                                                projectTypeId,
+                                                analyticsID,
+                                                0);
                                     }
                                     break;
                                 case BUILD_TASK_ADDED_IN_QUEUE:

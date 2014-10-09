@@ -52,6 +52,8 @@ import com.codenvy.dto.shared.DTO;
  *         }
  *     }
  * </pre>
+ * Another usage is provide information about some object in error state. It may help to caller understand the error and update object to
+ * fix the problem.
  *
  * @author andrew00x
  */

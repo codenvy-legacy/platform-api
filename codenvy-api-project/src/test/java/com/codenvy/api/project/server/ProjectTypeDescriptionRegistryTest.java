@@ -10,8 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.*;
-
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -51,6 +49,16 @@ public class ProjectTypeDescriptionRegistryTest {
             }
 
             @Override
+            public Builders getBuilders() {
+                return null;
+            }
+
+            @Override
+            public Runners getRunners() {
+                return null;
+            }
+
+            @Override
             public List<ProjectTemplateDescription> getTemplates() {
                 return Collections.emptyList();
             }
@@ -76,10 +84,12 @@ public class ProjectTypeDescriptionRegistryTest {
         Assert.assertEquals(myType.getName(), "my_type");
         Assert.assertEquals(myType.getId(), "my_type");
         Assert.assertEquals(myType.getCategory(), "my_category");
-        ProjectTypeDescription myTypeDescription = descriptionRegistry.getDescription(myType);
-        Assert.assertNotNull(myTypeDescription);
-        AttributeDescription ad = myTypeDescription.getAttributeDescription("name3");
-        Assert.assertNotNull(ad);
+        List<AttributeDescription> _attributeDescriptions = descriptionRegistry.getAttributeDescriptions(myType);
+        Assert.assertNotNull(_attributeDescriptions);
+        Assert.assertEquals(_attributeDescriptions.size(), 1);
+        AttributeDescription _attributeDescription = _attributeDescriptions.get(0);
+        Assert.assertEquals(_attributeDescription.getName(), "name3");
+        Assert.assertEquals(_attributeDescription.getDescription(), "description3");
         List<Attribute> predefinedAttributes = descriptionRegistry.getPredefinedAttributes(myType);
         Assert.assertEquals(predefinedAttributes.size(), 2);
         Attribute a = findAttribute("name1", predefinedAttributes);
@@ -109,6 +119,16 @@ public class ProjectTypeDescriptionRegistryTest {
             @Override
             public List<Attribute> getPredefinedAttributes() {
                 return attributes;
+            }
+
+            @Override
+            public Builders getBuilders() {
+                return null;
+            }
+
+            @Override
+            public Runners getRunners() {
+                return null;
             }
 
             @Override

@@ -27,4 +27,10 @@ public interface SimpleDto {
     String getName();
 
     SimpleDto withName(String name);
+
+    String getDefault();
+
+    void setDefault(String s);
+
+    SimpleDto withDefault(String s);
 }

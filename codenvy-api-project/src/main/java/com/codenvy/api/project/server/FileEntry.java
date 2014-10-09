@@ -25,12 +25,14 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
+ * File entry.
+ *
  * @author andrew00x
  */
 public class FileEntry extends VirtualFileEntry {
 
-    public FileEntry(VirtualFile virtualFile) {
-        super(virtualFile);
+    public FileEntry(String workspace, VirtualFile virtualFile) {
+        super(workspace, virtualFile);
     }
 
     public FileEntry copyTo(String newParent) throws NotFoundException, ForbiddenException, ConflictException, ServerException {
@@ -39,7 +41,7 @@ public class FileEntry extends VirtualFileEntry {
         }
         final VirtualFile vf = getVirtualFile();
         final MountPoint mp = vf.getMountPoint();
-        return new FileEntry(vf.copyTo(mp.getVirtualFile(newParent)));
+        return new FileEntry(getWorkspace(), vf.copyTo(mp.getVirtualFile(newParent)));
     }
 
     public void moveTo(String newParent) throws ConflictException, NotFoundException, ForbiddenException, ServerException {

@@ -29,6 +29,7 @@ import java.util.Set;
  * @author andrew00x
  */
 public class FolderEntryTest {
+    private static final String      workspace     = "my_ws";
     private static final String      vfsUserName   = "dev";
     private static final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
 
@@ -39,7 +40,7 @@ public class FolderEntryTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        mmp = new MemoryMountPoint("my_ws", new EventService(), null, new VirtualFileSystemUserContext() {
+        mmp = new MemoryMountPoint(workspace, new EventService(), null, new VirtualFileSystemUserContext() {
             @Override
             public VirtualFileSystemUser getVirtualFileSystemUser() {
                 return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
@@ -51,7 +52,7 @@ public class FolderEntryTest {
         myVfFolder = myVfProject.createFolder("test_folder");
         myVfFolder.createFile("child_file", "text/plain", new ByteArrayInputStream("to be or not to be".getBytes()));
         myVfFolder.createFolder("child_folder");
-        myFolder = new FolderEntry(myVfFolder);
+        myFolder = new FolderEntry(workspace, myVfFolder);
         Assert.assertTrue(myFolder.isFolder());
     }
 

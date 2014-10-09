@@ -8,32 +8,20 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.shared;
+package com.codenvy.api.project.shared.dto;
+
+import com.codenvy.dto.shared.DTO;
 
 /**
  * @author andrew00x
  */
-public class Builders {
-    private String _default;
+@DTO
+public interface BuildersDescriptor {
+    /** Gets default builder identifier, e.g. "maven". */
+    String getDefault();
 
-    public Builders(String _default) {
-        this._default = _default;
-    }
+    /** Sets default builder identifier. e.g. "maven". */
+    void setDefault(String _default);
 
-    public Builders(Builders other) {
-        this._default = other._default;
-    }
-
-    public String getDefault() {
-        return _default;
-    }
-
-    public void setDefault(String _default) {
-        this._default = _default;
-    }
-
-    public Builders withDefault(String _default) {
-        this._default = _default;
-        return this;
-    }
+    BuildersDescriptor withDefault(String _default);
 }

@@ -6,7 +6,7 @@
  * http://www.eclipse.org/legal/epl-v10.html
  *
  * Contributors:
- *   Codenvy, S.A. - initial API and implementation
+ * Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
 package com.codenvy.api.project.shared;
 
@@ -16,6 +16,7 @@ import java.util.Map;
 /**
  * @author andrew00x
  */
+@Deprecated
 public class BuilderEnvironmentConfiguration {
     public BuilderEnvironmentConfiguration(BuilderEnvironmentConfiguration origin) {
         setOptions(origin.getOptions());

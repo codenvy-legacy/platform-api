@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.shared.*;
 import com.codenvy.api.project.shared.Constants;
 import com.google.inject.name.Named;
 
@@ -19,6 +18,7 @@ import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -108,17 +108,16 @@ public class ProjectTypeDescriptionRegistry {
             if (!projectTypeRegistry.isProjectTypeRegistered(type)) {
                 projectTypeRegistry.registerProjectType(type);
             }
-            final List<AttributeDescription> typeExtensionAttributeDescriptions = extension.getAttributeDescriptions();
-            ArrayList<AttributeDescription> finalList = new ArrayList<>(typeExtensionAttributeDescriptions);
+            final ArrayList<AttributeDescription> attributeDescriptions = new ArrayList<>(extension.getAttributeDescriptions());
             //TODO: add this temporary until we don't have possibility to extend project type
-            List<String> attributeNames = new ArrayList<>();
-            for (AttributeDescription attributeDescription : finalList) {
+            final List<String> attributeNames = new LinkedList<>();
+            for (AttributeDescription attributeDescription : attributeDescriptions) {
                 attributeNames.add(attributeDescription.getName());
             }
             if (!attributeNames.contains(Constants.VCS_PROVIDER_NAME)) {
-                finalList.add(new AttributeDescription(Constants.VCS_PROVIDER_NAME));
+                attributeDescriptions.add(new AttributeDescription(Constants.VCS_PROVIDER_NAME));
             }
-            attributeDescriptions.put(type.getId(), finalList);
+            this.attributeDescriptions.put(type.getId(), attributeDescriptions);
 
         }
     }

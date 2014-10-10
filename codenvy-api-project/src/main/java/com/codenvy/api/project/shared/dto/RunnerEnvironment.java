@@ -13,6 +13,7 @@ package com.codenvy.api.project.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Map;
 
 /**
@@ -28,6 +29,13 @@ public interface RunnerEnvironment {
     void setId(@Nonnull EnvironmentId id);
 
     RunnerEnvironment withId(@Nonnull EnvironmentId id);
+
+    @Nullable
+    String getDescription();
+
+    void setDescription(String description);
+
+    RunnerEnvironment withDescription(String description);
 
     /**
      * Gets runtime options of this runner environment. If {@code Map} contains mapping to empty string for some option it means that

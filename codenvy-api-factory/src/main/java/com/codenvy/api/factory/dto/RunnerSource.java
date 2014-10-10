@@ -11,23 +11,31 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
-import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.dto.shared.DTO;
+
+import java.util.Map;
 
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
- * @author Sergii Leschenko
+ * Describe docker runner configuration source
+ *
+ * @author Alexander Garagatyi
  */
-@Deprecated
 @DTO
-public interface FactoryProject extends NewProject {
-    /** Get name of project. */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "name")
-    String getName();
+public interface RunnerSource {
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "location")
+    String getLocation();
 
-    /** Set name of project. */
-    void setName(String name);
+    void setLocation(String location);
 
-    FactoryProject withName(String name);
+    RunnerSource withLocation(String location);
+
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "parameters")
+    Map<String, String> getParameters();
+
+    void setParameters(Map<String, String> parameters);
+
+    RunnerSource withParameters(Map<String, String> parameters);
 }
+

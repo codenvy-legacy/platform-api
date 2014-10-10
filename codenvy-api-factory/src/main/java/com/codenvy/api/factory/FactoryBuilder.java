@@ -41,6 +41,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     static final List<LegacyConverter> LEGACY_CONVERTERS;
 
     static {
-        List<LegacyConverter> l = new ArrayList<>(6);
+        List<LegacyConverter> l = new ArrayList<>(4);
         l.add(new IdCommitConverter());
         l.add(new ProjectNameConverter());
         l.add(new ProjectTypeConverter());
@@ -172,7 +173,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      * @throws ApiException
      */
     public void checkValid(Factory factory, FactoryFormat sourceFormat) throws ApiException {
-        if (factory == null) {
+        if (null == factory) {
             throw new ConflictException(UNPARSABLE_FACTORY_MESSAGE);
         }
         if (factory.getV() == null) {
@@ -269,7 +270,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - parent parameter queryParameterName
      * @throws com.codenvy.api.core.ApiException
      */
-    void validateCompatibility(Object object, Class methodsProvider,
+    void validateCompatibility(Object object,
+                               Class methodsProvider,
                                Class allowedMethodsProvider,
                                Version version,
                                FactoryFormat sourceFormat,
@@ -318,7 +320,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     }
 
                     // check tracked-only fields
-                    if (orgid == null && factoryParameter.trackedOnly()) {
+                    if (null == orgid && factoryParameter.trackedOnly()) {
                         throw new ConflictException(format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
                     }
 
@@ -328,8 +330,24 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
                                               orgid, fullName);
                     } else if (Map.class.isAssignableFrom(method.getReturnType())) {
-                        if (ImportSourceDescriptor.class.equals(methodsProvider)) {
-                            sourceParametersValidator.validate((ImportSourceDescriptor)object, version);
+                        ParameterizedType genType = (ParameterizedType) method.getGenericReturnType();
+                        Class<?> paramType = (Class<?>) genType.getActualTypeArguments()[1];
+                        if (String.class.equals(paramType)) {
+                             if (ImportSourceDescriptor.class.equals(methodsProvider)) {
+                                sourceParametersValidator.validate((ImportSourceDescriptor)object, version);
+                             }
+                        } else if (List.class.equals(paramType)) {
+                             // do nothing
+                        } else {
+                            if (paramType.isAnnotationPresent(DTO.class)) {
+                                Map<Object, Object> map = (Map<Object, Object>) parameterValue;
+                                for (Map.Entry<Object, Object> entry : map.entrySet()) {
+                                    validateCompatibility(entry.getValue(), paramType, paramType, version, sourceFormat,
+                                              orgid, fullName + "." + (String) entry.getKey());
+                                }
+                            } else {
+                                throw new RuntimeException("This type of fields is not supported by factory.");
+                            }
                         }
                     }
                 }
@@ -382,7 +400,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                                                null != values ? values.toString() : "null"));
                         }
                         param = ValueHelper.createValue(returnClass, values);
-                        if (param == null) {
+                        if (null == param) {
                             if ("variables".equals(fullName) || "actions.findReplace".equals(fullName)) {
                                 try {
                                     param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);

@@ -13,6 +13,7 @@ package com.codenvy.api.factory.dto;
 import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.dto.shared.DTO;
+import com.codenvy.api.project.shared.dto.NewProject;
 
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.MANDATORY;
@@ -29,13 +30,12 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     /**
      * Describes source where project's files can be retrieved
      */
-    // TODO should be reworked in accordance with the latest changes of the specification
     @FactoryParameter(obligation = MANDATORY, queryParameterName = "source")
-    ImportSourceDescriptor getSource();
+    Source getSource();
 
-    void setSource(ImportSourceDescriptor source);
+    void setSource(Source source);
 
-    FactoryV2_0 withSource(ImportSourceDescriptor source);
+    FactoryV2_0 withSource(Source source);
 
     /**
      * Describes parameters of the workspace that should be used for factory
@@ -60,14 +60,16 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     /**
      * Describes project that should be factory-created
      */
-    // TODO add annotation for all fields after andrew00x reworked it
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "project")
-    FactoryProject getProject();
+    NewProject getProject();
 
-    void setProject(FactoryProject project);
+    void setProject(NewProject project);
 
-    FactoryV2_0 withProject(FactoryProject project);
+    FactoryV2_0 withProject(NewProject project);
 
+    /**
+     * Identifying information of author
+     */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "creator")
     Author getCreator();
 

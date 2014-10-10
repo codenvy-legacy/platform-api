@@ -35,7 +35,7 @@ public class SourceParametersValidator implements FactoryParameterValidator<Impo
                         final String keepVcs = entry.getValue();
                         if (!"true".equals(keepVcs) && !"false".equals(keepVcs)) {
                             throw new ConflictException(
-                                    format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, "source.parameters.keepVcs", entry.getValue()));
+                                    format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, "source.project.parameters.keepVcs", entry.getValue()));
                         }
                         break;
                     case "commitId":
@@ -45,11 +45,11 @@ public class SourceParametersValidator implements FactoryParameterValidator<Impo
                     case "remoteOriginFetch":
                         break;
                     default:
-                        throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, "source.parameters." + entry.getKey(), version));
+                        throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, "source.project.parameters." + entry.getKey(), version));
                 }
             }
         } else {
-            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, "source.type", source.getType()));
+            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, "source.project.type", source.getType()));
         }
     }
 }

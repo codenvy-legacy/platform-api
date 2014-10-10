@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -17,6 +18,7 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import java.util.Map;
 
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 /**
  * Data transfer object (DTO) for create project.
  *
@@ -27,6 +29,7 @@ import java.util.Map;
 public interface NewProject extends ProjectUpdate {
     /** Gets name of project. */
     @ApiModelProperty(value = "Project name", position = 1)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "name")
     String getName();
 
     /** Sets name of project. */

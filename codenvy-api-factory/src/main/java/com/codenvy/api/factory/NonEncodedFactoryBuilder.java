@@ -12,6 +12,9 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.*;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.RunnerConfiguration;
+import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 
 import java.util.List;
 import java.util.Map;
@@ -189,12 +192,27 @@ public abstract class NonEncodedFactoryBuilder {
 
     private void buildNonEncoded(FactoryV2_0 factory, StringBuilder builder) {
         appendIfNotNull(builder, "v=", factory.getV(), false);
-        final ImportSourceDescriptor source = factory.getSource();
-        if (source != null) {
-            appendIfNotNull(builder, "&source.type=", source.getType(), false);
-            appendIfNotNull(builder, "&source.location=", source.getLocation(), true);
-            for (Map.Entry<String, String> entry : source.getParameters().entrySet()) {
-                builder.append("&source.parameters.").append(entry.getKey()).append("=").append(encode(entry.getValue()));
+        final Source source = factory.getSource();
+        if (null != source) {
+            final ImportSourceDescriptor sourceDescriptor = source.getProject();
+            if (null != sourceDescriptor) {
+                appendIfNotNull(builder, "&source.project.type=", sourceDescriptor.getType(), false);
+                appendIfNotNull(builder, "&source.project.location=", sourceDescriptor.getLocation(), true);
+                if (sourceDescriptor.getParameters() != null) {
+                    for (Map.Entry<String, String> entry : sourceDescriptor.getParameters().entrySet()) {
+                        builder.append("&source.project.parameters.").append(encode(entry.getKey())).append("=").append(encode(entry.getValue()));
+                    }
+                }
+            }
+            if (source.getRunners() != null) {
+                for (Map.Entry<String, RunnerSource> runnerSource : source.getRunners().entrySet()) {
+                    builder.append("&source.runners.").append(encode(runnerSource.getKey())).append(".location=").append(encode(runnerSource.getValue().getLocation()));
+                    if (runnerSource.getValue().getParameters() != null) {
+                        for (Map.Entry<String, String> parameter : runnerSource.getValue().getParameters().entrySet()) {
+                            builder.append("&source.runners.").append(encode(runnerSource.getKey())).append(".parameters").append(encode(parameter.getKey())).append("=").append(encode(parameter.getValue()));
+                        }
+                    }
+                }
             }
         }
 
@@ -209,26 +227,45 @@ public abstract class NonEncodedFactoryBuilder {
         if (workspace != null) {
             appendIfNotNull(builder, "&workspace.temp=", workspace.getTemp(), false);
             for (Map.Entry<String, String> entry : workspace.getAttributes().entrySet()) {
-                appendIfNotNull(builder, "&workspace.attributes." + entry.getKey() + "=", entry.getValue(), true);
+                builder.append("&workspace.attributes.").append(encode(entry.getKey())).append("=").append(encode(entry.getValue()));
             }
         }
 
-        final FactoryProject project = factory.getProject();
+        final NewProject project = factory.getProject();
         if (project != null) {
             appendIfNotNull(builder, "&project.name=", project.getName(), true);
             appendIfNotNull(builder, "&project.description=", project.getDescription(), true);
             appendIfNotNull(builder, "&project.type=", project.getType(), true);
             appendIfNotNull(builder, "&project.visibility=", project.getVisibility(), false);
-// TODO: update according to changes in project-api
-//            appendIfNotNull(builder, "&project.builderType=", project.getBuilder(), false);
-//            appendIfNotNull(builder, "&project.runnerType=", project.getRunner(), false);
-//            appendIfNotNull(builder, "&project.defaultBuilder=", project.getDefaultBuilderEnvironment(), false);
-//            appendIfNotNull(builder, "&project.defaultRunner=", project.getDefaultRunnerEnvironment(), false);
-            // TODO
-//            for (Map.Entry<String, List<String>> entry : project.getAttributes().entrySet()) {
-//                appendIfNotNull(builder, "&project.attributes." + entry.getKey() + "=", entry.getValue(), true);
-//            }
-            // TODO builder, runner environments
+            if (project.getBuilders() != null) {
+                appendIfNotNull(builder, "&project.builders.default=", project.getBuilders().getDefault(), true);
+            }
+            final RunnersDescriptor rDescriptor = project.getRunners();
+            if (null != rDescriptor) {
+                appendIfNotNull(builder, "&project.runners.default=", rDescriptor.getDefault(), true);
+                if (rDescriptor.getConfigs() != null) {
+                    for (Map.Entry<String, RunnerConfiguration> rConf : rDescriptor.getConfigs().entrySet()) {
+                        builder.append("&project.runners.confs.").append(encode(rConf.getKey())).append(".ram=").append(String.valueOf(rConf.getValue().getRam()));
+                        if (rConf.getValue().getVariables() != null) {
+                            for (Map.Entry<String, String> vars : rConf.getValue().getVariables().entrySet()) {
+                                builder.append("&project.runners.confs.").append(encode(rConf.getKey())).append(".").append(encode(vars.getKey())).append("=").append(encode(vars.getValue()));
+                            }
+                        }
+                        if (rConf.getValue().getVariables() != null) {
+                            for (Map.Entry<String, String> options : rConf.getValue().getOptions().entrySet()) {
+                                builder.append("&project.runners.confs.").append(encode(rConf.getKey())).append(".").append(encode(options.getKey())).append("=").append(encode(options.getValue()));
+                            }
+                        }
+                    }
+                }
+            }
+            if (project.getAttributes() != null) {
+                for (Map.Entry<String, List<String>> attribute : project.getAttributes().entrySet()) {
+                    for (String attrValue : attribute.getValue()) {
+                        builder.append("&project.attributes.").append(encode(attribute.getKey())).append("=").append(encode(attrValue));
+                    }
+                }
+            }
         }
 
         final Policies policies = factory.getPolicies();

@@ -11,15 +11,18 @@
 
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.Map;
 
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 /**
  * @author andrew00x
  */
 @DTO
 public interface RunnersDescriptor {
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "default")
     /** Gets default runner identifier. */
     String getDefault();
 
@@ -28,11 +31,12 @@ public interface RunnersDescriptor {
 
     RunnersDescriptor withDefault(String _default);
 
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configs")
     /** Gets all available runner configurations. */
     Map<String, RunnerConfiguration> getConfigs();
 
     /** Sets new runner configurations. */
     void setConfigs(Map<String, RunnerConfiguration> configs);
 
-    public RunnersDescriptor withConfigs(Map<String, RunnerConfiguration> configs);
+    RunnersDescriptor withConfigs(Map<String, RunnerConfiguration> configs);
 }

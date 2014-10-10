@@ -10,15 +10,18 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.Map;
 
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 /**
  * @author andrew00x
  */
 @DTO
 public interface RunnerConfiguration {
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ram")
     /** Gets amount of RAM for this configuration in megabytes. */
     int getRam();
 
@@ -27,6 +30,7 @@ public interface RunnerConfiguration {
 
     RunnerConfiguration withRam(int ram);
 
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "options")
     /** Gets runtime options (runner type and(or) receipt specific). */
     Map<String, String> getOptions();
 
@@ -39,6 +43,7 @@ public interface RunnerConfiguration {
 
     RunnerConfiguration withOptions(Map<String, String> options);
 
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "variables")
     /** Gets environment variables (runner type and(or) receipt specific). */
     Map<String, String> getVariables();
 

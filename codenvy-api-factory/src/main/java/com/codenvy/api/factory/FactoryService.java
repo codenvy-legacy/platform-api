@@ -19,7 +19,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.FactoryProject;
+import com.codenvy.api.factory.dto.Source;
 import com.codenvy.api.factory.dto.FactoryV2_0;
 import com.codenvy.api.project.server.Builders;
 import com.codenvy.api.project.server.Project;
@@ -28,6 +28,7 @@ import com.codenvy.api.project.server.ProjectJson2;
 import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.server.Runners;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
@@ -197,7 +198,7 @@ public class FactoryService extends Service {
 
                 // for logging purposes
                 orgid = factoryUrl.getCreator().getAccountId();
-                repoUrl = factoryUrl.getSource().getLocation();
+                repoUrl = factoryUrl.getSource().getProject().getLocation();
                 ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getType() : null;
             }
 
@@ -245,9 +246,8 @@ public class FactoryService extends Service {
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                                             @DefaultValue("false") @QueryParam("validate") Boolean validate,
                                             @QueryParam("maxVersion") String maxVersion,
-                                            @Context UriInfo uriInfo)
-            throws ApiException {
-        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri())
+                                            @Context UriInfo uriInfo) throws ApiException {
+        final URI uri = UriBuilder.fromUri(uriInfo.getRequestUri())
                             .replaceQueryParam("legacy", null)
                             .replaceQueryParam("token", null)
                             .replaceQueryParam("validate", null)
@@ -258,8 +258,9 @@ public class FactoryService extends Service {
             if (maxVersion != null) {
                 if ("1.2".equals(maxVersion)) {
                     factory = factoryBuilder.convertToV1_2(factory);
+                } else {
+                    factory = factoryBuilder.convertToLatest(factory);
                 }
-                factory = factoryBuilder.convertToLatest(factory);
             } else {
                 factory = factoryBuilder.convertToLatest(factory);
             }
@@ -302,6 +303,7 @@ public class FactoryService extends Service {
                               @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory",
                                         allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
+                              @QueryParam("maxVersion") String maxVersion,
                               @Context UriInfo uriInfo) throws ApiException {
         Factory factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
@@ -310,8 +312,17 @@ public class FactoryService extends Service {
         }
 
         if (legacy) {
-            factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
+            if (maxVersion != null) {
+                if ("1.2".equals(maxVersion)) {
+                    factoryUrl = factoryBuilder.convertToV1_2(factoryUrl);
+                } else {
+                    factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
+                }
+            } else {
+                factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
+            }
         }
+
         try {
             factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
         } catch (UnsupportedEncodingException e) {
@@ -507,7 +518,7 @@ public class FactoryService extends Service {
         final Project project = projectManager.getProject(workspace, path);
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         ImportSourceDescriptor source;
-        FactoryProject factoryProject;
+        NewProject newProject;
         try {
             final ProjectDescription projectDescription = project.getDescription();
             if ("git".equals(projectDescription.getAttributeValue("vcs.provider.name"))) {
@@ -528,25 +539,25 @@ public class FactoryService extends Service {
             // TODO: improve this once we will be able to detect different type of attributes. In this case just need get attributes from
             // 'projectDescription' variable and skip all attributes that aren't defined in project.json file.
             final ProjectJson2 projectJson = ProjectJson2.load(project);
-            factoryProject = (FactoryProject)dtoFactory.createDto(FactoryProject.class)
+            newProject = dtoFactory.createDto(NewProject.class)
                                                        .withName(project.getName())
                                                        .withType(projectJson.getType())
                                                        .withAttributes(projectJson.getAttributes())
                                                        .withDescription(projectJson.getDescription());
             final Builders builders = projectJson.getBuilders();
             if (builders != null) {
-                factoryProject.withBuilders(com.codenvy.api.project.server.DtoConverter.toDto(builders));
+                newProject.withBuilders(com.codenvy.api.project.server.DtoConverter.toDto(builders));
             }
             final Runners runners = projectJson.getRunners();
             if (runners != null) {
-                factoryProject.withRunners(com.codenvy.api.project.server.DtoConverter.toDto(runners));
+                newProject.withRunners(com.codenvy.api.project.server.DtoConverter.toDto(runners));
             }
         } catch (IOException e) {
             throw new ServerException(e.getLocalizedMessage());
         }
         return Response.ok(dtoFactory.createDto(FactoryV2_0.class)
-                                     .withProject(factoryProject)
-                                     .withSource(source)
+                                     .withProject(newProject)
+                                     .withSource(dtoFactory.createDto(Source.class).withProject(source))
                                      .withV("2.0"), MediaType.APPLICATION_JSON)
                        .header("Content-Disposition", "attachment; filename=" + path + ".json")
                        .build();

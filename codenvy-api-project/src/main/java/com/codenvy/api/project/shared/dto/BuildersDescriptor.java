@@ -10,13 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 /**
  * @author andrew00x
  */
 @DTO
 public interface BuildersDescriptor {
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "default")
     /** Gets default builder identifier, e.g. "maven". */
     String getDefault();
 

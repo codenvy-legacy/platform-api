@@ -76,10 +76,10 @@ public abstract class FactoryUrlBaseValidator {
             parameterTypeName = "vcs";
             parameterLocationName = "vcsurl";
         } else {
-            type = factory.getSource().getType();
-            location = factory.getSource().getLocation();
-            parameterTypeName = "source.type";
-            parameterLocationName = "source.location";
+            type = factory.getSource().getProject().getType();
+            location = factory.getSource().getProject().getLocation();
+            parameterTypeName = "source.project.type";
+            parameterLocationName = "source.project.location";
         }
         // check that vcs value is correct (only git is supported for now)
         if (!"git".equals(type)) {
@@ -125,7 +125,6 @@ public abstract class FactoryUrlBaseValidator {
         }
     }
 
-
     protected void validateOrgid(Factory factory) throws ApiException {
         // validate orgid
         String orgid;
@@ -140,7 +139,7 @@ public abstract class FactoryUrlBaseValidator {
         }
 
         if (null != orgid) {
-            if (userid != null) {
+            if (null != userid) {
                 try {
                     User user = userDao.getById(userid);
                     Profile profile = profileDao.getById(userid);

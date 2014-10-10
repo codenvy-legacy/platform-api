@@ -42,6 +42,7 @@ public interface ProjectUpdate {
 
     /** Gets builder configurations. */
     @ApiModelProperty(value = "Builders configuration for the project", position = 5)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "builders")
     BuildersDescriptor getBuilders();
 
     /** Sets builder configurations. */
@@ -53,6 +54,7 @@ public interface ProjectUpdate {
 
     /** Gets runner configurations. */
     @ApiModelProperty(value = "Runners configuration for the project", position = 6)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runners")
     RunnersDescriptor getRunners();
 
     /** Sets runner configurations. */
@@ -75,6 +77,7 @@ public interface ProjectUpdate {
     //
 
     @ApiModelProperty(value = "Attributes for project", position = 4)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "attributes")
     /** Get attributes of project. */
     Map<String, List<String>> getAttributes();
 

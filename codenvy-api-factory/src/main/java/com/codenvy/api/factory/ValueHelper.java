@@ -107,7 +107,7 @@ public class ValueHelper {
      *
      * @param value
      *         - value to check
-     * @return - true if value is useless for factory (0 for primitives or false or empty collection), false otherwise
+     * @return - true if value is useless for factory (0 for primitives or empty collection or map), false otherwise
      */
     static boolean isEmpty(Object value) {
         if ((null == value) ||

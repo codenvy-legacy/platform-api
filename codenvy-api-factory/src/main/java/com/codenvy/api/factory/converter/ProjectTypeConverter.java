@@ -13,7 +13,6 @@ package com.codenvy.api.factory.converter;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.FactoryProject;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.dto.server.DtoFactory;
 

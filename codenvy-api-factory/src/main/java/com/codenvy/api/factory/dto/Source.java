@@ -12,35 +12,32 @@ package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 
 import java.util.Map;
 
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.MANDATORY;
 
 /**
- * Describes factory button
+ * Describes project source with additional sources such as runner's
  *
  * @author Alexander Garagatyi
  */
 @DTO
-public interface Button {
-    public enum ButtonType {
-        logo, nologo
-    }
+public interface Source {
+    @FactoryParameter(obligation = MANDATORY, queryParameterName = "project")
+    ImportSourceDescriptor getProject();
 
-    /** Type of the button */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "type")
-    ButtonType getType();
+    void setProject(ImportSourceDescriptor project);
 
-    void setType(ButtonType type);
+    Source withProject(ImportSourceDescriptor project);
 
-    Button withType(ButtonType type);
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runners")
+    Map<String, RunnerSource> getRunners();
 
-    /** Button attributes */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "attributes")
-    ButtonAttributes getAttributes();
+    void setRunners(Map<String, RunnerSource> runners);
 
-    void setAttributes(ButtonAttributes attributes);
-
-    Button withAttributes(ButtonAttributes attributes);
+    Source withRunners(Map<String, RunnerSource> runners);
 }
+

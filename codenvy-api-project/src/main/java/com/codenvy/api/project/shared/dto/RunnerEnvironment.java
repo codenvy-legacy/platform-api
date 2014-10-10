@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
+import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.dto.shared.DTO;
 
 import javax.annotation.Nonnull;
@@ -21,14 +22,18 @@ import java.util.Map;
  */
 @DTO
 public interface RunnerEnvironment {
-    /** Gets unique identifier of runner environment. */
+    /**
+     * Gets unique identifier of runner environment in format: <i>&lt;scope&gt;:/&lt;category&gt;/&lt;name&gt;</i>.
+     *
+     * @see com.codenvy.api.project.shared.EnvironmentId
+     */
     @Nonnull
-    EnvironmentId getId();
+    String getId();
 
     /** Sets unique identifier of runner environment. */
-    void setId(@Nonnull EnvironmentId id);
+    void setId(@Nonnull String id);
 
-    RunnerEnvironment withId(@Nonnull EnvironmentId id);
+    RunnerEnvironment withId(@Nonnull String id);
 
     @Nullable
     String getDescription();

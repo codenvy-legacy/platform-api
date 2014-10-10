@@ -17,7 +17,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * Represents RunnerEnvironment as tree that is based on {@link EnvironmentId#getCategory()}.
+ * Represents RunnerEnvironment as tree that is based on {@link com.codenvy.api.project.shared.EnvironmentId#getCategory()}.
  *
  * @author andrew00x
  */

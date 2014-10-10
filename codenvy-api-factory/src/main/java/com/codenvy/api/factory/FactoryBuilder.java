@@ -42,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -330,19 +331,25 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
                                               orgid, fullName);
                     } else if (Map.class.isAssignableFrom(method.getReturnType())) {
-                        ParameterizedType genType = (ParameterizedType) method.getGenericReturnType();
-                        Class<?> paramType = (Class<?>) genType.getActualTypeArguments()[1];
-                        if (String.class.equals(paramType)) {
+                        Type tp = ((ParameterizedType) method.getGenericReturnType()).getActualTypeArguments()[1];
+
+                        Class secMapParamClass;
+                        if (tp instanceof ParameterizedType) {
+                            secMapParamClass = (Class)((ParameterizedType)tp).getRawType();
+                        } else {
+                            secMapParamClass = (Class)tp;
+                        }
+                        if (String.class.equals(secMapParamClass)) {
                              if (ImportSourceDescriptor.class.equals(methodsProvider)) {
                                 sourceParametersValidator.validate((ImportSourceDescriptor)object, version);
                              }
-                        } else if (List.class.equals(paramType)) {
+                        } else if (List.class.equals(secMapParamClass)) {
                              // do nothing
                         } else {
-                            if (paramType.isAnnotationPresent(DTO.class)) {
-                                Map<Object, Object> map = (Map<Object, Object>) parameterValue;
+                            if (secMapParamClass.isAnnotationPresent(DTO.class)) {
+                                Map<Object, Object> map = (Map) parameterValue;
                                 for (Map.Entry<Object, Object> entry : map.entrySet()) {
-                                    validateCompatibility(entry.getValue(), paramType, paramType, version, sourceFormat,
+                                    validateCompatibility(entry.getValue(), secMapParamClass, secMapParamClass, version, sourceFormat,
                                               orgid, fullName + "." + (String) entry.getKey());
                                 }
                             } else {

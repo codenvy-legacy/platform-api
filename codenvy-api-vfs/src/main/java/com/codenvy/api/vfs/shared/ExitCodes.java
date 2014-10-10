@@ -16,6 +16,7 @@ package com.codenvy.api.vfs.shared;
  *
  * @author <a href="mailto:aparfonov@exoplatform.com">Andrey Parfonov</a>
  */
+@Deprecated
 public final class ExitCodes {
     public static final int SUCCESS = 0;
 

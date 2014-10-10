@@ -65,7 +65,6 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -422,25 +421,6 @@ public class BuildQueue {
             final String token = getAuthenticationToken();
             request.setSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
         }
-        final Map<String, List<String>> projectAttributes = descriptor.getAttributes();
-        if (request.getTargets().isEmpty()) {
-            final List<String> targetsAttr = projectAttributes.get(Constants.BUILDER_TARGETS.replace("${builder}", builder));
-            if (targetsAttr != null && !targetsAttr.isEmpty()) {
-                request.getTargets().addAll(targetsAttr);
-            }
-        }
-        final List<String> optionsAttr = projectAttributes.get(Constants.BUILDER_OPTIONS.replace("${builder}", builder));
-        if (optionsAttr != null && !optionsAttr.isEmpty()) {
-            final Map<String, String> options = request.getOptions();
-            for (String str : optionsAttr) {
-                if (str != null) {
-                    final String[] pair = str.split("=");
-                    if (!options.containsKey(pair[0])) {
-                        options.put(pair[0], pair.length > 1 ? pair[1] : null);
-                    }
-                }
-            }
-        }
     }
 
     private ProjectDescriptor getProjectDescription(String workspace, String project, ServiceContext serviceContext)
@@ -636,173 +616,10 @@ public class BuildQueue {
                 }
             });
 
-            eventService.subscribe(new EventSubscriber<BuilderEvent>() {
-                @Override
-                public void onEvent(BuilderEvent event) {
-                    try {
-                        final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                        final long id = event.getTaskId();
-                        switch (event.getType()) {
-                            case BEGIN:
-                            case DONE:
-                                bm.setChannel(String.format("builder:status:%d", id));
-                                try {
-                                    bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
-                                } catch (BuilderException re) {
-                                    bm.setType(ChannelBroadcastMessage.Type.ERROR);
-                                    bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));
-                                }
-                                break;
-                            case MESSAGE_LOGGED:
-                                final BuilderEvent.LoggedMessage message = event.getMessage();
-                                if (message != null) {
-                                    bm.setChannel(String.format("builder:output:%d", id));
-                                    bm.setBody(String.format("{\"num\":%d, \"line\":%s}",
-                                                             message.getLineNum(), JsonUtils.getJsonString(message.getMessage())));
-                                }
-                                break;
-                        }
-                        WSConnectionContext.sendMessage(bm);
-                    } catch (Exception e) {
-                        LOG.error(e.getMessage(), e);
-                    }
-                }
-            });
+            eventService.subscribe(new BuildStatusMessenger());
 
-            eventService.subscribe(new EventSubscriber<BuilderEvent>() {
-                @Override
-                public void onEvent(BuilderEvent event) {
-                    try {
-                        final long taskId = event.getTaskId();
-                        final BaseBuilderRequest request = getTask(taskId).getRequest();
-                        if (request instanceof BuildRequest) {
-                            BuildQueueTask task = getTask(taskId);
-                            final String analyticsID = task.getCreationTime() + "-" + taskId;
-                            final String project = extractProjectName(event.getProject());
-                            final String workspace = request.getWorkspace();
-                            final long timeout;
-                            if (request.getTimeout() == Integer.MAX_VALUE) {
-                                timeout = -1;
-                            } else {
-                                timeout = request.getTimeout() * 1000; // to ms
-                            }
-                            final String projectTypeId = request.getProjectDescriptor().getType();
-                            final String user = request.getUserName();
-
-                            switch (event.getType()) {
-                                case BEGIN:
-                                    long waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                                    LOG.info(
-                                            "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                            workspace,
-                                            user,
-                                            project,
-                                            projectTypeId,
-                                            analyticsID,
-                                            waitingTime);
-                                    LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
-                                             workspace,
-                                             user,
-                                             project,
-                                             projectTypeId,
-                                             analyticsID,
-                                             timeout);
-                                    break;
-                                case DONE:
-                                    if (!event.isReused()) {
-                                        long usageTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
-                                        long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
-                                        LOG.info(
-                                                "EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
-                                                workspace,
-                                                user,
-                                                project,
-                                                projectTypeId,
-                                                analyticsID,
-                                                timeout,
-                                                usageTime,
-                                                finishedNormally);
-                                    } else {
-                                        LOG.info(
-                                                "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                                workspace,
-                                                user,
-                                                project,
-                                                projectTypeId,
-                                                analyticsID,
-                                                0);
-                                    }
-                                    break;
-                                case BUILD_TASK_ADDED_IN_QUEUE:
-                                    LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
-                                             workspace,
-                                             user,
-                                             project,
-                                             projectTypeId,
-                                             analyticsID);
-                                    break;
-                                case BUILD_TASK_QUEUE_TIME_EXCEEDED:
-                                    waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                                    LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
-                                             workspace,
-                                             user,
-                                             project,
-                                             projectTypeId,
-                                             analyticsID,
-                                             waitingTime);
-                                    break;
-                                case SOURCES_DOWNLOAD_STARTED:
-                                    waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                                    LOG.info("EVENT#build-sources-download-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
-                                             workspace,
-                                             user,
-                                             project,
-                                             projectTypeId,
-                                             analyticsID,
-                                             waitingTime);
-                                    final ChannelBroadcastMessage bmStarted = new ChannelBroadcastMessage();
-                                    final long idStarted = event.getTaskId();
-                                    final BuilderEvent.LoggedMessage messageStarted = event.getMessage();
-                                    if (messageStarted != null) {
-                                        bmStarted.setChannel(String.format("builder:output:%d", idStarted));
-                                        bmStarted.setBody(String.format("{\"num\":%d, \"line\":%s}",
-                                                                         messageStarted.getLineNum(), JsonUtils.getJsonString(messageStarted.getMessage())));
-                                    }
-                                    WSConnectionContext.sendMessage(bmStarted);
-                                    break;
-                                case SOURCES_DOWNLOAD_FINISHED:
-                                    waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                                    LOG.info("EVENT#build-sources-download-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
-                                             workspace,
-                                             user,
-                                             project,
-                                             projectTypeId,
-                                             analyticsID,
-                                             waitingTime);
-                                    final ChannelBroadcastMessage bmFinished = new ChannelBroadcastMessage();
-                                    final long idFinished = event.getTaskId();
-                                    final BuilderEvent.LoggedMessage messageFinished = event.getMessage();
-                                    if (messageFinished != null) {
-                                        bmFinished.setChannel(String.format("builder:output:%d", idFinished));
-                                        bmFinished.setBody(String.format("{\"num\":%d, \"line\":%s}",
-                                                                          messageFinished.getLineNum(), JsonUtils.getJsonString(messageFinished.getMessage())));
-                                    }
-                                    WSConnectionContext.sendMessage(bmFinished);
-                                    break;
-                            }
-                        }
-                    } catch (Exception e) {
-                        LOG.error(e.getMessage(), e);
-                    }
-                }
-
-                private String extractProjectName(String path) {
-                    int beginIndex = path.startsWith("/") ? 1 : 0;
-                    int i = path.indexOf("/", beginIndex);
-                    int endIndex = i < 0 ? path.length() : i;
-                    return path.substring(beginIndex, endIndex);
-                }
-            });
+            //Log events for analytics
+            eventService.subscribe(new AnalyticsMessenger());
 
             if (slaves.length > 0) {
                 executor.execute(new Runnable() {
@@ -1045,6 +862,174 @@ public class BuildQueue {
                     }
                     return available.get(0);
                 }
+            }
+        }
+    }
+
+    private class AnalyticsMessenger  implements EventSubscriber<BuilderEvent> {
+        @Override
+        public void onEvent(BuilderEvent event) {
+            try {
+                final long taskId = event.getTaskId();
+                final BaseBuilderRequest request = getTask(taskId).getRequest();
+                if (request instanceof BuildRequest) {
+                    BuildQueueTask task = getTask(taskId);
+                    final String analyticsID = task.getCreationTime() + "-" + taskId;
+                    final String project = extractProjectName(event.getProject());
+                    final String workspace = request.getWorkspace();
+                    final long timeout;
+                    if (request.getTimeout() == Integer.MAX_VALUE) {
+                        timeout = -1;
+                    } else {
+                        timeout = request.getTimeout() * 1000; // to ms
+                    }
+                    final String projectTypeId = request.getProjectDescriptor().getType();
+                    final String user = request.getUserName();
+
+                    switch (event.getType()) {
+                        case BEGIN:
+                            long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                            LOG.info(
+                                    "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                    workspace,
+                                    user,
+                                    project,
+                                    projectTypeId,
+                                    analyticsID,
+                                    waitingTime);
+                            LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     timeout);
+                            break;
+                        case DONE:
+                            if (!event.isReused()) {
+                                long usageTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
+                                long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
+                                LOG.info(
+                                        "EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
+                                        workspace,
+                                        user,
+                                        project,
+                                        projectTypeId,
+                                        analyticsID,
+                                        timeout,
+                                        usageTime,
+                                        finishedNormally);
+                            } else {
+                                LOG.info(
+                                        "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                        workspace,
+                                        user,
+                                        project,
+                                        projectTypeId,
+                                        analyticsID,
+                                        0);
+                            }
+                            break;
+                        case BUILD_TASK_ADDED_IN_QUEUE:
+                            LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID);
+                            break;
+                        case BUILD_TASK_QUEUE_TIME_EXCEEDED:
+                            waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                            LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     waitingTime);
+                            break;
+                        case SOURCES_DOWNLOAD_STARTED:
+                            waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                            LOG.info("EVENT#build-sources-download-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     waitingTime);
+                            final ChannelBroadcastMessage bmStarted = new ChannelBroadcastMessage();
+                            final long idStarted = event.getTaskId();
+                            final BuilderEvent.LoggedMessage messageStarted = event.getMessage();
+                            if (messageStarted != null) {
+                                bmStarted.setChannel(String.format("builder:output:%d", idStarted));
+                                bmStarted.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                                messageStarted.getLineNum(), JsonUtils.getJsonString(messageStarted.getMessage())));
+                            }
+                            WSConnectionContext.sendMessage(bmStarted);
+                            break;
+                        case SOURCES_DOWNLOAD_FINISHED:
+                            waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                            LOG.info("EVENT#build-sources-download-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     waitingTime);
+                            final ChannelBroadcastMessage bmFinished = new ChannelBroadcastMessage();
+                            final long idFinished = event.getTaskId();
+                            final BuilderEvent.LoggedMessage messageFinished = event.getMessage();
+                            if (messageFinished != null) {
+                                bmFinished.setChannel(String.format("builder:output:%d", idFinished));
+                                bmFinished.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                                 messageFinished.getLineNum(), JsonUtils.getJsonString(messageFinished.getMessage())));
+                            }
+                            WSConnectionContext.sendMessage(bmFinished);
+                            break;
+                    }
+                }
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        private String extractProjectName(String path) {
+            int beginIndex = path.startsWith("/") ? 1 : 0;
+            int i = path.indexOf("/", beginIndex);
+            int endIndex = i < 0 ? path.length() : i;
+            return path.substring(beginIndex, endIndex);
+        }
+    }
+
+    private class BuildStatusMessenger implements EventSubscriber<BuilderEvent> {
+        @Override
+        public void onEvent(BuilderEvent event) {
+            try {
+                final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                final long id = event.getTaskId();
+                switch (event.getType()) {
+                    case BEGIN:
+                    case DONE:
+                        bm.setChannel(String.format("builder:status:%d", id));
+                        try {
+                            bm.setBody(DtoFactory.getInstance().toJson(getTask(id).getDescriptor()));
+                        } catch (BuilderException re) {
+                            bm.setType(ChannelBroadcastMessage.Type.ERROR);
+                            bm.setBody(String.format("{\"message\":%s}", JsonUtils.getJsonString(re.getMessage())));
+                        }
+                        break;
+                    case MESSAGE_LOGGED:
+                        final BuilderEvent.LoggedMessage message = event.getMessage();
+                        if (message != null) {
+                            bm.setChannel(String.format("builder:output:%d", id));
+                            bm.setBody(String.format("{\"num\":%d, \"line\":%s}",
+                                                     message.getLineNum(), JsonUtils.getJsonString(message.getMessage())));
+                        }
+                        break;
+                }
+                WSConnectionContext.sendMessage(bm);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
             }
         }
     }

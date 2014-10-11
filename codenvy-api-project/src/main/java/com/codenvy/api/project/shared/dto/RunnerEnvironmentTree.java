@@ -17,15 +17,15 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * Represents RunnerEnvironment as tree that is based on {@link com.codenvy.api.project.shared.EnvironmentId#getCategory()}.
+ * Represents RunnerEnvironment as tree.
  *
  * @author andrew00x
  */
 @DTO
 public interface RunnerEnvironmentTree {
     /**
-     * Gets runner environment on current tree level. If this method returns {@code null} that means there is no any runner environments on
-     * current level. Always need check {@link #getChildren()} for child environments.
+     * Gets runner environments on current tree level. If this method returns empty {@code List} that means there is no any runner
+     * environments on current level. Always need check {@link #getChildren()} for child environments.
      * <pre>
      *     + Java
      *       |- Web
@@ -46,33 +46,32 @@ public interface RunnerEnvironmentTree {
      * In example above there is no any environment on level Java, Java/Web.
      */
     @Nullable
-    RunnerEnvironment getEnvironment();
+    List<RunnerEnvironment> getEnvironments();
 
     /**
-     * Gets runner environment on current tree level.
+     * Gets runner environments on current tree level.
      *
-     * @see #getEnvironment()
+     * @see #getEnvironments()
      */
-    void setEnvironment(RunnerEnvironment environment);
+    void setEnvironments(List<RunnerEnvironment> environments);
 
-    RunnerEnvironmentTree withEnvironment(RunnerEnvironment environment);
+    RunnerEnvironmentTree withEnvironments(List<RunnerEnvironment> environments);
 
-    /** Gets category. Need this for display tree on client side if there is no runner environment on current level. */
+    /** Gets node name. Need this for display tree on client side. */
     @Nonnull
-    String getCategory();
+    String getDisplayName();
 
     /**
-     * Sets category.
+     * Sets display name.
      *
-     * @see #getCategory()
+     * @see #getDisplayName()
      */
-    void setCategory(@Nonnull String category);
+    void setDisplayName(@Nonnull String name);
 
-    RunnerEnvironmentTree withCategory(@Nonnull String category);
+    RunnerEnvironmentTree withDisplayName(@Nonnull String name);
 
     /**
-     * Gets child environments. Empty list means that current tree level is last in hierarchy and method {@link #getEnvironment()} must not
-     * return {@code null}.
+     * Gets child environments. Empty list means that current tree level is last in hierarchy.
      */
     @Nonnull
     List<RunnerEnvironmentTree> getChildren();

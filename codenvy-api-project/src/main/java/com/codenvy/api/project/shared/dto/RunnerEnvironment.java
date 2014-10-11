@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
-import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.dto.shared.DTO;
 
 import javax.annotation.Nonnull;
@@ -34,13 +33,6 @@ public interface RunnerEnvironment {
     void setId(@Nonnull String id);
 
     RunnerEnvironment withId(@Nonnull String id);
-
-    @Nullable
-    String getDescription();
-
-    void setDescription(String description);
-
-    RunnerEnvironment withDescription(String description);
 
     /**
      * Gets runtime options of this runner environment. If {@code Map} contains mapping to empty string for some option it means that
@@ -74,4 +66,30 @@ public interface RunnerEnvironment {
     void setVariables(Map<String, String> variables);
 
     RunnerEnvironment withVariables(Map<String, String> variables);
+
+    /* =================================================================================================== */
+    /* Following methods suitable for codenvy environment but looks useless for user defined environments. */
+    /* Methods are defined here to be able merge user defined environments and codenvy environments in one */
+    /* place on client side.                                                                               */
+    /* =================================================================================================== */
+
+    /** Display name of RunnerEnvironment. */
+    String getDisplayName();
+
+    void setDisplayName(String id);
+
+    RunnerEnvironment withDisplayName(String name);
+
+    boolean isDefault();
+
+    void setDefault(boolean isDefault);
+
+    RunnerEnvironment withDefault(boolean isDefault);
+
+    @Nullable
+    String getDescription();
+
+    void setDescription(String description);
+
+    RunnerEnvironment withDescription(String description);
 }

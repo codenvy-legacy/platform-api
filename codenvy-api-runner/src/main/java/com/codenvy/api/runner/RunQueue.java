@@ -515,14 +515,6 @@ public class RunQueue {
         }
     }
 
-    private static String getProjectAttributeValue(String name, Map<String, List<String>> attributes) {
-        final List<String> list = attributes.get(name);
-        if (list == null || list.isEmpty()) {
-            return null;
-        }
-        return list.get(0);
-    }
-
     private boolean tryCancelBuild(BuildTaskDescriptor buildDescriptor) {
         final Link cancelLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_CANCEL);
         if (cancelLink == null) {

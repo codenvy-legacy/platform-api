@@ -10,10 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.runner.dto;
 
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
-
-import java.util.Map;
 
 /**
  * Describes capabilities of {@link com.codenvy.api.runner.internal.Runner}.
@@ -61,9 +60,9 @@ public interface RunnerDescriptor {
 
     RunnerDescriptor withDescription(String description);
 
-    Map<String, RunnerEnvironment> getEnvironments();
+    RunnerEnvironmentTree getEnvironments();
 
-    void setEnvironments(Map<String, RunnerEnvironment> environments);
+    void setEnvironments(RunnerEnvironmentTree environments);
 
-    RunnerDescriptor withEnvironments(Map<String, RunnerEnvironment> environments);
+    RunnerDescriptor withEnvironments(RunnerEnvironmentTree environments);
 }

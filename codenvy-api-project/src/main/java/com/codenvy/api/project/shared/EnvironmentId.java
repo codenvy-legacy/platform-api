@@ -143,4 +143,30 @@ public class EnvironmentId {
     public String getName() {
         return name;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof EnvironmentId)) {
+            return false;
+        }
+        final EnvironmentId other = (EnvironmentId)o;
+        if (scope != other.scope) {
+            return false;
+        }
+        if (category != null ? !category.equals(other.category) : other.category != null) {
+            return false;
+        }
+        return name.equals(other.name);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = scope.hashCode();
+        hash = 31 * hash + (category != null ? category.hashCode() : 0);
+        hash = 31 * hash + name.hashCode();
+        return hash;
+    }
 }

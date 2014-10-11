@@ -17,9 +17,9 @@ import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
-import com.codenvy.api.runner.dto.RunnerEnvironment;
 import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
@@ -33,7 +33,6 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -120,12 +119,14 @@ public abstract class Runner {
 
     /**
      * Gets environments that are supported by the runner. Each environment presupposes an existing some embedded pre-configured
-     * environment
-     * for running application, e.g. type of server or its configuration. By default this method returns empty map that means usage single
-     * runtime environment for running an application.
+     * environment for running application, e.g. type of server or its configuration. Environments are represented as
+     * hierarchically-organized system. By default this method returns empty tree.
+     *
+     * @see #getName()
      */
-    public Map<String, RunnerEnvironment> getEnvironments() {
-        return Collections.emptyMap();
+    public RunnerEnvironmentTree getEnvironments() {
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        return dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName(getName());
     }
 
     /**

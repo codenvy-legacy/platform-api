@@ -15,6 +15,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
@@ -24,7 +25,11 @@ import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
-import com.wordnik.swagger.annotations.*;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -37,11 +42,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * RESTful API for RunQueue.
@@ -182,10 +184,9 @@ public class RunnerService extends Service {
                          .withUsedMemory(String.valueOf(runQueue.getUsedMemory(workspace)));
     }
 
-    @ApiOperation(value = "Get available runners",
-                  notes = "Get available runners",
-                  response = RunnerDescriptor.class,
-                  responseContainer = "List",
+    @ApiOperation(value = "Get available runner environments",
+                  notes = "Get available runner environments",
+                  response = RunnerEnvironmentTree.class,
                   position = 7)
     @ApiResponses(value = {
                   @ApiResponse(code = 200, message = "OK"),
@@ -194,24 +195,22 @@ public class RunnerService extends Service {
     @GET
     @Path("/available")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<RunnerDescriptor> getRunners(@ApiParam(value = "Workspace ID", required = true)
-                                             @PathParam("ws-id") String workspace,
-                                             @ApiParam(value = "Project name")
-                                             @Description("project name") @QueryParam("project") String project) throws Exception {
-        final Map<String, RunnerDescriptor> all = new HashMap<>();
+    public RunnerEnvironmentTree getRunnerEnvironments(@ApiParam(value = "Workspace ID", required = true)
+                                                       @PathParam("ws-id") String workspace,
+                                                       @ApiParam(value = "Project name")
+                                                       @Description("project name") @QueryParam("project") String project)
+            throws Exception {
+        final RunnerEnvironmentTree root = DtoFactory.getInstance().createDto(RunnerEnvironmentTree.class).withDisplayName("system");
+        final List<RunnerEnvironmentTree> environments = new LinkedList<>();
         for (RemoteRunnerServer runnerServer : runQueue.getRegisterRunnerServers()) {
             if ((!runnerServer.isDedicated() || runnerServer.getAssignedWorkspace().equals(workspace))
                 && (project == null || project.equals(runnerServer.getAssignedProject()))) {
                 for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
-                    if (all.containsKey(runnerDescriptor.getName())) {
-                        all.get(runnerDescriptor.getName()).getEnvironments().putAll(runnerDescriptor.getEnvironments());
-                    } else {
-                        all.put(runnerDescriptor.getName(), runnerDescriptor);
-                    }
+                    environments.add(runnerDescriptor.getEnvironments());
                 }
             }
         }
-        return new ArrayList<>(all.values());
+        return root.withChildren(environments);
     }
 
 

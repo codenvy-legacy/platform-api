@@ -54,7 +54,6 @@ public interface RunRequest {
      * environment.
      *
      * @see RunnerDescriptor#getEnvironments()
-     * @see com.codenvy.api.runner.dto.RunnerEnvironment
      * @see com.codenvy.api.runner.dto.RunOptions
      */
     String getEnvironmentId();

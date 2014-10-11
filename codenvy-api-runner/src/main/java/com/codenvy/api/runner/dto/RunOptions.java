@@ -25,10 +25,13 @@ import java.util.Map;
 @DTO
 public interface RunOptions {
     /** Get name of runner. This parameter has preference over runner name that is configured in properties of project. */
+    @Deprecated
     String getRunnerName();
 
+    @Deprecated
     void setRunnerName(String runnerName);
 
+    @Deprecated
     RunOptions withRunnerName(String runnerName);
 
     /** Get user defined recipes for runner. */
@@ -76,7 +79,6 @@ public interface RunOptions {
      * environment.
      *
      * @see RunnerDescriptor#getEnvironments()
-     * @see com.codenvy.api.runner.dto.RunnerEnvironment
      */
     @ApiModelProperty(value = "Environment ID", notes = "Visit docs site for parameters reference")
     String getEnvironmentId();

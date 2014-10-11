@@ -83,27 +83,30 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
-    @Inject
-    @Named("api.endpoint")
     private String baseApiUrl;
-
-    @Inject
     private FactoryStore factoryStore;
-
-    @Inject
     private FactoryUrlCreateValidator createValidator;
-
-    @Inject
     private FactoryUrlAcceptValidator acceptValidator;
-
-    @Inject
     private LinksHelper linksHelper;
-
-    @Inject
     private FactoryBuilder factoryBuilder;
+    private ProjectManager projectManager;
 
     @Inject
-    private ProjectManager projectManager;
+    public FactoryService(@Named("api.endpoint") String baseApiUrl,
+                          FactoryStore factoryStore,
+                          FactoryUrlCreateValidator createValidator,
+                          FactoryUrlAcceptValidator acceptValidator,
+                          LinksHelper linksHelper,
+                          FactoryBuilder factoryBuilder,
+                          ProjectManager projectManager) {
+        this.baseApiUrl = baseApiUrl;
+        this.factoryStore = factoryStore;
+        this.createValidator = createValidator;
+        this.acceptValidator = acceptValidator;
+        this.linksHelper = linksHelper;
+        this.factoryBuilder = factoryBuilder;
+        this.projectManager = projectManager;
+    }
 
     /**
      * Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.

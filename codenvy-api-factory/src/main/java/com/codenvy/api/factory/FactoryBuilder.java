@@ -91,11 +91,11 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         LEGACY_CONVERTERS = Collections.unmodifiableList(l);
     }
 
-    private final SourceParametersValidator sourceParametersValidator;
+    private final SourceProjectParametersValidator sourceProjectParametersValidator;
 
     @Inject
-    public FactoryBuilder(SourceParametersValidator sourceParametersValidator) {
-        this.sourceParametersValidator = sourceParametersValidator;
+    public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator) {
+        this.sourceProjectParametersValidator = sourceProjectParametersValidator;
     }
 
     /**
@@ -288,7 +288,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                 Object parameterValue;
                 try {
                     parameterValue = method.invoke(object);
-                } catch (IllegalAccessException | InvocationTargetException e) {
+                } catch (IllegalAccessException | InvocationTargetException | IllegalArgumentException e) {
                     // should never happen
                     LOG.error(e.getLocalizedMessage(), e);
                     throw new ConflictException(INVALID_PARAMETER_MESSAGE);
@@ -341,7 +341,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         }
                         if (String.class.equals(secMapParamClass)) {
                              if (ImportSourceDescriptor.class.equals(methodsProvider)) {
-                                sourceParametersValidator.validate((ImportSourceDescriptor)object, version);
+                                sourceProjectParametersValidator.validate((ImportSourceDescriptor)object, version);
                              }
                         } else if (List.class.equals(secMapParamClass)) {
                              // do nothing

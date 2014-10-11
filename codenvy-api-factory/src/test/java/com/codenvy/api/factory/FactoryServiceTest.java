@@ -16,8 +16,12 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
+import com.codenvy.api.factory.dto.Source;
 import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomePage;
+import com.codenvy.api.project.server.ProjectManager;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.Pair;
@@ -30,12 +34,11 @@ import org.everrest.assured.JettyHttpServer;
 import org.everrest.core.Filter;
 import org.everrest.core.GenericContainerRequest;
 import org.everrest.core.RequestFilter;
-import org.mockito.InjectMocks;
 import org.mockito.Matchers;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
@@ -61,6 +64,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
@@ -78,20 +82,30 @@ public class FactoryServiceTest {
     @Mock
     private FactoryStore factoryStore;
 
-    @Spy
-    private LinksHelper linksHelper;
-
-    @Spy
-    private FactoryBuilder factoryBuilder;
-
     @Mock
-    private FactoryUrlCreateValidator validator;
+    private FactoryUrlCreateValidator createValidator;
 
     @Mock
     private FactoryUrlAcceptValidator acceptValidator;
 
-    @InjectMocks
+    @Mock
+    private ProjectManager projectManager;
+
+    private FactoryBuilder factoryBuilder;
+
     private FactoryService factoryService;
+
+    @BeforeMethod
+    public void setUp() throws Exception {
+        factoryBuilder = spy(new FactoryBuilder(new SourceProjectParametersValidator()));
+        factoryService = new FactoryService("https://codenvy.com/api",
+                                            factoryStore,
+                                            createValidator,
+                                            acceptValidator,
+                                            new LinksHelper(),
+                                            factoryBuilder,
+                                            projectManager);
+    }
 
     @javax.ws.rs.Path("factory")
     @Filter
@@ -105,7 +119,7 @@ public class FactoryServiceTest {
 
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToConvertQueryStringToFactory() throws Exception {
         // given
         Factory expected = DtoFactory.getInstance().createDto(Factory.class);
@@ -135,17 +149,16 @@ public class FactoryServiceTest {
     public void shouldBeAbleToConvertQueryStringToLatestFactory() throws Exception {
         // given
         Factory expected = DtoFactory.getInstance().createDto(Factory.class);
-        expected.withProjectattributes(
-                DtoFactory.getInstance().createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"))
-                .withV("1.2").withVcs("git").withVcsurl(
-                "http://github.com/codenvy/platform-api.git");
+        expected.withSource(DtoFactory.getInstance().createDto(Source.class).withProject(DtoFactory.getInstance().createDto(
+                ImportSourceDescriptor.class).withLocation("http://github.com/codenvy/platform-api.git").withType("git"))).withV("2.0")
+                .withProject(DtoFactory.getInstance().createDto(NewProject.class).withName("pname").withType("ptype"));
 
         StringBuilder queryString = new StringBuilder();
         queryString.append("v=").append("1.0");
-        queryString.append("&vcs=").append(expected.getVcs());
-        queryString.append("&vcsurl=").append(expected.getVcsurl());
-        queryString.append("&pname=").append(expected.getProjectattributes().getPname());
-        queryString.append("&ptype=").append(expected.getProjectattributes().getPtype());
+        queryString.append("&vcs=").append("git");
+        queryString.append("&vcsurl=").append("http://github.com/codenvy/platform-api.git");
+        queryString.append("&pname=").append("pname");
+        queryString.append("&ptype=").append("ptype");
         queryString.append("&wname=").append("wname");
 
         // when
@@ -185,7 +198,7 @@ public class FactoryServiceTest {
         assertEquals(responseFactoryUrl, expected);
     }
 
-//    @Test
+    @Test
     public void shouldReturnSavedFactoryIfUserDidNotUseSpecialMethod() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -208,7 +221,7 @@ public class FactoryServiceTest {
         assertEquals(responseFactoryUrl, expected);
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToGetFactoryValidatedFactoryFromNonEncoded() throws Exception {
         // given
 
@@ -227,7 +240,7 @@ public class FactoryServiceTest {
     }
 
 
-//    @Test
+    @Test
     public void shouldBeAbleToSaveFactory(ITestContext context) throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -261,7 +274,7 @@ public class FactoryServiceTest {
         assertTrue(found);
     }
 
-//    @Test
+    @Test
     public void shouldReturnStatus409IfSaveRequestHaveNotFactoryInfo() throws Exception {
         // given
 
@@ -277,7 +290,7 @@ public class FactoryServiceTest {
                      "No factory URL information found in 'factoryUrl' section of multipart/form-data.");
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToSaveFactoryWithOutImage(ITestContext context) throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -394,7 +407,7 @@ public class FactoryServiceTest {
         verify(factoryStore).saveFactory(Matchers.<Factory>any(), eq(Collections.<FactoryImage>emptySet()));
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToSaveFactoryWithOutImageWithOrgId(ITestContext context) throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -420,7 +433,7 @@ public class FactoryServiceTest {
         assertEquals(response.getStatusCode(), 200);
     }
 
-//    @Test
+    @Test
     public void shouldRespond409OnSaveFactoryWithOrgIdNotOwnedByCurrentUser(ITestContext context) throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -432,7 +445,7 @@ public class FactoryServiceTest {
         factoryUrl.setWelcome(DtoFactory.getInstance().createDto(WelcomePage.class));
         factoryUrl.setOrgid("orgid");
 
-        doThrow(new ConflictException("You are not authorized to use this orgid.")).when(validator)
+        doThrow(new ConflictException("You are not authorized to use this orgid.")).when(createValidator)
                                                                                    .validateOnCreate(Matchers.any(Factory.class));
         when(factoryStore.saveFactory(Matchers.any(Factory.class), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
@@ -447,7 +460,7 @@ public class FactoryServiceTest {
         assertEquals(response.getStatusCode(), 409);
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToSaveFactoryWithSetImageFieldButWithOutImageContent() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -470,7 +483,7 @@ public class FactoryServiceTest {
         verify(factoryStore).saveFactory(Matchers.<Factory>any(), eq(Collections.<FactoryImage>emptySet()));
     }
 
-//    @Test
+    @Test
     public void shouldReturnStatus409OnSaveFactoryIfImageHasUnsupportedMediaType() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -497,7 +510,7 @@ public class FactoryServiceTest {
                      "Image media type 'image/tiff' is unsupported.");
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToGetFactory(ITestContext context) throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -590,7 +603,7 @@ public class FactoryServiceTest {
         }
     }
 
-//    @Test
+    @Test
     public void shouldReturnStatus404OnGetFactoryWithIllegalId() throws Exception {
         // given
         when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
@@ -606,7 +619,7 @@ public class FactoryServiceTest {
                      String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToGetFactoryImage() throws Exception {
         // given
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
@@ -625,7 +638,7 @@ public class FactoryServiceTest {
         assertEquals(response.asByteArray(), imageContent);
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToGetFactoryDefaultImage() throws Exception {
         // given
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
@@ -644,7 +657,7 @@ public class FactoryServiceTest {
         assertEquals(response.asByteArray(), imageContent);
     }
 
-//    @Test
+    @Test
     public void shouldReturnStatus404OnGetFactoryImageWithIllegalId() throws Exception {
         // given
         when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(new HashSet<FactoryImage>());
@@ -660,7 +673,7 @@ public class FactoryServiceTest {
                      String.format("Image with id %s is not found.", "illegalImageId"));
     }
 
-//    @Test
+    @Test
     public void shouldResponse404OnGetImageIfFactoryDoesNotExist() throws Exception {
         // given
         when(factoryStore.getFactoryImages(ILLEGAL_FACTORY_ID, null)).thenReturn(null);
@@ -676,7 +689,7 @@ public class FactoryServiceTest {
                      String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToReturnUrlSnippet(ITestContext context) throws Exception {
         // given
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
@@ -692,7 +705,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=url");
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToReturnUrlSnippetIfTypeIsNotSet(ITestContext context) throws Exception {
         // given
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
@@ -708,7 +721,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet");
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToReturnHtmlSnippet(ITestContext context) throws Exception {
         // given
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
@@ -726,7 +739,7 @@ public class FactoryServiceTest {
                                                  "/factory/resources/factory.js?" + CORRECT_FACTORY_ID + "\"></script>");
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToReturnMarkdownSnippetWithImage(ITestContext context) throws Exception {
         // given
         String imageName = "1241234";
@@ -752,7 +765,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
     }
 
-//    @Test
+    @Test
     public void shouldBeAbleToReturnMarkdownSnippetWithoutImage(ITestContext context) throws Exception {
         // given
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
@@ -774,7 +787,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
     }
 
-//    @Test
+    @Test
     public void shouldNotBeAbleToGetMarkdownSnippetWithoutFactoryStyle(ITestContext context) throws Exception {
         // given
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
@@ -793,7 +806,7 @@ public class FactoryServiceTest {
 
     }
 
-//    @Test
+    @Test
     public void shouldResponse404OnGetSnippetIfFactoryDoesNotExist() throws Exception {
         // given
         when(factoryStore.getFactory(ILLEGAL_FACTORY_ID)).thenReturn(null);
@@ -809,7 +822,7 @@ public class FactoryServiceTest {
                      "Factory URL with id " + ILLEGAL_FACTORY_ID + " is not found.");
     }
 
-//    @Test(dataProvider = "badSnippetTypeProvider")
+    @Test(dataProvider = "badSnippetTypeProvider")
     public void shouldResponse409OnGetSnippetIfTypeIsIllegal(String type) throws Exception {
         // given
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto(Factory.class));
@@ -837,8 +850,7 @@ public class FactoryServiceTest {
         return "http://localhost:" + serverPort;
     }
 
-
-//    @Test
+    @Test
     public void shouldNotFindWhenNoAttributesProvided() throws Exception {
         // when
         Response response =
@@ -848,7 +860,7 @@ public class FactoryServiceTest {
         assertEquals(response.getStatusCode(), 500);
     }
 
-//    @Test
+    @Test
     public void shoutFindByAttribute() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);

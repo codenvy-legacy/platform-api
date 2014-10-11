@@ -10,16 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.dao.UserProfileDao;
+import static org.testng.Assert.*;
 
-/**
- * @author Sergii Kabashniuk
- */
-public class TestFactoryUrlBaseValidator extends FactoryUrlBaseValidator{
-
-    public TestFactoryUrlBaseValidator(AccountDao accountDao, UserDao userDao, UserProfileDao profileDao) {
-        super(accountDao, userDao, profileDao);
-    }
+public class SourceProjectParametersValidatorTest {
+//    {
+//        {
+//            put("keepVcs", "true");
+//            put("branch", "master");
+//            put("commitId", "value");
+//            put("keepDirectory", "value");
+//            put("remoteOriginFetch", "value");
+//        }
+//    }
 }

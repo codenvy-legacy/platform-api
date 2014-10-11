@@ -23,7 +23,7 @@ import static java.lang.String.format;
 /**
  * @author Alexander Garagatyi
  */
-public class SourceParametersValidator implements FactoryParameterValidator<ImportSourceDescriptor> {
+public class SourceProjectParametersValidator implements FactoryParameterValidator<ImportSourceDescriptor> {
     @Override
     public void validate(ImportSourceDescriptor source, FactoryParameter.Version version) throws ConflictException {
         if ("git".equals(source.getType())) {

@@ -80,12 +80,6 @@ public interface RunnerEnvironment {
 
     RunnerEnvironment withDisplayName(String name);
 
-    boolean isDefault();
-
-    void setDefault(boolean isDefault);
-
-    RunnerEnvironment withDefault(boolean isDefault);
-
     @Nullable
     String getDescription();
 

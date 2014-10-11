@@ -13,7 +13,6 @@ package com.codenvy.api.project.shared.dto;
 import com.codenvy.dto.shared.DTO;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -45,7 +44,6 @@ public interface RunnerEnvironmentTree {
      * </pre>
      * In example above there is no any environment on level Java, Java/Web.
      */
-    @Nullable
     List<RunnerEnvironment> getEnvironments();
 
     /**

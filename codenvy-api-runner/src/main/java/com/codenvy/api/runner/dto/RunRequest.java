@@ -83,12 +83,19 @@ public interface RunRequest {
 
     RunRequest withMemorySize(int mem);
 
-    /** Optional parameters for Runner. Supported options depend on Runner implementation. */
+    /** Options for Runner. Supported options depend on Runner implementation. */
     Map<String, String> getOptions();
 
     void setOptions(Map<String, String> options);
 
     RunRequest withOptions(Map<String, String> options);
+
+    /** Environment variables for runner. Supported variables depend on Runner implementation. */
+    Map<String, String> getVariables();
+
+    void setVariables(Map<String, String> variables);
+
+    RunRequest withVariables(Map<String, String> variables);
 
     /** @see RunOptions#getShellOptions() */
     Map<String, String> getShellOptions();

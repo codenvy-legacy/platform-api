@@ -90,8 +90,8 @@ public class RemoteRunner {
         return lastUsage;
     }
 
-    public RunnerDescriptor getDescriptor() {
-        return DtoFactory.getInstance().clone(descriptor);
+    RunnerDescriptor getDescriptor() {
+        return descriptor;
     }
 
     /**

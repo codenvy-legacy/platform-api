@@ -24,15 +24,17 @@ import java.util.Map;
  */
 @DTO
 public interface RunOptions {
-    /** Get name of runner. This parameter has preference over runner name that is configured in properties of project. */
-    @Deprecated
-    String getRunnerName();
+    /**
+     * Get id of environment that should be used for running an application.
+     *
+     * @see RunnerDescriptor#getEnvironments()
+     */
+    @ApiModelProperty(value = "Environment ID", notes = "Visit docs site for parameters reference")
+    String getEnvironmentId();
 
-    @Deprecated
-    void setRunnerName(String runnerName);
+    void setEnvironmentId(String environmentId);
 
-    @Deprecated
-    RunOptions withRunnerName(String runnerName);
+    RunOptions withEnvironmentId(String environmentId);
 
     /** Get user defined recipes for runner. */
     List<String> getScriptFiles();
@@ -57,14 +59,29 @@ public interface RunOptions {
     RunOptions withInDebugMode(boolean debugMode);
 
     /**
-     * Optional parameters for runner. Supported options depend on runner implementation. Runner may have own set of options. Caller
-     * specified options have preference over runner's default options.
+     * Gets options for runner. Supported options depend on runner implementation. Runner may have own set of options. Caller specified
+     * options have preference over runner's default options.
      */
     Map<String, String> getOptions();
 
     RunOptions withOptions(Map<String, String> options);
 
     void setOptions(Map<String, String> options);
+
+    /**
+     * Gets environment variables for runner. Supported variables depend on runner implementation. Runner may have own set of variables.
+     * Caller specified variables have preference over runner's default environment variables.
+     */
+    Map<String, String> getVariables();
+
+    /**
+     * Sets environment variables (runner type and(or) receipt specific).
+     *
+     * @see #getVariables()
+     */
+    void setVariables(Map<String, String> variables);
+
+    RunOptions withVariables(Map<String, String> variables);
 
     /** Force skip build before run. Build stage is skipped even project has configuration for builder. */
     @ApiModelProperty(value = "Skip build", dataType = "boolean", allowableValues = "true,false")
@@ -73,19 +90,6 @@ public interface RunOptions {
     void setSkipBuild(boolean skipBuild);
 
     RunOptions withSkipBuild(boolean skipBuild);
-
-    /**
-     * Get id of environment that should be used for running an application. If this parameter is omitted then runner will use default
-     * environment.
-     *
-     * @see RunnerDescriptor#getEnvironments()
-     */
-    @ApiModelProperty(value = "Environment ID", notes = "Visit docs site for parameters reference")
-    String getEnvironmentId();
-
-    void setEnvironmentId(String environmentId);
-
-    RunOptions withEnvironmentId(String environmentId);
 
     /**
      * Get builder options. Make sense only for application that requires build before run. This parameter has preference over builder

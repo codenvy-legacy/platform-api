@@ -27,8 +27,11 @@ import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
+import com.codenvy.api.project.shared.dto.RunnerEnvironment;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
@@ -241,23 +244,48 @@ public class RunQueue {
                                              .withProject(project)
                                              .withProjectDescriptor(descriptor)
                                              .withUserName(user == null ? "" : user.getName());
-        String runner = runOptions.getRunnerName();
+        String uniqueRunnerEnvId = runOptions.getEnvironmentId();
         // Project configuration for runner.
         final RunnersDescriptor runners = descriptor.getRunners();
-        if (runner == null) {
+        if (uniqueRunnerEnvId == null) {
             if (runners != null) {
-                runner = runners.getDefault();
+                uniqueRunnerEnvId = runners.getDefault();
             }
-            if (runner == null) {
-                throw new RunnerException("Name of runner is not specified, be sure corresponded property of project is set");
+            if (uniqueRunnerEnvId == null) {
+                throw new RunnerException("Name of runner environment is not specified, be sure corresponded property of project is set");
             }
+        }
+        // TODO: Some of components of our API aren't ready to use runner environment id as one full identifier.
+        // This may be fixed in next versions but for now use following agreements.
+        // Runner environment id must have format: <scope>:/<category>/<name>.
+        //   scope - system or project
+        //   category - hierarchical name separated by '/' (omitted is scope is project)
+        //   name - name of runner environment
+        // Category is used as runner identifier, see (from top to bottom is chain how we have this in RunQueue):
+        //   com.codenvy.api.runner.internal.Runner.getName()
+        //   com.codenvy.api.runner.internal.SlaveRunnerService.availableRunners()
+        //   com.codenvy.api.runner.dto.RunnerDescriptor.getName()
+        //   RemoteRunnerServer
+        //   RemoteRunner.getName()
+        // In case if category doesn't exist (should be only in case of 'project' scope) then use 'docker' as runner name. Since we have
+        // just docker for user's defined environments on production.
+        final EnvironmentId parsedUniqueRunnerEnvId = EnvironmentId.parse(uniqueRunnerEnvId);
+        String runner = null;
+        switch(parsedUniqueRunnerEnvId.getScope()) {
+            case system:
+                runner = parsedUniqueRunnerEnvId.getCategory();
+                break;
+            case project:
+                runner = "docker";
+                break;
+        }
+        if (!hasRunner(wsId, project, runner, uniqueRunnerEnvId)) {
+            throw new RunnerException(String.format("Runner '%s' is not available. ", uniqueRunnerEnvId));
         }
         request.setRunner(runner);
-        if (!hasRunner(request)) {
-            throw new RunnerException(String.format("Runner '%s' is not available. ", runner));
-        }
+        request.setEnvironmentId(uniqueRunnerEnvId);
         // Get runner configuration.
-        final RunnerConfiguration runnerConfig = runners == null ? null : runners.getConfigs().get(runner);
+        final RunnerConfiguration runnerConfig = runners == null ? null : runners.getConfigs().get(uniqueRunnerEnvId);
         int mem = runOptions.getMemorySize();
         // If nothing is set in user request try to determine memory size for application.
         if (mem <= 0) {
@@ -289,7 +317,12 @@ public class RunQueue {
         } else if (runnerConfig != null) {
             request.setOptions(runnerConfig.getOptions());
         }
-        // TODO: add environment variables
+        final Map<String, String> envVariables = runOptions.getVariables();
+        if (!envVariables.isEmpty()) {
+            request.setVariables(envVariables);
+        } else if (runnerConfig != null) {
+            request.setVariables(runnerConfig.getVariables());
+        }
         // Find user defined recipes for runner if any.
         request.setRunnerScriptUrls(getRunnerScripts(descriptor, runOptions));
         // Options for web shell that runner may provide to the server with running application.
@@ -835,9 +868,9 @@ public class RunQueue {
         return modified;
     }
 
-    boolean hasRunner(RunRequest request) {
-        final RunnerList runnerList = getRunnerList(request.getWorkspace(), request.getProject());
-        return runnerList != null && runnerList.hasRunner(request.getRunner());
+    private boolean hasRunner(String workspace, String project, String runner, String env) {
+        final RunnerList runnerList = getRunnerList(workspace, project);
+        return runnerList != null && runnerList.hasRunner(runner, env);
     }
 
     private RunnerList getRunnerList(String workspace, String project) {
@@ -993,9 +1026,28 @@ public class RunQueue {
             runners = new LinkedHashSet<>();
         }
 
-        synchronized boolean hasRunner(String name) {
+        synchronized boolean hasRunner(String runnerName, String env) {
             for (RemoteRunner runner : runners) {
-                if (name.equals(runner.getName())) {
+                if (runnerName.equals(runner.getName())) {
+                    return hasEnvironment(runner, env);
+                }
+            }
+            return false;
+        }
+
+        private boolean hasEnvironment(RemoteRunner runner, String env) {
+            final RunnerEnvironmentTree root = runner.getDescriptor().getEnvironments();
+            return root != null && hasEnvironment(root, env);
+        }
+
+        private boolean hasEnvironment(RunnerEnvironmentTree tree, String env) {
+            for (RunnerEnvironment environment : tree.getEnvironments()) {
+                if (env.equals(environment.getId())) {
+                    return true;
+                }
+            }
+            for (RunnerEnvironmentTree subTree : tree.getChildren()) {
+                if (hasEnvironment(subTree, env)) {
                     return true;
                 }
             }

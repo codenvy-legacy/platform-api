@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -124,8 +125,13 @@ public class RunnerService extends Service {
                 if (request.getWorkspace().equals(workspace)
                     && request.getProject().equals(project)
                     && request.getUserName().equals(userName)) {
-
-                    processes.add(task.getDescriptor());
+                    try {
+                        processes.add(task.getDescriptor());
+                    } catch (NotFoundException ignored) {
+                        // NotFoundException is possible and should not be treated as error in this case. Typically it occurs if slave
+                        // runner already cleaned up the task by its internal cleaner but RunQueue doesn't re-check yet slave runner and
+                        // doesn't have actual info about state of slave runner.
+                    }
                 }
             }
         }

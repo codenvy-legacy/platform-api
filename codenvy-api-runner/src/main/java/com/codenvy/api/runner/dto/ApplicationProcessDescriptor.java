@@ -126,4 +126,11 @@ public interface ApplicationProcessDescriptor extends Hyperlinks {
     ApplicationProcessDescriptor withServerUrl(String server);
 
     ApplicationProcessDescriptor withLinks(List<Link> links);
+
+    /** @see com.codenvy.api.runner.dto.PortMapping */
+    PortMapping getPortMapping();
+
+    void setPortMapping(PortMapping portMapping);
+
+    ApplicationProcessDescriptor withPortMapping(PortMapping portMapping);
 }

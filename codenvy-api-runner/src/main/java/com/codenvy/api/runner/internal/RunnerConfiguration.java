@@ -15,7 +15,7 @@ import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,14 +29,17 @@ public class RunnerConfiguration {
     private final List<Link> links;
     private final RunRequest request;
 
-    private String       debugHost;
-    private int          debugPort;
-    private java.io.File recipeFile;
+    private String              host;
+    private Map<String, String> portMapping;
+    private String              debugHost;
+    private int                 debugPort;
+    private java.io.File        recipeFile;
 
     public RunnerConfiguration(int memory, RunRequest request) {
         this.memory = memory;
         this.request = request;
         this.links = new ArrayList<>(2);
+        this.portMapping = new HashMap<>(4);
         this.debugPort = -1;
     }
 
@@ -44,6 +47,7 @@ public class RunnerConfiguration {
         this.memory = memory;
         this.request = request;
         this.links = new ArrayList<>(links);
+        this.portMapping = new HashMap<>(4);
         this.debugPort = -1;
     }
 
@@ -60,12 +64,19 @@ public class RunnerConfiguration {
         return links;
     }
 
-    public Map<String, String> getOptions() {
-        return new LinkedHashMap<>(request.getOptions());
-    }
-
     public RunRequest getRequest() {
         return DtoFactory.getInstance().clone(request);
+    }
+
+    public String getHost() {
+        return host;
+    }
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public Map<String, String> getPortMapping() {
+        return portMapping;
     }
 
     public String getDebugHost() {
@@ -98,6 +109,8 @@ public class RunnerConfiguration {
                "memory=" + memory +
                ", links=" + links +
                ", request=" + request +
+               ", host='" + host + '\'' +
+               ", portMapping=" + portMapping +
                ", debugHost='" + debugHost + '\'' +
                ", debugPort=" + debugPort +
                '}';

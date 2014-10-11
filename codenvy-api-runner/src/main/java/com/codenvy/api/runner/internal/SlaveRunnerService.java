@@ -21,6 +21,7 @@ import com.codenvy.api.core.util.SystemInfo;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.runner.dto.PortMapping;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerState;
@@ -42,8 +43,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -218,7 +221,9 @@ public class SlaveRunnerService extends Service {
                                     .withProduces(MediaType.APPLICATION_JSON));
                 break;
         }
-        final java.io.File recipeFile = process.getConfiguration().getRecipeFile();
+        final RunnerConfiguration configuration = process.getConfiguration();
+        final RunRequest request = configuration.getRequest();
+        final java.io.File recipeFile = configuration.getRecipeFile();
         if (recipeFile != null) {
             links.add(dtoFactory.createDto(Link.class)
                                 .withRel(Constants.LINK_REL_RUNNER_RECIPE)
@@ -228,15 +233,20 @@ public class SlaveRunnerService extends Service {
                                 .withProduces(MediaType.TEXT_PLAIN));
         }
         final List<Link> additionalLinks = new LinkedList<>();
+        PortMapping portMapping = null;
         switch (status) {
             case NEW:
             case RUNNING:
-                for (Link link : process.getConfiguration().getLinks()) {
+                for (Link link : configuration.getLinks()) {
                     additionalLinks.add(dtoFactory.clone(link));
+                }
+                final Map<String, String> ports = configuration.getPortMapping();
+                if (!ports.isEmpty()) {
+                    portMapping = dtoFactory.createDto(PortMapping.class).withHost(configuration.getHost()).withPorts(new HashMap<>(ports));
                 }
                 break;
             default:
-                for (Link link : process.getConfiguration().getLinks()) {
+                for (Link link : configuration.getLinks()) {
                     if ("web url".equals(link.getRel()) || "shell url".equals(link.getRel())) {
                         // Hide web and shell links if application is not running.
                         continue;
@@ -253,10 +263,11 @@ public class SlaveRunnerService extends Service {
                          .withStartTime(process.getStartTime())
                          .withStopTime(process.getStopTime())
                          .withLinks(links)
-                         .withWorkspace(process.getConfiguration().getRequest().getWorkspace())
-                         .withProject(process.getConfiguration().getRequest().getProject())
-                         .withUserName(process.getConfiguration().getRequest().getUserName())
-                         .withDebugHost(process.getConfiguration().getDebugHost())
-                         .withDebugPort(process.getConfiguration().getDebugPort());
+                         .withWorkspace(request.getWorkspace())
+                         .withProject(request.getProject())
+                         .withUserName(request.getUserName())
+                         .withDebugHost(configuration.getDebugHost())
+                         .withDebugPort(configuration.getDebugPort())
+                         .withPortMapping(portMapping);
     }
 }

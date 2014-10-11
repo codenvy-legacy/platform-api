@@ -331,7 +331,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
                                               orgid, fullName);
                     } else if (Map.class.isAssignableFrom(method.getReturnType())) {
-                        Type tp = ((ParameterizedType) method.getGenericReturnType()).getActualTypeArguments()[1];
+                        Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[1];
 
                         Class secMapParamClass;
                         if (tp instanceof ParameterizedType) {
@@ -340,17 +340,17 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                             secMapParamClass = (Class)tp;
                         }
                         if (String.class.equals(secMapParamClass)) {
-                             if (ImportSourceDescriptor.class.equals(methodsProvider)) {
+                            if (ImportSourceDescriptor.class.equals(methodsProvider)) {
                                 sourceProjectParametersValidator.validate((ImportSourceDescriptor)object, version);
-                             }
+                            }
                         } else if (List.class.equals(secMapParamClass)) {
-                             // do nothing
+                            // do nothing
                         } else {
                             if (secMapParamClass.isAnnotationPresent(DTO.class)) {
-                                Map<Object, Object> map = (Map) parameterValue;
+                                Map<Object, Object> map = (Map)parameterValue;
                                 for (Map.Entry<Object, Object> entry : map.entrySet()) {
                                     validateCompatibility(entry.getValue(), secMapParamClass, secMapParamClass, version, sourceFormat,
-                                              orgid, fullName + "." + (String) entry.getKey());
+                                                          orgid, fullName + "." + (String)entry.getKey());
                                 }
                             } else {
                                 throw new RuntimeException("This type of fields is not supported by factory.");
@@ -425,24 +425,73 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         // use recursion if parameter is DTO object
                         param = buildDtoObject(queryParams, fullName, returnClass);
                     } else if (Map.class.isAssignableFrom(returnClass)) {
+                        Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[1];
+
+                        Class secMapParamClass;
+                        if (tp instanceof ParameterizedType) {
+                            secMapParamClass = (Class)((ParameterizedType)tp).getRawType();
+                        } else {
+                            secMapParamClass = (Class)tp;
+                        }
                         String mapEntryPrefix = fullName + ".";
-                        Map<String, String> map;
+                        Map<String, Object> map;
                         if (Map.class == returnClass) {
                             map = new HashMap<>();
                         } else {
                             map = (Map)returnClass.newInstance();
                         }
-                        for (Map.Entry<String, Set<String>> parameterEntry : queryParams.entrySet()) {
-                            if (parameterEntry.getKey().startsWith(mapEntryPrefix)) {
-                                map.put(parameterEntry.getKey().substring(mapEntryPrefix.length()),
-                                        parameterEntry.getValue().iterator().next());
+                        if (String.class.equals(secMapParamClass)) {
+                            for (Map.Entry<String, Set<String>> parameterEntry : queryParams.entrySet()) {
+                                if (parameterEntry.getKey().startsWith(mapEntryPrefix)) {
+                                    map.put(parameterEntry.getKey().substring(mapEntryPrefix.length()),
+                                            parameterEntry.getValue().iterator().next());
+                                }
                             }
-                        }
-                        for (String key : map.keySet()) {
-                            queryParams.remove(mapEntryPrefix + key);
-                        }
-                        if (!map.isEmpty()) {
-                            param = map;
+                            for (String key : map.keySet()) {
+                                queryParams.remove(mapEntryPrefix + key);
+                            }
+                            if (!map.isEmpty()) {
+                                param = map;
+                            }
+                        } else if (List.class.equals(secMapParamClass)) {
+                            for (Map.Entry<String, Set<String>> parameterEntry : queryParams.entrySet()) {
+                                if (parameterEntry.getKey().startsWith(mapEntryPrefix)) {
+                                    map.put(parameterEntry.getKey().substring(mapEntryPrefix.length()),
+                                            new ArrayList<>(parameterEntry.getValue()));
+                                }
+                            }
+                            for (String key : map.keySet()) {
+                                queryParams.remove(mapEntryPrefix + key);
+                            }
+                            if (!map.isEmpty()) {
+                                param = map;
+                            }
+                        } else {
+                            if (secMapParamClass.isAnnotationPresent(DTO.class)) {
+                                final Map<String, Map<String, Set<String>>> dtosQueries = new HashMap<>();
+                                for (Map.Entry<String, Set<String>> parameterEntry : queryParams.entrySet()) {
+                                    if (parameterEntry.getKey().startsWith(mapEntryPrefix) &&
+                                        parameterEntry.getKey().length() > mapEntryPrefix.length()) {
+                                        final String currentKey = parameterEntry.getKey().substring(mapEntryPrefix.length());
+                                        final int i = currentKey.indexOf('.');
+                                        if (i != -1) {
+                                            String dtoKey = currentKey.substring(0, i);
+                                            Map<String, Set<String>> dtoMap;
+                                            if ((dtoMap = dtosQueries.get(dtoKey)) == null) {
+                                                dtosQueries.put(dtoKey, dtoMap = new HashMap<>());
+                                            }
+                                            dtoMap.put(parameterEntry.getKey(), parameterEntry.getValue());
+                                        }
+                                    }
+                                }
+                                for (Map.Entry<String, Map<String, Set<String>>> dtoEntry : dtosQueries.entrySet()) {
+                                    Object dto = buildDtoObject(queryParams, mapEntryPrefix + dtoEntry.getKey(), secMapParamClass);
+                                    map.put(dtoEntry.getKey(), dto);
+                                }
+                                if (!map.isEmpty()) {
+                                    param = map;
+                                }
+                            }
                         }
                     }
                     if (param != null) {
@@ -460,7 +509,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                 LOG.error(e.getLocalizedMessage(), e);
                 throw new ConflictException(
                         "Can't validate '" + (parentName.isEmpty() ? "" : parentName + ".") + factoryParameter.queryParameterName() +
-                        "' parameter.");
+                        "' parameter."
+                );
             }
         }
 

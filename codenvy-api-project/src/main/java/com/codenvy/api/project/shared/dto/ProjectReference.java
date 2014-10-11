@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.ObjectStatus;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;

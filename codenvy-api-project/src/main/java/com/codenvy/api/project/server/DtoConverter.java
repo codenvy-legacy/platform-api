@@ -200,7 +200,7 @@ public class DtoConverter {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final ProjectDescriptor dto = dtoFactory.createDto(ProjectDescriptor.class);
         // Try to provide as much as possible information about project.
-        // If get error then save information about error in ObjectStatus and set corresponded field in ProjectDescriptor.
+        // If get error then save information about error with 'problems' field in ProjectDescriptor.
         final String wsId = project.getWorkspace();
         final String wsName = environmentContext.getWorkspaceName();
         final String name = project.getName();

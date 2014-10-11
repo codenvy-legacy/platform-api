@@ -20,7 +20,7 @@
     </parent>
     <artifactId>codenvy-api-builder</artifactId>
     <packaging>jar</packaging>
-    <name>Codenvy Builder API</name>
+    <name>Codenvy API Builder</name>
     <properties>
         <dto-generator-out-directory>${project.build.directory}/generated-sources/dto/</dto-generator-out-directory>
     </properties>

@@ -61,10 +61,7 @@ public class Constants {
     // attributes of workspace which are interested for runner
     public static final String RUNNER_MAX_MEMORY_SIZE = "codenvy:runner_ram";
     public static final String RUNNER_LIFETIME        = "codenvy:runner_lifetime";
-
-    /* =========================================== */
-    /** @deprecated user {@link #WAITING_TIME} */
-    public static final String MAX_TIME_IN_QUEUE = WAITING_TIME;
+    public static final String RUNNER_INFRA           = "codenvy:runner_infra";
 
     private Constants() {
     }

@@ -33,4 +33,10 @@ public interface RunnerServerAccessCriteria {
     RunnerServerAccessCriteria withProject(String project);
 
     void setProject(String project);
+
+    String getInfra();
+
+    RunnerServerAccessCriteria withInfra(String infra);
+
+    void setInfra(String infra);
 }

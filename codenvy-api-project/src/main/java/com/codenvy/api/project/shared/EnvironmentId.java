@@ -164,9 +164,10 @@ public class EnvironmentId {
 
     @Override
     public int hashCode() {
-        int hash = scope.hashCode();
-        hash = 31 * hash + (category != null ? category.hashCode() : 0);
-        hash = 31 * hash + name.hashCode();
+        int hash = 7;
+        hash = hash * 31 + scope.hashCode();
+        hash = hash * 31 + (category != null ? category.hashCode() : 0);
+        hash = hash * 31 + name.hashCode();
         return hash;
     }
 }

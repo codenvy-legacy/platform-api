@@ -31,14 +31,23 @@ import java.util.List;
  * @author andrew00x
  */
 public class RemoteRunnerServer extends RemoteServiceDescriptor {
-
     /** Name of IDE workspace this server is used for. */
     private String assignedWorkspace;
     /** Name of project inside IDE workspace this server is used for. */
     private String assignedProject;
 
+    private String infra = "community";
+
     public RemoteRunnerServer(String baseUrl) {
         super(baseUrl);
+    }
+
+    public String getInfra() {
+        return infra;
+    }
+
+    public void setInfra(String infra) {
+        this.infra = infra;
     }
 
     public String getAssignedWorkspace() {

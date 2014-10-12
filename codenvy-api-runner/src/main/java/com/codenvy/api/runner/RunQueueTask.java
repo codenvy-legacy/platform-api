@@ -142,11 +142,9 @@ public final class RunQueueTask implements Cancellable {
                                                                                 : Long.toString(TimeUnit.SECONDS.toMillis(lifetime)))
                                        .withDescription("Application lifetime (ms)"));
             }
-            if (buildTaskHolder != null) {
-                final BuildTaskDescriptor buildTaskDescriptor = buildTaskHolder.get();
-                if (buildTaskDescriptor != null) {
-                    descriptor.setBuildStats(buildTaskDescriptor.getBuildStats());
-                }
+            final BuildTaskDescriptor buildTaskDescriptor = buildTaskHolder.get();
+            if (buildTaskDescriptor != null) {
+                descriptor.setBuildStats(buildTaskDescriptor.getBuildStats());
             }
         }
         return descriptor;

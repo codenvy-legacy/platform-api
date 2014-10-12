@@ -19,27 +19,24 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface ServerState {
+    /** Gets CPU load in percents (1-100). Return -1 when fails getting CPU load. */
     int getCpuPercentUsage();
 
     ServerState withCpuPercentUsage(int cpuPercentUsage);
 
     void setCpuPercentUsage(int cpuPercentUsage);
 
+    /** Gets total amount of memory (in megabytes) allocated to launching applications. */
     long getTotalMemory();
 
     ServerState withTotalMemory(long totalMemory);
 
     void setTotalMemory(long totalMemory);
 
+    /** Gets amount of memory (in megabytes) available for launching applications. */
     long getFreeMemory();
 
     ServerState withFreeMemory(long freeMemory);
 
     void setFreeMemory(long freeMemory);
-
-    int getTotalRunningAppsNum();
-
-    ServerState withTotalRunningAppsNum(int num);
-
-    void setTotalRunningAppsNum(int num);
 }

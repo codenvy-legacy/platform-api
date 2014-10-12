@@ -10,16 +10,63 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static org.testng.Assert.*;
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.factory.FactoryParameter;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.dto.server.DtoFactory;
+
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import java.util.HashMap;
 
 public class SourceProjectParametersValidatorTest {
-//    {
-//        {
-//            put("keepVcs", "true");
-//            put("branch", "master");
-//            put("commitId", "value");
-//            put("keepDirectory", "value");
-//            put("remoteOriginFetch", "value");
-//        }
-//    }
+    private SourceProjectParametersValidator validator;
+
+    private ImportSourceDescriptor sourceDescriptor;
+
+    @BeforeMethod
+    public void setUp() throws Exception {
+        validator = new SourceProjectParametersValidator();
+
+        sourceDescriptor = DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)
+                                     .withLocation("location")
+                                     .withType("git")
+                                     .withParameters(new HashMap<String, String>() {
+                                         {
+                                             put("branch", "master");
+                                             put("commitId", "123456");
+                                             put("keepVcs", "true");
+                                             put("remoteOriginFetch", "12345");
+                                             put("keepDirectory", "/src");
+                                         }
+                                     });
+    }
+
+    @Test
+    public void shouldBeAbleValidateGitSource() throws Exception {
+        validator.validate(sourceDescriptor, FactoryParameter.Version.V2_0);
+    }
+
+    @Test(expectedExceptions = ConflictException.class,
+          expectedExceptionsMessageRegExp = "The parameter .* has a value submitted .* with a value.*")
+    public void shouldThrowExceptionIfTypeIsNotGit() throws Exception {
+        validator.validate(sourceDescriptor.withType("zip"), FactoryParameter.Version.V2_0);
+    }
+
+    @Test(expectedExceptions = ConflictException.class,
+          expectedExceptionsMessageRegExp = "You have provided an invalid parameter .* for this version of Factory parameters.*")
+    public void shouldThrowExceptionIfUnknownParameterIsUsed() throws Exception {
+        sourceDescriptor.getParameters().put("other", "value");
+
+        validator.validate(sourceDescriptor, FactoryParameter.Version.V2_0);
+    }
+
+    @Test(expectedExceptions = ConflictException.class,
+          expectedExceptionsMessageRegExp = "The parameter .* has a value submitted .* with a value that is unexpected.*")
+    public void shouldThrowExceptionIfKeepVcsIsNotTrueOrFalse() throws Exception {
+        sourceDescriptor.getParameters().put("keepVcs", "qwerty");
+
+        validator.validate(sourceDescriptor, FactoryParameter.Version.V2_0);
+    }
 }

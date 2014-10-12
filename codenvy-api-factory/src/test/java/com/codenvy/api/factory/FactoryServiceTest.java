@@ -882,4 +882,10 @@ public class FactoryServiceTest {
         List<Link> responseLinks = DtoFactory.getInstance().createListDtoFromJson(response.getBody().asString(), Link.class);
         assertEquals(responseLinks.size(), 2);
     }
+
+    // TODO
+    @Test(enabled = false)
+    public void shouldBeAbleToGenerateFactoryJsonForProject() throws Exception {
+        Response response = given().when().get(SERVICE_PATH + "/wsId/projectName");
+    }
 }

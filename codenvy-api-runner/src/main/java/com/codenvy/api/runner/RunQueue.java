@@ -209,7 +209,7 @@ public class RunQueue {
                 try {
                     ApplicationStatus status;
                     if (task.isWaiting()
-                        || (!task.isCancelled() &&
+                        || (!task.isStopped() &&
                             ((status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
                              || (status == ApplicationStatus.NEW)))) {
                         usedMemory += request.getMemorySize();
@@ -395,6 +395,9 @@ public class RunQueue {
             if (wsId.equals(request.getWorkspace())) {
                 try {
                     ApplicationStatus status;
+                    if (task.isStopped()) {
+                        return;
+                    }
                     if (task.isWaiting()
                         || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
                         || status == ApplicationStatus.NEW) {
@@ -627,17 +630,22 @@ public class RunQueue {
                         final boolean waiting = task.isWaiting();
                         final RunRequest request = task.getRequest();
                         if (waiting) {
-                            if ((task.getCreationTime() + maxWaitingTimeMillis) < System.currentTimeMillis()) {
-                                try {
-                                    task.cancel();
-                                    eventService.publish(
-                                            RunnerEvent.queueTerminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
-                                } catch (Exception e) {
-                                    LOG.warn(e.getMessage(), e);
+                            try {
+                                if ((task.getCreationTime() + maxWaitingTimeMillis) < System.currentTimeMillis() || task.isStopped()) {
+                                    try {
+                                        task.cancel();
+                                        eventService.publish(
+                                                RunnerEvent
+                                                        .queueTerminatedEvent(task.getId(), request.getWorkspace(), request.getProject()));
+                                    } catch (Exception e) {
+                                        LOG.warn(e.getMessage(), e);
+                                    }
+                                    i.remove();
+                                    waitingNum++;
+                                    num++;
                                 }
-                                i.remove();
-                                waitingNum++;
-                                num++;
+                            } catch (RunnerException e) {
+                                LOG.warn(e.getMessage(), e);
                             }
                         } else {
                             RemoteRunnerProcess remote = null;

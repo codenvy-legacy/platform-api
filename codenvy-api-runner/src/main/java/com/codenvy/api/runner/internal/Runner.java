@@ -258,7 +258,7 @@ public abstract class Runner {
         return doExecute(request, callback);
     }
 
-    protected RunnerProcess doExecute(final RunRequest request, RunnerProcess.Callback callback) throws RunnerException {
+    protected RunnerProcess doExecute(final RunRequest request, final RunnerProcess.Callback callback) throws RunnerException {
         final long startTime = System.currentTimeMillis();
         final RunnerConfiguration runnerCfg = getRunnerConfigurationFactory().createRunnerConfiguration(request);
         final int mem = runnerCfg.getMemory();
@@ -289,6 +289,8 @@ public abstract class Runner {
                     watcher.start(new Cancellable() {
                         @Override
                         public void cancel() throws Exception {
+                            process.getLogger()
+                                   .writeLine("[ERROR] Your run has been shutdown due to timeout. Upgrade your account to get an always on runner.");
                             process.internalStop(true);
                         }
                     });

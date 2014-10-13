@@ -153,7 +153,7 @@ public class RunnerService extends Service {
                                              @ApiParam(value = "Run ID", required = true)
                                              @PathParam("id") Long id) throws Exception {
         final RunQueueTask task = runQueue.getTask(id);
-        task.cancel();
+        task.stop();
         return task.getDescriptor();
     }
 

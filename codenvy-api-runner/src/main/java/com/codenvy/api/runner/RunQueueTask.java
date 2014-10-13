@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Wraps RemoteRunnerProcess.
@@ -44,6 +45,7 @@ public final class RunQueueTask implements Cancellable {
     private final ValueHolder<BuildTaskDescriptor> buildTaskHolder;
     private final long                             created;
     private final long                             waitingTimeout;
+    private final AtomicBoolean                    stopped = new AtomicBoolean(false);
 
     /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
     private final UriBuilder uriBuilder;
@@ -85,7 +87,12 @@ public final class RunQueueTask implements Cancellable {
     public ApplicationProcessDescriptor getDescriptor() throws RunnerException, NotFoundException {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         ApplicationProcessDescriptor descriptor;
-        if (future.isCancelled()) {
+        if (isStopped()) {
+            descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
+                                   .withProcessId(id)
+                                   .withCreationTime(created)
+                                   .withStatus(ApplicationStatus.STOPPED);
+        } else if (future.isCancelled()) {
             descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
                                    .withProcessId(id)
                                    .withCreationTime(created)
@@ -184,8 +191,14 @@ public final class RunQueueTask implements Cancellable {
         doStop(getRemoteProcess());
     }
 
-    public boolean isCancelled() throws RunnerException {
-        return future.isCancelled();
+    public void stop() throws Exception {
+        if (stopped.compareAndSet(false, true)) {
+            cancel();
+        }
+    }
+
+    public boolean isStopped() throws RunnerException {
+        return stopped.get() || future.isCancelled();
     }
 
     public boolean isWaiting() {
@@ -217,7 +230,7 @@ public final class RunQueueTask implements Cancellable {
     }
 
     RemoteRunnerProcess getRemoteProcess() throws RunnerException, NotFoundException {
-        if (!future.isDone()) {
+        if (!future.isDone() || future.isCancelled()) {
             return null;
         }
         if (myRemoteProcess == null) {

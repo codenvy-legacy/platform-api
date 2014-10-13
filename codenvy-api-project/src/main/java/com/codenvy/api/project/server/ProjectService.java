@@ -610,19 +610,21 @@ public class ProjectService extends Service {
         if (project == null) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
-                if (resolver.resolve(virtualFile)) {
+                if (resolver.resolve((FolderEntry)virtualFile)) {
                     break;
                 }
             }
         }
 
+        project = projectManager.getProject(workspace, path);
+
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
-        VirtualFile virtualFile = virtualFile.getBaseFolder().getVirtualFile();
-        searcherProvider.getSearcher(virtualFile.getMountPoint(), true).add(virtualFile);
+        VirtualFile file = virtualFile.getVirtualFile();
+        searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
 
         eventService.publish(new ProjectCreatedEvent(virtualFile.getWorkspace(), virtualFile.getPath()));
-        final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(virtualFile, getServiceContext().getServiceUriBuilder());
+        final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());

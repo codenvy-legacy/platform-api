@@ -19,8 +19,8 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.Source;
 import com.codenvy.api.factory.dto.FactoryV2_0;
+import com.codenvy.api.factory.dto.Source;
 import com.codenvy.api.project.server.Builders;
 import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectDescription;
@@ -83,13 +83,13 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
-    private String baseApiUrl;
-    private FactoryStore factoryStore;
+    private String                    baseApiUrl;
+    private FactoryStore              factoryStore;
     private FactoryUrlCreateValidator createValidator;
     private FactoryUrlAcceptValidator acceptValidator;
-    private LinksHelper linksHelper;
-    private FactoryBuilder factoryBuilder;
-    private ProjectManager projectManager;
+    private LinksHelper               linksHelper;
+    private FactoryBuilder            factoryBuilder;
+    private ProjectManager            projectManager;
 
     @Inject
     public FactoryService(@Named("api.endpoint") String baseApiUrl,
@@ -251,11 +251,11 @@ public class FactoryService extends Service {
                                             @QueryParam("maxVersion") String maxVersion,
                                             @Context UriInfo uriInfo) throws ApiException {
         final URI uri = UriBuilder.fromUri(uriInfo.getRequestUri())
-                            .replaceQueryParam("legacy", null)
-                            .replaceQueryParam("token", null)
-                            .replaceQueryParam("validate", null)
-                            .replaceQueryParam("maxVersion", null)
-                            .build();
+                                  .replaceQueryParam("legacy", null)
+                                  .replaceQueryParam("token", null)
+                                  .replaceQueryParam("validate", null)
+                                  .replaceQueryParam("maxVersion", null)
+                                  .build();
         Factory factory = factoryBuilder.buildEncoded(uri);
         if (legacy) {
             if (maxVersion != null) {
@@ -480,21 +480,31 @@ public class FactoryService extends Service {
             case "url":
                 return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").queryParam("id", id).build().toString();
             case "html":
-                return SnippetGenerator.generateHtmlSnippet(id, factory.getStyle(), UriBuilder.fromUri(uriInfo.getBaseUri())
-                                                                                              .replacePath("").build().toString());
+                return SnippetGenerator.generateHtmlSnippet(id, UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString());
             case "iframe":
                 return SnippetGenerator.generateiFrameSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
                                                                         .queryParam("id", id).build().toString());
             case "markdown":
                 Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(id, null);
                 String imageId = (factoryImages.size() > 0) ? factoryImages.iterator().next().getName() : null;
+
                 try {
-                    return SnippetGenerator
-                            .generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
-                                                               .queryParam("id", id).build().toString(), id,
-                                                     imageId, factory.getStyle(),
-                                                     UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString()
-                                                    );
+                    if (factory.getV().startsWith("1.")) {
+                        return SnippetGenerator.generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                                                  .queryParam("id", id).build().toString(),
+                                                                        id, imageId, factory.getStyle(),
+                                                                        UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build()
+                                                                                  .toString()
+                                                                       );
+                    } else {
+                        return SnippetGenerator.generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
+                                                                                  .queryParam("id", id).build().toString(),
+                                                                        id,
+                                                                        imageId,
+                                                                        factory.getButton(),
+                                                                        UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build()
+                                                                                  .toString());
+                    }
                 } catch (IllegalArgumentException e) {
                     throw new ConflictException(e.getMessage());
                 }
@@ -543,10 +553,10 @@ public class FactoryService extends Service {
             // 'projectDescription' variable and skip all attributes that aren't defined in project.json file.
             final ProjectJson2 projectJson = ProjectJson2.load(project);
             newProject = dtoFactory.createDto(NewProject.class)
-                                                       .withName(project.getName())
-                                                       .withType(projectJson.getType())
-                                                       .withAttributes(projectJson.getAttributes())
-                                                       .withDescription(projectJson.getDescription());
+                                   .withName(project.getName())
+                                   .withType(projectJson.getType())
+                                   .withAttributes(projectJson.getAttributes())
+                                   .withDescription(projectJson.getDescription());
             final Builders builders = projectJson.getBuilders();
             if (builders != null) {
                 newProject.withBuilders(com.codenvy.api.project.server.DtoConverter.toDto(builders));

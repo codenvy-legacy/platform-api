@@ -992,15 +992,20 @@ public class ProjectService extends Service {
                                                        @ApiParam(value = "Path to a project", required = true)
                                                        @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
-        final FolderEntry folder = asFolder(workspace, path + "/.codenvy/environments");
-        final List<RunnerEnvironment> environments = new LinkedList<>();
-        for (FolderEntry childFolder : folder.getChildFolders()) {
-            final String id = new EnvironmentId(EnvironmentId.Scope.project, childFolder.getName()).toString();
-            environments.add(DtoFactory.getInstance().createDto(RunnerEnvironment.class)
-                                       .withId(id)
-                                       .withDisplayName(childFolder.getName()));
-        }
+        final String envFolderPath = "/.codenvy/environments";
+        final Project project = projectManager.getProject(workspace, path);
         final RunnerEnvironmentTree root = DtoFactory.getInstance().createDto(RunnerEnvironmentTree.class).withDisplayName("project");
+        final List<RunnerEnvironment> environments = new LinkedList<>();
+        final VirtualFileEntry environmentsFolder = project.getBaseFolder().getChild(envFolderPath);
+        if (environmentsFolder != null) {
+            final FolderEntry folder = asFolder(workspace, path + envFolderPath);
+            for (FolderEntry childFolder : folder.getChildFolders()) {
+                final String id = new EnvironmentId(EnvironmentId.Scope.project, childFolder.getName()).toString();
+                environments.add(DtoFactory.getInstance().createDto(RunnerEnvironment.class)
+                                           .withId(id)
+                                           .withDisplayName(childFolder.getName()));
+            }
+        }
         return root.withEnvironments(environments);
     }
 

@@ -10,10 +10,24 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import com.codenvy.api.factory.dto.*;
+import com.codenvy.api.factory.dto.Actions;
+import com.codenvy.api.factory.dto.Author;
+import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.FactoryV1_0;
+import com.codenvy.api.factory.dto.FactoryV1_1;
+import com.codenvy.api.factory.dto.FactoryV1_2;
+import com.codenvy.api.factory.dto.FactoryV2_0;
+import com.codenvy.api.factory.dto.Git;
+import com.codenvy.api.factory.dto.Policies;
+import com.codenvy.api.factory.dto.ProjectAttributes;
+import com.codenvy.api.factory.dto.Restriction;
+import com.codenvy.api.factory.dto.RunnerSource;
+import com.codenvy.api.factory.dto.Source;
+import com.codenvy.api.factory.dto.Variable;
+import com.codenvy.api.factory.dto.Workspace;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
-import com.codenvy.api.project.shared.dto.RunnerConfiguration;
 import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.RunnerConfiguration;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 
 import java.util.List;
@@ -33,7 +47,8 @@ public abstract class NonEncodedFactoryBuilder {
      * @param factory
      *         - factory object.
      * @return - query part of url of nonencoded version
-     * @throws java.lang.RuntimeException if v is null, empty or illegal.
+     * @throws java.lang.RuntimeException
+     *         if v is null, empty or illegal.
      */
     // TODO affiliateId
     public String buildNonEncoded(Factory factory) {
@@ -200,16 +215,25 @@ public abstract class NonEncodedFactoryBuilder {
                 appendIfNotNull(builder, "&source.project.location=", sourceDescriptor.getLocation(), true);
                 if (sourceDescriptor.getParameters() != null) {
                     for (Map.Entry<String, String> entry : sourceDescriptor.getParameters().entrySet()) {
-                        builder.append("&source.project.parameters.").append(encode(entry.getKey())).append("=").append(encode(entry.getValue()));
+                        builder.append("&source.project.parameters.")
+                               .append(encode(entry.getKey()))
+                               .append("=")
+                               .append(encode(entry.getValue()));
                     }
                 }
             }
             if (source.getRunners() != null) {
                 for (Map.Entry<String, RunnerSource> runnerSource : source.getRunners().entrySet()) {
-                    builder.append("&source.runners.").append(encode(runnerSource.getKey())).append(".location=").append(encode(runnerSource.getValue().getLocation()));
+                    final String prefix = "&source.runners." + encode(runnerSource.getKey());
+                    builder.append(prefix)
+                           .append(".location=")
+                           .append(encode(runnerSource.getValue().getLocation()));
                     if (runnerSource.getValue().getParameters() != null) {
                         for (Map.Entry<String, String> parameter : runnerSource.getValue().getParameters().entrySet()) {
-                            builder.append("&source.runners.").append(encode(runnerSource.getKey())).append(".parameters").append(encode(parameter.getKey())).append("=").append(encode(parameter.getValue()));
+                            builder.append(prefix)
+                                   .append(".parameters.")
+                                   .append(encode(parameter.getKey()))
+                                   .append("=").append(encode(parameter.getValue()));
                         }
                     }
                 }
@@ -227,7 +251,10 @@ public abstract class NonEncodedFactoryBuilder {
         if (workspace != null) {
             appendIfNotNull(builder, "&workspace.temp=", workspace.getTemp(), false);
             for (Map.Entry<String, String> entry : workspace.getAttributes().entrySet()) {
-                builder.append("&workspace.attributes.").append(encode(entry.getKey())).append("=").append(encode(entry.getValue()));
+                builder.append("&workspace.attributes.")
+                       .append(encode(entry.getKey()))
+                       .append("=")
+                       .append(encode(entry.getValue()));
             }
         }
 
@@ -245,15 +272,28 @@ public abstract class NonEncodedFactoryBuilder {
                 appendIfNotNull(builder, "&project.runners.default=", rDescriptor.getDefault(), true);
                 if (rDescriptor.getConfigs() != null) {
                     for (Map.Entry<String, RunnerConfiguration> rConf : rDescriptor.getConfigs().entrySet()) {
-                        builder.append("&project.runners.confs.").append(encode(rConf.getKey())).append(".ram=").append(String.valueOf(rConf.getValue().getRam()));
+                        final String prefix = "&project.runners.configs." + encode(rConf.getKey());
+                        builder.append(prefix)
+                               .append(".ram=")
+                               .append(String.valueOf(rConf.getValue().getRam()));
                         if (rConf.getValue().getVariables() != null) {
+                            final String vPrefix = prefix + ".variables";
                             for (Map.Entry<String, String> vars : rConf.getValue().getVariables().entrySet()) {
-                                builder.append("&project.runners.confs.").append(encode(rConf.getKey())).append(".").append(encode(vars.getKey())).append("=").append(encode(vars.getValue()));
+                                builder.append(vPrefix)
+                                       .append(".")
+                                       .append(encode(vars.getKey()))
+                                       .append("=")
+                                       .append(encode(vars.getValue()));
                             }
                         }
-                        if (rConf.getValue().getVariables() != null) {
+                        if (rConf.getValue().getOptions() != null) {
+                            final String oPrefix = prefix + ".options";
                             for (Map.Entry<String, String> options : rConf.getValue().getOptions().entrySet()) {
-                                builder.append("&project.runners.confs.").append(encode(rConf.getKey())).append(".").append(encode(options.getKey())).append("=").append(encode(options.getValue()));
+                                builder.append(oPrefix)
+                                       .append(".")
+                                       .append(encode(options.getKey()))
+                                       .append("=")
+                                       .append(encode(options.getValue()));
                             }
                         }
                     }
@@ -261,8 +301,11 @@ public abstract class NonEncodedFactoryBuilder {
             }
             if (project.getAttributes() != null) {
                 for (Map.Entry<String, List<String>> attribute : project.getAttributes().entrySet()) {
+                    final String prefix = "&project.attributes." + encode(attribute.getKey());
                     for (String attrValue : attribute.getValue()) {
-                        builder.append("&project.attributes.").append(encode(attribute.getKey())).append("=").append(encode(attrValue));
+                        builder.append(prefix)
+                               .append("=")
+                               .append(encode(attrValue));
                     }
                 }
             }
@@ -280,7 +323,8 @@ public abstract class NonEncodedFactoryBuilder {
             appendIfNotNull(builder, "&actions.openFile=", actions.getOpenFile(), true);
             appendIfNotNull(builder, "&actions.warnOnClose=", String.valueOf(actions.getWarnOnClose()), false);
             if (actions.getFindReplace() != null) {
-                builder.append("&actions.findReplace=").append(encode(toJson(actions.getFindReplace())));
+                builder.append("&actions.findReplace=")
+                       .append(encode(toJson(actions.getFindReplace())));
             }
         }
     }

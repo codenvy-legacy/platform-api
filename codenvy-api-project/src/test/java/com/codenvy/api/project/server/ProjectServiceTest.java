@@ -141,9 +141,10 @@ public class ProjectServiceTest {
         resolvers.add(new ProjectTypeResolver() {
 
             @Override
-            public boolean resolve(Project project) throws ServerException, ValueStorageException, InvalidValueException {
-                ProjectDescription description = project.getDescription();
+            public boolean resolve(FolderEntry projectFolder) throws ServerException, ValueStorageException, InvalidValueException {
+                ProjectDescription description = new ProjectDescription();
                 description.setProjectType(projectType);
+                Project project = new Project(projectFolder, pm);
                 project.updateDescription(description);
                 return true;
             }

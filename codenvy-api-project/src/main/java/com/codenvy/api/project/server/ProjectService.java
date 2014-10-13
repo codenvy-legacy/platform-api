@@ -22,6 +22,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
+import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -29,6 +30,8 @@ import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
+import com.codenvy.api.project.shared.dto.RunnerEnvironment;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -78,6 +81,7 @@ import java.util.Set;
 /**
  * @author andrew00x
  * @author Eugene Voevodin
+ * @author Artem Zatsarynnyy
  */
 @Api(value = "/project",
      description = "Project manager")
@@ -969,6 +973,35 @@ public class ProjectService extends Service {
         }
         project.setPermissions(acl);
         return project.getPermissions();
+    }
+
+    @ApiOperation(value = "Get available project-scoped runner environments",
+                  notes = "Get available project-scoped runner environments.",
+                  response = RunnerEnvironmentTree.class,
+                  position = 26)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @GET
+    @Path("/environments/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public RunnerEnvironmentTree getRunnerEnvironments(@ApiParam(value = "Workspace ID", required = true)
+                                                       @PathParam("ws-id") String workspace,
+                                                       @ApiParam(value = "Path to a project", required = true)
+                                                       @PathParam("path") String path)
+            throws NotFoundException, ForbiddenException, ServerException {
+        final FolderEntry folder = asFolder(workspace, path + "/.codenvy/environments");
+        final List<RunnerEnvironment> environments = new LinkedList<>();
+        for (FolderEntry childFolder : folder.getChildFolders()) {
+            final String id = new EnvironmentId(EnvironmentId.Scope.project, childFolder.getName()).toString();
+            environments.add(DtoFactory.getInstance().createDto(RunnerEnvironment.class)
+                                       .withId(id)
+                                       .withDisplayName(childFolder.getName()));
+        }
+        final RunnerEnvironmentTree root = DtoFactory.getInstance().createDto(RunnerEnvironmentTree.class).withDisplayName("project");
+        return root.withEnvironments(environments);
     }
 
     private FileEntry asFile(String workspace, String path) throws ForbiddenException, NotFoundException, ServerException {

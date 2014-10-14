@@ -601,9 +601,10 @@ public class ProjectService extends Service {
                 throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
             }
         }
-        importer.importSources((FolderEntry)virtualFile, importDescriptor.getLocation(), importDescriptor.getParameters(),
-                               outputOutputConsumerFactory);
 
+        FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
+        importer.importSources(baseProjectFolder, importDescriptor.getLocation(), importDescriptor.getParameters(),
+                               outputOutputConsumerFactory);
 
         Project project = projectManager.getProject(workspace, path);
         //use resolver only if project type not set
@@ -616,14 +617,17 @@ public class ProjectService extends Service {
             }
         }
 
+        //try get project again after trying resolve it
         project = projectManager.getProject(workspace, path);
-
+        if (project == null) { //resolver can't resolve project type
+            project = new Project(baseProjectFolder, projectManager); //create BLANK project type
+        }
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
-        VirtualFile file = virtualFile.getVirtualFile();
+        VirtualFile file = project.getBaseFolder().getVirtualFile();
         searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
 
-        eventService.publish(new ProjectCreatedEvent(virtualFile.getWorkspace(), virtualFile.getPath()));
+        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),

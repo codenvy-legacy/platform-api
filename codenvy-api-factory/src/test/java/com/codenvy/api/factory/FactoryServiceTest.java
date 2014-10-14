@@ -303,7 +303,7 @@ public class FactoryServiceTest {
         factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
         Link expectedCreateProject =
                 DtoFactory.getInstance().createDto(Link.class).withMethod("GET").withProduces("text/html").withRel("create-project")
-                          .withHref(getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID);
+                          .withHref(getServerUrl(context) + "/f?id=" + CORRECT_FACTORY_ID);
 
         when(factoryStore.saveFactory((Factory)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID))
@@ -526,7 +526,7 @@ public class FactoryServiceTest {
         images.add(image2);
         Link expectedCreateProject = DtoFactory.getInstance().createDto(Link.class);
         expectedCreateProject.setProduces("text/html");
-        expectedCreateProject.setHref(getServerUrl(context) + "/factory?id=" + CORRECT_FACTORY_ID);
+        expectedCreateProject.setHref(getServerUrl(context) + "/f?id=" + CORRECT_FACTORY_ID);
         expectedCreateProject.setRel("create-project");
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);

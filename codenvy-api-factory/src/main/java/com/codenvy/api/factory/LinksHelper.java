@@ -62,7 +62,7 @@ public class LinksHelper {
 
         // uri to accept factory
         createProject = createLink("GET", "create-project", null, MediaType.TEXT_HTML,
-                                   baseUriBuilder.clone().replacePath("factory").queryParam("id", factoryId).build().toString(), null);
+                                   baseUriBuilder.clone().replacePath("f").queryParam("id", factoryId).build().toString(), null);
         links.add(createProject);
 
         // links of analytics

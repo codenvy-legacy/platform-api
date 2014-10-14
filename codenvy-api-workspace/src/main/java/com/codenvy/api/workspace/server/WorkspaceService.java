@@ -266,6 +266,12 @@ public class WorkspaceService extends Service {
         } else {
             user = userDao.getById(currentUser().getId());
         }
+
+        final Member newMember = new Member().withUserId(user.getId())
+                                             .withWorkspaceId(workspace.getId())
+                                             .withRoles(asList("workspace/developer", "workspace/admin"));
+        memberDao.create(newMember);
+
         LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", workspace.getName(), workspace.getId(), user.getId());
         return status(CREATED).entity(toDescriptor(workspace, context)).build();
     }

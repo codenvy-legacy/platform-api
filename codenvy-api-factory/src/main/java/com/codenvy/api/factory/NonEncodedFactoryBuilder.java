@@ -322,7 +322,7 @@ public abstract class NonEncodedFactoryBuilder {
         if (actions != null) {
             appendIfNotNull(builder, "&actions.openFile=", actions.getOpenFile(), true);
             appendIfNotNull(builder, "&actions.warnOnClose=", String.valueOf(actions.getWarnOnClose()), false);
-            if (actions.getFindReplace() != null) {
+            if (actions.getFindReplace() != null && !actions.getFindReplace().isEmpty()) {
                 builder.append("&actions.findReplace=")
                        .append(encode(toJson(actions.getFindReplace())));
             }

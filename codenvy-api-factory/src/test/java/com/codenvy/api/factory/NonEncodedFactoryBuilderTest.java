@@ -28,21 +28,27 @@ import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
+import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
+import com.codenvy.dto.shared.JsonArray;
 
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 /**
  * @author Alexander Garagatyi
@@ -89,8 +95,7 @@ public class NonEncodedFactoryBuilderTest {
                                            "policies.validUntil=2413192647001&" +
                                            "policies.refererHostname=dev.box.com&" +
                                            "actions.openFile=%2Fpom.xml&" +
-                                           "actions.warnOnClose=true&" +
-                                           "actions.findReplace=%5B%7B%22files%22%3A%5B%22src%2Fmain%2Fresources%2F*%22%5D%2C%22entries%22%3A%5B%7B%22replace%22%3A%22NEW_VALUE%22%2C%22replacemode%22%3A%22first%22%2C%22find%22%3A%22OLD_VALUE%22%7D%5D%7D%2C%7B%22files%22%3A%5B%22src%2Fmain%2Fresources%2Fconsts.properties%22%2C%22src%2Fmain%2Fresources%2Fconsts2.properties%22%5D%2C%22entries%22%3A%5B%7B%22replace%22%3A%22NEW_VALUE2%22%2C%22replacemode%22%3A%22first%22%2C%22find%22%3A%22OLD_VALUE2%22%7D%2C%7B%22replace%22%3A%22NEW_VALUE3%22%2C%22replacemode%22%3A%22first%22%2C%22find%22%3A%22OLD_VALUE3%22%7D%5D%7D%5D";
+                                           "actions.warnOnClose=true";
 
     private NonEncodedFactoryBuilder factoryBuilder = new NonEncodedFactoryBuilder() {
         @Override
@@ -207,28 +212,6 @@ public class NonEncodedFactoryBuilderTest {
                                 .withValidSince(1413198747007l)
                                 .withValidUntil(2413192647001l))
                .withActions(dto.createDto(Actions.class)
-                               .withFindReplace(new ArrayList<Variable>() {
-                                   {
-                                       add(dto.createDto(Variable.class)
-                                              .withFiles(singletonList("src/main/resources/*"))
-                                              .withEntries(singletonList(dto.createDto(Replacement.class)
-                                                                            .withReplacemode("first")
-                                                                            .withReplace("NEW_VALUE")
-                                                                            .withFind("OLD_VALUE"))));
-                                       add(dto.createDto(Variable.class)
-                                              .withFiles(Arrays.asList("src/main/resources/consts.properties",
-                                                                       "src/main/resources/consts2.properties"))
-                                              .withEntries(Arrays.asList(dto.createDto(Replacement.class)
-                                                                            .withReplacemode("first")
-                                                                            .withReplace("NEW_VALUE2")
-                                                                            .withFind("OLD_VALUE2"),
-                                                                         dto.createDto(Replacement.class)
-                                                                            .withReplacemode("first")
-                                                                            .withReplace("NEW_VALUE3")
-                                                                            .withFind("OLD_VALUE3")
-                                                                        )));
-                                   }
-                               })
                                .withOpenFile("/pom.xml")
                                .withWarnOnClose(true))
         ;
@@ -272,5 +255,41 @@ public class NonEncodedFactoryBuilderTest {
         String nonEncFactory = factoryBuilder.buildNonEncoded(factory);
 
         assertEquals(nonEncFactory, expected);
+    }
+
+    @Test
+    public void shouldBeAbleToConvertFindReplaceToNonEncoded() throws Exception {
+        final DtoFactory dto = DtoFactory.getInstance();
+        factory.getActions().withFindReplace(new ArrayList<Variable>() {
+            {
+                add(dto.createDto(Variable.class)
+                       .withFiles(singletonList("src/main/resources/*"))
+                       .withEntries(singletonList(dto.createDto(Replacement.class)
+                                                     .withReplacemode("first")
+                                                     .withReplace("NEW_VALUE")
+                                                     .withFind("OLD_VALUE"))));
+                add(dto.createDto(Variable.class)
+                       .withFiles(Arrays.asList("src/main/resources/consts.properties",
+                                                "src/main/resources/consts2.properties"))
+                       .withEntries(Arrays.asList(dto.createDto(Replacement.class)
+                                                     .withReplacemode("first")
+                                                     .withReplace("NEW_VALUE2")
+                                                     .withFind("OLD_VALUE2"),
+                                                  dto.createDto(Replacement.class)
+                                                     .withReplacemode("first")
+                                                     .withReplace("NEW_VALUE3")
+                                                     .withFind("OLD_VALUE3")
+                                                 )));
+            }
+        });
+
+        String nonEncFactory = factoryBuilder.buildNonEncoded(factory);
+
+        Map<String, Set<String>> queryParams = URLEncodedUtils.parse(new URI("?" + nonEncFactory), "UTF-8");
+        final Set<String> findReplace = queryParams.get("actions.findReplace");
+        assertNotNull(findReplace);
+        assertEquals(findReplace.size(), 1);
+        final List<Variable> variables = dto.createListDtoFromJson(findReplace.iterator().next(), Variable.class);
+        assertEquals(variables, factory.getActions().getFindReplace());
     }
 }

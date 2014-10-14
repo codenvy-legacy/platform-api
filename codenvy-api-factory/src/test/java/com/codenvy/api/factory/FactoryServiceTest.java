@@ -14,6 +14,8 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
+import com.codenvy.api.factory.dto.Button;
+import com.codenvy.api.factory.dto.ButtonAttributes;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Source;
@@ -145,7 +147,7 @@ public class FactoryServiceTest {
         assertEquals(responseFactoryUrl, expected);
     }
 
-//    @Test
+    //    @Test
     public void shouldBeAbleToConvertQueryStringToLatestFactory() throws Exception {
         // given
         Factory expected = DtoFactory.getInstance().createDto(Factory.class);
@@ -170,7 +172,7 @@ public class FactoryServiceTest {
         assertEquals(responseFactoryUrl, expected);
     }
 
-//    @Test
+    //    @Test
     public void shouldBeAbleToReturnLatestFactory() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
@@ -724,8 +726,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnHtmlSnippet(ITestContext context) throws Exception {
         // given
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto
-                (Factory.class));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(DtoFactory.getInstance().createDto(Factory.class));
 
         // when, then
         Response response = given().//
@@ -735,16 +736,19 @@ public class FactoryServiceTest {
                 when().//
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=html");
 
-        assertEquals(response.body().asString(), "<script type=\"text/javascript\" style=\"null\" src=\"" + getServerUrl(context) +
+        assertEquals(response.body().asString(), "<script type=\"text/javascript\" src=\"" + getServerUrl(context) +
                                                  "/factory/resources/factory.js?" + CORRECT_FACTORY_ID + "\"></script>");
     }
 
     @Test
-    public void shouldBeAbleToReturnMarkdownSnippetWithImage(ITestContext context) throws Exception {
+    public void shouldBeAbleToReturnMarkdownSnippetForFactory1WithImage(ITestContext context) throws Exception {
         // given
-        String imageName = "1241234";
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
         furl.setStyle("Advanced");
+        furl.setV("1.0");
+
+        String imageName = "1241234";
         FactoryImage image = new FactoryImage();
         image.setName(imageName);
 
@@ -766,10 +770,41 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToReturnMarkdownSnippetWithoutImage(ITestContext context) throws Exception {
+    public void shouldBeAbleToReturnMarkdownSnippetForFactory2WithImage(ITestContext context) throws Exception {
+        // given
+        String imageName = "1241234";
+        Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
+        furl.setV("2.0");
+        furl.setButton(DtoFactory.getInstance().createDto(Button.class).withType(Button.ButtonType.logo));
+
+        FactoryImage image = new FactoryImage();
+        image.setName(imageName);
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(new HashSet<>(Arrays.asList(image)));
+        // when, then
+        given().//
+                expect().//
+                statusCode(200).//
+                contentType(MediaType.TEXT_PLAIN).//
+                body(
+                equalTo("[![alt](" + getServerUrl(context) + "/api/factory/" + CORRECT_FACTORY_ID + "/image?imgId=" +
+                        imageName + ")](" +
+                        getServerUrl(context) + "/factory?id=" +
+                        CORRECT_FACTORY_ID + ")")
+                    ).//
+                when().//
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+    }
+
+    @Test
+    public void shouldBeAbleToReturnMarkdownSnippetForFactory1WithoutImage(ITestContext context) throws Exception {
         // given
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
         furl.setStyle("White");
+        furl.setV("1.0");
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
         // when, then
@@ -788,10 +823,37 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldNotBeAbleToGetMarkdownSnippetWithoutFactoryStyle(ITestContext context) throws Exception {
+    public void shouldBeAbleToReturnMarkdownSnippetForFactory2WithoutImage(ITestContext context) throws Exception {
+        // given
+        Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
+        furl.setV("2.0");
+        Button button = DtoFactory.getInstance().createDto(Button.class).withType(Button.ButtonType.nologo);
+        button.setAttributes(DtoFactory.getInstance().createDto(ButtonAttributes.class).withColor("white"));
+        furl.setButton(button);
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
+        // when, then
+        given().//
+                expect().//
+                statusCode(200).//
+                contentType(MediaType.TEXT_PLAIN).//
+                body(
+                equalTo("[![alt](" + getServerUrl(context) + "/factory/resources/factory-white.png)](" + getServerUrl
+                        (context) +
+                        "/factory?id=" +
+                        CORRECT_FACTORY_ID + ")")
+                    ).//
+                when().//
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+    }
+
+    @Test
+    public void shouldNotBeAbleToGetMarkdownSnippetForFactory1WithoutStyle(ITestContext context) throws Exception {
         // given
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
         furl.setStyle(null);
+        furl.setV("1.2");
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
         // when, then
@@ -803,7 +865,27 @@ public class FactoryServiceTest {
 
         assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
                      "Enable to generate markdown snippet with empty factory style");
+    }
 
+    @Test
+    public void shouldNotBeAbleToGetMarkdownSnippetForFactory2WithoutColor(ITestContext context) throws Exception {
+        // given
+        Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setV("2.0");
+        Button button = DtoFactory.getInstance().createDto(Button.class).withType(Button.ButtonType.nologo);
+        button.setAttributes(DtoFactory.getInstance().createDto(ButtonAttributes.class).withColor(null));
+        furl.setButton(button);
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(furl);
+        // when, then
+        Response response = given().//
+                expect().//
+                statusCode(409).//
+                when().//
+                get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
+
+        assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
+                     "Enable to generate markdown snippet with nologo button and empty color");
     }
 
     @Test

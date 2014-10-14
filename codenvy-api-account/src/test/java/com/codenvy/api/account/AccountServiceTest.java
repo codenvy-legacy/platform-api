@@ -1303,8 +1303,11 @@ public class AccountServiceTest {
         when(planDao.getPlanById(PLAN_ID)).thenReturn(plan);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
 
+        final NewSubscriptionTemplate subscriptionTemplate =
+                DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID);
+
         ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate?planId=" + PLAN_ID, null, null);
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         assertEquals(response.getEntity(),
@@ -1322,19 +1325,24 @@ public class AccountServiceTest {
 
     @Test
     public void shouldThrowConflictExceptionIfPlanIdIsNotSetOnValidateSubscriptionAddition() throws Exception {
-        ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate", null,
-                            null);
+        final NewSubscriptionTemplate subscriptionTemplate =
+                DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID);
 
-        assertEquals(response.getEntity().toString(), "Plan identifier required");
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
+
+        assertEquals(response.getEntity().toString(), "Plan and account identifier required");
     }
 
     @Test
     public void shouldThrowNotFoundExceptionIfPlanIsNotFoundOnValidateSubscriptionAddition() throws Exception {
         when(planDao.getPlanById(PLAN_ID)).thenThrow(new NotFoundException("message"));
 
+        final NewSubscriptionTemplate subscriptionTemplate =
+                DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID);
+
         ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate?planId=" + PLAN_ID, null, null);
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getEntity().toString(), "message");
     }
@@ -1345,8 +1353,11 @@ public class AccountServiceTest {
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
         doThrow(new ConflictException("conflict message")).when(subscriptionService).beforeCreateSubscription(any(Subscription.class));
 
+        final NewSubscriptionTemplate subscriptionTemplate =
+                DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID);
+
         ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions/validate?planId=" + PLAN_ID, null, null);
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getEntity().toString(), "conflict message");
 

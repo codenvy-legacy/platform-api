@@ -873,10 +873,8 @@ public class AccountService extends Service {
     /**
      * Validates addition of the subscription
      *
-     * @param accountId
-     *         identifier of account
-     * @param planId
-     *         identifier of plan of subscription
+     * @param subscriptionTemplate
+     *         template of the subscription
      * @return {@link com.codenvy.api.account.shared.dto.NewSubscriptionTemplate}
      * @throws NotFoundException
      *         if requested plan is not found
@@ -890,31 +888,38 @@ public class AccountService extends Service {
                   position = 16)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 404, message = "Invalid subscription ID"),
-            @ApiResponse(code = 409, message = "Plan identifier required"),
+            @ApiResponse(code = 409, message = "Plan and account identifier required"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
-    @GET
-    @Path("/{accountId}/subscriptions/validate")
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
+    @POST
+    @Path("/subscriptions/validate")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public NewSubscriptionTemplate validateSubscriptionAddition(@ApiParam(value = "Account ID", required = true)
-                                                                @PathParam("accountId") String accountId,
-                                                                @ApiParam(value = "Plan ID", required = true)
-                                                                @QueryParam("planId") String planId)
-            throws NotFoundException, ServerException, ConflictException {
-        if (null == planId) {
-            throw new ConflictException("Plan identifier required");
+    public NewSubscriptionTemplate validateSubscriptionAddition(@ApiParam(value = "Subscription template", required = true)
+                                                                NewSubscriptionTemplate subscriptionTemplate,
+                                                                @Context SecurityContext securityContext)
+            throws NotFoundException, ServerException, ConflictException, ForbiddenException {
+        if (null == subscriptionTemplate || null == subscriptionTemplate.getAccountId() || null == subscriptionTemplate.getPlanId()) {
+            throw new ConflictException("Plan and account identifier required");
         }
-        final Plan plan = planDao.getPlanById(planId);
+        if (securityContext.isUserInRole("user") &&
+            !resolveRolesForSpecificAccount(subscriptionTemplate.getAccountId()).contains("account/owner")) {
+            throw new ForbiddenException("Access denied");
+        }
+        final Plan plan = planDao.getPlanById(subscriptionTemplate.getPlanId());
         final SubscriptionService service = registry.get(plan.getServiceId());
         //create new subscription
-        final Subscription subscription = new Subscription().withAccountId(accountId)
+        final Subscription subscription = new Subscription().withAccountId(subscriptionTemplate.getAccountId())
                                                             .withServiceId(plan.getServiceId())
                                                             .withPlanId(plan.getId())
                                                             .withProperties(plan.getProperties());
         service.beforeCreateSubscription(subscription);
 
-        return DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withPlanId(planId).withAccountId(accountId);
+        return DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
+                         .withPlanId(subscriptionTemplate.getPlanId())
+                         .withAccountId(subscriptionTemplate.getAccountId());
     }
 
     /**

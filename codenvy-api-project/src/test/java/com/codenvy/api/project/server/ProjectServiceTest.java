@@ -101,7 +101,8 @@ public class ProjectServiceTest {
     private com.codenvy.commons.env.EnvironmentContext env;
 
     @Mock
-    private UserDao userDao;
+    private UserDao                     userDao;
+    private ProjectTypeResolverRegistry resolverRegistry;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -143,14 +144,15 @@ public class ProjectServiceTest {
         resolvers.add(new ProjectTypeResolver() {
 
             @Override
-            public boolean resolve(Project project) throws ServerException, ValueStorageException, InvalidValueException {
-                ProjectDescription description = project.getDescription();
+            public boolean resolve(FolderEntry projectFolder) throws ServerException, ValueStorageException, InvalidValueException {
+                ProjectDescription description = new ProjectDescription();
                 description.setProjectType(projectType);
+                Project project = new Project(projectFolder, pm);
                 project.updateDescription(description);
                 return true;
             }
         });
-        ProjectTypeResolverRegistry resolverRegistry = new ProjectTypeResolverRegistry(resolvers);
+        resolverRegistry = new ProjectTypeResolverRegistry(resolvers);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
@@ -776,7 +778,7 @@ public class ProjectServiceTest {
         zipOut.write("to be or not to be".getBytes());
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_FOLDER + "/"));
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
-        zipOut.write(("{\"projectTypeId\":\"my_project_type\"," +
+        zipOut.write(("{\"type\":\"chuck_project_type\"," +
                       "\"description\":\"import test\"," +
                       "\"attributes\":{\"x\": [\"a\",\"b\"]}}").getBytes());
         zipOut.close();
@@ -831,12 +833,82 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getDescription(), "import test");
-        Assert.assertEquals(descriptor.getType(), "my_project_type");
-        Assert.assertEquals(descriptor.getTypeName(), "my project type");
+        Assert.assertEquals(descriptor.getType(), "chuck_project_type");
         Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
 
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
+    }
+
+
+    @Test
+    public void testImportNotConfigProjectWithoutResolvers() throws Exception {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.close();
+        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
+        final String importType = "_123_";
+        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
+        Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+        for (ProjectTypeResolver resolver : resolvers) {//unregistered all resolvers
+            resolverRegistry.unregister(resolver);
+        }
+
+        importerRegistry.register(new ProjectImporter() {
+            @Override
+            public String getId() {
+                return importType;
+            }
+
+
+            @Override
+            public boolean isInternal() {
+                return false;
+            }
+
+            @Override
+            public String getDescription() {
+                return "Chuck importer";
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+                    throws ConflictException, ServerException, ForbiddenException {
+                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
+                                      LineConsumerFactory importOutputConsumerFactory)
+                    throws ConflictException, ServerException, ForbiddenException {
+                // Don't really use location in this test.
+                baseFolder.getVirtualFile().unzip(zip, true);
+                folderHolder.set(baseFolder);
+            }
+
+
+            @Override
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
+            }
+        });
+
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        byte[] b = String.format("{\"type\":\"%s\"}", importType).getBytes();
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
+                                                      "http://localhost:8080/api", headers, b, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertEquals(descriptor.getType(), "blank");
+        Project newProject = pm.getProject(workspace, "new_project");
+        Assert.assertNotNull(newProject);
+        Assert.assertNotNull(newProject.getDescription());
+        Assert.assertEquals("blank", newProject.getDescription().getProjectType().getId());
     }
 
     @Test

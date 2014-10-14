@@ -28,7 +28,7 @@ public class ProjectDescription {
     private Builders               builders;
     private Runners                runners;
 
-    ProjectDescription(ProjectType projectType, List<Attribute> attributes, Builders builders, Runners runners) {
+    public ProjectDescription(ProjectType projectType, List<Attribute> attributes, Builders builders, Runners runners) {
         setProjectType(projectType);
         this.attributes = new LinkedHashMap<>();
         if (attributes != null && !attributes.isEmpty()) {
@@ -38,15 +38,15 @@ public class ProjectDescription {
         this.runners = runners;
     }
 
-    ProjectDescription(ProjectType projectType, Builders builders, Runners runners) {
+    public ProjectDescription(ProjectType projectType, Builders builders, Runners runners) {
         this(projectType, null, builders, runners);
     }
 
-    ProjectDescription(ProjectType projectType) {
+    public ProjectDescription(ProjectType projectType) {
         this(projectType, null, null);
     }
 
-    ProjectDescription() {
+    public ProjectDescription() {
         this(ProjectType.BLANK);
     }
 

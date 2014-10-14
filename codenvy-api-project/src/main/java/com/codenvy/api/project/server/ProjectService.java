@@ -593,31 +593,44 @@ public class ProjectService extends Service {
             }
         };
 
-        Project project = projectManager.getProject(workspace, path);
-        if (project == null) {
-            project = projectManager.createProject(workspace, path, new ProjectDescription());
-
-        } else if (!force) {
-            // Project already exists.
-            throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
+        VirtualFileEntry virtualFile = projectManager.getProjectsRoot(workspace).getChild(path);
+        if (virtualFile != null && virtualFile.isFile()) {
+            // File with same name exist already exists.
+            throw new ConflictException(String.format("File with the name '%s' already exists. ", path));
+        } else {
+            if (virtualFile == null) {
+                virtualFile = projectManager.getProjectsRoot(workspace).createFolder(path);
+            } else if (!force) {
+                // Project already exists.
+                throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
+            }
         }
-        importer.importSources(project.getBaseFolder(), importDescriptor.getLocation(), importDescriptor.getParameters(),
+
+        FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
+        importer.importSources(baseProjectFolder, importDescriptor.getLocation(), importDescriptor.getParameters(),
                                outputOutputConsumerFactory);
 
+        Project project = projectManager.getProject(workspace, path);
         //use resolver only if project type not set
-        if (com.codenvy.api.project.shared.Constants.BLANK_ID.equals(project.getDescription().getProjectType().getId())) {
+        if (project == null) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
-                if (resolver.resolve(project)) {
+                if (resolver.resolve((FolderEntry)virtualFile)) {
                     break;
                 }
             }
         }
 
+        //try get project again after trying resolve it
+        project = projectManager.getProject(workspace, path);
+        if (project == null) { //resolver can't resolve project type
+            project = new Project(baseProjectFolder, projectManager); //create BLANK project type
+            project.updateDescription(new ProjectDescription());
+        }
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
-        VirtualFile virtualFile = project.getBaseFolder().getVirtualFile();
-        searcherProvider.getSearcher(virtualFile.getMountPoint(), true).add(virtualFile);
+        VirtualFile file = project.getBaseFolder().getVirtualFile();
+        searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());

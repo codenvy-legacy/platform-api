@@ -64,7 +64,7 @@ public class SnippetGenerator {
         } else if ("gray".equals(button.getAttributes().getColor())) {
             return format("[![alt](%s/factory/resources/factory-dark.png)](%s)", baseUrl, factoryURL);
         } else {
-            throw new IllegalArgumentException("Factory with nologo button hasn't color");
+            throw new IllegalArgumentException("Enable to generate markdown snippet with nologo button and empty color");
         }
     }
 

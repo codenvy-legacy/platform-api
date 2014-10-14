@@ -625,6 +625,7 @@ public class ProjectService extends Service {
         project = projectManager.getProject(workspace, path);
         if (project == null) { //resolver can't resolve project type
             project = new Project(baseProjectFolder, projectManager); //create BLANK project type
+            project.updateDescription(new ProjectDescription());
         }
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.

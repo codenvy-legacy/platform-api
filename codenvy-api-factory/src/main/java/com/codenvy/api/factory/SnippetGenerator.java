@@ -91,7 +91,7 @@ public class SnippetGenerator {
      *         {@link String} arguments
      * @return {@link String} formatted string
      */
-    public static String format(final String format, final String... args) {
+    private static String format(final String format, final String... args) {
         String[] split = format.split("%s");
         final StringBuilder msg = new StringBuilder();
         for (int pos = 0; pos < args.length; pos += 1) {

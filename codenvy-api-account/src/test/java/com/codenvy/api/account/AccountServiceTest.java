@@ -1307,7 +1307,7 @@ public class AccountServiceTest {
                 DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID);
 
         ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         assertEquals(response.getEntity(),
@@ -1329,7 +1329,7 @@ public class AccountServiceTest {
                 DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID);
 
         ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getEntity().toString(), "Plan and account identifier required");
     }
@@ -1342,7 +1342,7 @@ public class AccountServiceTest {
                 DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID);
 
         ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getEntity().toString(), "message");
     }
@@ -1357,7 +1357,7 @@ public class AccountServiceTest {
                 DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class).withAccountId(ACCOUNT_ID).withPlanId(PLAN_ID);
 
         ContainerResponse response =
-                makeRequest(HttpMethod.GET, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getEntity().toString(), "conflict message");
 

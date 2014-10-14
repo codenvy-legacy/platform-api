@@ -476,35 +476,21 @@ public class FactoryService extends Service {
             throw new NotFoundException("Factory URL with id " + id + " is not found.");
         }
 
+        final String baseUrl = UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString();
+
         switch (type) {
             case "url":
                 return UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory").queryParam("id", id).build().toString();
             case "html":
-                return SnippetGenerator.generateHtmlSnippet(id, UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build().toString());
+                return SnippetGenerator.generateHtmlSnippet(baseUrl, id);
             case "iframe":
-                return SnippetGenerator.generateiFrameSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
-                                                                        .queryParam("id", id).build().toString());
+                return SnippetGenerator.generateiFrameSnippet(baseUrl, id);
             case "markdown":
                 Set<FactoryImage> factoryImages = factoryStore.getFactoryImages(id, null);
                 String imageId = (factoryImages.size() > 0) ? factoryImages.iterator().next().getName() : null;
 
                 try {
-                    if (factory.getV().startsWith("1.")) {
-                        return SnippetGenerator.generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
-                                                                                  .queryParam("id", id).build().toString(),
-                                                                        id, imageId, factory.getStyle(),
-                                                                        UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build()
-                                                                                  .toString()
-                                                                       );
-                    } else {
-                        return SnippetGenerator.generateMarkdownSnippet(UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("factory")
-                                                                                  .queryParam("id", id).build().toString(),
-                                                                        id,
-                                                                        imageId,
-                                                                        factory.getButton(),
-                                                                        UriBuilder.fromUri(uriInfo.getBaseUri()).replacePath("").build()
-                                                                                  .toString());
-                    }
+                    return SnippetGenerator.generateMarkdownSnippet(baseUrl, factory, imageId);
                 } catch (IllegalArgumentException e) {
                     throw new ConflictException(e.getMessage());
                 }

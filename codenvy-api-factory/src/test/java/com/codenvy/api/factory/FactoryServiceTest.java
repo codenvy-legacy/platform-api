@@ -743,10 +743,12 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToReturnMarkdownSnippetForFactory1WithImage(ITestContext context) throws Exception {
         // given
-        String imageName = "1241234";
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
         furl.setStyle("Advanced");
         furl.setV("1.0");
+
+        String imageName = "1241234";
         FactoryImage image = new FactoryImage();
         image.setName(imageName);
 
@@ -772,6 +774,7 @@ public class FactoryServiceTest {
         // given
         String imageName = "1241234";
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
         furl.setV("2.0");
         furl.setButton(DtoFactory.getInstance().createDto(Button.class).withType(Button.ButtonType.logo));
 
@@ -799,6 +802,7 @@ public class FactoryServiceTest {
     public void shouldBeAbleToReturnMarkdownSnippetForFactory1WithoutImage(ITestContext context) throws Exception {
         // given
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
         furl.setStyle("White");
         furl.setV("1.0");
 
@@ -822,6 +826,7 @@ public class FactoryServiceTest {
     public void shouldBeAbleToReturnMarkdownSnippetForFactory2WithoutImage(ITestContext context) throws Exception {
         // given
         Factory furl = DtoFactory.getInstance().createDto(Factory.class);
+        furl.setId(CORRECT_FACTORY_ID);
         furl.setV("2.0");
         Button button = DtoFactory.getInstance().createDto(Button.class).withType(Button.ButtonType.nologo);
         button.setAttributes(DtoFactory.getInstance().createDto(ButtonAttributes.class).withColor("white"));

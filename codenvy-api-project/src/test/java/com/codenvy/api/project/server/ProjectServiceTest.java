@@ -25,6 +25,8 @@ import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
+import com.codenvy.api.project.shared.dto.RunnerEnvironment;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStreamWriter;
@@ -1474,6 +1476,35 @@ public class ProjectServiceTest {
                         );
 
         Assert.assertEquals(myProject.getBaseFolder().getVirtualFile().getACL().size(), 0);
+    }
+
+    @Test
+    public void testGetRunnerEnvironments() throws Exception {
+        Project myProject = pm.getProject(workspace, "my_project");
+        FolderEntry environmentsFolder = myProject.getBaseFolder().createFolder(".codenvy/environments");
+        environmentsFolder.createFolder("my_env_1");
+        environmentsFolder.createFolder("my_env_2");
+        ContainerResponse response = launcher.service("GET",
+                                                      String.format("http://localhost:8080/api/project/%s/environments/my_project",
+                                                                    workspace),
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        RunnerEnvironmentTree runnerEnvironmentTree = (RunnerEnvironmentTree)response.getEntity();
+        Assert.assertEquals(runnerEnvironmentTree.getDisplayName(), "project");
+        List<RunnerEnvironment> environments = runnerEnvironmentTree.getEnvironments();
+        Assert.assertNotNull(environments);
+        Assert.assertEquals(environments.size(), 2);
+
+        Set<String> ids = new LinkedHashSet<>(2);
+        Set<String> names = new LinkedHashSet<>(2);
+        for (RunnerEnvironment environment : environments) {
+            ids.add(environment.getId());
+            names.add(environment.getDisplayName());
+        }
+        Assert.assertTrue(ids.contains("project://my_env_1"));
+        Assert.assertTrue(ids.contains("project://my_env_2"));
+        Assert.assertTrue(names.contains("my_env_1"));
+        Assert.assertTrue(names.contains("my_env_2"));
     }
 
     private void validateFileLinks(ItemReference item) {

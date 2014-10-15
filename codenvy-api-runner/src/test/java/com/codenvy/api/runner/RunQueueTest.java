@@ -297,7 +297,7 @@ public class RunQueueTest {
         doReturn(secureToken).when(user).getToken();
 
         ItemReference recipe = dto(ItemReference.class).withName("Dockerfile").withType("file");
-        String recipeUrl = String.format("http://localhost:8080/api/project/%s/.codenvy/environments/%s", wsId,
+        String recipeUrl = String.format("http://localhost:8080/api/project/%s/.codenvy/runners/environments/%s", wsId,
                                          envName);
         recipe.getLinks().add(dto(Link.class).withRel(com.codenvy.api.project.server.Constants.LINK_REL_GET_CONTENT).withHref(recipeUrl));
         doReturn(Arrays.asList(recipe)).when(runQueue).getProjectRunnerRecipes(eq(project), eq(envName));

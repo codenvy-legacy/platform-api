@@ -16,6 +16,9 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.project.shared.EnvironmentId;
+import com.codenvy.api.project.shared.dto.RunnerEnvironment;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
@@ -64,8 +67,8 @@ public class RunnerService extends Service {
                   response = ApplicationProcessDescriptor.class,
                   position = 1)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_RUN)
     @Path("/run")
     @POST
@@ -85,8 +88,8 @@ public class RunnerService extends Service {
                   response = ApplicationProcessDescriptor.class,
                   position = 2)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -103,8 +106,8 @@ public class RunnerService extends Service {
                   responseContainer = "List",
                   position = 3)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/processes")
     @Produces(MediaType.APPLICATION_JSON)
@@ -143,8 +146,8 @@ public class RunnerService extends Service {
                   response = ApplicationProcessDescriptor.class,
                   position = 4)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/stop/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -161,8 +164,8 @@ public class RunnerService extends Service {
                   notes = "Get logs from a running application",
                   position = 5)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/logs/{id}")
     public void getLogs(@ApiParam(value = "Workspace ID", required = true)
@@ -178,8 +181,8 @@ public class RunnerService extends Service {
                   response = ResourcesDescriptor.class,
                   position = 6)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/resources")
     @Produces(MediaType.APPLICATION_JSON)
@@ -195,8 +198,8 @@ public class RunnerService extends Service {
                   response = RunnerEnvironmentTree.class,
                   position = 7)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)
     @GET
     @Path("/available")
@@ -206,17 +209,37 @@ public class RunnerService extends Service {
                                                        @ApiParam(value = "Project name")
                                                        @Description("project name") @QueryParam("project") String project)
             throws Exception {
-        final RunnerEnvironmentTree root = DtoFactory.getInstance().createDto(RunnerEnvironmentTree.class).withDisplayName("system");
-        final List<RunnerEnvironmentTree> environments = new LinkedList<>();
+        // Here merge environments from all know runner servers and represent them as tree.
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("system");
         for (RemoteRunnerServer runnerServer : runQueue.getRegisterRunnerServers()) {
             if ((!runnerServer.isDedicated() || runnerServer.getAssignedWorkspace().equals(workspace))
                 && (project == null || project.equals(runnerServer.getAssignedProject()))) {
-                for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
-                    environments.add(runnerDescriptor.getEnvironments());
+                for (RunnerDescriptor runnerDescriptor : runnerServer.getRunnerDescriptors()) {
+                    for (RunnerEnvironment runnerEnvironment : runnerDescriptor.getEnvironments()) {
+                        RunnerEnvironmentTree node = root;
+                        for (String s : runnerDescriptor.getName().split("/")) {
+                            RunnerEnvironmentTree child = node.getNode(s);
+                            if (child == null) {
+                                child = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName(s);
+                                node.addNode(child);
+                            }
+                            node = child;
+                            // Clone environment and use its id as display name and replace its id with new one in format scope:/runner/environment.
+                            // This is global id that shown scope of this environment, e.g. system , project, etc.
+                            final String unique =
+                                    new EnvironmentId(EnvironmentId.Scope.system, runnerDescriptor.getName(), runnerEnvironment.getId())
+                                            .toString();
+                            node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
+                                                 .withDisplayName(runnerEnvironment.getId())
+                                                 .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
+                        }
+
+                    }
                 }
             }
         }
-        return root.withChildren(environments);
+        return root;
     }
 
 
@@ -224,8 +247,8 @@ public class RunnerService extends Service {
                   notes = "Get content of a Dockerfile used to 'cook' runtime environment",
                   position = 8)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/recipe/{id}")
     public void getRecipeFile(@ApiParam(value = "Workspace ID", required = true)

@@ -25,7 +25,7 @@ import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
-import com.codenvy.api.project.shared.dto.RunnerEnvironment;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -1556,20 +1556,20 @@ public class ProjectServiceTest {
         environmentsFolder.createFolder("my_env_1");
         environmentsFolder.createFolder("my_env_2");
         ContainerResponse response = launcher.service("GET",
-                                                      String.format("http://localhost:8080/api/project/%s/environments/my_project",
+                                                      String.format("http://localhost:8080/api/project/%s/runner_environments/my_project",
                                                                     workspace),
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         RunnerEnvironmentTree runnerEnvironmentTree = (RunnerEnvironmentTree)response.getEntity();
         Assert.assertEquals(runnerEnvironmentTree.getDisplayName(), "project");
-        List<RunnerEnvironment> environments = runnerEnvironmentTree.getEnvironments();
+        List<RunnerEnvironmentLeaf> environments = runnerEnvironmentTree.getLeaves();
         Assert.assertNotNull(environments);
         Assert.assertEquals(environments.size(), 2);
 
         Set<String> ids = new LinkedHashSet<>(2);
         Set<String> names = new LinkedHashSet<>(2);
-        for (RunnerEnvironment environment : environments) {
-            ids.add(environment.getId());
+        for (RunnerEnvironmentLeaf environment : environments) {
+            ids.add(environment.getEnvironment().getId());
             names.add(environment.getDisplayName());
         }
         Assert.assertTrue(ids.contains("project://my_env_1"));
@@ -1664,6 +1664,11 @@ public class ProjectServiceTest {
         Assert.assertNotNull(link);
         Assert.assertEquals(link.getMethod(), "DELETE");
         Assert.assertEquals(link.getHref(), "http://localhost:8080/api/project/" + workspace + project.getPath());
+
+        link = project.getLink("get runner environments");
+        Assert.assertNotNull(link);
+        Assert.assertEquals(link.getMethod(), "GET");
+        Assert.assertEquals(link.getHref(), "http://localhost:8080/api/project/" + workspace + "/runner_environments" + project.getPath());
     }
 
     private void clearAcl(Project project) throws ServerException, ForbiddenException {

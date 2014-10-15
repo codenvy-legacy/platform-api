@@ -44,7 +44,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * @author andrew00x
  */
 @Singleton
-public final class EventService {
+public class EventService {
     private static final Logger LOG = LoggerFactory.getLogger(EventService.class);
 
     private static final int CACHE_NUM  = 1 << 2;

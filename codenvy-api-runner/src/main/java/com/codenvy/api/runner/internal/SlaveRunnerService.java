@@ -68,7 +68,7 @@ public class SlaveRunnerService extends Service {
     @GET
     @Path("available")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<RunnerDescriptor> availableRunners() {
+    public List<RunnerDescriptor> getAvailableRunners() {
         final Set<Runner> all = runners.getAll();
         final List<RunnerDescriptor> list = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();

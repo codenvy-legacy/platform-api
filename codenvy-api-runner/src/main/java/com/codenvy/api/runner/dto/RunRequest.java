@@ -52,9 +52,6 @@ public interface RunRequest {
     /**
      * Get id of environment that should be used for running an application. If this parameter is omitted then runner will use default
      * environment.
-     *
-     * @see RunnerDescriptor#getEnvironments()
-     * @see com.codenvy.api.runner.dto.RunOptions
      */
     String getEnvironmentId();
 
@@ -62,12 +59,12 @@ public interface RunRequest {
 
     RunRequest withEnvironmentId(String environmentId);
 
-    /** Location of files that contains run scripts. */
-    List<String> getRunnerScriptUrls();
+    /** Location of files that contains run recipes. */
+    List<String> getRecipeUrls();
 
-    void setRunnerScriptUrls(List<String> scripts);
+    void setRecipeUrls(List<String> recipes);
 
-    RunRequest withRunnerScriptUrls(List<String> scripts);
+    RunRequest withRecipeUrls(List<String> scripts);
 
     /** Enables or disables debug mode of runner. Not all Runner implementations support debug mode. */
     boolean isInDebugMode();

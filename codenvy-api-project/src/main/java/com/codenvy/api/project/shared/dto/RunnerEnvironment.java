@@ -22,9 +22,7 @@ import java.util.Map;
 @DTO
 public interface RunnerEnvironment {
     /**
-     * Gets unique identifier of runner environment in format: <i>&lt;scope&gt;:/&lt;category&gt;/&lt;name&gt;</i>.
-     *
-     * @see com.codenvy.api.project.shared.EnvironmentId
+     * Gets unique identifier of runner environment.
      */
     @Nonnull
     String getId();
@@ -73,12 +71,11 @@ public interface RunnerEnvironment {
     /* place on client side.                                                                               */
     /* =================================================================================================== */
 
-    /** Display name of RunnerEnvironment. */
-    String getDisplayName();
+    boolean isDefault();
 
-    void setDisplayName(String id);
+    void setDefault(boolean _default);
 
-    RunnerEnvironment withDisplayName(String name);
+    RunnerEnvironment withDefault(boolean _default);
 
     @Nullable
     String getDescription();

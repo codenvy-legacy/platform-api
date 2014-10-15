@@ -20,7 +20,6 @@ import com.codenvy.api.runner.dto.RunnerServer;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
-import com.codenvy.api.runner.internal.Runner;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.*;
 
@@ -115,9 +114,9 @@ public class RunnerAdminService extends Service {
                 final Link link = runnerServer.getLink(linkRel);
                 if (link != null) {
                     if (Constants.LINK_REL_RUNNER_STATE.equals(linkRel)) {
-                        for (RunnerDescriptor runnerImpl : runnerServer.getAvailableRunners()) {
+                        for (RunnerDescriptor runner : runnerServer.getRunnerDescriptors()) {
                             final String href = link.getHref();
-                            final String hrefWithRunner = href + ((href.indexOf('?') > 0 ? '&' : '?') + "runner=" + runnerImpl.getName());
+                            final String hrefWithRunner = href + ((href.indexOf('?') > 0 ? '&' : '?') + "runner=" + runner.getName());
                             final Link linkCopy = dtoFactory.clone(link);
                             linkCopy.getParameters().clear();
                             linkCopy.setHref(hrefWithRunner);

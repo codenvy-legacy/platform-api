@@ -11,6 +11,8 @@
 package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.codenvy.dto.shared.DelegateRule;
+import com.codenvy.dto.shared.DelegateTo;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -22,9 +24,40 @@ import java.util.List;
  */
 @DTO
 public interface RunnerEnvironmentTree {
+    enum Util {
+        INSTANCE;
+
+        public static RunnerEnvironmentTree getNode(RunnerEnvironmentTree tree, String name) {
+            for (RunnerEnvironmentTree node : tree.getNodes()) {
+                if (node.getDisplayName().equals(name)) {
+                    return node;
+                }
+            }
+            return null;
+        }
+
+        public static void addNode(RunnerEnvironmentTree tree, RunnerEnvironmentTree node) {
+            tree.getNodes().add(node);
+        }
+
+        public static RunnerEnvironmentLeaf getLeaf(RunnerEnvironmentTree tree, String name) {
+            for (RunnerEnvironmentLeaf leaf : tree.getLeaves()) {
+                if (leaf.getDisplayName().equals(name)) {
+                    return leaf;
+                }
+            }
+            return null;
+        }
+
+        public static void addLeaf(RunnerEnvironmentTree tree, RunnerEnvironmentLeaf leaf) {
+            tree.getLeaves().add(leaf);
+        }
+    }
+
+
     /**
      * Gets runner environments on current tree level. If this method returns empty {@code List} that means there is no any runner
-     * environments on current level. Always need check {@link #getChildren()} for child environments.
+     * environments on current level. Always need check {@link #getNodes()} for child environments.
      * <pre>
      *     + Java
      *       |- Web
@@ -44,16 +77,16 @@ public interface RunnerEnvironmentTree {
      * </pre>
      * In example above there is no any environment on level Java, Java/Web.
      */
-    List<RunnerEnvironment> getEnvironments();
+    List<RunnerEnvironmentLeaf> getLeaves();
 
     /**
      * Gets runner environments on current tree level.
      *
-     * @see #getEnvironments()
+     * @see #getLeaves()
      */
-    void setEnvironments(List<RunnerEnvironment> environments);
+    void setLeaves(List<RunnerEnvironmentLeaf> leaves);
 
-    RunnerEnvironmentTree withEnvironments(List<RunnerEnvironment> environments);
+    RunnerEnvironmentTree withLeaves(List<RunnerEnvironmentLeaf> leaves);
 
     /** Gets node name. Need this for display tree on client side. */
     @Nonnull
@@ -72,14 +105,30 @@ public interface RunnerEnvironmentTree {
      * Gets child environments. Empty list means that current tree level is last in hierarchy.
      */
     @Nonnull
-    List<RunnerEnvironmentTree> getChildren();
+    List<RunnerEnvironmentTree> getNodes();
 
     /**
      * Sets child environments.
      *
-     * @see #getChildren()
+     * @see #getNodes()
      */
-    void setChildren(List<RunnerEnvironmentTree> children);
+    void setNodes(List<RunnerEnvironmentTree> nodes);
 
-    RunnerEnvironmentTree withChildren(List<RunnerEnvironmentTree> children);
+    RunnerEnvironmentTree withNodes(List<RunnerEnvironmentTree> nodes);
+
+    @DelegateTo(client = @DelegateRule(type = Util.class, method = "getNode"),
+                server = @DelegateRule(type = Util.class, method = "getNode"))
+    RunnerEnvironmentTree getNode(String name);
+
+    @DelegateTo(client = @DelegateRule(type = Util.class, method = "addNode"),
+                server = @DelegateRule(type = Util.class, method = "addNode"))
+    void addNode(RunnerEnvironmentTree node);
+
+    @DelegateTo(client = @DelegateRule(type = Util.class, method = "getLeaf"),
+                server = @DelegateRule(type = Util.class, method = "getLeaf"))
+    RunnerEnvironmentLeaf getEnvironment(String name);
+
+    @DelegateTo(client = @DelegateRule(type = Util.class, method = "addLeaf"),
+                server = @DelegateRule(type = Util.class, method = "addLeaf"))
+    void addLeaf(RunnerEnvironmentLeaf leaf);
 }

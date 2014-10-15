@@ -28,10 +28,9 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.EnvironmentId;
+import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
-import com.codenvy.api.project.shared.dto.RunnerEnvironment;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
@@ -70,10 +69,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +78,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -114,25 +111,25 @@ public class RunQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final ConcurrentMap<String, RemoteRunnerServer> runnerServers;
-    private final RunnerSelectionStrategy                   runnerSelector;
-    private final ConcurrentMap<RunnerListKey, RunnerList>  runnerListMapping;
-    private final ConcurrentMap<Long, RunQueueTask>         tasks;
-    private final int                                       defMemSize;
-    private final EventService                              eventService;
-    private final String                                    baseWorkspaceApiUrl;
-    private final String                                    baseProjectApiUrl;
-    private final String                                    baseBuilderApiUrl;
-    private final int                                       defLifetime;
-    private final long                                      maxWaitingTimeMillis;
-    private final AtomicBoolean                             started;
-    private final long                                      appCleanupTime;
+    private final ConcurrentMap<String, RemoteRunnerServer>       runnerServers;
+    private final RunnerSelectionStrategy                         runnerSelector;
+    private final ConcurrentMap<RunnerListKey, Set<RemoteRunner>> runnerListMapping;
+    private final ConcurrentMap<Long, RunQueueTask>               tasks;
+    private final int                                             defMemSize;
+    private final EventService                                    eventService;
+    private final String                                          baseWorkspaceApiUrl;
+    private final String                                          baseProjectApiUrl;
+    private final String                                          baseBuilderApiUrl;
+    private final int                                             defLifetime;
+    private final long                                            maxWaitingTimeMillis;
+    private final AtomicBoolean                                   started;
+    private final long                                            appCleanupTime;
     // Helps to reduce lock contentions when check available resources.
-    private final Lock[]                                    resourceCheckerLocks;
-    private final int                                       resourceCheckerMask;
+    private final Lock[]                                          resourceCheckerLocks;
+    private final int                                             resourceCheckerMask;
 
     private ExecutorService          executor;
-    private ScheduledExecutorService scheduler;
+    private ScheduledExecutorService cleanScheduler;
 
     /** Optional pre-configured slave runners. */
     @com.google.inject.Inject(optional = true)
@@ -201,379 +198,6 @@ public class RunQueue {
         }
     }
 
-    int getUsedMemory(String workspaceId) throws RunnerException {
-        int usedMemory = 0;
-        for (RunQueueTask task : tasks.values()) {
-            final RunRequest request = task.getRequest();
-            if (workspaceId.equals(request.getWorkspace())) {
-                try {
-                    ApplicationStatus status;
-                    if (task.isWaiting()
-                        || (!task.isStopped() &&
-                            ((status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
-                             || (status == ApplicationStatus.NEW)))) {
-                        usedMemory += request.getMemorySize();
-                    }
-                } catch (NotFoundException ignored) {
-                    // If remote process is not found, it is stopped and removed from remote server.
-                }
-            }
-        }
-        return usedMemory;
-    }
-
-    int getTotalMemory(WorkspaceDescriptor workspace) throws RunnerException {
-        final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
-        return availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMaxMemorySize;
-    }
-
-    int getTotalMemory(String workspaceId, ServiceContext serviceContext) throws RunnerException {
-        return getTotalMemory(getWorkspaceDescriptor(workspaceId, serviceContext));
-    }
-
-    public RunQueueTask run(String wsId, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
-        checkStarted();
-        final DtoFactory dtoFactory = DtoFactory.getInstance();
-        if (runOptions == null) {
-            runOptions = dtoFactory.createDto(RunOptions.class);
-        }
-        final ProjectDescriptor descriptor = getProjectDescriptor(wsId, project, serviceContext);
-        final User user = EnvironmentContext.getCurrent().getUser();
-        final RunRequest request = dtoFactory.createDto(RunRequest.class)
-                                             .withWorkspace(wsId)
-                                             .withProject(project)
-                                             .withProjectDescriptor(descriptor)
-                                             .withUserName(user == null ? "" : user.getName());
-        String uniqueRunnerEnvId = runOptions.getEnvironmentId();
-        // Project configuration for runner.
-        final RunnersDescriptor runners = descriptor.getRunners();
-        if (uniqueRunnerEnvId == null) {
-            if (runners != null) {
-                uniqueRunnerEnvId = runners.getDefault();
-            }
-            if (uniqueRunnerEnvId == null) {
-                throw new RunnerException("Name of runner environment is not specified, be sure corresponded property of project is set");
-            }
-        }
-        // TODO: Some of components of our API aren't ready to use runner environment id as one full identifier.
-        // This may be fixed in next versions but for now use following agreements.
-        // Runner environment id must have format: <scope>:/<category>/<name>.
-        //   scope - system or project
-        //   category - hierarchical name separated by '/' (omitted is scope is project)
-        //   name - name of runner environment
-        // Category is used as runner identifier, see (from top to bottom is chain how we have this in RunQueue):
-        //   com.codenvy.api.runner.internal.Runner.getName()
-        //   com.codenvy.api.runner.internal.SlaveRunnerService.availableRunners()
-        //   com.codenvy.api.runner.dto.RunnerDescriptor.getName()
-        //   RemoteRunnerServer
-        //   RemoteRunner.getName()
-        // In case if category doesn't exist (should be only in case of 'project' scope) then use 'docker' as runner name. Since we have
-        // just docker for user's defined environments on production.
-        final EnvironmentId parsedUniqueRunnerEnvId = EnvironmentId.parse(uniqueRunnerEnvId);
-        String runner = null;
-        switch(parsedUniqueRunnerEnvId.getScope()) {
-            case system:
-                runner = parsedUniqueRunnerEnvId.getCategory();
-                break;
-            case project:
-                runner = "docker";
-                break;
-        }
-        request.setRunner(runner);
-        request.setEnvironmentId(uniqueRunnerEnvId);
-        final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
-        String infra = workspace.getAttributes().get(Constants.RUNNER_INFRA);
-        if (infra == null) {
-            infra = "community";
-        }
-        // Check just runner existence at this stage. Later will check amount of memory.
-        if (!hasRunner(infra, request)) {
-            throw new RunnerException(String.format("Runner '%s' is not available. ", uniqueRunnerEnvId));
-        }
-        // Get runner configuration.
-        final RunnerConfiguration runnerConfig = runners == null ? null : runners.getConfigs().get(uniqueRunnerEnvId);
-        int mem = runOptions.getMemorySize();
-        // If nothing is set in user request try to determine memory size for application.
-        if (mem <= 0) {
-            if (runnerConfig != null) {
-                mem = runnerConfig.getRam();
-            }
-            if (mem <= 0) {
-                // If nothing is set use value from our configuration.
-                mem = defMemSize;
-            }
-        }
-        request.setMemorySize(mem);
-        // When get memory size check available resources.
-        checkResources(workspace, request);
-        // Enables or disables debug mode
-        request.setInDebugMode(runOptions.isInDebugMode());
-        // Get application lifetime.
-        final String lifetimeAttr = workspace.getAttributes().get(Constants.RUNNER_LIFETIME);
-        int lifetime = lifetimeAttr != null ? Integer.parseInt(lifetimeAttr) : defLifetime;
-        if (lifetime <= 0) {
-            lifetime = Integer.MAX_VALUE;
-        }
-        request.setLifetime(lifetime);
-        // Options for runner.
-        final Map<String, String> options = runOptions.getOptions();
-        if (!options.isEmpty()) {
-            request.setOptions(options);
-        } else if (runnerConfig != null) {
-            request.setOptions(runnerConfig.getOptions());
-        }
-        final Map<String, String> envVariables = runOptions.getVariables();
-        if (!envVariables.isEmpty()) {
-            request.setVariables(envVariables);
-        } else if (runnerConfig != null) {
-            request.setVariables(runnerConfig.getVariables());
-        }
-        // Find user defined recipes for runner if any.
-        request.setRunnerScriptUrls(getRunnerScripts(descriptor, runOptions));
-        // Options for web shell that runner may provide to the server with running application.
-        request.setShellOptions(runOptions.getShellOptions());
-        // Sometime user may request to skip build of project before run.
-        boolean skipBuild = runOptions.getSkipBuild();
-        BuildOptions buildOptions = runOptions.getBuildOptions();
-        final ValueHolder<BuildTaskDescriptor> buildTaskHolder = new ValueHolder<>();
-        final Callable<RemoteRunnerProcess> callable;
-        if (!skipBuild
-            && ((buildOptions != null && buildOptions.getBuilderName() != null) || descriptor.getBuilders() != null)) {
-            LOG.debug("Need build project first");
-            if (buildOptions == null) {
-                buildOptions = dtoFactory.createDto(BuildOptions.class);
-            }
-            // We want bundle of application with all dependencies (libraries) that application needs.
-            buildOptions.setIncludeDependencies(true);
-            buildOptions.setSkipTest(true);
-            final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(wsId, serviceContext);
-            // schedule build
-            final BuildTaskDescriptor buildDescriptor = startBuild(builderService, project, buildOptions);
-            callable = createTaskFor(infra, request, buildDescriptor, buildTaskHolder);
-        } else {
-            final Link zipballLink = descriptor.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP);
-            if (zipballLink != null) {
-                final String zipballLinkHref = zipballLink.getHref();
-                final String token = getAuthenticationToken();
-                request.setDeploymentSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
-            }
-            callable = createTaskFor(infra, request, null, buildTaskHolder);
-        }
-        final Long id = sequence.getAndIncrement();
-        final InternalRunTask future = new InternalRunTask(ThreadLocalPropagateContext.wrap(callable), id, wsId, project);
-        request.setId(id); // for getting callback events from remote runner
-        final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildTaskHolder,
-                                                   serviceContext.getServiceUriBuilder());
-        tasks.put(id, task);
-        eventService.publish(RunnerEvent.queueStartedEvent(id, wsId, project));
-        executor.execute(future);
-        return task;
-    }
-
-    void checkResources(WorkspaceDescriptor workspace, RunRequest request) throws RunnerException {
-        final String wsId = workspace.getId();
-        final int index = wsId.hashCode() & resourceCheckerMask;
-        // Lock to be sure other threads don't try to start application in the same workspace.
-        resourceCheckerLocks[index].lock();
-        try {
-            final int availableMem = getTotalMemory(workspace);
-            if (availableMem < request.getMemorySize()) {
-                throw new RunnerException(
-                        String.format("Not enough resources to start application. Available memory %dM but %dM required. ",
-                                      availableMem < 0 ? 0 : availableMem, request.getMemorySize())
-                );
-            }
-            checkMemory(wsId, availableMem, request.getMemorySize());
-        } finally {
-            resourceCheckerLocks[index].unlock();
-        }
-    }
-
-    private void checkMemory(String wsId, int availableMem, int mem) throws RunnerException {
-        for (RunQueueTask task : tasks.values()) {
-            final RunRequest request = task.getRequest();
-            if (wsId.equals(request.getWorkspace())) {
-                try {
-                    ApplicationStatus status;
-                    if (task.isStopped()) {
-                        return;
-                    }
-                    if (task.isWaiting()
-                        || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
-                        || status == ApplicationStatus.NEW) {
-                        availableMem -= request.getMemorySize();
-                        if (availableMem <= 0) {
-                            throw new RunnerException(
-                                    String.format("Not enough resources to start application. Available memory %dM but %dM required. ",
-                                                  availableMem < 0 ? 0 : availableMem, mem)
-                            );
-                        }
-                    }
-                } catch (NotFoundException ignored) {
-                    // If remote process is not found, it is stopped and removed from remote server.
-                }
-            }
-        }
-    }
-
-    private BuildTaskDescriptor startBuild(RemoteServiceDescriptor builderService, String project, BuildOptions buildOptions)
-            throws RunnerException {
-        final BuildTaskDescriptor buildDescriptor;
-        try {
-            final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
-            if (buildLink == null) {
-                throw new RunnerException("You requested a run and your project has not been built." +
-                                          " The runner was unable to get the proper build URL to initiate a build.");
-            }
-            buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
-        } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
-            throw new RunnerException(e.getServiceError());
-        }
-        return buildDescriptor;
-    }
-
-    protected Callable<RemoteRunnerProcess> createTaskFor(final String infra,
-                                                          final RunRequest request,
-                                                          final BuildTaskDescriptor buildDescriptor,
-                                                          final ValueHolder<BuildTaskDescriptor> buildTaskHolder) {
-        return new Callable<RemoteRunnerProcess>() {
-            @Override
-            public RemoteRunnerProcess call() throws Exception {
-                if (buildDescriptor != null) {
-                    final Link buildStatusLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
-                    if (buildStatusLink == null) {
-                        throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
-                    }
-                    for (; ; ) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            // Expected to get here if task is canceled. Try to cancel related build process.
-                            tryCancelBuild(buildDescriptor);
-                            return null;
-                        }
-                        synchronized (this) {
-                            try {
-                                wait(CHECK_BUILD_RESULT_DELAY);
-                            } catch (InterruptedException e) {
-                                // Expected to get here if task is canceled. Try to cancel related build process.
-                                tryCancelBuild(buildDescriptor);
-                                return null;
-                            }
-                        }
-                        BuildTaskDescriptor buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class,
-                                                                                     DtoFactory.getInstance().clone(buildStatusLink));
-                        // to be able show current state of build process with RunQueueTask.
-                        buildTaskHolder.set(buildDescriptor);
-                        switch (buildDescriptor.getStatus()) {
-                            case SUCCESSFUL:
-                                final Link downloadLink =
-                                        buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
-                                if (downloadLink == null) {
-                                    throw new RunnerException("Unable start application. Application build is successful but there " +
-                                                              "is no URL for download result of build.");
-                                }
-                                final String downloadLinkHref = downloadLink.getHref();
-                                final String token = getAuthenticationToken();
-                                request.withDeploymentSourcesUrl(
-                                        token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
-                                return getRunner(infra, request).run(request);
-                            case CANCELLED:
-                            case FAILED:
-                                String msg = "Unable start application. Build of application is failed or cancelled.";
-                                final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
-                                if (logLink != null) {
-                                    msg += (" Build logs: " + logLink.getHref());
-                                }
-                                throw new RunnerException(msg);
-                            case IN_PROGRESS:
-                            case IN_QUEUE:
-                                // wait
-                                break;
-                        }
-                    }
-                } else {
-                    return getRunner(infra, request).run(request);
-                }
-            }
-        };
-    }
-
-    private List<String> getRunnerScripts(ProjectDescriptor projectDescriptor, RunOptions runOptions) {
-        final String projectUrl = projectDescriptor.getBaseUrl();
-        final String projectPath = projectDescriptor.getPath();
-        final String authToken = getAuthenticationToken();
-        final List<String> scriptFiles = runOptions.getScriptFiles();
-        if (scriptFiles == null) {
-            return Collections.emptyList();
-        }
-        final List<String> scripts = new ArrayList<>(scriptFiles.size());
-        for (String attr : scriptFiles) {
-            scripts.add(projectUrl.replace(projectPath, String.format("/file%s/%s?token=%s", projectPath, attr, authToken)));
-        }
-        return scripts;
-    }
-
-    RemoteServiceDescriptor getBuilderServiceDescriptor(String workspace, ServiceContext serviceContext) {
-        final UriBuilder baseBuilderUriBuilder = baseBuilderApiUrl == null || baseBuilderApiUrl.isEmpty()
-                                                 ? serviceContext.getBaseUriBuilder()
-                                                 : UriBuilder.fromUri(baseBuilderApiUrl);
-        final String builderUrl = baseBuilderUriBuilder.path(BuilderService.class).build(workspace).toString();
-        return new RemoteServiceDescriptor(builderUrl);
-    }
-
-    WorkspaceDescriptor getWorkspaceDescriptor(String workspace, ServiceContext serviceContext) throws RunnerException {
-        final UriBuilder baseWorkspaceUriBuilder = baseWorkspaceApiUrl == null || baseWorkspaceApiUrl.isEmpty()
-                                                   ? serviceContext.getBaseUriBuilder()
-                                                   : UriBuilder.fromUri(baseWorkspaceApiUrl);
-        final String workspaceUrl = baseWorkspaceUriBuilder.path(WorkspaceService.class)
-                                                           .path(WorkspaceService.class, "getById")
-                                                           .build(workspace).toString();
-        try {
-            return HttpJsonHelper.get(WorkspaceDescriptor.class, workspaceUrl);
-        } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
-            throw new RunnerException(e.getServiceError());
-        }
-    }
-
-    ProjectDescriptor getProjectDescriptor(String workspace, String project, ServiceContext serviceContext)
-            throws RunnerException {
-        final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
-                                                 ? serviceContext.getBaseUriBuilder()
-                                                 : UriBuilder.fromUri(baseProjectApiUrl);
-        final String projectUrl = baseProjectUriBuilder.path(ProjectService.class)
-                                                       .path(ProjectService.class, "getProject")
-                                                       .build(workspace, project.startsWith("/") ? project.substring(1) : project)
-                                                       .toString();
-        try {
-            return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
-        } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
-            throw new RunnerException(e.getServiceError());
-        }
-    }
-
-    private boolean tryCancelBuild(BuildTaskDescriptor buildDescriptor) {
-        final Link cancelLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_CANCEL);
-        if (cancelLink == null) {
-            LOG.error("Can't cancel build process since cancel link is not available.");
-            return false;
-        } else {
-            try {
-                final BuildTaskDescriptor result = HttpJsonHelper.request(BuildTaskDescriptor.class,
-                                                                          DtoFactory.getInstance().clone(cancelLink));
-                LOG.debug("Build cancellation result {}", result);
-                return result != null && result.getStatus() == BuildStatus.CANCELLED;
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-                return false;
-            }
-        }
-    }
-
     public RunQueueTask getTask(Long id) throws NotFoundException {
         checkStarted();
         final RunQueueTask task = tasks.get(id);
@@ -616,8 +240,8 @@ public class RunQueue {
                     }
                 }
             };
-            scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("RunQueueScheduler-", true));
-            scheduler.scheduleAtFixedRate(new Runnable() {
+            cleanScheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("RunQueueScheduler-", true));
+            cleanScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     int num = 0;
@@ -707,13 +331,13 @@ public class RunQueue {
                                 if (server.isAvailable()) {
                                     try {
                                         doRegisterRunnerServer(server);
-                                        LOG.debug("Pre-configured slave runner server {} registered. ", server.getBaseUrl());
+                                        LOG.debug("Pre-configured slave runner server '{}' registered.", server.getBaseUrl());
                                     } catch (RunnerException e) {
                                         LOG.error(e.getMessage(), e);
                                         offline.add(server);
                                     }
                                 } else {
-                                    LOG.warn("Pre-configured slave runner server {} isn't responding. ", server.getBaseUrl());
+                                    LOG.warn("Pre-configured slave runner server '{}' isn't responding.", server.getBaseUrl());
                                     offline.add(server);
                                 }
                             }
@@ -750,10 +374,10 @@ public class RunQueue {
     public void stop() {
         if (started.compareAndSet(true, false)) {
             boolean interrupted = false;
-            scheduler.shutdownNow();
+            cleanScheduler.shutdownNow();
             try {
-                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                    LOG.warn("Unable terminate scheduler");
+                if (!cleanScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate cleanScheduler");
                 }
             } catch (InterruptedException e) {
                 interrupted = true;
@@ -777,6 +401,497 @@ public class RunQueue {
             }
         } else {
             throw new IllegalStateException("Is not started yet.");
+        }
+    }
+
+    public RunQueueTask run(String workspace, String project, ServiceContext serviceContext, RunOptions runOptions) throws RunnerException {
+        checkStarted();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        if (runOptions == null) {
+            runOptions = dtoFactory.createDto(RunOptions.class);
+        }
+        final ProjectDescriptor projectDescriptor = getProjectDescriptor(workspace, project, serviceContext);
+        final User user = EnvironmentContext.getCurrent().getUser();
+        final RunRequest request = dtoFactory.createDto(RunRequest.class)
+                                             .withWorkspace(workspace)
+                                             .withProject(project)
+                                             .withProjectDescriptor(projectDescriptor)
+                                             .withUserName(user == null ? "" : user.getName());
+        String environmentId = runOptions.getEnvironmentId();
+        // Project configuration for runner.
+        final RunnersDescriptor runners = projectDescriptor.getRunners();
+        if (environmentId == null) {
+            if (runners != null) {
+                environmentId = runners.getDefault();
+            }
+            if (environmentId == null) {
+                throw new RunnerException("Name of runner environment is not specified, be sure corresponded property of project is set.");
+            }
+        }
+        final WorkspaceDescriptor workspaceDescriptor = getWorkspaceDescriptor(workspace, serviceContext);
+        String infra = workspaceDescriptor.getAttributes().get(Constants.RUNNER_INFRA);
+        if (infra == null) {
+            infra = "community";
+        }
+        final EnvironmentId parsedEnvironmentId = EnvironmentId.parse(environmentId);
+        final List<RemoteRunner> matchedRunners = new LinkedList<>();
+        switch (parsedEnvironmentId.getScope()) {
+            // This may be fixed in next versions but for now use following agreements.
+            // Runner environment id must have format: <scope>:/<category>/<name>.
+            //   scope - 'system' or 'project'
+            //   category - hierarchical name separated by '/' (omitted if scope is project)
+            //   name - name of runner environment
+            // Category is used as runner identifier
+            // Here is chain how we have this in RunQueue:
+            //   com.codenvy.api.runner.internal.Runner.getName()
+            //   com.codenvy.api.runner.internal.SlaveRunnerService.getAvailableRunners()
+            //   com.codenvy.api.runner.dto.RunnerDescriptor.getName()
+            //   RemoteRunnerServer
+            //   RemoteRunner.getName()
+            // In case if category doesn't exist (should be only in case of 'project' scope).
+            // Check just runner existence at this stage. Later will check amount of memory.
+            case system:
+                // In case of system runner
+                request.setRunner(parsedEnvironmentId.getCategory());
+                request.setEnvironmentId(parsedEnvironmentId.getName());
+                final Set<RemoteRunner> runnerList = getRunnerList(infra, workspace, project);
+                if (runnerList != null) {
+                    for (RemoteRunner runner : runnerList) {
+                        if (request.getRunner().equals(runner.getName()) && runner.hasEnvironment(request.getEnvironmentId())) {
+                            matchedRunners.add(runner);
+                        }
+                    }
+                }
+                if (matchedRunners.isEmpty()) {
+                    throw new RunnerException(String.format("Runner environment '%s' is not available.", environmentId));
+                }
+                break;
+            case project:
+                resolveProjectRunnerEnvironments(infra, request, projectDescriptor, parsedEnvironmentId.getName(), matchedRunners);
+                if (matchedRunners.isEmpty()) {
+                    throw new RunnerException(String.format("Runner '%s' is not available.", request.getRunner()));
+                }
+                break;
+            default:
+                // Not expected
+                throw new RunnerException(String.format("Invalid environment scope ''%s'", parsedEnvironmentId.getScope()));
+        }
+
+        // Get runner configuration.
+        final RunnerConfiguration runnerConfig = runners == null ? null : runners.getConfigs().get(environmentId);
+        int mem = runOptions.getMemorySize();
+        // If nothing is set in user request try to determine memory size for application.
+        if (mem <= 0) {
+            if (runnerConfig != null) {
+                mem = runnerConfig.getRam();
+            }
+            if (mem <= 0) {
+                // If nothing is set use value from our configuration.
+                mem = defMemSize;
+            }
+        }
+        request.setMemorySize(mem);
+        // When get memory size check available resources.
+        checkResources(workspaceDescriptor, request);
+        // Enables or disables debug mode
+        request.setInDebugMode(runOptions.isInDebugMode());
+        // Get application lifetime.
+        final String lifetimeAttr = workspaceDescriptor.getAttributes().get(Constants.RUNNER_LIFETIME);
+        int lifetime = lifetimeAttr != null ? Integer.parseInt(lifetimeAttr) : defLifetime;
+        if (lifetime <= 0) {
+            lifetime = Integer.MAX_VALUE;
+        }
+        request.setLifetime(lifetime);
+        // Options for runner.
+        final Map<String, String> options = runOptions.getOptions();
+        if (!options.isEmpty()) {
+            request.setOptions(options);
+        } else if (runnerConfig != null) {
+            request.setOptions(runnerConfig.getOptions());
+        }
+        final Map<String, String> envVariables = runOptions.getVariables();
+        if (!envVariables.isEmpty()) {
+            request.setVariables(envVariables);
+        } else if (runnerConfig != null) {
+            request.setVariables(runnerConfig.getVariables());
+        }
+        // Options for web shell that runner may provide to the server with running application.
+        request.setShellOptions(runOptions.getShellOptions());
+        // Sometime user may request to skip build of project before run.
+        boolean skipBuild = runOptions.getSkipBuild();
+        BuildOptions buildOptions = runOptions.getBuildOptions();
+        final ValueHolder<BuildTaskDescriptor> buildTaskHolder = new ValueHolder<>();
+        final Callable<RemoteRunnerProcess> callable;
+        if (!skipBuild
+            && ((buildOptions != null && buildOptions.getBuilderName() != null) || projectDescriptor.getBuilders() != null)) {
+            LOG.debug("Need build project '{}' from workspace '{}'", project, workspace);
+            if (buildOptions == null) {
+                buildOptions = dtoFactory.createDto(BuildOptions.class);
+            }
+            // We want bundle of application with all dependencies (libraries) that application needs.
+            buildOptions.setIncludeDependencies(true);
+            buildOptions.setSkipTest(true);
+            final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(workspace, serviceContext);
+            // schedule build
+            buildTaskHolder.set(startBuild(builderService, project, buildOptions));
+            callable = createTaskFor(matchedRunners, request, buildTaskHolder);
+        } else {
+            final Link zipballLink = projectDescriptor.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP);
+            if (zipballLink != null) {
+                final String zipballLinkHref = zipballLink.getHref();
+                // Slave runner needs auth token to be able download zipped project from Project API.
+                final String token = getAuthenticationToken();
+                request.setDeploymentSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
+            }
+            callable = createTaskFor(matchedRunners, request, buildTaskHolder);
+        }
+        final Long id = sequence.getAndIncrement();
+        final InternalRunTask future = new InternalRunTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project);
+        request.setId(id); // for getting callback events from remote runner
+        final RunQueueTask task = new RunQueueTask(id, request, maxWaitingTimeMillis, future, buildTaskHolder,
+                                                   serviceContext.getServiceUriBuilder());
+        tasks.put(id, task);
+        eventService.publish(RunnerEvent.queueStartedEvent(id, workspace, project));
+        executor.execute(future);
+        return task;
+    }
+
+    private void resolveProjectRunnerEnvironments(String infra, RunRequest request, ProjectDescriptor projectDescriptor,
+                                                  String envName, List<RemoteRunner> matchedRunners) throws RunnerException {
+        final List<String> recipesUrls = new LinkedList<>();
+        // Slave runner needs auth token to be able download recipes from Project API.
+        final String token = getAuthenticationToken();
+        for (ItemReference recipe : getProjectRunnerRecipes(projectDescriptor, envName)) {
+            // interesting only about files!!
+            if ("file".equals(recipe.getType())) {
+                // TODO: Need improve that but it's OK for now since we have just docker for user's defined environments.
+                if (recipe.getName().equals("Dockerfile")) {
+                    request.setRunner("docker");
+                }
+                final Link contentLink = recipe.getLink(com.codenvy.api.project.server.Constants.LINK_REL_GET_CONTENT);
+                recipesUrls.add(token != null ? String.format("%s?token=%s", contentLink.getHref(), token) : contentLink.getHref());
+            }
+        }
+        // If don't find any files that we are able to recognize as runner recipe.
+        if (request.getRunner() == null) {
+            throw new RunnerException("You requested a run and your project with custom environment." +
+                                      " The runner was unable to get any supported recipe files in environment '" + envName + "'");
+        }
+        request.setRecipeUrls(recipesUrls);
+        final Set<RemoteRunner> runnerList = getRunnerList(infra, request.getWorkspace(), request.getProject());
+        if (runnerList != null) {
+            for (RemoteRunner runner : runnerList) {
+                // In case of user's defined environment don't need to check environment name. Runner must accept any recipe files.
+                // That is related to way how we determine runner name from set of recipe files available in custom environment.
+                if (request.getRunner().equals(runner.getName())) {
+                    matchedRunners.add(runner);
+                }
+            }
+        }
+    }
+
+    // Switched to default for test.
+    // private
+    WorkspaceDescriptor getWorkspaceDescriptor(String workspace, ServiceContext serviceContext) throws RunnerException {
+        final UriBuilder baseWorkspaceUriBuilder = baseWorkspaceApiUrl == null || baseWorkspaceApiUrl.isEmpty()
+                                                   ? serviceContext.getBaseUriBuilder()
+                                                   : UriBuilder.fromUri(baseWorkspaceApiUrl);
+        final String workspaceUrl = baseWorkspaceUriBuilder.path(WorkspaceService.class)
+                                                           .path(WorkspaceService.class, "getById")
+                                                           .build(workspace).toString();
+        try {
+            return HttpJsonHelper.get(WorkspaceDescriptor.class, workspaceUrl);
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new RunnerException(e.getServiceError());
+        }
+    }
+
+    // Switched to default for test.
+    // private
+    ProjectDescriptor getProjectDescriptor(String workspace, String project, ServiceContext serviceContext) throws RunnerException {
+        final UriBuilder baseProjectUriBuilder = baseProjectApiUrl == null || baseProjectApiUrl.isEmpty()
+                                                 ? serviceContext.getBaseUriBuilder()
+                                                 : UriBuilder.fromUri(baseProjectApiUrl);
+        final String projectUrl = baseProjectUriBuilder.path(ProjectService.class)
+                                                       .path(ProjectService.class, "getProject")
+                                                       .build(workspace, project.startsWith("/") ? project.substring(1) : project)
+                                                       .toString();
+        try {
+            return HttpJsonHelper.get(ProjectDescriptor.class, projectUrl);
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new RunnerException(e.getServiceError());
+        }
+    }
+
+    // Switched to default for test.
+    // private
+    Set<RemoteRunner> getRunnerList(String infra, String workspace, String project) {
+        Set<RemoteRunner> runnerList = runnerListMapping.get(new RunnerListKey(infra, workspace, project));
+        if (runnerList == null) {
+            if (project != null || workspace != null) {
+                if (workspace != null) {
+                    // have dedicated runners for whole workspace (omit project) ?
+                    runnerList = runnerListMapping.get(new RunnerListKey(infra, workspace, null));
+                }
+                if (runnerList == null) {
+                    // seems there is no dedicated runners for specified request, use shared one then
+                    runnerList = runnerListMapping.get(new RunnerListKey(infra, null, null));
+                }
+            }
+        }
+        return runnerList;
+    }
+
+    // Switched to default for test.
+    // private
+    void checkResources(WorkspaceDescriptor workspace, RunRequest request) throws RunnerException {
+        final String wsId = workspace.getId();
+        final int index = wsId.hashCode() & resourceCheckerMask;
+        // Lock to be sure other threads don't try to start application in the same workspace.
+        resourceCheckerLocks[index].lock();
+        try {
+            final int availableMem = getTotalMemory(workspace);
+            if (availableMem < request.getMemorySize()) {
+                throw new RunnerException(
+                        String.format("Not enough resources to start application. Available memory %dM but %dM required.",
+                                      availableMem < 0 ? 0 : availableMem, request.getMemorySize())
+                );
+            }
+            checkMemory(wsId, availableMem, request.getMemorySize());
+        } finally {
+            resourceCheckerLocks[index].unlock();
+        }
+    }
+
+    // Switched to default for test.
+    // private
+    void checkMemory(String wsId, int availableMem, int mem) throws RunnerException {
+        for (RunQueueTask task : tasks.values()) {
+            final RunRequest request = task.getRequest();
+            if (wsId.equals(request.getWorkspace())) {
+                try {
+                    ApplicationStatus status;
+                    if (task.isStopped()) {
+                        return;
+                    }
+                    if (task.isWaiting()
+                        || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
+                        || status == ApplicationStatus.NEW) {
+                        availableMem -= request.getMemorySize();
+                        if (availableMem <= 0) {
+                            throw new RunnerException(
+                                    String.format("Not enough resources to start application. Available memory %dM but %dM required.",
+                                                  availableMem < 0 ? 0 : availableMem, mem)
+                            );
+                        }
+                    }
+                } catch (NotFoundException ignored) {
+                    // If remote process is not found, it is stopped and removed from remote server.
+                }
+            }
+        }
+    }
+
+    int getUsedMemory(String workspaceId) throws RunnerException {
+        int usedMemory = 0;
+        for (RunQueueTask task : tasks.values()) {
+            final RunRequest request = task.getRequest();
+            if (workspaceId.equals(request.getWorkspace())) {
+                try {
+                    ApplicationStatus status;
+                    if (task.isWaiting()
+                        || (!task.isStopped() &&
+                            ((status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
+                             || (status == ApplicationStatus.NEW)))) {
+                        usedMemory += request.getMemorySize();
+                    }
+                } catch (NotFoundException ignored) {
+                    // If remote process is not found, it is stopped and removed from remote server.
+                }
+            }
+        }
+        return usedMemory;
+    }
+
+    int getTotalMemory(WorkspaceDescriptor workspace) throws RunnerException {
+        final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
+        return availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMaxMemorySize;
+    }
+
+    int getTotalMemory(String workspaceId, ServiceContext serviceContext) throws RunnerException {
+        return getTotalMemory(getWorkspaceDescriptor(workspaceId, serviceContext));
+    }
+
+    // Switched to default for test.
+    // private
+    RemoteServiceDescriptor getBuilderServiceDescriptor(String workspace, ServiceContext serviceContext) {
+        final UriBuilder baseBuilderUriBuilder = baseBuilderApiUrl == null || baseBuilderApiUrl.isEmpty()
+                                                 ? serviceContext.getBaseUriBuilder()
+                                                 : UriBuilder.fromUri(baseBuilderApiUrl);
+        final String builderUrl = baseBuilderUriBuilder.path(BuilderService.class).build(workspace).toString();
+        return new RemoteServiceDescriptor(builderUrl);
+    }
+
+    // Switched to default for test.
+    // private
+    BuildTaskDescriptor startBuild(RemoteServiceDescriptor builderService, String project, BuildOptions buildOptions)
+            throws RunnerException {
+        final BuildTaskDescriptor buildDescriptor;
+        try {
+            final Link buildLink = builderService.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_BUILD);
+            if (buildLink == null) {
+                throw new RunnerException("You requested a run and your project has not been built." +
+                                          " The runner was unable to get the proper build URL to initiate a build.");
+            }
+            buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, buildLink, buildOptions, Pair.of("project", project));
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new RunnerException(e.getServiceError());
+        }
+        return buildDescriptor;
+    }
+
+    protected Callable<RemoteRunnerProcess> createTaskFor(final List<RemoteRunner> matched,
+                                                          final RunRequest request,
+                                                          final ValueHolder<BuildTaskDescriptor> buildTaskHolder) {
+        return new Callable<RemoteRunnerProcess>() {
+            @Override
+            public RemoteRunnerProcess call() throws Exception {
+                BuildTaskDescriptor buildDescriptor = buildTaskHolder.get();
+                if (buildDescriptor != null) {
+                    final Link buildStatusLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
+                    if (buildStatusLink == null) {
+                        throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
+                    }
+                    for (; ; ) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            // Expected to get here if task is canceled. Try to cancel related runner process.
+                            tryCancelBuild(buildDescriptor);
+                            return null;
+                        }
+                        synchronized (this) {
+                            try {
+                                wait(CHECK_BUILD_RESULT_DELAY);
+                            } catch (InterruptedException e) {
+                                // Expected to get here if task is canceled. Try to cancel related build process.
+                                tryCancelBuild(buildDescriptor);
+                                return null;
+                            }
+                        }
+                        buildDescriptor =
+                                HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(buildStatusLink));
+                        // to be able show current state of build process with RunQueueTask.
+                        buildTaskHolder.set(buildDescriptor);
+                        final BuildStatus buildStatus = buildDescriptor.getStatus();
+                        if (buildStatus == BuildStatus.SUCCESSFUL) {
+                            final Link downloadLink =
+                                    buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
+                            if (downloadLink == null) {
+                                throw new RunnerException("Unable start application. Application build is successful but there " +
+                                                          "is no URL for download result of build.");
+                            }
+                            final String downloadLinkHref = downloadLink.getHref();
+                            // Slave runner needs auth token to be able download binaries from Builder API.
+                            final String token = getAuthenticationToken();
+                            request.withDeploymentSourcesUrl(
+                                    token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
+                            // get out from loop
+                            break;
+                        } else if (buildStatus == BuildStatus.CANCELLED || buildStatus == BuildStatus.FAILED) {
+                            String msg = "Unable start application. Build of application is failed or cancelled.";
+                            final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
+                            if (logLink != null) {
+                                msg += (" Build logs: " + logLink.getHref());
+                            }
+                            throw new RunnerException(msg);
+                        } else if (buildStatus == BuildStatus.IN_PROGRESS || buildStatus == BuildStatus.IN_QUEUE) {
+                            // wait
+                            LOG.debug("Build in of project '{}' from workspace '{}' is progress", request.getProject(),
+                                      request.getWorkspace());
+                        }
+                    }
+                }
+
+                // List of runners that have enough resources for launch application.
+                final List<RemoteRunner> available = new LinkedList<>();
+                for (; ; ) {
+                    for (RemoteRunner runner : matched) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            // Expected to get here if task is canceled. Stop immediately.
+                            return null;
+                        }
+                        RunnerState runnerState;
+                        try {
+                            runnerState = runner.getRemoteRunnerState();
+                        } catch (Exception e) {
+                            LOG.error(e.getMessage(), e);
+                            continue;
+                        }
+                        if (runnerState.getServerState().getFreeMemory() >= request.getMemorySize()) {
+                            available.add(runner);
+                        }
+                    }
+                    if (available.isEmpty()) {
+                        synchronized (this) {
+                            try {
+                                // Wait and try again.
+                                wait(CHECK_AVAILABLE_RUNNER_DELAY);
+                            } catch (InterruptedException e) {
+                                // Expected to get here if task is canceled.
+                                Thread.currentThread().interrupt();
+                                return null;
+                            }
+                        }
+                    } else {
+                        return (available.size() > 0 ? runnerSelector.select(available) : available.get(0)).run(request);
+                    }
+                }
+            }
+        };
+    }
+
+    // Switched to default for test.
+    // private
+    List<ItemReference> getProjectRunnerRecipes(ProjectDescriptor projectDescriptor, String envName) throws RunnerException {
+        final Link childrenLink = projectDescriptor.getLink(com.codenvy.api.project.server.Constants.LINK_REL_CHILDREN);
+        if (childrenLink == null) {
+            throw new RunnerException("You requested a run and your project with custom environment." +
+                                      " The runner was unable to get the proper URL to load runner environments from project.");
+        }
+        try {
+            return HttpJsonHelper.requestArray(ItemReference.class, DtoFactory.getInstance()
+                                                                              .clone(childrenLink)
+                                                                              .withHref(String.format("%s/.codenvy/environments/%s",
+                                                                                                      childrenLink.getHref(), envName)));
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new RunnerException(e.getServiceError());
+        }
+    }
+
+    // Switched to default for test.
+    // private
+    boolean tryCancelBuild(BuildTaskDescriptor buildDescriptor) {
+        final Link cancelLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_CANCEL);
+        if (cancelLink == null) {
+            LOG.error("Can't cancel build process since cancel link is not available.");
+            return false;
+        } else {
+            try {
+                final BuildTaskDescriptor result = HttpJsonHelper.request(BuildTaskDescriptor.class,
+                                                                          DtoFactory.getInstance().clone(cancelLink));
+                LOG.debug("Build cancellation result: {}", result);
+                return result != null && result.getStatus() == BuildStatus.CANCELLED;
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+                return false;
+            }
         }
     }
 
@@ -823,28 +938,32 @@ public class RunQueue {
         return doRegisterRunnerServer(runnerServer);
     }
 
+    // Switched to default for test.
+    // private
     RemoteRunnerServer createRemoteRunnerServer(String url) {
         return new RemoteRunnerServer(url);
     }
 
+    // Switched to default for test.
+    // private
     boolean doRegisterRunnerServer(RemoteRunnerServer runnerServer) throws RunnerException {
         final List<RemoteRunner> toAdd = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : runnerServer.getAvailableRunners()) {
+        for (RunnerDescriptor runnerDescriptor : runnerServer.getRunnerDescriptors()) {
             toAdd.add(runnerServer.createRemoteRunner(runnerDescriptor));
         }
         runnerServers.put(runnerServer.getBaseUrl(), runnerServer);
         final RunnerListKey key = new RunnerListKey(runnerServer.getInfra(),
                                                     runnerServer.getAssignedWorkspace(),
                                                     runnerServer.getAssignedProject());
-        RunnerList runnerList = runnerListMapping.get(key);
+        Set<RemoteRunner> runnerList = runnerListMapping.get(key);
         if (runnerList == null) {
-            final RunnerList newRunnerList = new RunnerList();
+            final Set<RemoteRunner> newRunnerList = new CopyOnWriteArraySet<>();
             runnerList = runnerListMapping.putIfAbsent(key, newRunnerList);
             if (runnerList == null) {
                 runnerList = newRunnerList;
             }
         }
-        return runnerList.addRunners(toAdd);
+        return runnerList.addAll(toAdd);
     }
 
     /**
@@ -868,17 +987,19 @@ public class RunQueue {
             return false;
         }
         final List<RemoteRunner> toRemove = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : runnerService.getAvailableRunners()) {
+        for (RunnerDescriptor runnerDescriptor : runnerService.getRunnerDescriptors()) {
             toRemove.add(runnerService.createRemoteRunner(runnerDescriptor));
         }
-        return unregisterRunners(toRemove);
+        return doUnregisterRunners(toRemove);
     }
 
-    private boolean unregisterRunners(List<RemoteRunner> toRemove) {
+    // Switched to default for test.
+    // private
+    boolean doUnregisterRunners(List<RemoteRunner> toRemove) {
         boolean modified = false;
-        for (Iterator<RunnerList> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
-            final RunnerList runnerList = i.next();
-            if (runnerList.removeRunners(toRemove)) {
+        for (Iterator<Set<RemoteRunner>> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
+            final Set<RemoteRunner> runnerList = i.next();
+            if (runnerList.removeAll(toRemove)) {
                 modified |= true;
                 if (runnerList.size() == 0) {
                     i.remove();
@@ -888,42 +1009,6 @@ public class RunQueue {
         return modified;
     }
 
-    boolean hasRunner(String infra, RunRequest request) {
-        final RunnerList runnerList = getRunnerList(infra, request.getWorkspace(), request.getProject());
-        return runnerList != null && runnerList.hasRunner(request.getRunner(), request.getEnvironmentId());
-    }
-
-    RemoteRunner getRunner(String infra, RunRequest request) throws RunnerException {
-        RunnerList runnerList = getRunnerList(infra, request.getWorkspace(), request.getProject());
-        if (runnerList == null) {
-            // Can't continue.
-            throw new RunnerException("There is no any runner to process this request. ");
-        }
-        final RemoteRunner remoteRunner = runnerList.getRunner(request);
-        if (remoteRunner == null) {
-            throw new RunnerException("There is no any runner to process this request. ");
-        }
-        LOG.debug("Use slave runner {} at {}", remoteRunner.getName(), remoteRunner.getBaseUrl());
-        return remoteRunner;
-    }
-
-    private RunnerList getRunnerList(String infra, String workspace, String project) {
-        RunnerList runnerList = runnerListMapping.get(new RunnerListKey(infra, workspace, project));
-        if (runnerList == null) {
-            if (project != null || workspace != null) {
-                if (workspace != null) {
-                    // have dedicated runners for whole workspace (omit project) ?
-                    runnerList = runnerListMapping.get(new RunnerListKey(infra, workspace, null));
-                }
-                if (runnerList == null) {
-                    // seems there is no dedicated runners for specified request, use shared one then
-                    runnerList = runnerListMapping.get(new RunnerListKey(infra, null, null));
-                }
-            }
-        }
-        return runnerList;
-    }
-
     private String getAuthenticationToken() {
         User user = EnvironmentContext.getCurrent().getUser();
         if (user != null) {
@@ -931,6 +1016,73 @@ public class RunQueue {
         }
         return null;
     }
+
+    /* ============================================================================================ */
+
+    // for store workspace, project and id of process with FutureTask
+    private static class InternalRunTask extends FutureTask<RemoteRunnerProcess> {
+        final Long   id;
+        final String workspace;
+        final String project;
+
+        InternalRunTask(Callable<RemoteRunnerProcess> callable, Long id, String workspace, String project) {
+            super(callable);
+            this.id = id;
+            this.workspace = workspace;
+            this.project = project;
+        }
+    }
+
+    // >>>>>>>>>>>>>>>>>>>>> Groups runners by infra + workspace + project.
+
+    // Switched to default for test.
+    // private
+    static class RunnerListKey {
+        final String infra;
+        final String project;
+        final String workspace;
+
+        RunnerListKey(String infra, String workspace, String project) {
+            this.infra = infra;
+            this.workspace = workspace;
+            this.project = project;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof RunnerListKey)) {
+                return false;
+            }
+            RunnerListKey other = (RunnerListKey)o;
+            return infra.equals(other.infra)
+                   && (workspace == null ? other.workspace == null : workspace.equals(other.workspace))
+                   && (project == null ? other.project == null : project.equals(other.project));
+
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = hash * 31 + infra.hashCode();
+            hash = hash * 31 + (workspace == null ? 0 : workspace.hashCode());
+            hash = hash * 31 + (project == null ? 0 : project.hashCode());
+            return hash;
+        }
+
+        @Override
+        public String toString() {
+            return "RunnerListKey{" +
+                   "infra='" + infra + '\'' +
+                   ", workspace='" + workspace + '\'' +
+                   ", project='" + project + '\'' +
+                   '}';
+        }
+    }
+
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>> application start checker
 
     private static class ApplicationUrlChecker implements Runnable {
         final long taskId;
@@ -986,168 +1138,7 @@ public class RunQueue {
         }
     }
 
-    private static class InternalRunTask extends FutureTask<RemoteRunnerProcess> {
-        final Long   id;
-        final String workspace;
-        final String project;
-
-        InternalRunTask(Callable<RemoteRunnerProcess> callable, Long id, String workspace, String project) {
-            super(callable);
-            this.id = id;
-            this.workspace = workspace;
-            this.project = project;
-        }
-    }
-
-    private static class RunnerListKey {
-        final String infra;
-        final String project;
-        final String workspace;
-
-        RunnerListKey(String infra, String workspace, String project) {
-            this.infra = infra;
-            this.workspace = workspace;
-            this.project = project;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof RunnerListKey)) {
-                return false;
-            }
-            RunnerListKey other = (RunnerListKey)o;
-            return infra.equals(other.infra)
-                   && (workspace == null ? other.workspace == null : workspace.equals(other.workspace))
-                   && (project == null ? other.project == null : project.equals(other.project));
-
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = hash * 31 + infra.hashCode();
-            hash = hash * 31 + (workspace == null ? 0 : workspace.hashCode());
-            hash = hash * 31 + (project == null ? 0 : project.hashCode());
-            return hash;
-        }
-
-        @Override
-        public String toString() {
-            return "RunnerListKey{" +
-                   "infra='" + infra + '\'' +
-                   ", workspace='" + workspace + '\'' +
-                   ", project='" + project + '\'' +
-                   '}';
-        }
-    }
-
-    private class RunnerList {
-        final Set<RemoteRunner> runners;
-
-        RunnerList() {
-            runners = new LinkedHashSet<>();
-        }
-
-        synchronized boolean hasRunner(String runner, String env) {
-            for (RemoteRunner remoteRunner : runners) {
-                if (runner.equals(remoteRunner.getName())) {
-                    return hasEnvironment(remoteRunner, env);
-                }
-            }
-            return false;
-        }
-
-        private boolean hasEnvironment(RemoteRunner runner, String env) {
-            final RunnerEnvironmentTree root = runner.getDescriptor().getEnvironments();
-            return root != null && hasEnvironment(root, env);
-        }
-
-        private boolean hasEnvironment(RunnerEnvironmentTree tree, String env) {
-            for (RunnerEnvironment environment : tree.getEnvironments()) {
-                if (env.equals(environment.getId())) {
-                    return true;
-                }
-            }
-            for (RunnerEnvironmentTree subTree : tree.getChildren()) {
-                if (hasEnvironment(subTree, env)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        synchronized boolean addRunners(Collection<? extends RemoteRunner> list) {
-            if (runners.addAll(list)) {
-                notifyAll();
-                return true;
-            }
-            return false;
-        }
-
-        synchronized boolean removeRunners(Collection<? extends RemoteRunner> list) {
-            if (runners.removeAll(list)) {
-                notifyAll();
-                return true;
-            }
-            return false;
-        }
-
-        synchronized int size() {
-            return runners.size();
-        }
-
-        synchronized RemoteRunner getRunner(RunRequest request) {
-            final List<RemoteRunner> matched = new LinkedList<>();
-            for (RemoteRunner runner : runners) {
-                if (request.getRunner().equals(runner.getName()) && hasEnvironment(runner, request.getEnvironmentId())) {
-                    matched.add(runner);
-                }
-            }
-            if (matched.isEmpty()) {
-                return null;
-            }
-            // List of runners that have enough resources for launch application.
-            final List<RemoteRunner> available = new LinkedList<>();
-            int attemptGetState = 0;
-            for (; ; ) {
-                for (RemoteRunner runner : matched) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        return null; // stop immediately
-                    }
-                    RunnerState runnerState;
-                    try {
-                        runnerState = runner.getRemoteRunnerState();
-                    } catch (Exception e) {
-                        LOG.error(e.getMessage(), e);
-                        ++attemptGetState;
-                        if (attemptGetState > 10) {
-                            return null;
-                        }
-                        continue;
-                    }
-                    if (runnerState.getServerState().getFreeMemory() >= request.getMemorySize()) {
-                        available.add(runner);
-                    }
-                }
-                if (available.isEmpty()) {
-                    try {
-                        wait(CHECK_AVAILABLE_RUNNER_DELAY); // wait and try again
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return null; // expected to get here if task is canceled
-                    }
-                } else {
-                    if (available.size() > 0) {
-                        return runnerSelector.select(available);
-                    }
-                    return available.get(0);
-                }
-            }
-        }
-    }
+    // >>>>>>>>>>>>>>>>>>>>>>>> Events
 
     private class ResourcesChangesMessenger implements EventSubscriber<RunnerEvent> {
         @Override
@@ -1211,7 +1202,8 @@ public class RunQueue {
                         bm.setChannel(String.format("runner:status:%d", id));
                         bm.setType(ChannelBroadcastMessage.Type.ERROR);
                         bm.setBody(String.format("{\"message\":%s}",
-                                                 "Unable to start application, currently there are no resources to start your application. Max waiting time for available resources has been reached. Contact support for assistance."));
+                                                 "Unable to start application, currently there are no resources to start your application." +
+                                                 " Max waiting time for available resources has been reached. Contact support for assistance."));
                         break;
                     case MESSAGE_LOGGED:
                         final RunnerEvent.LoggedMessage message = event.getMessage();

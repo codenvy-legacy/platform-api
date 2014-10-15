@@ -31,6 +31,7 @@ import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
+import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
@@ -998,7 +999,7 @@ public class ProjectService extends Service {
             @ApiResponse(code = 404, message = "Not found"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("/environments/{path:.*}")
+    @Path("/runner_environments/{path:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public RunnerEnvironmentTree getRunnerEnvironments(@ApiParam(value = "Workspace ID", required = true)
                                                        @PathParam("ws-id") String workspace,
@@ -1007,19 +1008,20 @@ public class ProjectService extends Service {
             throws NotFoundException, ForbiddenException, ServerException {
         final String envFolderPath = "/.codenvy/environments";
         final Project project = projectManager.getProject(workspace, path);
-        final RunnerEnvironmentTree root = DtoFactory.getInstance().createDto(RunnerEnvironmentTree.class).withDisplayName("project");
-        final List<RunnerEnvironment> environments = new LinkedList<>();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("project");
+        final List<RunnerEnvironmentLeaf> environments = new LinkedList<>();
         final VirtualFileEntry environmentsFolder = project.getBaseFolder().getChild(envFolderPath);
         if (environmentsFolder != null) {
             final FolderEntry folder = asFolder(workspace, path + envFolderPath);
             for (FolderEntry childFolder : folder.getChildFolders()) {
                 final String id = new EnvironmentId(EnvironmentId.Scope.project, childFolder.getName()).toString();
-                environments.add(DtoFactory.getInstance().createDto(RunnerEnvironment.class)
-                                           .withId(id)
+                environments.add(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
+                                           .withEnvironment(dtoFactory.createDto(RunnerEnvironment.class).withId(id))
                                            .withDisplayName(childFolder.getName()));
             }
         }
-        return root.withEnvironments(environments);
+        return root.withLeaves(environments);
     }
 
     private FileEntry asFile(String workspace, String path) throws ForbiddenException, NotFoundException, ServerException {

@@ -17,7 +17,7 @@ import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
+import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerMetric;
@@ -33,6 +33,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -119,14 +120,15 @@ public abstract class Runner {
 
     /**
      * Gets environments that are supported by the runner. Each environment presupposes an existing some embedded pre-configured
-     * environment for running application, e.g. type of server or its configuration. Environments are represented as
-     * hierarchically-organized system. By default this method returns empty tree.
-     *
-     * @see #getName()
+     * environment for running application, e.g. type of server or its configuration. By default this method returns lis that contains one
+     * environment with id: <i>default</i> without any options or environment variables.
      */
-    public RunnerEnvironmentTree getEnvironments() {
+    public List<RunnerEnvironment> getEnvironments() {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        return dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName(getName());
+        return Collections.singletonList(dtoFactory.createDto(RunnerEnvironment.class)
+                                                   .withId("default")
+                                                   .withDefault(true)
+                                                   .withDescription(String.format("Default %s environment", getName())));
     }
 
     /**
@@ -290,7 +292,8 @@ public abstract class Runner {
                         @Override
                         public void cancel() throws Exception {
                             process.getLogger()
-                                   .writeLine("[ERROR] Your run has been shutdown due to timeout. Upgrade your account to get an always on runner.");
+                                   .writeLine(
+                                           "[ERROR] Your run has been shutdown due to timeout. Upgrade your account to get an always on runner.");
                             process.internalStop(true);
                         }
                     });

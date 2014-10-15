@@ -329,6 +329,11 @@ public class DtoConverter {
         links.add(
                 Links.createLink("PUT", uriBuilder.clone().path(ProjectService.class, "updateProject").build(workspace, relPath).toString(),
                                  MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_UPDATE_PROJECT));
+        links.add(
+                Links.createLink("GET",
+                                 uriBuilder.clone().path(ProjectService.class, "getRunnerEnvironments").build(workspace, relPath)
+                                           .toString(),
+                                 MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_GET_RUNNER_ENVIRONMENTS));
         return links;
     }
 

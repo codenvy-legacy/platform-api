@@ -48,11 +48,11 @@ public interface Actions {
 
     // TODO
 //    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "macro")
-    String getMacro();
-
-    void setMacro(String macro);
-
-    Actions withMacro(String macro);
+//    String getMacro();
+//
+//    void setMacro(String macro);
+//
+//    Actions withMacro(String macro);
 
     /**
      * Path of the file to open in the project.
@@ -68,11 +68,11 @@ public interface Actions {
      * Warn on leave page
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "warnOnClose")
-    boolean getWarnOnClose();
+    Boolean getWarnOnClose();
 
-    void setWarnOnClose(boolean warnOnClose);
+    void setWarnOnClose(Boolean warnOnClose);
 
-    Actions withWarnOnClose(boolean warnOnClose);
+    Actions withWarnOnClose(Boolean warnOnClose);
 
     // TODO add plugins section
 //    Plugins getPlugins();

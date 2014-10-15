@@ -55,13 +55,13 @@ public interface FactoryV1_2 extends FactoryV1_1 {
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "warnonclose", deprecatedSince = V2_0)
     @Deprecated
-    boolean getWarnonclose();
+    Boolean getWarnonclose();
 
     @Deprecated
-    void setWarnonclose(boolean warnonclose);
+    void setWarnonclose(Boolean warnonclose);
 
     @Deprecated
-    FactoryV1_2 withWarnonclose(boolean warnonclose);
+    FactoryV1_2 withWarnonclose(Boolean warnonclose);
 
 
     /**
@@ -69,13 +69,13 @@ public interface FactoryV1_2 extends FactoryV1_1 {
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "hidecopybutton", deprecatedSince = V2_0)
     @Deprecated
-    boolean getHidecopybutton();
+    Boolean getHidecopybutton();
 
     @Deprecated
-    void setHidecopybutton(boolean hidecopybutton);
+    void setHidecopybutton(Boolean hidecopybutton);
 
     @Deprecated
-    FactoryV1_2 withHidecopybutton(boolean hidecopybutton);
+    FactoryV1_2 withHidecopybutton(Boolean hidecopybutton);
 
 
 

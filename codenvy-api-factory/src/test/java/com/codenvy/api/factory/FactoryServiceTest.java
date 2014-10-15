@@ -204,7 +204,7 @@ public class FactoryServiceTest {
     public void shouldReturnSavedFactoryIfUserDidNotUseSpecialMethod() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
-        factoryUrl.withValidsince(123456789).withValiduntil(12345679).withIdcommit("132456").withWname("wname").withPtype("ptype")
+        factoryUrl.withValidsince(123456789l).withValiduntil(12345679l).withIdcommit("132456").withWname("wname").withPtype("ptype")
                   .withPname("pname").withV("1.0");
         factoryUrl.setId(CORRECT_FACTORY_ID);
 

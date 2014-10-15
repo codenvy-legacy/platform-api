@@ -313,22 +313,22 @@ public class FactoryUrlBaseValidatorTest {
     public void shouldValidateIfCurrentTimeBeforeSinceUntil() throws ConflictException {
         Long currentTime = new Date().getTime();
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
-                                          .withValidsince(currentTime + 10000)
-                                          .withValiduntil(currentTime + 20000));
+                                          .withValidsince(currentTime + 10000l)
+                                          .withValiduntil(currentTime + 20000l));
         validator.validateCurrentTimeBeforeSinceUntil(factory);
     }
 
     @Test(expectedExceptions = ApiException.class,
           expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCE_MESSAGE)
     public void shouldNotValidateIfValidSinceBeforeCurrent() throws ApiException {
-        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(1));
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(1l));
         validator.validateCurrentTimeBeforeSinceUntil(factory);
     }
 
     @Test(expectedExceptions = ApiException.class,
           expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeCurrent() throws ApiException {
-        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(1));
+        factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(1l));
         validator.validateCurrentTimeBeforeSinceUntil(factory);
     }
 
@@ -336,8 +336,8 @@ public class FactoryUrlBaseValidatorTest {
           expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeValidSince() throws ApiException {
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
-                                          .withValiduntil(1)
-                                          .withValidsince(2));
+                                          .withValiduntil(1l)
+                                          .withValidsince(2l));
         validator.validateCurrentTimeBeforeSinceUntil(factory);
     }
 
@@ -346,7 +346,7 @@ public class FactoryUrlBaseValidatorTest {
     public void shouldNotValidateIfValidUntilBeforeCurrentTime() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
-                                          .withValiduntil(currentTime - 10000));
+                                          .withValiduntil(currentTime - 10000l));
         validator.validateCurrentTimeBetweenSinceUntil(factory);
     }
 
@@ -354,8 +354,8 @@ public class FactoryUrlBaseValidatorTest {
     public void shouldValidateIfCurrentTimeBetweenValidUntilSince() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
-                                          .withValidsince(currentTime - 10000)
-                                          .withValiduntil(currentTime + 10000));
+                                          .withValidsince(currentTime - 10000l)
+                                          .withValiduntil(currentTime + 10000l));
         validator.validateCurrentTimeBetweenSinceUntil(factory);
     }
 
@@ -364,7 +364,7 @@ public class FactoryUrlBaseValidatorTest {
     public void shouldNotValidateIfValidUntilSinceAfterCurrentTime() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class)
-                                          .withValidsince(currentTime + 10000));
+                                          .withValidsince(currentTime + 10000l));
         validator.validateCurrentTimeBetweenSinceUntil(factory);
     }
 
@@ -372,10 +372,10 @@ public class FactoryUrlBaseValidatorTest {
     public Object[][] trackedFactoryParametersProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
                 {factory.withWelcome(DtoFactory.getInstance().createDto(WelcomePage.class))},
-                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(123456))},
-                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(123456798))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValidsince(123456l))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withValiduntil(123456798l))},
                 {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withPassword("123456"))},
-                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withMaxsessioncount(1234))},
+                {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withMaxsessioncount(1234l))},
                 {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("host"))},
                 {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRestrictbypassword(true))}
         };

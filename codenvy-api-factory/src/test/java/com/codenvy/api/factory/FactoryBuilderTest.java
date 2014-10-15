@@ -133,7 +133,7 @@ public class FactoryBuilderTest {
         ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withVcsinfo(
                 true).withOpenfile("openfile").withAction("action")).withStyle("style").withDescription("description").withContactmail(
                 "contactmail").withAuthor("author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch")
-                                                                    .withValidsince(123456789).withValiduntil(234567899);
+                                                                    .withValidsince(123456789l).withValiduntil(234567899l);
 
         actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
 
@@ -154,7 +154,7 @@ public class FactoryBuilderTest {
         ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action").withVcsinfo(
                 true).withOpenfile("openfile")).withContactmail("contactmail").withAuthor("author").withOrgid("orgid")
                                                .withAffiliateid("affid").withVcsbranch(
-                "branch").withValidsince(123456789).withValiduntil(234567899);
+                "branch").withValidsince(123456789l).withValiduntil(234567899l);
 
         actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
 
@@ -191,8 +191,7 @@ public class FactoryBuilderTest {
 
         actual.withRestriction(
                 dto.createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
-                   .withValiduntil(123456789).withValidsince(12345678).withMaxsessioncount(123)
-                              );
+                   .withValiduntil(123456789l).withValidsince(12345678l).withMaxsessioncount(123l));
 
         factoryBuilder.checkValid(actual, ENCODED);
     }
@@ -217,8 +216,7 @@ public class FactoryBuilderTest {
 
         actual.withRestriction(
                 dto.createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
-                   .withValiduntil(123456789).withValidsince(12345678).withMaxsessioncount(123)
-                              );
+                   .withValiduntil(123456789l).withValidsince(12345678l).withMaxsessioncount(123l));
 
 
         factoryBuilder.checkValid(actual, NONENCODED);
@@ -263,7 +261,7 @@ public class FactoryBuilderTest {
                                                                                               .withFind("find")
                                                                                               .withReplace("replace")
                                                                                               .withReplacemode("mode")))))
-                              .withMacro("macro")
+//                              .withMacro("macro")
                               .withOpenFile("openFile")
                               .withWarnOnClose(true)
                               .withWelcome(dto.createDto(WelcomePage.class)
@@ -285,7 +283,7 @@ public class FactoryBuilderTest {
                                                 .withLogo("logo")
                                                 .withStyle("style")))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp("true")
+                                .withTemp(true)
                                 .withAttributes(singletonMap("key", "value")));
 
         factoryBuilder.checkValid(actual, ENCODED);
@@ -332,11 +330,11 @@ public class FactoryBuilderTest {
                                                                                               .withFind("find")
                                                                                               .withReplace("replace")
                                                                                               .withReplacemode("mode")))))
-                              .withMacro("macro")
+//                              .withMacro("macro")
                               .withOpenFile("openFile")
                               .withWarnOnClose(true))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp("true")
+                                .withTemp(true)
                                 .withAttributes(singletonMap("key", "value")));
 
         factoryBuilder.checkValid(actual, NONENCODED);
@@ -362,11 +360,10 @@ public class FactoryBuilderTest {
                 {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withPassword("pass"))},
                 {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withRefererhostname("codenvy.com"))},
                 {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withRestrictbypassword(true))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withMaxsessioncount(123))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValidsince(123456789))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValiduntil(1234567989))},
-                {dto.clone(v2).withActions(
-                        dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)))},
+                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withMaxsessioncount(123l))},
+                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValidsince(123456789l))},
+                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValiduntil(1234567989l))},
+                {dto.clone(v2).withActions(dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)))},
                 {dto.clone(v2).withPolicies(dto.createDto(Policies.class))}
         };
     }
@@ -539,8 +536,8 @@ public class FactoryBuilderTest {
         expected.setAffiliateid("affiliateid");
         expected.setVcsinfo(true);
         expected.setVcsbranch("release");
-        expected.setValidsince(123456);
-        expected.setValiduntil(1234567);
+        expected.setValidsince(123456l);
+        expected.setValiduntil(1234567l);
 
         ProjectAttributes attributes = dto.createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname");
 
@@ -570,8 +567,12 @@ public class FactoryBuilderTest {
         sb.append("affiliateid=").append(expected.getAffiliateid()).append("&");
         sb.append("vcsinfo=").append(expected.getVcsinfo()).append("&");
         sb.append("vcsbranch=").append(expected.getVcsbranch()).append("&");
-        sb.append("validsince=").append(expected.getValidsince()).append("&");
-        sb.append("validuntil=").append(expected.getValiduntil()).append("&");
+        if (expected.getValidsince() != null) {
+            sb.append("validsince=").append(expected.getValidsince()).append("&");
+        }
+        if (expected.getValiduntil() != null) {
+            sb.append("validuntil=").append(expected.getValiduntil()).append("&");
+        }
         sb.append("variables=").append(encode("[" + dto.toJson(variable) + "]"));
 
         Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
@@ -595,8 +596,8 @@ public class FactoryBuilderTest {
         expected.setVcsinfo(true);
         expected.setVcsbranch("release");
 
-        Restriction restriction = dto.createDto(Restriction.class).withMaxsessioncount(3).withPassword("password2323")
-                                     .withValiduntil(5679841595l).withValidsince(1654879849)
+        Restriction restriction = dto.createDto(Restriction.class).withMaxsessioncount(3l).withPassword("password2323")
+                                     .withValiduntil(5679841595l).withValidsince(1654879849l)
                                      .withRefererhostname("stackoverflow.com");
 
         Git git =
@@ -712,7 +713,7 @@ public class FactoryBuilderTest {
                               .withOpenFile("openFile")
                               .withWarnOnClose(true))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp("true")
+                                .withTemp(true)
                                 .withAttributes(new HashMap<String, String>() {
                                     {
                                         put("key1", "value1");

@@ -68,9 +68,9 @@ public interface Author {
      * @return Creation time of factory, set by the server (in milliseconds, from Unix epoch, no timezone)
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "created", setByServer = true, format = ENCODED)
-    long getCreated();
+    Long getCreated();
 
-    void setCreated(long created);
+    void setCreated(Long created);
 
-    Author withCreated(long created);
+    Author withCreated(Long created);
 }

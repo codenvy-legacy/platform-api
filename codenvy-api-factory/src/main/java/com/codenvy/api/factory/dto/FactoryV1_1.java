@@ -164,13 +164,13 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "created", setByServer = true, format = ENCODED, deprecatedSince = V2_0)
     @Deprecated
-    long getCreated();
+    Long getCreated();
 
     @Deprecated
-    void setCreated(long created);
+    void setCreated(Long created);
 
     @Deprecated
-    FactoryV1_1 withCreated(long created);
+    FactoryV1_1 withCreated(Long created);
 
     /**
      * @return Allow to use text replacement in project files after clone
@@ -189,29 +189,27 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validsince", ignoredSince = V1_1, deprecatedSince = V1_2
-    )
-    long getValidsince();
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validsince", ignoredSince = V1_1, deprecatedSince = V1_2)
+    Long getValidsince();
 
     @Deprecated
-    void setValidsince(long validsince);
+    void setValidsince(Long validsince);
 
     @Deprecated
-    FactoryV1_1 withValidsince(long validsince);
+    FactoryV1_1 withValidsince(Long validsince);
 
     /**
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validuntil", ignoredSince = V1_1, deprecatedSince = V1_2
-    )
-    long getValiduntil();
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validuntil", ignoredSince = V1_1, deprecatedSince = V1_2)
+    Long getValiduntil();
 
     @Deprecated
-    void setValiduntil(long validuntil);
+    void setValiduntil(Long validuntil);
 
     @Deprecated
-    FactoryV1_1 withValiduntil(long validuntil);
+    FactoryV1_1 withValiduntil(Long validuntil);
 
     /**
      * @return welcome page configuration.

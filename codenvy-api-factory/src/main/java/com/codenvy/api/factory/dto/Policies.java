@@ -37,19 +37,19 @@ public interface Policies {
      * Restrict access for factories used earlier then author supposes
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validSince")
-    long getValidSince();
+    Long getValidSince();
 
-    void setValidSince(long validSince);
+    void setValidSince(Long validSince);
 
-    Policies withValidSince(long validSince);
+    Policies withValidSince(Long validSince);
 
     /**
      * Restrict access for factories used later then author supposes
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validUntil")
-    long getValidUntil();
+    Long getValidUntil();
 
-    void setValidUntil(long validUntil);
+    void setValidUntil(Long validUntil);
 
-    Policies withValidUntil(long validUntil);
+    Policies withValidUntil(Long validUntil);
 }

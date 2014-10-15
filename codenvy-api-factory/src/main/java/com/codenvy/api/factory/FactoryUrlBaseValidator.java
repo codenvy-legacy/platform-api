@@ -194,8 +194,8 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
-        long validSince = 0;
-        long validUntil = 0;
+        Long validSince = null;
+        Long validUntil = null;
         WelcomePage welcomePage = null;
         if (factory.getV().startsWith("1.")) {
             final Restriction restriction = factory.getRestriction();
@@ -217,14 +217,14 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
-        if (0 != validSince) {
+        if (validSince != null && validSince > 0) {
             if (null == orgid) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                    factory.getV().startsWith("1.") ? "restriction.validsince" : "policies.validSince"));
             }
         }
 
-        if (0 != validUntil) {
+        if (validUntil != null && validUntil > 0) {
             if (null == orgid) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                    factory.getV().startsWith("1.") ? "restriction.validuntil" : "policies.validUntil"));
@@ -240,8 +240,8 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateCurrentTimeBetweenSinceUntil(Factory factory) throws ConflictException {
-        long validSince = 0;
-        long validUntil = 0;
+        Long validSince = null;
+        Long validUntil = null;
         if (factory.getV().startsWith("1.")) {
             final Restriction restriction = factory.getRestriction();
             if (restriction != null) {
@@ -256,13 +256,13 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
-        if (0 != validSince) {
+        if (validSince != null && validSince != 0) {
             if (new Date().before(new Date(validSince))) {
                 throw new ConflictException(FactoryConstants.ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE);
             }
         }
 
-        if (0 != validUntil) {
+        if (validUntil != null && validUntil != 0) {
             if (new Date().after(new Date(validUntil))) {
                 throw new ConflictException(FactoryConstants.ILLEGAL_FACTORY_BY_VALIDUNTIL_MESSAGE);
             }
@@ -270,8 +270,8 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateCurrentTimeBeforeSinceUntil(Factory factory) throws ConflictException {
-        long validSince = 0;
-        long validUntil = 0;
+        Long validSince = null;
+        Long validUntil = null;
         if (factory.getV().startsWith("1.")) {
             final Restriction restriction = factory.getRestriction();
             if (restriction != null) {
@@ -286,15 +286,15 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
-        if (validSince != 0 && validUntil != 0 && validSince >= validUntil) {
+        if (validSince != null && validSince != 0 && validUntil != null && validUntil != 0 && validSince >= validUntil) {
             throw new ConflictException(FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE);
         }
 
-        if (validSince != 0 && new Date().after(new Date(validSince))) {
+        if (validSince != null && validSince != 0 && new Date().after(new Date(validSince))) {
             throw new ConflictException(FactoryConstants.INVALID_VALIDSINCE_MESSAGE);
         }
 
-        if (validUntil != 0 && new Date().after(new Date(validUntil))) {
+        if (validUntil != null && validUntil != 0 && new Date().after(new Date(validUntil))) {
             throw new ConflictException(FactoryConstants.INVALID_VALIDUNTIL_MESSAGE);
         }
     }

@@ -28,11 +28,11 @@ public interface ButtonAttributes {
     ButtonAttributes withColor(String color);
 
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "counter")
-    boolean getCounter();
+    Boolean getCounter();
 
-    void setCounter(boolean counter);
+    void setCounter(Boolean counter);
 
-    ButtonAttributes withCounter(boolean counter);
+    ButtonAttributes withCounter(Boolean counter);
 
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "logo")
     String getLogo();

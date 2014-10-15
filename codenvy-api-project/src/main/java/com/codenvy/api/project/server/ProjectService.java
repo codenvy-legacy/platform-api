@@ -580,6 +580,8 @@ public class ProjectService extends Service {
                                            @PathParam("path") String path,
                                            @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
                                            @QueryParam("force") boolean force,
+                                           @ApiParam(value = "Visibility type", allowableValues = "public,private")
+                                           @QueryParam("visibility") String visibility,
                                            Source source)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
         final ImportSourceDescriptor projectSource = source.getProject();
@@ -658,6 +660,11 @@ public class ProjectService extends Service {
                     }
                 }
             }
+        }
+
+        //set project visibility if needed
+        if (visibility != null) {
+            project.setVisibility(visibility);
         }
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));

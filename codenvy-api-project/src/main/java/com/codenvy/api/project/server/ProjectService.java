@@ -1006,7 +1006,7 @@ public class ProjectService extends Service {
                                                        @ApiParam(value = "Path to a project", required = true)
                                                        @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
-        final String envFolderPath = "/.codenvy/environments";
+        final String envFolderPath = "/.codenvy/runners/environments";
         final Project project = projectManager.getProject(workspace, path);
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("project");

@@ -138,13 +138,13 @@ public interface FactoryV1_0 {
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "vcsinfo", deprecatedSince = V2_0)
     @Deprecated
-    boolean getVcsinfo();
+    Boolean getVcsinfo();
 
     @Deprecated
-    void setVcsinfo(boolean vcsinfo);
+    void setVcsinfo(Boolean vcsinfo);
 
     @Deprecated
-    FactoryV1_0 withVcsinfo(boolean vcsinfo);
+    FactoryV1_0 withVcsinfo(Boolean vcsinfo);
 
     /**
      * @return path of the file to open in the project.

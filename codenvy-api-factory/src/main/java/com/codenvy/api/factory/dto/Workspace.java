@@ -25,11 +25,11 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 @DTO
 public interface Workspace {
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "temp")
-    String getTemp();
+    Boolean getTemp();
 
-    void setTemp(String temp);
+    void setTemp(Boolean temp);
 
-    Workspace withTemp(String temp);
+    Workspace withTemp(Boolean temp);
 
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "attributes")
     Map<String, String> getAttributes();

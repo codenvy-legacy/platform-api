@@ -101,8 +101,8 @@ public abstract class NonEncodedFactoryBuilder {
             builder.append("&wname=").append(factory.getWname());
         }
 
-        if (factory.getVcsinfo()) {
-            builder.append("&vcsinfo=").append(true);
+        if (factory.getVcsinfo() != null) {
+            builder.append("&vcsinfo=").append(factory.getVcsinfo());
         }
 
         if (factory.getOpenfile() != null) {
@@ -168,13 +168,13 @@ public abstract class NonEncodedFactoryBuilder {
         buildNonEncoded(((FactoryV1_1)factory), builder);
         Restriction restriction = factory.getRestriction();
         if (restriction != null) {
-            if (restriction.getValidsince() > 0) {
+            if (restriction.getValidsince() != null && restriction.getValidsince() > 0) {
                 builder.append("&restriction.validsince=").append(restriction.getValidsince());
             }
-            if (restriction.getValiduntil() > 0) {
+            if (restriction.getValiduntil() != null && restriction.getValiduntil() > 0) {
                 builder.append("&restriction.validuntil=").append(restriction.getValiduntil());
             }
-            if (restriction.getMaxsessioncount() > 0) {
+            if (restriction.getMaxsessioncount() != null && restriction.getMaxsessioncount() > 0) {
                 builder.append("&restriction.maxsessioncount=").append(restriction.getMaxsessioncount());
             }
             if (restriction.getRefererhostname() != null) {
@@ -185,7 +185,7 @@ public abstract class NonEncodedFactoryBuilder {
                 builder.append("&restriction.password=").append(restriction.getPassword());
             }
 
-            if (restriction.getRestrictbypassword()) {
+            if (restriction.getRestrictbypassword() != null && restriction.getRestrictbypassword()) {
                 builder.append("&restriction.restrictbypassword=").append(true);
             }
         }
@@ -273,9 +273,11 @@ public abstract class NonEncodedFactoryBuilder {
                 if (rDescriptor.getConfigs() != null) {
                     for (Map.Entry<String, RunnerConfiguration> rConf : rDescriptor.getConfigs().entrySet()) {
                         final String prefix = "&project.runners.configs." + encode(rConf.getKey());
-                        builder.append(prefix)
-                               .append(".ram=")
-                               .append(String.valueOf(rConf.getValue().getRam()));
+                        if (rConf.getValue().getRam() > 0) {
+                            builder.append(prefix)
+                                   .append(".ram=")
+                                   .append(rConf.getValue().getRam());
+                        }
                         if (rConf.getValue().getVariables() != null) {
                             final String vPrefix = prefix + ".variables";
                             for (Map.Entry<String, String> vars : rConf.getValue().getVariables().entrySet()) {
@@ -313,15 +315,15 @@ public abstract class NonEncodedFactoryBuilder {
 
         final Policies policies = factory.getPolicies();
         if (policies != null) {
-            appendIfNotNull(builder, "&policies.validSince=", String.valueOf(policies.getValidSince()), false);
-            appendIfNotNull(builder, "&policies.validUntil=", String.valueOf(policies.getValidUntil()), false);
+            appendIfNotNull(builder, "&policies.validSince=", policies.getValidSince(), false);
+            appendIfNotNull(builder, "&policies.validUntil=", policies.getValidUntil(), false);
             appendIfNotNull(builder, "&policies.refererHostname=", policies.getRefererHostname(), true);
         }
 
         final Actions actions = factory.getActions();
         if (actions != null) {
             appendIfNotNull(builder, "&actions.openFile=", actions.getOpenFile(), true);
-            appendIfNotNull(builder, "&actions.warnOnClose=", String.valueOf(actions.getWarnOnClose()), false);
+            appendIfNotNull(builder, "&actions.warnOnClose=", actions.getWarnOnClose(), false);
             if (actions.getFindReplace() != null && !actions.getFindReplace().isEmpty()) {
                 builder.append("&actions.findReplace=")
                        .append(encode(toJson(actions.getFindReplace())));
@@ -329,12 +331,12 @@ public abstract class NonEncodedFactoryBuilder {
         }
     }
 
-    private void appendIfNotNull(StringBuilder sb, String key, String value, boolean encodeValue) {
+    private void appendIfNotNull(StringBuilder sb, String key, Object value, boolean encodeValue) {
         if (value != null) {
             if (encodeValue) {
-                value = encode(value);
+                value = encode(String.valueOf(value));
             }
-            sb.append(key).append(value);
+            sb.append(key).append(String.valueOf(value));
         }
     }
 

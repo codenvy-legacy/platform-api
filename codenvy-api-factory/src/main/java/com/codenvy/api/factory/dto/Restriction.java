@@ -29,22 +29,22 @@ public interface Restriction {
      */
     @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validsince", trackedOnly = true)
-    long getValidsince();
+    Long getValidsince();
 
-    void setValidsince(long validsince);
+    void setValidsince(Long validsince);
 
-    Restriction withValidsince(long validsince);
+    Restriction withValidsince(Long validsince);
 
     /**
      * @return The time when the factory becomes invalid (in milliseconds, from Unix epoch, no timezone)
      */
     @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "validuntil", trackedOnly = true)
-    long getValiduntil();
+    Long getValiduntil();
 
-    void setValiduntil(long validuntil);
+    void setValiduntil(Long validuntil);
 
-    Restriction withValiduntil(long validuntil);
+    Restriction withValiduntil(Long validuntil);
 
     /**
      * @return referer dns queryParameterName
@@ -62,11 +62,11 @@ public interface Restriction {
      */
     @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "restrictbypassword", trackedOnly = true, setByServer = true)
-    boolean getRestrictbypassword();
+    Boolean getRestrictbypassword();
 
-    void setRestrictbypassword(boolean restrictbypassword);
+    void setRestrictbypassword(Boolean restrictbypassword);
 
-    Restriction withRestrictbypassword(boolean restrictbypassword);
+    Restriction withRestrictbypassword(Boolean restrictbypassword);
 
     /**
      * @return Password asked for factory activation. Not exposed in any case.
@@ -84,9 +84,9 @@ public interface Restriction {
      */
     @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "maxsessioncount", trackedOnly = true)
-    long getMaxsessioncount();
+    Long getMaxsessioncount();
 
-    void setMaxsessioncount(long maxsessioncount);
+    void setMaxsessioncount(Long maxsessioncount);
 
-    Restriction withMaxsessioncount(long maxsessioncount);
+    Restriction withMaxsessioncount(Long maxsessioncount);
 }

@@ -157,7 +157,7 @@ public class NonEncodedFactoryBuilderTest {
                                .withEmail("garagatyi@gmail.com")
                                .withName("Alex Garagatyi"))
                .withWorkspace(dto.createDto(Workspace.class)
-                                 .withTemp("true")
+                                 .withTemp(true)
                                  .withAttributes(new HashMap<String, String>() {
                                      {
                                          put("key1", "value1");

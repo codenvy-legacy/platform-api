@@ -33,6 +33,8 @@ import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
+import com.codenvy.api.project.shared.dto.RunnerSource;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -77,6 +79,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -577,12 +580,13 @@ public class ProjectService extends Service {
                                            @PathParam("path") String path,
                                            @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
                                            @QueryParam("force") boolean force,
-                                           ImportSourceDescriptor importDescriptor)
+                                           Source source)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
-        final ProjectImporter importer = importers.getImporter(importDescriptor.getType());
+        final ImportSourceDescriptor projectSource = source.getProject();
+        final ProjectImporter importer = importers.getImporter(projectSource.getType());
         if (importer == null) {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
-                                                    importDescriptor.getLocation(), importDescriptor.getType()));
+                                                    projectSource.getLocation(), projectSource.getType()));
         }
         // preparing websocket output publisher to broadcast output of import process to the ide clients while importing
         final String fWorkspace = workspace;
@@ -597,19 +601,18 @@ public class ProjectService extends Service {
         VirtualFileEntry virtualFile = projectManager.getProjectsRoot(workspace).getChild(path);
         if (virtualFile != null && virtualFile.isFile()) {
             // File with same name exist already exists.
-            throw new ConflictException(String.format("File with the name '%s' already exists. ", path));
+            throw new ConflictException(String.format("File with the name '%s' already exists.", path));
         } else {
             if (virtualFile == null) {
                 virtualFile = projectManager.getProjectsRoot(workspace).createFolder(path);
             } else if (!force) {
                 // Project already exists.
-                throw new ConflictException(String.format("Project with the name '%s' already exists. ", path));
+                throw new ConflictException(String.format("Project with the name '%s' already exists.", path));
             }
         }
 
-        FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
-        importer.importSources(baseProjectFolder, importDescriptor.getLocation(), importDescriptor.getParameters(),
-                               outputOutputConsumerFactory);
+        final FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
+        importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
 
         Project project = projectManager.getProject(workspace, path);
         //use resolver only if project type not set
@@ -632,6 +635,30 @@ public class ProjectService extends Service {
         // Force searcher to reindex project to fix such issues.
         VirtualFile file = project.getBaseFolder().getVirtualFile();
         searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
+
+        VirtualFileEntry environmentsFolder = baseProjectFolder.getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
+        if (environmentsFolder != null && environmentsFolder.isFile()) {
+            throw new ConflictException(String.format("Unable import runner environments. File with the name '%s' already exists.",
+                                                      Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR));
+        } else if (environmentsFolder == null) {
+            environmentsFolder = baseProjectFolder.createFolder(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
+        }
+
+        for (Map.Entry<String, RunnerSource> runnerSource : source.getRunners().entrySet()) {
+            final String runnerSourceKey = runnerSource.getKey();
+            if (runnerSourceKey.startsWith("/docker/")) {
+                final RunnerSource runnerSourceValue = runnerSource.getValue();
+                if (runnerSourceValue != null) {
+                    String name = runnerSourceKey.substring(8);
+                    try (InputStream in = new java.net.URL(runnerSourceValue.getLocation()).openStream()) {
+                        // Add file without mediatype to avoid creation useless metadata files on virtual file system level.
+                        // Dockerfile add in list of known files, see com.codenvy.api.core.util.ContentTypeGuesser
+                        // and content-types.properties file.
+                        ((FolderEntry)environmentsFolder).createFolder(name).createFile("Dockerfile", in, null);
+                    }
+                }
+            }
+        }
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
@@ -1006,15 +1033,13 @@ public class ProjectService extends Service {
                                                        @ApiParam(value = "Path to a project", required = true)
                                                        @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException {
-        final String envFolderPath = "/.codenvy/runners/environments";
         final Project project = projectManager.getProject(workspace, path);
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("project");
         final List<RunnerEnvironmentLeaf> environments = new LinkedList<>();
-        final VirtualFileEntry environmentsFolder = project.getBaseFolder().getChild(envFolderPath);
-        if (environmentsFolder != null) {
-            final FolderEntry folder = asFolder(workspace, path + envFolderPath);
-            for (FolderEntry childFolder : folder.getChildFolders()) {
+        final VirtualFileEntry environmentsFolder = project.getBaseFolder().getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
+        if (environmentsFolder != null && environmentsFolder.isFolder()) {
+            for (FolderEntry childFolder : ((FolderEntry)environmentsFolder).getChildFolders()) {
                 final String id = new EnvironmentId(EnvironmentId.Scope.project, childFolder.getName()).toString();
                 environments.add(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
                                            .withEnvironment(dtoFactory.createDto(RunnerEnvironment.class).withId(id))

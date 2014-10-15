@@ -18,7 +18,7 @@ import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.api.factory.dto.Source;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.project.server.ProjectManager;

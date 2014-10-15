@@ -11,7 +11,7 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.dto.shared.DTO;
 import com.codenvy.api.project.shared.dto.NewProject;
 

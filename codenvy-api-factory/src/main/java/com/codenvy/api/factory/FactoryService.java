@@ -20,7 +20,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV2_0;
-import com.codenvy.api.factory.dto.Source;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.server.Builders;
 import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectDescription;

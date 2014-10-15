@@ -96,10 +96,10 @@ public class ProjectJson2 {
                 }
                 ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes());
             } else {
-                VirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_FOLDER);
+                VirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_DIR);
                 if (codenvyDir == null) {
                     try {
-                        codenvyDir = baseFolder.createFolder(Constants.CODENVY_FOLDER);
+                        codenvyDir = baseFolder.createFolder(Constants.CODENVY_DIR);
                     } catch (ConflictException e) {
                         // Already checked existence of folder ".codenvy".
                         throw new ServerException(e.getServiceError());
@@ -114,7 +114,7 @@ public class ProjectJson2 {
                 } else if (!codenvyDir.isFolder()) {
                     throw new ServerException(String.format(
                             "Unable to save the project's properties to the file system. Path %s/%s exists but is not a folder.",
-                            baseFolder.getPath(), Constants.CODENVY_FOLDER));
+                            baseFolder.getPath(), Constants.CODENVY_DIR));
                 }
                 try {
                     ((FolderEntry)codenvyDir)

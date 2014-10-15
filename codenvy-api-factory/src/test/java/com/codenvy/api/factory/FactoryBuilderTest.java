@@ -23,8 +23,8 @@ import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Replacement;
 import com.codenvy.api.factory.dto.Restriction;
-import com.codenvy.api.factory.dto.RunnerSource;
-import com.codenvy.api.factory.dto.Source;
+import com.codenvy.api.project.shared.dto.RunnerSource;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomeConfiguration;
 import com.codenvy.api.factory.dto.WelcomePage;
@@ -54,7 +54,6 @@ import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;

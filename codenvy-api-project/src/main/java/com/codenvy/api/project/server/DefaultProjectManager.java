@@ -101,7 +101,7 @@ public final class DefaultProjectManager implements ProjectManager {
             public void onEvent(VirtualFileEvent event) {
                 final String workspace = event.getWorkspaceId();
                 final String path = event.getPath();
-                if (path.endsWith(Constants.CODENVY_FOLDER + "/misc.xml")) {
+                if (path.endsWith(Constants.CODENVY_DIR + "/misc.xml")) {
                     return;
                 }
                 switch (event.getType()) {
@@ -188,7 +188,7 @@ public final class DefaultProjectManager implements ProjectManager {
     private ProjectMisc readProjectMisc(Project project) throws ServerException {
         try {
             ProjectMisc misc;
-            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
+            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_DIR + "/misc.xml");
             if (miscFile != null) {
                 try (InputStream in = miscFile.getInputStream()) {
                     final Properties properties = new Properties();
@@ -233,11 +233,11 @@ public final class DefaultProjectManager implements ProjectManager {
             } catch (IOException e) {
                 throw new ServerException(e.getMessage(), e);
             }
-            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER + "/misc.xml");
+            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_DIR + "/misc.xml");
             if (miscFile != null) {
                 miscFile.updateContent(bout.toByteArray(), "application/xml");
             } else {
-                final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_FOLDER);
+                final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_DIR);
                 if (codenvy != null) {
                     try {
                         codenvy.createFile("misc.xml", bout.toByteArray(), "application/xml");

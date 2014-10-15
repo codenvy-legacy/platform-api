@@ -94,7 +94,7 @@ public class ProjectTest {
         pm = new DefaultProjectManager(ptdr, vpf, vfsRegistry, eventService);
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
-        myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_FOLDER).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
+        myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_DIR).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
     }
 
     @AfterMethod

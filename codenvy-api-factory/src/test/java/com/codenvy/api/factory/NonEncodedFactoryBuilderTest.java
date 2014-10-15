@@ -17,8 +17,8 @@ import com.codenvy.api.factory.dto.ButtonAttributes;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.Replacement;
-import com.codenvy.api.factory.dto.RunnerSource;
-import com.codenvy.api.factory.dto.Source;
+import com.codenvy.api.project.shared.dto.RunnerSource;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomeConfiguration;
 import com.codenvy.api.factory.dto.WelcomePage;
@@ -30,7 +30,6 @@ import com.codenvy.api.project.shared.dto.RunnerConfiguration;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
-import com.codenvy.dto.shared.JsonArray;
 
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;

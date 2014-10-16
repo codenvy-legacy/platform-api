@@ -31,7 +31,7 @@ public interface SourcesManager {
      * @param workDir
      *         directory where sources will be copied
      */
-    void getSources(String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
+    void getSources(BuildLogger logger, String workspace, String project, String sourcesUrl, java.io.File workDir) throws IOException;
 
     java.io.File getDirectory();
 

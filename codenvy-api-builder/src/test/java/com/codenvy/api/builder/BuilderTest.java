@@ -74,7 +74,7 @@ public class BuilderTest {
         public SourcesManager getSourcesManager() {
             return new SourcesManager() {
                 @Override
-                public void getSources(String workspace, String project, String sourcesUrl, File workDir) throws IOException {
+                public void getSources(BuildLogger logger, String workspace, String project, String sourcesUrl, File workDir) throws IOException {
                     // Don't need for current set of tests.
                 }
 

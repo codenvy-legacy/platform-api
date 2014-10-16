@@ -94,13 +94,13 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         executor.shutdown();
     }
 
-    public void getSources(BuilderConfiguration configuration) throws IOException {
+    public void getSources(BuildLogger logger, BuilderConfiguration configuration) throws IOException {
         final BaseBuilderRequest request = configuration.getRequest();
-        getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
+        getSources(logger, request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
     }
 
     @Override
-    public void getSources(String workspace, String project, final String sourcesUrl, java.io.File workDir) throws IOException {
+    public void getSources(BuildLogger logger, String workspace, String project, final String sourcesUrl, java.io.File workDir) throws IOException {
         // Directory for sources. Keep sources to avoid download whole project before build.
         // This directory is not permanent and may be removed at any time.
         final java.io.File srcDir = new java.io.File(directory, workspace + java.io.File.separatorChar + project);
@@ -140,7 +140,17 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             future = tasks.putIfAbsent(key, newFuture);
             if (future == null) {
                 future = newFuture;
+                try {
+                    // Need a bit time before to publish sources download start message via websocket
+                    // as client may not have already subscribed to the channel so early in build task execution
+                    Thread.sleep(300);
+                } catch (InterruptedException e) {
+                    LOG.error(e.getMessage(), e);
+                }
+                logger.writeLine("[INFO] Sources download started.");
                 newFuture.run();
+                logger.writeLine("[INFO] Sources download finished."
+                    + "\n[INFO] ------------------------------------------------------------------------");
             }
         }
         try {

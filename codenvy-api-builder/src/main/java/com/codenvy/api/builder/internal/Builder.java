@@ -387,14 +387,7 @@ public abstract class Builder {
         final Long internalId = buildIdSequence.getAndIncrement();
         final BuildTask.Callback callback = new BuildTask.Callback() {
             @Override
-            public void begin(BuildTask task) {
-                final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
-                // build preliminary phase is sources downloading
-                // build begin event will be sent when build effectively begins
-                eventService.publish(BuilderEvent.sourcesDownloadBeginEvent(buildRequest.getId(), buildRequest.getWorkspace(),
-                                                                            buildRequest.getProject(),
-                                                                            BuildLogsPublisher.SOURCES_DOWNLOAD_START_MESSAGE_LINE));
-            }
+            public void begin(BuildTask task) {}
 
             @Override
             public void done(BuildTask task) {
@@ -431,12 +424,10 @@ public abstract class Builder {
             public Boolean call() throws Exception {
                 BaseBuilderRequest request = configuration.getRequest();
                 getSourcesManager()
-                        .getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
-                eventService.publish(BuilderEvent.sourcesDownloadDoneEvent(request.getId(), request.getWorkspace(), request.getProject(),
-                                                                           BuildLogsPublisher.SOURCES_DOWNLOAD_END_MESSAGE_LINE));
+                        .getSources(logger, request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
+                // build effectively starts right after sources downloading is done
                 eventService.publish(BuilderEvent.buildTimeStartedEvent(request.getId(), request.getWorkspace(), request.getProject(),
                                                                         System.currentTimeMillis()));
-                // build starts right after sources downloading is done
                 eventService.publish(BuilderEvent.beginEvent(request.getId(), request.getWorkspace(), request.getProject()));
                 StreamPump output = null;
                 Watchdog watcher = null;

@@ -590,7 +590,7 @@ public class ProjectService extends Service {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
                                                     projectSource.getLocation(), projectSource.getType()));
         }
-        // preparing websocket output publisher to broadcast output of import process to the ide clients while importing
+        // Preparing websocket output publisher to broadcast output of import process to the ide clients while importing
         final String fWorkspace = workspace;
         final String fPath = path;
         final LineConsumerFactory outputOutputConsumerFactory = new LineConsumerFactory() {
@@ -600,12 +600,16 @@ public class ProjectService extends Service {
             }
         };
 
+        // Not all importers uses virtual file system API. In this case virtual file system API doesn't get events and isn't able to set
+        // correct creation time. Need do it manually.
+        long creationDate = -1;
         VirtualFileEntry virtualFile = projectManager.getProjectsRoot(workspace).getChild(path);
         if (virtualFile != null && virtualFile.isFile()) {
             // File with same name exist already exists.
             throw new ConflictException(String.format("File with the name '%s' already exists.", path));
         } else {
             if (virtualFile == null) {
+                creationDate = System.currentTimeMillis();
                 virtualFile = projectManager.getProjectsRoot(workspace).createFolder(path);
             } else if (!force) {
                 // Project already exists.
@@ -617,7 +621,7 @@ public class ProjectService extends Service {
         importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
 
         Project project = projectManager.getProject(workspace, path);
-        //use resolver only if project type not set
+        // Use resolver only if project type not set
         if (project == null) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
@@ -627,7 +631,7 @@ public class ProjectService extends Service {
             }
         }
 
-        //try get project again after trying resolve it
+        // Try get project again after trying resolve it
         project = projectManager.getProject(workspace, path);
         if (project == null) { //resolver can't resolve project type
             project = new Project(baseProjectFolder, projectManager); //create BLANK project type
@@ -637,6 +641,9 @@ public class ProjectService extends Service {
         // Force searcher to reindex project to fix such issues.
         VirtualFile file = project.getBaseFolder().getVirtualFile();
         searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
+        if (creationDate > 0) {
+            project.getMisc().setCreationDate(creationDate);
+        }
 
         VirtualFileEntry environmentsFolder = baseProjectFolder.getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
         if (environmentsFolder != null && environmentsFolder.isFile()) {

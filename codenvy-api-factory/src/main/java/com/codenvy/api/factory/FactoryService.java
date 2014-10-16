@@ -542,7 +542,9 @@ public class FactoryService extends Service {
                                    .withName(project.getName())
                                    .withType(projectJson.getType())
                                    .withAttributes(projectJson.getAttributes())
+                                   .withVisibility(project.getVisibility())
                                    .withDescription(projectJson.getDescription());
+
             final Builders builders = projectJson.getBuilders();
             if (builders != null) {
                 newProject.withBuilders(com.codenvy.api.project.server.DtoConverter.toDto(builders));

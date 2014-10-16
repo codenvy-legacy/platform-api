@@ -83,7 +83,7 @@ public class Project {
     }
 
     /** Gets project meta-information. */
-    public final ProjectDescription getDescription() throws ServerException, ValueStorageException {
+    public ProjectDescription getDescription() throws ServerException, ValueStorageException {
         // Copy attributes after merging to be independent to type of ValueProvider. ProjectDescription contains attributes that may use
         // different ValueProviders. After we have all attributes copy them with DefaultValueProvider. Caller gets description of project
         // update some attributes or(and) type of project than caller sends description back with method updateDescription.

@@ -32,6 +32,7 @@ import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.ContentStreamWriter;
+import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -192,12 +193,15 @@ public class ProjectServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetProjects() throws Exception {
+        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
+        mountPoint.getRoot().createFolder("not_project");
+
         ContainerResponse response =
                 launcher.service("GET", "http://localhost:8080/api/project/my_ws", "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         List<ProjectReference> result = (List<ProjectReference>)response.getEntity();
         Assert.assertNotNull(result);
-        Assert.assertEquals(result.size(), 1);
+        Assert.assertEquals(result.size(), 2);
         ProjectReference projectReference = result.get(0);
         Assert.assertEquals(projectReference.getName(), "my_project");
         Assert.assertEquals(projectReference.getUrl(), String.format("http://localhost:8080/api/project/%s/my_project", workspace));
@@ -206,6 +210,16 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getType(), "my_project_type");
         Assert.assertEquals(projectReference.getTypeName(), "my project type");
         Assert.assertEquals(projectReference.getVisibility(), "public");
+
+
+        ProjectReference badProject = result.get(1);
+        Assert.assertEquals(badProject.getName(), "not_project");
+        Assert.assertEquals(badProject.getUrl(), String.format("http://localhost:8080/api/project/%s/not_project", workspace));
+        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
+        Assert.assertEquals(badProject.getVisibility(), "public");
+        Assert.assertNotNull(badProject.getProblems());
+        Assert.assertTrue(badProject.getProblems().size() > 0);
+        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
     }
 
     @Test

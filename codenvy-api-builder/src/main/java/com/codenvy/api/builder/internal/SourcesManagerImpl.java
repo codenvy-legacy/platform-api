@@ -147,9 +147,9 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 } catch (InterruptedException e) {
                     LOG.error(e.getMessage(), e);
                 }
-                logger.writeLine("[INFO] Sources download started.");
+                logger.writeLine("[INFO] Injecting source code into builder...");
                 newFuture.run();
-                logger.writeLine("[INFO] Sources download finished."
+                logger.writeLine("[INFO] Source code injection finished"
                     + "\n[INFO] ------------------------------------------------------------------------");
             }
         }

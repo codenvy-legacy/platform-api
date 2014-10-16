@@ -64,7 +64,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -102,8 +101,10 @@ public class RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(RunQueue.class);
 
     /** Pause in milliseconds for checking the result of build process. */
-    private static final long CHECK_BUILD_RESULT_DELAY     = 2000;
-    private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
+    private static final long CHECK_BUILD_RESULT_PERIOD     = 2000;
+    private static final long CHECK_AVAILABLE_RUNNER_PERIOD = 2000;
+
+    private static final long PROCESS_CLEANER_PERIOD = TimeUnit.MINUTES.toMillis(1);
 
     private static final int DEFAULT_MAX_MEMORY_SIZE = 512;
 
@@ -140,6 +141,16 @@ public class RunQueue {
     @com.google.inject.Inject(optional = true)
     @Named(Constants.RUNNER_WS_MAX_MEMORY_SIZE)
     private int defMaxMemorySize = DEFAULT_MAX_MEMORY_SIZE;
+
+    // Switched to default for test.
+    // private
+    long cleanerPeriod = PROCESS_CLEANER_PERIOD;
+    // Switched to default for test.
+    // private
+    long checkAvailableRunnerPeriod = CHECK_AVAILABLE_RUNNER_PERIOD;
+    // Switched to default for test.
+    // private
+    long checkBuildResultPeriod = CHECK_BUILD_RESULT_PERIOD;
 
     /**
      * @param baseWorkspaceApiUrl
@@ -300,7 +311,7 @@ public class RunQueue {
                         LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
                     }
                 }
-            }, 1, 1, TimeUnit.MINUTES);
+            }, cleanerPeriod, cleanerPeriod, TimeUnit.MILLISECONDS);
 
             // sending message by websocket connection for notice about used memory size changing
             eventService.subscribe(new ResourcesChangesMessenger());
@@ -464,7 +475,8 @@ public class RunQueue {
                     }
                 }
                 if (matchedRunners.isEmpty()) {
-                    throw new RunnerException(String.format("Runner environment '%s' is not available.", environmentId));
+                    throw new RunnerException(String.format("Runner environment '%s' is not available for workspace '%s' on infra '%s'.",
+                                                            environmentId, workspace, infra));
                 }
                 break;
             case project:
@@ -777,7 +789,7 @@ public class RunQueue {
                         }
                         synchronized (this) {
                             try {
-                                wait(CHECK_BUILD_RESULT_DELAY);
+                                wait(checkBuildResultPeriod);
                             } catch (InterruptedException e) {
                                 // Expected to get here if task is canceled. Try to cancel related build process.
                                 tryCancelBuild(buildDescriptor);
@@ -841,7 +853,7 @@ public class RunQueue {
                         synchronized (this) {
                             try {
                                 // Wait and try again.
-                                wait(CHECK_AVAILABLE_RUNNER_DELAY);
+                                wait(checkAvailableRunnerPeriod);
                             } catch (InterruptedException e) {
                                 // Expected to get here if task is canceled.
                                 Thread.currentThread().interrupt();
@@ -849,7 +861,9 @@ public class RunQueue {
                             }
                         }
                     } else {
-                        return (available.size() > 0 ? runnerSelector.select(available) : available.get(0)).run(request);
+                        final RemoteRunner runner = available.size() > 0 ? runnerSelector.select(available) : available.get(0);
+                        LOG.debug("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
+                        return runner.run(request);
                     }
                 }
             }
@@ -911,7 +925,7 @@ public class RunQueue {
      *         RunnerServerRegistration
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws com.codenvy.api.runner.RunnerException
      *         if an error occurs
      */
     public boolean registerRunnerServer(RunnerServerRegistration registration) throws RunnerException {
@@ -974,7 +988,7 @@ public class RunQueue {
      *         RunnerServerLocation
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws com.codenvy.api.runner.RunnerException
      *         if an error occurs
      */
     public boolean unregisterRunnerServer(RunnerServerLocation location) throws RunnerException {
@@ -1101,7 +1115,6 @@ public class RunQueue {
         @Override
         public void run() {
             boolean ok = false;
-            String requestMethod = "HEAD";
             for (int i = 0; !ok && i < healthCheckAttempts; i++) {
                 if (Thread.currentThread().isInterrupted()) {
                     return;
@@ -1114,25 +1127,11 @@ public class RunQueue {
                 HttpURLConnection conn = null;
                 try {
                     conn = (HttpURLConnection)url.openConnection();
-                    conn.setRequestMethod(requestMethod);
+                    conn.setRequestMethod("HEAD");
                     conn.setConnectTimeout(1000);
                     conn.setReadTimeout(1000);
-
-                    LOG.debug(String.format("Response code: %d.", conn.getResponseCode()));
-                    if (405 == conn.getResponseCode()) {
-                        // In case of Method not allowed, we use get instead of HEAD. X-HTTP-Method-Override would be nice but support is
-                        // to weak and will trigger much more GET than with this fallback.
-                        // Note: Response.Status in JAX-WS in JEE6 hasn't any status matching 405, so here we use int code comparison. Fixed
-                        // in JEE7.
-                        requestMethod = "GET";
-                    }
-                    Response.Status status = Response.Status.fromStatusCode(conn.getResponseCode());
-                    if (status == null) {
-                        continue;
-                    }
-                    if (Response.Status.Family.SUCCESSFUL == status.getFamily()
-                            || Response.Status.Family.REDIRECTION == status.getFamily()
-                            || Response.Status.Family.INFORMATIONAL == status.getFamily()) {
+                    conn.getResponseCode();
+                    if (200 == conn.getResponseCode()) {
                         ok = true;
                         LOG.debug("Application URL '{}' - OK", url);
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();

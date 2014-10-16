@@ -225,16 +225,15 @@ public class RunnerService extends Service {
                                 node.addNode(child);
                             }
                             node = child;
-                            // Clone environment and use its id as display name and replace its id with new one in format scope:/runner/environment.
-                            // This is global id that shown scope of this environment, e.g. system , project, etc.
-                            final String unique =
-                                    new EnvironmentId(EnvironmentId.Scope.system, runnerDescriptor.getName(), runnerEnvironment.getId())
-                                            .toString();
-                            node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
-                                                 .withDisplayName(runnerEnvironment.getId())
-                                                 .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
                         }
-
+                        // Clone environment and use its id as display name and replace its id with new one in format scope:/runner/environment.
+                        // This is global id that shown scope of this environment, e.g. system , project, etc.
+                        final String unique =
+                                new EnvironmentId(EnvironmentId.Scope.system, runnerDescriptor.getName(), runnerEnvironment.getId())
+                                        .toString();
+                        node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
+                                               .withDisplayName(runnerEnvironment.getId())
+                                               .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
                     }
                 }
             }

@@ -93,7 +93,7 @@ public class SlaveRunnerService extends Service {
     }
 
     @GET
-    @Path("status/{runner}/{id}")
+    @Path("status/{runner:.*}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor getStatus(@PathParam("runner") String runner, @PathParam("id") Long id) throws Exception {
         final Runner myRunner = getRunner(runner);
@@ -102,7 +102,7 @@ public class SlaveRunnerService extends Service {
     }
 
     @POST
-    @Path("stop/{runner}/{id}")
+    @Path("stop/{runner:.*}/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor stop(@PathParam("runner") String runner, @PathParam("id") Long id) throws Exception {
         final Runner myRunner = getRunner(runner);
@@ -112,7 +112,7 @@ public class SlaveRunnerService extends Service {
     }
 
     @GET
-    @Path("logs/{runner}/{id}")
+    @Path("logs/{runner:.*}/{id}")
     public void getLogs(@PathParam("runner") String runner,
                         @PathParam("id") Long id,
                         @Context HttpServletResponse httpServletResponse) throws Exception {
@@ -139,7 +139,7 @@ public class SlaveRunnerService extends Service {
     }
 
     @GET
-    @Path("recipe/{runner}/{id}")
+    @Path("recipe/{runner:.*}/{id}")
     public void getRecipeFile(@PathParam("runner") String runner,
                               @PathParam("id") Long id,
                               @Context HttpServletResponse httpServletResponse) throws Exception {

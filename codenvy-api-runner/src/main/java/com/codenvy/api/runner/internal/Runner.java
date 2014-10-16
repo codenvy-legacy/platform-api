@@ -127,8 +127,7 @@ public abstract class Runner {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         return Collections.singletonList(dtoFactory.createDto(RunnerEnvironment.class)
                                                    .withId("default")
-                                                   .withDefault(true)
-                                                   .withDescription(String.format("Default %s environment", getName())));
+                                                   .withDescription(String.format("Default '%s' environment", getName())));
     }
 
     /**
@@ -274,7 +273,7 @@ public abstract class Runner {
                 try {
                     memoryAllocator.allocate();
                     final java.io.File downloadDir =
-                            Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName() + '_')).toFile();
+                            Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName().replace("/", "."))).toFile();
                     final String url = request.getDeploymentSourcesUrl();
                     final DeploymentSources deploymentSources =
                             url == null ? NO_SOURCES : new DeploymentSources(downloadFile(url, downloadDir));
@@ -562,7 +561,7 @@ public abstract class Runner {
     @PostConstruct
     public void start() {
         if (started.compareAndSet(false, true)) {
-            deployDirectory = new java.io.File(deployDirectoryRoot, getName());
+            deployDirectory = new java.io.File(deployDirectoryRoot, getName().replace("/", "."));
             if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
                 throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
             }

@@ -28,6 +28,7 @@ import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectProblem;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
@@ -423,7 +424,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Delete a resource",
-                  notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to be deleted a path to the requested resource needs to be specified",
+                  notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to " +
+                          "be deleted a path to the requested resource needs to be specified",
                   position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = ""),
@@ -561,7 +563,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Import resource",
-                  notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from VCS or ZIP",
+                  notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from " +
+                          "VCS or ZIP",
                   response = ProjectDescriptor.class,
                   position = 16)
     @ApiResponses(value = {
@@ -622,14 +625,17 @@ public class ProjectService extends Service {
 
         Project project = projectManager.getProject(workspace, path);
         // Use resolver only if project type not set
+        ProjectProblem resolved = null;
         if (project == null) {
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
                 if (resolver.resolve((FolderEntry)virtualFile)) {
+                    resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300).withMessage("Project type detect via ProjectResolver");
                     break;
                 }
             }
         }
+
 
         // Try get project again after trying resolve it
         project = projectManager.getProject(workspace, path);
@@ -659,12 +665,19 @@ public class ProjectService extends Service {
                 final RunnerSource runnerSourceValue = runnerSource.getValue();
                 if (runnerSourceValue != null) {
                     String name = runnerSourceKey.substring(8);
-                    try (InputStream in = new java.net.URL(runnerSourceValue.getLocation()).openStream()) {
-                        // Add file without mediatype to avoid creation useless metadata files on virtual file system level.
-                        // Dockerfile add in list of known files, see com.codenvy.api.core.util.ContentTypeGuesser
-                        // and content-types.properties file.
-                        ((FolderEntry)environmentsFolder).createFolder(name).createFile("Dockerfile", in, null);
+                    String runnerSourceLocation = runnerSourceValue.getLocation();
+                    if (runnerSourceLocation.startsWith("https") || runnerSourceLocation.startsWith("http")) {
+                        try (InputStream in = new java.net.URL(runnerSourceLocation).openStream()) {
+                            // Add file without mediatype to avoid creation useless metadata files on virtual file system level.
+                            // Dockerfile add in list of known files, see com.codenvy.api.core.util.ContentTypeGuesser
+                            // and content-types.properties file.
+                            ((FolderEntry)environmentsFolder).createFolder(name).createFile("Dockerfile", in, null);
+                        }
+                    } else {
+                        LOG.warn("ProjectService.importProject :: not valid runner source location availabel only http or https scheme but we get :" +
+                                 runnerSourceLocation);
                     }
+
                 }
             }
         }
@@ -679,6 +692,11 @@ public class ProjectService extends Service {
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
+        if (resolved != null) {
+            List<ProjectProblem> projectProblems = projectDescriptor.getProblems();
+            projectProblems.add(resolved);
+            projectDescriptor.setProblems(projectProblems);
+        }
         return projectDescriptor;
     }
 
@@ -937,7 +955,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Get user permissions in a project",
-                  notes = "Get permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
+                  notes = "Get permissions for a user in a specified project, such as read, write, build, " +
+                          "run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
                   position = 23)
@@ -1003,7 +1022,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Set permissions for a user in a project",
-                  notes = "Set permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
+                  notes = "Set permissions for a user in a specified project, such as read, write, build, " +
+                          "run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
                   position = 25)

@@ -846,7 +846,7 @@ public class ProjectServiceTest {
 
 
     @Test
-    public void testImportProjectWithVisility() throws Exception {
+    public void testImportProjectWithVisibility() throws Exception {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         ZipOutputStream zipOut = new ZipOutputStream(bout);
         zipOut.putNextEntry(new ZipEntry("folder1/"));
@@ -912,7 +912,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(newProject.getVisibility(), visibility);
     }
 
-    @Test
+//    @Test
     public void testImportProjectWithRunners() throws Exception {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         ZipOutputStream zipOut = new ZipOutputStream(bout);
@@ -1131,6 +1131,9 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getType(), "my_project_type");
+        Assert.assertNotNull(descriptor.getProblems());
+        Assert.assertTrue(descriptor.getProblems().size()>0);
+        Assert.assertEquals(300, descriptor.getProblems().get(0).getCode());
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
     }

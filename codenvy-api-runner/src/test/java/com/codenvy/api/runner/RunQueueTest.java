@@ -217,6 +217,29 @@ public class RunQueueTest {
     }
 
     @Test
+    public void testRegisterSlaveRunnerWithMoreThenOneInfra() throws Exception {
+        String remoteUrl = "http://localhost:8080/api/internal/runner";
+        RunnerDescriptor runnerDescriptor = dto(RunnerDescriptor.class).withName("java/web").withDescription("test description");
+        runnerDescriptor.getEnvironments().add(dto(RunnerEnvironment.class).withId("tomcat7"));
+        registerRunnerServer(remoteUrl, runnerDescriptor, dto(RunnerServerAccessCriteria.class).withInfra("paid"));
+        registerRunnerServer(remoteUrl, runnerDescriptor, dto(RunnerServerAccessCriteria.class).withInfra("community"));
+
+        assertNotNull(runQueue.getRunnerList("paid", wsId, pPath));
+        assertNotNull(runQueue.getRunnerList("paid", wsId, null));
+        assertNotNull(runQueue.getRunnerList("paid", null, null));
+        assertNotNull(runQueue.getRunnerList("community", wsId, pPath));
+        assertNotNull(runQueue.getRunnerList("community", wsId, null));
+        assertNotNull(runQueue.getRunnerList("community", null, null));
+
+        assertEquals(runQueue.getRunnerList("paid", wsId, pPath).size(), 1);
+        assertEquals(runQueue.getRunnerList("paid", wsId, null).size(), 1);
+        assertEquals(runQueue.getRunnerList("paid", null, null).size(), 1);
+        assertEquals(runQueue.getRunnerList("community", wsId, pPath).size(), 1);
+        assertEquals(runQueue.getRunnerList("community", wsId, null).size(), 1);
+        assertEquals(runQueue.getRunnerList("community", null, null).size(), 1);
+    }
+
+    @Test
     public void testUnregisterSlaveRunner() throws Exception {
         RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
         runQueue.unregisterRunnerServer(dto(RunnerServerLocation.class).withUrl(runnerServer.getBaseUrl()));

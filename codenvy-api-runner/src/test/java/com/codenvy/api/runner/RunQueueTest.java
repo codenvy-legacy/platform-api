@@ -11,6 +11,7 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.builder.BuildStatus;
+import com.codenvy.api.builder.RemoteBuilderServer;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.notification.EventService;
@@ -466,6 +467,84 @@ public class RunQueueTest {
     }
 
     @Test
+    public void testOverrideBuilderWithRunOptions() throws Exception {
+        RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
+        RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
+        // Free memory should be more than 256.
+        doReturn(dto(RunnerState.class).withServerState(dto(ServerState.class).withFreeMemory(512))).when(runner).getRemoteRunnerState();
+        RemoteRunnerProcess process = spy(new RemoteRunnerProcess(runnerServer.getBaseUrl(), runner.getName(), 1l));
+        doReturn(process).when(runner).run(any(RunRequest.class));
+
+        ServiceContext serviceContext = newServiceContext();
+        project.withBuilders(dto(BuildersDescriptor.class).withDefault("maven"))
+               .withRunners(dto(RunnersDescriptor.class).withDefault("system:/java/web/tomcat7"));
+
+        doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
+        doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
+        doNothing().when(runQueue).checkResources(eq(workspace), any(RunRequest.class));
+
+        mockBuilderApi(1);
+
+        runQueue.run(wsId, pPath, serviceContext, dto(RunOptions.class).withBuildOptions(dto(BuildOptions.class).withBuilderName("ant")));
+
+        // timeout for start executor and check build result once (checked every seconds)
+        verify(runner, timeout(3000)).run(any(RunRequest.class));
+        ArgumentCaptor<BuildOptions> buildOptionsCaptor = ArgumentCaptor.forClass(BuildOptions.class);
+        verify(runQueue, times(1)).startBuild(any(RemoteBuilderServer.class), eq(pPath), buildOptionsCaptor.capture());
+
+        BuildOptions buildOptions = buildOptionsCaptor.getValue();
+        assertEquals(buildOptions.getBuilderName(), "ant"); // overridden with options even maven is set in project configuration
+    }
+
+    @Test
+    public void testSkipBuildNoBuilderName() throws Exception {
+        RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
+        RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
+        // Free memory should be more than 256.
+        doReturn(dto(RunnerState.class).withServerState(dto(ServerState.class).withFreeMemory(512))).when(runner).getRemoteRunnerState();
+        RemoteRunnerProcess process = spy(new RemoteRunnerProcess(runnerServer.getBaseUrl(), runner.getName(), 1l));
+        doReturn(process).when(runner).run(any(RunRequest.class));
+
+        ServiceContext serviceContext = newServiceContext();
+        project.withRunners(dto(RunnersDescriptor.class).withDefault("system:/java/web/tomcat7"))
+               .withBuilders(dto(BuildersDescriptor.class)); // set builders model but don't set any builder name
+
+        doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
+        doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
+        doNothing().when(runQueue).checkResources(eq(workspace), any(RunRequest.class));
+
+        runQueue.run(wsId, pPath, serviceContext, null);
+
+        verify(runner, timeout(1000)).run(any(RunRequest.class));
+        verify(runQueue, never()).getBuilderServiceDescriptor(eq(wsId), eq(serviceContext));
+        verify(runQueue, never()).startBuild(any(RemoteBuilderServer.class), eq(pPath), any(BuildOptions.class));
+    }
+
+    @Test
+    public void testSkipBuildWithSkipBuildOptions() throws Exception {
+        RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
+        RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
+        // Free memory should be more than 256.
+        doReturn(dto(RunnerState.class).withServerState(dto(ServerState.class).withFreeMemory(512))).when(runner).getRemoteRunnerState();
+        RemoteRunnerProcess process = spy(new RemoteRunnerProcess(runnerServer.getBaseUrl(), runner.getName(), 1l));
+        doReturn(process).when(runner).run(any(RunRequest.class));
+
+        ServiceContext serviceContext = newServiceContext();
+        project.withRunners(dto(RunnersDescriptor.class).withDefault("system:/java/web/tomcat7"))
+               .withBuilders(dto(BuildersDescriptor.class).withDefault("maven")); // set builders fully
+
+        doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
+        doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
+        doNothing().when(runQueue).checkResources(eq(workspace), any(RunRequest.class));
+
+        runQueue.run(wsId, pPath, serviceContext, dto(RunOptions.class).withSkipBuild(true));
+
+        verify(runner, timeout(1000)).run(any(RunRequest.class));
+        verify(runQueue, never()).getBuilderServiceDescriptor(eq(wsId), eq(serviceContext));
+        verify(runQueue, never()).startBuild(any(RemoteBuilderServer.class), eq(pPath), any(BuildOptions.class));
+    }
+
+    @Test
     public void testTimeOutWhileWaitingForLongBuildProcess() throws Exception {
         RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
         RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
@@ -519,6 +598,7 @@ public class RunQueueTest {
     }
 
     private String mockBuilderApi(final int inProgressNum) throws Exception {
+        assertTrue(inProgressNum >= 1);
         final BuildTaskDescriptor buildTaskQueue = dto(BuildTaskDescriptor.class).withStatus(BuildStatus.IN_QUEUE);
         String statusLink = String.format("http://localhost:8080/api/builder/%s/status/%d", wsId, 1);
         buildTaskQueue.getLinks().add(dto(Link.class).withMethod("GET")

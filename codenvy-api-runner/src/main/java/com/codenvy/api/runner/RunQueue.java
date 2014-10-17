@@ -28,6 +28,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.EnvironmentId;
+import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
@@ -530,13 +531,15 @@ public class RunQueue {
         }
         // Options for web shell that runner may provide to the server with running application.
         request.setShellOptions(runOptions.getShellOptions());
-        // Sometime user may request to skip build of project before run.
-        boolean skipBuild = runOptions.getSkipBuild();
-        BuildOptions buildOptions = runOptions.getBuildOptions();
         final ValueHolder<BuildTaskDescriptor> buildTaskHolder = new ValueHolder<>();
+        // Sometime user may request to skip build of project before run.
+        final boolean skipBuild = runOptions.getSkipBuild();
+        BuildOptions buildOptions = runOptions.getBuildOptions();
         final Callable<RemoteRunnerProcess> callable;
+        BuildersDescriptor builders;
         if (!skipBuild
-            && ((buildOptions != null && buildOptions.getBuilderName() != null) || projectDescriptor.getBuilders() != null)) {
+            && ((buildOptions != null && buildOptions.getBuilderName() != null)
+                || ((builders = projectDescriptor.getBuilders()) != null) && builders.getDefault() != null)) {
             LOG.debug("Need build project '{}' from workspace '{}'", project, workspace);
             if (buildOptions == null) {
                 buildOptions = dtoFactory.createDto(BuildOptions.class);

@@ -689,7 +689,7 @@ public class RunQueue {
                 try {
                     ApplicationStatus status;
                     if (task.isStopped()) {
-                        return;
+                        continue;
                     }
                     if (task.isWaiting()
                         || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
@@ -998,27 +998,22 @@ public class RunQueue {
             return false;
         }
         final RemoteRunnerServer runnerService = runnerServers.remove(url);
-        if (runnerService == null) {
-            return false;
-        }
-        final List<RemoteRunner> toRemove = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : runnerService.getRunnerDescriptors()) {
-            toRemove.add(runnerService.createRemoteRunner(runnerDescriptor));
-        }
-        return doUnregisterRunners(toRemove);
+        return runnerService != null && doUnregisterRunners(url);
     }
 
     // Switched to default for test.
     // private
-    boolean doUnregisterRunners(List<RemoteRunner> toRemove) {
+    boolean doUnregisterRunners(String url) {
         boolean modified = false;
         for (Iterator<Set<RemoteRunner>> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
             final Set<RemoteRunner> runnerList = i.next();
-            if (runnerList.removeAll(toRemove)) {
-                modified |= true;
-                if (runnerList.size() == 0) {
-                    i.remove();
+            for (RemoteRunner runner : runnerList) {
+                if (url.equals(runner.getBaseUrl())) {
+                    modified |= runnerList.remove(runner);
                 }
+            }
+            if (runnerList.size() == 0) {
+                i.remove();
             }
         }
         return modified;

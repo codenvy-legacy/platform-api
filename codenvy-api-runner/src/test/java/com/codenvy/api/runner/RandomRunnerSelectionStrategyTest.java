@@ -10,23 +10,28 @@
  *******************************************************************************/
 package com.codenvy.api.runner;
 
-import org.mockito.Mock;
-import org.mockito.testng.MockitoTestNGListener;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.dto.server.DtoFactory;
+
 import org.testng.Assert;
-import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 import org.testng.collections.Lists;
 
+import java.util.Collections;
 import java.util.List;
 
-@Listeners(value = {MockitoTestNGListener.class})
+
 public class RandomRunnerSelectionStrategyTest {
-    @Mock
-    RemoteRunner runner1;
-    @Mock
-    RemoteRunner runner2;
-    @Mock
-    RemoteRunner runner3;
+
+    RemoteRunner runner1 = new RemoteRunner("url1", DtoFactory.getInstance().createDto(RunnerDescriptor.class).withName("java/web")
+                                                              .withDescription("test description"), Collections.<Link>emptyList());
+
+    RemoteRunner runner2 = new RemoteRunner("url2", DtoFactory.getInstance().createDto(RunnerDescriptor.class).withName("java/web2")
+                                                              .withDescription("test description"), Collections.<Link>emptyList());
+
+    RemoteRunner runner3 = new RemoteRunner("url3", DtoFactory.getInstance().createDto(RunnerDescriptor.class).withName("java/web3")
+                                                              .withDescription("test description"), Collections.<Link>emptyList());
 
     @Test
     public void shouldSelectFromOneElementInList() {

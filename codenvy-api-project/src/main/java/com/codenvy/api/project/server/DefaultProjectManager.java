@@ -135,6 +135,7 @@ public final class DefaultProjectManager implements ProjectManager {
      * This need for giving possibility to end user to fix problems in project settings.
      * Will be useful then we will migrate IDE2 project to the IDE3 file system.
      */
+    //Not used wait on IDE 3.2.0
     private class NotValidProject extends Project {
         public NotValidProject(FolderEntry baseFolder, ProjectManager manager) {
             super(baseFolder, manager);
@@ -153,8 +154,6 @@ public final class DefaultProjectManager implements ProjectManager {
         for (FolderEntry folder : myRoot.getChildFolders()) {
             if (folder.isProjectFolder()) {
                 projects.add(new Project(folder, this));
-            } else {
-                projects.add(new NotValidProject(folder, this));
             }
         }
         return projects;

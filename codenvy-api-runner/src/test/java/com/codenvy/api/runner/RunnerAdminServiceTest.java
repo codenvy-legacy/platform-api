@@ -12,8 +12,6 @@ package com.codenvy.api.runner;
 
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerServer;
 import com.codenvy.dto.server.DtoFactory;
@@ -34,7 +32,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 
 /**
  * @author andrew00x

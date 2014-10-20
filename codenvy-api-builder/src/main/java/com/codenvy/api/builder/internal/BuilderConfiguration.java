@@ -21,14 +21,16 @@ import java.util.Map;
 /**
  * Builder configuration for particular build process.
  *
- * @author <a href="mailto:aparfonov@codenvy.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class BuilderConfiguration {
+    private final java.io.File       buildDir;
     private final java.io.File       workDir;
     private final BuilderTaskType    taskType;
     private final BaseBuilderRequest request;
 
-    public BuilderConfiguration(java.io.File workDir, BuilderTaskType taskType, BaseBuilderRequest request) {
+    public BuilderConfiguration(java.io.File buildDir, java.io.File workDir, BuilderTaskType taskType, BaseBuilderRequest request) {
+        this.buildDir = buildDir;
         this.workDir = workDir;
         this.taskType = taskType;
         this.request = request;
@@ -36,6 +38,10 @@ public class BuilderConfiguration {
 
     public java.io.File getWorkDir() {
         return workDir;
+    }
+
+    public java.io.File getBuildDir() {
+        return buildDir;
     }
 
     public BuilderTaskType getTaskType() {

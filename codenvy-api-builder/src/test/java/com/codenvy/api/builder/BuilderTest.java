@@ -27,6 +27,7 @@ import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.testng.Assert;
+import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -129,6 +130,7 @@ public class BuilderTest {
         builder.start();
     }
 
+    @AfterTest
     public void tearDown() {
         builder.stop();
         Assert.assertTrue(IoUtil.deleteRecursive(repo), "Unable remove test directory");

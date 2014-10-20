@@ -151,7 +151,7 @@ public class FactoryServiceTest {
     public void shouldBeAbleToConvertQueryStringToLatestFactory() throws Exception {
         // given
         Factory expected = DtoFactory.getInstance().createDto(Factory.class);
-        expected.withSource(DtoFactory.getInstance().createDto(Source.class).withSourceDescriptor(DtoFactory.getInstance().createDto(
+        expected.withSource(DtoFactory.getInstance().createDto(Source.class).withProject(DtoFactory.getInstance().createDto(
                 ImportSourceDescriptor.class).withLocation("http://github.com/codenvy/platform-api.git").withType("git"))).withV("2.0")
                 .withProject(DtoFactory.getInstance().createDto(NewProject.class).withName("pname").withType("ptype"));
 

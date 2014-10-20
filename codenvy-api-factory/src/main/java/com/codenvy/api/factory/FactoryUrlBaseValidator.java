@@ -76,8 +76,8 @@ public abstract class FactoryUrlBaseValidator {
             parameterTypeName = "vcs";
             parameterLocationName = "vcsurl";
         } else {
-            type = factory.getSource().getSourceDescriptor().getType();
-            location = factory.getSource().getSourceDescriptor().getLocation();
+            type = factory.getSource().getProject().getType();
+            location = factory.getSource().getProject().getLocation();
             parameterTypeName = "source.project.type";
             parameterLocationName = "source.project.location";
         }

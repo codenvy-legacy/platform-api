@@ -120,18 +120,18 @@ public class NonEncodedFactoryBuilderTest {
         factory = dto.createDto(Factory.class);
         factory.withV("2.0")
                .withSource(dto.createDto(Source.class)
-                              .withSourceDescriptor(dto.createDto(ImportSourceDescriptor.class)
-                                                       .withType("git")
-                                                       .withLocation("http://dev.box.com/git/b4/13/9a/workspacednmsfgxl6rkwauu3/spring")
-                                                       .withParameters(new HashMap<String, String>() {
-                                                           {
-                                                               put("keepVcs", "true");
-                                                               put("branch", "master");
-                                                               put("commitId", "123456");
-                                                               put("keepDirectory", "src");
-                                                               put("remoteOriginFetch", "123456789");
-                                                           }
-                                                       }))
+                              .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                              .withType("git")
+                                              .withLocation("http://dev.box.com/git/b4/13/9a/workspacednmsfgxl6rkwauu3/spring")
+                                              .withParameters(new HashMap<String, String>() {
+                                                  {
+                                                      put("keepVcs", "true");
+                                                      put("branch", "master");
+                                                      put("commitId", "123456");
+                                                      put("keepDirectory", "src");
+                                                      put("remoteOriginFetch", "123456789");
+                                                  }
+                                              }))
                               .withRunners(new HashMap<String, RunnerSource>() {
                                   {
                                       put("/docker/env_name1", dto.createDto(RunnerSource.class)

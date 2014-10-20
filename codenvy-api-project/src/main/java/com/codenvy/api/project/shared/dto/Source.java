@@ -25,19 +25,12 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.MANDATORY
  */
 @DTO
 public interface Source {
-
-    NewProject getProject();
-
-    void setProject(NewProject project);
-
-    Source withProject(NewProject project);
-
     @FactoryParameter(obligation = MANDATORY, queryParameterName = "project")
-    ImportSourceDescriptor getSourceDescriptor();
+    ImportSourceDescriptor getProject();
 
-    void setSourceDescriptor(ImportSourceDescriptor project);
+    void setProject(ImportSourceDescriptor project);
 
-    Source withSourceDescriptor(ImportSourceDescriptor project);
+    Source withProject(ImportSourceDescriptor project);
 
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "runners")
     Map<String, RunnerSource> getRunners();

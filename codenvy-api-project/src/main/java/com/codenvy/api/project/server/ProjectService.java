@@ -583,9 +583,11 @@ public class ProjectService extends Service {
                                            @PathParam("path") String path,
                                            @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
                                            @QueryParam("force") boolean force,
+                                           @ApiParam(value = "Visibility type", allowableValues = "public,private")
+                                           @QueryParam("visibility") String visibility,
                                            Source source)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
-        final ImportSourceDescriptor projectSource = source.getSourceDescriptor();
+        final ImportSourceDescriptor projectSource = source.getProject();
         final ProjectImporter importer = importers.getImporter(projectSource.getType());
         if (importer == null) {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
@@ -621,40 +623,25 @@ public class ProjectService extends Service {
         final FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
         importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
 
+        Project project = projectManager.getProject(workspace, path);
         // Use resolver only if project type not set
         ProjectProblem resolved = null;
-
-        String visibility = null;
-
-        Project project = projectManager.getProject(workspace, path);
-
-        if (source.getProject() != null) {  //project configuration set in Source we will use it
-            visibility = source.getProject().getVisibility();
-            if (project == null) {
-                project = new Project(baseProjectFolder, projectManager);
-                project.updateDescription(DtoConverter.fromDto(source.getProject(), projectManager.getTypeDescriptionRegistry()));
-            } else {
-                project.updateDescription(DtoConverter.fromDto(source.getProject(), projectManager.getTypeDescriptionRegistry()));
-            }
-        } else { //project not configure so we try resolve it
-            if (project == null) {
-                Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
-                for (ProjectTypeResolver resolver : resolvers) {
-                    if (resolver.resolve((FolderEntry)virtualFile)) {
-                        resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
-                                             .withMessage("Project type detect via ProjectResolver");
-                        break;
-                    }
-                }
-                // Try get project again after trying resolve it
-                project = projectManager.getProject(workspace, path);
-                if (project == null) { //resolver can't resolve project type
-                    project = new Project(baseProjectFolder, projectManager); //create BLANK project type
-                    project.updateDescription(new ProjectDescription());
-                    resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
-                                         .withMessage("Project type not detect so we set it as blank");
+        if (project == null) {
+            Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+            for (ProjectTypeResolver resolver : resolvers) {
+                if (resolver.resolve((FolderEntry)virtualFile)) {
+                    resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300).withMessage("Project type detect via ProjectResolver");
+                    break;
                 }
             }
+        }
+
+
+        // Try get project again after trying resolve it
+        project = projectManager.getProject(workspace, path);
+        if (project == null) { //resolver can't resolve project type
+            project = new Project(baseProjectFolder, projectManager); //create BLANK project type
+            project.updateDescription(new ProjectDescription());
         }
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
@@ -687,10 +674,8 @@ public class ProjectService extends Service {
                             ((FolderEntry)environmentsFolder).createFolder(name).createFile("Dockerfile", in, null);
                         }
                     } else {
-                        LOG.warn(
-                                "ProjectService.importProject :: not valid runner source location availabel only http or https scheme but" +
-                                " we get :" +
-                                runnerSourceLocation);
+                        LOG.warn("ProjectService.importProject :: not valid runner source location availabel only http or https scheme but we get :" +
+                                 runnerSourceLocation);
                     }
 
                 }

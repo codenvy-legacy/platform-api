@@ -65,6 +65,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -1113,6 +1114,7 @@ public class RunQueue {
         @Override
         public void run() {
             boolean ok = false;
+            String requestMethod = "HEAD";
             for (int i = 0; !ok && i < healthCheckAttempts; i++) {
                 if (Thread.currentThread().isInterrupted()) {
                     return;
@@ -1125,11 +1127,25 @@ public class RunQueue {
                 HttpURLConnection conn = null;
                 try {
                     conn = (HttpURLConnection)url.openConnection();
-                    conn.setRequestMethod("HEAD");
+                    conn.setRequestMethod(requestMethod);
                     conn.setConnectTimeout(1000);
                     conn.setReadTimeout(1000);
-                    conn.getResponseCode();
-                    if (200 == conn.getResponseCode()) {
+
+                    LOG.debug(String.format("Response code: %d.", conn.getResponseCode()));
+                    if (405 == conn.getResponseCode()) {
+                        // In case of Method not allowed, we use get instead of HEAD. X-HTTP-Method-Override would be nice but support is
+                        // to weak and will trigger much more GET than with this fallback.
+                        // Note: Response.Status in JAX-WS in JEE6 hasn't any status matching 405, so here we use int code comparison. Fixed
+                        // in JEE7.
+                        requestMethod = "GET";
+                    }
+                    Response.Status status = Response.Status.fromStatusCode(conn.getResponseCode());
+                    if (status == null) {
+                        continue;
+                    }
+                    if (Response.Status.Family.SUCCESSFUL == status.getFamily()
+                            || Response.Status.Family.REDIRECTION == status.getFamily()
+                            || Response.Status.Family.INFORMATIONAL == status.getFamily()) {
                         ok = true;
                         LOG.debug("Application URL '{}' - OK", url);
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();

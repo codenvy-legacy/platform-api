@@ -209,7 +209,7 @@ public abstract class NonEncodedFactoryBuilder {
         appendIfNotNull(builder, "v=", factory.getV(), false);
         final Source source = factory.getSource();
         if (null != source) {
-            final ImportSourceDescriptor sourceDescriptor = source.getProject();
+            final ImportSourceDescriptor sourceDescriptor = source.getSourceDescriptor();
             if (null != sourceDescriptor) {
                 appendIfNotNull(builder, "&source.project.type=", sourceDescriptor.getType(), false);
                 appendIfNotNull(builder, "&source.project.location=", sourceDescriptor.getLocation(), true);

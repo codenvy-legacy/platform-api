@@ -21,6 +21,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -28,6 +29,7 @@ import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStream;
@@ -850,7 +852,7 @@ public class ProjectServiceTest {
 
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        byte[] b = String.format("{\"project\":{\"type\":\"%s\"}}", importType).getBytes();
+        byte[] b = String.format("{\"sourceDescriptor\":{\"type\":\"%s\"}}", importType).getBytes();
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);
@@ -918,9 +920,12 @@ public class ProjectServiceTest {
         String visibility = "private";
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        byte[] b = String.format("{\"project\":{\"type\":\"%s\"}}", importType).getBytes();
+
+        byte[] b = String.format("{\"project\":{\"name\":null,\"type\":\"super_type\",\"attributes\":{},\"description\":null,\"runners\":null," +
+                                 "\"visibility\":\"private\",\"builders\":null},\"sourceDescriptor\":{\"location\":null,\"type\":\"%s\"," +
+                                 "\"parameters\":{}},\"runners\":{}}", importType).getBytes();
         ContainerResponse response = launcher.service("POST",
-                                                      String.format("http://localhost:8080/api/project/%s/import/new_project?visibility=%s", workspace, visibility),
+                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace, visibility),
                                                       "http://localhost:8080/api", headers, b, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
@@ -930,6 +935,78 @@ public class ProjectServiceTest {
         Assert.assertNotNull(newProject);
         Assert.assertNotNull(newProject.getVisibility());
         Assert.assertEquals(newProject.getVisibility(), visibility);
+    }
+
+
+    @Test
+    public void testImportProjectWithProjectType() throws Exception {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.close();
+        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
+        final String importType = "_123_";
+        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
+        importerRegistry.register(new ProjectImporter() {
+            @Override
+            public String getId() {
+                return importType;
+            }
+
+
+            @Override
+            public boolean isInternal() {
+                return false;
+            }
+
+            @Override
+            public String getDescription() {
+                return "Chuck importer";
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+                    throws ConflictException, ServerException, ForbiddenException {
+                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
+                                      LineConsumerFactory importOutputConsumerFactory)
+                    throws ConflictException, ServerException, ForbiddenException {
+                // Don't really use location in this test.
+                baseFolder.getVirtualFile().unzip(zip, true);
+                folderHolder.set(baseFolder);
+            }
+
+
+            @Override
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
+            }
+        });
+
+        String myType = "superType";
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+
+        byte[] b = String.format("{\"project\":{\"name\":null,\"type\":\"%s\",\"attributes\":{},\"description\":null,\"runners\":null," +
+                                 "\"visibility\":null,\"builders\":null},\"sourceDescriptor\":{\"location\":null,\"type\":\"%s\"," +
+                                 "\"parameters\":{}},\"runners\":{}}",myType, importType).getBytes();
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
+                                                      "http://localhost:8080/api", headers, b, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertNotNull(descriptor.getType());
+        Assert.assertEquals(descriptor.getType(), myType);
+        Project newProject = pm.getProject(workspace, "new_project");
+        Assert.assertNotNull(newProject);
+        Assert.assertNotNull(newProject.getDescription());
+        Assert.assertNotNull(newProject.getDescription().getProjectType());
+        Assert.assertEquals(newProject.getDescription().getProjectType().getId(), myType);
     }
 
 //    @Test
@@ -1079,7 +1156,7 @@ public class ProjectServiceTest {
 
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        byte[] b = String.format("{\"project\":{\"type\":\"%s\"}}", importType).getBytes();
+        byte[] b = String.format("{\"sourceDescriptor\":{\"type\":\"%s\"}}", importType).getBytes();
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);
@@ -1144,7 +1221,7 @@ public class ProjectServiceTest {
 
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        byte[] b = String.format("{\"project\":{\"type\":\"%s\"}}", importType).getBytes();
+        byte[] b = String.format("{\"sourceDescriptor\":{\"type\":\"%s\"}}", importType).getBytes();
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);

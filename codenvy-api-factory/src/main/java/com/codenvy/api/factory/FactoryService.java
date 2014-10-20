@@ -201,7 +201,7 @@ public class FactoryService extends Service {
 
                 // for logging purposes
                 orgid = factoryUrl.getCreator().getAccountId();
-                repoUrl = factoryUrl.getSource().getProject().getLocation();
+                repoUrl = factoryUrl.getSource().getSourceDescriptor().getLocation();
                 ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getType() : null;
             }
 
@@ -558,7 +558,7 @@ public class FactoryService extends Service {
         }
         return Response.ok(dtoFactory.createDto(FactoryV2_0.class)
                                      .withProject(newProject)
-                                     .withSource(dtoFactory.createDto(Source.class).withProject(source))
+                                     .withSource(dtoFactory.createDto(Source.class).withSourceDescriptor(source))
                                      .withV("2.0"), MediaType.APPLICATION_JSON)
                        .header("Content-Disposition", "attachment; filename=" + path + ".json")
                        .build();

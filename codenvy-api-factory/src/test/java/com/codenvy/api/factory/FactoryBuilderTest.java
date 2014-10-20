@@ -225,10 +225,10 @@ public class FactoryBuilderTest {
     public void shouldBeAbleToValidateEncodedV2_0() throws Exception {
         actual.withV("2.0")
               .withSource(dto.createDto(Source.class)
-                             .withProject(dto.createDto(ImportSourceDescriptor.class)
-                                             .withType("git")
-                                             .withLocation("location")
-                                             .withParameters(singletonMap("key", "value")))
+                             .withSourceDescriptor(dto.createDto(ImportSourceDescriptor.class)
+                                                      .withType("git")
+                                                      .withLocation("location")
+                                                      .withParameters(singletonMap("key", "value")))
                              .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
                                                                     .withLocation("location")
                                                                     .withParameters(singletonMap("key", "value")))))
@@ -294,10 +294,10 @@ public class FactoryBuilderTest {
     public void shouldBeAbleToValidateNonEncodedV2_0() throws Exception {
         actual.withV("2.0")
               .withSource(dto.createDto(Source.class)
-                             .withProject(dto.createDto(ImportSourceDescriptor.class)
-                                             .withType("git")
-                                             .withLocation("location")
-                                             .withParameters(singletonMap("key", "value")))
+                             .withSourceDescriptor(dto.createDto(ImportSourceDescriptor.class)
+                                                      .withType("git")
+                                                      .withLocation("location")
+                                                      .withParameters(singletonMap("key", "value")))
                              .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
                                                                     .withLocation("location")
                                                                     .withParameters(singletonMap("key", "value")))))
@@ -351,7 +351,7 @@ public class FactoryBuilderTest {
     @DataProvider(name = "TFParamsProvider")
     public static Object[][] tFParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.2").withVcs("vcs").withVcsurl("vcsurl");
-        Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withProject(
+        Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withSourceDescriptor(
                 dto.createDto(ImportSourceDescriptor.class).withType("git").withLocation("location")));
         return new Object[][]{
                 {dto.clone(v1).withV("1.1").withWelcome(dto.createDto(WelcomePage.class))},
@@ -392,7 +392,7 @@ public class FactoryBuilderTest {
     @DataProvider(name = "setByServerParamsProvider")
     public static Object[][] setByServerParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.1").withVcs("vcs").withVcsurl("vcsurl");
-        Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withProject(
+        Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withSourceDescriptor(
                 dto.createDto(ImportSourceDescriptor.class).withType("git").withLocation("location")));
         return new Object[][]{
                 {dto.clone(v1).withId("id")},
@@ -658,16 +658,16 @@ public class FactoryBuilderTest {
         Factory expected = dto.createDto(Factory.class);
         expected.withV("2.0")
               .withSource(dto.createDto(Source.class)
-                             .withProject(dto.createDto(ImportSourceDescriptor.class)
-                                             .withType("git")
-                                             .withLocation("location")
-                                             .withParameters(new HashMap<String, String>()     {
-                                                 {
-                                                     put("keepVcs", "true");
-                                                     put("branch", "master");
-                                                     put("commitId", "123");
-                                                 }
-                                             }))
+                             .withSourceDescriptor(dto.createDto(ImportSourceDescriptor.class)
+                                                      .withType("git")
+                                                      .withLocation("location")
+                                                      .withParameters(new HashMap<String, String>() {
+                                                          {
+                                                              put("keepVcs", "true");
+                                                              put("branch", "master");
+                                                              put("commitId", "123");
+                                                          }
+                                                      }))
                              .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
                                                                     .withLocation("location")
                                                                     .withParameters(singletonMap("key", "value")))))

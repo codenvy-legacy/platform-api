@@ -130,23 +130,6 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
 
-    /**
-     * Class for internal use. Need for marking not valid project.
-     * This need for giving possibility to end user to fix problems in project settings.
-     * Will be useful then we will migrate IDE2 project to the IDE3 file system.
-     */
-    //Not used wait on IDE 3.2.0
-    private class NotValidProject extends Project {
-        public NotValidProject(FolderEntry baseFolder, ProjectManager manager) {
-            super(baseFolder, manager);
-        }
-
-        @Override
-        public ProjectDescription getDescription() throws ServerException, ValueStorageException {
-            throw new ServerException("Looks like this is not valid project. We will mark it as broken");
-        }
-    }
-
     @Override
     public List<Project> getProjects(String workspace) throws ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);

@@ -19,8 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
+
 /**
- * Data transfer object (DTO) for create project.
+ * Data transfer objec t (DTO) for create project.
  *
  * @author andrew00x
  */
@@ -30,10 +31,10 @@ public interface NewProject extends ProjectUpdate {
     /** Gets name of project. */
     @ApiModelProperty(value = "Project name", position = 1)
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "name")
-    String getName();
+    String getName(); //will be used in next version
 
     /** Sets name of project. */
-    void setName(String name);
+    void setName(String name);  //will be used in next version
 
     // For method call chain
 

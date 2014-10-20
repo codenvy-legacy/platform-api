@@ -484,7 +484,8 @@ public class RunQueue {
             case project:
                 resolveProjectRunnerEnvironments(infra, request, projectDescriptor, parsedEnvironmentId.getName(), matchedRunners);
                 if (matchedRunners.isEmpty()) {
-                    throw new RunnerException(String.format("Runner '%s' is not available.", request.getRunner()));
+                    throw new RunnerException(String.format("Runner '%s' is not available for workspace '%s' on infra '%s'.",
+                                                            request.getRunner(), workspace, infra));
                 }
                 break;
             default:

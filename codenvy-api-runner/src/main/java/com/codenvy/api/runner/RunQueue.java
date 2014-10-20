@@ -140,19 +140,29 @@ public class RunQueue {
     @Named(Constants.RUNNER_SLAVE_RUNNER_URLS)
     private String[] slaves = new String[0];
 
+    /** Optional pre-configured slave runners for 'paid' infra. */
+    @com.google.inject.Inject(optional = true)
+    @Named(Constants.RUNNER_SLAVE_RUNNER_URLS_PAID)
+    private String[] slavesPaid = new String[0];
+
+    /** Optional pre-configured slave runners for 'always_on' infra. */
+    @com.google.inject.Inject(optional = true)
+    @Named(Constants.RUNNER_SLAVE_RUNNER_URLS_ALWAYS_ON)
+    private String[] slavesAlwaysOn = new String[0];
+
     @com.google.inject.Inject(optional = true)
     @Named(Constants.RUNNER_WS_MAX_MEMORY_SIZE)
     private int defMaxMemorySize = DEFAULT_MAX_MEMORY_SIZE;
 
     // Switched to default for test.
     // private
-    long cleanerPeriod = PROCESS_CLEANER_PERIOD;
+    long cleanerPeriod              = PROCESS_CLEANER_PERIOD;
     // Switched to default for test.
     // private
     long checkAvailableRunnerPeriod = CHECK_AVAILABLE_RUNNER_PERIOD;
     // Switched to default for test.
     // private
-    long checkBuildResultPeriod = CHECK_BUILD_RESULT_PERIOD;
+    long checkBuildResultPeriod     = CHECK_BUILD_RESULT_PERIOD;
 
     /**
      * @param baseWorkspaceApiUrl
@@ -324,54 +334,13 @@ public class RunQueue {
             eventService.subscribe(new AnalyticsMessenger());
 
             if (slaves.length > 0) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        final LinkedList<RemoteRunnerServer> servers = new LinkedList<>();
-                        for (String slave : slaves) {
-                            try {
-                                servers.add(createRemoteRunnerServer(slave));
-                            } catch (IllegalArgumentException e) {
-                                LOG.error(e.getMessage(), e);
-                            }
-                        }
-                        final LinkedList<RemoteRunnerServer> offline = new LinkedList<>();
-                        for (; ; ) {
-                            while (!servers.isEmpty()) {
-                                if (Thread.currentThread().isInterrupted()) {
-                                    return;
-                                }
-                                final RemoteRunnerServer server = servers.pop();
-                                if (server.isAvailable()) {
-                                    try {
-                                        doRegisterRunnerServer(server);
-                                        LOG.debug("Pre-configured slave runner server '{}' registered.", server.getBaseUrl());
-                                    } catch (RunnerException e) {
-                                        LOG.error(e.getMessage(), e);
-                                        offline.add(server);
-                                    }
-                                } else {
-                                    LOG.warn("Pre-configured slave runner server '{}' isn't responding.", server.getBaseUrl());
-                                    offline.add(server);
-                                }
-                            }
-                            if (offline.isEmpty()) {
-                                return;
-                            } else {
-                                servers.addAll(offline);
-                                offline.clear();
-                                synchronized (this) {
-                                    try {
-                                        wait(5000);
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+                executor.execute(new RegisterSlaveRunnerTask(slaves, null));
+            }
+            if (slavesPaid.length > 0) {
+                executor.execute(new RegisterSlaveRunnerTask(slavesPaid, "paid"));
+            }
+            if (slavesAlwaysOn.length > 0) {
+                executor.execute(new RegisterSlaveRunnerTask(slavesAlwaysOn, "always_on"));
             }
         } else {
             throw new IllegalStateException("Already started");
@@ -1034,6 +1003,67 @@ public class RunQueue {
 
     /* ============================================================================================ */
 
+    private class RegisterSlaveRunnerTask implements Runnable {
+        final String[] mySlaves;
+        final String   infra;
+
+        RegisterSlaveRunnerTask(String[] mySlaves, String infra) {
+            this.mySlaves = mySlaves;
+            this.infra = infra;
+        }
+
+        @Override
+        public void run() {
+            final LinkedList<RemoteRunnerServer> servers = new LinkedList<>();
+            for (String slaveUrl : mySlaves) {
+                try {
+                    RemoteRunnerServer server = createRemoteRunnerServer(slaveUrl);
+                    if (infra != null) {
+                        server.setInfra(infra);
+                    }
+                    servers.add(server);
+                } catch (IllegalArgumentException e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+            final LinkedList<RemoteRunnerServer> offline = new LinkedList<>();
+            for (; ; ) {
+                while (!servers.isEmpty()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    final RemoteRunnerServer server = servers.pop();
+                    if (server.isAvailable()) {
+                        try {
+                            doRegisterRunnerServer(server);
+                            LOG.debug("Pre-configured slave runner server '{}' registered.", server.getBaseUrl());
+                        } catch (RunnerException e) {
+                            LOG.error(e.getMessage(), e);
+                            offline.add(server);
+                        }
+                    } else {
+                        LOG.warn("Pre-configured slave runner server '{}' isn't responding.", server.getBaseUrl());
+                        offline.add(server);
+                    }
+                }
+                if (offline.isEmpty()) {
+                    return;
+                } else {
+                    servers.addAll(offline);
+                    offline.clear();
+                    synchronized (this) {
+                        try {
+                            wait(5000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // for store workspace, project and id of process with FutureTask
     private static class InternalRunTask extends FutureTask<RemoteRunnerProcess> {
         final Long   id;
@@ -1145,8 +1175,8 @@ public class RunQueue {
                         continue;
                     }
                     if (Response.Status.Family.SUCCESSFUL == status.getFamily()
-                            || Response.Status.Family.REDIRECTION == status.getFamily()
-                            || Response.Status.Family.INFORMATIONAL == status.getFamily()) {
+                        || Response.Status.Family.REDIRECTION == status.getFamily()
+                        || Response.Status.Family.INFORMATIONAL == status.getFamily()) {
                         ok = true;
                         LOG.debug("Application URL '{}' - OK", url);
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();

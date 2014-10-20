@@ -33,30 +33,34 @@ public class Constants {
      * Default sie of memory in megabytes available for one workspace if workspace doesn't has own setting, see {@link
      * #RUNNER_MAX_MEMORY_SIZE}
      */
-    public static final String RUNNER_WS_MAX_MEMORY_SIZE = "runner.workspace.max_memsize";
-    /** URLs of slave runners that should be registered in RunQueue. */
-    public static final String RUNNER_SLAVE_RUNNER_URLS  = "runner.slave_runner_urls";
+    public static final String RUNNER_WS_MAX_MEMORY_SIZE          = "runner.workspace.max_memsize";
+    /** URLs of slave runners that should be registered in RunQueue (all runners are registered to 'community' infra). */
+    public static final String RUNNER_SLAVE_RUNNER_URLS           = "runner.slave_runner_urls";
+    /** URLs of slave runners for 'paid' infra. */
+    public static final String RUNNER_SLAVE_RUNNER_URLS_PAID      = "runner.slave_runner_urls.paid";
+    /** URLs of slave runners for 'always_on' infra. */
+    public static final String RUNNER_SLAVE_RUNNER_URLS_ALWAYS_ON = "runner.slave_runner_urls.always_on";
     /**
      * Directory for deploy applications. All implementation of {@link com.codenvy.api.runner.internal.Runner} create sub-directories in
      * this directory for deploying applications.
      */
-    public static final String DEPLOY_DIRECTORY          = "runner.deploy_directory";
+    public static final String DEPLOY_DIRECTORY                   = "runner.deploy_directory";
     /** After this time all information about not running application may be removed. */
-    public static final String APP_CLEANUP_TIME          = "runner.cleanup_time";
+    public static final String APP_CLEANUP_TIME                   = "runner.cleanup_time";
     /** Default size of memory for application in megabytes. Value that is provided by this property may be overridden by user settings. */
-    public static final String APP_DEFAULT_MEM_SIZE      = "runner.default_app_mem_size";
+    public static final String APP_DEFAULT_MEM_SIZE               = "runner.default_app_mem_size";
     /**
      * Max waiting time in seconds of application for the start. If process is not started after this time, it will be removed from the
      * queue.
      */
-    public static final String WAITING_TIME              = "runner.waiting_time";
+    public static final String WAITING_TIME                       = "runner.waiting_time";
     /**
      * Default lifetime in seconds of an application if workspace doesn't have own setting, see {@link #RUNNER_LIFETIME}. After this time
      * application may be terminated.
      */
-    public static final String APP_LIFETIME              = "runner.app_lifetime";
+    public static final String APP_LIFETIME                       = "runner.app_lifetime";
     /** Name of configuration parameter that sets amount of memory (in megabytes) for running applications. */
-    public static final String TOTAL_APPS_MEM_SIZE       = "runner.total_apps_mem_size_mb";
+    public static final String TOTAL_APPS_MEM_SIZE                = "runner.total_apps_mem_size_mb";
 
     // attributes of workspace which are interested for runner
     public static final String RUNNER_MAX_MEMORY_SIZE = "codenvy:runner_ram";

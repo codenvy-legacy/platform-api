@@ -120,7 +120,7 @@ public class RunnerService extends Service {
                                                                   @PathParam("ws-id") String workspace,
                                                                   @ApiParam(value = "Project name", required = false)
                                                                   @Required @Description("project name")
-                                                                  @QueryParam("project") String project) throws Exception {
+                                                                  @QueryParam("project") String project) {
         if (project != null && !project.startsWith("/")) {
             project = '/' + project;
         }
@@ -139,6 +139,9 @@ public class RunnerService extends Service {
                         // NotFoundException is possible and should not be treated as error in this case. Typically it occurs if slave
                         // runner already cleaned up the task by its internal cleaner but RunQueue doesn't re-check yet slave runner and
                         // doesn't have actual info about state of slave runner.
+                    } catch(RunnerException e) {
+                        // Decide ignore such error to be able show maximum available info.
+                        LOG.error(e.getMessage(), e);
                     }
                 }
             }

@@ -15,12 +15,16 @@ import com.codenvy.api.builder.dto.BuilderServer;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
 import com.codenvy.api.builder.internal.Constants;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -31,6 +35,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -45,6 +50,7 @@ import java.util.List;
 @Description("Builder API")
 @RolesAllowed("system/admin")
 public class BuilderAdminService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(BuilderAdminService.class);
     @Inject
     private BuildQueue buildQueue;
 
@@ -53,9 +59,9 @@ public class BuilderAdminService extends Service {
                   response = BuilderServerRegistration.class,
                   position = 1)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this method"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTER_BUILDER_SERVICE)
     @POST
     @Path("/server/register")
@@ -72,9 +78,9 @@ public class BuilderAdminService extends Service {
                   response = BuilderServerLocation.class,
                   position = 2)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this method"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_UNREGISTER_BUILDER_SERVICE)
     @POST
     @Path("/server/unregister")
@@ -103,37 +109,43 @@ public class BuilderAdminService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/server")
-    public List<BuilderServer> getRegisteredServers() throws Exception {
-        final List<RemoteBuilderServer> runnerServers = buildQueue.getRegisterBuilderServers();
+    public List<BuilderServer> getRegisteredServers() {
+        final List<RemoteBuilderServer> builderServers = buildQueue.getRegisterBuilderServers();
         final List<BuilderServer> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        for (RemoteBuilderServer builderServer : runnerServers) {
-            final List<Link> adminLinks = new LinkedList<>();
-            for (String linkRel : SERVER_LINK_RELS) {
-                final Link link = builderServer.getLink(linkRel);
-                if (link != null) {
-                    if (Constants.LINK_REL_BUILDER_STATE.equals(linkRel)) {
-                        for (BuilderDescriptor builderImpl : builderServer.getAvailableBuilders()) {
-                            final String href = link.getHref();
-                            final String hrefWithRunner = href + ((href.indexOf('?') > 0 ? '&' : '?') + "builder=" + builderImpl.getName());
-                            final Link linkCopy = dtoFactory.clone(link);
-                            linkCopy.getParameters().clear();
-                            linkCopy.setHref(hrefWithRunner);
-                            adminLinks.add(linkCopy);
+        for (RemoteBuilderServer builderServer : builderServers) {
+            final BuilderServer builderServerDTO = dtoFactory.createDto(BuilderServer.class);
+            builderServerDTO.withUrl(builderServer.getBaseUrl())
+                            .withDedicated(builderServer.isDedicated())
+                            .withWorkspace(builderServer.getAssignedWorkspace())
+                            .withProject(builderServer.getAssignedProject());
+            try {
+                final List<Link> adminLinks = new LinkedList<>();
+                for (String linkRel : SERVER_LINK_RELS) {
+                    final Link link = builderServer.getLink(linkRel);
+                    if (link != null) {
+                        if (Constants.LINK_REL_BUILDER_STATE.equals(linkRel)) {
+                            for (BuilderDescriptor builderImpl : builderServer.getAvailableBuilders()) {
+                                final String href = link.getHref();
+                                final String hrefWithBuilder =
+                                        href + ((href.indexOf('?') > 0 ? '&' : '?') + "builder=" + builderImpl.getName());
+                                final Link linkCopy = dtoFactory.clone(link);
+                                linkCopy.getParameters().clear();
+                                linkCopy.setHref(hrefWithBuilder);
+                                adminLinks.add(linkCopy);
+                            }
+                        } else {
+                            adminLinks.add(link);
                         }
-                    } else {
-                        adminLinks.add(link);
                     }
                 }
+                builderServerDTO.withDescription(builderServer.getServiceDescriptor().getDescription())
+                                .withServerState(builderServer.getServerState())
+                                .withLinks(adminLinks);
+            } catch (ServerException | IOException e) {
+                LOG.error(e.getMessage(), e);
             }
-            result.add(dtoFactory.createDto(BuilderServer.class)
-                                 .withUrl(builderServer.getBaseUrl())
-                                 .withDescription(builderServer.getServiceDescriptor().getDescription())
-                                 .withDedicated(builderServer.isDedicated())
-                                 .withWorkspace(builderServer.getAssignedWorkspace())
-                                 .withProject(builderServer.getAssignedProject())
-                                 .withServerState(builderServer.getServerState())
-                                 .withLinks(adminLinks));
+            result.add(builderServerDTO);
         }
 
         return result;

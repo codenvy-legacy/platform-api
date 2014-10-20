@@ -98,7 +98,7 @@ public class RunQueueTest {
     private Queue<RunnerEvent> events = new LinkedList<>();
 
     @BeforeMethod
-    public void before() throws Exception {
+    public void beforeMethod() throws Exception {
         httpJsonHelper = mock(HttpJsonHelper.HttpJsonHelperImpl.class);
         Field field = HttpJsonHelper.class.getDeclaredField("httpJsonHelperImpl");
         field.setAccessible(true);
@@ -145,7 +145,7 @@ public class RunQueueTest {
     }
 
     @AfterMethod
-    public void after() {
+    public void afterMethod() {
         runQueue.stop();
     }
 

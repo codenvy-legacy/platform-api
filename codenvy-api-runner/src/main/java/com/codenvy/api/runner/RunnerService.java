@@ -35,6 +35,9 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -59,6 +62,8 @@ import java.util.List;
 @Path("/runner/{ws-id}")
 @Description("Runner REST API")
 public class RunnerService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
+
     @Inject
     private RunQueue runQueue;
 
@@ -207,15 +212,21 @@ public class RunnerService extends Service {
     public RunnerEnvironmentTree getRunnerEnvironments(@ApiParam(value = "Workspace ID", required = true)
                                                        @PathParam("ws-id") String workspace,
                                                        @ApiParam(value = "Project name")
-                                                       @Description("project name") @QueryParam("project") String project)
-            throws Exception {
+                                                       @Description("project name") @QueryParam("project") String project) {
         // Here merge environments from all know runner servers and represent them as tree.
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("system");
         for (RemoteRunnerServer runnerServer : runQueue.getRegisterRunnerServers()) {
             if ((!runnerServer.isDedicated() || runnerServer.getAssignedWorkspace().equals(workspace))
                 && (project == null || project.equals(runnerServer.getAssignedProject()))) {
-                for (RunnerDescriptor runnerDescriptor : runnerServer.getRunnerDescriptors()) {
+                final List<RunnerDescriptor> runners;
+                try {
+                    runners = runnerServer.getRunnerDescriptors();
+                } catch (RunnerException e) {
+                    LOG.error(e.getMessage(), e);
+                    continue;
+                }
+                for (RunnerDescriptor runnerDescriptor : runners) {
                     for (RunnerEnvironment runnerEnvironment : runnerDescriptor.getEnvironments()) {
                         RunnerEnvironmentTree node = root;
                         for (String s : runnerDescriptor.getName().split("/")) {

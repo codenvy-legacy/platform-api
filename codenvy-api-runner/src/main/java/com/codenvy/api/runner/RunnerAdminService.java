@@ -21,7 +21,14 @@ import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.dto.server.DtoFactory;
-import com.wordnik.swagger.annotations.*;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -41,18 +48,19 @@ import java.util.List;
  * @author andrew00x
  */
 @Api(value = "/admin/runner",
-        description = "Runner manager (admin)")
+     description = "Runner manager (admin)")
 @Path("/admin/runner")
 @Description("Runner administration REST API")
 @RolesAllowed("system/admin")
 public class RunnerAdminService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(RunnerAdminService.class);
     @Inject
     private RunQueue runner;
 
     @ApiOperation(value = "Register a new runner",
-            notes = "Register a new runner service",
-            response = RunnerServerRegistration.class,
-            position = 1)
+                  notes = "Register a new runner service",
+                  response = RunnerServerRegistration.class,
+                  position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this method"),
@@ -73,9 +81,9 @@ public class RunnerAdminService extends Service {
                   response = RunnerServerLocation.class,
                   position = 2)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this method"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_UNREGISTER_RUNNER_SERVER)
     @POST
     @Path("/server/unregister")
@@ -97,9 +105,9 @@ public class RunnerAdminService extends Service {
                   responseContainer = "List",
                   position = 3)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this method"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_REGISTERED_RUNNER_SERVER)
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -109,32 +117,36 @@ public class RunnerAdminService extends Service {
         final List<RunnerServer> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (RemoteRunnerServer runnerServer : runnerServers) {
-            final List<Link> adminLinks = new LinkedList<>();
-            for (String linkRel : SERVER_LINK_RELS) {
-                final Link link = runnerServer.getLink(linkRel);
-                if (link != null) {
-                    if (Constants.LINK_REL_RUNNER_STATE.equals(linkRel)) {
-                        for (RunnerDescriptor runner : runnerServer.getRunnerDescriptors()) {
-                            final String href = link.getHref();
-                            final String hrefWithRunner = href + ((href.indexOf('?') > 0 ? '&' : '?') + "runner=" + runner.getName());
-                            final Link linkCopy = dtoFactory.clone(link);
-                            linkCopy.getParameters().clear();
-                            linkCopy.setHref(hrefWithRunner);
-                            adminLinks.add(linkCopy);
+            try {
+                final List<Link> adminLinks = new LinkedList<>();
+                for (String linkRel : SERVER_LINK_RELS) {
+                    final Link link = runnerServer.getLink(linkRel);
+                    if (link != null) {
+                        if (Constants.LINK_REL_RUNNER_STATE.equals(linkRel)) {
+                            for (RunnerDescriptor runner : runnerServer.getRunnerDescriptors()) {
+                                final String href = link.getHref();
+                                final String hrefWithRunner = href + ((href.indexOf('?') > 0 ? '&' : '?') + "runner=" + runner.getName());
+                                final Link linkCopy = dtoFactory.clone(link);
+                                linkCopy.getParameters().clear();
+                                linkCopy.setHref(hrefWithRunner);
+                                adminLinks.add(linkCopy);
+                            }
+                        } else {
+                            adminLinks.add(link);
                         }
-                    } else {
-                        adminLinks.add(link);
                     }
                 }
+                result.add(dtoFactory.createDto(RunnerServer.class)
+                                     .withUrl(runnerServer.getBaseUrl())
+                                     .withDescription(runnerServer.getServiceDescriptor().getDescription())
+                                     .withDedicated(runnerServer.isDedicated())
+                                     .withWorkspace(runnerServer.getAssignedWorkspace())
+                                     .withProject(runnerServer.getAssignedProject())
+                                     .withServerState(runnerServer.getServerState())
+                                     .withLinks(adminLinks));
+            } catch (RunnerException e) {
+                LOG.error(e.getMessage(), e);
             }
-            result.add(dtoFactory.createDto(RunnerServer.class)
-                                 .withUrl(runnerServer.getBaseUrl())
-                                 .withDescription(runnerServer.getServiceDescriptor().getDescription())
-                                 .withDedicated(runnerServer.isDedicated())
-                                 .withWorkspace(runnerServer.getAssignedWorkspace())
-                                 .withProject(runnerServer.getAssignedProject())
-                                 .withServerState(runnerServer.getServerState())
-                                 .withLinks(adminLinks));
         }
 
         return result;
@@ -146,9 +158,9 @@ public class RunnerAdminService extends Service {
                   responseContainer = "List",
                   position = 4)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 403, message = "User not authorized to call this method"),
-                  @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this method"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_RUNNER_TASKS)
     @GET
     @Produces(MediaType.APPLICATION_JSON)

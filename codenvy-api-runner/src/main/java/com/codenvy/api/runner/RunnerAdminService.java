@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.runner;
 
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
@@ -39,6 +40,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -112,11 +114,16 @@ public class RunnerAdminService extends Service {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/server")
-    public List<RunnerServer> getRegisteredServers() throws Exception {
+    public List<RunnerServer> getRegisteredServers() {
         final List<RemoteRunnerServer> runnerServers = runner.getRegisterRunnerServers();
         final List<RunnerServer> result = new LinkedList<>();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (RemoteRunnerServer runnerServer : runnerServers) {
+            final RunnerServer runnerServerDTO = dtoFactory.createDto(RunnerServer.class);
+            runnerServerDTO.withUrl(runnerServer.getBaseUrl())
+                           .withDedicated(runnerServer.isDedicated())
+                           .withWorkspace(runnerServer.getAssignedWorkspace())
+                           .withProject(runnerServer.getAssignedProject());
             try {
                 final List<Link> adminLinks = new LinkedList<>();
                 for (String linkRel : SERVER_LINK_RELS) {
@@ -136,17 +143,13 @@ public class RunnerAdminService extends Service {
                         }
                     }
                 }
-                result.add(dtoFactory.createDto(RunnerServer.class)
-                                     .withUrl(runnerServer.getBaseUrl())
-                                     .withDescription(runnerServer.getServiceDescriptor().getDescription())
-                                     .withDedicated(runnerServer.isDedicated())
-                                     .withWorkspace(runnerServer.getAssignedWorkspace())
-                                     .withProject(runnerServer.getAssignedProject())
-                                     .withServerState(runnerServer.getServerState())
-                                     .withLinks(adminLinks));
-            } catch (RunnerException e) {
+                runnerServerDTO.withDescription(runnerServer.getServiceDescriptor().getDescription())
+                                          .withServerState(runnerServer.getServerState())
+                                          .withLinks(adminLinks);
+            } catch (IOException | ServerException e) {
                 LOG.error(e.getMessage(), e);
             }
+            result.add(runnerServerDTO);
         }
 
         return result;

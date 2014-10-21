@@ -13,16 +13,12 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
-import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
-import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +38,7 @@ public class ProjectJson2 {
      * @return true if project meta-information is readable (it exists, there are appropriate permissions etc)
      * otherwise returns false
      */
+    @Deprecated
     public static boolean isReadable(Project project) {
         final VirtualFileEntry projectFile;
         try {
@@ -94,7 +91,7 @@ public class ProjectJson2 {
                             "Unable to save the project's properties to the file system. Path %s/%s exists but is not a file.",
                             baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
                 }
-                ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes());
+                ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes(), null);
             } else {
                 VirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_DIR);
                 if (codenvyDir == null) {
@@ -104,21 +101,13 @@ public class ProjectJson2 {
                         // Already checked existence of folder ".codenvy".
                         throw new ServerException(e.getServiceError());
                     }
-                    // Need to be able update files in .codenvy folder independently to user actions.
-                    final List<AccessControlEntry> acl = new ArrayList<>(1);
-                    final DtoFactory dtoFactory = DtoFactory.getInstance();
-                    acl.add(dtoFactory.createDto(AccessControlEntry.class)
-                                      .withPrincipal(dtoFactory.createDto(Principal.class).withName("any").withType(Principal.Type.USER))
-                                      .withPermissions(Arrays.asList("all")));
-                    codenvyDir.getVirtualFile().updateACL(acl, true, null);
                 } else if (!codenvyDir.isFolder()) {
                     throw new ServerException(String.format(
                             "Unable to save the project's properties to the file system. Path %s/%s exists but is not a folder.",
                             baseFolder.getPath(), Constants.CODENVY_DIR));
                 }
                 try {
-                    ((FolderEntry)codenvyDir)
-                            .createFile(Constants.CODENVY_PROJECT_FILE, JsonHelper.toJson(this).getBytes(), "application/json");
+                    ((FolderEntry)codenvyDir).createFile(Constants.CODENVY_PROJECT_FILE, JsonHelper.toJson(this).getBytes(), null);
                 } catch (ConflictException e) {
                     // Already checked existence of file ".codenvy/project.json".
                     throw new ServerException(e.getServiceError());

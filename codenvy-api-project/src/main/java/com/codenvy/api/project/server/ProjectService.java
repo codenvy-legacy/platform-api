@@ -181,6 +181,10 @@ public class ProjectService extends Service {
         final Project project = projectManager.createProject(workspace, name,
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
         final String visibility = newProject.getVisibility();
+        final ProjectMisc misc = project.getMisc();
+        misc.setCreationDate(System.currentTimeMillis());
+        misc.save(); // Important to save misc!!
+
         if (visibility != null) {
             project.setVisibility(visibility);
         }
@@ -662,7 +666,9 @@ public class ProjectService extends Service {
         VirtualFile file = project.getBaseFolder().getVirtualFile();
         searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
         if (creationDate > 0) {
-            project.getMisc().setCreationDate(creationDate);
+            final ProjectMisc misc = project.getMisc();
+            misc.setCreationDate(creationDate);
+            misc.save(); // Important to save misc!!
         }
 
         VirtualFileEntry environmentsFolder = baseProjectFolder.getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);

@@ -41,6 +41,7 @@ import static java.lang.String.format;
  * Validates values of factory parameters.
  *
  * @author Alexander Garagatyi
+ * @author Valeriy Svydenko
  */
 public abstract class FactoryUrlBaseValidator {
     private static final Pattern PROJECT_NAME_VALIDATOR = Pattern.compile("^[\\\\\\w\\\\\\d]+[\\\\\\w\\\\\\d_.-]*$");
@@ -81,9 +82,9 @@ public abstract class FactoryUrlBaseValidator {
             parameterTypeName = "source.project.type";
             parameterLocationName = "source.project.location";
         }
-        // check that vcs value is correct (only git is supported for now)
-        if (!"git".equals(type)) {
-            throw new ConflictException("Parameter '" + parameterTypeName + "' has illegal value. Only 'git' is supported for now.");
+        // check that vcs value is correct
+        if (!("git".equals(type) || "esbwso2".equals(type))) {
+            throw new ConflictException("Parameter '" + parameterTypeName + "' has illegal value.");
         }
         if (location == null || location.isEmpty()) {
             throw new ConflictException(

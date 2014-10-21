@@ -48,6 +48,13 @@ public class SourceProjectParametersValidatorTest {
         validator.validate(sourceDescriptor, FactoryParameter.Version.V2_0);
     }
 
+    @Test
+    public void shouldBeAbleValidateESBWSO2Source() throws Exception {
+        sourceDescriptor.setType("esbwso2");
+
+        validator.validate(sourceDescriptor, FactoryParameter.Version.V2_0);
+    }
+
     @Test(expectedExceptions = ConflictException.class,
           expectedExceptionsMessageRegExp = "The parameter .* has a value submitted .* with a value.*")
     public void shouldThrowExceptionIfTypeIsNotGit() throws Exception {

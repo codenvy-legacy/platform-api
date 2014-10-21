@@ -304,6 +304,7 @@ public abstract class Runner {
                     process.stopped();
                     LOG.debug("Stopped {}", process);
                 } catch (Throwable e) {
+                    LOG.error(e.getMessage(), e);
                     process.setError(e);
                 } finally {
                     watcher.stop();

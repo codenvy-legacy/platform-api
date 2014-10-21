@@ -108,6 +108,15 @@ public class FactoryUrlBaseValidatorTest {
         validator.validateTrackedFactoryAndParams(factory);
     }
 
+    @Test
+    public void shouldBeAbleToValidateFactoryUrlObjectIfVcsIsESBWSO2() throws ApiException {
+        factory.setVcs("esbwso2");
+
+        validator.validateSource(factory);
+        validator.validateProjectName(factory);
+        validator.validateOrgid(factory);
+        validator.validateTrackedFactoryAndParams(factory);
+    }
 
     @Test(expectedExceptions = ApiException.class,
           expectedExceptionsMessageRegExp =

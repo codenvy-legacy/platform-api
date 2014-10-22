@@ -53,10 +53,10 @@ public class ReplaceTest extends MemoryFileSystemTest {
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find1).withReplace(replace1));
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find2).withReplace(replace2));
 
-        List<String> glob = Arrays.asList("**test_file.txt");
+        List<String> expression = Arrays.asList("test_file.txt");
 
         ReplacementSet replacementSet =
-                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(glob);
+                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(expression);
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
 
@@ -86,9 +86,9 @@ public class ReplaceTest extends MemoryFileSystemTest {
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find1).withReplace(replace1));
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find2).withReplace(replace2));
 
-        List<String> glob = Arrays.asList("**test_file.java");
+        List<String> expression = Arrays.asList("test_file.java");
 
-        ReplacementSet replacementSet = DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(glob);
+        ReplacementSet replacementSet = DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(expression);
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
 
@@ -113,10 +113,10 @@ public class ReplaceTest extends MemoryFileSystemTest {
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find2).withReplace(replace2)
                                 .withReplacemode("text_multipass"));
 
-        List<String> glob = Arrays.asList("**test_file.txt");
+        List<String> expression = Arrays.asList("test_file.txt");
 
         ReplacementSet replacementSet =
-                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(glob);
+                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(expression);
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
 
@@ -149,10 +149,10 @@ public class ReplaceTest extends MemoryFileSystemTest {
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find1).withReplace(replace1));
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find2).withReplace(replace2));
 
-        List<String> glob = Arrays.asList("**test_*");
+        List<String> expression = Arrays.asList("test_(.*)");
 
         ReplacementSet replacementSet =
-                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(glob);
+                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(expression);
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
 
@@ -185,10 +185,10 @@ public class ReplaceTest extends MemoryFileSystemTest {
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find1).withReplace(replace1));
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find2).withReplace(replace2));
 
-        List<String> glob = Arrays.asList("**test_?ile.*");
+        List<String> expression = Arrays.asList("test_(.+)ile(.*)");
 
         ReplacementSet replacementSet =
-                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(glob);
+                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(expression);
         Map<String, List<String>> h = new HashMap<>(1);
         h.put("Content-Type", Arrays.asList("application/json"));
 

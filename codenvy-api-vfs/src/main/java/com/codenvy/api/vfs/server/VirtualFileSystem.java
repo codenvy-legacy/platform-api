@@ -662,7 +662,7 @@ public interface VirtualFileSystem {
      * @param path
      *         folder root to perform replace in depth
      * @param replacements
-     *         list of replacements. each replacement contains filename (or glob pattern) and list of changes
+     *         list of replacements. each replacement contains filename (or regex pattern) and list of changes
      * @param lockToken
      *         lock token. This lock token will be used if {@code path} is locked. Pass {@code null} if there is no lock token, e.g. item is
      *         not locked

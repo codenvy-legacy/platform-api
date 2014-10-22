@@ -666,12 +666,12 @@ public interface VirtualFileSystem {
      * @param replacements
      *         list of replacements. each replacement contains filename (or glob pattern) and list of changes
      * @param lockToken
-     *         lock token. This lock token will be used if {@code id} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         lock token. This lock token will be used if {@code path} is locked. Pass {@code null} if there is no lock token, e.g. item is
      *         not locked
      * @throws NotFoundException
-     *         if {@code project} doesn't exist
+     *         if {@code path} doesn't exist
      * @throws ConflictException
-     *         if root given is not a folder
+     *         if {@code path} is not a folder
      * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>

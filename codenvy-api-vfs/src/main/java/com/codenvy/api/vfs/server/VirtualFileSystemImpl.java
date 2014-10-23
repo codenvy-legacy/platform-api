@@ -473,7 +473,9 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                     if (item.getItemType().equals(ItemType.FOLDER)) {
                         q.addAll(node.getChildren());
                     } else if (item.getItemType().equals(ItemType.FILE)) {
-                        if (pattern.matcher(item.getName()).matches()) {
+                        // for cases like:  src/main/java/(.*)
+                        String itemInternalPath = item.getPath().substring(projectRoot.getPath().length() + 1);
+                        if (pattern.matcher(item.getName()).matches() || pattern.matcher(itemInternalPath).matches()) {
                             ReplacementContainer container =
                                     (changesPerFile.get(item.getPath()) != null) ? changesPerFile.get(item.getPath())
                                                                                  : new ReplacementContainer();

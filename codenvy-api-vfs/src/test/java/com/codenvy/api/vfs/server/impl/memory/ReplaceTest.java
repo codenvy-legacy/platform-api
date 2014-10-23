@@ -203,4 +203,32 @@ public class ReplaceTest extends MemoryFileSystemTest {
         assertEquals(String.format(templateReplaced, replace1, replace2),
                      IoUtil.readAndCloseQuietly(mountPoint.getVirtualFileById(file2.getId()).getContent().getStream()));
     }
+
+
+    public void testReplaceInSubFolderVar() throws Exception {
+        final String fileName = "test_file.txt";
+        VirtualFile src = replaceTestFolder.createFolder("src/main/java");
+        VirtualFile file = src
+                .createFile(fileName, "text/plain",
+                            new ByteArrayInputStream(String.format(template, find1, find2).getBytes()));
+        List<Variable> variables = new ArrayList<>(2);
+        variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find1).withReplace(replace1));
+        variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find2).withReplace(replace2));
+
+        List<String> expression = Arrays.asList("src/main/java/(.*)");
+
+        ReplacementSet replacementSet =
+                DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(expression);
+        Map<String, List<String>> h = new HashMap<>(1);
+        h.put("Content-Type", Arrays.asList("application/json"));
+
+        String path = SERVICE_URI + "replace/" + replaceTestFolder.getName();
+        ContainerResponse response = launcher.service("POST", path, BASE_URI, h,
+                                                      String.format("[%s]",
+                                                                    DtoFactory.getInstance().toJson(replacementSet))
+                                                            .getBytes(), null, null);
+        assertEquals(204, response.getStatus());
+        assertEquals(String.format(templateReplaced, replace1, replace2),
+                     IoUtil.readAndCloseQuietly(mountPoint.getVirtualFileById(file.getId()).getContent().getStream()));
+    }
 }

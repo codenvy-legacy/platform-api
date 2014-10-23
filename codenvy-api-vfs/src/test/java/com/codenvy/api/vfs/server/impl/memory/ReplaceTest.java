@@ -86,7 +86,7 @@ public class ReplaceTest extends MemoryFileSystemTest {
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find1).withReplace(replace1));
         variables.add(DtoFactory.getInstance().createDto(Variable.class).withFind(find2).withReplace(replace2));
 
-        List<String> expression = Arrays.asList("test_file.java");
+        List<String> expression = Arrays.asList("test_(.*).java");
 
         ReplacementSet replacementSet = DtoFactory.getInstance().createDto(ReplacementSet.class).withEntries(variables).withFiles(expression);
         Map<String, List<String>> h = new HashMap<>(1);

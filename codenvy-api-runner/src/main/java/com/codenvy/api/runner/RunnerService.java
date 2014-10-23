@@ -245,9 +245,13 @@ public class RunnerService extends Service {
                         final String unique =
                                 new EnvironmentId(EnvironmentId.Scope.system, runnerDescriptor.getName(), runnerEnvironment.getId())
                                         .toString();
-                        node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
-                                               .withDisplayName(runnerEnvironment.getId())
-                                               .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
+                        final String envId = runnerEnvironment.getId();
+                        final RunnerEnvironmentLeaf environment = node.getEnvironment(envId);
+                        if (environment == null) {
+                            node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
+                                                   .withDisplayName(envId)
+                                                   .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
+                        }
                     }
                 }
             }

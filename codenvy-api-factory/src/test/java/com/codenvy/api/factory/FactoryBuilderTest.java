@@ -21,11 +21,7 @@ import com.codenvy.api.factory.dto.FactoryV1_1;
 import com.codenvy.api.factory.dto.Git;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.api.factory.dto.Replacement;
 import com.codenvy.api.factory.dto.Restriction;
-import com.codenvy.api.project.shared.dto.RunnerSource;
-import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomeConfiguration;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.factory.dto.Workspace;
@@ -33,7 +29,11 @@ import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
+import com.codenvy.api.project.shared.dto.RunnerSource;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
+import com.codenvy.api.project.shared.dto.Source;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
+import com.codenvy.api.vfs.shared.dto.Variable;
 import com.codenvy.dto.server.DtoFactory;
 
 import org.mockito.Mock;
@@ -136,10 +136,10 @@ public class FactoryBuilderTest {
 
         actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
 
-        Replacement replacement = dto.createDto(Replacement.class).withReplacemode(
+        Variable replacement = dto.createDto(Variable.class).withReplacemode(
                 "replacemod").withReplace("replace").withFind("find");
 
-        actual.setVariables(Arrays.asList(dto.createDto(Variable.class).withEntries(Arrays.asList(replacement))
+        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
                                              .withFiles(Arrays.asList("file1"))));
 
         WelcomeConfiguration wc = dto.createDto(WelcomeConfiguration.class);
@@ -157,10 +157,10 @@ public class FactoryBuilderTest {
 
         actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
 
-        Replacement replacement = dto.createDto(Replacement.class).withReplacemode(
+        Variable replacement = dto.createDto(Variable.class).withReplacemode(
                 "replacemod").withReplace("replace").withFind("find");
 
-        actual.setVariables(Arrays.asList(dto.createDto(Variable.class).withEntries(Arrays.asList(replacement))
+        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
                                              .withFiles(Arrays.asList("file1"))));
 
         factoryBuilder.checkValid(actual, NONENCODED);
@@ -175,10 +175,10 @@ public class FactoryBuilderTest {
 
         actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
 
-        Replacement replacement = dto.createDto(Replacement.class).withReplacemode(
+        Variable replacement = dto.createDto(Variable.class).withReplacemode(
                 "replacemod").withReplace("replace").withFind("find");
 
-        actual.setVariables(Arrays.asList(dto.createDto(Variable.class).withEntries(Arrays.asList(replacement))
+        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
                                              .withFiles(Arrays.asList("file1"))));
 
         WelcomeConfiguration wc = dto.createDto(WelcomeConfiguration.class);
@@ -203,10 +203,10 @@ public class FactoryBuilderTest {
 
         actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
 
-        Replacement replacement = dto.createDto(Replacement.class).withReplacemode(
+        Variable replacement = dto.createDto(Variable.class).withReplacemode(
                 "replacemod").withReplace("replace").withFind("find");
 
-        actual.setVariables(Arrays.asList(dto.createDto(Variable.class).withEntries(Arrays.asList(replacement))
+        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
                                              .withFiles(Arrays.asList("file1"))));
 
         actual.withGit(dto.createDto(Git.class).withConfigbranchmerge(
@@ -254,26 +254,26 @@ public class FactoryBuilderTest {
                                .withValidSince(123l)
                                .withValidUntil(123l))
               .withActions(dto.createDto(Actions.class)
-                              .withFindReplace(singletonList(dto.createDto(Variable.class)
-                                                                .withFiles(singletonList("file"))
-                                                                .withEntries(singletonList(dto.createDto(Replacement.class)
-                                                                                              .withFind("find")
-                                                                                              .withReplace("replace")
-                                                                                              .withReplacemode("mode")))))
+                                   .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
+                                                                     .withFiles(singletonList("file"))
+                                                                     .withEntries(singletonList(dto.createDto(Variable.class)
+                                                                                                   .withFind("find")
+                                                                                                   .withReplace("replace")
+                                                                                                   .withReplacemode("mode")))))
 //                              .withMacro("macro")
-                              .withOpenFile("openFile")
-                              .withWarnOnClose(true)
-                              .withWelcome(dto.createDto(WelcomePage.class)
-                                              .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
-                                                                    .withContenturl("url")
-                                                                    .withIconurl("url")
-                                                                    .withNotification("notification")
-                                                                    .withTitle("title"))
-                                              .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
-                                                                       .withContenturl("url")
-                                                                       .withIconurl("url")
-                                                                       .withNotification("notification")
-                                                                       .withTitle("title"))))
+                                   .withOpenFile("openFile")
+                                   .withWarnOnClose(true)
+                                   .withWelcome(dto.createDto(WelcomePage.class)
+                                                   .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                         .withContenturl("url")
+                                                                         .withIconurl("url")
+                                                                         .withNotification("notification")
+                                                                         .withTitle("title"))
+                                                   .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                            .withContenturl("url")
+                                                                            .withIconurl("url")
+                                                                            .withNotification("notification")
+                                                                            .withTitle("title"))))
               .withButton(dto.createDto(Button.class)
                              .withType(Button.ButtonType.logo)
                              .withAttributes(dto.createDto(ButtonAttributes.class)
@@ -323,15 +323,15 @@ public class FactoryBuilderTest {
                                .withValidSince(123l)
                                .withValidUntil(123l))
               .withActions(dto.createDto(Actions.class)
-                              .withFindReplace(singletonList(dto.createDto(Variable.class)
-                                                                .withFiles(singletonList("file"))
-                                                                .withEntries(singletonList(dto.createDto(Replacement.class)
-                                                                                              .withFind("find")
-                                                                                              .withReplace("replace")
-                                                                                              .withReplacemode("mode")))))
+                                   .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
+                                                                     .withFiles(singletonList("file"))
+                                                                     .withEntries(singletonList(dto.createDto(Variable.class)
+                                                                                                   .withFind("find")
+                                                                                                   .withReplace("replace")
+                                                                                                   .withReplacemode("mode")))))
 //                              .withMacro("macro")
-                              .withOpenFile("openFile")
-                              .withWarnOnClose(true))
+                                   .withOpenFile("openFile")
+                                   .withWarnOnClose(true))
               .withWorkspace(dto.createDto(Workspace.class)
                                 .withTemp(true)
                                 .withAttributes(singletonMap("key", "value")));
@@ -442,7 +442,7 @@ public class FactoryBuilderTest {
                 {dto.clone(v1).withV("1.2").withStyle("style"), NONENCODED},
                 {dto.clone(v1).withDescription("desc"), NONENCODED},
                 {dto.clone(v1).withV("1.2").withDescription("desc"), NONENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withProjectattributes(dto.createDto(ProjectAttributes.class)),                 ENCODED},
+                {dto.clone(v1).withV("1.0").withOrgid(null).withProjectattributes(dto.createDto(ProjectAttributes.class)), ENCODED},
                 {dto.clone(v1).withV("1.0").withOrgid(null).withStyle("style"), ENCODED},
                 {dto.clone(v1).withV("1.0").withOrgid(null).withDescription("desc"), ENCODED},
                 {dto.clone(v1).withV("1.0").withOrgid(null).withContactmail("mail"), ENCODED},
@@ -454,7 +454,7 @@ public class FactoryBuilderTest {
                 {dto.clone(v1).withV("1.0").withOrgid(null).withValiduntil(123l), ENCODED},
                 {dto.clone(v1).withV("1.2").withValidsince(123l), ENCODED},
                 {dto.clone(v1).withV("1.2").withValiduntil(123l), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withVariables(Arrays.asList(dto.createDto(Variable.class))), ENCODED},
+                {dto.clone(v1).withV("1.0").withOrgid(null).withVariables(Arrays.asList(dto.createDto(ReplacementSet.class))), ENCODED},
                 {dto.clone(v1).withV("1.0").withOrgid(null).withWelcome(dto.createDto(WelcomePage.class)), ENCODED},
                 {dto.clone(v1).withWelcome(dto.createDto(WelcomePage.class)), NONENCODED},
                 {dto.clone(v1).withV("1.0").withOrgid(null).withImage("im"), ENCODED},
@@ -540,8 +540,8 @@ public class FactoryBuilderTest {
 
         ProjectAttributes attributes = dto.createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname");
 
-        Variable variable = dto.createDto(Variable.class);
-        Replacement replacement = dto.createDto(Replacement.class);
+        ReplacementSet variable = dto.createDto(ReplacementSet.class);
+        Variable replacement = dto.createDto(Variable.class);
         replacement.setFind("find1");
         replacement.setReplace("replace1");
         replacement.setReplacemode("mode1");
@@ -608,8 +608,8 @@ public class FactoryBuilderTest {
                    .withRunnername("runnername").withRunnerenvironmentid("runnerenvironmentid")
                    .withBuildername("buildername");
 
-        Variable variable = dto.createDto(Variable.class);
-        Replacement replacement = dto.createDto(Replacement.class);
+        ReplacementSet variable = dto.createDto(ReplacementSet.class);
+        Variable replacement = dto.createDto(Variable.class);
         replacement.setFind("find1");
         replacement.setReplace("replace1");
         replacement.setReplacemode("mode1");
@@ -657,68 +657,68 @@ public class FactoryBuilderTest {
     public void shouldBeAbleToParseAndValidateNonEncodedV2_0() throws Exception {
         Factory expected = dto.createDto(Factory.class);
         expected.withV("2.0")
-              .withSource(dto.createDto(Source.class)
-                             .withProject(dto.createDto(ImportSourceDescriptor.class)
-                                             .withType("git")
-                                             .withLocation("location")
-                                             .withParameters(new HashMap<String, String>()     {
-                                                 {
-                                                     put("keepVcs", "true");
-                                                     put("branch", "master");
-                                                     put("commitId", "123");
-                                                 }
-                                             }))
-                             .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
-                                                                    .withLocation("location")
-                                                                    .withParameters(singletonMap("key", "value")))))
-              .withProject(dto.createDto(NewProject.class)
-                              .withType("type")
-                              .withAttributes(singletonMap("key", singletonList("value")))
-                              .withBuilders(dto.createDto(BuildersDescriptor.class).withDefault("default"))
-                              .withDescription("description")
-                              .withName("name")
-                              .withRunners(dto.createDto(RunnersDescriptor.class)
-                                              .withDefault("default")
-                                              .withConfigs(singletonMap("key", dto.createDto(RunnerConfiguration.class)
-                                                                                  .withRam(768)
-                                                                                  .withOptions(new HashMap<String, String>() {
-                                                                                      {
-                                                                                          put("key1", "value1");
-                                                                                          put("key2", "value2");
-                                                                                      }
-                                                                                  })
-                                                                                  .withVariables(new HashMap<String, String>() {
-                                                                                      {
-                                                                                          put("key1", "value1");
-                                                                                          put("key2", "value2");
-                                                                                      }
-                                                                                  }))))
-                              .withVisibility("private"))
-              .withCreator(dto.createDto(Author.class)
-                              .withAccountId("accountId")
-                              .withEmail("email")
-                              .withName("name"))
-              .withPolicies(dto.createDto(Policies.class)
-                               .withRefererHostname("referrer")
-                               .withValidSince(123l)
-                               .withValidUntil(123l))
-              .withActions(dto.createDto(Actions.class)
-                              .withFindReplace(singletonList(dto.createDto(Variable.class)
-                                                                .withFiles(singletonList("file"))
-                                                                .withEntries(singletonList(dto.createDto(Replacement.class)
-                                                                                              .withFind("find")
-                                                                                              .withReplace("replace")
-                                                                                              .withReplacemode("mode")))))
-                              .withOpenFile("openFile")
-                              .withWarnOnClose(true))
-              .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp(true)
-                                .withAttributes(new HashMap<String, String>() {
-                                    {
-                                        put("key1", "value1");
-                                        put("key2", "value2");
-                                    }
-                                }));
+                .withSource(dto.createDto(Source.class)
+                               .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                               .withType("git")
+                                               .withLocation("location")
+                                               .withParameters(new HashMap<String, String>() {
+                                                   {
+                                                       put("keepVcs", "true");
+                                                       put("branch", "master");
+                                                       put("commitId", "123");
+                                                   }
+                                               }))
+                               .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
+                                                                      .withLocation("location")
+                                                                      .withParameters(singletonMap("key", "value")))))
+                .withProject(dto.createDto(NewProject.class)
+                                .withType("type")
+                                .withAttributes(singletonMap("key", singletonList("value")))
+                                .withBuilders(dto.createDto(BuildersDescriptor.class).withDefault("default"))
+                                .withDescription("description")
+                                .withName("name")
+                                .withRunners(dto.createDto(RunnersDescriptor.class)
+                                                .withDefault("default")
+                                                .withConfigs(singletonMap("key", dto.createDto(RunnerConfiguration.class)
+                                                                                    .withRam(768)
+                                                                                    .withOptions(new HashMap<String, String>() {
+                                                                                        {
+                                                                                            put("key1", "value1");
+                                                                                            put("key2", "value2");
+                                                                                        }
+                                                                                    })
+                                                                                    .withVariables(new HashMap<String, String>() {
+                                                                                        {
+                                                                                            put("key1", "value1");
+                                                                                            put("key2", "value2");
+                                                                                        }
+                                                                                    }))))
+                                .withVisibility("private"))
+                .withCreator(dto.createDto(Author.class)
+                                .withAccountId("accountId")
+                                .withEmail("email")
+                                .withName("name"))
+                .withPolicies(dto.createDto(Policies.class)
+                                 .withRefererHostname("referrer")
+                                 .withValidSince(123l)
+                                 .withValidUntil(123l))
+                .withActions(dto.createDto(Actions.class)
+                                .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
+                                                                  .withFiles(singletonList("file"))
+                                                                  .withEntries(singletonList(dto.createDto(Variable.class)
+                                                                                                .withFind("find")
+                                                                                                .withReplace("replace")
+                                                                                                .withReplacemode("mode")))))
+                                .withOpenFile("openFile")
+                                .withWarnOnClose(true))
+                .withWorkspace(dto.createDto(Workspace.class)
+                                  .withTemp(true)
+                                  .withAttributes(new HashMap<String, String>() {
+                                      {
+                                          put("key1", "value1");
+                                          put("key2", "value2");
+                                      }
+                                  }));
 
         StringBuilder sb = new StringBuilder("?");
         sb.append("v=2.0").append("&");

@@ -16,10 +16,6 @@ import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.Policies;
-import com.codenvy.api.factory.dto.Replacement;
-import com.codenvy.api.project.shared.dto.RunnerSource;
-import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomeConfiguration;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.factory.dto.Workspace;
@@ -27,7 +23,11 @@ import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
+import com.codenvy.api.project.shared.dto.RunnerSource;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
+import com.codenvy.api.project.shared.dto.Source;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
+import com.codenvy.api.vfs.shared.dto.Variable;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -107,7 +107,7 @@ public class NonEncodedFactoryBuilderTest {
         }
 
         @Override
-        protected String toJson(List<Variable> dto) {
+        protected String toJson(List<ReplacementSet> dto) {
             return DtoFactory.getInstance().toJson(dto);
         }
     };
@@ -176,19 +176,19 @@ public class NonEncodedFactoryBuilderTest {
                                                .withConfigs(new HashMap<String, RunnerConfiguration>() {
                                                                 {
                                                                     put("myEnv1", dto.createDto(RunnerConfiguration.class)
-                                                                                  .withRam(256)
-                                                                                  .withOptions(new HashMap<String, String>() {
-                                                                                      {
-                                                                                          put("opt1", "value1");
-                                                                                          put("opt2", "value2");
-                                                                                      }
-                                                                                  })
-                                                                                  .withVariables(new HashMap<String, String>() {
-                                                                                      {
-                                                                                          put("var1", "value1");
-                                                                                          put("var2", "value2");
-                                                                                      }
-                                                                                  }));
+                                                                                     .withRam(256)
+                                                                                     .withOptions(new HashMap<String, String>() {
+                                                                                         {
+                                                                                             put("opt1", "value1");
+                                                                                             put("opt2", "value2");
+                                                                                         }
+                                                                                     })
+                                                                                     .withVariables(new HashMap<String, String>() {
+                                                                                         {
+                                                                                             put("var1", "value1");
+                                                                                             put("var2", "value2");
+                                                                                         }
+                                                                                     }));
                                                                     put("myEnv2", dto.createDto(RunnerConfiguration.class)
                                                                                      .withRam(768)
                                                                                      .withOptions(new HashMap<String, String>() {
@@ -205,7 +205,7 @@ public class NonEncodedFactoryBuilderTest {
                                                                                      }));
                                                                 }
                                                             }
-                                                   )))
+                                                           )))
                .withPolicies(dto.createDto(Policies.class)
                                 .withRefererHostname("dev.box.com")
                                 .withValidSince(1413198747007l)
@@ -259,22 +259,22 @@ public class NonEncodedFactoryBuilderTest {
     @Test
     public void shouldBeAbleToConvertFindReplaceToNonEncoded() throws Exception {
         final DtoFactory dto = DtoFactory.getInstance();
-        factory.getActions().withFindReplace(new ArrayList<Variable>() {
+        factory.getActions().withFindReplace(new ArrayList<ReplacementSet>() {
             {
-                add(dto.createDto(Variable.class)
+                add(dto.createDto(ReplacementSet.class)
                        .withFiles(singletonList("src/main/resources/*"))
-                       .withEntries(singletonList(dto.createDto(Replacement.class)
+                       .withEntries(singletonList(dto.createDto(Variable.class)
                                                      .withReplacemode("first")
                                                      .withReplace("NEW_VALUE")
                                                      .withFind("OLD_VALUE"))));
-                add(dto.createDto(Variable.class)
+                add(dto.createDto(ReplacementSet.class)
                        .withFiles(Arrays.asList("src/main/resources/consts.properties",
                                                 "src/main/resources/consts2.properties"))
-                       .withEntries(Arrays.asList(dto.createDto(Replacement.class)
+                       .withEntries(Arrays.asList(dto.createDto(Variable.class)
                                                      .withReplacemode("first")
                                                      .withReplace("NEW_VALUE2")
                                                      .withFind("OLD_VALUE2"),
-                                                  dto.createDto(Replacement.class)
+                                                  dto.createDto(Variable.class)
                                                      .withReplacemode("first")
                                                      .withReplace("NEW_VALUE3")
                                                      .withFind("OLD_VALUE3")
@@ -288,7 +288,7 @@ public class NonEncodedFactoryBuilderTest {
         final Set<String> findReplace = queryParams.get("actions.findReplace");
         assertNotNull(findReplace);
         assertEquals(findReplace.size(), 1);
-        final List<Variable> variables = dto.createListDtoFromJson(findReplace.iterator().next(), Variable.class);
+        final List<ReplacementSet> variables = dto.createListDtoFromJson(findReplace.iterator().next(), ReplacementSet.class);
         assertEquals(variables, factory.getActions().getFindReplace());
     }
 }

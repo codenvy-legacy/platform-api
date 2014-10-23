@@ -23,12 +23,12 @@ import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.api.project.shared.dto.RunnerSource;
 import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.Workspace;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 
 import java.util.List;
 import java.util.Map;
@@ -356,5 +356,5 @@ public abstract class NonEncodedFactoryBuilder {
      *         - initial object
      * @return - json representation of object.
      */
-    protected abstract String toJson(List<Variable> dto);
+    protected abstract String toJson(List<ReplacementSet> dto);
 }

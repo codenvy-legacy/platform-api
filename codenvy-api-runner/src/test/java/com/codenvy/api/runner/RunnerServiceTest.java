@@ -59,16 +59,26 @@ public class RunnerServiceTest {
         List<RemoteRunnerServer> servers = new ArrayList<>(1);
         RemoteRunnerServer server1 = mock(RemoteRunnerServer.class);
         servers.add(server1);
-        List<RunnerDescriptor> runners = new ArrayList<>(1);
+        List<RunnerDescriptor> runners1 = new ArrayList<>(1);
         RunnerDescriptor runner1 = dto(RunnerDescriptor.class).withName("java/web");
         runner1.getEnvironments().add(dto(RunnerEnvironment.class).withId("tomcat7"));
         runner1.getEnvironments().add(dto(RunnerEnvironment.class).withId("jboss7"));
-        runners.add(runner1);
-        doReturn(runners).when(server1).getRunnerDescriptors();
+        runners1.add(runner1);
+
+        RemoteRunnerServer server2 = mock(RemoteRunnerServer.class);
+        servers.add(server2);
+        List<RunnerDescriptor> runners2 = new ArrayList<>(1);
+        RunnerDescriptor runner2 = dto(RunnerDescriptor.class).withName("java/web");
+        runner2.getEnvironments().add(dto(RunnerEnvironment.class).withId("tomcat7"));
+        runner2.getEnvironments().add(dto(RunnerEnvironment.class).withId("jboss7"));
+        runners1.add(runner1);
+
+        doReturn(runners1).when(server1).getRunnerDescriptors();
+        doReturn(runners2).when(server2).getRunnerDescriptors();
         doReturn(servers).when(runQueue).getRegisterRunnerServers();
 
         RunnerEnvironmentTree system = service.getRunnerEnvironments("my_ws", null);
-
+        System.err.println(system);
         assertEquals(system.getDisplayName(), "system");
         assertEquals(system.getLeaves().size(), 0);
         List<RunnerEnvironmentTree> nodes = system.getNodes();

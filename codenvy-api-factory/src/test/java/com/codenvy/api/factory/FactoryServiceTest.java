@@ -489,7 +489,7 @@ public class FactoryServiceTest {
     public void shouldReturnStatus409OnSaveFactoryIfImageHasUnsupportedMediaType() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
-        factoryUrl.setId(CORRECT_FACTORY_ID);
+        //factoryUrl.setId(CORRECT_FACTORY_ID);
         factoryUrl.setCommitid("12345679");
         factoryUrl.setVcs("git");
         factoryUrl.setV("1.1");

@@ -17,6 +17,7 @@ import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.core.util.SystemInfo;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.RunnerException;
@@ -24,12 +25,14 @@ import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.PortMapping;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerServerDescriptor;
 import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.api.runner.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.Files;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -57,6 +60,14 @@ import java.util.Set;
 @Description("Internal Runner REST API")
 @Path("internal/runner")
 public class SlaveRunnerService extends Service {
+    @com.google.inject.Inject(optional = true)
+    @Named(Constants.RUNNER_ASSIGNED_TO_WORKSPACE)
+    private static String assignedWorkspace;
+
+    @com.google.inject.Inject(optional = true)
+    @Named(Constants.RUNNER_ASSIGNED_TO_PROJECT)
+    private static String assignedProject;
+
     @Inject
     private RunnerRegistry runners;
 
@@ -269,5 +280,11 @@ public class SlaveRunnerService extends Service {
                          .withDebugHost(configuration.getDebugHost())
                          .withDebugPort(configuration.getDebugPort())
                          .withPortMapping(portMapping);
+    }
+
+    @Override
+    protected ServiceDescriptor createServiceDescriptor() {
+        return DtoFactory.getInstance().createDto(RunnerServerDescriptor.class).withAssignedWorkspace(assignedWorkspace)
+                         .withAssignedProject(assignedProject);
     }
 }

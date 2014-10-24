@@ -120,11 +120,11 @@ public class RunnerAdminService extends Service {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         for (RemoteRunnerServer runnerServer : runnerServers) {
             final RunnerServer runnerServerDTO = dtoFactory.createDto(RunnerServer.class);
-            runnerServerDTO.withUrl(runnerServer.getBaseUrl())
-                           .withDedicated(runnerServer.isDedicated())
-                           .withWorkspace(runnerServer.getAssignedWorkspace())
-                           .withProject(runnerServer.getAssignedProject());
+            runnerServerDTO.withUrl(runnerServer.getBaseUrl());
             try {
+                runnerServerDTO.withDedicated(runnerServer.isDedicated())
+                               .withWorkspace(runnerServer.getAssignedWorkspace())
+                               .withProject(runnerServer.getAssignedProject());
                 final List<Link> adminLinks = new LinkedList<>();
                 for (String linkRel : SERVER_LINK_RELS) {
                     final Link link = runnerServer.getLink(linkRel);

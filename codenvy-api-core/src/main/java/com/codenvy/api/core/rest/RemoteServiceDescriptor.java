@@ -93,7 +93,7 @@ public class RemoteServiceDescriptor {
                 myServiceDescriptor = serviceDescriptor;
                 if (myServiceDescriptor == null) {
                     try {
-                        myServiceDescriptor = serviceDescriptor = HttpJsonHelper.options(ServiceDescriptor.class, baseUrl);
+                        myServiceDescriptor = serviceDescriptor = HttpJsonHelper.options(getServiceDescriptorClass(), baseUrl);
                     } catch (NotFoundException | ConflictException | UnauthorizedException | ForbiddenException e) {
                         throw new ServerException(e.getServiceError());
                     }
@@ -101,6 +101,10 @@ public class RemoteServiceDescriptor {
             }
         }
         return myServiceDescriptor;
+    }
+
+    protected Class<? extends ServiceDescriptor> getServiceDescriptorClass() {
+        return ServiceDescriptor.class;
     }
 
     /** Checks service availability. */

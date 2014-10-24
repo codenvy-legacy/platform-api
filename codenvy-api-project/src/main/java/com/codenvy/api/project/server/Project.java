@@ -83,7 +83,7 @@ public class Project {
     }
 
     /** Gets project meta-information. */
-    public final ProjectDescription getDescription() throws ServerException, ValueStorageException {
+    public ProjectDescription getDescription() throws ServerException, ValueStorageException {
         // Copy attributes after merging to be independent to type of ValueProvider. ProjectDescription contains attributes that may use
         // different ValueProviders. After we have all attributes copy them with DefaultValueProvider. Caller gets description of project
         // update some attributes or(and) type of project than caller sends description back with method updateDescription.
@@ -148,7 +148,12 @@ public class Project {
 
     /** Updates project meta-information. */
     public final void updateDescription(ProjectDescription update) throws ServerException, ValueStorageException, InvalidValueException {
-        final ProjectDescription thisProjectDescription = doGetDescription();
+        ProjectDescription thisProjectDescription;
+        try {
+            thisProjectDescription = doGetDescription();
+        } catch (ServerException e) { // in case we have problem with reading/parsing project.json file we going to create new one
+            thisProjectDescription = new ProjectDescription();
+        }
         final ProjectJson2 projectJson = new ProjectJson2();
         projectJson.setType(update.getProjectType().getId());
         projectJson.setBuilders(update.getBuilders());

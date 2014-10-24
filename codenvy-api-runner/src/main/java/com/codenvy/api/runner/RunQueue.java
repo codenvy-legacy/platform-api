@@ -28,6 +28,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.project.shared.EnvironmentId;
+import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
@@ -102,8 +103,10 @@ public class RunQueue {
     private static final Logger LOG = LoggerFactory.getLogger(RunQueue.class);
 
     /** Pause in milliseconds for checking the result of build process. */
-    private static final long CHECK_BUILD_RESULT_DELAY     = 2000;
-    private static final long CHECK_AVAILABLE_RUNNER_DELAY = 2000;
+    private static final long CHECK_BUILD_RESULT_PERIOD     = 2000;
+    private static final long CHECK_AVAILABLE_RUNNER_PERIOD = 2000;
+
+    private static final long PROCESS_CLEANER_PERIOD = TimeUnit.MINUTES.toMillis(1);
 
     private static final int DEFAULT_MAX_MEMORY_SIZE = 512;
 
@@ -137,9 +140,29 @@ public class RunQueue {
     @Named(Constants.RUNNER_SLAVE_RUNNER_URLS)
     private String[] slaves = new String[0];
 
+    /** Optional pre-configured slave runners for 'paid' infra. */
+    @com.google.inject.Inject(optional = true)
+    @Named(Constants.RUNNER_SLAVE_RUNNER_URLS_PAID)
+    private String[] slavesPaid = new String[0];
+
+    /** Optional pre-configured slave runners for 'always_on' infra. */
+    @com.google.inject.Inject(optional = true)
+    @Named(Constants.RUNNER_SLAVE_RUNNER_URLS_ALWAYS_ON)
+    private String[] slavesAlwaysOn = new String[0];
+
     @com.google.inject.Inject(optional = true)
     @Named(Constants.RUNNER_WS_MAX_MEMORY_SIZE)
     private int defMaxMemorySize = DEFAULT_MAX_MEMORY_SIZE;
+
+    // Switched to default for test.
+    // private
+    long cleanerPeriod              = PROCESS_CLEANER_PERIOD;
+    // Switched to default for test.
+    // private
+    long checkAvailableRunnerPeriod = CHECK_AVAILABLE_RUNNER_PERIOD;
+    // Switched to default for test.
+    // private
+    long checkBuildResultPeriod     = CHECK_BUILD_RESULT_PERIOD;
 
     /**
      * @param baseWorkspaceApiUrl
@@ -300,7 +323,7 @@ public class RunQueue {
                         LOG.debug("Remove {} expired tasks, {} of them were waiting for processing", num, waitingNum);
                     }
                 }
-            }, 1, 1, TimeUnit.MINUTES);
+            }, cleanerPeriod, cleanerPeriod, TimeUnit.MILLISECONDS);
 
             // sending message by websocket connection for notice about used memory size changing
             eventService.subscribe(new ResourcesChangesMessenger());
@@ -311,54 +334,13 @@ public class RunQueue {
             eventService.subscribe(new AnalyticsMessenger());
 
             if (slaves.length > 0) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        final LinkedList<RemoteRunnerServer> servers = new LinkedList<>();
-                        for (String slave : slaves) {
-                            try {
-                                servers.add(createRemoteRunnerServer(slave));
-                            } catch (IllegalArgumentException e) {
-                                LOG.error(e.getMessage(), e);
-                            }
-                        }
-                        final LinkedList<RemoteRunnerServer> offline = new LinkedList<>();
-                        for (; ; ) {
-                            while (!servers.isEmpty()) {
-                                if (Thread.currentThread().isInterrupted()) {
-                                    return;
-                                }
-                                final RemoteRunnerServer server = servers.pop();
-                                if (server.isAvailable()) {
-                                    try {
-                                        doRegisterRunnerServer(server);
-                                        LOG.debug("Pre-configured slave runner server '{}' registered.", server.getBaseUrl());
-                                    } catch (RunnerException e) {
-                                        LOG.error(e.getMessage(), e);
-                                        offline.add(server);
-                                    }
-                                } else {
-                                    LOG.warn("Pre-configured slave runner server '{}' isn't responding.", server.getBaseUrl());
-                                    offline.add(server);
-                                }
-                            }
-                            if (offline.isEmpty()) {
-                                return;
-                            } else {
-                                servers.addAll(offline);
-                                offline.clear();
-                                synchronized (this) {
-                                    try {
-                                        wait(5000);
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+                executor.execute(new RegisterSlaveRunnerTask(slaves, null));
+            }
+            if (slavesPaid.length > 0) {
+                executor.execute(new RegisterSlaveRunnerTask(slavesPaid, "paid"));
+            }
+            if (slavesAlwaysOn.length > 0) {
+                executor.execute(new RegisterSlaveRunnerTask(slavesAlwaysOn, "always_on"));
             }
         } else {
             throw new IllegalStateException("Already started");
@@ -464,13 +446,15 @@ public class RunQueue {
                     }
                 }
                 if (matchedRunners.isEmpty()) {
-                    throw new RunnerException(String.format("Runner environment '%s' is not available.", environmentId));
+                    throw new RunnerException(String.format("Runner environment '%s' is not available for workspace '%s' on infra '%s'.",
+                                                            environmentId, workspace, infra));
                 }
                 break;
             case project:
                 resolveProjectRunnerEnvironments(infra, request, projectDescriptor, parsedEnvironmentId.getName(), matchedRunners);
                 if (matchedRunners.isEmpty()) {
-                    throw new RunnerException(String.format("Runner '%s' is not available.", request.getRunner()));
+                    throw new RunnerException(String.format("Runner '%s' is not available for workspace '%s' on infra '%s'.",
+                                                            request.getRunner(), workspace, infra));
                 }
                 break;
             default:
@@ -518,13 +502,15 @@ public class RunQueue {
         }
         // Options for web shell that runner may provide to the server with running application.
         request.setShellOptions(runOptions.getShellOptions());
-        // Sometime user may request to skip build of project before run.
-        boolean skipBuild = runOptions.getSkipBuild();
-        BuildOptions buildOptions = runOptions.getBuildOptions();
         final ValueHolder<BuildTaskDescriptor> buildTaskHolder = new ValueHolder<>();
+        // Sometime user may request to skip build of project before run.
+        final boolean skipBuild = runOptions.getSkipBuild();
+        BuildOptions buildOptions = runOptions.getBuildOptions();
         final Callable<RemoteRunnerProcess> callable;
+        BuildersDescriptor builders;
         if (!skipBuild
-            && ((buildOptions != null && buildOptions.getBuilderName() != null) || projectDescriptor.getBuilders() != null)) {
+            && ((buildOptions != null && buildOptions.getBuilderName() != null)
+                || ((builders = projectDescriptor.getBuilders()) != null) && builders.getDefault() != null)) {
             LOG.debug("Need build project '{}' from workspace '{}'", project, workspace);
             if (buildOptions == null) {
                 buildOptions = dtoFactory.createDto(BuildOptions.class);
@@ -677,7 +663,7 @@ public class RunQueue {
                 try {
                     ApplicationStatus status;
                     if (task.isStopped()) {
-                        return;
+                        continue;
                     }
                     if (task.isWaiting()
                         || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
@@ -777,7 +763,7 @@ public class RunQueue {
                         }
                         synchronized (this) {
                             try {
-                                wait(CHECK_BUILD_RESULT_DELAY);
+                                wait(checkBuildResultPeriod);
                             } catch (InterruptedException e) {
                                 // Expected to get here if task is canceled. Try to cancel related build process.
                                 tryCancelBuild(buildDescriptor);
@@ -841,7 +827,7 @@ public class RunQueue {
                         synchronized (this) {
                             try {
                                 // Wait and try again.
-                                wait(CHECK_AVAILABLE_RUNNER_DELAY);
+                                wait(checkAvailableRunnerPeriod);
                             } catch (InterruptedException e) {
                                 // Expected to get here if task is canceled.
                                 Thread.currentThread().interrupt();
@@ -849,7 +835,9 @@ public class RunQueue {
                             }
                         }
                     } else {
-                        return (available.size() > 0 ? runnerSelector.select(available) : available.get(0)).run(request);
+                        final RemoteRunner runner = available.size() > 1 ? runnerSelector.select(available) : available.get(0);
+                        LOG.debug("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
+                        return runner.run(request);
                     }
                 }
             }
@@ -911,7 +899,7 @@ public class RunQueue {
      *         RunnerServerRegistration
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws com.codenvy.api.runner.RunnerException
      *         if an error occurs
      */
     public boolean registerRunnerServer(RunnerServerRegistration registration) throws RunnerException {
@@ -974,7 +962,7 @@ public class RunQueue {
      *         RunnerServerLocation
      * @return {@code true} if set of available Runners changed as result of the call
      * if we access remote SlaveRunnerService successfully but get error response
-     * @throws RunnerException
+     * @throws com.codenvy.api.runner.RunnerException
      *         if an error occurs
      */
     public boolean unregisterRunnerServer(RunnerServerLocation location) throws RunnerException {
@@ -984,27 +972,22 @@ public class RunQueue {
             return false;
         }
         final RemoteRunnerServer runnerService = runnerServers.remove(url);
-        if (runnerService == null) {
-            return false;
-        }
-        final List<RemoteRunner> toRemove = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : runnerService.getRunnerDescriptors()) {
-            toRemove.add(runnerService.createRemoteRunner(runnerDescriptor));
-        }
-        return doUnregisterRunners(toRemove);
+        return runnerService != null && doUnregisterRunners(url);
     }
 
     // Switched to default for test.
     // private
-    boolean doUnregisterRunners(List<RemoteRunner> toRemove) {
+    boolean doUnregisterRunners(String url) {
         boolean modified = false;
         for (Iterator<Set<RemoteRunner>> i = runnerListMapping.values().iterator(); i.hasNext(); ) {
             final Set<RemoteRunner> runnerList = i.next();
-            if (runnerList.removeAll(toRemove)) {
-                modified |= true;
-                if (runnerList.size() == 0) {
-                    i.remove();
+            for (RemoteRunner runner : runnerList) {
+                if (url.equals(runner.getBaseUrl())) {
+                    modified |= runnerList.remove(runner);
                 }
+            }
+            if (runnerList.size() == 0) {
+                i.remove();
             }
         }
         return modified;
@@ -1019,6 +1002,67 @@ public class RunQueue {
     }
 
     /* ============================================================================================ */
+
+    private class RegisterSlaveRunnerTask implements Runnable {
+        final String[] mySlaves;
+        final String   infra;
+
+        RegisterSlaveRunnerTask(String[] mySlaves, String infra) {
+            this.mySlaves = mySlaves;
+            this.infra = infra;
+        }
+
+        @Override
+        public void run() {
+            final LinkedList<RemoteRunnerServer> servers = new LinkedList<>();
+            for (String slaveUrl : mySlaves) {
+                try {
+                    RemoteRunnerServer server = createRemoteRunnerServer(slaveUrl);
+                    if (infra != null) {
+                        server.setInfra(infra);
+                    }
+                    servers.add(server);
+                } catch (IllegalArgumentException e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+            final LinkedList<RemoteRunnerServer> offline = new LinkedList<>();
+            for (; ; ) {
+                while (!servers.isEmpty()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    final RemoteRunnerServer server = servers.pop();
+                    if (server.isAvailable()) {
+                        try {
+                            doRegisterRunnerServer(server);
+                            LOG.debug("Pre-configured slave runner server '{}' registered.", server.getBaseUrl());
+                        } catch (RunnerException e) {
+                            LOG.error(e.getMessage(), e);
+                            offline.add(server);
+                        }
+                    } else {
+                        LOG.warn("Pre-configured slave runner server '{}' isn't responding.", server.getBaseUrl());
+                        offline.add(server);
+                    }
+                }
+                if (offline.isEmpty()) {
+                    return;
+                } else {
+                    servers.addAll(offline);
+                    offline.clear();
+                    synchronized (this) {
+                        try {
+                            wait(5000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // for store workspace, project and id of process with FutureTask
     private static class InternalRunTask extends FutureTask<RemoteRunnerProcess> {
@@ -1131,8 +1175,8 @@ public class RunQueue {
                         continue;
                     }
                     if (Response.Status.Family.SUCCESSFUL == status.getFamily()
-                            || Response.Status.Family.REDIRECTION == status.getFamily()
-                            || Response.Status.Family.INFORMATIONAL == status.getFamily()) {
+                        || Response.Status.Family.REDIRECTION == status.getFamily()
+                        || Response.Status.Family.INFORMATIONAL == status.getFamily()) {
                         ok = true;
                         LOG.debug("Application URL '{}' - OK", url);
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();

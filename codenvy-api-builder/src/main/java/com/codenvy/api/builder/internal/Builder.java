@@ -83,7 +83,7 @@ public abstract class Builder {
     private ScheduledExecutorService scheduler;
     private java.io.File             repository;
     private java.io.File             builds;
-    private SourcesManager           sourcesManager;
+    private SourcesManagerImpl       sourcesManager;
 
     public Builder(java.io.File rootDirectory, int numberOfWorkers, int queueSize, int keepResultTime, EventService eventService) {
         this.rootDirectory = rootDirectory;
@@ -156,7 +156,9 @@ public abstract class Builder {
             if (!(builds.exists() || builds.mkdirs())) {
                 throw new IllegalStateException(String.format("Unable create directory %s", builds.getAbsolutePath()));
             }
+            // TODO: use single instance of SourceManager
             sourcesManager = new SourcesManagerImpl(sources);
+            sourcesManager.start(); // TODO: guice must do this
             executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers,
                                                 queueSize);
             scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderSchedulerPool-", true));
@@ -239,6 +241,7 @@ public abstract class Builder {
             }
             tasks.clear();
             buildListeners.clear();
+            sourcesManager.stop(); // TODO: guice must do this
             if (interrupted) {
                 Thread.currentThread().interrupt();
             }
@@ -387,14 +390,7 @@ public abstract class Builder {
         final Long internalId = buildIdSequence.getAndIncrement();
         final BuildTask.Callback callback = new BuildTask.Callback() {
             @Override
-            public void begin(BuildTask task) {
-                final BaseBuilderRequest buildRequest = task.getConfiguration().getRequest();
-                // build preliminary phase is sources downloading
-                // build begin event will be sent when build effectively begins
-                eventService.publish(BuilderEvent.sourcesDownloadBeginEvent(buildRequest.getId(), buildRequest.getWorkspace(),
-                                                                            buildRequest.getProject(),
-                                                                            BuildLogsPublisher.SOURCES_DOWNLOAD_START_MESSAGE_LINE));
-            }
+            public void begin(BuildTask task) {}
 
             @Override
             public void done(BuildTask task) {
@@ -431,12 +427,10 @@ public abstract class Builder {
             public Boolean call() throws Exception {
                 BaseBuilderRequest request = configuration.getRequest();
                 getSourcesManager()
-                        .getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
-                eventService.publish(BuilderEvent.sourcesDownloadDoneEvent(request.getId(), request.getWorkspace(), request.getProject(),
-                                                                           BuildLogsPublisher.SOURCES_DOWNLOAD_END_MESSAGE_LINE));
+                        .getSources(logger, request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
+                // build effectively starts right after sources downloading is done
                 eventService.publish(BuilderEvent.buildTimeStartedEvent(request.getId(), request.getWorkspace(), request.getProject(),
                                                                         System.currentTimeMillis()));
-                // build starts right after sources downloading is done
                 eventService.publish(BuilderEvent.beginEvent(request.getId(), request.getWorkspace(), request.getProject()));
                 StreamPump output = null;
                 Watchdog watcher = null;
@@ -495,7 +489,8 @@ public abstract class Builder {
      *         build task
      */
     protected void cleanup(BuildTask task) {
-        final java.io.File workDir = task.getConfiguration().getWorkDir();
+        final BuilderConfiguration configuration = task.getConfiguration();
+        final java.io.File workDir = configuration.getWorkDir();
         if (workDir != null && workDir.exists()) {
             if (!IoUtil.deleteRecursive(workDir)) {
                 LOG.warn("Unable delete directory {}", workDir);
@@ -504,7 +499,7 @@ public abstract class Builder {
         final java.io.File log = task.getBuildLogger().getFile();
         if (log != null && log.exists()) {
             if (!log.delete()) {
-                LOG.warn("Unable delete file {}", workDir);
+                LOG.warn("Unable delete file {}", log);
             }
         }
         BuildResult result = null;
@@ -519,7 +514,7 @@ public abstract class Builder {
                 for (java.io.File artifact : artifacts) {
                     if (artifact.exists()) {
                         if (!artifact.delete()) {
-                            LOG.warn("Unable delete file {}", workDir);
+                            LOG.warn("Unable delete file {}", artifact);
                         }
                     }
                 }
@@ -528,9 +523,15 @@ public abstract class Builder {
                 java.io.File report = result.getBuildReport();
                 if (report != null && report.exists()) {
                     if (!report.delete()) {
-                        LOG.warn("Unable delete file {}", workDir);
+                        LOG.warn("Unable delete file {}", report);
                     }
                 }
+            }
+        }
+        final java.io.File buildDir = configuration.getBuildDir();
+        if (buildDir != null && buildDir.exists()) {
+            if (!IoUtil.deleteRecursive(buildDir)) {
+                LOG.warn("Unable delete directory {}", buildDir);
             }
         }
     }

@@ -71,12 +71,6 @@ public interface RunnerEnvironment {
     /* place on client side.                                                                               */
     /* =================================================================================================== */
 
-    boolean isDefault();
-
-    void setDefault(boolean _default);
-
-    RunnerEnvironment withDefault(boolean _default);
-
     @Nullable
     String getDescription();
 

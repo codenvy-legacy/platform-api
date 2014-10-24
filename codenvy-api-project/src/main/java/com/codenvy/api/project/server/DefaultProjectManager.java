@@ -17,9 +17,12 @@ import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
+import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
+import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
+import com.codenvy.dto.server.DtoFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,6 +132,7 @@ public final class DefaultProjectManager implements ProjectManager {
             }
         };
     }
+
 
     @Override
     public List<Project> getProjects(String workspace) throws ServerException {
@@ -233,18 +238,31 @@ public final class DefaultProjectManager implements ProjectManager {
             } catch (IOException e) {
                 throw new ServerException(e.getMessage(), e);
             }
-            final FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_DIR + "/misc.xml");
+            FileEntry miscFile = (FileEntry)project.getBaseFolder().getChild(Constants.CODENVY_DIR + "/misc.xml");
             if (miscFile != null) {
-                miscFile.updateContent(bout.toByteArray(), "application/xml");
+                miscFile.updateContent(bout.toByteArray(), null);
             } else {
-                final FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_DIR);
-                if (codenvy != null) {
+                FolderEntry codenvy = (FolderEntry)project.getBaseFolder().getChild(Constants.CODENVY_DIR);
+                if (codenvy == null) {
                     try {
-                        codenvy.createFile("misc.xml", bout.toByteArray(), "application/xml");
+                        codenvy = project.getBaseFolder().createFolder(Constants.CODENVY_DIR);
                     } catch (ConflictException e) {
-                        // Not expected, existence of file already checked
+                        // Already checked existence of folder ".codenvy".
                         throw new ServerException(e.getServiceError());
                     }
+                }
+                try {
+                    miscFile = codenvy.createFile("misc.xml", bout.toByteArray(), null);
+                    // Need to be able update files in .codenvy/misc.xml file independently to user actions.
+                    final List<AccessControlEntry> acl = new ArrayList<>(1);
+                    final DtoFactory dtoFactory = DtoFactory.getInstance();
+                    acl.add(dtoFactory.createDto(AccessControlEntry.class)
+                                      .withPrincipal(dtoFactory.createDto(Principal.class).withName("any").withType(Principal.Type.USER))
+                                      .withPermissions(Arrays.asList("all")));
+                    miscFile.getVirtualFile().updateACL(acl, true, null);
+                } catch (ConflictException e) {
+                    // Not expected, existence of file already checked
+                    throw new ServerException(e.getServiceError());
                 }
             }
             LOG.debug("Save misc file of project {} in {}", project.getPath(), project.getWorkspace());

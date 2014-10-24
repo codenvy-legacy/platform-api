@@ -24,10 +24,12 @@ import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
+import com.codenvy.api.project.shared.dto.ImportProject;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectProblem;
 import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
@@ -179,6 +181,10 @@ public class ProjectService extends Service {
         final Project project = projectManager.createProject(workspace, name,
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
         final String visibility = newProject.getVisibility();
+        final ProjectMisc misc = project.getMisc();
+        misc.setCreationDate(System.currentTimeMillis());
+        misc.save(); // Important to save misc!!
+
         if (visibility != null) {
             project.setVisibility(visibility);
         }
@@ -423,7 +429,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Delete a resource",
-                  notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to be deleted a path to the requested resource needs to be specified",
+                  notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to " +
+                          "be deleted a path to the requested resource needs to be specified",
                   position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = ""),
@@ -561,7 +568,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Import resource",
-                  notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from VCS or ZIP",
+                  notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from " +
+                          "VCS or ZIP",
                   response = ProjectDescriptor.class,
                   position = 16)
     @ApiResponses(value = {
@@ -580,11 +588,9 @@ public class ProjectService extends Service {
                                            @PathParam("path") String path,
                                            @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
                                            @QueryParam("force") boolean force,
-                                           @ApiParam(value = "Visibility type", allowableValues = "public,private")
-                                           @QueryParam("visibility") String visibility,
-                                           Source source)
+                                           ImportProject importProject)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
-        final ImportSourceDescriptor projectSource = source.getProject();
+        final ImportSourceDescriptor projectSource = importProject.getSource().getProject();
         final ProjectImporter importer = importers.getImporter(projectSource.getType());
         if (importer == null) {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
@@ -620,29 +626,49 @@ public class ProjectService extends Service {
         final FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
         importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
 
-        Project project = projectManager.getProject(workspace, path);
         // Use resolver only if project type not set
-        if (project == null) {
-            Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
-            for (ProjectTypeResolver resolver : resolvers) {
-                if (resolver.resolve((FolderEntry)virtualFile)) {
-                    break;
+        ProjectProblem resolved = null;
+
+        String visibility = null;
+
+        Project project = projectManager.getProject(workspace, path);
+
+        if (importProject.getProject() != null) {  //project configuration set in Source we will use it
+            visibility = importProject.getProject().getVisibility();
+            if (project == null) {
+                project = new Project(baseProjectFolder, projectManager);
+                project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
+            } else {
+                project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
+            }
+        } else { //project not configure so we try resolve it
+            if (project == null) {
+                Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+                for (ProjectTypeResolver resolver : resolvers) {
+                    if (resolver.resolve((FolderEntry)virtualFile)) {
+                        resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
+                                             .withMessage("Project type detect via ProjectResolver");
+                        break;
+                    }
+                }
+                // Try get project again after trying resolve it
+                project = projectManager.getProject(workspace, path);
+                if (project == null) { //resolver can't resolve project type
+                    project = new Project(baseProjectFolder, projectManager); //create BLANK project type
+                    project.updateDescription(new ProjectDescription());
+                    resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
+                                         .withMessage("Project type not detect so we set it as blank");
                 }
             }
-        }
-
-        // Try get project again after trying resolve it
-        project = projectManager.getProject(workspace, path);
-        if (project == null) { //resolver can't resolve project type
-            project = new Project(baseProjectFolder, projectManager); //create BLANK project type
-            project.updateDescription(new ProjectDescription());
         }
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
         VirtualFile file = project.getBaseFolder().getVirtualFile();
         searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
         if (creationDate > 0) {
-            project.getMisc().setCreationDate(creationDate);
+            final ProjectMisc misc = project.getMisc();
+            misc.setCreationDate(creationDate);
+            misc.save(); // Important to save misc!!
         }
 
         VirtualFileEntry environmentsFolder = baseProjectFolder.getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
@@ -653,18 +679,27 @@ public class ProjectService extends Service {
             environmentsFolder = baseProjectFolder.createFolder(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
         }
 
-        for (Map.Entry<String, RunnerSource> runnerSource : source.getRunners().entrySet()) {
+        for (Map.Entry<String, RunnerSource> runnerSource : importProject.getSource().getRunners().entrySet()) {
             final String runnerSourceKey = runnerSource.getKey();
             if (runnerSourceKey.startsWith("/docker/")) {
                 final RunnerSource runnerSourceValue = runnerSource.getValue();
                 if (runnerSourceValue != null) {
                     String name = runnerSourceKey.substring(8);
-                    try (InputStream in = new java.net.URL(runnerSourceValue.getLocation()).openStream()) {
-                        // Add file without mediatype to avoid creation useless metadata files on virtual file system level.
-                        // Dockerfile add in list of known files, see com.codenvy.api.core.util.ContentTypeGuesser
-                        // and content-types.properties file.
-                        ((FolderEntry)environmentsFolder).createFolder(name).createFile("Dockerfile", in, null);
+                    String runnerSourceLocation = runnerSourceValue.getLocation();
+                    if (runnerSourceLocation.startsWith("https") || runnerSourceLocation.startsWith("http")) {
+                        try (InputStream in = new java.net.URL(runnerSourceLocation).openStream()) {
+                            // Add file without mediatype to avoid creation useless metadata files on virtual file system level.
+                            // Dockerfile add in list of known files, see com.codenvy.api.core.util.ContentTypeGuesser
+                            // and content-types.properties file.
+                            ((FolderEntry)environmentsFolder).createFolder(name).createFile("Dockerfile", in, null);
+                        }
+                    } else {
+                        LOG.warn(
+                                "ProjectService.importProject :: not valid runner source location availabel only http or https scheme but" +
+                                " we get :" +
+                                runnerSourceLocation);
                     }
+
                 }
             }
         }
@@ -679,6 +714,11 @@ public class ProjectService extends Service {
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
+        if (resolved != null) {
+            List<ProjectProblem> projectProblems = projectDescriptor.getProblems();
+            projectProblems.add(resolved);
+            projectDescriptor.setProblems(projectProblems);
+        }
         return projectDescriptor;
     }
 
@@ -937,7 +977,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Get user permissions in a project",
-                  notes = "Get permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
+                  notes = "Get permissions for a user in a specified project, such as read, write, build, " +
+                          "run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
                   position = 23)
@@ -1003,7 +1044,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Set permissions for a user in a project",
-                  notes = "Set permissions for a user in a specified project, such as read, write, build, run etc. ID of a user is set in a query parameter of a request URL.",
+                  notes = "Set permissions for a user in a specified project, such as read, write, build, " +
+                          "run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
                   position = 25)

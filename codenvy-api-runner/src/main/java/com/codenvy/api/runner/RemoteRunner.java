@@ -97,7 +97,7 @@ public class RemoteRunner {
 
     boolean hasEnvironment(String name) {
         for (RunnerEnvironment environment : descriptor.getEnvironments()) {
-            if (environment.getId().equals(name) || ("default".equals(name) && environment.isDefault())) {
+            if (environment.getId().equals(name)) {
                 return true;
             }
         }

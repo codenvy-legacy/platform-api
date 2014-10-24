@@ -27,8 +27,6 @@ import org.everrest.core.impl.header.HeaderParameterParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -63,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author andrew00x
  * @author Eugene Voevodin
  */
+// TODO: make singleton
 public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private static final Logger LOG = LoggerFactory.getLogger(SourcesManagerImpl.class);
 
@@ -72,7 +71,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     private final Set<SourceManagerListener>          listeners;
     private final ScheduledExecutorService            executor;
 
-    private static final long KEEP_PROJECT_TIME = TimeUnit.HOURS.toMillis(4);
+    private static final long KEEP_PROJECT_TIME = TimeUnit.MINUTES.toMillis(30);
     private static final int  CONNECT_TIMEOUT   = (int)TimeUnit.MINUTES.toMillis(3);
     private static final int  READ_TIMEOUT      = (int)TimeUnit.MINUTES.toMillis(3);
 
@@ -84,23 +83,22 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         listeners = new CopyOnWriteArraySet<>();
     }
 
-    @PostConstruct
-    private void executeSchedulerTask() {
-        executor.scheduleAtFixedRate(createSchedulerTask(), 1, 1, TimeUnit.HOURS);
+    public void start() { // TODO: guice must do this
+        executor.scheduleAtFixedRate(createSchedulerTask(), 5, 5, TimeUnit.MINUTES);
     }
 
-    @PreDestroy
-    private void shutdownScheduler() {
+    public void stop() { // TODO: guice must do this
+        listeners.clear();
         executor.shutdown();
     }
 
-    public void getSources(BuilderConfiguration configuration) throws IOException {
+    public void getSources(BuildLogger logger, BuilderConfiguration configuration) throws IOException {
         final BaseBuilderRequest request = configuration.getRequest();
-        getSources(request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
+        getSources(logger, request.getWorkspace(), request.getProject(), request.getSourcesUrl(), configuration.getWorkDir());
     }
 
     @Override
-    public void getSources(String workspace, String project, final String sourcesUrl, java.io.File workDir) throws IOException {
+    public void getSources(BuildLogger logger, String workspace, String project, final String sourcesUrl, java.io.File workDir) throws IOException {
         // Directory for sources. Keep sources to avoid download whole project before build.
         // This directory is not permanent and may be removed at any time.
         final java.io.File srcDir = new java.io.File(directory, workspace + java.io.File.separatorChar + project);
@@ -140,7 +138,17 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             future = tasks.putIfAbsent(key, newFuture);
             if (future == null) {
                 future = newFuture;
+                try {
+                    // Need a bit time before to publish sources download start message via websocket
+                    // as client may not have already subscribed to the channel so early in build task execution
+                    Thread.sleep(300);
+                } catch (InterruptedException e) {
+                    LOG.error(e.getMessage(), e);
+                }
+                logger.writeLine("[INFO] Injecting source code into builder...");
                 newFuture.run();
+                logger.writeLine("[INFO] Source code injection finished"
+                    + "\n[INFO] ------------------------------------------------------------------------");
             }
         }
         try {
@@ -150,11 +158,11 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 throw ioError;
             }
             IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
-            if (!srcDir.setLastModified(System.currentTimeMillis())) {
-                LOG.error("Unable update modification date of {} ", srcDir);
-            }
             for (SourceManagerListener listener : listeners) {
                 listener.afterDownload(new SourceManagerEvent(workspace, project, sourcesUrl, workDir));
+            }
+            if (!srcDir.setLastModified(System.currentTimeMillis())) {
+                LOG.error("Unable update modification date of {} ", srcDir);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

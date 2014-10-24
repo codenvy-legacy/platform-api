@@ -205,6 +205,10 @@ public final class RunQueueTask implements Cancellable {
         return !future.isDone();
     }
 
+    boolean isCancelled() {
+        return future.isCancelled();
+    }
+
     private void doStop(RemoteRunnerProcess remoteProcess) throws RunnerException, NotFoundException {
         if (remoteProcess != null) {
             remoteProcess.stop();

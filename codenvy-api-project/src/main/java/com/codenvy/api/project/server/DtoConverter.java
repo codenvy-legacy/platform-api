@@ -50,6 +50,9 @@ public class DtoConverter {
 
     /*================================ Method for conversion from DTO. ===============================*/
 
+    private DtoConverter() { //converter
+    }
+
     public static ProjectTemplateDescription fromDto(ProjectTemplateDescriptor dto) {
         final String category = dto.getCategory();
         final ImportSourceDescriptor importSource = dto.getSource();
@@ -104,6 +107,8 @@ public class DtoConverter {
         return new Builders(dto.getDefault());
     }
 
+    /*================================ Methods for conversion to DTO. ===============================*/
+
     public static Runners fromDto(RunnersDescriptor dto) {
         final Runners runners = new Runners(dto.getDefault());
         for (Map.Entry<String, RunnerConfiguration> e : dto.getConfigs().entrySet()) {
@@ -114,8 +119,6 @@ public class DtoConverter {
         }
         return runners;
     }
-
-    /*================================ Methods for conversion to DTO. ===============================*/
 
     public static ProjectTypeDescriptor toTypeDescriptor(ProjectType projectType,
                                                          ProjectTypeDescriptionRegistry typeRegistry) {
@@ -141,6 +144,14 @@ public class DtoConverter {
             descriptor.setTemplates(templateDescriptors);
         }
         descriptor.setIconRegistry(typeRegistry.getIconRegistry(projectType));
+        Builders builders = typeRegistry.getBuilders(projectType);
+        if (builders != null) {
+            descriptor.setBuilders(toDto(builders));
+        }
+        Runners runners = typeRegistry.getRunners(projectType);
+        if (runners != null) {
+            descriptor.setRunners(toDto(runners));
+        }
         return descriptor;
     }
 
@@ -206,12 +217,12 @@ public class DtoConverter {
         final String name = project.getName();
         final String path = project.getPath();
         dto.withWorkspaceId(wsId).withWorkspaceName(wsName).withName(name).withPath(path);
-
         ProjectDescription projectDescription = null;
         try {
             projectDescription = project.getDescription();
         } catch (ServerException | ValueStorageException e) {
             dto.getProblems().add(createProjectProblem(dtoFactory, e));
+            dto.withType(ProjectType.BLANK.getId()).withTypeName(ProjectType.BLANK.getName());
         }
         if (projectDescription != null) {
             dto.withDescription(projectDescription.getDescription());
@@ -385,6 +396,7 @@ public class DtoConverter {
             final ProjectType projectType = projectDescription.getProjectType();
             dto.withType(projectType.getId()).withTypeName(projectType.getName());
         } catch (ServerException | ValueStorageException e) {
+            dto.withType(ProjectType.BLANK.getId()).withTypeName(ProjectType.BLANK.getName());
             dto.getProblems().add(createProjectProblem(dtoFactory, e));
         }
 
@@ -416,8 +428,5 @@ public class DtoConverter {
     private static ProjectProblem createProjectProblem(DtoFactory dtoFactory, ApiException error) {
         // TODO: setup error code
         return dtoFactory.createDto(ProjectProblem.class).withCode(1).withMessage(error.getMessage());
-    }
-
-    private DtoConverter() { //converter
     }
 }

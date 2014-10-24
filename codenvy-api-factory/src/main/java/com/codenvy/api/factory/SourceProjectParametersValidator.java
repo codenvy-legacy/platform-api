@@ -22,11 +22,12 @@ import static java.lang.String.format;
 
 /**
  * @author Alexander Garagatyi
+ * @author Valeriy Svydenko
  */
 public class SourceProjectParametersValidator implements FactoryParameterValidator<ImportSourceDescriptor> {
     @Override
     public void validate(ImportSourceDescriptor source, FactoryParameter.Version version) throws ConflictException {
-        if ("git".equals(source.getType())) {
+        if ("git".equals(source.getType()) || "esbwso2".equals(source.getType())) {
             for (Map.Entry<String, String> entry : source.getParameters().entrySet()) {
                 switch (entry.getKey()) {
                     case "branch":

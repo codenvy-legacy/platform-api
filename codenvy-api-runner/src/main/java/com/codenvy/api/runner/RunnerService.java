@@ -35,6 +35,9 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -59,6 +62,8 @@ import java.util.List;
 @Path("/runner/{ws-id}")
 @Description("Runner REST API")
 public class RunnerService extends Service {
+    private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
+
     @Inject
     private RunQueue runQueue;
 
@@ -115,7 +120,7 @@ public class RunnerService extends Service {
                                                                   @PathParam("ws-id") String workspace,
                                                                   @ApiParam(value = "Project name", required = false)
                                                                   @Required @Description("project name")
-                                                                  @QueryParam("project") String project) throws Exception {
+                                                                  @QueryParam("project") String project) {
         if (project != null && !project.startsWith("/")) {
             project = '/' + project;
         }
@@ -134,6 +139,9 @@ public class RunnerService extends Service {
                         // NotFoundException is possible and should not be treated as error in this case. Typically it occurs if slave
                         // runner already cleaned up the task by its internal cleaner but RunQueue doesn't re-check yet slave runner and
                         // doesn't have actual info about state of slave runner.
+                    } catch(RunnerException e) {
+                        // Decide ignore such error to be able show maximum available info.
+                        LOG.error(e.getMessage(), e);
                     }
                 }
             }
@@ -207,15 +215,21 @@ public class RunnerService extends Service {
     public RunnerEnvironmentTree getRunnerEnvironments(@ApiParam(value = "Workspace ID", required = true)
                                                        @PathParam("ws-id") String workspace,
                                                        @ApiParam(value = "Project name")
-                                                       @Description("project name") @QueryParam("project") String project)
-            throws Exception {
+                                                       @Description("project name") @QueryParam("project") String project) {
         // Here merge environments from all know runner servers and represent them as tree.
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("system");
         for (RemoteRunnerServer runnerServer : runQueue.getRegisterRunnerServers()) {
             if ((!runnerServer.isDedicated() || runnerServer.getAssignedWorkspace().equals(workspace))
                 && (project == null || project.equals(runnerServer.getAssignedProject()))) {
-                for (RunnerDescriptor runnerDescriptor : runnerServer.getRunnerDescriptors()) {
+                final List<RunnerDescriptor> runners;
+                try {
+                    runners = runnerServer.getRunnerDescriptors();
+                } catch (RunnerException e) {
+                    LOG.error(e.getMessage(), e);
+                    continue;
+                }
+                for (RunnerDescriptor runnerDescriptor : runners) {
                     for (RunnerEnvironment runnerEnvironment : runnerDescriptor.getEnvironments()) {
                         RunnerEnvironmentTree node = root;
                         for (String s : runnerDescriptor.getName().split("/")) {
@@ -225,16 +239,15 @@ public class RunnerService extends Service {
                                 node.addNode(child);
                             }
                             node = child;
-                            // Clone environment and use its id as display name and replace its id with new one in format scope:/runner/environment.
-                            // This is global id that shown scope of this environment, e.g. system , project, etc.
-                            final String unique =
-                                    new EnvironmentId(EnvironmentId.Scope.system, runnerDescriptor.getName(), runnerEnvironment.getId())
-                                            .toString();
-                            node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
-                                                 .withDisplayName(runnerEnvironment.getId())
-                                                 .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
                         }
-
+                        // Clone environment and use its id as display name and replace its id with new one in format scope:/runner/environment.
+                        // This is global id that shown scope of this environment, e.g. system , project, etc.
+                        final String unique =
+                                new EnvironmentId(EnvironmentId.Scope.system, runnerDescriptor.getName(), runnerEnvironment.getId())
+                                        .toString();
+                        node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
+                                               .withDisplayName(runnerEnvironment.getId())
+                                               .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
                     }
                 }
             }

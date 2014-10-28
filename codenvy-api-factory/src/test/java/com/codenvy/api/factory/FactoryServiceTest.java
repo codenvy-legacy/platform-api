@@ -18,12 +18,12 @@ import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.Source;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.Pair;
@@ -231,14 +231,17 @@ public class FactoryServiceTest {
         Response response =
                 given().when().queryParam("v", "1.1").queryParam("vcs", "git").queryParam("vcsurl", "git@github.com:codenvy/cloud-ide.git")
                        .queryParam("variables",
-                                   ("[" + DtoFactory.getInstance().toJson(DtoFactory.getInstance().createDto(Variable.class)) + "]")).get(
-                        SERVICE_PATH + "/nonencoded");
+                                   ("[" + DtoFactory.getInstance().toJson(DtoFactory.getInstance().createDto(ReplacementSet.class)) + "]"))
+                       .get(SERVICE_PATH + "/nonencoded");
 
         // then
         Factory factory = DtoFactory.getInstance().createDtoFromJson(response.asInputStream(), Factory.class);
         assertEquals(DtoFactory.getInstance().createDto(Factory.class)
-                               .withVariables(Arrays.asList(DtoFactory.getInstance().createDto(Variable.class))).withV(
-                        "1.1").withVcs("git").withVcsurl("git@github.com:codenvy/cloud-ide.git"), factory);
+                               .withVariables(Arrays.asList(DtoFactory.getInstance().createDto(ReplacementSet.class)))
+                               .withV("1.1")
+                               .withVcs("git")
+                               .withVcsurl("git@github.com:codenvy/cloud-ide.git"),
+                     factory);
     }
 
 

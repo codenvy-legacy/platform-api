@@ -94,19 +94,19 @@ public class BuildQueue {
 
     private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final ConcurrentMap<String, RemoteBuilderServer>       builderServices;
-    private final BuilderSelectionStrategy                         builderSelector;
-    private final ConcurrentMap<Long, BuildQueueTask>              tasks;
-    private final ConcurrentMap<ProjectWithWorkspace, BuilderList> builderListMapping;
-    private final String                                           baseWorkspaceApiUrl;
-    private final String                                           baseProjectApiUrl;
-    private final int                                              maxExecutionTimeMillis;
-    private final EventService                                     eventService;
+    private final ConcurrentMap<String, RemoteBuilderServer> builderServices;
+    private final BuilderSelectionStrategy                   builderSelector;
+    private final ConcurrentMap<Long, BuildQueueTask>        tasks;
+    private final ConcurrentMap<BuilderListKey, BuilderList> builderListMapping;
+    private final String                                     baseWorkspaceApiUrl;
+    private final String                                     baseProjectApiUrl;
+    private final int                                        maxExecutionTimeMillis;
+    private final EventService                               eventService;
     /** Max time for request to be in queue in milliseconds. */
-    private final long                                             waitingTimeMillis;
-    private final Cache<BaseBuilderRequest, RemoteTask>            successfulBuilds;
-    private final AtomicBoolean                                    started;
-    private final long                                             keepResultTimeMillis;
+    private final long                                       waitingTimeMillis;
+    private final Cache<BaseBuilderRequest, RemoteTask>      successfulBuilds;
+    private final AtomicBoolean                              started;
+    private final long                                       keepResultTimeMillis;
 
     private ExecutorService          executor;
     private ScheduledExecutorService scheduler;
@@ -198,7 +198,7 @@ public class BuildQueue {
     public boolean registerBuilderServer(BuilderServerRegistration registration) throws BuilderException {
         checkStarted();
         final String url = registration.getBuilderServerLocation().getUrl();
-        final RemoteBuilderServer builderServer = new RemoteBuilderServer(url);
+        final RemoteBuilderServer builderServer = createRemoteBuilderServer(url);
         String workspace = null;
         String project = null;
         final BuilderServerAccessCriteria accessCriteria = registration.getBuilderServerAccessCriteria();
@@ -215,17 +215,21 @@ public class BuildQueue {
         return doRegisterBuilderServer(builderServer);
     }
 
-    private boolean doRegisterBuilderServer(RemoteBuilderServer builderServer) throws BuilderException {
+    // Switched to default for test.
+    // private
+    RemoteBuilderServer createRemoteBuilderServer(String url) {
+        return new RemoteBuilderServer(url);
+    }
+
+    // Switched to default for test.
+    // private
+    boolean doRegisterBuilderServer(RemoteBuilderServer builderServer) throws BuilderException {
         final List<RemoteBuilder> toAdd = new LinkedList<>();
         for (BuilderDescriptor builderDescriptor : builderServer.getAvailableBuilders()) {
             toAdd.add(builderServer.createRemoteBuilder(builderDescriptor));
         }
         builderServices.put(builderServer.getBaseUrl(), builderServer);
-        return registerBuilders(builderServer.getAssignedWorkspace(), builderServer.getAssignedProject(), toAdd);
-    }
-
-    protected boolean registerBuilders(String workspace, String project, List<RemoteBuilder> toAdd) {
-        final ProjectWithWorkspace key = new ProjectWithWorkspace(project, workspace);
+        final BuilderListKey key = new BuilderListKey(builderServer.getAssignedWorkspace(), builderServer.getAssignedProject());
         BuilderList builderList = builderListMapping.get(key);
         if (builderList == null) {
             final BuilderList newBuilderList = new BuilderList(builderSelector);
@@ -253,25 +257,22 @@ public class BuildQueue {
             return false;
         }
         final RemoteBuilderServer builderServer = builderServices.remove(url);
-        if (builderServer == null) {
-            return false;
-        }
-        final List<RemoteBuilder> toRemove = new LinkedList<>();
-        for (BuilderDescriptor builderDescriptor : builderServer.getAvailableBuilders()) {
-            toRemove.add(builderServer.createRemoteBuilder(builderDescriptor));
-        }
-        return unregisterBuilders(toRemove);
+        return builderServer != null && doUnregisterBuilders(url);
     }
 
-    protected boolean unregisterBuilders(List<RemoteBuilder> toRemove) {
+    // Switched to default for test.
+    // private
+    boolean doUnregisterBuilders(String url) {
         boolean modified = false;
         for (Iterator<BuilderList> i = builderListMapping.values().iterator(); i.hasNext(); ) {
             final BuilderList builderList = i.next();
-            if (builderList.removeBuilders(toRemove)) {
-                modified |= true;
-                if (builderList.size() == 0) {
-                    i.remove();
+            for (RemoteBuilder builder : builderList.getBuilders()) {
+                if (url.equals(builder.getBaseUrl())) {
+                    modified |= builderList.removeBuilder(builder);
                 }
+            }
+            if (builderList.size() == 0) {
+                i.remove();
             }
         }
         return modified;
@@ -304,7 +305,10 @@ public class BuildQueue {
             request.setIncludeDependencies(buildOptions.isIncludeDependencies());
             request.setSkipTest(buildOptions.isSkipTest());
         }
-        addParametersFromProjectDescriptor(projectDescription, request);
+        fillRequestFromProjectDescriptor(projectDescription, request);
+        if (!hasBuilder(request)) {
+            throw new BuilderException(String.format("Builder '%s' is not available for workspace %s.", request.getBuilder(), wsId));
+        }
         final RemoteTask successfulTask = successfulBuilds.get(request);
         Callable<RemoteTask> callable = null;
         boolean reuse = false;
@@ -376,7 +380,10 @@ public class BuildQueue {
                                                                        .withWorkspace(wsId)
                                                                        .withProject(project)
                                                                        .withUserName(user == null ? "" : user.getName());
-        addParametersFromProjectDescriptor(descriptor, request);
+        fillRequestFromProjectDescriptor(descriptor, request);
+        if (!hasBuilder(request)) {
+            throw new BuilderException(String.format("Builder '%s' is not available for workspace '%s'.", request.getBuilder(), wsId));
+        }
         final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
         request.setTimeout(getBuildTimeout(workspace));
         final Callable<RemoteTask> callable = createTaskFor(request);
@@ -398,7 +405,7 @@ public class BuildQueue {
         };
     }
 
-    private void addParametersFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
+    private void fillRequestFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
         String builder = request.getBuilder();
         if (builder == null) {
             final BuildersDescriptor builders = descriptor.getBuilders();
@@ -409,9 +416,6 @@ public class BuildQueue {
                 throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
             request.setBuilder(builder);
-        }
-        if (!hasBuilder(request)) {
-            throw new BuilderException(String.format("Builder '%s' is not available. ", builder));
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
@@ -457,29 +461,35 @@ public class BuildQueue {
         }
     }
 
+    // Switched to default for test.
+    // private
     boolean hasBuilder(BaseBuilderRequest request) {
         final BuilderList builderList = getBuilderList(request.getWorkspace(), request.getProject());
         return builderList != null && builderList.hasBuilder(request.getBuilder());
     }
 
-    protected BuilderList getBuilderList(String workspace, String project) {
-        BuilderList builderList = builderListMapping.get(new ProjectWithWorkspace(project, workspace));
+    // Switched to default for test.
+    // private
+    BuilderList getBuilderList(String workspace, String project) {
+        BuilderList builderList = builderListMapping.get(new BuilderListKey(project, workspace));
         if (builderList == null) {
             if (project != null || workspace != null) {
                 if (workspace != null) {
                     // have dedicated builders for whole workspace (omit project) ?
-                    builderList = builderListMapping.get(new ProjectWithWorkspace(null, workspace));
+                    builderList = builderListMapping.get(new BuilderListKey(null, workspace));
                 }
                 if (builderList == null) {
                     // seems there is no dedicated builders for specified request, use shared one then
-                    builderList = builderListMapping.get(new ProjectWithWorkspace(null, null));
+                    builderList = builderListMapping.get(new BuilderListKey(null, null));
                 }
             }
         }
         return builderList;
     }
 
-    protected RemoteBuilder getBuilder(BaseBuilderRequest request) throws BuilderException {
+    // Switched to default for test.
+    // private
+    RemoteBuilder getBuilder(BaseBuilderRequest request) throws BuilderException {
         final BuilderList builderList = getBuilderList(request.getWorkspace(), request.getProject());
         if (builderList == null) {
             // Cannot continue, typically should never happen. At least shared builders should be available for everyone.
@@ -628,7 +638,7 @@ public class BuildQueue {
                         final LinkedList<RemoteBuilderServer> servers = new LinkedList<>();
                         for (String slave : slaves) {
                             try {
-                                servers.add(new RemoteBuilderServer(slave));
+                                servers.add(createRemoteBuilderServer(slave));
                             } catch (IllegalArgumentException e) {
                                 LOG.error(e.getMessage(), e);
                             }
@@ -736,11 +746,11 @@ public class BuildQueue {
         }
     }
 
-    private static class ProjectWithWorkspace {
+    private static class BuilderListKey {
         final String project;
         final String workspace;
 
-        ProjectWithWorkspace(String project, String workspace) {
+        BuilderListKey(String project, String workspace) {
             this.project = project;
             this.workspace = workspace;
         }
@@ -750,10 +760,10 @@ public class BuildQueue {
             if (this == o) {
                 return true;
             }
-            if (!(o instanceof ProjectWithWorkspace)) {
+            if (!(o instanceof BuilderListKey)) {
                 return false;
             }
-            ProjectWithWorkspace other = (ProjectWithWorkspace)o;
+            BuilderListKey other = (BuilderListKey)o;
             return (workspace == null ? other.workspace == null : workspace.equals(other.workspace))
                    && (project == null ? other.project == null : project.equals(other.project));
 
@@ -786,6 +796,10 @@ public class BuildQueue {
             builders = new LinkedHashSet<>();
         }
 
+        synchronized List<RemoteBuilder> getBuilders() {
+            return new ArrayList<>(builders);
+        }
+
         synchronized boolean hasBuilder(String name) {
             for (RemoteBuilder builder : builders) {
                 if (name.equals(builder.getName())) {
@@ -796,19 +810,15 @@ public class BuildQueue {
         }
 
         synchronized boolean addBuilders(Collection<? extends RemoteBuilder> list) {
-            if (builders.addAll(list)) {
-                notifyAll();
-                return true;
-            }
-            return false;
+            return builders.addAll(list);
         }
 
         synchronized boolean removeBuilders(Collection<? extends RemoteBuilder> list) {
-            if (builders.removeAll(list)) {
-                notifyAll();
-                return true;
-            }
-            return false;
+            return builders.removeAll(list);
+        }
+
+        synchronized boolean removeBuilder(RemoteBuilder builder) {
+            return builders.remove(builder);
         }
 
         synchronized int size() {
@@ -827,7 +837,6 @@ public class BuildQueue {
                 return null;
             }
             final List<RemoteBuilder> available = new ArrayList<>(matched.size());
-            int attemptGetState = 0;
             for (; ; ) {
                 for (RemoteBuilder builder : matched) {
                     if (Thread.currentThread().isInterrupted()) {
@@ -838,10 +847,6 @@ public class BuildQueue {
                         builderState = builder.getBuilderState();
                     } catch (Exception e) {
                         LOG.error(e.getMessage(), e);
-                        ++attemptGetState;
-                        if (attemptGetState > 10) {
-                            return null;
-                        }
                         continue;
                     }
                     if (builderState.getFreeWorkers() > 0) {
@@ -857,7 +862,7 @@ public class BuildQueue {
                         return null; // expected to get here if task is canceled
                     }
                 } else {
-                    if (available.size() > 0) {
+                    if (available.size() > 1) {
                         return builderSelector.select(available);
                     }
                     return available.get(0);

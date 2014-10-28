@@ -8,26 +8,24 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.runner;
+package com.codenvy.api.builder;
 
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Random;
 
 /**
- * Select random runner to launch application.
- *
- * @author Sergii Kabashniuk
+ * @author andrew00x
  */
 @Singleton
-public class RandomRunnerSelectionStrategy implements RunnerSelectionStrategy {
+public class RandomBuilderSelectionStrategy implements BuilderSelectionStrategy {
     private final Random random = new Random();
 
     @Override
-    public RemoteRunner select(List<RemoteRunner> remoteRunners) {
-        if (remoteRunners.size() == 1) {
-            return remoteRunners.get(0);
+    public RemoteBuilder select(List<RemoteBuilder> slaveBuilders) {
+        if (slaveBuilders.size() == 1) {
+            return slaveBuilders.get(0);
         }
-        return remoteRunners.get(random.nextInt(remoteRunners.size()));
+        return slaveBuilders.get(random.nextInt(slaveBuilders.size()));
     }
 }

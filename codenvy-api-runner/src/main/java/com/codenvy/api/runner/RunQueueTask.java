@@ -46,6 +46,7 @@ public final class RunQueueTask implements Cancellable {
     private final long                             created;
     private final long                             waitingTimeout;
     private final AtomicBoolean                    stopped = new AtomicBoolean(false);
+    private Long                                   stopTime;
 
     /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
     private final UriBuilder uriBuilder;
@@ -88,10 +89,17 @@ public final class RunQueueTask implements Cancellable {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         ApplicationProcessDescriptor descriptor;
         if (isStopped()) {
+            final List<RunnerMetric> runStats = new ArrayList<>(1);
+            if (stopTime != null) {
+                runStats.add(dtoFactory.createDto(RunnerMetric.class).withName(RunnerMetric.STOP_TIME)
+                                       .withValue(Long.toString(stopTime))
+                                       .withDescription("Time when application was stopped"));
+            }
             descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
                                    .withProcessId(id)
                                    .withCreationTime(created)
-                                   .withStatus(ApplicationStatus.STOPPED);
+                                   .withStatus(ApplicationStatus.STOPPED)
+                                   .withRunStats(runStats);
         } else if (future.isCancelled()) {
             descriptor = dtoFactory.createDto(ApplicationProcessDescriptor.class)
                                    .withProcessId(id)
@@ -188,6 +196,7 @@ public final class RunQueueTask implements Cancellable {
         if (future.isCancelled()) {
             return;
         }
+        stopTime = System.currentTimeMillis();
         doStop(getRemoteProcess());
     }
 

@@ -61,7 +61,7 @@ public final class PathLockFactory {
             try {
                 wait();
             } catch (InterruptedException e) {
-                notify();
+                notifyAll();
                 throw new RuntimeException(e);
             }
         }
@@ -74,7 +74,7 @@ public final class PathLockFactory {
             try {
                 wait(waitTime);
             } catch (InterruptedException e) {
-                notify();
+                notifyAll();
                 throw new RuntimeException(e);
             }
             long now = System.currentTimeMillis();

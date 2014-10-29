@@ -36,7 +36,6 @@ import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.RunnerSource;
-import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -46,6 +45,7 @@ import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -57,8 +57,10 @@ import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PreDestroy;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -83,6 +85,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author andrew00x
@@ -92,6 +96,7 @@ import java.util.Set;
 @Api(value = "/project",
      description = "Project manager")
 @Path("/project/{ws-id}")
+@Singleton // important to have singleton
 public class ProjectService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectService.class);
 
@@ -107,6 +112,14 @@ public class ProjectService extends Service {
     private ProjectTypeResolverRegistry resolverRegistry;
     @Inject
     private EventService                eventService;
+
+    private final ExecutorService executor = Executors.newFixedThreadPool(1 + Runtime.getRuntime().availableProcessors(),
+                                                                          new NamedThreadFactory("ProjectService-IndexingThread-", true));
+
+    @PreDestroy
+    void stop() {
+        executor.shutdownNow();
+    }
 
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,
@@ -663,8 +676,17 @@ public class ProjectService extends Service {
         }
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
-        VirtualFile file = project.getBaseFolder().getVirtualFile();
-        searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
+        final VirtualFile file = project.getBaseFolder().getVirtualFile();
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
+                } catch (ServerException e) {
+                    LOG.error(e.getMessage());
+                }
+            }
+        });
         if (creationDate > 0) {
             final ProjectMisc misc = project.getMisc();
             misc.setCreationDate(creationDate);

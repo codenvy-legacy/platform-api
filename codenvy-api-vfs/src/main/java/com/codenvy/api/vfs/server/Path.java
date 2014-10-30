@@ -126,6 +126,16 @@ public final class Path {
         return new Path(absolute);
     }
 
+    public Path newPath(String... relative) {
+        if (relative.length == 0) {
+            return this; // It is safety to return this instance since it is immutable.
+        }
+        final String[] absolute = new String[elements.length + relative.length];
+        System.arraycopy(elements, 0, absolute, 0, elements.length);
+        System.arraycopy(relative, 0, absolute, elements.length, relative.length);
+        return new Path(absolute);
+    }
+
     public Path newPath(Path relative) {
         final String[] absolute = new String[elements.length + relative.elements.length];
         System.arraycopy(elements, 0, absolute, 0, elements.length);

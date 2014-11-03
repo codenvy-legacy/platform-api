@@ -36,7 +36,6 @@ import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.project.shared.dto.RunnerSource;
-import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -628,22 +627,16 @@ public class ProjectService extends Service {
 
         // Use resolver only if project type not set
         ProjectProblem resolved = null;
-
         String visibility = null;
-
         Project project = projectManager.getProject(workspace, path);
-
         if (importProject.getProject() != null) {  //project configuration set in Source we will use it
             visibility = importProject.getProject().getVisibility();
-            if (project == null) {
-                project = new Project(baseProjectFolder, projectManager);
-                project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
-            } else {
-                project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
-            }
-        } else { //project not configure so we try resolve it
-            if (project == null) {
-                Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+            project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
+        }
+        project = projectManager.getProject(workspace, path);
+        ProjectDescription projectDescription = getProjectDescription(project);
+        if (projectDescription == null) { //project not configure so we try resolve it
+            Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
                 for (ProjectTypeResolver resolver : resolvers) {
                     if (resolver.resolve((FolderEntry)virtualFile)) {
                         resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
@@ -651,16 +644,14 @@ public class ProjectService extends Service {
                         break;
                     }
                 }
-                // Try get project again after trying resolve it
-                project = projectManager.getProject(workspace, path);
-                if (project == null) { //resolver can't resolve project type
+                if (resolved == null) { //resolver can't resolve project type
                     project = new Project(baseProjectFolder, projectManager); //create BLANK project type
                     project.updateDescription(new ProjectDescription());
                     resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
                                          .withMessage("Project type not detect so we set it as blank");
                 }
-            }
         }
+        project = projectManager.getProject(workspace, path);//re-read project after reconfigure it
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
         VirtualFile file = project.getBaseFolder().getVirtualFile();
@@ -720,6 +711,14 @@ public class ProjectService extends Service {
             projectDescriptor.setProblems(projectProblems);
         }
         return projectDescriptor;
+    }
+
+    private ProjectDescription getProjectDescription(Project project) {
+        try {
+            return project.getDescription();
+        } catch (ServerException | ValueStorageException e) {
+            return null;
+        }
     }
 
     @ApiOperation(value = "Generate a project",

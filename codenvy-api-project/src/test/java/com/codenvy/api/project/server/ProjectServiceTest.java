@@ -110,6 +110,8 @@ public class ProjectServiceTest {
     private UserDao                     userDao;
     private ProjectTypeResolverRegistry resolverRegistry;
 
+
+
     @BeforeMethod
     public void setUp() throws Exception {
         ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
@@ -196,12 +198,15 @@ public class ProjectServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetProjects() throws Exception {
+        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
+        mountPoint.getRoot().createFolder("not_project");
+
         ContainerResponse response =
                 launcher.service("GET", "http://localhost:8080/api/project/my_ws", "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         List<ProjectReference> result = (List<ProjectReference>)response.getEntity();
         Assert.assertNotNull(result);
-        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.size(), 2);
         ProjectReference projectReference = result.get(0);
         Assert.assertEquals(projectReference.getName(), "my_project");
         Assert.assertEquals(projectReference.getUrl(), String.format("http://localhost:8080/api/project/%s/my_project", workspace));
@@ -210,6 +215,16 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getType(), "my_project_type");
         Assert.assertEquals(projectReference.getTypeName(), "my project type");
         Assert.assertEquals(projectReference.getVisibility(), "public");
+
+
+        ProjectReference badProject = result.get(1);
+        Assert.assertEquals(badProject.getName(), "not_project");
+        Assert.assertEquals(badProject.getUrl(), String.format("http://localhost:8080/api/project/%s/not_project", workspace));
+        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
+        Assert.assertEquals(badProject.getVisibility(), "public");
+        Assert.assertNotNull(badProject.getProblems());
+        Assert.assertTrue(badProject.getProblems().size() > 0);
+        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
     }
 
     @Test
@@ -270,23 +285,23 @@ public class ProjectServiceTest {
     }
 
 
-//    @Test
-//    public void testGetNotValidProject() throws Exception {
-//        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
-//        mountPoint.getRoot().createFolder("not_project");
-//        ContainerResponse response = launcher.service("GET", String.format("http://localhost:8080/api/project/%s/not_project", workspace),
-//                                                      "http://localhost:8080/api", null, null, null);
-//        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-//        ProjectDescriptor badProject = (ProjectDescriptor)response.getEntity();
-//        Assert.assertNotNull(badProject);
-//        Assert.assertEquals(badProject.getName(), "not_project");
-//        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
-//        Assert.assertEquals(badProject.getVisibility(), "public");
-//        Assert.assertNotNull(badProject.getProblems());
-//        Assert.assertTrue(badProject.getProblems().size() > 0);
-//        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
-//        validateProjectLinks(badProject);
-//    }
+    @Test
+    public void testGetNotValidProject() throws Exception {
+        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
+        mountPoint.getRoot().createFolder("not_project");
+        ContainerResponse response = launcher.service("GET", String.format("http://localhost:8080/api/project/%s/not_project", workspace),
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        ProjectDescriptor badProject = (ProjectDescriptor)response.getEntity();
+        Assert.assertNotNull(badProject);
+        Assert.assertEquals(badProject.getName(), "not_project");
+        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
+        Assert.assertEquals(badProject.getVisibility(), "public");
+        Assert.assertNotNull(badProject.getProblems());
+        Assert.assertTrue(badProject.getProblems().size() > 0);
+        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
+        validateProjectLinks(badProject);
+    }
 
     @Test
     public void testGetProjectCheckUserPermissions() throws Exception {
@@ -798,9 +813,14 @@ public class ProjectServiceTest {
 
     @Test
     public void testImportProject() throws Exception {
+        Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+        for(ProjectTypeResolver resolver : resolvers) {
+            resolverRegistry.unregister(resolver);
+        }
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         ZipOutputStream zipOut = new ZipOutputStream(bout);
         zipOut.putNextEntry(new ZipEntry("folder1/"));
+        resolverRegistry.getResolvers();
         zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
         zipOut.write("to be or not to be".getBytes());
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_DIR + "/"));
@@ -1168,10 +1188,9 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getType(), "blank");
+        Assert.assertNotNull(descriptor.getProblems());
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
-        Assert.assertNotNull(newProject.getDescription());
-        Assert.assertEquals("blank", newProject.getDescription().getProjectType().getId());
     }
 
     @Test
@@ -1239,6 +1258,7 @@ public class ProjectServiceTest {
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
     }
+
 
     @Test
     public void testImportZip() throws Exception {

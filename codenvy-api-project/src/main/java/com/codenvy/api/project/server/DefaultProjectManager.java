@@ -134,6 +134,23 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
 
+
+    /**
+     * Class for internal use. Need for marking not valid project.
+     * This need for giving possibility to end user to fix problems in project settings.
+     * Will be useful then we will migrate IDE2 project to the IDE3 file system.
+     */
+    private class NotValidProject extends Project {
+        public NotValidProject(FolderEntry baseFolder, ProjectManager manager) {
+            super(baseFolder, manager);
+        }
+
+        @Override
+        public ProjectDescription getDescription() throws ServerException, ValueStorageException {
+            throw new ServerException("Looks like this is not valid project. We will mark it as broken");
+        }
+    }
+
     @Override
     public List<Project> getProjects(String workspace) throws ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
@@ -141,6 +158,8 @@ public final class DefaultProjectManager implements ProjectManager {
         for (FolderEntry folder : myRoot.getChildFolders()) {
             if (folder.isProjectFolder()) {
                 projects.add(new Project(folder, this));
+            } else {
+                projects.add(new NotValidProject(folder, this));
             }
         }
         return projects;
@@ -150,10 +169,13 @@ public final class DefaultProjectManager implements ProjectManager {
     public Project getProject(String workspace, String projectPath) throws ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final VirtualFileEntry child = myRoot.getChild(projectPath.startsWith("/") ? projectPath.substring(1) : projectPath);
-        if (child != null && child.isFolder() && ((FolderEntry)child).isProjectFolder()) {
+        if (child == null || child.isFile())
+            return null;
+        if (((FolderEntry)child).isProjectFolder()) {
             return new Project((FolderEntry)child, this);
+        } else {
+            return new NotValidProject((FolderEntry)child, this);
         }
-        return null;
     }
 
     @Override

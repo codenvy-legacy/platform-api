@@ -12,6 +12,7 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.newproj.ProjectDescriptor;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
@@ -81,6 +82,21 @@ public class Project {
     public void saveMisc(ProjectMisc misc) throws ServerException {
         manager.saveProjectMisc(this, misc);
     }
+
+
+    public ProjectDescriptor getDescriptor() throws ServerException {
+
+        final ProjectJson2 projectJson = ProjectJson2.load(this);
+
+        String desc = projectJson.getDescription();
+        com.codenvy.api.project.newproj.ProjectType type = manager.getProjectTypeRegistry().getProjectType(projectJson.getType());
+        final List<com.codenvy.api.project.newproj.Attribute> copy = new ArrayList<>(type.getAttributes().size());
+        copy.addAll(type.getAttributes());
+
+        return new ProjectDescriptor(desc, type.getId(), copy);
+
+    }
+
 
     /** Gets project meta-information. */
     public ProjectDescription getDescription() throws ServerException, ValueStorageException {

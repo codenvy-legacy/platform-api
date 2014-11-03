@@ -13,6 +13,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.google.inject.ImplementedBy;
 
@@ -118,4 +119,6 @@ public interface ProjectManager {
     Map<String, ValueProviderFactory> getValueProviderFactories();
 
     VirtualFileSystemRegistry getVirtualFileSystemRegistry();
+
+    ProjectTypeRegistry getProjectTypeRegistry();
 }

@@ -11,6 +11,7 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -23,13 +24,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author andrew00x
@@ -91,7 +86,10 @@ public class ProjectTest {
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new DefaultProjectManager(ptdr, vpf, vfsRegistry, eventService);
+
+        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(new HashSet<com.codenvy.api.project.newproj.ProjectType>());
+
+        pm = new DefaultProjectManager(ptdr, vpf, vfsRegistry, eventService, ptRegistry);
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_DIR).createFile(Constants.CODENVY_PROJECT_FILE, null, null);

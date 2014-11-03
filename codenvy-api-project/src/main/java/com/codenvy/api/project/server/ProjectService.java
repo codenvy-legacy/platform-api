@@ -22,6 +22,9 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
+import com.codenvy.api.project.newproj.server.event.GetFileEvent;
+import com.codenvy.api.project.newproj.server.event.GetFileEventSubcriber;
+import com.codenvy.api.project.newproj.server.event.ProjectServiceEventSubscriberRegistry;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
 import com.codenvy.api.project.shared.dto.ImportProject;
@@ -107,6 +110,9 @@ public class ProjectService extends Service {
     private ProjectTypeResolverRegistry resolverRegistry;
     @Inject
     private EventService                eventService;
+
+    @Inject
+    private ProjectServiceEventSubscriberRegistry projectServiceEventSubscriberRegistry;
 
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,
@@ -863,6 +869,7 @@ public class ProjectService extends Service {
                 result.add(DtoConverter.toItemReferenceDto((FolderEntry)child, uriBuilder.clone()));
             }
         }
+
         return result;
     }
 
@@ -892,6 +899,52 @@ public class ProjectService extends Service {
         return dtoFactory.createDto(TreeElement.class)
                          .withNode(DtoConverter.toItemReferenceDto(folder, uriBuilder.clone()))
                          .withChildren(getTree(folder, depth, uriBuilder, dtoFactory));
+    }
+
+    @ApiOperation(value = "Get file or folder",
+            response = TreeElement.class,
+            responseContainer = "List",
+            position = 27)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @GET
+    @Path("/item/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ItemReference getItem(@ApiParam(value = "Workspace ID", required = true)
+                               @PathParam("ws-id") String workspace,
+                               @ApiParam(value = "Path to resource. Can be project or its folders", required = true)
+                               @PathParam("path") String path)
+            throws NotFoundException, ForbiddenException, ServerException, ValueStorageException {
+
+        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+
+
+        System.out.println("TYPE >>>> "+projectManager.getProject(workspace, projectPath(path))+" "+ this.projectServiceEventSubscriberRegistry.getGetFileEventSubcribers().size());
+
+        for(GetFileEventSubcriber subs : this.projectServiceEventSubscriberRegistry.getGetFileEventSubcribers()) {
+            // TODO projectManager.getProjectType(workspace, path);
+
+
+            System.out.println("TYPE >>>> "+projectManager.getProject(workspace, path));
+
+            String typeId = projectManager.getProject(workspace, path).getDescriptor().getTypeId();
+
+
+
+            subs.onEvent(new GetFileEvent(this.projectManager.getProjectTypeRegistry().getProjectType(typeId), (FileEntry)entry));
+        }
+
+
+        if(entry.isFile()) {
+            return DtoConverter.toItemReferenceDto((FileEntry)entry, uriBuilder.clone());
+        } else {
+            return DtoConverter.toItemReferenceDto((FolderEntry)entry, uriBuilder.clone());
+        }
+
     }
 
     private List<TreeElement> getTree(FolderEntry folder, int depth, UriBuilder uriBuilder, DtoFactory dtoFactory) throws ServerException {
@@ -1129,5 +1182,9 @@ public class ProjectService extends Service {
             throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
         }
         return entry;
+    }
+
+    private String projectPath(String path) {
+        return path.substring(0, path.indexOf("/"));
     }
 }

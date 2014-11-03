@@ -15,6 +15,7 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
+import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
@@ -63,17 +64,21 @@ public final class DefaultProjectManager implements ProjectManager {
     private final VirtualFileSystemRegistry         fileSystemRegistry;
     private final EventService                      eventService;
     private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
+    private final ProjectTypeRegistry projectTypeRegistry;
 
     @Inject
     @SuppressWarnings("unchecked")
     public DefaultProjectManager(ProjectTypeDescriptionRegistry typeDescriptionRegistry,
                                  Set<ValueProviderFactory> valueProviderFactories,
                                  VirtualFileSystemRegistry fileSystemRegistry,
-                                 EventService eventService) {
+                                 EventService eventService,
+                                 ProjectTypeRegistry projectTypeRegistry) {
         this.typeDescriptionRegistry = typeDescriptionRegistry;
         this.fileSystemRegistry = fileSystemRegistry;
         this.valueProviderFactories = new HashMap<>();
         this.eventService = eventService;
+        this.projectTypeRegistry = projectTypeRegistry;
+
         for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
             this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
         }
@@ -303,5 +308,10 @@ public final class DefaultProjectManager implements ProjectManager {
                 miscLocks[i].unlock();
             }
         }
+    }
+
+    @Override
+    public ProjectTypeRegistry getProjectTypeRegistry() {
+        return this.projectTypeRegistry;
     }
 }

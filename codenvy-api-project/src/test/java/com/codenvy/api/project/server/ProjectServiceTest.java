@@ -20,6 +20,9 @@ import com.codenvy.api.core.rest.CodenvyJsonProvider;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
+import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
+import com.codenvy.api.project.newproj.server.event.GetFileEventSubcriber;
+import com.codenvy.api.project.newproj.server.event.ProjectServiceEventSubscriberRegistry;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
 import com.codenvy.api.project.shared.dto.ImportProject;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
@@ -136,7 +139,10 @@ public class ProjectServiceTest {
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
-        pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService);
+
+        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(new HashSet<com.codenvy.api.project.newproj.ProjectType>());
+
+        pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService, ptRegistry);
         final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
         ProjectDescription pd = new ProjectDescription(projectType);
         pd.setDescription("my test project");
@@ -159,6 +165,8 @@ public class ProjectServiceTest {
             }
         });
         resolverRegistry = new ProjectTypeResolverRegistry(resolvers);
+
+
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
@@ -166,6 +174,9 @@ public class ProjectServiceTest {
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
         dependencies.addComponent(ProjectTypeResolverRegistry.class, resolverRegistry);
         dependencies.addComponent(EventService.class, eventService);
+        dependencies.addComponent(ProjectServiceEventSubscriberRegistry.class, new ProjectServiceEventSubscriberRegistry());
+
+
         ResourceBinder resources = new ResourceBinderImpl();
         ProviderBinder providers = new ApplicationProviderBinder();
         EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
@@ -1381,6 +1392,34 @@ public class ProjectServiceTest {
         }
         Assert.assertTrue(names.contains("b"));
         Assert.assertTrue(names.contains("test.txt"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGetItem() throws Exception {
+        Project myProject = pm.getProject(workspace, "my_project");
+        FolderEntry a = myProject.getBaseFolder().createFolder("a");
+        a.createFolder("b");
+        a.createFile("test.txt", "test".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("GET",
+                String.format("http://localhost:8080/api/project/%s/item/my_project/a/b",
+                        workspace),
+                "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+
+        ItemReference result = (ItemReference)response.getEntity();
+        Assert.assertEquals(result.getType(), "folder");
+        Assert.assertEquals(result.getName(), "b");
+
+        response = launcher.service("GET",
+                String.format("http://localhost:8080/api/project/%s/item/my_project/a/test.txt",
+                        workspace),
+                "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        result = (ItemReference)response.getEntity();
+        Assert.assertEquals(result.getType(), "file");
+        Assert.assertEquals(result.getMediaType(), "text/plain");
+
     }
 
     @Test

@@ -23,6 +23,7 @@ import com.codenvy.api.vfs.shared.dto.ItemList;
 import com.codenvy.api.vfs.shared.dto.ItemNode;
 import com.codenvy.api.vfs.shared.dto.Lock;
 import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 
 import org.apache.commons.fileupload.FileItem;
@@ -653,6 +654,35 @@ public interface VirtualFileSystem {
     @Path("rename")
     @Produces({MediaType.APPLICATION_JSON})
     Item rename(String id, MediaType mediaType, String newname, String lockToken)
+            throws NotFoundException, ConflictException, ForbiddenException, ServerException;
+
+    /**
+     * Performs in-depth replacing of variables or text entries in the Items.
+     *
+     * @param path
+     *         folder root to perform replace in depth
+     * @param replacements
+     *         list of replacements. each replacement contains filename (or regex pattern) and list of changes
+     * @param lockToken
+     *         lock token. This lock token will be used if {@code path} is locked. Pass {@code null} if there is no lock token, e.g. item is
+     *         not locked
+     * @throws NotFoundException
+     *         if {@code path} doesn't exist
+     * @throws ConflictException
+     *         if {@code path} is not a folder
+     * @throws ForbiddenException
+     *         if any of following conditions are met:
+     *         <ul>
+     *         <li>item {@code path} is locked and {@code lockToken} is {@code null} or doesn't match</li>
+     *         <li>user which perform operation has no permissions</li>
+     *         </ul>
+     * @throws ServerException
+     *         if any other errors occur
+     */
+
+    @POST
+    @Path("replace/{path:.*}")
+    public void replace(String path, List<ReplacementSet> replacements, String lockToken)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException;
 
     /**

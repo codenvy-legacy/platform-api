@@ -61,7 +61,7 @@ public final class PathLockFactory {
             try {
                 wait();
             } catch (InterruptedException e) {
-                notify();
+                notifyAll();
                 throw new RuntimeException(e);
             }
         }
@@ -74,7 +74,7 @@ public final class PathLockFactory {
             try {
                 wait(waitTime);
             } catch (InterruptedException e) {
-                notify();
+                notifyAll();
                 throw new RuntimeException(e);
             }
             long now = System.currentTimeMillis();
@@ -108,9 +108,11 @@ public final class PathLockFactory {
             node = node.prev;
         }
         notifyAll();
+        //System.err.printf(">>>>> release: %s : %d%n", path, permits);
     }
 
     private boolean tryAcquire(Path path, int permits) {
+        //System.err.printf(">>>>> acquire: %s : %d%n", path, permits);
         Node node = tail.prev;
         final Thread current = Thread.currentThread();
         while (node != null) {

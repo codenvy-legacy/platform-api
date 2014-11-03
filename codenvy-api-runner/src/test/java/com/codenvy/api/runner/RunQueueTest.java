@@ -28,6 +28,7 @@ import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
+import com.codenvy.api.runner.dto.RunnerServerDescriptor;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
 import com.codenvy.api.runner.dto.RunnerState;
@@ -666,6 +667,7 @@ public class RunQueueTest {
     private RemoteRunnerServer registerRunnerServer(String remoteUrl, RunnerDescriptor runnerDescriptor,
                                                     RunnerServerAccessCriteria accessRules) throws Exception {
         RemoteRunnerServer runnerServer = spy(new RemoteRunnerServer(remoteUrl));
+        doReturn(dto(RunnerServerDescriptor.class)).when(runnerServer).getServiceDescriptor();
         doReturn(Arrays.asList(runnerDescriptor)).when(runnerServer).getRunnerDescriptors();
         RemoteRunner runner = spy(new RemoteRunner(remoteUrl, runnerDescriptor, new ArrayList<Link>()));
         doReturn(runner).when(runnerServer).createRemoteRunner(runnerDescriptor);

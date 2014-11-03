@@ -23,8 +23,8 @@ import com.codenvy.api.factory.dto.FactoryV1_0;
 import com.codenvy.api.factory.dto.FactoryV1_1;
 import com.codenvy.api.factory.dto.FactoryV1_2;
 import com.codenvy.api.factory.dto.FactoryV2_0;
-import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.commons.lang.Strings;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
@@ -410,7 +410,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                         if (null == param) {
                             if ("variables".equals(fullName) || "actions.findReplace".equals(fullName)) {
                                 try {
-                                    param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), Variable.class);
+                                    param = DtoFactory.getInstance().createListDtoFromJson(values.iterator().next(), ReplacementSet.class);
                                 } catch (Exception e) {
                                     throw new ConflictException(
                                             format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, fullName, values.toString()));
@@ -527,7 +527,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     @Override
-    protected String toJson(List<Variable> dto) {
+    protected String toJson(List<ReplacementSet> dto) {
         return DtoFactory.getInstance().toJson(dto);
     }
 }

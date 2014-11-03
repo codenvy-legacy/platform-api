@@ -11,6 +11,7 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -40,11 +41,11 @@ public interface Actions {
      * Allow to use text replacement in project files after clone
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "findReplace")
-    List<Variable> getFindReplace();
+    List<ReplacementSet> getFindReplace();
 
-    void setFindReplace(List<Variable> variable);
+    void setFindReplace(List<ReplacementSet> variable);
 
-    Actions withFindReplace(List<Variable> variable);
+    Actions withFindReplace(List<ReplacementSet> variable);
 
     // TODO
 //    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "macro")

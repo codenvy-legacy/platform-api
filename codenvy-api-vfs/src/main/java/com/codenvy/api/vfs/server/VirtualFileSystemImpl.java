@@ -28,9 +28,13 @@ import com.codenvy.api.vfs.shared.dto.ItemNode;
 import com.codenvy.api.vfs.shared.dto.Lock;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.Property;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
+import com.codenvy.api.vfs.shared.dto.Variable;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.ACLCapability;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
+import com.codenvy.commons.lang.Deserializer;
+import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
@@ -50,14 +54,17 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -65,6 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 
 /**
@@ -439,6 +447,76 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
         final VirtualFile origin = mountPoint.getVirtualFileById(id);
         final VirtualFile renamedVirtualFile = origin.rename(newName, newMediaType == null ? null : newMediaType.toString(), lockToken);
         return fromVirtualFile(renamedVirtualFile, false, PropertyFilter.ALL_FILTER);
+    }
+
+    @Path("replace/{path:.*}")
+    @Override
+    public void replace(@PathParam("path") String path,
+                       List<ReplacementSet> replacements,
+                       @QueryParam("lockToken") String lockToken)
+            throws NotFoundException, ForbiddenException, ConflictException, ServerException {
+        VirtualFile projectRoot = mountPoint.getVirtualFile(path);
+        if (!projectRoot.isFolder()) {
+            throw new ConflictException("Given path must be an project root folder. ");
+        }
+        final Map<String, ReplacementContainer> changesPerFile = new HashMap<>();
+        // fill changes matrix first
+        for (final ReplacementSet replacement : replacements) {
+            for (final String regex : replacement.getFiles()) {
+                Pattern pattern  = Pattern.compile(regex);
+                ItemNode rootNode = getTree(projectRoot.getId(), -1, false, PropertyFilter.ALL_FILTER);
+                LinkedList<ItemNode> q = new LinkedList<>();
+                q.add(rootNode);
+                while (!q.isEmpty()) {
+                    ItemNode node = q.pop();
+                    Item item = node.getItem();
+                    if (item.getItemType().equals(ItemType.FOLDER)) {
+                        q.addAll(node.getChildren());
+                    } else if (item.getItemType().equals(ItemType.FILE)) {
+                        // for cases like:  src/main/java/(.*)
+                        String itemInternalPath = item.getPath().substring(projectRoot.getPath().length() + 1);
+                        if (pattern.matcher(item.getName()).matches() || pattern.matcher(itemInternalPath).matches()) {
+                            ReplacementContainer container =
+                                    (changesPerFile.get(item.getPath()) != null) ? changesPerFile.get(item.getPath())
+                                                                                 : new ReplacementContainer();
+                            for (Variable variable : replacement.getEntries()) {
+                                String replaceMode  = variable.getReplacemode();
+                                if (replaceMode == null || "variable_singlepass".equals(replaceMode)) {
+                                    container.getVariableProps().put(variable.getFind(), variable.getReplace());
+                                } else if ("text_multipass".equals(replaceMode)) {
+                                    container.getTextProps().put(variable.getFind(), variable.getReplace());
+                                }
+                            }
+                            changesPerFile.put(item.getPath(), container);
+                        }
+                    }
+                }
+            }
+        }
+        //now apply changes matrix
+        for (Map.Entry<String, ReplacementContainer> entry : changesPerFile.entrySet()) {
+            try {
+                if (entry.getValue().hasReplacements()) {
+                    ContentStream cs = mountPoint.getVirtualFile(entry.getKey()).getContent();
+                    String content = IoUtil.readAndCloseQuietly(cs.getStream());
+                    String modified =
+                            Deserializer.resolveVariables(content, entry.getValue().getVariableProps(), false);
+                    for (Map.Entry<String, String> replacement : entry.getValue().getTextProps().entrySet()) {
+                        if (modified.contains(replacement.getKey())) {
+                            modified = modified.replace(replacement.getKey(), replacement.getValue());
+                        }
+                    }
+                    //better to compare big strings by hash codes first
+                    if (!(content.hashCode() == modified.hashCode()) || !content.equals(modified)) {
+                        mountPoint.getVirtualFile(entry.getKey())
+                                  .updateContent(new ByteArrayInputStream(modified.getBytes(
+                                          StandardCharsets.UTF_8)), lockToken);
+                    }
+                }
+            } catch (IOException e) {
+                //LOG.warn(e.getMessage(), e);
+            }
+        }
     }
 
     @Consumes({MediaType.APPLICATION_FORM_URLENCODED})

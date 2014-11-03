@@ -512,7 +512,7 @@ public class WorkspaceService extends Service {
                 final Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
                 memberships.add(toDescriptor(member, workspace, context));
             } catch (NotFoundException nfEx) {
-                LOG.error("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(), currentUser().getId());
+                LOG.error("Workspace {} doesn't exist but user {} refers to it. ", member.getWorkspaceId(), currentUser().getId());
             }
         }
         return memberships;
@@ -562,7 +562,7 @@ public class WorkspaceService extends Service {
                 final Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
                 memberships.add(toDescriptor(member, workspace, context));
             } catch (NotFoundException nfEx) {
-                LOG.error("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(), userId);
+                LOG.error("Workspace {} doesn't exist but user {} refers to it. ", member.getWorkspaceId(), userId);
             }
         }
         return memberships;

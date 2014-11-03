@@ -231,16 +231,6 @@ public class UserProfileServiceTest {
     }
 
     @Test
-    public void gogogo() throws JsonParseException {
-        Map<String, String> map = singletonMap("a", "value");
-        String mapJson = JsonHelper.toJson(map);
-        TypeToken token = new TypeToken<Map<String, String>>() {};
-        Map<String, String> res = JsonHelper.<Map<String, String>>fromJson(mapJson, token.getRawType(), token.getType());
-
-        assertEquals(res.get("a"), "value");
-    }
-
-    @Test
     public void shouldBeAbleToUpdatePreferences() throws Exception {
         final Map<String, String> preferences = new HashMap<>(8);
         preferences.put("test1", "test1");

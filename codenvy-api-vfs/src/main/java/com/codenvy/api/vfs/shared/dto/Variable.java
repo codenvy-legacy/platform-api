@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.dto;
+package com.codenvy.api.vfs.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
@@ -18,23 +18,23 @@ import com.codenvy.dto.shared.DTO;
  * @author Sergii Kabashniuk
  */
 @DTO
-public interface Replacement {
+public interface Variable {
     String getFind();
 
     void setFind(String find);
 
-    Replacement withFind(String find);
+    Variable withFind(String find);
 
     String getReplace();
 
     void setReplace(String replace);
 
-    Replacement withReplace(String replace);
+    Variable withReplace(String replace);
 
     String getReplacemode();
 
     void setReplacemode(String replacemode);
 
-    Replacement withReplacemode(String replacemode);
+    Variable withReplacemode(String replacemode);
 
 }

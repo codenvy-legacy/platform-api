@@ -85,18 +85,19 @@ public abstract class LuceneSearcher implements Searcher {
      * @throws ServerException
      *         if any virtual filesystem error
      */
-    public synchronized void init(MountPoint mountPoint) throws ServerException {
-        final long start = System.currentTimeMillis();
+    public void init(MountPoint mountPoint) throws ServerException {
+        doInit();
+        addTree(mountPoint.getRoot());
+    }
+
+    protected final synchronized void doInit() throws ServerException {
+        luceneIndexDirectory = makeDirectory();
         try {
-            luceneIndexDirectory = makeDirectory();
             luceneIndexWriter = new IndexWriter(luceneIndexDirectory, makeAnalyzer(), IndexWriter.MaxFieldLength.UNLIMITED);
             luceneIndexSearcher = new IndexSearcher(luceneIndexWriter.getReader());
-            addTree(mountPoint.getRoot());
         } catch (IOException e) {
             throw new ServerException(e);
         }
-        final long end = System.currentTimeMillis();
-        LOG.debug("Index creation time: {} ms", (end - start));
     }
 
     public synchronized void close() {
@@ -231,6 +232,7 @@ public abstract class LuceneSearcher implements Searcher {
     }
 
     protected void addTree(VirtualFile tree) throws ServerException {
+        final long start = System.currentTimeMillis();
         final LinkedList<VirtualFile> q = new LinkedList<>();
         q.add(tree);
         int indexedFiles = 0;
@@ -249,7 +251,8 @@ public abstract class LuceneSearcher implements Searcher {
                 }
             }
         }
-        LOG.debug("Indexed {} files from {}", indexedFiles, tree.getPath());
+        final long end = System.currentTimeMillis();
+        LOG.debug("Indexed {} files from {}, time: {} ms", indexedFiles, tree.getPath(), (end - start));
     }
 
     protected void addFile(VirtualFile virtualFile) throws ServerException {

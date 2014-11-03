@@ -731,10 +731,12 @@ public class AccountService extends Service {
         subscriptionAttributesValidator.validate(newSubscriptionAttributes);
         service.beforeCreateSubscription(subscription);
 
-        if ("false".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem()) && !securityContext.isUserInRole("system/admin")) {
+        if ("false".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem()) &&
+            !securityContext.isUserInRole("system/admin") &&
+            !securityContext.isUserInRole("system/manager")) {
             throw new ConflictException("Given value of billing attribute usePaymentSystem is not allowed");
         }
-        if (plan.getSalesOnly() && !securityContext.isUserInRole("system/admin")) {
+        if (plan.getSalesOnly() && !securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager")) {
             throw new ConflictException("User not authorized to add this subscription, please contact support");
         }
 
@@ -791,7 +793,7 @@ public class AccountService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/subscriptions/{subscriptionId}")
-    @RolesAllowed({"user", "system/admin"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     public void removeSubscription(@ApiParam(value = "Subscription ID", required = true)
                                    @PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
             throws ApiException {

@@ -8,15 +8,15 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.dto;
+package com.codenvy.api.vfs.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
 
-/** Replacement variable, that contains list of files to find variables and replace by specified values. */
+/** Set of replacement variables, that contains list of files to find variables and replace by specified values. */
 @DTO
-public interface Variable {
+public interface ReplacementSet {
     /**
      * @return - list of files to make replacement
      */
@@ -24,15 +24,15 @@ public interface Variable {
 
     void setFiles(List<String> files);
 
-    Variable withFiles(List<String> files);
+    ReplacementSet withFiles(List<String> files);
 
     /**
      * @return - list of replacement
      */
-    List<Replacement> getEntries();
+    List<Variable> getEntries();
 
-    void setEntries(List<Replacement> entries);
+    void setEntries(List<Variable> entries);
 
-    Variable withEntries(List<Replacement> entries);
+    ReplacementSet withEntries(List<Variable> entries);
 
 }

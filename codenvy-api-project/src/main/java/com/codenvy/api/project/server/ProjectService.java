@@ -194,9 +194,6 @@ public class ProjectService extends Service {
         final Project project = projectManager.createProject(workspace, name,
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
         final String visibility = newProject.getVisibility();
-        final ProjectMisc misc = project.getMisc();
-        misc.setCreationDate(System.currentTimeMillis());
-        misc.save(); // Important to save misc!!
 
         if (visibility != null) {
             project.setVisibility(visibility);
@@ -690,7 +687,6 @@ public class ProjectService extends Service {
         if (creationDate > 0) {
             final ProjectMisc misc = project.getMisc();
             misc.setCreationDate(creationDate);
-            misc.save(); // Important to save misc!!
         }
 
         VirtualFileEntry environmentsFolder = baseProjectFolder.getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
@@ -717,7 +713,7 @@ public class ProjectService extends Service {
                         }
                     } else {
                         LOG.warn(
-                                "ProjectService.importProject :: not valid runner source location availabel only http or https scheme but" +
+                                "ProjectService.importProject :: not valid runner source location available only http or https scheme but" +
                                 " we get :" +
                                 runnerSourceLocation);
                     }

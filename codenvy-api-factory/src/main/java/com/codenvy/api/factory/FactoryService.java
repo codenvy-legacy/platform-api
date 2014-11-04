@@ -111,7 +111,7 @@ public class FactoryService extends Service {
      * Fields with images should be named 'image'. Acceptable image size 100x100 pixels.
      * If vcs is not set in factory URL it will be set with "git" value.
      *
-     * @param  formData
+     * @param formData
      *         - http request form data
      * @param uriInfo
      *         - url context
@@ -514,6 +514,10 @@ public class FactoryService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws ApiException {
         final Project project = projectManager.getProject(workspace, path);
+
+        if (project == null) {
+            throw new NotFoundException("Project " + path + " are not found in workspace " + workspace);
+        }
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         ImportSourceDescriptor source;
         NewProject newProject;

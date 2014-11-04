@@ -11,6 +11,8 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
@@ -933,6 +935,18 @@ public class FactoryServiceTest {
     private String getServerUrl(ITestContext context) {
         String serverPort = String.valueOf(context.getAttribute(EverrestJetty.JETTY_PORT));
         return "http://localhost:" + serverPort;
+    }
+
+    @Test
+    public void shouldRespondNotFoundIfProjectIsNotExist() throws ServerException, ForbiddenException {
+
+        given().//
+                expect().//
+                statusCode(404).//
+                when().//
+                get(SERVICE_PATH + "/ws/projectName" );
+        verify(projectManager).getProject(eq("ws"), eq("projectName"));
+
     }
 
     @Test

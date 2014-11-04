@@ -121,6 +121,23 @@ public class ProjectService extends Service {
         executor.shutdownNow();
     }
 
+
+    /**
+     * Class for internal use. Need for marking not valid project.
+     * This need for giving possibility to end user to fix problems in project settings.
+     * Will be useful then we will migrate IDE2 project to the IDE3 file system.
+     */
+    private class NotValidProject extends Project {
+        public NotValidProject(FolderEntry baseFolder, ProjectManager manager) {
+            super(baseFolder, manager);
+        }
+
+        @Override
+        public ProjectDescription getDescription() throws ServerException, ValueStorageException {
+            throw new ServerException("Looks like this is not valid project. We will mark it as broken");
+        }
+    }
+
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,
                   responseContainer = "List",
@@ -144,6 +161,17 @@ public class ProjectService extends Service {
                 LOG.error(e.getMessage(), e);
             }
         }
+        FolderEntry projectsRoot = projectManager.getProjectsRoot(workspace);
+        List<VirtualFileEntry> children = projectsRoot.getChildren();
+        for(VirtualFileEntry child : children) {
+            if (child.isFolder()) {
+                FolderEntry folderEntry = (FolderEntry)child;
+                if (!folderEntry.isProjectFolder()) {
+                    NotValidProject notValidProject = new NotValidProject(folderEntry, projectManager);
+                    projectReferences.add(DtoConverter.toReferenceDto(notValidProject, getServiceContext().getServiceUriBuilder()));
+                }
+            }
+        }
         return projectReferences;
     }
 
@@ -165,7 +193,14 @@ public class ProjectService extends Service {
             throws NotFoundException, ForbiddenException, ServerException, ConflictException {
         final Project project = projectManager.getProject(workspace, path);
         if (project == null) {
-            throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
+            FolderEntry projectsRoot = projectManager.getProjectsRoot(workspace);
+            VirtualFileEntry child = projectsRoot.getChild(path);
+            if (child != null && child.isFolder()  && child.getParent().isRoot()) {
+                NotValidProject notValidProject = new NotValidProject((FolderEntry)child, projectManager);
+                return DtoConverter.toDescriptorDto(notValidProject, getServiceContext().getServiceUriBuilder());
+            } else {
+                throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
+            }
         }
         return DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
     }
@@ -294,9 +329,15 @@ public class ProjectService extends Service {
                                            @PathParam("path") String path,
                                            ProjectUpdate update)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
-        final Project project = projectManager.getProject(workspace, path);
+        Project project = projectManager.getProject(workspace, path);
         if (project == null) {
-            throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
+            FolderEntry projectsRoot = projectManager.getProjectsRoot(workspace);
+            VirtualFileEntry child = projectsRoot.getChild(path);
+            if (child != null && child.isFolder() && child.getParent().isRoot()) {
+                project = new Project((FolderEntry)child, projectManager);
+            } else {
+                throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
+            }
         }
         project.updateDescription(DtoConverter.fromDto(update, projectManager.getTypeDescriptionRegistry()));
         return DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
@@ -1110,17 +1151,21 @@ public class ProjectService extends Service {
         final Project project = projectManager.getProject(workspace, path);
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("project");
-        final List<RunnerEnvironmentLeaf> environments = new LinkedList<>();
-        final VirtualFileEntry environmentsFolder = project.getBaseFolder().getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
-        if (environmentsFolder != null && environmentsFolder.isFolder()) {
-            for (FolderEntry childFolder : ((FolderEntry)environmentsFolder).getChildFolders()) {
-                final String id = new EnvironmentId(EnvironmentId.Scope.project, childFolder.getName()).toString();
-                environments.add(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
-                                           .withEnvironment(dtoFactory.createDto(RunnerEnvironment.class).withId(id))
-                                           .withDisplayName(childFolder.getName()));
+        if (project != null) {
+            final List<RunnerEnvironmentLeaf> environments = new LinkedList<>();
+            final VirtualFileEntry environmentsFolder = project.getBaseFolder().getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
+            if (environmentsFolder != null && environmentsFolder.isFolder()) {
+                for (FolderEntry childFolder : ((FolderEntry)environmentsFolder).getChildFolders()) {
+                    final String id = new EnvironmentId(EnvironmentId.Scope.project, childFolder.getName()).toString();
+                    environments.add(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
+                                               .withEnvironment(dtoFactory.createDto(RunnerEnvironment.class).withId(id))
+                                               .withDisplayName(childFolder.getName()));
+                }
             }
+            return root.withLeaves(environments);
+        } else {
+            return root.withLeaves(Collections.<RunnerEnvironmentLeaf>emptyList());
         }
-        return root.withLeaves(environments);
     }
 
     private FileEntry asFile(String workspace, String path) throws ForbiddenException, NotFoundException, ServerException {

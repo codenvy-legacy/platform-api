@@ -196,12 +196,15 @@ public class ProjectServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetProjects() throws Exception {
+        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
+        mountPoint.getRoot().createFolder("not_project");
+
         ContainerResponse response =
                 launcher.service("GET", "http://localhost:8080/api/project/my_ws", "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         List<ProjectReference> result = (List<ProjectReference>)response.getEntity();
         Assert.assertNotNull(result);
-        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.size(), 2);
         ProjectReference projectReference = result.get(0);
         Assert.assertEquals(projectReference.getName(), "my_project");
         Assert.assertEquals(projectReference.getUrl(), String.format("http://localhost:8080/api/project/%s/my_project", workspace));
@@ -210,6 +213,16 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getType(), "my_project_type");
         Assert.assertEquals(projectReference.getTypeName(), "my project type");
         Assert.assertEquals(projectReference.getVisibility(), "public");
+
+
+        ProjectReference badProject = result.get(1);
+        Assert.assertEquals(badProject.getName(), "not_project");
+        Assert.assertEquals(badProject.getUrl(), String.format("http://localhost:8080/api/project/%s/not_project", workspace));
+        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
+        Assert.assertEquals(badProject.getVisibility(), "public");
+        Assert.assertNotNull(badProject.getProblems());
+        Assert.assertTrue(badProject.getProblems().size() > 0);
+        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
     }
 
     @Test
@@ -270,23 +283,23 @@ public class ProjectServiceTest {
     }
 
 
-//    @Test
-//    public void testGetNotValidProject() throws Exception {
-//        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
-//        mountPoint.getRoot().createFolder("not_project");
-//        ContainerResponse response = launcher.service("GET", String.format("http://localhost:8080/api/project/%s/not_project", workspace),
-//                                                      "http://localhost:8080/api", null, null, null);
-//        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-//        ProjectDescriptor badProject = (ProjectDescriptor)response.getEntity();
-//        Assert.assertNotNull(badProject);
-//        Assert.assertEquals(badProject.getName(), "not_project");
-//        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
-//        Assert.assertEquals(badProject.getVisibility(), "public");
-//        Assert.assertNotNull(badProject.getProblems());
-//        Assert.assertTrue(badProject.getProblems().size() > 0);
-//        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
-//        validateProjectLinks(badProject);
-//    }
+    @Test
+    public void testGetNotValidProject() throws Exception {
+        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
+        mountPoint.getRoot().createFolder("not_project");
+        ContainerResponse response = launcher.service("GET", String.format("http://localhost:8080/api/project/%s/not_project", workspace),
+                                                      "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        ProjectDescriptor badProject = (ProjectDescriptor)response.getEntity();
+        Assert.assertNotNull(badProject);
+        Assert.assertEquals(badProject.getName(), "not_project");
+        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
+        Assert.assertEquals(badProject.getVisibility(), "public");
+        Assert.assertNotNull(badProject.getProblems());
+        Assert.assertTrue(badProject.getProblems().size() > 0);
+        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
+        validateProjectLinks(badProject);
+    }
 
     @Test
     public void testGetProjectCheckUserPermissions() throws Exception {
@@ -476,6 +489,37 @@ public class ProjectServiceTest {
                                                       null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         Project project = pm.getProject(workspace, "my_project");
+        Assert.assertNotNull(project);
+        ProjectDescription description = project.getDescription();
+
+        Assert.assertEquals(description.getDescription(), "updated project");
+        Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
+        Assert.assertEquals(description.getProjectType().getName(), "my project type");
+        Attribute attribute = description.getAttribute("my_attribute");
+        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+    }
+
+    @Test
+    public void testUpdateBadProject() throws Exception {
+        MountPoint mountPoint = pm.getProjectsRoot(workspace).getVirtualFile().getMountPoint();
+        mountPoint.getRoot().createFolder("not_project");
+
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+        Map<String, List<String>> attributeValues = new LinkedHashMap<>();
+        attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));
+        ProjectUpdate descriptor = DtoFactory.getInstance().createDto(ProjectUpdate.class)
+                                             .withType("my_project_type")
+                                             .withDescription("updated project")
+                                             .withAttributes(attributeValues);
+        ContainerResponse response = launcher.service("PUT",
+                                                      String.format("http://localhost:8080/api/project/%s/not_project", workspace),
+                                                      "http://localhost:8080/api",
+                                                      headers,
+                                                      DtoFactory.getInstance().toJson(descriptor).getBytes(),
+                                                      null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        Project project = pm.getProject(workspace, "not_project");
         Assert.assertNotNull(project);
         ProjectDescription description = project.getDescription();
 

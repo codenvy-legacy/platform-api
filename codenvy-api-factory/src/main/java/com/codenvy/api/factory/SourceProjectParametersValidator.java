@@ -30,8 +30,6 @@ public class SourceProjectParametersValidator implements FactoryParameterValidat
         if ("git".equals(source.getType()) || "esbwso2".equals(source.getType())) {
             for (Map.Entry<String, String> entry : source.getParameters().entrySet()) {
                 switch (entry.getKey()) {
-                    case "branch":
-                        break;
                     case "keepVcs":
                         final String keepVcs = entry.getValue();
                         if (!"true".equals(keepVcs) && !"false".equals(keepVcs)) {
@@ -39,11 +37,12 @@ public class SourceProjectParametersValidator implements FactoryParameterValidat
                                     format(PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, "source.project.parameters.keepVcs", entry.getValue()));
                         }
                         break;
+                    case "branch":
                     case "commitId":
-                        break;
                     case "keepDirectory":
-                        break;
                     case "remoteOriginFetch":
+                    case "branchMerge":
+                    case "pushDefault":
                         break;
                     default:
                         throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, "source.project.parameters." + entry.getKey(), version));

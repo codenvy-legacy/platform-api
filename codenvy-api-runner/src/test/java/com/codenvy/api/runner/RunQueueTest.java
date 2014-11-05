@@ -54,6 +54,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +80,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 /**
  * @author andrew00x
@@ -426,7 +428,6 @@ public class RunQueueTest {
         verify(runner, never()).run(any(RunRequest.class));
         assertFalse(task.isWaiting());
         assertTrue(task.isCancelled());
-
         checkEvents(RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE, RunnerEvent.EventType.RUN_TASK_QUEUE_TIME_EXCEEDED);
     }
 
@@ -637,10 +638,19 @@ public class RunQueueTest {
     }
 
     private void checkEvents(RunnerEvent.EventType... expected) {
-        for (RunnerEvent.EventType type : expected) {
-            RunnerEvent actual = events.poll();
-            assertNotNull(actual, "Missed event " + type);
-            assertEquals(actual.getType(), type);
+        List<RunnerEvent.EventType> list = new ArrayList<>(expected.length);
+        java.util.Collections.addAll(list, expected);
+        for (RunnerEvent event : events) {
+            for (Iterator<RunnerEvent.EventType> iterator = list.iterator(); iterator.hasNext(); ) {
+                RunnerEvent.EventType eventType = iterator.next();
+                if (eventType.equals(event.getType())) {
+                   iterator.remove();
+                }
+            }
+        }
+
+        if (!list.isEmpty()) {
+            fail("Missing events: " + list);
         }
     }
 

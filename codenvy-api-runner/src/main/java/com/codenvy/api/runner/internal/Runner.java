@@ -346,9 +346,14 @@ public abstract class Runner {
     }
 
     protected java.io.File downloadFile(String url, java.io.File downloadDir) throws IOException {
+        return downloadFile(url, downloadDir, false, null);
+    }
+
+    protected java.io.File downloadFile(String url, java.io.File downloadDir, boolean replaceExisting, String fileName)
+            throws IOException {
         final ValueHolder<IOException> errorHolder = new ValueHolder<>();
         final ValueHolder<java.io.File> resultHolder = new ValueHolder<>();
-        downloadPlugin.download(url, downloadDir, new DownloadPlugin.Callback() {
+        final DownloadPlugin.Callback callback = new DownloadPlugin.Callback() {
             @Override
             public void done(java.io.File downloaded) {
                 resultHolder.set(downloaded);
@@ -359,7 +364,12 @@ public abstract class Runner {
                 LOG.error(e.getMessage(), e);
                 errorHolder.set(e);
             }
-        });
+        };
+        if (fileName == null) {
+            downloadPlugin.download(url, downloadDir, callback);
+        } else {
+            downloadPlugin.download(url, downloadDir, fileName, replaceExisting, callback);
+        }
         final IOException ioError = errorHolder.get();
         if (ioError != null) {
             throw ioError;

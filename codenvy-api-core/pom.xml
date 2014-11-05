@@ -16,7 +16,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.27.0-SNAPSHOT</version>
+        <version>0.27.0</version>
     </parent>
     <artifactId>codenvy-api-core</artifactId>
     <packaging>jar</packaging>
@@ -201,7 +201,7 @@
                             <target>
                                 <jar update="true" file="${project.build.directory}/${project.build.finalName}.jar">
                                     <manifest>
-                                        <attribute name="IDE-Version" value="${codenvy.ide.version}"/>
+                                        <attribute name="IDE-Version" value="${codenvy.ide.version}" />
                                     </manifest>
                                 </jar>
                             </target>

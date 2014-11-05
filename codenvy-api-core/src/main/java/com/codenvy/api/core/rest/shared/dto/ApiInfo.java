@@ -52,4 +52,10 @@ public interface ApiInfo {
     ApiInfo withScmRevision(String scmRevision);
 
     void setScmRevision(String scmRevision);
+
+    String getIdeVersion();
+
+    ApiInfo withIdeVersion(String ideVersion);
+
+    void setIdeVersion(String ideVersion);
 }

@@ -295,7 +295,7 @@ public class DtoConverter {
             dto.getProblems().add(createProjectProblem(dtoFactory, e));
         }
 
-        dto.withBaseUrl(uriBuilder.clone().path(ProjectService.class, "getProject").build(wsId, name).toString())
+        dto.withBaseUrl(uriBuilder.clone().path(ProjectService.class, "getProject").build(wsId, path.substring(1)).toString())
            .withLinks(generateProjectLinks(project, uriBuilder));
         if (wsName != null) {
             dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());

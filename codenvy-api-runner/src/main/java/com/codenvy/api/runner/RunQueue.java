@@ -684,7 +684,7 @@ public class RunQueue {
                         || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
                         || status == ApplicationStatus.NEW) {
                         availableMem -= request.getMemorySize();
-                        if (availableMem <= 0) {
+                        if (availableMem < mem) {
                             throw new RunnerException(
                                     String.format("Not enough resources to start application. Available memory %dM but %dM required.",
                                                   availableMem < 0 ? 0 : availableMem, mem)

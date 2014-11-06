@@ -69,8 +69,14 @@ public class ZipProjectImporter implements ProjectImporter {
         if (url == null) {
             throw new IOException(String.format("Can't find %s", location));
         }
+
         try (InputStream zip = url.openStream()) {
-            baseFolder.getVirtualFile().unzip(zip, true);
+            int stripNumber = 0;
+            if (parameters != null && parameters.containsKey("skipFirstLevel")) {
+                boolean skipFirstLevel = parameters.get("skipFirstLevel").equals("true");
+                stripNumber = skipFirstLevel ? 1 : 0;
+            }
+            baseFolder.getVirtualFile().unzip(zip, true, stripNumber);
         }
     }
 

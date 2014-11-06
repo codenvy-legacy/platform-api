@@ -972,7 +972,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public void unzip(InputStream zipped, boolean overwrite) throws ForbiddenException, ServerException {
+    public void unzip(InputStream zipped, boolean overwrite, int stripNumber) throws ForbiddenException, ServerException {
         checkExist();
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
             throw new ForbiddenException(String.format("We were unable to import a ZIP file to '%s' as part of the import." +
@@ -987,9 +987,21 @@ public class MemoryVirtualFile implements VirtualFile {
             // ZipEntry but not able to close original stream of ZIPed data.
             InputStream noCloseZip = new NotClosableInputStream(zip);
             ZipEntry zipEntry;
+            String stripComponents = "";
             while ((zipEntry = zip.getNextEntry()) != null) {
                 VirtualFile current = this;
-                final Path relPath = Path.fromString(zipEntry.getName());
+
+                int currentLevel = zipEntry.getName().split("/").length;
+                if (currentLevel < stripNumber) {
+                    continue;
+                } else if (currentLevel == stripNumber) {
+                    if (zipEntry.isDirectory()) {
+                        stripComponents = zipEntry.getName();
+                    }
+                    continue;
+                }
+                String entryName = zipEntry.getName().substring(stripComponents.length());
+                final Path relPath = Path.fromString(entryName);
                 final String name = relPath.getName();
                 if (relPath.length() > 1) {
                     // create all required parent directories

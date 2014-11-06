@@ -981,6 +981,8 @@ public interface VirtualFileSystem {
      *         ZIP content
      * @param overwrite
      *         overwrite or not existing files. If such parameters isn't specified then behavior is implementation specific
+     * @param skipFirstLevel
+     *         skip or not the first level of the archive content
      * @throws NotFoundException
      *         if {@code parentId} doesn't exist
      * @throws ForbiddenException
@@ -998,7 +1000,7 @@ public interface VirtualFileSystem {
     @POST
     @Path("import")
     @Consumes({"application/zip"})
-    void importZip(String parentId, InputStream in, Boolean overwrite)
+    void importZip(String parentId, InputStream in, Boolean overwrite, Boolean skipFirstLevel)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException;
 
     /**

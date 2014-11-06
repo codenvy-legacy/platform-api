@@ -896,7 +896,7 @@ public class ProjectServiceTest {
                                       LineConsumerFactory importOutputConsumerFactory)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true);
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
 
@@ -963,7 +963,7 @@ public class ProjectServiceTest {
                                       LineConsumerFactory importOutputConsumerFactory)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true);
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
 
@@ -1034,7 +1034,7 @@ public class ProjectServiceTest {
                                       LineConsumerFactory importOutputConsumerFactory)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true);
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
 
@@ -1114,7 +1114,7 @@ public class ProjectServiceTest {
                                       LineConsumerFactory importOutputConsumerFactory)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true);
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
 
@@ -1204,7 +1204,7 @@ public class ProjectServiceTest {
                                       LineConsumerFactory importOutputConsumerFactory)
                     throws ConflictException, ServerException, ForbiddenException {
                 // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true);
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
 
@@ -1269,7 +1269,7 @@ public class ProjectServiceTest {
                                       LineConsumerFactory importOutputConsumerFactory)
                     throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
                 // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true);
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
                 folderHolder.set(baseFolder);
             }
 
@@ -1318,6 +1318,60 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
                             URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/b", workspace)));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/file1.txt"));
+    }
+
+    @Test
+    public void testImportZipWithSkipFirstLevel() throws Exception {
+        Project myProject = pm.getProject(workspace, "my_project");
+        myProject.getBaseFolder().createFolder("a/b");
+
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/folder2/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/folder2/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.close();
+        byte[] zip = bout.toByteArray();
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/zip"));
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/import/my_project/a/b?skipFirstLevel=true",
+                                                                    workspace),
+                                                      "http://localhost:8080/api", headers, zip, null);
+        Assert.assertEquals(response.getStatus(), 201, "Error: " + response.getEntity());
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/b", workspace)));
+        Assert.assertNull(myProject.getBaseFolder().getChild("a/b/folder1/"));
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder2/"));
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder2/file1.txt"));
+    }
+
+    @Test
+    public void testImportZipWithoutSkipFirstLevel() throws Exception {
+        Project myProject = pm.getProject(workspace, "my_project");
+        myProject.getBaseFolder().createFolder("a/b");
+
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/folder2/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/folder2/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.close();
+        byte[] zip = bout.toByteArray();
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/zip"));
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/import/my_project/a/b?skipFirstLevel=false",
+                                                                    workspace),
+                                                      "http://localhost:8080/api", headers, zip, null);
+        Assert.assertEquals(response.getStatus(), 201, "Error: " + response.getEntity());
+        Assert.assertEquals(response.getHttpHeaders().getFirst("Location"),
+                            URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/b", workspace)));
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/"));
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/folder2"));
+        Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/folder2/file1.txt"));
     }
 
     @Test

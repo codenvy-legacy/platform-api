@@ -15,7 +15,7 @@ import java.io.IOException;
 /**
  * Downloads remote file.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public interface DownloadPlugin {
 
@@ -48,4 +48,20 @@ public interface DownloadPlugin {
      *         notified when download is done or an error occurs
      */
     void download(String downloadUrl, java.io.File downloadTo, Callback callback);
+
+    /**
+     * Download file from specified location to local directory {@code downloadTo}
+     *
+     * @param downloadUrl
+     *         download URL
+     * @param downloadTo
+     *         local directory for download
+     * @param fileName
+     *         name of local file to save download result
+     * @param replaceExisting
+     *         replace existed file with the same name
+     * @param callback
+     *         notified when download is done or an error occurs
+     */
+    void download(String downloadUrl, java.io.File downloadTo, String fileName, boolean replaceExisting, Callback callback);
 }

@@ -58,7 +58,8 @@ public class ApiInfoService {
                                  .withSpecificationTitle("Codenvy REST API")
                                  .withSpecificationVersion(mainAttributes.getValue("Specification-Version"))
                                  .withImplementationVersion(mainAttributes.getValue("Implementation-Version"))
-                                 .withScmRevision(mainAttributes.getValue("SCM-Revision"));
+                                 .withScmRevision(mainAttributes.getValue("SCM-Revision"))
+                                 .withIdeVersion(mainAttributes.getValue("IDE-Version"));
             }
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);

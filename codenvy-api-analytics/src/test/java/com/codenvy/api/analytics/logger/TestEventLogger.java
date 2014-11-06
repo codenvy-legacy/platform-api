@@ -20,7 +20,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.testng.Assert.assertEquals;
 
 /**
@@ -77,7 +80,7 @@ public class TestEventLogger {
     public void shouldLogEventWithoutParameters() throws UnsupportedEncodingException {
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
 
-        eventLogger.log(EventLogger.IDE_USAGE, null);
+        eventLogger.log(EventLogger.IDE_USAGE, new HashMap<String, String>());
 
         verify(eventLogger, times(1)).offerEvent(message.capture());
         assertEquals(message.getValue(), "EVENT#ide-usage# PARAMETERS##");

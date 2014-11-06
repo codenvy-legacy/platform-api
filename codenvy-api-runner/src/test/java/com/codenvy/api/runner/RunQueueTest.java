@@ -14,16 +14,19 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.RemoteBuilderServer;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
+import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -60,10 +63,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -597,6 +602,33 @@ public class RunQueueTest {
             verify(runQueue, never()).checkMemory(eq(wsId), anyInt(), anyInt());
             throw e;
         }
+    }
+
+    @Test(expectedExceptions = {RunnerException.class},
+          expectedExceptionsMessageRegExp = "Not enough resources to start application. Available memory 128M but 129M required.")
+    public void testErrorWhenNotEnoughMemoryToRunNewApplication() throws Exception {
+        RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
+        RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
+        doReturn(dto(RunnerState.class).withServerState(dto(ServerState.class).withFreeMemory(256))).when(runner).getRemoteRunnerState();
+
+        ServiceContext serviceContext = newServiceContext();
+        project.withRunners(dto(RunnersDescriptor.class).withDefault("system:/java/web/tomcat7"));
+
+        doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
+        // limit memory
+        workspace.getAttributes().put(Constants.RUNNER_MAX_MEMORY_SIZE, "256");
+        doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
+
+        doReturn(new Callable<RemoteRunnerProcess>() {
+            @Override
+            public RemoteRunnerProcess call() throws Exception {
+                Thread.sleep(5000); // need to have first task in waiting status
+                return null;
+            }
+        }).when(runQueue).createTaskFor(anyListOf(RemoteRunner.class), any(RunRequest.class), any(ValueHolder.class));
+
+        runQueue.run(wsId, pPath, serviceContext, dto(RunOptions.class).withMemorySize(128));
+        runQueue.run(wsId, pPath, serviceContext, dto(RunOptions.class).withMemorySize(129));
     }
 
     private String mockBuilderApi(final int inProgressNum) throws Exception {

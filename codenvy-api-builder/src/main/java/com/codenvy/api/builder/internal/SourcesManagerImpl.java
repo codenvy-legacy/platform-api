@@ -11,7 +11,6 @@
 package com.codenvy.api.builder.internal;
 
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
-import com.codenvy.api.core.util.DownloadPlugin;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
@@ -62,7 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Eugene Voevodin
  */
 // TODO: make singleton
-public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
+public class SourcesManagerImpl implements SourcesManager {
     private static final Logger LOG = LoggerFactory.getLogger(SourcesManagerImpl.class);
 
     private final java.io.File                        directory;
@@ -98,7 +97,8 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
     }
 
     @Override
-    public void getSources(BuildLogger logger, String workspace, String project, final String sourcesUrl, java.io.File workDir) throws IOException {
+    public void getSources(BuildLogger logger, String workspace, String project, final String sourcesUrl, java.io.File workDir)
+            throws IOException {
         // Directory for sources. Keep sources to avoid download whole project before build.
         // This directory is not permanent and may be removed at any time.
         final java.io.File srcDir = new java.io.File(directory, workspace + java.io.File.separatorChar + project);
@@ -121,18 +121,12 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             final FutureTask<Void> newFuture = new FutureTask<>(new Runnable() {
                 @Override
                 public void run() {
-                    download(sourcesUrl, srcDir, new Callback() {
-                        @Override
-                        public void done(java.io.File downloaded) {
-                            // Don't need this event. We are waiting until download is done.
-                        }
-
-                        @Override
-                        public void error(IOException e) {
-                            LOG.error(e.getMessage(), e);
-                            errorHolder.set(e);
-                        }
-                    });
+                    try {
+                        download(sourcesUrl, srcDir);
+                    } catch (IOException e) {
+                        LOG.error(e.getMessage(), e);
+                        errorHolder.set(e);
+                    }
                 }
             }, null);
             future = tasks.putIfAbsent(key, newFuture);
@@ -148,7 +142,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                 logger.writeLine("[INFO] Injecting source code into builder...");
                 newFuture.run();
                 logger.writeLine("[INFO] Source code injection finished"
-                    + "\n[INFO] ------------------------------------------------------------------------");
+                                 + "\n[INFO] ------------------------------------------------------------------------");
             }
         }
         try {
@@ -190,8 +184,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
         }
     };
 
-    @Override
-    public void download(String downloadUrl, java.io.File downloadTo, Callback callback) {
+    private void download(String downloadUrl, java.io.File downloadTo) throws IOException {
         HttpURLConnection conn = null;
         try {
             final LinkedList<java.io.File> q = new LinkedList<>();
@@ -254,7 +247,7 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
                                 if (contentLengthHeader != null && !contentLengthHeader.isEmpty()) {
                                     length = Integer.parseInt(contentLengthHeader.get(0));
                                 }
-                                if (length < 0 || length > 102400) {
+                                if (length < 0 || length > 204800) {
                                     java.io.File tmp = java.io.File.createTempFile("tmp", ".zip", directory);
                                     try {
                                         try (FileOutputStream fOut = new FileOutputStream(tmp)) {
@@ -297,11 +290,8 @@ public class SourcesManagerImpl implements DownloadPlugin, SourcesManager {
             } else if (responseCode != HttpURLConnection.HTTP_NO_CONTENT) {
                 throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
             }
-            callback.done(downloadTo);
-        } catch (IOException e) {
-            callback.error(e);
         } catch (ParseException | JsonParseException e) {
-            callback.error(new IOException(e.getMessage(), e));
+            throw new IOException(e.getMessage(), e);
         } finally {
             if (conn != null) {
                 conn.disconnect();

@@ -249,18 +249,33 @@ public class RunQueue {
                             try {
                                 internalRunTask.get();
                             } catch (CancellationException e) {
+                                LOG.warn("Task {}, workspace '{}', project '{}' was cancelled",
+                                         internalRunTask.id, internalRunTask.workspace, internalRunTask.project);
                                 error = e;
                             } catch (ExecutionException e) {
                                 error = e.getCause();
+                                logError(internalRunTask, error == null ? e : error);
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                             }
+                        } else {
+                            logError(internalRunTask, error);
                         }
                         if (error != null) {
-                            LOG.error(error.getMessage(), error);
                             eventService.publish(RunnerEvent.errorEvent(internalRunTask.id, internalRunTask.workspace,
                                                                         internalRunTask.project, error.getMessage()));
                         }
+                    }
+                }
+
+                private void logError(InternalRunTask runTask, Throwable t) {
+                    String errorMessage = t.getMessage();
+                    if (errorMessage != null) {
+                        LOG.warn("Execution error, task {}, workspace '{}', project '{}', message '{}'",
+                                 runTask.id, runTask.workspace, runTask.project, errorMessage);
+                    } else {
+                        LOG.warn(String.format("Execution error, task %d, workspace '%s', project '%s', message '%s'",
+                                               runTask.id, runTask.workspace, runTask.project, ""), t);
                     }
                 }
             };
@@ -669,7 +684,7 @@ public class RunQueue {
                         || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
                         || status == ApplicationStatus.NEW) {
                         availableMem -= request.getMemorySize();
-                        if (availableMem <= 0) {
+                        if (availableMem < mem) {
                             throw new RunnerException(
                                     String.format("Not enough resources to start application. Available memory %dM but %dM required.",
                                                   availableMem < 0 ? 0 : availableMem, mem)

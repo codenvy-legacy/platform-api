@@ -10,14 +10,18 @@
  *******************************************************************************/
 package com.codenvy.api.core.util;
 
+import com.codenvy.commons.lang.NameGenerator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -57,11 +61,42 @@ public final class HttpDownloadPlugin implements DownloadPlugin {
                     }
                 }
             }
-            final java.io.File tempFile = new java.io.File(downloadTo, fileName == null ? "downloaded.file" : fileName);
+            final java.io.File downloadFile =
+                    new java.io.File(downloadTo, fileName == null ? NameGenerator.generate("downloaded.file", 4) : fileName);
             try (InputStream in = conn.getInputStream()) {
-                Files.copy(in, tempFile.toPath());
+                Files.copy(in, downloadFile.toPath());
             }
-            callback.done(tempFile);
+            callback.done(downloadFile);
+        } catch (IOException e) {
+            LOG.debug(String.format("Failed access: %s, error: %s", downloadUrl, e.getMessage()), e);
+            callback.error(e);
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+    }
+
+    @Override
+    public void download(String downloadUrl, File downloadTo, String fileName, boolean replaceExisting, Callback callback) {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection)new URL(downloadUrl).openConnection();
+            conn.setConnectTimeout(CONNECT_TIMEOUT);
+            conn.setReadTimeout(READ_TIMEOUT);
+            final int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                throw new IOException(String.format("Invalid response status %d from remote server. ", responseCode));
+            }
+            final java.io.File downloadFile = new java.io.File(downloadTo, fileName);
+            try (InputStream in = conn.getInputStream()) {
+                if (replaceExisting) {
+                    Files.copy(in, downloadFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.copy(in, downloadFile.toPath());
+                }
+            }
+            callback.done(downloadFile);
         } catch (IOException e) {
             LOG.debug(String.format("Failed access: %s, error: %s", downloadUrl, e.getMessage()), e);
             callback.error(e);

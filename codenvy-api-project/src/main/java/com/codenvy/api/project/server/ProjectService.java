@@ -686,11 +686,28 @@ public class ProjectService extends Service {
 
         if (importProject.getProject() != null) {  //project configuration set in Source we will use it
             visibility = importProject.getProject().getVisibility();
+
+            // project type may not be provided, try to resolve it
+            if (importProject.getProject().getType() == null) {
+                Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+                for (ProjectTypeResolver resolver : resolvers) {
+                    if (resolver.resolve((FolderEntry)virtualFile)) {
+                        resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
+                                             .withMessage("Project type detected via ProjectResolver");
+                        break;
+                    }
+                }
+            }
+            project = projectManager.getProject(workspace, path);
             if (project == null) {
                 project = new Project(baseProjectFolder, projectManager);
                 project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
             } else {
-                project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
+                final ProjectDescription providedDescription = DtoConverter.fromDto(importProject.getProject(),
+                                                                                    projectManager.getTypeDescriptionRegistry());
+                final String projectTypeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();
+                providedDescription.setProjectType(projectManager.getTypeDescriptionRegistry().getProjectType(projectTypeId));
+                project.updateDescription(providedDescription);
             }
         } else { //project not configure so we try resolve it
             if (project == null) {

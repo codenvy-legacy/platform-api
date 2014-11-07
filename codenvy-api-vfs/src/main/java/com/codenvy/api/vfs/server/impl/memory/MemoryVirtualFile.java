@@ -1008,6 +1008,7 @@ public class MemoryVirtualFile implements VirtualFile {
                         MemoryVirtualFile folder = newFolder((MemoryVirtualFile)current, name);
                         ((MemoryVirtualFile)current).addChild(folder);
                         mountPoint.putItem(folder);
+                        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), folder.getPath(), true));
                     }
                 } else {
                     current.getChild(name);
@@ -1025,10 +1026,12 @@ public class MemoryVirtualFile implements VirtualFile {
                             throw new ForbiddenException(String.format("File '%s' already exists. ", file.getPath()));
                         }
                         file.updateContent(noCloseZip, null);
+                        mountPoint.getEventService().publish(new UpdateContentEvent(mountPoint.getWorkspaceId(), file.getPath()));
                     } else {
                         file = newFile((MemoryVirtualFile)current, name, noCloseZip, ContentTypeGuesser.guessContentType(name));
                         ((MemoryVirtualFile)current).addChild(file);
                         mountPoint.putItem((MemoryVirtualFile)file);
+                        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), file.getPath(), false));
                     }
                 }
                 zip.closeEntry();

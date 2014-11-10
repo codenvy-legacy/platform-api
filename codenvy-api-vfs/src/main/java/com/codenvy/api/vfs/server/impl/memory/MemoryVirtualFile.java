@@ -991,11 +991,13 @@ public class MemoryVirtualFile implements VirtualFile {
                 VirtualFile current = this;
                 Path relPath = Path.fromString(zipEntry.getName());
 
-                int currentLevel = relPath.elements().length;
-                if (currentLevel <= stripNumber) {
-                    continue;
+                if (stripNumber > 0) {
+                    int currentLevel = relPath.elements().length;
+                    if (currentLevel <= stripNumber) {
+                        continue;
+                    }
+                    relPath = relPath.subPath(stripNumber);
                 }
-                relPath = relPath.subPath(stripNumber);
 
                 final String name = relPath.getName();
                 if (relPath.length() > 1) {

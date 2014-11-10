@@ -13,6 +13,7 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
@@ -21,6 +22,7 @@ import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.BuilderEvent;
 import com.codenvy.api.builder.internal.Constants;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -912,7 +914,14 @@ public class BuildQueue {
                             break;
                         case DONE:
                             if (!event.isReused()) {
-                                long usageTime = task.getDescriptor().getEndTime() - task.getDescriptor().getStartTime();
+                                long usageTime;
+                                try {
+                                    BuildTaskDescriptor descriptor = task.getDescriptor();
+                                    usageTime = descriptor.getEndTime() - descriptor.getStartTime();
+                                } catch (ApiException e) {
+                                    usageTime = 0;
+                                }
+
                                 long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
                                 LOG.info(
                                         "EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",

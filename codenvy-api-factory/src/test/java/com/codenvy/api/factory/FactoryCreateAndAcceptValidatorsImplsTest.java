@@ -16,13 +16,16 @@ import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 import static org.mockito.Mockito.*;
 
+/**
+ * Tests for {@link com.codenvy.api.factory.FactoryUrlAcceptValidatorImpl} and {@link com.codenvy.api.factory.FactoryUrlCreateValidatorImpl}
+ */
 @Listeners(value = {MockitoTestNGListener.class})
 public class FactoryCreateAndAcceptValidatorsImplsTest {
 
@@ -38,12 +41,15 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
     @Mock
     private Factory factoryUrl;
 
-    @InjectMocks
     private FactoryUrlAcceptValidatorImpl acceptValidator;
 
-    @InjectMocks
     private FactoryUrlCreateValidatorImpl createValidator;
 
+    @BeforeMethod
+    public void setUp() throws Exception {
+        acceptValidator = new FactoryUrlAcceptValidatorImpl(accountDao, userDao, profileDao, false);
+        createValidator = new FactoryUrlCreateValidatorImpl(accountDao, userDao, profileDao, false);
+    }
 
     @Test
     public void testValidateOnCreate() throws ApiException {

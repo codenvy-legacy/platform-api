@@ -14,6 +14,7 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -1348,7 +1349,14 @@ public class RunQueue {
                         }
                         break;
                     case STOPPED:
-                        long usageTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
+                        long usageTime;
+                        try {
+                            ApplicationProcessDescriptor descriptor = task.getDescriptor();
+                            usageTime = descriptor.getStopTime() - descriptor.getStartTime();
+                        } catch (ApiException e) {
+                            usageTime = 0;
+                        }
+
                         final int stoppedByUser = lifetime == -1 || lifetime > usageTime ? 1 : 0;
                         if (debug) {
                             LOG.info(

@@ -17,7 +17,9 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.api.factory.dto.WelcomePage;
@@ -27,7 +29,6 @@ import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.BeforeMethod;
@@ -70,7 +71,6 @@ public class FactoryUrlBaseValidatorTest {
     @Mock
     private HttpServletRequest request;
 
-    @InjectMocks
     private TestFactoryUrlBaseValidator validator;
 
     private Member member;
@@ -98,6 +98,8 @@ public class FactoryUrlBaseValidatorTest {
         when(profileDao.getById(anyString())).thenReturn(new Profile());
         factory.setOrgid(ID);
         factory.setUserid("userid");
+
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
     }
 
     @Test
@@ -387,6 +389,47 @@ public class FactoryUrlBaseValidatorTest {
                 {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withMaxsessioncount(1234l))},
                 {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRefererhostname("host"))},
                 {factory.withRestriction(DtoFactory.getInstance().createDto(Restriction.class).withRestrictbypassword(true))}
+        };
+    }
+
+    @Test
+    public void shouldValidateTrackedParamsIfOrgIdIsMissingButOnPremisesTrue() throws Exception {
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        Factory factory = dtoFactory.createDto(Factory.class);
+        factory.withV("2.0")
+               .withPolicies(dtoFactory.createDto(Policies.class)
+                                       .withValidSince(System.currentTimeMillis() + 1_000_000)
+                                       .withValidUntil(System.currentTimeMillis() + 10_000_000)
+                                       .withRefererHostname("codenvy.com"))
+               .withActions(dtoFactory.createDto(Actions.class)
+                                      .withWelcome(dtoFactory.createDto(WelcomePage.class)));
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, true);
+
+        validator.validateOrgid(factory);
+        validator.validateTrackedFactoryAndParams(factory);
+    }
+
+    @Test(dataProvider = "trackedFactoryParameterWithoutOrgIdProvider",
+            expectedExceptions = ConflictException.class,
+            expectedExceptionsMessageRegExp = "(?s)You do not have a valid orgID. Your Factory configuration has a parameter that.*")
+    public void shouldNotValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesFalse(Factory factory) throws Exception {
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+
+        validator.validateTrackedFactoryAndParams(factory);
+    }
+
+    @DataProvider(name = "trackedFactoryParameterWithoutOrgIdProvider")
+    public Object[][] dataProvider() {
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        Factory factory = dtoFactory.createDto(Factory.class);
+        factory.withV("2.0");
+        return new Object[][] {
+                {dtoFactory.clone(factory).withActions(dtoFactory.createDto(Actions.class)
+                                                                 .withWelcome(dtoFactory.createDto(WelcomePage.class)))},
+                {dtoFactory.clone(factory).withPolicies(dtoFactory.createDto(Policies.class).withValidSince(
+                        System.currentTimeMillis() + 1_000_000))},
+                {dtoFactory.clone(factory).withPolicies(dtoFactory.createDto(Policies.class).withValidUntil(
+                        System.currentTimeMillis() + 10_000_000))}
         };
     }
 }

@@ -73,8 +73,7 @@ public class ZipProjectImporter implements ProjectImporter {
         try (InputStream zip = url.openStream()) {
             int stripNumber = 0;
             if (parameters != null && parameters.containsKey("skipFirstLevel")) {
-                boolean skipFirstLevel = parameters.get("skipFirstLevel").equals("true");
-                stripNumber = skipFirstLevel ? 1 : 0;
+                stripNumber = Boolean.parseBoolean(parameters.get("skipFirstLevel")) ? 1 : 0;
             }
             baseFolder.getVirtualFile().unzip(zip, true, stripNumber);
         }

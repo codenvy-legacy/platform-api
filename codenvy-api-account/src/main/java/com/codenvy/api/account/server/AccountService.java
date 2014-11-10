@@ -803,7 +803,8 @@ public class AccountService extends Service {
         }
         final SubscriptionAttributes attributes = accountDao.getSubscriptionAttributes(subscriptionId);
 
-        LOG.info("Remove subscription# id#{}# userId#{}# accountId#{}#", subscriptionId, EnvironmentContext.getCurrent().getUser().getId());
+        LOG.info("Remove subscription# id#{}# userId#{}# accountId#{}#", subscriptionId, EnvironmentContext.getCurrent().getUser().getId(),
+                 toRemove.getAccountId());
 
         if ("true".equals(attributes.getBilling().getUsePaymentSystem())) {
             try {

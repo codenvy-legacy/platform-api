@@ -11,6 +11,7 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Author;
@@ -87,7 +88,7 @@ public class FactoryBuilderTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        factoryBuilder = new FactoryBuilder(sourceProjectParametersValidator);
+        factoryBuilder = new FactoryBuilder(sourceProjectParametersValidator, false);
         actual = dto.createDto(Factory.class);
 
         expected = dto.createDto(Factory.class);
@@ -342,7 +343,7 @@ public class FactoryBuilderTest {
     }
 
     @Test(expectedExceptions = ApiException.class, dataProvider = "TFParamsProvider",
-          expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid orgId.*")
+            expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid orgId.*")
     public void shouldNotAllowUsingParamsForTrackedFactoriesIfOrgidDoesntSet(Factory factory)
             throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         factoryBuilder.checkValid(factory, ENCODED);
@@ -383,7 +384,7 @@ public class FactoryBuilderTest {
     }
 
     @Test(expectedExceptions = ApiException.class, dataProvider = "setByServerParamsProvider",
-          expectedExceptionsMessageRegExp = "You have provided an invalid parameter .* for this version of Factory parameters.*")
+            expectedExceptionsMessageRegExp = "You have provided an invalid parameter .* for this version of Factory parameters.*")
     public void shouldNotAllowUsingParamsThatCanBeSetOnlyByServer(Factory factory)
             throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         factoryBuilder.checkValid(factory, ENCODED);
@@ -757,6 +758,44 @@ public class FactoryBuilderTest {
 
         Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
         assertEquals(newFactory, expected);
+    }
+
+    @Test
+    public void shouldBeAbleToValidateV2_0WithTrackedParamsWithoutAccountIdIfOnPremisesIsEnabled() throws Exception {
+        factoryBuilder = new FactoryBuilder(sourceProjectParametersValidator, true);
+
+        Factory factory = dto.createDto(Factory.class);
+        factory.withV("2.0")
+               .withSource(dto.createDto(Source.class)
+                              .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                              .withType("git")
+                                              .withLocation("location")))
+               .withPolicies(dto.createDto(Policies.class)
+                                .withRefererHostname("referrer")
+                                .withValidSince(123l)
+                                .withValidUntil(123l))
+               .withActions(dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)));
+
+        factoryBuilder.checkValid(factory, FactoryFormat.ENCODED);
+    }
+
+    @Test(expectedExceptions = ConflictException.class, expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid orgId. .*")
+    public void shouldThrowExceptionOnValidationV2_0WithTrackedParamsWithoutAccountIdIfOnPremisesIsDisabled() throws Exception {
+        factoryBuilder = new FactoryBuilder(sourceProjectParametersValidator, false);
+
+        Factory factory = dto.createDto(Factory.class);
+        factory.withV("2.0")
+               .withSource(dto.createDto(Source.class)
+                              .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                              .withType("git")
+                                              .withLocation("location")))
+               .withPolicies(dto.createDto(Policies.class)
+                                .withRefererHostname("referrer")
+                                .withValidSince(123l)
+                                .withValidUntil(123l))
+               .withActions(dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)));
+
+        factoryBuilder.checkValid(factory, FactoryFormat.ENCODED);
     }
 
     @Test(enabled = false)

@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
@@ -92,10 +93,13 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     private final SourceProjectParametersValidator sourceProjectParametersValidator;
+    private final boolean                          onPremises;
 
     @Inject
-    public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator) {
+    public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator,
+                          @Named("subscription.orgaddon.enabled") boolean onPremises) {
         this.sourceProjectParametersValidator = sourceProjectParametersValidator;
+        this.onPremises = onPremises;
     }
 
     /**
@@ -321,7 +325,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     }
 
                     // check tracked-only fields
-                    if (null == orgid && factoryParameter.trackedOnly()) {
+                    if (null == orgid && factoryParameter.trackedOnly() && !onPremises) {
                         throw new ConflictException(format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
                     }
 

@@ -20,6 +20,7 @@ import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.Date;
 
@@ -29,8 +30,11 @@ import java.util.Date;
 @Singleton
 public class FactoryUrlCreateValidatorImpl extends FactoryUrlBaseValidator implements FactoryUrlCreateValidator {
     @Inject
-    public FactoryUrlCreateValidatorImpl(AccountDao accountDao, UserDao userDao, UserProfileDao profileDao) {
-        super(accountDao,userDao,profileDao);
+    public FactoryUrlCreateValidatorImpl(AccountDao accountDao,
+                                         UserDao userDao,
+                                         UserProfileDao profileDao,
+                                         @Named("subscription.orgaddon.enabled") boolean onPremises) {
+        super(accountDao,userDao,profileDao, onPremises);
     }
 
     @Override

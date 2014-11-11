@@ -1062,12 +1062,12 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertNotNull(descriptor.getType());
-        Assert.assertEquals(descriptor.getType(), myType);
+        Assert.assertEquals(descriptor.getType(), "my_project_type");
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
         Assert.assertNotNull(newProject.getDescription());
         Assert.assertNotNull(newProject.getDescription().getProjectType());
-        Assert.assertEquals(newProject.getDescription().getProjectType().getId(), myType);
+        Assert.assertEquals(newProject.getDescription().getProjectType().getId(), "my_project_type");
     }
 
 //    @Test

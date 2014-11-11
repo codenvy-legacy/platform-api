@@ -678,57 +678,44 @@ public class ProjectService extends Service {
         importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
 
         // Use resolver only if project type not set
-        ProjectProblem resolved = null;
-
+        ProjectProblem problem = null;
         String visibility = null;
-
         Project project = projectManager.getProject(workspace, path);
 
-        if (importProject.getProject() != null) {  //project configuration set in Source we will use it
-            visibility = importProject.getProject().getVisibility();
-
-            // project type may not be provided, try to resolve it
-            if (importProject.getProject().getType() == null) {
-                Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
-                for (ProjectTypeResolver resolver : resolvers) {
-                    if (resolver.resolve((FolderEntry)virtualFile)) {
-                        resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
-                                             .withMessage("Project type detected via ProjectResolver");
-                        break;
-                    }
+        if (importProject.getProject() != null || project == null) {
+            if (importProject.getProject() != null) {
+                visibility = importProject.getProject().getVisibility();
+            }
+            Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+            for (ProjectTypeResolver resolver : resolvers) {
+                if (resolver.resolve((FolderEntry)virtualFile)) {
+                    problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
+                                         .withMessage("Project type detected via ProjectResolver");
+                    break;
                 }
             }
+            // try to get project again after trying to resolve it
             project = projectManager.getProject(workspace, path);
-            if (project == null) {
+            if (importProject.getProject() != null) {
+                final ProjectDescription providedDescription =
+                        DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry());
+                if (project == null) {
+                    project = new Project(baseProjectFolder, projectManager);
+                    project.updateDescription(providedDescription);
+                } else {
+                    final String typeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();
+                    providedDescription.setProjectType(projectManager.getTypeDescriptionRegistry().getProjectType(typeId));
+                    project.updateDescription(providedDescription);
+                }
+            } else if (project == null) {
+                // create BLANK project type
                 project = new Project(baseProjectFolder, projectManager);
-                project.updateDescription(DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry()));
-            } else {
-                final ProjectDescription providedDescription = DtoConverter.fromDto(importProject.getProject(),
-                                                                                    projectManager.getTypeDescriptionRegistry());
-                final String projectTypeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();
-                providedDescription.setProjectType(projectManager.getTypeDescriptionRegistry().getProjectType(projectTypeId));
-                project.updateDescription(providedDescription);
-            }
-        } else { //project not configure so we try resolve it
-            if (project == null) {
-                Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
-                for (ProjectTypeResolver resolver : resolvers) {
-                    if (resolver.resolve((FolderEntry)virtualFile)) {
-                        resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
-                                             .withMessage("Project type detect via ProjectResolver");
-                        break;
-                    }
-                }
-                // Try get project again after trying resolve it
-                project = projectManager.getProject(workspace, path);
-                if (project == null) { //resolver can't resolve project type
-                    project = new Project(baseProjectFolder, projectManager); //create BLANK project type
-                    project.updateDescription(new ProjectDescription());
-                    resolved = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
-                                         .withMessage("Project type not detect so we set it as blank");
-                }
+                project.updateDescription(new ProjectDescription());
+                problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
+                                     .withMessage("Project type not detect so we set it as blank");
             }
         }
+
         // Some importers don't use virtual file system API and changes are not indexed.
         // Force searcher to reindex project to fix such issues.
         final VirtualFile file = project.getBaseFolder().getVirtualFile();
@@ -790,9 +777,9 @@ public class ProjectService extends Service {
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
                  projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
                  EnvironmentContext.getCurrent().getUser().getName());
-        if (resolved != null) {
+        if (problem != null) {
             List<ProjectProblem> projectProblems = projectDescriptor.getProblems();
-            projectProblems.add(resolved);
+            projectProblems.add(problem);
             projectDescriptor.setProblems(projectProblems);
         }
         return projectDescriptor;

@@ -876,64 +876,30 @@ public class BuildQueue {
     private class AnalyticsMessenger implements EventSubscriber<BuilderEvent> {
         @Override
         public void onEvent(BuilderEvent event) {
-            try {
-                final long taskId = event.getTaskId();
-                final BaseBuilderRequest request = getTask(taskId).getRequest();
-                if (request instanceof BuildRequest) {
-                    BuildQueueTask task = getTask(taskId);
-                    final String analyticsID = task.getCreationTime() + "-" + taskId;
-                    final String project = extractProjectName(event.getProject());
-                    final String workspace = request.getWorkspace();
-                    final long timeout;
-                    if (request.getTimeout() == Integer.MAX_VALUE) {
-                        timeout = -1;
-                    } else {
-                        timeout = request.getTimeout() * 1000; // to ms
-                    }
-                    final String projectTypeId = request.getProjectDescriptor().getType();
-                    final String user = request.getUserName();
+            if (event.getType() == BuilderEvent.EventType.BEGIN
+                    || event.getType() == BuilderEvent.EventType.DONE
+                    || event.getType() == BuilderEvent.EventType.BUILD_TASK_ADDED_IN_QUEUE
+                    || event.getType() == BuilderEvent.EventType.BUILD_TASK_QUEUE_TIME_EXCEEDED) {
+                try {
+                    final long taskId = event.getTaskId();
+                    final BaseBuilderRequest request = getTask(taskId).getRequest();
+                    if (request instanceof BuildRequest) {
+                        BuildQueueTask task = getTask(taskId);
+                        final String analyticsID = task.getCreationTime() + "-" + taskId;
+                        final String project = extractProjectName(event.getProject());
+                        final String workspace = request.getWorkspace();
+                        final long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                        final long timeout;
+                        if (request.getTimeout() == Integer.MAX_VALUE) {
+                            timeout = -1;
+                        } else {
+                            timeout = request.getTimeout() * 1000; // to ms
+                        }
+                        final String projectTypeId = request.getProjectDescriptor().getType();
+                        final String user = request.getUserName();
 
-                    switch (event.getType()) {
-                        case BEGIN:
-                            long waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                            LOG.info(
-                                    "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                    workspace,
-                                    user,
-                                    project,
-                                    projectTypeId,
-                                    analyticsID,
-                                    waitingTime);
-                            LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
-                                     workspace,
-                                     user,
-                                     project,
-                                     projectTypeId,
-                                     analyticsID,
-                                     timeout);
-                            break;
-                        case DONE:
-                            if (!event.isReused()) {
-                                long usageTime;
-                                try {
-                                    BuildTaskDescriptor descriptor = task.getDescriptor();
-                                    usageTime = descriptor.getEndTime() - descriptor.getStartTime();
-                                } catch (ApiException e) {
-                                    usageTime = 0;
-                                }
-
-                                long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
-                                LOG.info(
-                                        "EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
-                                        workspace,
-                                        user,
-                                        project,
-                                        projectTypeId,
-                                        analyticsID,
-                                        timeout,
-                                        usageTime,
-                                        finishedNormally);
-                            } else {
+                        switch (event.getType()) {
+                            case BEGIN:
                                 LOG.info(
                                         "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
                                         workspace,
@@ -941,31 +907,68 @@ public class BuildQueue {
                                         project,
                                         projectTypeId,
                                         analyticsID,
-                                        0);
-                            }
-                            break;
-                        case BUILD_TASK_ADDED_IN_QUEUE:
-                            LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
-                                     workspace,
-                                     user,
-                                     project,
-                                     projectTypeId,
-                                     analyticsID);
-                            break;
-                        case BUILD_TASK_QUEUE_TIME_EXCEEDED:
-                            waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                            LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
-                                     workspace,
-                                     user,
-                                     project,
-                                     projectTypeId,
-                                     analyticsID,
-                                     waitingTime);
-                            break;
+                                        waitingTime);
+                                LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
+                                         workspace,
+                                         user,
+                                         project,
+                                         projectTypeId,
+                                         analyticsID,
+                                         timeout);
+                                break;
+                            case DONE:
+                                if (event.isReused()) {
+                                    LOG.info(
+                                            "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                            workspace,
+                                            user,
+                                            project,
+                                            projectTypeId,
+                                            analyticsID,
+                                            0);
+                                } else {
+                                    long usageTime;
+                                    try {
+                                        final BuildTaskDescriptor descriptor = task.getDescriptor();
+                                        usageTime = descriptor.getEndTime() - descriptor.getStartTime();
+                                    } catch (ApiException e) {
+                                        usageTime = 0;
+                                    }
+                                    long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
+                                    LOG.info(
+                                            "EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
+                                            workspace,
+                                            user,
+                                            project,
+                                            projectTypeId,
+                                            analyticsID,
+                                            timeout,
+                                            usageTime,
+                                            finishedNormally);
+                                }
+                                break;
+                            case BUILD_TASK_ADDED_IN_QUEUE:
+                                LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                         workspace,
+                                         user,
+                                         project,
+                                         projectTypeId,
+                                         analyticsID);
+                                break;
+                            case BUILD_TASK_QUEUE_TIME_EXCEEDED:
+                                LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                         workspace,
+                                         user,
+                                         project,
+                                         projectTypeId,
+                                         analyticsID,
+                                         waitingTime);
+                                break;
+                        }
                     }
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
                 }
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
             }
         }
 

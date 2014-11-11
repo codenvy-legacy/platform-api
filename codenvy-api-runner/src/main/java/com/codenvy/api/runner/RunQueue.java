@@ -14,6 +14,7 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -1300,35 +1301,41 @@ public class RunQueue {
 
         @Override
         public void onEvent(RunnerEvent event) {
-            try {
-                final long id = event.getProcessId();
-                final RunQueueTask task = getTask(id);
-                final RunRequest request = task.getRequest();
-                final String analyticsID = task.getCreationTime() + "-" + id;
-                final String project = extractProjectName(event.getProject());
-                final String workspace = request.getWorkspace();
-                final int memorySize = request.getMemorySize();
-                final long lifetime;
-                if (request.getLifetime() == Integer.MAX_VALUE) {
-                    lifetime = -1;
-                } else {
-                    lifetime = request.getLifetime() * 1000; // to ms
-                }
-                final String projectTypeId = request.getProjectDescriptor().getType();
-                final boolean debug = request.isInDebugMode();
-                final String user = request.getUserName();
-                switch (event.getType()) {
-                    case STARTED:
-                        long waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                        LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
-                                 workspace,
-                                 user,
-                                 project,
-                                 projectTypeId,
-                                 analyticsID,
-                                 waitingTime);
-                        if (debug) {
-                            LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+            if (event.getType() == RunnerEvent.EventType.STARTED
+                || event.getType() == RunnerEvent.EventType.STOPPED
+                || event.getType() == RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE
+                || event.getType() == RunnerEvent.EventType.RUN_TASK_QUEUE_TIME_EXCEEDED) {
+                try {
+                    final long id = event.getProcessId();
+                    final RunQueueTask task = getTask(id);
+                    final RunRequest request = task.getRequest();
+                    final String analyticsID = task.getCreationTime() + "-" + id;
+                    final String project = extractProjectName(event.getProject());
+                    final String workspace = request.getWorkspace();
+                    final int memorySize = request.getMemorySize();
+                    final long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                    final long lifetime;
+                    if (request.getLifetime() == Integer.MAX_VALUE) {
+                        lifetime = -1;
+                    } else {
+                        lifetime = request.getLifetime() * 1000; // to ms
+                    }
+                    final String projectTypeId = request.getProjectDescriptor().getType();
+                    final boolean debug = request.isInDebugMode();
+                    final String user = request.getUserName();
+                    switch (event.getType()) {
+                        case STARTED:
+                            LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     waitingTime);
+                            final String startLineFormat =
+                                    debug ? "EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                          : "EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                            LOG.info(startLineFormat,
                                      workspace,
                                      user,
                                      project,
@@ -1336,67 +1343,52 @@ public class RunQueue {
                                      analyticsID,
                                      memorySize,
                                      lifetime);
-                        } else {
-                            LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                            break;
+                        case STOPPED:
+                            long usageTime;
+                            try {
+                                final ApplicationProcessDescriptor descriptor = task.getDescriptor();
+                                usageTime = descriptor.getStopTime() - descriptor.getStartTime();
+                            } catch (ApiException e) {
+                                usageTime = 0;
+                            }
+                            final int stoppedByUser = lifetime == -1 || lifetime > usageTime ? 1 : 0;
+                            final String stopLineFormat =
+                                    debug
+                                    ? "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#"
+                                    : "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#";
+                            LOG.info(stopLineFormat,
                                      workspace,
                                      user,
                                      project,
                                      projectTypeId,
                                      analyticsID,
                                      memorySize,
-                                     lifetime);
-                        }
-                        break;
-                    case STOPPED:
-                        long usageTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
-                        final int stoppedByUser = lifetime == -1 || lifetime > usageTime ? 1 : 0;
-                        if (debug) {
-                            LOG.info(
-                                    "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#",
-                                    workspace,
-                                    user,
-                                    project,
-                                    projectTypeId,
-                                    analyticsID,
-                                    memorySize,
-                                    lifetime,
-                                    usageTime,
-                                    stoppedByUser);
-                        } else {
-                            LOG.info(
-                                    "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#",
-                                    workspace,
-                                    user,
-                                    project,
-                                    projectTypeId,
-                                    analyticsID,
-                                    memorySize,
-                                    lifetime,
-                                    usageTime,
-                                    stoppedByUser);
-                        }
-                        break;
-                    case RUN_TASK_ADDED_IN_QUEUE:
-                        LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
-                                 workspace,
-                                 user,
-                                 project,
-                                 projectTypeId,
-                                 analyticsID);
-                        break;
-                    case RUN_TASK_QUEUE_TIME_EXCEEDED:
-                        waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                        LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                 workspace,
-                                 user,
-                                 project,
-                                 projectTypeId,
-                                 analyticsID,
-                                 waitingTime);
-                        break;
+                                     lifetime,
+                                     usageTime,
+                                     stoppedByUser);
+                            break;
+                        case RUN_TASK_ADDED_IN_QUEUE:
+                            LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID);
+                            break;
+                        case RUN_TASK_QUEUE_TIME_EXCEEDED:
+                            LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     waitingTime);
+                            break;
+                    }
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
                 }
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
             }
         }
 

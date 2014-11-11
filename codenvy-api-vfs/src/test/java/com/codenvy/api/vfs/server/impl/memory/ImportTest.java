@@ -10,11 +10,17 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.impl.memory;
 
+import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.vfs.server.VirtualFile;
+import com.codenvy.api.vfs.server.observation.CreateEvent;
+import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 
 import org.everrest.core.impl.ContainerResponse;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -22,6 +28,15 @@ import java.util.zip.ZipOutputStream;
 public class ImportTest extends MemoryFileSystemTest {
     private String importTestRootId;
     private byte[] zipFolder;
+
+    private List<VirtualFileEvent> events;
+
+    private EventSubscriber<CreateEvent> eventSubscriber = new EventSubscriber<CreateEvent>() {
+        @Override
+        public void onEvent(CreateEvent event) {
+            events.add(event);
+        }
+    };
 
     @Override
     protected void setUp() throws Exception {
@@ -43,6 +58,16 @@ public class ImportTest extends MemoryFileSystemTest {
         zipOut.write(DEFAULT_CONTENT_BYTES);
         zipOut.close();
         zipFolder = bout.toByteArray();
+
+        events = new ArrayList<>();
+        mountPoint.getEventService().subscribe(eventSubscriber);
+    }
+
+    @Override
+    public void tearDown() throws Exception {
+        events.clear();
+        mountPoint.getEventService().unsubscribe(eventSubscriber);
+        super.tearDown();
     }
 
     public void testImportFolder() throws Exception {
@@ -65,5 +90,26 @@ public class ImportTest extends MemoryFileSystemTest {
         VirtualFile file3 = folder3.getChild("file3.txt");
         assertNotNull(file3);
         checkFileContext(DEFAULT_CONTENT, "text/plain", file3);
+
+
+        assertEquals(6, events.size());
+
+        List<VirtualFileEvent> _events = new ArrayList<>(events);
+
+        for (Iterator<VirtualFileEvent> iterator = _events.iterator(); iterator.hasNext(); ) {
+            VirtualFileEvent event = iterator.next();
+            if (event.getPath().equals(folder1.getPath())
+                || event.getPath().equals(folder2.getPath())
+                || event.getPath().equals(folder3.getPath())
+                || event.getPath().equals(file1.getPath())
+                || event.getPath().equals(file2.getPath())
+                || event.getPath().equals(file3.getPath())) {
+                iterator.remove();
+            } else {
+                fail("Unexpected event " + event.getType() + " : " + event.getPath());
+            }
+        }
+
+        assertEquals(0, _events.size());
     }
 }

@@ -16,13 +16,12 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
 import java.util.Properties;
 
 /**
  * Helps getting content type of file.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public class ContentTypeGuesser {
     private static final Logger LOG = LoggerFactory.getLogger(ContentTypeGuesser.class);
@@ -73,15 +72,27 @@ public class ContentTypeGuesser {
             // by full file name.
             contentType = properties.getProperty(name);
         }
+        /* Commented due to on Amazon infra with power instances. JVM crashes with multi-thread access (no problem with single thread).
+
+        *** glibc detected *** /usr/local/jdk/bin/java: double free or corruption (out): 0x00007f22f0007820 ***
+        ======= Backtrace: =========
+        /lib64/libc.so.6[0x3da68760e6]
+        /lib64/libc.so.6[0x3da6878c13]
+        /lib64/libglib-2.0.so.0(g_array_free+0x7a)[0x3da7c13dda]
+        /lib64/libgio-2.0.so.0[0x3da9c352f4]
+        /lib64/libgobject-2.0.so.0(g_object_unref+0x15f)[0x3da8c0dacf]
+        /usr/local/jdk1.7.0_17/jre/lib/amd64/libnio.so(Java_sun_nio_fs_GnomeFileTypeDetector_probeUsingGio+0xa2)[0x7f24aa7c7232]
+        [0x7f24d3186db1]
+
         if (contentType == null) {
             try {
                 // if content type is null use JDK.
-                contentType = Files.probeContentType(file.toPath());
+                contentType = java.nio.file.Files.probeContentType(file.toPath());
             } catch (IOException e) {
                 LOG.warn(e.getMessage(), e);
             }
-        }
-        return contentType == null ? defaultContentType : contentType;
+        }*/
+        return contentType == null ? getDefaultContentType() : contentType;
     }
 
     public static String guessContentType(String name) {
@@ -98,7 +109,7 @@ public class ContentTypeGuesser {
             // by full file name.
             contentType = properties.getProperty(name);
         }
-        return contentType == null ? defaultContentType : contentType;
+        return contentType == null ? getDefaultContentType() : contentType;
     }
 
     private ContentTypeGuesser() {

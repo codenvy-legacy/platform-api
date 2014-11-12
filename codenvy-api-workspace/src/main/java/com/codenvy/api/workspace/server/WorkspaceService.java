@@ -464,7 +464,7 @@ public class WorkspaceService extends Service {
     @GET
     @Path("/find/account")
     @GenerateLink(rel = LINK_REL_GET_WORKSPACES_BY_ACCOUNT)
-    @RolesAllowed("user")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(APPLICATION_JSON)
     public List<WorkspaceDescriptor> getWorkspacesByAccount(@ApiParam(value = "Account ID", required = true)
                                                             @Required

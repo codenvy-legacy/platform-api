@@ -1302,7 +1302,8 @@ public class RunQueue {
 
         @Override
         public void onEvent(RunnerEvent event) {
-            if (event.getType() == RunnerEvent.EventType.STARTED
+            if (event.getType() == RunnerEvent.EventType.PREPARATION_STARTED
+                || event.getType() == RunnerEvent.EventType.STARTED
                 || event.getType() == RunnerEvent.EventType.STOPPED
                 || event.getType() == RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE
                 || event.getType() == RunnerEvent.EventType.RUN_TASK_QUEUE_TIME_EXCEEDED) {

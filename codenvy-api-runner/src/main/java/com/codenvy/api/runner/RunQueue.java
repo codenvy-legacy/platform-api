@@ -1249,6 +1249,7 @@ public class RunQueue {
                 final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                 final long id = event.getProcessId();
                 switch (event.getType()) {
+                    case PREPARATION_STARTED:
                     case STARTED:
                     case STOPPED:
                     case ERROR:
@@ -1324,6 +1325,19 @@ public class RunQueue {
                     final boolean debug = request.isInDebugMode();
                     final String user = request.getUserName();
                     switch (event.getType()) {
+                        case PREPARATION_STARTED:
+                            final String preparationStartLineFormat =
+                                    debug ? "EVENT#debug-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                          : "EVENT#run-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                            LOG.info(preparationStartLineFormat,
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     memorySize,
+                                     lifetime);
+                            break;
                         case STARTED:
                             LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
                                      workspace,

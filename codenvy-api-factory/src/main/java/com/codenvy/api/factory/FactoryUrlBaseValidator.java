@@ -46,16 +46,20 @@ import static java.lang.String.format;
 public abstract class FactoryUrlBaseValidator {
     private static final Pattern PROJECT_NAME_VALIDATOR = Pattern.compile("^[\\\\\\w\\\\\\d]+[\\\\\\w\\\\\\d_.-]*$");
 
-    private AccountDao accountDao;
+    private final boolean onPremises;
 
-    private UserDao userDao;
+    private final AccountDao accountDao;
+    private final UserDao userDao;
+    private final UserProfileDao profileDao;
 
-    private UserProfileDao profileDao;
-
-    public FactoryUrlBaseValidator(AccountDao accountDao, UserDao userDao, UserProfileDao profileDao) {
+    public FactoryUrlBaseValidator(AccountDao accountDao,
+                                   UserDao userDao,
+                                   UserProfileDao profileDao,
+                                   boolean onPremises) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.profileDao = profileDao;
+        this.onPremises = onPremises;
     }
 
     /**
@@ -182,12 +186,12 @@ public abstract class FactoryUrlBaseValidator {
                 List<Subscription> subscriptions = accountDao.getSubscriptions(orgid, "Factory");
                 boolean isTracked = false;
                 for (Subscription one : subscriptions) {
-                    if ("Tracked".equals(one.getProperties().get("Package"))) {
+                    if ("Tracked".equalsIgnoreCase(one.getProperties().get("Package"))) {
                         isTracked = true;
                         break;
                     }
                 }
-                if (!isTracked) {
+                if (!isTracked && !onPremises) {
                     throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
                 }
             } catch (NotFoundException | ServerException | NumberFormatException e) {
@@ -219,21 +223,21 @@ public abstract class FactoryUrlBaseValidator {
         }
 
         if (validSince != null && validSince > 0) {
-            if (null == orgid) {
+            if (null == orgid && !onPremises) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                    factory.getV().startsWith("1.") ? "restriction.validsince" : "policies.validSince"));
             }
         }
 
         if (validUntil != null && validUntil > 0) {
-            if (null == orgid) {
+            if (null == orgid && !onPremises) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                    factory.getV().startsWith("1.") ? "restriction.validuntil" : "policies.validUntil"));
             }
         }
 
         if (null != welcomePage) {
-            if (null == orgid) {
+            if (null == orgid && !onPremises) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                    factory.getV().startsWith("1.") ? "welcome" : "actions.welcome"));
             }

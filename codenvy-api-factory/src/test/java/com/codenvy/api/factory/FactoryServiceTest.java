@@ -101,7 +101,7 @@ public class FactoryServiceTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        factoryBuilder = spy(new FactoryBuilder(new SourceProjectParametersValidator()));
+        factoryBuilder = spy(new FactoryBuilder(new SourceProjectParametersValidator(), false));
         factoryService = new FactoryService("https://codenvy.com/api",
                                             factoryStore,
                                             createValidator,

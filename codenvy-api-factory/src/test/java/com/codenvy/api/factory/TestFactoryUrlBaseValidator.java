@@ -19,7 +19,10 @@ import com.codenvy.api.user.server.dao.UserProfileDao;
  */
 public class TestFactoryUrlBaseValidator extends FactoryUrlBaseValidator{
 
-    public TestFactoryUrlBaseValidator(AccountDao accountDao, UserDao userDao, UserProfileDao profileDao) {
-        super(accountDao, userDao, profileDao);
+    public TestFactoryUrlBaseValidator(AccountDao accountDao,
+                                       UserDao userDao,
+                                       UserProfileDao profileDao,
+                                       boolean onPremises) {
+        super(accountDao, userDao, profileDao, onPremises);
     }
 }

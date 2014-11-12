@@ -1249,6 +1249,7 @@ public class RunQueue {
                 final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                 final long id = event.getProcessId();
                 switch (event.getType()) {
+                    case PREPARATION_STARTED:
                     case STARTED:
                     case STOPPED:
                     case ERROR:
@@ -1301,7 +1302,8 @@ public class RunQueue {
 
         @Override
         public void onEvent(RunnerEvent event) {
-            if (event.getType() == RunnerEvent.EventType.STARTED
+            if (event.getType() == RunnerEvent.EventType.PREPARATION_STARTED
+                || event.getType() == RunnerEvent.EventType.STARTED
                 || event.getType() == RunnerEvent.EventType.STOPPED
                 || event.getType() == RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE
                 || event.getType() == RunnerEvent.EventType.RUN_TASK_QUEUE_TIME_EXCEEDED) {
@@ -1324,6 +1326,19 @@ public class RunQueue {
                     final boolean debug = request.isInDebugMode();
                     final String user = request.getUserName();
                     switch (event.getType()) {
+                        case PREPARATION_STARTED:
+                            final String preparationStartLineFormat =
+                                    debug ? "EVENT#debug-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                          : "EVENT#run-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                            LOG.info(preparationStartLineFormat,
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     memorySize,
+                                     lifetime);
+                            break;
                         case STARTED:
                             LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
                                      workspace,

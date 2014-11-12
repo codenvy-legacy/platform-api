@@ -18,6 +18,8 @@ import com.codenvy.api.core.notification.EventOrigin;
 @EventOrigin("runner")
 public class RunnerEvent {
     public enum EventType {
+        /** Application launching process started. */
+        PREPARATION_STARTED("preparation started"),
         /** Application started. */
         STARTED("started"),
         /** Application stopped. */
@@ -86,6 +88,10 @@ public class RunnerEvent {
                    ", lineNum=" + lineNum +
                    '}';
         }
+    }
+
+    public static RunnerEvent preparationStartedEvent(long processId, String workspace, String project) {
+        return new RunnerEvent(EventType.PREPARATION_STARTED, processId, workspace, project);
     }
 
     public static RunnerEvent startedEvent(long processId, String workspace, String project) {

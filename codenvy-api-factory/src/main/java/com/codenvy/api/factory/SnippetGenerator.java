@@ -36,7 +36,7 @@ public class SnippetGenerator {
             String style = factory.getStyle();
 
             if (style == null || style.isEmpty()) {
-                throw new IllegalArgumentException("Enable to generate markdown snippet with empty factory style");
+                throw new IllegalArgumentException("Unable to generate markdown snippet with empty factory style");
             }
             switch (style) {
                 case "Advanced":
@@ -61,18 +61,24 @@ public class SnippetGenerator {
                     throw new IllegalArgumentException("Unknown factory style " + style);
             }
         } else {
-            if (factory.getButton().getType().equals(Button.ButtonType.logo)) {
+            if (factory.getButton() == null) {
+                throw new IllegalArgumentException("Unable to generate markdown snippet for factory without button");
+            }
+
+            if (Button.ButtonType.logo.equals(factory.getButton().getType())) {
                 if (imageId != null && factory.getId() != null) {
                     imgUrl = format("%s/api/factory/%s/image?imgId=%s", baseUrl, factory.getId(), imageId);
                 } else {
                     throw new IllegalArgumentException("Factory with logo MUST have at leas one image.");
                 }
+            } else if (factory.getButton().getAttributes() == null) {
+                throw new IllegalArgumentException("Unable to generate markdown snippet for factory without button's attributes");
             } else if ("white".equals(factory.getButton().getAttributes().getColor())) {
                 imgUrl = format("%s/factory/resources/factory-white.png", baseUrl);
             } else if ("gray".equals(factory.getButton().getAttributes().getColor())) {
                 imgUrl = format("%s/factory/resources/factory-dark.png", baseUrl);
             } else {
-                throw new IllegalArgumentException("Enable to generate markdown snippet with nologo button and empty color");
+                throw new IllegalArgumentException("Unable to generate markdown snippet with nologo button and empty color");
             }
         }
 

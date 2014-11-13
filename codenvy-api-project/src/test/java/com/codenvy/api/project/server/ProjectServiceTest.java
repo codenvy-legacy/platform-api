@@ -21,8 +21,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
-import com.codenvy.api.project.shared.dto.ImportProject;
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -30,7 +28,6 @@ import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
-import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.shared.dto.TreeElement;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStream;
@@ -1044,10 +1041,6 @@ public class ProjectServiceTest {
                 return ImporterCategory.ARCHIVE;
             }
         });
-
-
-        ImportProject dto = DtoFactory.getInstance().createDto(ImportProject.class).withProject(DtoFactory.getInstance().createDto(NewProject.class)).withSource(DtoFactory.getInstance().createDto(Source.class).withProject(DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)));
-        System.out.println(dto.toString());
 
         String myType = "superType";
         Map<String, List<String>> headers = new HashMap<>();

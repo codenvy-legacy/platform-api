@@ -869,7 +869,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
 
         assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
-                     "Enable to generate markdown snippet with empty factory style");
+                     "Unable to generate markdown snippet with empty factory style");
     }
 
     @Test
@@ -890,7 +890,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
 
         assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
-                     "Enable to generate markdown snippet with nologo button and empty color");
+                     "Unable to generate markdown snippet with nologo button and empty color");
     }
 
     @Test

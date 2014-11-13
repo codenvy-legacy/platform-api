@@ -54,10 +54,8 @@ public class ApplicationLogsPublisher extends DelegateApplicationLogger {
             if (maxEventRateChecker.updateAndCheckRate() && (rate = maxEventRateChecker.getRate()) > maxLogsRate) {
                 outputEnabled = false;
                 final String message = String.format(
-                        "[WARNING] Too much output to process.\n" +
-                        "Application has exceeded max allowed rate of output events, detected rate %.2f per second.\n" +
-                        "Application output is disabled.",
-                        rate);
+                        "[WARNING] Application '%s' has exceeded output rate of %.2f messages / second. Application output has been disabled.",
+                        project.startsWith("/") ? project.substring(1) : project, rate);
                 eventService.publish(RunnerEvent.messageLoggedEvent(processId, workspace, project,
                                                                     new RunnerEvent.LoggedMessage(message, lineCounter.getAndIncrement())));
                 return;

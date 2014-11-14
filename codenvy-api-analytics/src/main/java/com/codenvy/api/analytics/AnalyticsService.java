@@ -293,6 +293,20 @@ public class AnalyticsService extends Service {
         }
     }
 
+    @GenerateLink(rel = "latency test")
+    @GET
+    @Path("latency-test")
+    @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
+    public Response testLatency() {
+        try {
+            return Response.status(Response.Status.OK).build();
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity("Unexpected error occurred. Can't answer to latency test").build();
+        }
+    }
+
     private Map<String, String> extractContext(UriInfo info,
                                                String page,
                                                String perPage) {

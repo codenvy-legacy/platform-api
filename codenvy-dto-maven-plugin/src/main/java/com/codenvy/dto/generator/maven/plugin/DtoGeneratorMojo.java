@@ -19,7 +19,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
 import java.io.File;
-import java.util.List;
 
 /** Mojo to run {@link DtoGenerator}. */
 @Mojo(name = "generate", requiresDependencyResolution = ResolutionScope.COMPILE)

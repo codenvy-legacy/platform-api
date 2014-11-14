@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server.util;
 
+import com.codenvy.api.core.util.FileCleaner;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,11 +19,10 @@ import java.io.IOException;
 /**
  * Delete java.io.File after closing.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author andrew00x
  */
 public final class DeleteOnCloseFileInputStream extends FileInputStream {
     private final java.io.File file;
-    private boolean deleted = false;
 
     public DeleteOnCloseFileInputStream(java.io.File file) throws FileNotFoundException {
         super(file);
@@ -34,10 +35,7 @@ public final class DeleteOnCloseFileInputStream extends FileInputStream {
         try {
             super.close();
         } finally {
-            if (!deleted) {
-                deleted = file.delete();
-            }
+            FileCleaner.addFile(file);
         }
-        //System.out.println("---> " + file.getAbsolutePath() + ", exists : " + file.exists());
     }
 }

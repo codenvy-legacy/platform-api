@@ -800,16 +800,18 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Override
     public void importZip(@PathParam("parentId") String parentId,
                           InputStream in,
-                          @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite)
+                          @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
+                          @DefaultValue("false") @QueryParam("skipFirstLevel") Boolean skipFirstLevel)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException {
         final VirtualFile parent = mountPoint.getVirtualFileById(parentId);
-        importZip(parent, in, overwrite);
+        importZip(parent, in, overwrite, skipFirstLevel);
     }
 
     // For usage from Project API.
-    public static void importZip(VirtualFile parent, InputStream in, boolean overwrite)
+    public static void importZip(VirtualFile parent, InputStream in, boolean overwrite, boolean skipFirstLevel)
             throws ForbiddenException, ConflictException, ServerException {
-        parent.unzip(in, overwrite);
+        int stripNum = skipFirstLevel ? 1 : 0;
+        parent.unzip(in, overwrite, stripNum);
     }
 
     @Path("downloadfile/{id}")
@@ -927,7 +929,7 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                 throw new ServerException("Cannot find file for upload. ");
             }
             try {
-                importZip(parentId, contentItem.getInputStream(), overwrite);
+                importZip(parentId, contentItem.getInputStream(), overwrite, false);
             } catch (IOException ioe) {
                 throw new ServerException(ioe.getMessage(), ioe);
             }

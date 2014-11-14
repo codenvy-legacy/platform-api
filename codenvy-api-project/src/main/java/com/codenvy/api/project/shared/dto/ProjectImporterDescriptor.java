@@ -12,6 +12,8 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.Map;
+
 /**
  * @author Vitaly Parfonov
  */
@@ -58,4 +60,12 @@ public interface ProjectImporterDescriptor {
     void setDescription(String description);
 
     ProjectImporterDescriptor withDescription(String description);
+
+    /** Gets attributes of this project importer. */
+    Map<String, String> getAttributes();
+
+    /** Sets attributes for this project importer. */
+    void setAttributes(Map<String, String> attributes);
+
+    ProjectImporterDescriptor withAttributes(Map<String, String> attributes);
 }

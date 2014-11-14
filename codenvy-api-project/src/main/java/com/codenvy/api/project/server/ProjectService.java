@@ -838,9 +838,11 @@ public class ProjectService extends Service {
                               @PathParam("ws-id") String workspace,
                               @ApiParam(value = "Path to a location (where import to?)")
                               @PathParam("path") String path,
-                              InputStream zip) throws NotFoundException, ConflictException, ForbiddenException, ServerException {
+                              InputStream zip,
+                              @DefaultValue("false") @QueryParam("skipFirstLevel") Boolean skipFirstLevel)
+            throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final FolderEntry parent = asFolder(workspace, path);
-        VirtualFileSystemImpl.importZip(parent.getVirtualFile(), zip, true);
+        VirtualFileSystemImpl.importZip(parent.getVirtualFile(), zip, true, skipFirstLevel);
         if (parent.isProjectFolder()) {
             Project project = new Project(parent, projectManager);
             eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));

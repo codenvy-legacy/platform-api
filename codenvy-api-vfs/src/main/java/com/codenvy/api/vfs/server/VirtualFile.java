@@ -340,6 +340,8 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      *         ZIP content
      * @param overwrite
      *         overwrite or not existing files
+     * @param stripNumber
+     *         strip number leading components from file names on extraction.
      * @throws ForbiddenException
      *         if any of following conditions are met:
      *         <ul>
@@ -352,7 +354,7 @@ public interface VirtualFile extends Comparable<VirtualFile> {
      * @throws ServerException
      *         if other error occurs
      */
-    void unzip(InputStream zipped, boolean overwrite) throws ForbiddenException, ConflictException, ServerException;
+    void unzip(InputStream zipped, boolean overwrite, int stripNumber) throws ForbiddenException, ConflictException, ServerException;
 
     /**
      * Locks this VirtualFile.

@@ -107,6 +107,8 @@ public class ProjectServiceTest {
     private UserDao                     userDao;
     private ProjectTypeResolverRegistry resolverRegistry;
 
+
+
     @BeforeMethod
     public void setUp() throws Exception {
         ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
@@ -851,9 +853,14 @@ public class ProjectServiceTest {
 
     @Test
     public void testImportProject() throws Exception {
+        Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+        for(ProjectTypeResolver resolver : resolvers) {
+            resolverRegistry.unregister(resolver);
+        }
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         ZipOutputStream zipOut = new ZipOutputStream(bout);
         zipOut.putNextEntry(new ZipEntry("folder1/"));
+        resolverRegistry.getResolvers();
         zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
         zipOut.write("to be or not to be".getBytes());
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_DIR + "/"));
@@ -1217,10 +1224,9 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getType(), "blank");
+        Assert.assertNotNull(descriptor.getProblems());
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
-        Assert.assertNotNull(newProject.getDescription());
-        Assert.assertEquals("blank", newProject.getDescription().getProjectType().getId());
     }
 
     @Test
@@ -1288,6 +1294,7 @@ public class ProjectServiceTest {
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
     }
+
 
     @Test
     public void testImportZip() throws Exception {

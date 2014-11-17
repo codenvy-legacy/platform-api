@@ -19,7 +19,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
 import java.io.File;
-import java.util.List;
 
 /** Mojo to run {@link DtoGenerator}. */
 @Mojo(name = "generate", requiresDependencyResolution = ResolutionScope.COMPILE)
@@ -40,7 +39,7 @@ public class DtoGeneratorMojo extends AbstractMojo {
         DtoGenerator dtoGenerator = new DtoGenerator();
         dtoGenerator.setPackageBase(outputDirectory);
         String genFileName = genClassName.replace('.', File.separatorChar) + ".java";
-        dtoGenerator.setGenFileName(outputDirectory.endsWith(File.separator) ? (outputDirectory + genFileName)
+        dtoGenerator.setGenFileName(outputDirectory.endsWith("/") ? (outputDirectory + genFileName)
                                                                              : (outputDirectory + File.separatorChar + genFileName));
         dtoGenerator.setImpl(impl);
         dtoGenerator.setDtoPackages(dtoPackages);

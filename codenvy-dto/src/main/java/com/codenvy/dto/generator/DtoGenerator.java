@@ -110,6 +110,7 @@ public class DtoGenerator {
     public void generate() {
 
         Set<URL> urls = getClasspathForPackages(dtoPackages);
+        genFileName = genFileName.replace('/', File.separatorChar);
         String outputFilePath = genFileName;
 
         // Extract the name of the output file that will contain all the DTOs and its package.
@@ -117,11 +118,13 @@ public class DtoGenerator {
         if (!myPackageBase.endsWith("/")) {
             myPackageBase += "/";
         }
+        myPackageBase = myPackageBase.replace('/', File.separatorChar);
+
         int packageStart = outputFilePath.lastIndexOf(myPackageBase) + myPackageBase.length();
-        int packageEnd = outputFilePath.lastIndexOf('/');
+        int packageEnd = outputFilePath.lastIndexOf(File.separatorChar);
         String fileName = outputFilePath.substring(packageEnd + 1);
         String className = fileName.substring(0, fileName.indexOf(".java"));
-        String packageName = outputFilePath.substring(packageStart, packageEnd).replace('/', '.');
+        String packageName = outputFilePath.substring(packageStart, packageEnd).replace(File.separatorChar, '.');
 
         File outFile = new File(outputFilePath);
 

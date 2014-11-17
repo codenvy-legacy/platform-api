@@ -123,7 +123,7 @@ public class FactoryUrlBaseValidatorTest {
     @Test(expectedExceptions = ApiException.class,
           expectedExceptionsMessageRegExp =
                   "The parameter vcsurl has a value submitted http://codenvy.com/git/04%2 with a value that is unexpected. " +
-                  "For more information, please visit: http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/.")
+                  "For more information, please visit http://docs.codenvy.com/user/project-lifecycle/#configuration-reference")
     public void shouldNotValidateIfVcsurlContainIncorrectEncodedSymbol() throws ApiException {
         // given
         factory.setVcsurl("http://codenvy.com/git/04%2");

@@ -343,9 +343,8 @@ public class RunQueue {
 
             // sending message by websocket connection for notice about used memory size changing
             eventService.subscribe(new ResourcesChangesMessenger());
-
+            eventService.subscribe(new ProcessStartedMessenger());
             eventService.subscribe(new RunStatusMessenger());
-
             //Log events for analytics
             eventService.subscribe(new AnalyticsMessenger());
 
@@ -1238,6 +1237,23 @@ public class RunQueue {
                         LOG.error(e.getMessage(), e);
                     }
                     break;
+            }
+        }
+    }
+
+    private class ProcessStartedMessenger implements EventSubscriber<RunnerEvent> {
+        @Override
+        public void onEvent(RunnerEvent event) {
+            if (event.getType() == RunnerEvent.EventType.STARTED) {
+                try {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    bm.setChannel(String.format("runner:process_started:%s:%s", event.getWorkspace(), event.getProject()));
+                    final ApplicationProcessDescriptor descriptor = getTask(event.getProcessId()).getDescriptor();
+                    bm.setBody(DtoFactory.getInstance().toJson(descriptor));
+                    WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
             }
         }
     }

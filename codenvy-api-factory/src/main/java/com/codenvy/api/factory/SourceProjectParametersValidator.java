@@ -42,7 +42,6 @@ public class SourceProjectParametersValidator implements FactoryParameterValidat
                     case "keepDirectory":
                     case "remoteOriginFetch":
                     case "branchMerge":
-                    case "pushDefault":
                         break;
                     default:
                         throw new ConflictException(format(PARAMETRIZED_INVALID_PARAMETER_MESSAGE, "source.project.parameters." + entry.getKey(), version));

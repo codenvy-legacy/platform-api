@@ -339,6 +339,12 @@ public class ProjectService extends Service {
                 throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
             }
         }
+
+        String visibility = update.getVisibility();
+        if (visibility != null && !visibility.isEmpty()) {
+            project.setVisibility(visibility);
+        }
+
         project.updateDescription(DtoConverter.fromDto(update, projectManager.getTypeDescriptionRegistry()));
         return DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
     }

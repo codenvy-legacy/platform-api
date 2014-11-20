@@ -528,6 +528,25 @@ public class WorkspaceServiceTest {
     }
 
     @Test
+    public void shouldBeAbleToAddMemberToNotEmptyWorkspaceIfUserIsAccountOwner() throws Exception {
+        final Workspace testWorkspace = createWorkspace();
+        final Account account = createAccount();
+        when(workspaceDao.getByAccount(account.getId())).thenReturn(singletonList(testWorkspace));
+        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(singletonList(new Member()));
+
+        final NewMembership membership = newDTO(NewMembership.class).withRoles(singletonList("workspace/developer"))
+                                                                    .withUserId(testUser.getId());
+        prepareRole("account/owner");
+
+        final MemberDescriptor descriptor = doPost(SERVICE_PATH + "/" + testWorkspace.getId() + "/members", membership, CREATED);
+
+        assertEquals(descriptor.getUserId(), membership.getUserId());
+        assertEquals(descriptor.getWorkspaceReference().getId(), testWorkspace.getId());
+        assertEquals(descriptor.getRoles(), membership.getRoles());
+        verify(memberDao).create(any(Member.class));
+    }
+
+    @Test
     public void shouldBeAbleToAddMemberToNotEmptyWorkspaceForAnyUserIfAllowAttributeIsTrue() throws Exception {
         final Workspace testWorkspace = createWorkspace();
         when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(singletonList(new Member()));
@@ -602,10 +621,35 @@ public class WorkspaceServiceTest {
                                                         .withWorkspaceId(testWorkspace.getId())
                                                         .withRoles(singletonList("workspace/developer")));
         when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
+        prepareRole("workspace/admin");
 
         doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", NO_CONTENT);
 
         verify(memberDao).remove(members.get(1));
+    }
+
+    @Test
+    public void shouldNotBeAbleToRemoveMemberIfUserIsNotWorkspaceAdminOrAccountOwner() throws Exception {
+        final Workspace testWorkspace = createWorkspace();
+        final Account account = createAccount();
+        when(workspaceDao.getByAccount(account.getId())).thenReturn(singletonList(testWorkspace));
+        final List<Member> members = asList(new Member().withUserId(testUser.getId())
+                                                        .withWorkspaceId(testWorkspace.getId())
+                                                        .withRoles(singletonList("workspace/admin")),
+                                            new Member().withUserId("test_member")
+                                                        .withWorkspaceId(testWorkspace.getId())
+                                                        .withRoles(singletonList("workspace/developer")));
+        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
+
+        prepareRole("workspace/admin");
+        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", NO_CONTENT);
+
+        prepareRole("account/owner");
+        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", NO_CONTENT);
+
+        when(workspaceDao.getByAccount(account.getId())).thenReturn(Collections.<Workspace>emptyList());
+        prepareRole("workspace/developer");
+        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", FORBIDDEN);
     }
 
     @Test
@@ -618,6 +662,7 @@ public class WorkspaceServiceTest {
                                                         .withWorkspaceId(testWorkspace.getId())
                                                         .withRoles(singletonList("workspace/developer")));
         when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
+        prepareRole("workspace/admin");
 
         final String errorJson = doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/" + testUser.getId(), CONFLICT);
 
@@ -634,6 +679,7 @@ public class WorkspaceServiceTest {
                                                         .withWorkspaceId(testWorkspace.getId())
                                                         .withRoles(singletonList("workspace/admin")));
         when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
+        prepareRole("workspace/admin");
 
         doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/" + testUser.getId(), NO_CONTENT);
 

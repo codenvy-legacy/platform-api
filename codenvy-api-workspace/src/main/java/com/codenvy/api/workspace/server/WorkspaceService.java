@@ -101,7 +101,7 @@ import static javax.ws.rs.core.Response.status;
  * @author Max Shaposhnik
  */
 @Api(value = "/workspace",
-     description = "Workspace manager")
+        description = "Workspace manager")
 @Path("/workspace")
 public class WorkspaceService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceService.class);
@@ -153,8 +153,8 @@ public class WorkspaceService extends Service {
      * @see #getByName(String, javax.ws.rs.core.SecurityContext)
      */
     @ApiOperation(value = "Create a new workspace",
-                  response = WorkspaceDescriptor.class,
-                  position = 2)
+            response = WorkspaceDescriptor.class,
+            position = 2)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 403, message = "You have no access to create more workspaces"),
@@ -225,9 +225,9 @@ public class WorkspaceService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Create a temporary workspace",
-                  notes = "Create a temporary workspace created by a Factory",
-                  response = WorkspaceDescriptor.class,
-                  position = 1)
+            notes = "Create a temporary workspace created by a Factory",
+            response = WorkspaceDescriptor.class,
+            position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 403, message = "You have no access to create more workspaces"),
@@ -292,8 +292,8 @@ public class WorkspaceService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Get workspace by ID",
-                  response = WorkspaceDescriptor.class,
-                  position = 5)
+            response = WorkspaceDescriptor.class,
+            position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Workspace with specified ID does not exist"),
@@ -342,8 +342,8 @@ public class WorkspaceService extends Service {
      * @see #getById(String, SecurityContext)
      */
     @ApiOperation(value = "Gets workspace by name",
-                  response = WorkspaceDescriptor.class,
-                  position = 4)
+            response = WorkspaceDescriptor.class,
+            position = 4)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Workspace with specified name doesn't exist"),
@@ -401,9 +401,9 @@ public class WorkspaceService extends Service {
      * @see #removeAttribute(String, String, SecurityContext)
      */
     @ApiOperation(value = "Update workspace",
-                  response = WorkspaceDescriptor.class,
-                  notes = "Update an existing workspace. A JSON with updated properties is sent.",
-                  position = 3)
+            response = WorkspaceDescriptor.class,
+            notes = "Update an existing workspace. A JSON with updated properties is sent.",
+            position = 3)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Workspace updated"),
             @ApiResponse(code = 404, message = "Not found"),
@@ -454,10 +454,10 @@ public class WorkspaceService extends Service {
      * @see WorkspaceDescriptor
      */
     @ApiOperation(value = "Get workspace by Account ID",
-                  notes = "Search for a workspace by its Account ID which is added as query parameter",
-                  response = WorkspaceDescriptor.class,
-                  responseContainer = "List",
-                  position = 6)
+            notes = "Search for a workspace by its Account ID which is added as query parameter",
+            response = WorkspaceDescriptor.class,
+            responseContainer = "List",
+            position = 6)
     @ApiResponses(value = {
             @ApiResponse(code = 403, message = "User is not authorized to call this operation"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
@@ -490,10 +490,10 @@ public class WorkspaceService extends Service {
      * @see MemberDescriptor
      */
     @ApiOperation(value = "Get membership of a current user",
-                  notes = "Get membership and workspace roles of a current user",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 9)
+            notes = "Get membership and workspace roles of a current user",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 9)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -533,10 +533,10 @@ public class WorkspaceService extends Service {
      * @see MemberDescriptor
      */
     @ApiOperation(value = "Get memberships by user ID",
-                  notes = "Search for a workspace by User ID which is added to URL as query parameter. JSON with workspace details and user roles is returned",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 7)
+            notes = "Search for a workspace by User ID which is added to URL as query parameter. JSON with workspace details and user roles is returned",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 7)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this action"),
@@ -583,10 +583,10 @@ public class WorkspaceService extends Service {
      * @see #removeMember(String, String, SecurityContext)
      */
     @ApiOperation(value = "Get workspace members by workspace ID",
-                  notes = "Get all workspace members of a specified workspace. A JSOn with members and their roles is returned",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 8)
+            notes = "Get all workspace members of a specified workspace. A JSOn with members and their roles is returned",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 8)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -623,9 +623,9 @@ public class WorkspaceService extends Service {
      * @see #removeMember(String, String, SecurityContext)
      */
     @ApiOperation(value = "Get user membership in a specified workspace",
-                  notes = "Returns membership of a user with roles",
-                  response = MemberDescriptor.class,
-                  position = 10)
+            notes = "Returns membership of a user with roles",
+            response = MemberDescriptor.class,
+            position = 10)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -659,8 +659,8 @@ public class WorkspaceService extends Service {
      *         when given attribute name is not valid
      */
     @ApiOperation(value = "Delete workspace attribute",
-                  notes = "Deletes attributes of a specified workspace",
-                  position = 11)
+            notes = "Deletes attributes of a specified workspace",
+            position = 11)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "No Content"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -710,9 +710,9 @@ public class WorkspaceService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Create new workspace member",
-                  notes = "Add a new member into a workspace",
-                  response = MemberDescriptor.class,
-                  position = 12)
+            notes = "Add a new member into a workspace",
+            response = MemberDescriptor.class,
+            position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to perform this operation"),
@@ -740,13 +740,14 @@ public class WorkspaceService extends Service {
             //if workspace doesn't contain members then member that is been added
             //should be added with roles 'workspace/admin' and 'workspace/developer'
             newMembership.setRoles(asList("workspace/admin", "workspace/developer"));
-
         } else {
             requiredNotNull(newMembership.getRoles(), "Roles");
             if (newMembership.getRoles().isEmpty()) {
                 throw new ConflictException("Roles should not be empty");
             }
-            if (!context.isUserInRole("workspace/admin") && !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember"))) {
+            if (!context.isUserInRole("workspace/admin") &&
+                !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember")) &&
+                !isCurrentUserAccountOwnerOf(wsId)) {
                 throw new ForbiddenException("Access denied");
             }
         }
@@ -775,8 +776,8 @@ public class WorkspaceService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Remove user from workspace",
-                  notes = "Remove a user from a workspace by User ID",
-                  position = 13)
+            notes = "Remove a user from a workspace by User ID",
+            position = 13)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "No Content"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -784,7 +785,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/members/{userid}")
-    @RolesAllowed("workspace/admin")
+    @RolesAllowed({"user", "tmp_user"})
     public void removeMember(@ApiParam(value = "Workspace ID")
                              @PathParam("id")
                              String wsId,
@@ -793,7 +794,11 @@ public class WorkspaceService extends Service {
                              String userId,
                              @Context SecurityContext context) throws NotFoundException,
                                                                       ServerException,
-                                                                      ConflictException {
+                                                                      ConflictException,
+                                                                      ForbiddenException {
+        if (!context.isUserInRole("workspace/admin") && !isCurrentUserAccountOwnerOf(wsId)) {
+            throw new ForbiddenException("Access denied");
+        }
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         //search for member
         Member target = null;
@@ -826,8 +831,8 @@ public class WorkspaceService extends Service {
      *         if some error occurred while removing member
      */
     @ApiOperation(value = "Delete a workspace",
-                  notes = "Delete a workspace by its ID",
-                  position = 14)
+            notes = "Delete a workspace by its ID",
+            position = 14)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "No Content"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -1060,6 +1065,21 @@ public class WorkspaceService extends Service {
             }
         }
         throw new ConflictException("You can create workspace associated only with your own account");
+    }
+
+    private boolean isCurrentUserAccountOwnerOf(String wsId) throws ServerException, NotFoundException {
+        final List<Account> accounts = accountDao.getByOwner(currentUser().getId());
+        final List<Workspace> workspaces = new LinkedList<>();
+        //fetch all workspaces related to accounts
+        for (Account account : accounts) {
+            workspaces.addAll(workspaceDao.getByAccount(account.getId()));
+        }
+        for (Workspace workspace : workspaces) {
+            if (workspace.getId().equals(wsId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private com.codenvy.commons.user.User currentUser() {

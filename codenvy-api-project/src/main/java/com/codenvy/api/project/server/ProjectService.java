@@ -163,7 +163,7 @@ public class ProjectService extends Service {
         }
         FolderEntry projectsRoot = projectManager.getProjectsRoot(workspace);
         List<VirtualFileEntry> children = projectsRoot.getChildren();
-        for(VirtualFileEntry child : children) {
+        for (VirtualFileEntry child : children) {
             if (child.isFolder()) {
                 FolderEntry folderEntry = (FolderEntry)child;
                 if (!folderEntry.isProjectFolder()) {
@@ -195,7 +195,7 @@ public class ProjectService extends Service {
         if (project == null) {
             FolderEntry projectsRoot = projectManager.getProjectsRoot(workspace);
             VirtualFileEntry child = projectsRoot.getChild(path);
-            if (child != null && child.isFolder()  && child.getParent().isRoot()) {
+            if (child != null && child.isFolder() && child.getParent().isRoot()) {
                 NotValidProject notValidProject = new NotValidProject((FolderEntry)child, projectManager);
                 return DtoConverter.toDescriptorDto(notValidProject, getServiceContext().getServiceUriBuilder());
             } else {
@@ -339,6 +339,12 @@ public class ProjectService extends Service {
                 throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
             }
         }
+
+        String visibility = update.getVisibility();
+        if (visibility != null && !visibility.isEmpty()) {
+            project.setVisibility(visibility);
+        }
+
         project.updateDescription(DtoConverter.fromDto(update, projectManager.getTypeDescriptionRegistry()));
         return DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
     }
@@ -690,7 +696,7 @@ public class ProjectService extends Service {
             for (ProjectTypeResolver resolver : resolvers) {
                 if (resolver.resolve((FolderEntry)virtualFile)) {
                     problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
-                                         .withMessage("Project type detected via ProjectResolver");
+                                        .withMessage("Project type detected via ProjectResolver");
                     break;
                 }
             }
@@ -712,7 +718,7 @@ public class ProjectService extends Service {
                 project = new Project(baseProjectFolder, projectManager);
                 project.updateDescription(new ProjectDescription());
                 problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
-                                     .withMessage("Project type not detect so we set it as blank");
+                                    .withMessage("Project type not detect so we set it as blank");
             }
         }
 
@@ -1090,7 +1096,6 @@ public class ProjectService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/switch_visibility/{path:.*}")
-    @RolesAllowed("workspace/admin")
     public void switchVisibility(@ApiParam(value = "Workspace ID", required = true)
                                  @PathParam("ws-id") String wsId,
                                  @ApiParam(value = "Path to a project", required = true)

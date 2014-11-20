@@ -488,6 +488,7 @@ public class ProjectServiceTest {
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));
         ProjectUpdate descriptor = DtoFactory.getInstance().createDto(ProjectUpdate.class)
                                              .withType("my_project_type")
+                                             .withVisibility("private")
                                              .withDescription("updated project")
                                              .withAttributes(attributeValues);
         ContainerResponse response = launcher.service("PUT",
@@ -501,8 +502,10 @@ public class ProjectServiceTest {
         Assert.assertNotNull(project);
         ProjectDescription description = project.getDescription();
 
+        Assert.assertEquals(project.getVisibility(), "private");
         Assert.assertEquals(description.getDescription(), "updated project");
         Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
+        Assert.assertEquals(description.getProjectType().getName(), "my project type");
         Assert.assertEquals(description.getProjectType().getName(), "my project type");
         Attribute attribute = description.getAttribute("my_attribute");
         Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));

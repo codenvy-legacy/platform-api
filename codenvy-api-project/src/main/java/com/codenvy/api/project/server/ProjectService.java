@@ -710,7 +710,13 @@ public class ProjectService extends Service {
                     project.updateDescription(providedDescription);
                 } else {
                     final String typeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();
-                    providedDescription.setProjectType(projectManager.getTypeDescriptionRegistry().getProjectType(typeId));
+                    ProjectType projectType = projectManager.getTypeDescriptionRegistry().getProjectType(typeId);
+                    if (projectType == null) {
+                        projectType = ProjectType.BLANK;
+                        problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
+                                            .withMessage("Project type not registered so we set it as blank");
+                    }
+                    providedDescription.setProjectType(projectType);
                     project.updateDescription(providedDescription);
                 }
             } else if (project == null) {

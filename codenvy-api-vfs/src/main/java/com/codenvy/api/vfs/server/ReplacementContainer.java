@@ -10,14 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.vfs.server;
 
-/**
- * Container for factory replacement variables sets.
- */
-
 import java.util.HashMap;
 import java.util.Map;
 
-
+/**
+ * Container for factory replacement variables sets.
+ */
 public class ReplacementContainer {
     private Map<String, String> variableProps = new HashMap<>();
     private Map<String, String> textProps     = new HashMap<>();

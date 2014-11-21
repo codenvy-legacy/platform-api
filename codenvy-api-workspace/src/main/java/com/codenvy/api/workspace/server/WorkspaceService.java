@@ -593,12 +593,14 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}/members")
-    @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
+    @RolesAllowed({"workspace/admin", "workspace/developer", "account/owner", "system/admin", "system/manager"})
     @Produces(APPLICATION_JSON)
     public List<MemberDescriptor> getMembers(@ApiParam(value = "Workspace ID")
                                              @PathParam("id")
                                              String wsId,
-                                             @Context SecurityContext context) throws NotFoundException, ServerException {
+                                             @Context SecurityContext context) throws NotFoundException,
+                                                                                      ServerException,
+                                                                                      ForbiddenException {
         final Workspace workspace = workspaceDao.getById(wsId);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final List<MemberDescriptor> descriptors = new ArrayList<>(members.size());
@@ -785,7 +787,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/members/{userid}")
-    @RolesAllowed({"user", "tmp_user"})
+    @RolesAllowed({"workspace/admin", "account/owner"})
     public void removeMember(@ApiParam(value = "Workspace ID")
                              @PathParam("id")
                              String wsId,
@@ -796,9 +798,6 @@ public class WorkspaceService extends Service {
                                                                       ServerException,
                                                                       ConflictException,
                                                                       ForbiddenException {
-        if (!context.isUserInRole("workspace/admin") && !isCurrentUserAccountOwnerOf(wsId)) {
-            throw new ForbiddenException("Access denied");
-        }
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         //search for member
         Member target = null;

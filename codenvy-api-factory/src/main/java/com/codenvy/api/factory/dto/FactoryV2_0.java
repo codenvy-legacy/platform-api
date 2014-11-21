@@ -96,4 +96,15 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     void setButton(Button button);
 
     FactoryV2_0 withButton(Button button);
+
+    /**
+     * Describes ide look and feel.
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "client", format = ENCODED)
+    Client getClient();
+
+    void setClient(Client button);
+
+    FactoryV2_0 withClient(Client button);
+
 }

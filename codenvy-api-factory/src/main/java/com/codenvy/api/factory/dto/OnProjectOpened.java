@@ -28,11 +28,11 @@ public interface OnProjectOpened {
      * @return actions for current event.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions")
-    List<Actions> getActions();
+    List<Actions1> getActions();
 
-    void setActions(List<Actions> actions);
+    void setActions(List<Actions1> actions);
 
-    OnProjectOpened withActions(List<Actions> actions);
+    OnProjectOpened withActions(List<Actions1> actions);
 
 
     /**

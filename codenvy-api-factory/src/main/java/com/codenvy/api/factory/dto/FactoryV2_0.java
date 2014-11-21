@@ -15,6 +15,7 @@ import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.dto.shared.DTO;
 import com.codenvy.api.project.shared.dto.NewProject;
 
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.BOTH;
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.MANDATORY;
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
@@ -100,7 +101,7 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     /**
      * Describes ide look and feel.
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "client", format = ENCODED)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "client", format = BOTH)
     Client getClient();
 
     void setClient(Client button);

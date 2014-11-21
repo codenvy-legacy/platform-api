@@ -14,12 +14,17 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.api.factory.dto.Actions;
+import com.codenvy.api.factory.dto.Actions1;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
+import com.codenvy.api.factory.dto.Client;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV1_1;
 import com.codenvy.api.factory.dto.Git;
+import com.codenvy.api.factory.dto.OnAppClosed;
+import com.codenvy.api.factory.dto.OnProjectOpened;
+import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Restriction;
@@ -36,6 +41,7 @@ import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.api.vfs.shared.dto.Variable;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.collect.ImmutableMap;
 
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
@@ -284,7 +290,36 @@ public class FactoryBuilderTest {
                                                 .withStyle("style")))
               .withWorkspace(dto.createDto(Workspace.class)
                                 .withTemp(true)
-                                .withAttributes(singletonMap("key", "value")));
+                                .withAttributes(singletonMap("key", "value")))
+              .withClient(dto.createDto(Client.class)
+                             .withOnAppClosed(
+                                     dto.createDto(OnAppClosed.class)
+                                        .withActions(singletonList(dto.createDto(Actions1.class).withId("warnonclose"))))
+                             .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
+                                                     .withActions(Arrays.asList(
+                                                             dto.createDto(Actions1.class)
+                                                                .withId("openfil")
+                                                                .withProperties(singletonMap("file", "pom.xml")),
+                                                             dto.createDto(Actions1.class)
+                                                                .withId("run"),
+                                                             dto.createDto(Actions1.class)
+                                                                .withId("findReplace")
+                                                                .withProperties(
+                                                                        ImmutableMap.of(
+                                                                                "in", "src/main/resources/consts2.properties",
+                                                                                "find", "OLD_VALUE_2",
+                                                                                "replace", "NEW_VALUE_2"
+                                                                                       ))))
+                                                     .withParts(singletonList(dto.createDto(Part.class)
+                                                                                 .withId("welcomepanel")
+                                                                                 .withProperties(ImmutableMap.of(
+                                                                                         "authenticated.title",
+                                                                                         "Greeting title for authenticated users",
+                                                                                         "authenticated.iconurl",
+                                                                                         "http://example.com/icon.url",
+                                                                                         "authenticated.contenturl",
+                                                                                         "http://example.com/content.url"
+                                                                                                                ))))));
 
         factoryBuilder.checkValid(actual, ENCODED);
 
@@ -335,7 +370,37 @@ public class FactoryBuilderTest {
                                    .withWarnOnClose(true))
               .withWorkspace(dto.createDto(Workspace.class)
                                 .withTemp(true)
-                                .withAttributes(singletonMap("key", "value")));
+                                .withAttributes(singletonMap("key", "value")))
+              .withClient(dto.createDto(Client.class)
+                             .withOnAppClosed(
+                                     dto.createDto(OnAppClosed.class)
+                                        .withActions(singletonList(dto.createDto(Actions1.class).withId("warnonclose"))))
+                             .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
+                                                     .withActions(Arrays.asList(
+                                                             dto.createDto(Actions1.class)
+                                                                .withId("openfil")
+                                                                .withProperties(singletonMap("file", "pom.xml")),
+                                                             dto.createDto(Actions1.class)
+                                                                .withId("run"),
+                                                             dto.createDto(Actions1.class)
+                                                                .withId("findReplace")
+                                                                .withProperties(
+                                                                        ImmutableMap.of(
+                                                                                "in", "src/main/resources/consts2.properties",
+                                                                                "find", "OLD_VALUE_2",
+                                                                                "replace", "NEW_VALUE_2"
+                                                                                       ))))
+                                                     .withParts(singletonList(dto.createDto(Part.class)
+                                                                                 .withId("welcomepanel")
+                                                                                 .withProperties(ImmutableMap.of(
+                                                                                         "authenticated.title",
+                                                                                         "Greeting title for authenticated " +
+                                                                                         "users",
+                                                                                         "authenticated.iconurl",
+                                                                                         "http://example.com/icon.url",
+                                                                                         "authenticated.contenturl",
+                                                                                         "http://example.com/content.url"
+                                                                                                                ))))));
 
         factoryBuilder.checkValid(actual, NONENCODED);
 
@@ -779,7 +844,8 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(factory, FactoryFormat.ENCODED);
     }
 
-    @Test(expectedExceptions = ConflictException.class, expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid orgId. .*")
+    @Test(expectedExceptions = ConflictException.class, expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter " +
+                                                                                          ".*, and you do not have a valid orgId. .*")
     public void shouldThrowExceptionOnValidationV2_0WithTrackedParamsWithoutAccountIdIfOnPremisesIsDisabled() throws Exception {
         factoryBuilder = new FactoryBuilder(sourceProjectParametersValidator, false);
 

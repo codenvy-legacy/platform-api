@@ -15,11 +15,8 @@ import com.codenvy.dto.shared.DTO;
 import java.util.Map;
 
 /**
- * //TODO
- *
  * @author Sergii Leschenko
  */
-//TODO Mb rename this class
 @DTO
 public interface UpdateResourcesDescriptor {
     void setWorkspaceId(String workspaceId);

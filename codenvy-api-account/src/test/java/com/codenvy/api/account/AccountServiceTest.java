@@ -37,6 +37,7 @@ import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributesDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -83,8 +84,10 @@ import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1374,6 +1377,34 @@ public class AccountServiceTest {
                        PLAN_ID.equals(actual.getPlanId()) && Collections.singletonMap("key", "value").equals(actual.getProperties());
             }
         }));
+    }
+
+    @Test
+    public void shouldBeAbleToRedistributeResources() throws Exception {
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
+                                                 MediaType.APPLICATION_JSON,
+                                                 DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
+                                                           .withWorkspaceId("some_workspace")
+                                                           .withResources(Collections.EMPTY_MAP));
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyListOf(UpdateResourcesDescriptor.class));
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenResourcesManagerThrowsIt() throws Exception {
+        doThrow(new ConflictException("Error"))
+                .when(resourcesManager).redistributeResources(anyString(), anyListOf(UpdateResourcesDescriptor.class));
+
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
+                                                 MediaType.APPLICATION_JSON,
+                                                 DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
+                                                           .withWorkspaceId("some_workspace")
+                                                           .withResources(Collections.EMPTY_MAP));
+
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Error");
+        verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyListOf(UpdateResourcesDescriptor.class));
     }
 
     private SubscriptionAttributes toSubscriptionAttributes(NewSubscriptionAttributes newSubscriptionAttributes) {

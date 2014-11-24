@@ -13,6 +13,7 @@ package com.codenvy.api.account;
 import com.codenvy.api.account.server.AccountService;
 import com.codenvy.api.account.server.Constants;
 import com.codenvy.api.account.server.PaymentService;
+import com.codenvy.api.account.server.ResourcesManager;
 import com.codenvy.api.account.server.SubscriptionAttributesValidator;
 import com.codenvy.api.account.server.SubscriptionService;
 import com.codenvy.api.account.server.SubscriptionServiceRegistry;
@@ -128,6 +129,9 @@ public class AccountServiceTest {
     private PlanDao planDao;
 
     @Mock
+    private ResourcesManager resourcesManager;
+
+    @Mock
     private SecurityContext securityContext;
 
     @Mock
@@ -161,6 +165,7 @@ public class AccountServiceTest {
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(PlanDao.class, planDao);
+        dependencies.addComponent(ResourcesManager.class, resourcesManager);
         dependencies.addComponent(AccountDao.class, accountDao);
         dependencies.addComponent(SubscriptionServiceRegistry.class, serviceRegistry);
         dependencies.addComponent(PaymentService.class, paymentService);

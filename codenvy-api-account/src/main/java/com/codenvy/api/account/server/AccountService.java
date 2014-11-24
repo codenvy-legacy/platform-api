@@ -839,7 +839,22 @@ public class AccountService extends Service {
         accountDao.remove(id);
     }
 
-    //TODO Java Doc
+    /**
+     * Redistributes resources between workspaces
+     *
+     * @param id
+     *         account id
+     * @param updateResourcesDescriptors
+     *         descriptor of resources for updating
+     * @throws ForbiddenException
+     *         when account hasn't permission for setting attribute in workspace
+     * @throws NotFoundException
+     *         when account or workspace with given id doesn't exist
+     * @throws ConflictException
+     *         when account hasn't required Saas subscription
+     *         or user want to use more RAM than he has
+     * @throws ServerException
+     */
     @POST
     @Path("/{id}/resources")
     @RolesAllowed("account/owner")
@@ -847,8 +862,10 @@ public class AccountService extends Service {
                                       @PathParam("id") String id,
                                       @ApiParam(value = "resources description", required = true)
                                       @Required
-                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors)
-            throws NotFoundException, ServerException, ConflictException, ForbiddenException {
+                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors) throws ForbiddenException,
+                                                                                                         ConflictException,
+                                                                                                         NotFoundException,
+                                                                                                         ServerException {
         resourcesManager.redistributeResources(id, updateResourcesDescriptors);
     }
 

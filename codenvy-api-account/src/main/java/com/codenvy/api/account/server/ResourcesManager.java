@@ -19,7 +19,7 @@ import com.codenvy.api.core.ServerException;
 import java.util.List;
 
 /**
- * //TODO
+ * Class for managing resources of workspaces
  *
  * @author Sergii Leschenko
  */

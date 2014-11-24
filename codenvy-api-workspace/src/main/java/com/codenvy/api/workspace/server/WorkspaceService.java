@@ -186,8 +186,12 @@ public class WorkspaceService extends Service {
             ensureCurrentUserOwnerOf(account);
             final String multiWs = account.getAttributes().get("codenvy:multi-ws");
             final List<Workspace> existedWorkspaces = workspaceDao.getByAccount(newWorkspace.getAccountId());
-            if (!parseBoolean(multiWs) && !existedWorkspaces.isEmpty()) {
-                throw new ForbiddenException("You don't have access to create more workspaces");
+            if (!existedWorkspaces.isEmpty()) {
+                if (!parseBoolean(multiWs)) {
+                    throw new ForbiddenException("You don't have access to create more workspaces");
+                }
+                // in multi-ws mode user have to initialize runner memory manually
+                newWorkspace.getAttributes().put("codenvy:runner_ram", "0");
             }
         }
         final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))

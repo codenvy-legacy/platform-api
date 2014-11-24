@@ -698,7 +698,7 @@ public class RunQueue {
         }
     }
 
-    int getUsedMemory(String workspaceId) throws RunnerException {
+    int getUsedMemory(String workspaceId) {
         int usedMemory = 0;
         for (RunQueueTask task : tasks.values()) {
             final RunRequest request = task.getRequest();
@@ -713,6 +713,11 @@ public class RunQueue {
                     }
                 } catch (NotFoundException ignored) {
                     // If remote process is not found, it is stopped and removed from remote server.
+                } catch (RunnerException e) {
+                    // If can't get remote process in some reason, probably it was not started at all or we aren't able to connect to
+                    // remote runner. Such errors should not prevent get info about available resources.
+                    LOG.warn("Unable get amount of memory used by application '{}' from workspace '{}'. Get error when try access " +
+                             "status of remote process. Error: {}", request.getProject(), request.getWorkspace(), e.getMessage());
                 }
             }
         }

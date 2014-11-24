@@ -95,15 +95,20 @@ public class BuilderService extends Service {
     @POST
     @Path("/dependencies")
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor dependencies(@ApiParam(value = "Workspace ID", required = true)
                                             @PathParam("ws-id") String workspace,
                                             @ApiParam(value = "Project name", required = true)
                                             @Required @Description("project name") @QueryParam("project") String project,
                                             @ApiParam(value = "Analysis type. If dropped, list is used by default", defaultValue = "list",
-                                                      allowableValues = "copy,list")
-                                            @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
+                                                    allowableValues = "copy,list, copy-sources")
+                                            @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType,
+                                            @ApiParam(
+                                                    value = "Build options. Here you specify optional build options like skip tests, " +
+                                                            "build targets etc.")
+                                            @Description("build options") BuildOptions options)
             throws Exception {
-        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getDescriptor();
+        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext(), options).getDescriptor();
     }
 
     @ApiOperation(value = "Get project build tasks",

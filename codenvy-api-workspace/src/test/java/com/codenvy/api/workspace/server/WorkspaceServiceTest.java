@@ -629,30 +629,6 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldNotBeAbleToRemoveMemberIfUserIsNotWorkspaceAdminOrAccountOwner() throws Exception {
-        final Workspace testWorkspace = createWorkspace();
-        final Account account = createAccount();
-        when(workspaceDao.getByAccount(account.getId())).thenReturn(singletonList(testWorkspace));
-        final List<Member> members = asList(new Member().withUserId(testUser.getId())
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")),
-                                            new Member().withUserId("test_member")
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/developer")));
-        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
-
-        prepareRole("workspace/admin");
-        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", NO_CONTENT);
-
-        prepareRole("account/owner");
-        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", NO_CONTENT);
-
-        when(workspaceDao.getByAccount(account.getId())).thenReturn(Collections.<Workspace>emptyList());
-        prepareRole("workspace/developer");
-        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", FORBIDDEN);
-    }
-
-    @Test
     public void shouldNotBeAbleToRemoveLastWorkspaceAdmin() throws Exception {
         final Workspace testWorkspace = createWorkspace();
         final List<Member> members = asList(new Member().withUserId(testUser.getId())

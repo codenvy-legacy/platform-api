@@ -370,9 +370,11 @@ public class BuildQueue {
      *         type of analyze dependencies. Depends to implementation of slave-builder.
      * @param serviceContext
      *         ServiceContext
+     * @param buildOptions
      * @return BuildQueueTask
      */
-    public BuildQueueTask scheduleDependenciesAnalyze(String wsId, String project, String type, ServiceContext serviceContext)
+    public BuildQueueTask scheduleDependenciesAnalyze(String wsId, String project, String type, ServiceContext serviceContext,
+                                                      BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(wsId, project, serviceContext);
@@ -382,6 +384,12 @@ public class BuildQueue {
                                                                        .withWorkspace(wsId)
                                                                        .withProject(project)
                                                                        .withUserName(user == null ? "" : user.getName());
+        if (buildOptions != null) {
+            request.setBuilder(buildOptions.getBuilderName());
+            request.setOptions(buildOptions.getOptions());
+            request.setTargets(buildOptions.getTargets());
+            request.setIncludeDependencies(buildOptions.isIncludeDependencies());
+        }
         fillRequestFromProjectDescriptor(descriptor, request);
         if (!hasBuilder(request)) {
             throw new BuilderException(String.format("Builder '%s' is not available for workspace '%s'.", request.getBuilder(), wsId));

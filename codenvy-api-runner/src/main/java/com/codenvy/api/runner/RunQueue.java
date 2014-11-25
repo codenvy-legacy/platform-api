@@ -39,6 +39,7 @@ import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
@@ -72,6 +73,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -766,102 +768,7 @@ public class RunQueue {
     protected Callable<RemoteRunnerProcess> createTaskFor(final List<RemoteRunner> matched,
                                                           final RunRequest request,
                                                           final ValueHolder<BuildTaskDescriptor> buildTaskHolder) {
-        return new Callable<RemoteRunnerProcess>() {
-            @Override
-            public RemoteRunnerProcess call() throws Exception {
-                BuildTaskDescriptor buildDescriptor = buildTaskHolder.get();
-                if (buildDescriptor != null) {
-                    final Link buildStatusLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
-                    if (buildStatusLink == null) {
-                        throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
-                    }
-                    for (; ; ) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            // Expected to get here if task is canceled. Try to cancel related runner process.
-                            tryCancelBuild(buildDescriptor);
-                            return null;
-                        }
-                        synchronized (this) {
-                            try {
-                                wait(checkBuildResultPeriod);
-                            } catch (InterruptedException e) {
-                                // Expected to get here if task is canceled. Try to cancel related build process.
-                                tryCancelBuild(buildDescriptor);
-                                return null;
-                            }
-                        }
-                        buildDescriptor =
-                                HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(buildStatusLink));
-                        // to be able show current state of build process with RunQueueTask.
-                        buildTaskHolder.set(buildDescriptor);
-                        final BuildStatus buildStatus = buildDescriptor.getStatus();
-                        if (buildStatus == BuildStatus.SUCCESSFUL) {
-                            final Link downloadLink =
-                                    buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
-                            if (downloadLink == null) {
-                                throw new RunnerException("Unable start application. Application build is successful but there " +
-                                                          "is no URL for download result of build.");
-                            }
-                            final String downloadLinkHref = downloadLink.getHref();
-                            // Slave runner needs auth token to be able download binaries from Builder API.
-                            final String token = getAuthenticationToken();
-                            request.withDeploymentSourcesUrl(
-                                    token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
-                            // get out from loop
-                            break;
-                        } else if (buildStatus == BuildStatus.CANCELLED || buildStatus == BuildStatus.FAILED) {
-                            String msg = "Unable start application. Build of application is failed or cancelled.";
-                            final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
-                            if (logLink != null) {
-                                msg += (" Build logs: " + logLink.getHref());
-                            }
-                            throw new RunnerException(msg);
-                        } else if (buildStatus == BuildStatus.IN_PROGRESS || buildStatus == BuildStatus.IN_QUEUE) {
-                            // wait
-                            LOG.debug("Build in of project '{}' from workspace '{}' is progress", request.getProject(),
-                                      request.getWorkspace());
-                        }
-                    }
-                }
-
-                // List of runners that have enough resources for launch application.
-                final List<RemoteRunner> available = new LinkedList<>();
-                for (; ; ) {
-                    for (RemoteRunner runner : matched) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            // Expected to get here if task is canceled. Stop immediately.
-                            return null;
-                        }
-                        RunnerState runnerState;
-                        try {
-                            runnerState = runner.getRemoteRunnerState();
-                        } catch (Exception e) {
-                            LOG.error(e.getMessage(), e);
-                            continue;
-                        }
-                        if (runnerState.getServerState().getFreeMemory() >= request.getMemorySize()) {
-                            available.add(runner);
-                        }
-                    }
-                    if (available.isEmpty()) {
-                        synchronized (this) {
-                            try {
-                                // Wait and try again.
-                                wait(checkAvailableRunnerPeriod);
-                            } catch (InterruptedException e) {
-                                // Expected to get here if task is canceled.
-                                Thread.currentThread().interrupt();
-                                return null;
-                            }
-                        }
-                    } else {
-                        final RemoteRunner runner = available.size() > 1 ? runnerSelector.select(available) : available.get(0);
-                        LOG.debug("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
-                        return runner.run(request);
-                    }
-                }
-            }
-        };
+        return new RemoteRunnerProcessCallable(buildTaskHolder, request, matched);
     }
 
     // Switched to default for test.
@@ -1081,6 +988,167 @@ public class RunQueue {
                     }
                 }
             }
+        }
+    }
+
+
+    private class RemoteRunnerProcessCallable implements Callable<RemoteRunnerProcess> {
+        private final ValueHolder<BuildTaskDescriptor> buildTaskHolder;
+        private final RunRequest                       request;
+        private final List<RemoteRunner>               matchedRunners;
+        private final Set<Pair<String, String>>        lowDiskSpaceRunners;
+        private final Set<Pair<String, String>>        criticalDiskSpaceRunners;
+
+        public RemoteRunnerProcessCallable(ValueHolder<BuildTaskDescriptor> buildTaskHolder, RunRequest request,
+                                           List<RemoteRunner> matchedRunners) {
+            this.buildTaskHolder = buildTaskHolder;
+            this.request = request;
+            this.matchedRunners = matchedRunners;
+            lowDiskSpaceRunners = new HashSet<>();
+            criticalDiskSpaceRunners = new HashSet<>();
+        }
+
+        @Override
+        public RemoteRunnerProcess call() throws Exception {
+            BuildTaskDescriptor buildDescriptor = buildTaskHolder.get();
+            if (buildDescriptor != null) {
+                final Link buildStatusLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
+                if (buildStatusLink == null) {
+                    throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
+                }
+                for (; ; ) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        // Expected to get here if task is canceled. Try to cancel related runner process.
+                        tryCancelBuild(buildDescriptor);
+                        return null;
+                    }
+                    synchronized (this) {
+                        try {
+                            wait(checkBuildResultPeriod);
+                        } catch (InterruptedException e) {
+                            // Expected to get here if task is canceled. Try to cancel related build process.
+                            tryCancelBuild(buildDescriptor);
+                            return null;
+                        }
+                    }
+                    buildDescriptor =
+                            HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(buildStatusLink));
+                    // to be able show current state of build process with RunQueueTask.
+                    buildTaskHolder.set(buildDescriptor);
+                    final BuildStatus buildStatus = buildDescriptor.getStatus();
+                    if (buildStatus == BuildStatus.SUCCESSFUL) {
+                        final Link downloadLink =
+                                buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
+                        if (downloadLink == null) {
+                            throw new RunnerException("Unable start application. Application build is successful but there " +
+                                                      "is no URL for download result of build.");
+                        }
+                        final String downloadLinkHref = downloadLink.getHref();
+                        // Slave runner needs auth token to be able download binaries from Builder API.
+                        final String token = getAuthenticationToken();
+                        request.withDeploymentSourcesUrl(
+                                token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
+                        // get out from loop
+                        break;
+                    } else if (buildStatus == BuildStatus.CANCELLED || buildStatus == BuildStatus.FAILED) {
+                        String msg = "Unable start application. Build of application is failed or cancelled.";
+                        final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
+                        if (logLink != null) {
+                            msg += (" Build logs: " + logLink.getHref());
+                        }
+                        throw new RunnerException(msg);
+                    } else if (buildStatus == BuildStatus.IN_PROGRESS || buildStatus == BuildStatus.IN_QUEUE) {
+                        // wait
+                        LOG.debug("Build in of project '{}' from workspace '{}' is progress", request.getProject(),
+                                  request.getWorkspace());
+                    }
+                }
+            }
+
+            // List of runners that have enough resources for launch application.
+            final List<RemoteRunner> available = new LinkedList<>();
+            for (; ; ) {
+                for (RemoteRunner runner : matchedRunners) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        // Expected to get here if task is canceled. Stop immediately.
+                        return null;
+                    }
+                    RunnerState runnerState;
+                    try {
+                        runnerState = runner.getRemoteRunnerState();
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage(), e);
+                        continue;
+                    }
+                    if (runnerState.getServerState().getFreeMemory() >= request.getMemorySize()
+                        && hasEnoughSpaceOnDisk(runner.getName(), runner.getBaseUrl(), runnerState)) {
+
+                        available.add(runner);
+                    }
+                }
+                if (available.isEmpty()) {
+                    synchronized (this) {
+                        try {
+                            // Wait and try again.
+                            wait(checkAvailableRunnerPeriod);
+                        } catch (InterruptedException e) {
+                            // Expected to get here if task is canceled.
+                            Thread.currentThread().interrupt();
+                            return null;
+                        }
+                    }
+                } else {
+                    final RemoteRunner runner = available.size() > 1 ? runnerSelector.select(available) : available.get(0);
+                    LOG.debug("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
+                    return runner.run(request);
+                }
+            }
+        }
+
+        private boolean hasEnoughSpaceOnDisk(String name, String baseUrl, RunnerState runnerState) {
+            final long diskSpace = getTotalDiskSpace(runnerState);
+            if (diskSpace > 0) {
+                final long usedDiskSpace = getUsedDiskSpace(runnerState);
+                if (usedDiskSpace > 0) {
+                    final long freePercent = (long)((((double)diskSpace - usedDiskSpace) / diskSpace) * 100);
+                    if (freePercent < 5) {
+                        if (criticalDiskSpaceRunners.add(Pair.of(name, baseUrl))) {
+                            // In production error messages cause sending email with SMTPAppender.
+                            // Need remember runners with low disk space to avoid sending multiple emails.
+                            LOG.error("Skip runner '{}' at '{}' because of low disk space, {}% left", name, baseUrl, freePercent);
+                        }
+                        return false;
+                    } else if (freePercent < 10) {
+                        if (lowDiskSpaceRunners.add(Pair.of(name, baseUrl))) {
+                            // In production error messages cause sending email with SMTPAppender.
+                            // Need remember runners with low disk space to avoid sending multiple emails.
+                            LOG.error("Runner '{}' at '{}' is running out of disk space, {}% left.", name, baseUrl, freePercent);
+                        }
+                    }
+                }
+            }
+            // If don't have information about disk status let application run.
+            return true;
+        }
+
+        /** Gets total disk space available for running application in bytes or {@code -1} if this operation is not supported. */
+        private long getTotalDiskSpace(RunnerState runnerState) {
+            for (RunnerMetric metric : runnerState.getStats()) {
+                if (RunnerMetric.DISK_SPACE_TOTAL.equals(metric.getName())) {
+                    return Long.parseLong(metric.getValue());
+                }
+            }
+            return -1;
+        }
+
+        /** Gets disk space used for running application in bytes or {@code -1} if this operation is not supported. */
+        private long getUsedDiskSpace(RunnerState runnerState) {
+            for (RunnerMetric metric : runnerState.getStats()) {
+                if (RunnerMetric.DISK_SPACE_USED.equals(metric.getName())) {
+                    return Long.parseLong(metric.getValue());
+                }
+            }
+            return -1;
         }
     }
 
@@ -1349,8 +1417,9 @@ public class RunQueue {
                     switch (event.getType()) {
                         case PREPARATION_STARTED:
                             final String preparationStartLineFormat =
-                                    debug ? "EVENT#debug-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
-                                          : "EVENT#run-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                                    debug
+                                    ? "EVENT#debug-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                    : "EVENT#run-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
                             LOG.info(preparationStartLineFormat,
                                      workspace,
                                      user,

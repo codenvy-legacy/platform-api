@@ -21,6 +21,7 @@ import com.codenvy.api.factory.dto.FactoryV1_2;
 import com.codenvy.api.factory.dto.FactoryV2_0;
 import com.codenvy.api.factory.dto.Git;
 import com.codenvy.api.factory.dto.OnAppClosed;
+import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
@@ -348,9 +349,9 @@ public abstract class NonEncodedFactoryBuilder {
                     }
                 }
 
-                List<Action> actions1 = onProjectOpened.getActions();
-                for (int i = 0; i < actions1.size(); i++) {
-                    Action action = actions1.get(i);
+                List<Action> ideActions = onProjectOpened.getActions();
+                for (int i = 0; i < ideActions.size(); i++) {
+                    Action action = ideActions.get(i);
                     builder.append("&client.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
                         builder.append("&client.onProjectOpened.actions.").append(encode("["+i+"]")).append(".properties.")
@@ -371,17 +372,40 @@ public abstract class NonEncodedFactoryBuilder {
                     }
                 }
 
-                List<Action> actions1 = onAppClosed.getActions();
-                for (int i = 0; i < actions1.size(); i++) {
-                    Action action = actions1.get(i);
+                List<Action> ideActions = onAppClosed.getActions();
+                for (int i = 0; i < ideActions.size(); i++) {
+                    Action action = ideActions.get(i);
                     builder.append("&client.onAppClosed.actions.").append(encode("["+i+"]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
                         builder.append("&client.onAppClosed.actions.").append(encode("["+i+"]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
-
             }
+
+            final OnAppLoaded onAppLoaded = ide.getOnAppLoaded();
+            if (onAppLoaded != null) {
+                List<Part> parts = onAppLoaded.getParts();
+                for (int i = 0; i < parts.size(); i++) {
+                    Part part = parts.get(i);
+                    builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".id=").append(part.getId());
+                    for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
+                        builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".properties.")
+                               .append(property.getKey()).append("=").append(encode(property.getValue()));
+                    }
+                }
+
+                List<Action> ideActions = onAppLoaded.getActions();
+                for (int i = 0; i < ideActions.size(); i++) {
+                    Action action = ideActions.get(i);
+                    builder.append("&client.onAppLoaded.actions.").append(encode("["+i+"]")).append(".id=").append(action.getId());
+                    for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
+                        builder.append("&client.onAppLoaded.actions.").append(encode("["+i+"]")).append(".properties.")
+                               .append(property.getKey()).append("=").append(encode(property.getValue()));
+                    }
+                }
+            }
+
 
 
 

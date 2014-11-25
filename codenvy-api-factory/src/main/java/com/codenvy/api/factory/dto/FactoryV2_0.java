@@ -102,7 +102,7 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     /**
      * Describes ide look and feel.
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "client", format = BOTH)
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ide", format = BOTH)
     Ide getIde();
 
     void setIde(Ide button);

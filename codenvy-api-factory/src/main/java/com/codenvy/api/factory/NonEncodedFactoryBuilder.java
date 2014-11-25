@@ -11,13 +11,18 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.factory.dto.Actions;
+import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Author;
+import com.codenvy.api.factory.dto.Client;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV1_0;
 import com.codenvy.api.factory.dto.FactoryV1_1;
 import com.codenvy.api.factory.dto.FactoryV1_2;
 import com.codenvy.api.factory.dto.FactoryV2_0;
 import com.codenvy.api.factory.dto.Git;
+import com.codenvy.api.factory.dto.OnAppClosed;
+import com.codenvy.api.factory.dto.OnProjectOpened;
+import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.ProjectAttributes;
 import com.codenvy.api.factory.dto.Restriction;
@@ -328,6 +333,58 @@ public abstract class NonEncodedFactoryBuilder {
                 builder.append("&actions.findReplace=")
                        .append(encode(toJson(actions.getFindReplace())));
             }
+        }
+        final Client client = factory.getClient();
+        if (client != null) {
+            final OnProjectOpened onProjectOpened = client.getOnProjectOpened();
+            if (onProjectOpened != null) {
+                List<Part> parts = onProjectOpened.getParts();
+                for (int i = 0; i < parts.size(); i++) {
+                    Part part = parts.get(i);
+                    builder.append("&client.onProjectOpened.parts.").append(encode("["+i+"]")).append(".id=").append(part.getId());
+                    for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
+                        builder.append("&client.onProjectOpened.parts.").append(encode("[" + i + "]")).append(".properties.")
+                               .append(property.getKey()).append("=").append(encode(property.getValue()));
+                    }
+                }
+
+                List<Action> actions1 = onProjectOpened.getActions();
+                for (int i = 0; i < actions1.size(); i++) {
+                    Action action = actions1.get(i);
+                    builder.append("&client.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
+                    for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
+                        builder.append("&client.onProjectOpened.actions.").append(encode("["+i+"]")).append(".properties.")
+                               .append(property.getKey()).append("=").append(encode(property.getValue()));
+                    }
+                }
+
+            }
+            final OnAppClosed onAppClosed = client.getOnAppClosed();
+            if (onAppClosed != null) {
+                List<Part> parts = onAppClosed.getParts();
+                for (int i = 0; i < parts.size(); i++) {
+                    Part part = parts.get(i);
+                    builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".id=").append(part.getId());
+                    for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
+                        builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".properties.")
+                               .append(property.getKey()).append("=").append(encode(property.getValue()));
+                    }
+                }
+
+                List<Action> actions1 = onAppClosed.getActions();
+                for (int i = 0; i < actions1.size(); i++) {
+                    Action action = actions1.get(i);
+                    builder.append("&client.onAppClosed.actions.").append(encode("["+i+"]")).append(".id=").append(action.getId());
+                    for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
+                        builder.append("&client.onAppClosed.actions.").append(encode("["+i+"]")).append(".properties.")
+                               .append(property.getKey()).append("=").append(encode(property.getValue()));
+                    }
+                }
+
+            }
+
+
+
         }
     }
 

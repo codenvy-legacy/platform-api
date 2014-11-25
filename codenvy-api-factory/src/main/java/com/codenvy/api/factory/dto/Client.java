@@ -22,6 +22,7 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface Client {
+
     /**
      * @return configuration of IDE on application loaded event.
      */

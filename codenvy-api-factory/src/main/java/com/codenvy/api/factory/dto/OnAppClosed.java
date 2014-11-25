@@ -29,11 +29,11 @@ public interface OnAppClosed {
      * @return actions for current event.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions")
-    List<Actions1> getActions();
+    List<Action> getActions();
 
-    void setActions(List<Actions1> actions);
+    void setActions(List<Action> actions);
 
-    OnAppClosed withActions(List<Actions1> actions);
+    OnAppClosed withActions(List<Action> actions);
 
 
     /**

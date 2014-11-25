@@ -23,7 +23,7 @@ import java.util.Map;
  * @author Sergii Kabashniuk
  */
 @DTO
-public interface Actions1 {
+public interface Action {
     /**
      * Action Id
      *
@@ -34,7 +34,7 @@ public interface Actions1 {
 
     void setId(String id);
 
-    Actions1 withId(String id);
+    Action withId(String id);
 
     /***
      *
@@ -45,5 +45,5 @@ public interface Actions1 {
 
     void setProperties(Map<String, String> properties);
 
-    Actions1 withProperties(Map<String, String> properties);
+    Action withProperties(Map<String, String> properties);
 }

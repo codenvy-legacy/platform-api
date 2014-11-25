@@ -28,11 +28,11 @@ public interface OnAppLoaded {
      * @return actions for current event.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions")
-    List<Actions1> getActions();
+    List<Actions> getActions();
 
-    void setActions(List<Actions1> actions);
+    void setActions(List<Actions> actions);
 
-    OnAppLoaded withActions(List<Actions1> actions);
+    OnAppLoaded withActions(List<Actions> actions);
 
 
     /**

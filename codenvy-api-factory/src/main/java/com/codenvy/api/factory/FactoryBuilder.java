@@ -49,9 +49,11 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
@@ -428,6 +430,41 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     } else if (returnClass.isAnnotationPresent(DTO.class)) {
                         // use recursion if parameter is DTO object
                         param = buildDtoObject(queryParams, fullName, returnClass);
+                    } else if (List.class.isAssignableFrom(returnClass)) {
+                        Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0];
+                        Class listClass;
+                        if (tp instanceof ParameterizedType) {
+                            listClass = (Class)((ParameterizedType)tp).getRawType();
+                        } else {
+                            listClass = (Class)tp;
+                        }
+
+                        Set<String> keys = new TreeSet<>();
+                        for (String key : queryParams.keySet()) {
+                            if (key.startsWith(fullName)) {
+                                keys.add(key.substring(fullName.length() + 1, key.indexOf(".", fullName.length() + 1)));
+                            }
+                        }
+                        if (!keys.isEmpty()) {
+                            param = new ArrayList<>(keys.size());
+                            for (String key : keys) {
+                                Map<String, Set<String>> listQueryParams = new HashMap<>();
+                                Set<String> removeKeys = new HashSet<>();
+                                for (Map.Entry<String, Set<String>> queryParam : queryParams.entrySet()) {
+                                    String queryParamKey = queryParam.getKey();
+                                    if (queryParamKey.startsWith(fullName + "." + key + ".")) {
+                                        removeKeys.add(queryParamKey);
+                                        listQueryParams
+                                                .put(queryParamKey.substring(fullName.length() + key.length() + 2), queryParam.getValue());
+                                    }
+                                }
+                                ((List)param).add(buildDtoObject(listQueryParams, "", listClass));
+                                //cleanup in list of query params.
+                                for (String removeKey : removeKeys) {
+                                    queryParams.remove(removeKey);
+                                }
+                            }
+                        }
                     } else if (Map.class.isAssignableFrom(returnClass)) {
                         Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[1];
 

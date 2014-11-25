@@ -12,13 +12,14 @@ package com.codenvy.api.account.server;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Billing;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.PlanDao;
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.server.dao.SubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
-import com.codenvy.api.account.server.dao.Billing;
 import com.codenvy.api.account.shared.dto.BillingDescriptor;
 import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
@@ -29,9 +30,9 @@ import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
-import com.codenvy.api.account.server.dao.SubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributesDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -41,8 +42,8 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.User;
+import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -81,9 +82,8 @@ import java.util.List;
 import java.util.Set;
 
 import static com.codenvy.api.core.rest.shared.Links.createLink;
-import static java.util.Collections.singletonList;
-
 import static java.lang.String.format;
+import static java.util.Collections.singletonList;
 
 /**
  * Account API
@@ -101,6 +101,7 @@ public class AccountService extends Service {
     private final SubscriptionServiceRegistry     registry;
     private final PaymentService                  paymentService;
     private final PlanDao                         planDao;
+    private final ResourcesManager                resourcesManager;
     private final SubscriptionAttributesValidator subscriptionAttributesValidator;
 
     @Inject
@@ -109,12 +110,14 @@ public class AccountService extends Service {
                           SubscriptionServiceRegistry registry,
                           PaymentService paymentService,
                           PlanDao planDao,
+                          ResourcesManager resourcesManager,
                           SubscriptionAttributesValidator subscriptionAttributesValidator) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.registry = registry;
         this.paymentService = paymentService;
         this.planDao = planDao;
+        this.resourcesManager = resourcesManager;
         this.subscriptionAttributesValidator = subscriptionAttributesValidator;
     }
 
@@ -834,6 +837,36 @@ public class AccountService extends Service {
     public void remove(@ApiParam(value = "Account ID", required = true)
                        @PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
         accountDao.remove(id);
+    }
+
+    /**
+     * Redistributes resources between workspaces
+     *
+     * @param id
+     *         account id
+     * @param updateResourcesDescriptors
+     *         descriptor of resources for updating
+     * @throws ForbiddenException
+     *         when account hasn't permission for setting attribute in workspace
+     * @throws NotFoundException
+     *         when account or workspace with given id doesn't exist
+     * @throws ConflictException
+     *         when account hasn't required Saas subscription
+     *         or user want to use more RAM than he has
+     * @throws ServerException
+     */
+    @POST
+    @Path("/{id}/resources")
+    @RolesAllowed("account/owner")
+    public void redistributeResources(@ApiParam(value = "Account ID", required = true)
+                                      @PathParam("id") String id,
+                                      @ApiParam(value = "resources description", required = true)
+                                      @Required
+                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors) throws ForbiddenException,
+                                                                                                         ConflictException,
+                                                                                                         NotFoundException,
+                                                                                                         ServerException {
+        resourcesManager.redistributeResources(id, updateResourcesDescriptors);
     }
 
     /**

@@ -1231,7 +1231,7 @@ public class RunQueue {
                     try {
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                         String workspaceId = event.getWorkspace();
-                        bm.setChannel(String.format("runner:resources:%s", workspaceId));
+                        bm.setChannel(String.format("workspace:resources:%s", workspaceId));
 
                         final ResourcesDescriptor resourcesDescriptor =
                                 DtoFactory.getInstance().createDto(ResourcesDescriptor.class)

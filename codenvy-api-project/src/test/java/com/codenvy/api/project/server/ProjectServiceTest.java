@@ -426,7 +426,7 @@ public class ProjectServiceTest {
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
 
         GenerateDescriptor generateDescriptor = DtoFactory.getInstance().createDto(GenerateDescriptor.class)
-                                                          .withGeneratorName("my_generator");
+                                                          .withName("my_generator");
 
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
                                           .withType("my_project_type")

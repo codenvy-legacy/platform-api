@@ -230,10 +230,10 @@ public class ProjectService extends Service {
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
         final GenerateDescriptor generateDescriptor = newProject.getGenerateDescriptor();
         if (generateDescriptor != null) {
-            final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getGeneratorName());
+            final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getName());
             if (generator == null) {
                 throw new ServerException(
-                        String.format("Unable to generate project. Unknown generator '%s'.", generateDescriptor.getGeneratorName()));
+                        String.format("Unable to generate project. Unknown generator '%s'.", generateDescriptor.getName()));
             }
             generator.generateProject(project.getBaseFolder(), generateDescriptor.getOptions());
         }

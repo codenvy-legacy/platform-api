@@ -26,12 +26,12 @@ import java.util.Map;
 public interface GenerateDescriptor {
     /** Get name of project generator. */
     @ApiModelProperty(value = "Name of project generator", position = 1, required = true)
-    String getGeneratorName();
+    String getName();
 
     /** Set name of project generator. */
-    void setGeneratorName(String generatorName);
+    void setName(String generatorName);
 
-    GenerateDescriptor withGeneratorName(String generatorName);
+    GenerateDescriptor withName(String generatorName);
 
     /** Get options needed for generator. */
     @ApiModelProperty(value = "Options needed for generator", position = 2)

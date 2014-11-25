@@ -228,8 +228,17 @@ public class ProjectService extends Service {
             throws ConflictException, ForbiddenException, ServerException {
         final Project project = projectManager.createProject(workspace, name,
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
-        final String visibility = newProject.getVisibility();
+        final GenerateDescriptor generateDescriptor = newProject.getGenerateDescriptor();
+        if (generateDescriptor != null) {
+            final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getGeneratorName());
+            if (generator == null) {
+                throw new ServerException(
+                        String.format("Unable to generate project. Unknown generator '%s'.", generateDescriptor.getGeneratorName()));
+            }
+            generator.generateProject(project.getBaseFolder(), generateDescriptor.getOptions());
+        }
 
+        final String visibility = newProject.getVisibility();
         if (visibility != null) {
             project.setVisibility(visibility);
         }
@@ -794,47 +803,6 @@ public class ProjectService extends Service {
             projectProblems.add(problem);
             projectDescriptor.setProblems(projectProblems);
         }
-        return projectDescriptor;
-    }
-
-    @ApiOperation(value = "Generate a project",
-                  notes = "Generate a project of a particular type",
-                  response = ProjectDescriptor.class,
-                  position = 17)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = ""),
-            @ApiResponse(code = 403, message = "Forbidden operation"),
-            @ApiResponse(code = 409, message = "Resource already exists"),
-            @ApiResponse(code = 500, message = "Unable to generate project. Unknown generator is used")})
-    @POST
-    @Path("/generate/{path:.*}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor generateProject(@ApiParam(value = "Workspace ID", required = true)
-                                             @PathParam("ws-id") String workspace,
-                                             @ApiParam(value = "Path to a new project", required = true)
-                                             @PathParam("path") String path,
-                                             @Description("descriptor of project generator") GenerateDescriptor generateDescriptor)
-            throws ConflictException, ForbiddenException, ServerException {
-        final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getGeneratorName());
-        if (generator == null) {
-            throw new ServerException(
-                    String.format("Unable generate project. Unknown generator '%s'.", generateDescriptor.getGeneratorName()));
-        }
-        Project project = projectManager.getProject(workspace, path);
-        if (project == null) {
-            project = projectManager.createProject(workspace, path, new ProjectDescription());
-        }
-        generator.generateProject(project.getBaseFolder(), generateDescriptor.getOptions());
-        final String visibility = generateDescriptor.getProjectVisibility();
-        if (visibility != null) {
-            project.setVisibility(visibility);
-        }
-        final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
-        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
-                 projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                 EnvironmentContext.getCurrent().getUser().getName());
         return projectDescriptor;
     }
 

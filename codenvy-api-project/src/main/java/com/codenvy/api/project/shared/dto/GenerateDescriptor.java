@@ -41,13 +41,4 @@ public interface GenerateDescriptor {
     void setOptions(Map<String, String> options);
 
     GenerateDescriptor withOptions(Map<String, String> options);
-
-    /** Get project visibility, e.g. private or public. */
-    @ApiModelProperty(value = "Visibility for new project", allowableValues = "public,private", position = 3)
-    String getProjectVisibility();
-
-    /** Set project visibility, e.g. private or public. */
-    void setProjectVisibility(String projectVisibility);
-
-    GenerateDescriptor withProjectVisibility(String projectVisibility);
 }

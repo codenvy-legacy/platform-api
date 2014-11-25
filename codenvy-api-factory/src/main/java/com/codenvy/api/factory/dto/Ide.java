@@ -21,7 +21,7 @@ import com.codenvy.dto.shared.DTO;
  * @author Sergii Kabashniuk
  */
 @DTO
-public interface Client {
+public interface Ide {
 
     /**
      * @return configuration of IDE on application loaded event.
@@ -31,7 +31,7 @@ public interface Client {
 
     void setOnAppLoaded(OnAppLoaded onAppLoaded);
 
-    Client withOnAppLoaded(OnAppLoaded onAppLoaded);
+    Ide withOnAppLoaded(OnAppLoaded onAppLoaded);
 
     /**
      * @return configuration of IDE on application closed event.
@@ -41,7 +41,7 @@ public interface Client {
 
     void setOnAppClosed(OnAppClosed onAppClosed);
 
-    Client withOnAppClosed(OnAppClosed onAppClosed);
+    Ide withOnAppClosed(OnAppClosed onAppClosed);
 
     /**
      * @return configuration of IDE on project opened event.
@@ -51,6 +51,6 @@ public interface Client {
 
     void setOnProjectOpened(OnProjectOpened onProjectOpened);
 
-    Client withOnProjectOpened(OnProjectOpened onProjectOpened);
+    Ide withOnProjectOpened(OnProjectOpened onProjectOpened);
 
 }

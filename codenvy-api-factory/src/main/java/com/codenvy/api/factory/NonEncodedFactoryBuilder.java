@@ -13,7 +13,7 @@ package com.codenvy.api.factory;
 import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Author;
-import com.codenvy.api.factory.dto.Client;
+import com.codenvy.api.factory.dto.Ide;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV1_0;
 import com.codenvy.api.factory.dto.FactoryV1_1;
@@ -334,9 +334,9 @@ public abstract class NonEncodedFactoryBuilder {
                        .append(encode(toJson(actions.getFindReplace())));
             }
         }
-        final Client client = factory.getClient();
-        if (client != null) {
-            final OnProjectOpened onProjectOpened = client.getOnProjectOpened();
+        final Ide ide = factory.getIde();
+        if (ide != null) {
+            final OnProjectOpened onProjectOpened = ide.getOnProjectOpened();
             if (onProjectOpened != null) {
                 List<Part> parts = onProjectOpened.getParts();
                 for (int i = 0; i < parts.size(); i++) {
@@ -359,7 +359,7 @@ public abstract class NonEncodedFactoryBuilder {
                 }
 
             }
-            final OnAppClosed onAppClosed = client.getOnAppClosed();
+            final OnAppClosed onAppClosed = ide.getOnAppClosed();
             if (onAppClosed != null) {
                 List<Part> parts = onAppClosed.getParts();
                 for (int i = 0; i < parts.size(); i++) {

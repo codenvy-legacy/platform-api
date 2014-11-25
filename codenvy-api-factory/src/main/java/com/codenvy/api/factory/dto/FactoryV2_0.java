@@ -81,11 +81,12 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     /**
      * Describes actions that should be done after loading of the IDE
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions")
     Actions getActions();
-
+    @Deprecated
     void setActions(Actions actions);
-
+    @Deprecated
     FactoryV2_0 withActions(Actions actions);
 
     /**
@@ -102,10 +103,10 @@ public interface FactoryV2_0 extends FactoryV1_2 {
      * Describes ide look and feel.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "client", format = BOTH)
-    Client getClient();
+    Ide getIde();
 
-    void setClient(Client button);
+    void setIde(Ide button);
 
-    FactoryV2_0 withClient(Client button);
+    FactoryV2_0 withIde(Ide button);
 
 }

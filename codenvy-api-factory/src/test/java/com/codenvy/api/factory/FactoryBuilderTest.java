@@ -18,7 +18,7 @@ import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
-import com.codenvy.api.factory.dto.Client;
+import com.codenvy.api.factory.dto.Ide;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV1_1;
 import com.codenvy.api.factory.dto.Git;
@@ -291,35 +291,35 @@ public class FactoryBuilderTest {
               .withWorkspace(dto.createDto(Workspace.class)
                                 .withTemp(true)
                                 .withAttributes(singletonMap("key", "value")))
-              .withClient(dto.createDto(Client.class)
-                             .withOnAppClosed(
-                                     dto.createDto(OnAppClosed.class)
-                                        .withActions(singletonList(dto.createDto(Action.class).withId("warnonclose"))))
-                             .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
-                                                     .withActions(Arrays.asList(
-                                                             dto.createDto(Action.class)
-                                                                .withId("openfile")
-                                                                .withProperties(singletonMap("file", "pom.xml")),
-                                                             dto.createDto(Action.class)
-                                                                .withId("run"),
-                                                             dto.createDto(Action.class)
-                                                                .withId("findReplace")
-                                                                .withProperties(
-                                                                        ImmutableMap.of(
-                                                                                "in", "src/main/resources/consts2.properties",
-                                                                                "find", "OLD_VALUE_2",
-                                                                                "replace", "NEW_VALUE_2"
-                                                                                       ))))
-                                                     .withParts(singletonList(dto.createDto(Part.class)
-                                                                                 .withId("welcomepanel")
-                                                                                 .withProperties(ImmutableMap.of(
-                                                                                         "authenticatedTitle",
-                                                                                         "Greeting title for authenticated users",
-                                                                                         "authenticatedIconUrl",
-                                                                                         "http://example.com/icon.url",
-                                                                                         "authenticatedContentUrl",
-                                                                                         "http://example.com/content.url"
-                                                                                                                ))))));
+              .withIde(dto.createDto(Ide.class)
+                          .withOnAppClosed(
+                                  dto.createDto(OnAppClosed.class)
+                                     .withActions(singletonList(dto.createDto(Action.class).withId("warnonclose"))))
+                          .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
+                                                  .withActions(Arrays.asList(
+                                                          dto.createDto(Action.class)
+                                                             .withId("openfile")
+                                                             .withProperties(singletonMap("file", "pom.xml")),
+                                                          dto.createDto(Action.class)
+                                                             .withId("run"),
+                                                          dto.createDto(Action.class)
+                                                             .withId("findReplace")
+                                                             .withProperties(
+                                                                     ImmutableMap.of(
+                                                                             "in", "src/main/resources/consts2.properties",
+                                                                             "find", "OLD_VALUE_2",
+                                                                             "replace", "NEW_VALUE_2"
+                                                                                    ))))
+                                                  .withParts(singletonList(dto.createDto(Part.class)
+                                                                              .withId("welcomepanel")
+                                                                              .withProperties(ImmutableMap.of(
+                                                                                      "authenticatedTitle",
+                                                                                      "Greeting title for authenticated users",
+                                                                                      "authenticatedIconUrl",
+                                                                                      "http://example.com/icon.url",
+                                                                                      "authenticatedContentUrl",
+                                                                                      "http://example.com/content.url"
+                                                                                                             ))))));
 
         factoryBuilder.checkValid(actual, ENCODED);
 
@@ -371,7 +371,7 @@ public class FactoryBuilderTest {
               .withWorkspace(dto.createDto(Workspace.class)
                                 .withTemp(true)
                                 .withAttributes(singletonMap("key", "value")))
-              .withClient(dto.createDto(Client.class)
+              .withIde(dto.createDto(Ide.class)
                              .withOnAppClosed(
                                      dto.createDto(OnAppClosed.class)
                                         .withActions(singletonList(dto.createDto(Action.class).withId("warnonclose"))))
@@ -785,7 +785,7 @@ public class FactoryBuilderTest {
                                           put("key2", "value2");
                                       }
                                   }))
-                .withClient(dto.createDto(Client.class)
+                .withIde(dto.createDto(Ide.class)
                                .withOnAppClosed(
                                        dto.createDto(OnAppClosed.class)
                                           .withActions(singletonList(dto.createDto(Action.class).withId("warnonclose"))))

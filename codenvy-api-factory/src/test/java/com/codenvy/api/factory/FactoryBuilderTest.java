@@ -320,8 +320,6 @@ public class FactoryBuilderTest {
                                                                                          "authenticatedContentUrl",
                                                                                          "http://example.com/content.url"
                                                                                                                 ))))));
-//        System.out.println(factoryBuilder.buildNonEncoded(actual));
-//        System.out.println(dto.toJson(actual));
 
         factoryBuilder.checkValid(actual, ENCODED);
 
